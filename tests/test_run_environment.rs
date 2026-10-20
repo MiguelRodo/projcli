@@ -1,4 +1,6 @@
-use std::{fs, path::{Path, PathBuf}, process::Command, sync::{Arc, Barrier}, time::{Duration, Instant}};
+#[cfg(unix)]
+use std::path::Path;
+use std::{fs, path::PathBuf, process::Command, sync::{Arc, Barrier}, time::{Duration, Instant}};
 
 #[test]
 fn overlapping_library_builds_keep_profiles_values_and_parent_environment_independent() {
