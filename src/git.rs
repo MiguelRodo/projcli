@@ -4,6 +4,27 @@ use std::process::Command;
 
 use std::io::Write;
 
+/// Resolve Git explicitly: Windows otherwise may search the parent's PATH.
+pub(crate) fn git_command_in(root: Option<&camino::Utf8Path>, environment: &RunEnvironment) -> anyhow::Result<Command> {
+    let directory = match root {
+        Some(root) => root.as_std_path().to_owned(),
+        None => environment.value(crate::PROJECT_ROOT_ENV).map(std::path::PathBuf::from)
+            .unwrap_or(std::env::current_dir()?),
+    };
+    let search = environment.value("PATH").unwrap_or(std::ffi::OsStr::new(""));
+    for entry in std::env::split_paths(search) {
+        let entry = if entry.is_absolute() { entry } else { directory.join(entry) };
+        let candidate = entry.join(if cfg!(windows) { "git.exe" } else { "git" });
+        if !candidate.is_file() { continue; }
+        #[cfg(unix)] {
+            use std::os::unix::fs::PermissionsExt;
+            if std::fs::metadata(&candidate)?.permissions().mode() & 0o111 == 0 { continue; }
+        }
+        return Ok(environment.command(candidate));
+    }
+    anyhow::bail!("Git executable is missing from the resolved PATH")
+}
+
 pub trait GitProvider {
     fn is_available(&self) -> bool;
     fn get_user_name(&self) -> Option<String>;
@@ -25,7 +46,7 @@ impl SystemGit {
 
     // Helper to execute standard git actions safely with uniform string handling
     fn run_cmd(&self, args: &[&str]) -> anyhow::Result<String> {
-        let output = self.environment.command("git")
+        let output = git_command_in(Some(&self.repo_path), &self.environment)?
             .current_dir(&self.repo_path)
             .args(args)
             .output()
@@ -39,10 +60,13 @@ impl SystemGit {
     }
 
     fn network_command(&self, action: &str, remote: &str, reference: Option<&str>) -> anyhow::Result<()> {
-        let mut arguments = vec![action, "--", remote];
+        let mut arguments = if action == "push" {
+            vec![action, "--no-follow-tags", "--recurse-submodules=no", "--", remote]
+        } else { vec![action, "--recurse-submodules=no", "--", remote] };
         if let Some(reference) = reference { arguments.push(reference); }
-        let url = if action == "push" { self.run_cmd(&["remote", "get-url", "--push", "--", remote])? }
-            else { self.run_cmd(&["remote", "get-url", "--", remote])? };
+        let url = if action == "push" { self.run_cmd(&["remote", "get-url", "--push", "--all", "--", remote])? }
+            else { self.run_cmd(&["remote", "get-url", "--all", "--", remote])? };
+        if url.lines().count() != 1 { anyhow::bail!("Multiple Git network destinations are unsupported"); }
         let github_https = url.strip_prefix("https://").and_then(|tail| tail.split('/').next())
             .is_some_and(|host| host.eq_ignore_ascii_case("github.com"));
         let override_enabled = self.environment.text("PROJCLI_GIT_TOKEN_OVERRIDE") == Some("true");
@@ -61,8 +85,8 @@ impl SystemGit {
 
 impl GitProvider for SystemGit {
     fn is_available(&self) -> bool {
-        // Quick check to see if the executable exists in PATH and runs
-        self.environment.command("git").arg("--version").output().is_ok()
+        git_command_in(Some(&self.repo_path), &self.environment).and_then(|mut command| Ok(command.arg("--version").output()?))
+            .map(|output| output.status.success()).unwrap_or(false)
     }
 
     fn get_user_name(&self) -> Option<String> {
@@ -75,7 +99,7 @@ impl GitProvider for SystemGit {
 
     fn commit_all(&self, message: &str) -> anyhow::Result<()> {
         self.run_cmd(&["add", "-A"])?;
-        let output = self.environment.command("git").current_dir(&self.repo_path)
+        let output = git_command_in(Some(&self.repo_path), &self.environment)?.current_dir(&self.repo_path)
             .args(["diff", "--cached", "--quiet"]).output()?;
         match output.status.code() {
             Some(0) => return Ok(()),
@@ -139,7 +163,7 @@ pub(crate) fn get_github_token_in(environment: &RunEnvironment) -> anyhow::Resul
     }
 
     // Track B: System Git Credential Helper Interrogation
-    let mut child = environment.command("git")
+    let mut child = git_command_in(None, environment)?
         .args(["credential", "fill"])
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
@@ -191,7 +215,7 @@ pub(crate) fn execute_authenticated_git_in(args: &[&str], token: &str, current_d
     }
     // Fixed code only. Secret bytes are passed as environment data, never argv/code.
 
-    let mut command = environment.command("git");
+    let mut command = git_command_in(current_dir, environment)?;
     command.args(["-c", "credential.helper=", "-c"])
         .arg(format!("credential.helper={TOKEN_HELPER}"))
         .env("PROJCLI_GIT_TOKEN", token).env("GIT_TERMINAL_PROMPT", "0").args(args);
@@ -205,17 +229,17 @@ pub(crate) fn tracking_target_in(root: &camino::Utf8Path, environment: &RunEnvir
     let git = SystemGit { repo_path: root.to_owned(), environment: environment.clone() };
     let branch = git.run_cmd(&["symbolic-ref", "--quiet", "--short", "HEAD"])
         .context("Git publication requires a checked-out branch")?;
-    let remote = git.run_cmd(&["config", "--get", &format!("branch.{branch}.remote")])
+    let remote = git.run_cmd(&["config", "--get-all", &format!("branch.{branch}.remote")])
         .context("Configured Git operation requires the current branch's tracking remote")?;
-    let reference = git.run_cmd(&["config", "--get", &format!("branch.{branch}.merge")])
+    let reference = git.run_cmd(&["config", "--get-all", &format!("branch.{branch}.merge")])
         .context("Configured Git operation requires the current branch's tracking reference")?;
-    if remote.is_empty() || !reference.starts_with("refs/heads/") || reference == "refs/heads/" {
+    if remote.is_empty() || remote.lines().count() != 1 || reference.lines().count() != 1 || !reference.starts_with("refs/heads/") || reference == "refs/heads/" {
         anyhow::bail!("Invalid current-branch tracking configuration");
     }
     if remote.contains(['\n', '\r', '\0']) {
         anyhow::bail!("Invalid tracking remote name");
     }
-    let checked = environment.command("git").current_dir(root).args(["check-ref-format", &reference]).output()?;
+    let checked = git_command_in(Some(root), environment)?.current_dir(root).args(["check-ref-format", &reference]).output()?;
     if !checked.status.success() { anyhow::bail!("Invalid tracking branch reference"); }
     Ok((remote, reference))
 }
@@ -225,8 +249,8 @@ pub(crate) fn push_target_in(root: &camino::Utf8Path, environment: &RunEnvironme
     let git = SystemGit { repo_path: root.to_owned(), environment: environment.clone() };
     let branch = git.run_cmd(&["symbolic-ref", "--quiet", "--short", "HEAD"])?;
     // ponytail: one current-upstream push; reject custom routes until explicitly modeled.
-    for key in [format!("branch.{branch}.pushRemote"), "remote.pushDefault".to_string(), format!("remote.{}.push", target.0)] {
-        let output = environment.command("git").current_dir(root).args(["config", "--get", &key]).output()?;
+    for key in [format!("branch.{branch}.pushRemote"), "remote.pushDefault".to_string(), format!("remote.{}.push", target.0), format!("remote.{}.pushurl", target.0)] {
+        let output = git_command_in(Some(root), environment)?.current_dir(root).args(["config", "--get", &key]).output()?;
         match output.status.code() {
             Some(1) => {}
             Some(0) if output.stdout.iter().all(u8::is_ascii_whitespace) => {}
@@ -234,6 +258,20 @@ pub(crate) fn push_target_in(root: &camino::Utf8Path, environment: &RunEnvironme
             _ => anyhow::bail!("Cannot inspect Git push routing"),
         }
     }
+    let mirror = git_command_in(Some(root), environment)?.current_dir(root)
+        .args(["config", "--type=bool", "--get-all", &format!("remote.{}.mirror", target.0)]).output()?;
+    match mirror.status.code() {
+        Some(1) => {}
+        Some(0) if String::from_utf8_lossy(&mirror.stdout).trim() == "false" => {}
+        Some(0) => anyhow::bail!("Git mirror publication is unsupported"),
+        _ => anyhow::bail!("Cannot inspect Git mirror configuration"),
+    }
+    let fetch = git.run_cmd(&["remote", "get-url", "--all", "--", &target.0])?;
+    let destinations = git.run_cmd(&["remote", "get-url", "--push", "--all", "--", &target.0])?;
+    if fetch.lines().count() != 1 || destinations.lines().count() != 1 {
+        anyhow::bail!("Multiple Git push destinations are unsupported");
+    }
+    if fetch != destinations { anyhow::bail!("Separate effective Git push endpoints are unsupported"); }
     Ok(target)
 }
 
@@ -243,7 +281,7 @@ pub(crate) fn fetch_remote_in(root: &camino::Utf8Path, remote: &str, environment
 
 pub(crate) fn require_clean_git_in(root: &camino::Utf8Path, environment: &RunEnvironment) -> anyhow::Result<()> {
     let git = SystemGit { repo_path: root.to_owned(), environment: environment.clone() };
-    if !git.run_cmd(&["status", "--porcelain"])?.is_empty() {
+    if !git.run_cmd(&["status", "--porcelain", "--untracked-files=all", "--ignore-submodules=none"])?.is_empty() {
         anyhow::bail!("Git commit requested but the repository already contains changes; resolve them before building");
     }
     Ok(())
@@ -255,11 +293,8 @@ pub fn is_git_installed() -> bool {
 }
 
 pub(crate) fn is_git_installed_in(environment: &RunEnvironment) -> bool {
-    environment.command("git")
-        .arg("--version")
-        .output()
-        .map(|out| out.status.success())
-        .unwrap_or(false)
+    git_command_in(None, environment).and_then(|mut command| Ok(command.arg("--version").output()?))
+        .map(|output| output.status.success()).unwrap_or(false)
 }
 
 /// Queries local, global, and system variables via `git config --get user.name` and `git config --get user.email`.
@@ -270,7 +305,7 @@ pub fn check_git_profile(current_dir: Option<&camino::Utf8Path>) -> anyhow::Resu
 
 pub(crate) fn check_git_profile_in(current_dir: Option<&camino::Utf8Path>, environment: &RunEnvironment) -> anyhow::Result<()> {
     let check_config = |key: &str| -> anyhow::Result<()> {
-        let mut cmd = environment.command("git");
+        let mut cmd = git_command_in(current_dir, environment)?;
         cmd.args(["config", "--get", key]);
         if let Some(dir) = current_dir {
             cmd.current_dir(dir);

@@ -692,3 +692,20 @@ PR143 reviewer note: the shared Windows ASCII assignment restriction also applie
 to public legacy EnvGuard::track_and_set, not just file-based keys. Inherited native
 environment values remain preserved; the legacy mutation APIs remain outside the
 build-path concurrency guarantee.
+
+
+PR144 review guards force untracked-file and submodule visibility during the clean
+check, reject pushurl and multiple effective push URLs before writes, and disable
+follow-tags/submodule recursion for the single explicit push. Extra destinations
+are also checked at dispatch. Git's executable is resolved explicitly from the
+per-run PATH (git.exe on Windows), avoiding native parent-PATH fallback in both
+availability checks and execution. Remote fixtures cover hidden untracked content,
+fan-out/redirection rejection and explicit suppression flags. Fresh exact-head
+checks and independent re-review are required.
+
+The same preflight also rejects mirror pushes, absent remotes, multiple tracking
+merge entries and effective push/fetch endpoint differences (including expanded
+pushInsteadOf). Destination inspection uses get-url --push --all before controlled
+build writes. Native Git configuration is read only; no remote/auth settings are
+rewritten. Fake regressions assert each unsupported case preserves VERSION and
+unrelated private bytes and never reaches add/commit/fetch/push.

@@ -37,15 +37,24 @@ while args[:1] == ['-c']: args = args[2:]
 action = args[0] if args else ''
 if action == 'config':
  key = args[-1]
- if key.endswith('.pushRemote') or key == 'remote.pushDefault' or key.endswith('.push'):
-  if os.environ.get('TEST_CUSTOM_PUSH') == '1': print('custom-route')
+ if key.endswith('.pushRemote') or key == 'remote.pushDefault' or key.endswith('.push') or key.endswith('.pushurl'):
+  if os.environ.get('TEST_CUSTOM_PUSH') == '1' or (key.endswith('.pushurl') and os.environ.get('TEST_PUSHURL') == '1'): print('custom-route')
   else: raise SystemExit(1)
  elif key.endswith('.remote'): print('upstream')
- elif key.endswith('.merge'): print('refs/heads/release-target')
+ elif key.endswith('.merge'):
+  print('refs/heads/release-target')
+  if os.environ.get('TEST_MULTIPLE_MERGE') == '1': print('refs/heads/other')
+ elif key.endswith('.mirror'): print('true' if os.environ.get('TEST_MIRROR') == '1' else 'false')
  else: print('fixture')
 elif action == 'symbolic-ref': print('feature/analysis')
-elif action == 'remote': print(os.environ.get('TEST_REMOTE_URL', 'https://github.com/example/repo.git'))
-elif action == 'status' and os.environ.get('TEST_DIRTY') == '1': print(' M unrelated.txt')
+elif action == 'remote':
+ if os.environ.get('TEST_MISSING_REMOTE') == '1': raise SystemExit(2)
+ if '--push' in args and os.environ.get('TEST_PUSH_INSTEADOF') == '1': print('https://other.example/redirected.git')
+ else: print(os.environ.get('TEST_REMOTE_URL', 'https://github.com/example/repo.git'))
+ if os.environ.get('TEST_MULTIPLE_URLS') == '1': print('https://other.example/second.git')
+elif action == 'status':
+ if os.environ.get('TEST_DIRTY') == '1': print(' M unrelated.txt')
+ elif os.environ.get('TEST_HIDDEN_UNTRACKED') == '1' and '--untracked-files=all' in args: print('?? private.txt')
 elif action == 'diff': raise SystemExit(1 if os.environ.get('TEST_STAGED') == '1' else 0)
 elif action == 'rev-list': print('0')
 elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
@@ -102,7 +111,7 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
         assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
         let calls = calls(root);
         let fetch = calls.iter().find(|call| action(call) == "fetch").unwrap();
-        assert_eq!(fetch["args"], serde_json::json!(["fetch", "--", "upstream"]));
+        assert_eq!(fetch["args"], serde_json::json!(["fetch", "--recurse-submodules=no", "--", "upstream"]));
         assert!(!calls.iter().any(|call| ["add", "commit", "push", "credential"].contains(&action(call))));
         assert!(!root.join("gh-called").exists());
     }
@@ -118,7 +127,9 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
             let calls = calls(root);
             let push = calls.iter().find(|call| action(call) == "push").unwrap();
             let args = push["args"].as_array().unwrap();
-            assert_eq!(&args[args.len()-4..], &serde_json::json!(["push", "--", "upstream", "HEAD:refs/heads/release-target"]).as_array().unwrap()[..]);
+            assert_eq!(&args[args.len()-3..], &serde_json::json!(["--", "upstream", "HEAD:refs/heads/release-target"]).as_array().unwrap()[..]);
+            assert!(args.iter().any(|value| value == "--no-follow-tags"));
+            assert!(args.iter().any(|value| value == "--recurse-submodules=no"));
             assert_eq!(push["private_token"], expected_token);
             assert!(!fs::read_to_string(root.join("git-calls.jsonl")).unwrap().contains(token));
             assert!(!calls.iter().any(|call| action(call) == "fetch"));
@@ -156,6 +167,23 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
         assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");
         assert!(!root.join(".gitignore").exists());
         assert!(!calls(root).iter().any(|call| ["add", "commit", "push", "fetch"].contains(&action(call))));
+    }
+
+
+    #[test]
+    fn hidden_untracked_content_and_extra_push_destinations_fail_before_mutation() {
+        for setting in ["TEST_HIDDEN_UNTRACKED", "TEST_PUSHURL", "TEST_MULTIPLE_URLS", "TEST_MIRROR", "TEST_PUSH_INSTEADOF", "TEST_MISSING_REMOTE", "TEST_MULTIPLE_MERGE"] {
+            let project = tempfile::tempdir().unwrap(); let root = project.path(); let path = fixture(root);
+            fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
+            fs::write(root.join("private.txt"), "untracked private fixture").unwrap();
+            fs::write(root.join("_proj.yml"), "build:\n  scripts: []\n  git:\n    commit: true\n    push: true\n").unwrap();
+            let output = command(root, &path).env(setting, "1").output().unwrap();
+            assert!(!output.status.success(), "{setting}");
+            assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");
+            assert_eq!(fs::read_to_string(root.join("private.txt")).unwrap(), "untracked private fixture");
+            assert!(!root.join(".gitignore").exists());
+            assert!(!calls(root).iter().any(|call| ["add", "commit", "push", "fetch"].contains(&action(call))));
+        }
     }
 
 }

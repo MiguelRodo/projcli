@@ -1,7 +1,7 @@
 use crate::run_environment::RunEnvironment;
 use std::io::{self, BufRead, IsTerminal};
 use anyhow::Context;
-use crate::git::{create_git_provider_in, tracking_target_in, fetch_remote_in};
+use crate::git::{create_git_provider_in, tracking_target_in, fetch_remote_in, git_command_in};
 use crate::yml::GlobalConfig;
 
 pub fn pre_flight_git_check(config: &GlobalConfig, repo_dir: &camino::Utf8Path) -> anyhow::Result<()> {
@@ -130,7 +130,7 @@ pub(crate) fn run_pre_flight_checks_in(
     if is_prod_run {
         let restrictions = &config.restrictions;
         if restrictions.only_branches.is_some() || restrictions.not_branches.is_some() {
-            let output = environment.command("git").current_dir(project_root)
+            let output = git_command_in(Some(project_root), environment)?.current_dir(project_root)
                 .args(["symbolic-ref", "--quiet", "--short", "HEAD"]).output()
                 .context("Cannot inspect branch for configured Git restrictions")?;
             if !output.status.success() { anyhow::bail!("Configured Git restrictions require a checked-out branch"); }
@@ -145,7 +145,7 @@ pub(crate) fn run_pre_flight_checks_in(
         if restrictions.not_behind == Some(true) {
             let (remote, _) = tracking_target_in(project_root, environment)?;
             fetch_remote_in(project_root, &remote, environment)?;
-            let output = environment.command("git").current_dir(project_root)
+            let output = git_command_in(Some(project_root), environment)?.current_dir(project_root)
                 .args(["rev-list", "--count", "HEAD..@{u}"]).output()?;
             if !output.status.success() { anyhow::bail!("Cannot inspect configured upstream state"); }
             let count: usize = String::from_utf8(output.stdout)?.trim().parse().context("Invalid upstream comparison result")?;
