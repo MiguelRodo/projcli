@@ -62,7 +62,11 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     // ==========================================
     // STEP A: Activate Environment Guard
     // ==========================================
-    let _env_guard = crate::env::EnvGuard::activate(cli_profile, project_root).context("Failed to activate environment guard")?;
+    let _env_guard = if is_dev {
+        crate::env::EnvGuard::activate_for_preview(cli_profile, project_root)
+    } else {
+        crate::env::EnvGuard::activate(cli_profile, project_root)
+    }.context("Failed to activate environment guard")?;
 
     // ==========================================
     // STEP B: Pre-Build Validation & Execution
@@ -206,7 +210,9 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
                 found_ver.context("Could not extract a valid Version from DESCRIPTION file")?
             } else {
                 let v = crate::version::ProjVersion { major: 0, minor: 0, patch: 1, dev: 0 };
-                version_set_at(project_root, &v.to_string(true)).context("Failed to initialize a VERSION file")?;
+                if !is_dev {
+                    version_set_at(project_root, &v.to_string(true)).context("Failed to initialize a VERSION file")?;
+                }
                 v
             }
         }
@@ -219,16 +225,13 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     let clear_output_env = std::env::var("PROJR_CLEAR_OUTPUT").ok();
     let clear_output_val = clear_output_env.as_deref().or(config.clear_output.as_deref());
 
-    crate::clear::clear_old(project_root, &current_version, is_dev, config.old_dev_remove)?;
-    crate::clear::clear_pre(project_root, &current_version, &config, clear_output_val)?;
+    if !is_dev {
+        crate::clear::clear_old(project_root, &current_version, is_dev, config.old_dev_remove)?;
+        crate::clear::clear_pre(project_root, &current_version, &config, clear_output_val)?;
+    }
 
     // 5. Version Bump
-    if is_dev {
-        if initial_version.dev == 0 {
-            initial_version.dev = 1;
-            version_set_at(project_root, &initial_version.to_string(false))?;
-        }
-    } else {
+    if !is_dev {
         match mode {
             BuildMode::ProdMajor => {
                 initial_version.major += 1;
@@ -344,11 +347,13 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
             let is_single_doc_engine = !quarto_exists && !bookdown_exists;
             let clear_output_env = std::env::var("PROJR_CLEAR_OUTPUT").ok();
             let clear_output_val = clear_output_env.as_deref().or(config.clear_output.as_deref());
-            crate::clear::clear_post(project_root, is_dev, &config, clear_output_val, is_single_doc_engine)?;
+            if !is_dev {
+                crate::clear::clear_post(project_root, is_dev, &config, clear_output_val, is_single_doc_engine)?;
+            }
 
             // Copy docs
             let should_run_output = config.output_run.unwrap_or(true);
-            if should_run_output {
+            if should_run_output && !is_dev {
                 let final_docs_dir = original_docs_path.clone().unwrap_or_else(|| project_root.join("docs").into());
                 let cache_docs_dir = project_root.join("_tmp").join("projr").join(&current_version).join("docs");
 
@@ -415,7 +420,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
             }
 
             // Execute Remote Export Pipelines
-            if !config.dest.is_empty() {
+            if !is_dev && !config.dest.is_empty() {
                 if let Some(remotes) = &config.remotes.local {
                     for dest_target in &config.dest {
                         if let Some(remote) = remotes.get(dest_target) {
