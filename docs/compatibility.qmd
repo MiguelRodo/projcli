@@ -657,6 +657,36 @@ key. ASCII case precedence and native non-Unicode values retain their dedicated
 platform tests. Unicode alias rejection is tested on Windows before analysis or
 authoritative writes; complete Unicode assignment-key support is not claimed.
 
+## Captured-root execution and explicit renderer layouts
+
+**Different/new, approved root policy:** relative to pinned projr
+`3ac29595d0e39552495d863661b99ea015d59d3d` (`R/engine.R`, `R/path.R`) and the
+audited Rust script-parent cwd, scripts/hooks now start in the captured root.
+Shallow default enumeration and explicitly selected nested paths are preserved.
+Quarto uses its supported `--execute-dir`; individual R Markdown supplies
+`knit_root_dir`. R Markdown filenames are trailing data arguments to fixed R code,
+avoiding apostrophe/source interpolation. See [Rscript arguments](https://stat.ethz.ch/R-manual/R-devel/library/utils/html/Rscript.html),
+[rmarkdown render](https://rmarkdown.rstudio.com/docs/reference/render.html), and
+[Quarto render controls](https://quarto.org/docs/cli/render.html).
+
+**Different/new, conservative supported subset:** native R Markdown `output` and
+Quarto `format` select one known format; PDF/Word no longer guess HTML. Unknown or
+multiple formats, individual inherited metadata/unsupported output layouts,
+document-rendering hooks and nested Quarto roots fail early. This deliberately
+rejects previously guessed/unsafe layouts rather than claiming full renderer support.
+`clear_output` and ignore choices are finite early-validated values. No R production
+code changes, direct IDE verification or automatic preview isolation are included.
+
+Ponytail full-mode review traced execution/preflight/promotion callers and reused
+existing YAML, command/environment and path safety facilities without new dependencies.
+Remote regressions are prepared for real nested Python hook/script ordering and cwd,
+safe R argument transport, HTML/PDF/Word promotion, nested roots, invalid controls and
+unsupported layouts preserving config/VERSION. CI and independent review are pending.
+PR144 exact head `344bddc4b82eb810b339e475eeb6824b1ef56bac` passed independent
+review and all ten checks; merged `6c0079fb78b4f3f84df50423dae81c4b4a0e0f16` and
+post-merge workflows 39508879381/39508879332/39508879482 passed. Git clearance is
+bounded optional publication, not a complete release-readiness guarantee.
+
 
 ## CAS integrity hardening (existing issues 688–690)
 
@@ -800,3 +830,18 @@ remain as previously recorded.
 PR147 reviewer regression preserves the CLI option terminator and literal option-like
 positional values. Worker controls are inserted before `--`, and only actual machine
 flags before that boundary are removed; user paths/option values are retained.
+
+PR146 review additionally rejects document/format-specific output extension and
+library-directory overrides before writes; these are outside the modeled artifact
+and recovery layout. Windows execution-root fixtures compare filesystem identity,
+preserving the cwd requirement across ordinary/verbatim path spellings.
+
+Effective ancestor Quarto projects are rejected when they differ from an explicitly
+selected inner proj root. Every selected document routed through Quarto, including
+Rmd, receives nested-root validation. Metadata traversal normalizes root/input
+filesystem identity before stopping, avoiding Windows namespace spelling differences.
+
+Retained Markdown (`keep_md` / `keep-md`, including format options) is rejected in
+individual layouts before rendering. A nested Rmd sibling sentinel regression with
+an overwrite-capable fake renderer and failing post-hook prevents this untracked
+framework artifact from damaging existing Markdown outside the recovery plan.
