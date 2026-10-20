@@ -26,10 +26,10 @@ fn local_init_writes_explicit_preset_without_disabling_analysis_or_running_setup
     let repeat = cli(root, &["init", "directories"]);
     assert!(repeat.status.success());
     assert_eq!(fs::read_to_string(root.join("_proj.yml")).unwrap(), PRESET);
-    fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('_output/result').write_text('discovered')\n").unwrap();
+    fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('_tmp/result').write_text('discovered')\n").unwrap();
     let preview = cli(root, &["build-dev"]);
     assert!(preview.status.success(), "{}", String::from_utf8_lossy(&preview.stderr));
-    assert_eq!(fs::read_to_string(root.join("_output/result")).unwrap(), "discovered");
+    assert_eq!(fs::read_to_string(root.join("_tmp/result")).unwrap(), "discovered");
 }
 
 #[test]

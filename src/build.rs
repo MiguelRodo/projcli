@@ -236,8 +236,10 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     };
 
     let current_version = initial_version.to_string(false);
+    // Recovery removes/replaces managed destinations too, so preview needs the
+    // same root/overlap/link guards even though it never performs release cleanup.
+    crate::path_safety::validate_build_paths(project_root, &config, &validation_files)?;
     if !is_dev {
-        crate::path_safety::validate_build_paths(project_root, &config, &validation_files)?;
         if run_analysis {
             crate::path_safety::validate_cleanup_paths(project_root, &config, &current_version)?;
             if quarto_exists || bookdown_exists {
@@ -289,7 +291,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     for input in &validation_files {
         // Reject links along the original path before canonicalizing its namespace.
         let identity = crate::path_safety::resolve_path(input.as_std_path(), true)?;
-        if identity.starts_with(&root_identity) { managed.push(identity); }
+        if is_dev || identity.starts_with(&root_identity) { managed.push(identity); }
     }
     if bookdown_exists {
         let (assets, destination) = bookdown_asset_paths(project_root, &config.get_path(project_root, "docs")?)?;
@@ -311,9 +313,31 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
             }
         }
     }
-    let backup = if !is_dev {
-        Some(crate::build_state::BuildState::capture(cache_root.as_ref().map(|path| path.as_std_path()), &managed)?)
+    if is_dev {
+        // Capture configured local publication stores without invoking publication.
+        if let Some(remotes) = &config.remotes.local {
+            for remote in remotes.values() {
+                let destination = crate::path_safety::resolve_path(remote.path.as_std_path(), true)?;
+                if root_identity.starts_with(&destination) {
+                    anyhow::bail!("Preview publication recovery path contains the project root");
+                }
+                managed.push(destination);
+            }
+        }
+        for name in [".git", ".hg", ".svn"] {
+            let path = project_root.join(name);
+            match fs::symlink_metadata(&path) {
+                Ok(metadata) if metadata.is_file() => anyhow::bail!("Preview recovery does not support linked/worktree version-control metadata"),
+                Ok(_) => managed.push(path.into_std_path_buf()),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => managed.push(path.into_std_path_buf()),
+                Err(error) => return Err(error).context("Cannot inspect preview version-control state"),
+            }
+        }
+    }
+    let recovery_cache = if config.directories.keys().any(|label| label.eq_ignore_ascii_case("cache")) {
+        Some(config.get_path(project_root, "cache")?)
     } else { None };
+    let backup = crate::build_state::BuildState::capture(recovery_cache.as_ref().map(|path| path.as_std_path()), &managed)?;
     let mut engine_originals = Vec::new();
     for (active, name) in [(quarto_exists, "_quarto.yml"), (bookdown_exists, "_bookdown.yml")] {
         if active {
@@ -423,11 +447,9 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
             Ok(()) => restore_error,
         });
     }
-    if let Err(error) = local_result {
-        return Err(match backup { Some(backup) => backup.restore(error), None => error });
-    }
+    if is_dev { return backup.restore_result(local_result); }
+    if let Err(error) = local_result { return Err(backup.restore(error)); }
     drop(backup); // Local release is complete. Publication cannot undo that success.
-    if is_dev { return Ok(()); }
     let publication = (|| -> anyhow::Result<()> {
         if let Some(remotes) = &config.remotes.local {
             for target in &config.dest {

@@ -67,9 +67,10 @@ fn fake_path(root: &Path, name: &str, body: &str) -> std::ffi::OsString {
 fn r_version_probe_package_probe_and_render_share_the_resolved_values() {
     let project = tempfile::tempdir().unwrap();
     let root = project.path();
-    let path = fake_path(root, "Rscript", "#!/bin/sh\nprintf '%s\\n' \"$PROJCLI_PROBE_CONTEXT\" >> \"$PROJ_PROJECT_ROOT/seen\"\nexit 0\n");
+    fs::create_dir(root.join("_tmp")).unwrap();
+    let path = fake_path(root, "Rscript", "#!/bin/sh\nmkdir -p \"$PROJ_PROJECT_ROOT/_tmp\"\nprintf '%s\\n' \"$PROJCLI_PROBE_CONTEXT\" >> \"$PROJ_PROJECT_ROOT/_tmp/seen\"\nexit 0\n");
     fs::write(root.join("_environment"), "PROJCLI_PROBE_CONTEXT=probe-fixture\n").unwrap();
-    fs::write(root.join("_proj.yml"), "directories:\n  docs:\n    path: published\ndev:\n  scripts: [report.Rmd]\n").unwrap();
+    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\n  docs:\n    path: published\ndev:\n  scripts: [report.Rmd]\n").unwrap();
     fs::write(root.join("report.Rmd"), "Report\n").unwrap();
     let before = std::env::var_os("PROJCLI_PROBE_CONTEXT");
     let result = Command::new(env!("CARGO_BIN_EXE_proj"))
@@ -78,7 +79,7 @@ fn r_version_probe_package_probe_and_render_share_the_resolved_values() {
         .env_remove(proj::PROJECT_ROOT_ENV).output().unwrap();
     assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
     assert_eq!(std::env::var_os("PROJCLI_PROBE_CONTEXT"), before);
-    let seen = fs::read_to_string(root.join("seen")).unwrap();
+    let seen = fs::read_to_string(root.join("_tmp/seen")).unwrap();
     assert!(seen.lines().count() >= 3);
     assert!(seen.lines().all(|value| value == "probe-fixture"));
 }
