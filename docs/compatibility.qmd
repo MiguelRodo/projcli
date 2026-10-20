@@ -525,3 +525,26 @@ project marker exists. The custom-cache fixture now executes Python and checks
 actual custom staging cleanup plus preserved legacy `_tmp` bytes. Fake-R
 fixtures declare docs while retaining EOF/no-install assertions. These amendments
 require fresh remote checks and exact-head re-review.
+
+
+## Environment input validation (prepared)
+
+**Same precedence / deliberate error handling difference:** inherited OS values
+win over local, earlier environment profiles, then base assignments. Preserve
+non-Unicode inherited values rather than treating them as absent. Reject empty,
+equals-containing or NUL keys and NUL values before calling OS mutation APIs.
+Read whole files with propagated errors rather than `lines().flatten()`; required
+file errors and directory inputs cannot silently bypass validation or loop.
+Diagnostics include paths/line numbers, never assignment values. Same-file
+validation finishes before assignments from that file are applied. Ignore writes
+in explicit activation occur only after validation succeeds.
+
+Ponytail full-mode review traced all load/assignment callers and reused existing
+configuration-entry presence checks. No parser dependency was added. Prepared CLI
+checks cover invalid/NUL entries, directory and permission-denied required files,
+secret-free diagnostics, actual inherited/local/profile/base child values and no
+analysis invocation on errors. Remote checks/review are pending.
+
+This bounded fix does **not** make EnvGuard thread-safe: process-global environment
+mutation remains a known risk until per-run values and profiles reach all child
+commands and Git/preflight consumers. No credential handling or CAS code changes.
