@@ -116,6 +116,26 @@ impl EnvGuard {
 
     /// Commences an environment block, parsing profiles and backing up state.
     pub fn activate(explicit_profile: Option<&str>, base_dir: &Utf8Path) -> anyhow::Result<Self> {
+        Self::activate_inner(explicit_profile, base_dir, true)
+    }
+
+    /// Loads the usual environment cascade without writing project ignore files.
+    ///
+    /// Profile and required-variable rules match `activate`; missing required
+    /// variables return an error. Dropping the guard restores the environment.
+    ///
+    /// ```rust
+    /// let project = tempfile::tempdir().unwrap();
+    /// let root = camino::Utf8Path::from_path(project.path()).unwrap();
+    /// let guard = proj::EnvGuard::activate_for_preview(None, root).unwrap();
+    /// drop(guard);
+    /// assert!(!root.join(".gitignore").exists());
+    /// ```
+    pub fn activate_for_preview(explicit_profile: Option<&str>, base_dir: &Utf8Path) -> anyhow::Result<Self> {
+        Self::activate_inner(explicit_profile, base_dir, false)
+    }
+
+    fn activate_inner(explicit_profile: Option<&str>, base_dir: &Utf8Path, update_ignores: bool) -> anyhow::Result<Self> {
         let mut guard = Self::new();
 
         // Temporarily handle PROJR_PROFILE swap if explicitly overridden for this build run
@@ -145,7 +165,7 @@ impl EnvGuard {
 
         for file in files_to_load {
             if file.exists() {
-                if file == local_env_file {
+                if update_ignores && file == local_env_file {
                     // Automatically add _environment.local to ignores
                     let _ = crate::ignore::add_manual_ignores(
                         base_dir,
