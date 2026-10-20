@@ -709,3 +709,12 @@ pushInsteadOf). Destination inspection uses get-url --push --all before controll
 build writes. Native Git configuration is read only; no remote/auth settings are
 rewritten. Fake regressions assert each unsupported case preserves VERSION and
 unrelated private bytes and never reaches add/commit/fetch/push.
+
+
+Captured push identity includes checked-out branch, upstream remote/ref and expanded
+effective endpoint, without Debug exposure. Revalidate the complete supported
+identity immediately before commit and again before push. Hook/script changes to
+URL, pushurl, mirror, branch, ref or remote fail publication without redirecting the
+push; successful local VERSION/output are retained. Fake regressions switch those
+values after an analysis marker and assert no add/commit/push occurs. This guards
+within-run mutation, not an atomic lock against concurrent external Git changes.

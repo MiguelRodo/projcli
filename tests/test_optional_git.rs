@@ -35,22 +35,23 @@ with (root / 'git-calls.jsonl').open('a') as log:
 args = original[:]
 while args[:1] == ['-c']: args = args[2:]
 action = args[0] if args else ''
+changed = (root / 'analysis-marker').exists()
 if action == 'config':
  key = args[-1]
  if key.endswith('.pushRemote') or key == 'remote.pushDefault' or key.endswith('.push') or key.endswith('.pushurl'):
-  if os.environ.get('TEST_CUSTOM_PUSH') == '1' or (key.endswith('.pushurl') and os.environ.get('TEST_PUSHURL') == '1'): print('custom-route')
+  if os.environ.get('TEST_CUSTOM_PUSH') == '1' or (key.endswith('.pushurl') and (os.environ.get('TEST_PUSHURL') == '1' or (changed and os.environ.get('TEST_MUTATE_PUSHURL') == '1'))): print('custom-route')
   else: raise SystemExit(1)
- elif key.endswith('.remote'): print('upstream')
+ elif key.endswith('.remote'): print('other-remote' if changed and os.environ.get('TEST_MUTATE_REMOTE') == '1' else 'upstream')
  elif key.endswith('.merge'):
-  print('refs/heads/release-target')
+  print('refs/heads/other' if changed and os.environ.get('TEST_MUTATE_REF') == '1' else 'refs/heads/release-target')
   if os.environ.get('TEST_MULTIPLE_MERGE') == '1': print('refs/heads/other')
- elif key.endswith('.mirror'): print('true' if os.environ.get('TEST_MIRROR') == '1' else 'false')
+ elif key.endswith('.mirror'): print('true' if os.environ.get('TEST_MIRROR') == '1' or (changed and os.environ.get('TEST_MUTATE_MIRROR') == '1') else 'false')
  else: print('fixture')
-elif action == 'symbolic-ref': print('feature/analysis')
+elif action == 'symbolic-ref': print('changed-branch' if changed and os.environ.get('TEST_MUTATE_BRANCH') == '1' else 'feature/analysis')
 elif action == 'remote':
  if os.environ.get('TEST_MISSING_REMOTE') == '1': raise SystemExit(2)
  if '--push' in args and os.environ.get('TEST_PUSH_INSTEADOF') == '1': print('https://other.example/redirected.git')
- else: print(os.environ.get('TEST_REMOTE_URL', 'https://github.com/example/repo.git'))
+ else: print('https://other.example/changed.git' if changed and os.environ.get('TEST_MUTATE_ENDPOINT') == '1' else os.environ.get('TEST_REMOTE_URL', 'https://github.com/example/repo.git'))
  if os.environ.get('TEST_MULTIPLE_URLS') == '1': print('https://other.example/second.git')
 elif action == 'status':
  if os.environ.get('TEST_DIRTY') == '1': print(' M unrelated.txt')
@@ -182,6 +183,25 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
             assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");
             assert_eq!(fs::read_to_string(root.join("private.txt")).unwrap(), "untracked private fixture");
             assert!(!root.join(".gitignore").exists());
+            assert!(!calls(root).iter().any(|call| ["add", "commit", "push", "fetch"].contains(&action(call))));
+        }
+    }
+
+
+    #[test]
+    fn changed_publication_identity_after_analysis_cannot_commit_or_push() {
+        for setting in ["TEST_MUTATE_ENDPOINT", "TEST_MUTATE_PUSHURL", "TEST_MUTATE_MIRROR", "TEST_MUTATE_BRANCH", "TEST_MUTATE_REF", "TEST_MUTATE_REMOTE"] {
+            let project = tempfile::tempdir().unwrap(); let root = project.path(); let path = fixture(root);
+            fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
+            fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('analysis-marker').touch()\n").unwrap();
+            fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\nbuild:\n  scripts: [analysis.py]\n  git:\n    commit: true\n    push: true\n").unwrap();
+            let output = command(root, &path).env(setting, "1").env("TEST_STAGED", "1").output().unwrap();
+            assert!(!output.status.success(), "{setting}");
+            let diagnostic = String::from_utf8_lossy(&output.stderr);
+            assert!(diagnostic.contains("Local build succeeded"), "{diagnostic}");
+            assert!(!diagnostic.contains("https://other.example"));
+            assert!(root.join("analysis-marker").exists());
+            assert_eq!(proj::version_get_from(camino::Utf8Path::from_path(root).unwrap()).unwrap().to_string(false), "1.2.4");
             assert!(!calls(root).iter().any(|call| ["add", "commit", "push", "fetch"].contains(&action(call))));
         }
     }

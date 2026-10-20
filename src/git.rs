@@ -244,7 +244,16 @@ pub(crate) fn tracking_target_in(root: &camino::Utf8Path, environment: &RunEnvir
     Ok((remote, reference))
 }
 
-pub(crate) fn push_target_in(root: &camino::Utf8Path, environment: &RunEnvironment) -> anyhow::Result<(String, String)> {
+// No Debug implementation: endpoint URLs may contain user-supplied credentials.
+#[derive(Clone, PartialEq, Eq)]
+pub(crate) struct PushTarget {
+    branch: String,
+    pub(crate) remote: String,
+    pub(crate) reference: String,
+    endpoint: String,
+}
+
+pub(crate) fn push_target_in(root: &camino::Utf8Path, environment: &RunEnvironment) -> anyhow::Result<PushTarget> {
     let target = tracking_target_in(root, environment)?;
     let git = SystemGit { repo_path: root.to_owned(), environment: environment.clone() };
     let branch = git.run_cmd(&["symbolic-ref", "--quiet", "--short", "HEAD"])?;
@@ -272,7 +281,13 @@ pub(crate) fn push_target_in(root: &camino::Utf8Path, environment: &RunEnvironme
         anyhow::bail!("Multiple Git push destinations are unsupported");
     }
     if fetch != destinations { anyhow::bail!("Separate effective Git push endpoints are unsupported"); }
-    Ok(target)
+    Ok(PushTarget { branch, remote: target.0, reference: target.1, endpoint: destinations })
+}
+
+pub(crate) fn validate_push_target_in(root: &camino::Utf8Path, environment: &RunEnvironment, captured: &PushTarget) -> anyhow::Result<()> {
+    let current = push_target_in(root, environment).context("Git publication target is no longer supported")?;
+    if &current != captured { anyhow::bail!("Git publication target changed after the local build"); }
+    Ok(())
 }
 
 pub(crate) fn fetch_remote_in(root: &camino::Utf8Path, remote: &str, environment: &RunEnvironment) -> anyhow::Result<()> {

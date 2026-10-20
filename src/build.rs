@@ -46,10 +46,10 @@ use crate::build_pre::run_pre_flight_checks_in;
 
 pub fn post_build_sync(config: &GlobalConfig, repo_dir: camino::Utf8PathBuf) -> anyhow::Result<()> {
     let environment = RunEnvironment::inherited();
-    let (remote, reference) = crate::git::push_target_in(&repo_dir, &environment)?;
+    let target = crate::git::push_target_in(&repo_dir, &environment)?;
     let provider = create_git_provider(config.git.engine, repo_dir)?;
     provider.commit_all("chore: automated workspace build update")?;
-    provider.push(&remote, &format!("HEAD:{reference}"))
+    provider.push(&target.remote, &format!("HEAD:{}", target.reference))
 }
 
 pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profile: Option<&str>, description: Option<&str>) -> anyhow::Result<()> {
@@ -416,8 +416,12 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
                 _ => format!("Build v{version}"),
             };
             let provider = create_git_provider_in(config.config.git.engine, project_root.to_path_buf(), &environment)?;
+            if let Some(target) = &push_target { crate::git::validate_push_target_in(project_root, &environment, target)?; }
             provider.commit_all(&message)?;
-            if let Some((remote, reference)) = &push_target { provider.push(remote, &format!("HEAD:{reference}"))?; }
+            if let Some(target) = &push_target {
+                crate::git::validate_push_target_in(project_root, &environment, target)?;
+                provider.push(&target.remote, &format!("HEAD:{}", target.reference))?;
+            }
         }
         Ok(())
     })();
