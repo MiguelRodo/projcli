@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -260,6 +260,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#captured-execution-root-and-bounded-individual-render-layouts" id="toc-captured-execution-root-and-bounded-individual-render-layouts" class="nav-link" data-scroll-target="#captured-execution-root-and-bounded-individual-render-layouts">Captured execution root and bounded individual render layouts</a></li>
   <li><a href="#bounded-cas-integrity" id="toc-bounded-cas-integrity" class="nav-link" data-scroll-target="#bounded-cas-integrity">Bounded CAS integrity</a></li>
   <li><a href="#explicit-git-operations" id="toc-explicit-git-operations" class="nav-link" data-scroll-target="#explicit-git-operations">Explicit Git operations</a></li>
+  <li><a href="#preview-binary-delivery" id="toc-preview-binary-delivery" class="nav-link" data-scroll-target="#preview-binary-delivery">Preview binary delivery</a></li>
   <li><a href="#versioned-machine-boundary" id="toc-versioned-machine-boundary" class="nav-link" data-scroll-target="#versioned-machine-boundary">Versioned machine boundary</a></li>
   </ul></li>
   </ul>
@@ -357,6 +358,10 @@ ul.task-list li input[type="checkbox"] {
 <section id="explicit-git-operations" class="level2">
 <h2 class="anchored" data-anchor-id="explicit-git-operations">Explicit Git operations</h2>
 <p>Git commits, pushes and network/upstream checks default off even when Git metadata exists. Only the resolved configured actions execute. Commit-enabled builds require clean initial Git state to avoid sweeping in unrelated edits; no-op commits succeed. Push captures the current branch’s configured upstream remote/reference before build writes. Missing upstream and unmodeled custom push-only routing fail early. Native authentication is the default. An explicit token-helper opt-in uses fixed host-scoped code and ephemeral environment data, never secret argv/source or persistent credentials. Local build success remains distinct from publication failure.</p>
+</section>
+<section id="preview-binary-delivery" class="level2">
+<h2 class="anchored" data-anchor-id="preview-binary-delivery">Preview binary delivery</h2>
+<p>Release/install plumbing must verify version-bound platform assets/checksums before replacement and use locked remote tests/builds. The pipeline creates a draft prerelease only; publication and user-local WSL binary installation follow explicit artifact verification. See <a href="./release-delivery.html">delivery boundaries</a>. No local source compilation or production-readiness claim follows from installer CI.</p>
 </section>
 <section id="versioned-machine-boundary" class="level2">
 <h2 class="anchored" data-anchor-id="versioned-machine-boundary">Versioned machine boundary</h2>
