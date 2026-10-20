@@ -57,8 +57,8 @@ unsupported and fails before authoritative writes. Native authentication is the 
 ## Development previews and remaining renderer gaps
 
 Previews skip production version changes, cleanup, commits and exports. They run
-selected hooks/analysis and restore renderer configuration bytes. Cooperating
-scripts must choose appropriate output locations; preview is not automatic output
-isolation or an OS sandbox. Individual script subprocesses still start in their
+selected hooks/analysis and restore renderer configuration bytes. Captured managed state is restored after success and failure, while cache output
+remains. Scripts still choose preview output locations; this is not automatic
+output redirection or an OS sandbox. Individual script subprocesses still start in their
 parent directory: the approved root-relative execution and direct R/IDE renderer
 parity are separate unfinished work. The existing R package remains untouched.
