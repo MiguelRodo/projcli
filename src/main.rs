@@ -202,13 +202,17 @@ pub enum IgnoreCommands {
     },
 }
 
+fn fail(message: std::fmt::Arguments<'_>) -> ! {
+    eprintln!("{}", message);
+    std::process::exit(1);
+}
+
 fn main() {
     let cli = Cli::parse();
     let root = match proj::resolve_project_root(cli.project.as_deref()) {
         Ok(root) => root,
         Err(error) => {
-            eprintln!("Project selection failed: {:#}", error);
-            std::process::exit(1);
+            fail(format_args!("Project selection failed: {:#}", error));
         }
     };
     let mut root_guard = proj::EnvGuard::new();
@@ -220,7 +224,7 @@ fn main() {
                 // Pass false for is_dev as this is just a read check
                 match proj::yml_read(false) {
                     Ok(_) => println!("Successfully read and validated _proj.yml"),
-                    Err(e) => eprintln!("Error reading _proj.yml: {}", e),
+                    Err(e) => fail(format_args!("Error reading _proj.yml: {}", e)),
                 }
             }
         },
@@ -231,13 +235,13 @@ fn main() {
                         if let Some(root) = proj::root() {
                             match config.get_path(root.as_path(), label) {
                                 Ok(path) => println!("{}", path),
-                                Err(e) => eprintln!("Error getting path: {}", e),
+                                Err(e) => fail(format_args!("Error getting path: {}", e)),
                             }
                         } else {
-                            eprintln!("Error finding project root");
+                            fail(format_args!("Error finding project root"));
                         }
                     }
-                    Err(e) => eprintln!("Error loading configuration: {}", e),
+                    Err(e) => fail(format_args!("Error loading configuration: {}", e)),
                 }
             }
         },
@@ -273,88 +277,83 @@ fn main() {
                 }
 
                 if let Err(e) = proj::build_project(&camino::Utf8PathBuf::try_from(root).unwrap(), mode, profile.as_deref(), desc.as_deref()) {
-                    eprintln!("Build failed: {}", e);
-                    std::process::exit(1);
+                    fail(format_args!("Build failed: {}", e));
                 } else {
                     println!("Build completed successfully.");
                 }
             } else {
-                eprintln!("Error finding project root");
-                std::process::exit(1);
+                fail(format_args!("Error finding project root"));
             }
         },
         Commands::BuildDev { profile } => {
             if let Some(root) = proj::root() {
                 if let Err(e) = proj::build_project(&camino::Utf8PathBuf::try_from(root).unwrap(), proj::BuildMode::Dev, profile.as_deref(), None) {
-                    eprintln!("Build failed: {}", e);
-                    std::process::exit(1);
+                    fail(format_args!("Build failed: {}", e));
                 } else {
                     println!("Build completed successfully.");
                 }
             } else {
-                eprintln!("Error finding project root");
-                std::process::exit(1);
+                fail(format_args!("Error finding project root"));
             }
         },
         Commands::Ignore { command } => match command {
             IgnoreCommands::Add { paths, force_create, r#type } => {
                 if let Some(root) = proj::root() {
                     if let Err(e) = proj::add_manual_ignores(&root, paths, *force_create, r#type.clone()) {
-                        eprintln!("Error adding ignores: {}", e);
+                        fail(format_args!("Error adding ignores: {}", e));
                     } else {
                         println!("Successfully added paths to ignores");
                     }
                 } else {
-                    eprintln!("Error finding project root");
+                    fail(format_args!("Error finding project root"));
                 }
             }
             IgnoreCommands::Remove { paths, r#type } => {
                 if let Some(root) = proj::root() {
                     if let Err(e) = proj::remove_manual_ignores(&root, paths, r#type.clone()) {
-                        eprintln!("Error removing ignores: {}", e);
+                        fail(format_args!("Error removing ignores: {}", e));
                     } else {
                         println!("Successfully removed paths from ignores");
                     }
                 } else {
-                    eprintln!("Error finding project root");
+                    fail(format_args!("Error finding project root"));
                 }
             }
         },
         Commands::Init { command } => match command {
             Some(InitCommands::Version) => {
                 if let Err(e) = proj::init_version() {
-                    eprintln!("Initialization failed: {:#}", e);
+                    fail(format_args!("Initialization failed: {:#}", e));
                 }
             }
             Some(InitCommands::Directories) => {
                 if let Err(e) = proj::init_directories() {
-                    eprintln!("Initialization failed: {:#}", e);
-                    std::process::exit(1);
+                    fail(format_args!("Initialization failed: {:#}", e));
                 }
             }
             Some(InitCommands::Readme { title, description }) => {
                 if let Err(e) = proj::init_readme(title.clone(), description.clone()) {
-                    eprintln!("Initialization failed: {:#}", e);
+                    fail(format_args!("Initialization failed: {:#}", e));
                 }
             }
             Some(InitCommands::License { license, first_name, last_name }) => {
                 if let Err(e) = proj::init_license(license.clone(), first_name.clone(), last_name.clone()) {
-                    eprintln!("Initialization failed: {:#}", e);
+                    fail(format_args!("Initialization failed: {:#}", e));
                 }
             }
             Some(InitCommands::Git { commit }) => {
                 if let Err(e) = proj::init_git(*commit) {
-                    eprintln!("Initialization failed: {:#}", e);
+                    fail(format_args!("Initialization failed: {:#}", e));
                 }
             }
             Some(InitCommands::Github { public }) => {
                 if let Err(e) = proj::init_github(*public) {
-                    eprintln!("Initialization failed: {:#}", e);
+                    fail(format_args!("Initialization failed: {:#}", e));
                 }
             }
             None => {
                 if let Err(e) = proj::init_full() {
-                    eprintln!("Initialization failed: {:#}", e);
+                    fail(format_args!("Initialization failed: {:#}", e));
                 }
             }
         },
@@ -365,18 +364,18 @@ fn main() {
                         if let Ok(json) = serde_json::to_string(&version) {
                             println!("{}", json);
                         } else {
-                            eprintln!("Failed to format version as JSON");
+                            fail(format_args!("Failed to format version as JSON"));
                         }
                     } else {
                         println!("{}", version.to_string(!no_v));
                     }
                 } else {
-                    eprintln!("Failed to get version from VERSION file");
+                    fail(format_args!("Failed to get version from VERSION file"));
                 }
             }
             VersionCommands::Set { version } => {
                 if let Err(e) = proj::version_set(version) {
-                    eprintln!("Error setting version: {}", e);
+                    fail(format_args!("Error setting version: {}", e));
                 }
             }
         },

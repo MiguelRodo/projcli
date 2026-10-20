@@ -1,0 +1,15 @@
+# Command exit status
+
+Successful CLI commands return exit status zero. Reported operation failures
+return a nonzero status and a diagnostic on stderr, including configuration/path
+queries, version reads/writes, ignore updates and initialization. Argument parsing
+errors also return nonzero.
+
+For example, a malformed `_proj.yml` makes `proj yml read --project demo` fail,
+so a shell or frontend can stop instead of treating the diagnostic as success.
+Failed Git staging, commits and GitHub creation propagate as initialization errors;
+a failed remote inspection does not proceed to GitHub creation.
+
+This defines success versus failure, not stable error codes, a JSON result schema
+or a capability protocol. Diagnostics remain human-readable text. Commands may
+perform work before failing; a nonzero status is not a rollback guarantee.
