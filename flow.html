@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -129,7 +129,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./behavior.html">Design and progress</a></li><li class="breadcrumb-item"><a href="./flow.html">Proj Build Execution Flow</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./behavior.html">Design and progress</a></li><li class="breadcrumb-item"><a href="./flow.html">Build execution flow</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -226,7 +226,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./flow.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text">Proj Build Execution Flow</span></a>
+ <span class="menu-text">Build execution flow</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -247,145 +247,46 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#proj-build-execution-flow" id="toc-proj-build-execution-flow" class="nav-link active" data-scroll-target="#proj-build-execution-flow">Proj Build Execution Flow</a>
+  <li><a href="#build-execution-flow" id="toc-build-execution-flow" class="nav-link active" data-scroll-target="#build-execution-flow">Build execution flow</a>
   <ul class="collapse">
-  <li><a href="#pre-build-stage" id="toc-pre-build-stage" class="nav-link" data-scroll-target="#pre-build-stage">1. Pre-Build Stage</a>
-  <ul class="collapse">
-  <li><a href="#config-audit" id="toc-config-audit" class="nav-link" data-scroll-target="#config-audit">1.1 Config Audit</a></li>
-  <li><a href="#git-capability-audit" id="toc-git-capability-audit" class="nav-link" data-scroll-target="#git-capability-audit">1.2 Git Capability Audit</a></li>
-  <li><a href="#target-resolution-and-dependency-preflight" id="toc-target-resolution-and-dependency-preflight" class="nav-link" data-scroll-target="#target-resolution-and-dependency-preflight">1.3 Target Resolution and Dependency Preflight</a></li>
-  <li><a href="#version-input" id="toc-version-input" class="nav-link" data-scroll-target="#version-input">1.4 Version Input</a></li>
-  <li><a href="#production-workspace-clearing" id="toc-production-workspace-clearing" class="nav-link" data-scroll-target="#production-workspace-clearing">1.5 Production Workspace Clearing</a></li>
-  <li><a href="#production-version-bump" id="toc-production-version-bump" class="nav-link" data-scroll-target="#production-version-bump">1.6 Production Version Bump</a></li>
-  <li><a href="#pre-build-hooks" id="toc-pre-build-hooks" class="nav-link" data-scroll-target="#pre-build-hooks">1.7 Pre-Build Hooks</a></li>
-  <li><a href="#git-pre-snapshot" id="toc-git-pre-snapshot" class="nav-link" data-scroll-target="#git-pre-snapshot">1.8 Git Pre-Snapshot</a></li>
-  </ul></li>
-  <li><a href="#actual-build-stage" id="toc-actual-build-stage" class="nav-link" data-scroll-target="#actual-build-stage">2. Actual Build Stage</a>
-  <ul class="collapse">
-  <li><a href="#workspace-evaluation" id="toc-workspace-evaluation" class="nav-link" data-scroll-target="#workspace-evaluation">2.1 Workspace Evaluation</a></li>
-  <li><a href="#script-resolution-strategies" id="toc-script-resolution-strategies" class="nav-link" data-scroll-target="#script-resolution-strategies">2.2 Script Resolution Strategies</a></li>
-  <li><a href="#execution-and-reordering-constraint" id="toc-execution-and-reordering-constraint" class="nav-link" data-scroll-target="#execution-and-reordering-constraint">2.3 Execution and Reordering Constraint</a></li>
-  </ul></li>
-  <li><a href="#post-build-stage" id="toc-post-build-stage" class="nav-link" data-scroll-target="#post-build-stage">3. Post-Build Stage</a>
-  <ul class="collapse">
-  <li><a href="#on-build-success-initial-commit" id="toc-on-build-success-initial-commit" class="nav-link" data-scroll-target="#on-build-success-initial-commit">3.1 On Build Success (Initial Commit)</a></li>
-  <li><a href="#post-build-workspace-clearing" id="toc-post-build-workspace-clearing" class="nav-link" data-scroll-target="#post-build-workspace-clearing">3.2 Post-Build Workspace Clearing</a></li>
-  <li><a href="#post-build-automation-hooks" id="toc-post-build-automation-hooks" class="nav-link" data-scroll-target="#post-build-automation-hooks">3.3 Post-Build Automation Hooks</a></li>
-  <li><a href="#remote-export-pipeline" id="toc-remote-export-pipeline" class="nav-link" data-scroll-target="#remote-export-pipeline">3.4 Remote Export Pipeline</a></li>
-  <li><a href="#remote-sync-and-push" id="toc-remote-sync-and-push" class="nav-link" data-scroll-target="#remote-sync-and-push">3.5 Remote Sync and Push</a></li>
-  <li><a href="#on-build-failure-or-panic" id="toc-on-build-failure-or-panic" class="nav-link" data-scroll-target="#on-build-failure-or-panic">3.6 On Build Failure or Panic</a></li>
-  </ul></li>
+  <li><a href="#read-only-resolution-and-preflight" id="toc-read-only-resolution-and-preflight" class="nav-link" data-scroll-target="#read-only-resolution-and-preflight">Read-only resolution and preflight</a></li>
+  <li><a href="#local-production-build-and-restoration-boundary" id="toc-local-production-build-and-restoration-boundary" class="nav-link" data-scroll-target="#local-production-build-and-restoration-boundary">Local production build and restoration boundary</a></li>
+  <li><a href="#publication-after-local-success" id="toc-publication-after-local-success" class="nav-link" data-scroll-target="#publication-after-local-success">Publication after local success</a></li>
+  <li><a href="#development-previews-and-remaining-renderer-gaps" id="toc-development-previews-and-remaining-renderer-gaps" class="nav-link" data-scroll-target="#development-previews-and-remaining-renderer-gaps">Development previews and remaining renderer gaps</a></li>
   </ul></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./behavior.html">Design and progress</a></li><li class="breadcrumb-item"><a href="./flow.html">Proj Build Execution Flow</a></li></ol></nav></header>
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./behavior.html">Design and progress</a></li><li class="breadcrumb-item"><a href="./flow.html">Build execution flow</a></li></ol></nav></header>
 
 
 
 
-<section id="proj-build-execution-flow" class="level1">
-<h1>Proj Build Execution Flow</h1>
-<p>This page records the existing <code>proj build</code> / <code>proj build-dev</code> implementation. It is not a normative behavior specification. The <a href="./behavior.html">behavior contract</a> records confirmed decisions and known gaps; current defects do not override it. The build pipeline is designed to enforce structural integrity, version control, and reproducible execution environments. The process is strictly divided into three sequential stages: Pre-Build, Actual Build, and Post-Build.</p>
-<section id="pre-build-stage" class="level2">
-<h2 class="anchored" data-anchor-id="pre-build-stage">1. Pre-Build Stage</h2>
-<p>The pre-build stage focuses on validation, environment auditing, and preparing the workspace state prior to executing any project code.</p>
-<section id="config-audit" class="level3">
-<h3 class="anchored" data-anchor-id="config-audit">1.1 Config Audit</h3>
-<p>The <code>_proj.yml</code> configuration is parsed and validated based on the execution mode (development vs.&nbsp;production). The configuration audit also strictly evaluates arbitrary nested keys inside the <code>parameters</code> block and throws a validation error if multiple aliases (<code>parameter</code>, <code>params</code>, <code>param</code>) are found to prevent mapping conflicts.</p>
+<section id="build-execution-flow" class="level1">
+<h1>Build execution flow</h1>
+<p>This describes the current Rust implementation, not a complete correctness or reproducibility guarantee. The <a href="./behavior.html">behavior contract</a> records approved semantics and the <a href="./compatibility.html">compatibility log</a> records evidence and gaps.</p>
+<section id="read-only-resolution-and-preflight" class="level2">
+<h2 class="anchored" data-anchor-id="read-only-resolution-and-preflight">Read-only resolution and preflight</h2>
+<p>Capture the project root, load the environment, require active root configuration, and merge base/profile/local settings. Validate fields, explicit directory paths, targets, hooks and destructive destinations. Explicit empty scripts select no analysis. Otherwise explicit globs or shallow root discovery select inputs; project rendering may use its own input discovery. Explicit Python-only selection does not activate an unused Quarto/Bookdown project marker.</p>
+<p>Read VERSION with DESCRIPTION/default fallbacks. Check selected interpreters and configured Git restrictions before controlled project writes. Existing preflight can still invoke Git/network checks or R package remediation; these are known limitations, not a clean-environment guarantee.</p>
 </section>
-<section id="git-capability-audit" class="level3">
-<h3 class="anchored" data-anchor-id="git-capability-audit">1.2 Git Capability Audit</h3>
-<p>If the configuration mandates version control integration (<code>git.commit</code> is <code>true</code>): - The system resolves the <code>GitProvider</code> based on the configured engine (<code>config.git.engine</code> defaults to <code>auto</code> or <code>system</code>) and verifies that Git is installed and available on the system <code>PATH</code>. If remote operations like fetching or pushing are necessary and <code>config.git.use_proj_cred_helper</code> is enabled, the credential discovery engine attempts to resolve GitHub tokens. - A check is performed to ensure the Git profile (author identity) is properly configured for the workspace.</p>
+<section id="local-production-build-and-restoration-boundary" class="level2">
+<h2 class="anchored" data-anchor-id="local-production-build-and-restoration-boundary">Local production build and restoration boundary</h2>
+<p>Before authoritative writes, capture exact bytes, permissions and presence/absence for the managed set documented in the compatibility log. This includes VERSION, ignore/configuration files, existing root regular files, selected in-project inputs, declared output/docs trees and planned individual rendering artifacts. External declared output/docs directories are allowed. Linked managed trees are rejected. Backups stream into private OS temporary storage outside disposable project cache. Backup creation failure prevents authoritative project writes.</p>
+<p>One local error/panic boundary covers ignore synchronization, requested pre-cleanup, pre/both hooks, script/document execution, renderer configuration, promotion and post/both hooks. Required output promotion errors propagate. Renderer configuration is restored exactly, retaining comments and originally absent keys. Candidate version changes stay in memory; VERSION is written only after those stages succeed. No pre-build Git commit is created.</p>
+<p>On local failure, restore the captured managed set, including originally absent files/directories. Attempt all restorations; retain recovery backups and report both the primary and restoration errors when recovery fails. This does not undo arbitrary script effects outside the captured set or provide a filesystem sandbox, power-loss atomicity or protection against concurrent filesystem replacement.</p>
 </section>
-<section id="target-resolution-and-dependency-preflight" class="level3">
-<h3 class="anchored" data-anchor-id="target-resolution-and-dependency-preflight">1.3 Target Resolution and Dependency Preflight</h3>
-<p>The engine resolves scripts and hooks and detects Quarto/Bookdown configuration before version initialization, cleanup, hooks or snapshots. Preflight then checks the production Git restrictions and the interpreters required by those targets.</p>
-<ul>
-<li>Production Git checks inspect branch restrictions, tracking remotes and upstream state when configured.</li>
-<li>Rscript and required rendering namespaces are checked when needed. The current implementation can offer or perform R package installation; this is existing behavior, not a statement of the future dependency policy.</li>
-<li>Quarto availability is checked when needed.</li>
-<li>The Python executable is resolved when Python targets are present.</li>
-</ul>
+<section id="publication-after-local-success" class="level2">
+<h2 class="anchored" data-anchor-id="publication-after-local-success">Publication after local success</h2>
+<p>Storage export and Git publication start after successful local completion. Export actual declared content before requested <code>clear_output: post</code> cleanup. Create one configured final Git commit, then push when enabled. A publication or later cleanup failure reports that local analysis succeeded and retains its release/version; external publication is not rolled back.</p>
+<p>Git upstream/authentication policy, stable attempt/release records and an analysis-free publication retry command remain unfinished. Existing Git push code still targets origin/main and must not be mistaken for the final policy.</p>
 </section>
-<section id="version-input" class="level3">
-<h3 class="anchored" data-anchor-id="version-input">1.4 Version Input</h3>
-<p>The current version is read from VERSION, with DESCRIPTION and a default version as fallbacks. Development previews do not persist a missing VERSION.</p>
-</section>
-<section id="production-workspace-clearing" class="level3">
-<h3 class="anchored" data-anchor-id="production-workspace-clearing">1.5 Production Workspace Clearing</h3>
-<p>Production builds clear pre-build caches and output directories according to <code>clear_output</code> (<code>pre</code>, <code>post</code>, or <code>never</code>) and may purge old cache versions. Development previews skip these CLI-managed cleanup stages.</p>
-</section>
-<section id="production-version-bump" class="level3">
-<h3 class="anchored" data-anchor-id="production-version-bump">1.6 Production Version Bump</h3>
-<p>Production builds apply <code>--major</code>, <code>--minor</code> or <code>--patch</code>, reset the development flag and write VERSION. Development previews do not bump or write VERSION.</p>
-</section>
-<section id="pre-build-hooks" class="level3">
-<h3 class="anchored" data-anchor-id="pre-build-hooks">1.7 Pre-Build Hooks</h3>
-<p>Configured <code>pre</code> and <code>both</code> hooks run after the preceding preparation, before the Git pre-snapshot. Failures propagate from these hooks.</p>
-</section>
-<section id="git-pre-snapshot" class="level3">
-<h3 class="anchored" data-anchor-id="git-pre-snapshot">1.8 Git Pre-Snapshot</h3>
-<p>When production Git commits are enabled, the engine commits the pre-build workspace with the “Snapshot pre-build” message.</p>
-</section>
-</section>
-<section id="actual-build-stage" class="level2">
-<h2 class="anchored" data-anchor-id="actual-build-stage">2. Actual Build Stage</h2>
-<p>The actual build stage handles the isolation, resolution, and execution of scripts and documents. This entire stage is executed within a <code>catch_unwind</code> block to safely trap panics and allow for graceful recovery.</p>
-<section id="workspace-evaluation" class="level3">
-<h3 class="anchored" data-anchor-id="workspace-evaluation">2.1 Workspace Evaluation</h3>
-<p>The system inspects the workspace for the presence of <code>_quarto.yml</code> and <code>_bookdown.yml</code>. - <strong>Mutual Exclusion Check:</strong> The presence of both configuration files simultaneously results in a fatal validation error if the <code>build.scripts</code> configuration is omitted or includes documentation targets (<code>.qmd</code> or <code>.Rmd</code>).</p>
-</section>
-<section id="script-resolution-strategies" class="level3">
-<h3 class="anchored" data-anchor-id="script-resolution-strategies">2.2 Script Resolution Strategies</h3>
-<p>The engine determines which scripts to execute based on two possible paths:</p>
-<section id="path-a-explicit-configuration-build.scripts-dev.scripts" class="level4">
-<h4 class="anchored" data-anchor-id="path-a-explicit-configuration-build.scripts-dev.scripts">Path A: Explicit Configuration (<code>build.scripts</code> / <code>dev.scripts</code>)</h4>
-<p>During development builds (<code>BuildMode::Dev</code>), the <code>dev.scripts</code> configuration array overrides the standard <code>build.scripts</code>. An explicitly empty array (<code>[]</code>) selects no analysis scripts. It does not fall back to production scripts or discovery; hooks still run.</p>
-<p>If target scripts are defined in <code>_proj.yml</code>: - Glob patterns are resolved to absolute paths. - Exclusion patterns (prefixed with <code>!</code>) filter the matched lists. - Empty lists skip analysis, renderer setup and analysis cleanup/promotion, while hooks and normal production publication/export remain available. Preview publication remains disabled. - Documentation files (<code>.qmd</code>, <code>.Rmd</code>) are segregated from standalone scripts (<code>.R</code>, <code>.py</code>). - <strong>Dynamic Configuration Updates:</strong> If documentation targets are specified, the respective project files (<code>_quarto.yml</code> or <code>_bookdown.yml</code>) are dynamically updated to only render the explicitly requested targets.</p>
-</section>
-<section id="path-b-fallback-automated-auto-discovery" class="level4">
-<h4 class="anchored" data-anchor-id="path-b-fallback-automated-auto-discovery">Path B: Fallback Automated Auto-Discovery</h4>
-<p>If no explicit scripts are defined: - The system determines if it should trigger an automated Quarto or Bookdown site render based on the presence of their configuration files. - If neither exists, a shallow directory sweep is performed, executing discovered files strictly in the order of: <code>.qmd</code>, <code>.Rmd</code>, <code>.R</code>, <code>.py</code>.</p>
-</section>
-</section>
-<section id="execution-and-reordering-constraint" class="level3">
-<h3 class="anchored" data-anchor-id="execution-and-reordering-constraint">2.3 Execution and Reordering Constraint</h3>
-<p>The existing implementation starts interpreter subprocesses (for example, <code>Rscript</code>, <code>python</code>, <code>quarto</code>) with <code>current_dir</code> set to the target script’s parent directory. This is a known gap against the confirmed root-relative execution default, not a compatibility requirement. Renderer evaluation directories need their own supported controls. A subprocess does not provide a filesystem sandbox or guarantee a clean environment.</p>
-<p>When Quarto or Bookdown configurations are active alongside explicit scripts, a strict reordering constraint is applied: 1. <strong>Pre-scripts:</strong> All <code>.R</code> or <code>.py</code> files listed <em>before</em> the first documentation file are executed. 2. <strong>Doc Clusters:</strong> The documentation project render engine (<code>quarto render</code> or <code>rmarkdown::render_site</code>) is triggered. 3. <strong>Post-scripts:</strong> All <code>.R</code> or <code>.py</code> files listed <em>after</em> the first documentation file are executed.</p>
-<p>Otherwise, scripts are executed sequentially exactly as resolved.</p>
-</section>
-</section>
-<section id="post-build-stage" class="level2">
-<h2 class="anchored" data-anchor-id="post-build-stage">3. Post-Build Stage</h2>
-<p>The post-build stage acts on the final status of the actual build stage, finalizing version control, syncing remotes, or safely rolling back the workspace.</p>
-<section id="on-build-success-initial-commit" class="level3">
-<h3 class="anchored" data-anchor-id="on-build-success-initial-commit">3.1 On Build Success (Initial Commit)</h3>
-<p>If the entire build pipeline executes without error and Git integration is enabled (<code>git.commit</code> is <code>true</code>): - A final commit is generated capturing all build artifacts and modifications. - The commit message is formatted as <code>Build v&lt;VERSION&gt;</code> or includes an optional user-provided description (<code>Build v&lt;VERSION&gt;: &lt;DESCRIPTION&gt;</code>).</p>
-</section>
-<section id="post-build-workspace-clearing" class="level3">
-<h3 class="anchored" data-anchor-id="post-build-workspace-clearing">3.2 Post-Build Workspace Clearing</h3>
-<p>For production builds configured with <code>clear_output: post</code>, the engine cleans up post-build deployment folders. Additionally, temporary document rendering artifacts (<code>docs/</code>) are automatically cleaned up on successful completion of a single document rendering engine.</p>
-</section>
-<section id="post-build-automation-hooks" class="level3">
-<h3 class="anchored" data-anchor-id="post-build-automation-hooks">3.3 Post-Build Automation Hooks</h3>
-<p>After the actual build stage completes successfully and the final Git commit is generated, any configured <code>post</code> or <code>both</code> automation hooks (either <code>build.hooks</code> or overriding <code>dev.hooks</code>) are executed in isolated subprocesses.</p>
-</section>
-<section id="remote-export-pipeline" class="level3">
-<h3 class="anchored" data-anchor-id="remote-export-pipeline">3.4 Remote Export Pipeline</h3>
-<p>For production builds with targets in <code>build.dest</code> and <code>remotes.local</code> configured: - The system iterates over the defined <code>build.dest</code> targets. - Resolved content directories mapped to these targets are piped to the Content-Addressable Storage (CAS) engine. - The CAS engine handles deduplicated storage synchronization, exporting project files into the remote vault.</p>
-</section>
-<section id="remote-sync-and-push" class="level3">
-<h3 class="anchored" data-anchor-id="remote-sync-and-push">3.5 Remote Sync and Push</h3>
-<p>If Git integration is enabled (<code>git.commit</code> is <code>true</code>) and pushing is configured (<code>git.push</code> is <code>true</code>): - The <code>GitProvider</code> commits the automated workspace build update (capturing compiled asset tracking or CAS mutations). - The <code>GitProvider</code> pushes the local branch mutations to the remote host. - If remote authentication is required and the credential helper is enabled (<code>config.git.use_proj_cred_helper</code>), the CLI securely injects the discovered GitHub token.</p>
-</section>
-<section id="on-build-failure-or-panic" class="level3">
-<h3 class="anchored" data-anchor-id="on-build-failure-or-panic">3.6 On Build Failure or Panic</h3>
-<p>If the build pipeline returns an error or panics mid-execution: - <strong>Production Rollback:</strong> If the build was a production run (<code>--major</code>, <code>--minor</code>, or <code>--patch</code>), the version modifications performed in the Pre-Build stage are reversed. The system restores the pre-build version configuration and ensures the development flag (<code>dev</code>) is set to <code>1</code> to maintain safety. - The underlying error is propagated to the CLI output, terminating the process with a non-zero exit code.</p>
+<section id="development-previews-and-remaining-renderer-gaps" class="level2">
+<h2 class="anchored" data-anchor-id="development-previews-and-remaining-renderer-gaps">Development previews and remaining renderer gaps</h2>
+<p>Previews skip production version changes, cleanup, commits and exports. They run selected hooks/analysis and restore renderer configuration bytes. Cooperating scripts must choose appropriate output locations; preview is not automatic output isolation or an OS sandbox. Individual script subprocesses still start in their parent directory: the approved root-relative execution and direct R/IDE renderer parity are separate unfinished work. The existing R package remains untouched.</p>
 
 
-</section>
 </section>
 </section>
 
