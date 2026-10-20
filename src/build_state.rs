@@ -11,7 +11,8 @@ pub(crate) struct BuildState {
 impl BuildState {
     pub(crate) fn capture(cache: Option<&Path>, paths: &[PathBuf]) -> anyhow::Result<Self> {
         // Disposable project cache is not a safe location for recovery bytes.
-        let backup = tempfile::Builder::new().prefix("proj-build-recovery-").tempdir()?;
+        let system_temp = fs::canonicalize(std::env::temp_dir()).context("Cannot resolve system temporary directory")?;
+        let backup = tempfile::Builder::new().prefix("proj-build-recovery-").tempdir_in(system_temp)?;
         if let Some(cache) = cache {
             let cache = crate::path_safety::resolve_path(cache, true)?;
             let recovery = crate::path_safety::resolve_path(backup.path(), true)?;
