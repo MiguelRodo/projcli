@@ -14,9 +14,9 @@ impl BuildState {
         let system_temp = fs::canonicalize(std::env::temp_dir()).context("Cannot resolve system temporary directory")?;
         let backup = tempfile::Builder::new().prefix("proj-build-recovery-").tempdir_in(system_temp)?;
         let recovery = fs::canonicalize(backup.path()).context("Cannot resolve private recovery storage")?;
-        if let Some(cache) = cache {
-            let cache = crate::path_safety::resolve_path(cache, true)?;
-            if recovery.starts_with(&cache) || cache.starts_with(&recovery) {
+        let cache = cache.map(|path| crate::path_safety::resolve_path(path, true)).transpose()?;
+        if let Some(cache) = &cache {
+            if recovery.starts_with(cache) || cache.starts_with(&recovery) {
                 anyhow::bail!("Private recovery storage overlaps disposable project cache");
             }
         }
@@ -37,7 +37,7 @@ impl BuildState {
         let mut roots: Vec<PathBuf> = Vec::new();
         for target in selected {
             if roots.iter().any(|parent| target.starts_with(parent)) { continue; }
-            if cache.is_some_and(|cache| cache.starts_with(&target) || target.starts_with(cache))
+            if cache.as_deref().is_some_and(|cache| cache.starts_with(&target) || target.starts_with(cache))
                 || target.starts_with(&recovery) || recovery.starts_with(&target) {
                 anyhow::bail!("Managed build backup overlaps cache: {}", target.display());
             }

@@ -792,3 +792,8 @@ config, selected nested source and VCS state on success/failure, including pre/p
 hooks with explicit empty analysis. Cache result bytes survive; no framework Git or
 export calls occur. A missing-backup success path verifies honest failure and safe
 current-state preservation. CI/independent review pending.
+
+PR148 review uses one resolved cache identity for both private-storage and managed
+target overlap checks. Dot-dot cache spellings with ancestor/descendant or shared
+absent-parent publication paths reject before analysis; a disjoint existing-parent
+case preserves actual cache artifact bytes. Recovery must not remove allowed cache.

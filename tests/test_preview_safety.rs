@@ -167,3 +167,23 @@ fn unsafe_preview_recovery_paths_fail_before_analysis() {
         assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");
     }
 }
+
+
+#[test]
+fn normalized_cache_identity_protects_preview_artifacts_from_absent_parent_recovery() {
+    for (remote, state_exists, succeeds) in [("state", false, false), ("state/cache/archive", false, false), ("state/archive", false, false), ("state/archive", true, true)] {
+        let project = tempfile::tempdir().unwrap();
+        let root = project.path().canonicalize().unwrap();
+        fs::create_dir(root.join("anchor")).unwrap();
+        if state_exists { fs::create_dir(root.join("state")).unwrap(); }
+        fs::write(root.join("_proj.yml"), format!("directories:\n  cache:\n    path: anchor/../state/cache\nremotes:\n  local:\n    archive:\n      path: {remote}\n      structure: cas\n      inspect: manifest\n      content: []\nbuild:\n  scripts: [analysis.py]\n")).unwrap();
+        fs::write(root.join("analysis.py"), "import os\nfrom pathlib import Path\nroot = Path(os.environ['PROJ_PROJECT_ROOT'])\ncache = root / 'state/cache'\ncache.mkdir(parents=True, exist_ok=True)\n(cache / 'result').write_bytes(b'preview')\n").unwrap();
+        let output = Command::new(env!("CARGO_BIN_EXE_proj"))
+            .args(["build-dev", "--non-interactive", "--project"]).arg(&root)
+            .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE")
+            .env_remove("QUARTO_PROFILE").output().unwrap();
+        assert_eq!(output.status.success(), succeeds, "remote={remote}, state_exists={state_exists}: {}", String::from_utf8_lossy(&output.stderr));
+        if succeeds { assert_eq!(fs::read(root.join("state/cache/result")).unwrap(), b"preview"); }
+        else { assert!(!root.join("state").exists(), "unsafe overlap must fail before analysis"); }
+    }
+}
