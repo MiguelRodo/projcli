@@ -297,3 +297,17 @@ profile and local files, including CLI failure before preview state writes.
 The prior green CI did not cover this malformed-input case; the corrected head
 above passed the new checks and independent re-review. Ponytail review kept this at the
 shared file parser rather than guarding individual callers.
+
+## Future R wrapper distribution boundary
+
+- **Relationship: new/unverified design.** The
+  [durable CRAN note](r-wrapper-cran.qmd) records the discussed future R-code wrapper
+  around a separately installed CLI, meaningful unconditional R-only/mocked tests,
+  conditional executable integration on CRAN, and mandatory pinned/checksummed CLI
+  integration in our own CI. It cites current policy and pinned Quarto precedent.
+- No existing R code or tests were changed; no CRAN submission, agreement,
+  preinstalled executable, automatic-download exemption or renderer parity is
+  claimed. Implementation and runtime validation remain future work.
+- **Ponytail full-mode design review:** kept one linked design note; reused the
+  repository's behavior/compatibility/AGENTS pointers. No installer, wrapper,
+  binding, mock framework or external contact was added speculatively.
