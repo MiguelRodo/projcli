@@ -1,7 +1,6 @@
 use std::io::{self, BufRead, IsTerminal, Write};
 
 use std::fs;
-use crate::yml::yml_read;
 use crate::version::version_set;
 use crate::ignore::root;
 
@@ -132,36 +131,52 @@ pub fn init_version() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Initializes only explicitly declared directories; creates a missing base config once.
+/// The preset declares projr's raw-data/cache/output paths without a scripts value.
+/// Existing base/profile files are preserved, and Git/GitHub setup is not invoked.
 pub fn init_directories() -> anyhow::Result<()> {
     let project_root = root().context("Failed to find project root.")?;
-
-    // Missing configuration resolves to defaults; genuine read/validation errors
-    // must stop before synchronization can replace existing custom ignore rules.
-    let config = yml_read(false).context("Failed to read configuration for directory initialization")?;
-
+    const PRESET: &str = "directories:\n  raw-data:\n    path: _raw_data\n  cache:\n    path: _tmp\n  output:\n    path: _output\n";
+    let base = crate::yml::base_configuration_path(&project_root)?;
+    let mut active_profile = false;
+    for profile in crate::profile::get_active_profiles() {
+        active_profile |= crate::yml::configuration_entry_exists(&project_root.join(format!("_projr-{profile}.yml")))?;
+    }
+    let create_base = base.is_none() && !active_profile;
+    let combined = crate::yml::get_combined_yml(None, &project_root)?;
+    let combined = if create_base {
+        crate::yml::deep_merge(serde_yaml::from_str::<serde_json::Value>(PRESET)?, combined)
+    } else { combined };
+    let raw: crate::yml::ProjConfig = serde_json::from_value(combined).context("Invalid directory initialization configuration")?;
+    let config = raw.validate_and_resolve(&project_root, false)?;
+    crate::path_safety::validate_build_paths(&project_root, &config, &[])?;
+    for name in [".gitignore", ".Rbuildignore"] {
+        let path = project_root.join(name);
+        crate::path_safety::resolve_path(path.as_std_path(), true)?;
+        if path.exists() { fs::read_to_string(&path).with_context(|| format!("Failed to read existing {name}"))?; }
+    }
+    for label in config.directories.keys() {
+        let path = config.get_path(&project_root, label)?;
+        if path.exists() && !path.is_dir() { anyhow::bail!("Declared directory '{label}' is not a directory"); }
+    }
+    if create_base {
+        let mut file = tempfile::NamedTempFile::new_in(project_root.as_std_path())?;
+        file.write_all(PRESET.as_bytes())?;
+        file.persist_noclobber(project_root.join("_proj.yml")).map_err(|error| error.error)
+            .context("Failed to create _proj.yml without overwriting existing configuration")?;
+        println!("Created _proj.yml with explicit directory paths.");
+    }
     crate::ignore::update_ignores(&project_root, &config)
         .context("Failed to update project ignores during initialization")?;
-
-    let default_labels = ["cache", "raw", "output", "docs"];
-    for label in &default_labels {
-        if let Ok(dir_path) = config.get_path(project_root.as_path(), label) {
-            if !dir_path.exists() {
-                println!("Creating directory: {}", dir_path);
-                fs::create_dir_all(dir_path.as_std_path()).with_context(|| format!("Failed to create {}.", label))?;
-            } else {
-                println!("Directory already exists: {}", dir_path);
-            }
+    let mut labels: Vec<_> = config.directories.keys().collect();
+    labels.sort();
+    for label in labels {
+        let path = config.get_path(&project_root, label)?;
+        if !path.exists() {
+            fs::create_dir_all(&path).with_context(|| format!("Failed to create declared directory '{label}'"))?;
+            println!("Created directory: {path}");
         }
     }
-
-    let r_dir = project_root.join("R");
-    if !r_dir.exists() {
-        println!("Creating directory: {}", r_dir);
-        fs::create_dir_all(r_dir.as_std_path()).context("Failed to create R directory.")?;
-    } else {
-        println!("Directory already exists: R");
-    }
-
     Ok(())
 }
 

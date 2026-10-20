@@ -12,9 +12,12 @@ fn query(project: &std::path::Path, inherited: Option<&std::path::Path>) -> Outp
 fn explicit_root_overrides_ancestor_and_inherited_context_without_markers() {
     let outer = tempfile::tempdir().unwrap();
     fs::write(outer.path().join("VERSION"), "v1.0.0").unwrap();
-    fs::write(outer.path().join("_proj.yml"), "directories: {}\n").unwrap();
+    fs::write(outer.path().join("_proj.yml"), "directories:\n  output:\n    path: _outer_output\n").unwrap();
     let selected = outer.path().join("selected project");
     fs::create_dir(&selected).unwrap();
+    let selected_utf8 = camino::Utf8Path::from_path(&selected).unwrap();
+    assert_eq!(proj::project::resolve_project_root(Some(selected_utf8)).unwrap().as_std_path(), selected.canonicalize().unwrap());
+    fs::write(selected.join("_proj.yml"), "directories:\n  output:\n    path: _output\n").unwrap();
     let output = query(&selected, Some(outer.path()));
     assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
     let actual = String::from_utf8(output.stdout).unwrap();
@@ -43,7 +46,7 @@ fn child_path_query_keeps_selected_root_after_cwd_changes() {
     let root = project.path();
     fs::create_dir(root.join("scripts")).unwrap();
     fs::create_dir(root.join("elsewhere")).unwrap();
-    fs::write(root.join("_proj.yml"), "build:\n  scripts: [scripts/analysis.py]\n").unwrap();
+    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\n  output:\n    path: _output\nbuild:\n  scripts: [scripts/analysis.py]\n").unwrap();
     fs::write(root.join("scripts/analysis.py"), r#"import os, subprocess
 from pathlib import Path
 root = Path(os.environ['PROJ_PROJECT_ROOT'])
@@ -70,7 +73,7 @@ fn direct_build_supplies_child_root_without_replacing_callers_root() {
     let project = tempfile::tempdir().unwrap();
     let root = camino::Utf8Path::from_path(project.path()).unwrap();
     let expected = serde_json::to_string(root.canonicalize_utf8().unwrap().as_str()).unwrap();
-    fs::write(root.join("_proj.yml"), "build:\n  scripts: [analysis.py]\n").unwrap();
+    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\n  output:\n    path: _output\nbuild:\n  scripts: [analysis.py]\n").unwrap();
     let script = format!("import os\nfrom pathlib import Path\nassert Path(os.environ['PROJ_PROJECT_ROOT']) == Path({expected})\nPath('_tmp').mkdir(exist_ok=True)\nPath('_tmp/direct.txt').write_text('done')\n");
     fs::write(root.join("analysis.py"), script).unwrap();
     let before = std::env::var_os(proj::PROJECT_ROOT_ENV);
@@ -92,7 +95,7 @@ fn simultaneous_direct_builds_keep_independent_roots() {
         fs::create_dir(root).unwrap();
         let own = serde_json::to_string(root.canonicalize().unwrap().to_str().unwrap()).unwrap();
         let other = serde_json::to_string(roots[1 - index].to_str().unwrap()).unwrap();
-        fs::write(root.join("_proj.yml"), "build:\n  scripts: [analysis.py]\n").unwrap();
+        fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\n  output:\n    path: _output\nbuild:\n  scripts: [analysis.py]\n").unwrap();
         let script = format!(r#"import os, subprocess, time
 from pathlib import Path
 root = Path({own})

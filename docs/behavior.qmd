@@ -91,7 +91,7 @@ The core root finder implements nearest-recognized-ancestor discovery without a
 VERSION prerequisite. Its marker tests cover the retained projr patterns and
 deliberate Python/Julia/proj-config extensions and cwd fallback. Builds now require active
 configuration and typed validation rejects unsupported fields. Explicit directory
-mappings and full failure restoration still need implementation; historical passing fixtures
+mappings are enforced without runtime path defaults; full failure restoration remains open; historical passing fixtures
 do not demonstrate those new requirements.
 Individual scripts currently start in their parent directory. Captured-root stability is
 implemented for core CLI child queries after cwd changes, including independent

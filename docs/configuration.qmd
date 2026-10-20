@@ -12,15 +12,25 @@ Custom directory labels are strictly validated against a set of foundational pre
 
 These prefixes are **case-insensitive**. Any label defined in the configuration must begin with one of these approved identifiers.
 
-## Default Fallback Injections
+## Explicit paths and local initialization
 
-If you omit the `path` key for a valid label, the system applies default paths dynamically based on the label prefix:
-- **`cache`** defaults to `_tmp`
-- **`raw`** defaults to `_raw`
-- **`output`** defaults to `_output`
-- **`docs`** defaults to `docs`
+Every declared directory needs a nonempty `path`. Runtime does not insert missing
+cache/raw/output/docs mappings or synthesize subpaths for undeclared labels.
+For example, declaring `raw-data: {path: _raw_data}` makes `raw-data` available;
+it does not create an undeclared `raw` or `raw-data-extra` resource.
+ASCII case is ignored and case-only duplicate labels are rejected.
 
-Furthermore, if any of the base prefixes are completely absent from the `_proj.yml` configuration block, they are automatically injected as default base targets.
+`proj --project . --non-interactive init directories` creates a missing `_proj.yml`
+once with explicit `raw-data: _raw_data`, `cache: _tmp`, and `output: _output`
+paths. It preserves existing base/profile files, creates only declared resource
+directories, and does not invoke Git/GitHub or add an R code directory. The preset
+omits `build.scripts`, preserving shallow discovery; it never serializes an
+accidental empty analysis list. To render documents, declare a `docs` mapping too.
+
+Production state and project-render staging require a declared `cache` directory.
+Framework version/staging children are derived inside that declared cache; this
+is distinct from inventing undeclared resource labels. Storage `content` labels
+must be declared and relative storage paths use the captured project root.
 
 ## Strict Validation Error Behaviors
 
@@ -67,7 +77,7 @@ The `_proj.yml` file can also contain a `build` block to configure the behavior 
   - **`both`**: Scripts executed during both `pre` and `post` phases.
 - **`profile`**: An optional environment profile identifier. When set, the system injects the `PROJR_PROFILE` environment variable into the isolated subprocess for all executed scripts and project rendering commands. This can be overridden at runtime via the `--profile` CLI flag.
 - **`git`**: An optional Git integration configuration. This can be a boolean toggle or an object mapping out detailed toggles:
-  - **`commit`**: Whether to automatically perform pre and post-build commits (defaults to false).
+  - **`commit`**: Controls legacy pre/post-build commits. The current runtime can enable commits merely because `.git` exists; set `build.git: false` to disable this. The approved explicit-only policy is still under development; see the safety audit.
   - **`push`**: Whether to automatically push a successful build commit to the remote repository (defaults to false).
 - **`restrictions`**: Configuration block to enforce Git checks specifically during production builds:
   - **`only_branches`**: A list of allowed branch names. Production builds will abort if the current branch is not in this list.

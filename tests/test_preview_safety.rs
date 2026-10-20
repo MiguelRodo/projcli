@@ -17,7 +17,13 @@ fn files_under(root: &Path) -> BTreeMap<String, Vec<u8>> {
 
 fn fixture(root: &Path, clear: &str, fail: bool) {
     fs::write(root.join("VERSION"), "Version: v1.2.3\n").unwrap();
-    fs::write(root.join("_proj.yml"), format!(r#"directories: {{}}
+    fs::write(root.join("_proj.yml"), format!(r#"directories:
+  cache:
+    path: _tmp
+  output:
+    path: _output
+  docs:
+    path: docs
 remotes:
   local:
     archive:

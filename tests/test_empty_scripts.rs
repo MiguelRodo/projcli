@@ -27,7 +27,13 @@ fn explicit_empty_selection_runs_hooks_without_analysis_cleanup_or_rendering() {
                 }
                 let scripts = if selection == "dev-override-empty" { "[analysis.py]" } else { "[]" };
                 let dev = if selection == "dev-override-empty" { "dev:\n  scripts: []\n" } else { "" };
-                let config = format!(r#"directories: {{}}
+                let config = format!(r#"directories:
+  cache:
+    path: _tmp
+  output:
+    path: _output
+  docs:
+    path: docs
 config:
   git:
     use_proj_cred_helper: false

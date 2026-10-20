@@ -48,7 +48,9 @@ fn overlaps(left: &Path, right: &Path) -> bool {
 /// External resource paths are allowed when disjoint from protected inputs/state.
 pub(crate) fn validate_build_paths(root: &Utf8Path, config: &crate::yml::ValidatedConfig, inputs: &[camino::Utf8PathBuf]) -> anyhow::Result<()> {
     let root_identity = resolve_path(root.as_std_path(), false)?;
-    let staging = resolve_path(root.join("_tmp/projr").as_std_path(), true)?;
+    let staging = if config.directories.keys().any(|label| label.eq_ignore_ascii_case("cache")) {
+        Some(resolve_path(config.get_path(root, "cache")?.join("projr").as_std_path(), true)?)
+    } else { None };
     let mut directories = Vec::new();
     for (label, directory) in &config.directories {
         validate_directory_label(label)?;
@@ -72,8 +74,10 @@ pub(crate) fn validate_build_paths(root: &Utf8Path, config: &crate::yml::Validat
                 }
             }
         }
-        if !lower.starts_with("cache") && overlaps(&identity, &staging) {
-            anyhow::bail!("Resource directory '{label}' overlaps build staging");
+        if let Some(staging) = &staging {
+            if !lower.starts_with("cache") && overlaps(&identity, staging) {
+                anyhow::bail!("Resource directory '{label}' overlaps build staging");
+            }
         }
         directories.push((label, identity, writable));
     }
@@ -112,15 +116,12 @@ pub(crate) fn validate_cleanup_paths(root: &Utf8Path, config: &crate::yml::Valid
     if version.contains('/') || version.contains('\\') || version == "." || version == ".." {
         anyhow::bail!("Invalid cache version component");
     }
-    let legacy_version = root.join("_tmp/projr").join(version);
-    resolve_path(legacy_version.as_std_path(), true)?;
-    resolve_path(legacy_version.join("docs").as_std_path(), true)?;
     let cache = config.get_path(root, "cache")?;
     resolve_path(cache.join("projr").join(version).as_std_path(), true)?;
+    resolve_path(cache.join("projr").join(version).join("docs").as_std_path(), true)?;
     for label in config.directories.keys() {
         if label.to_lowercase().starts_with("output") || label == "data" {
             resolve_path(cache.join("projr").join(version).join(label).as_std_path(), true)?;
-            resolve_path(legacy_version.join(label).as_std_path(), true)?;
         }
     }
     Ok(())
@@ -133,7 +134,7 @@ pub(crate) fn validate_document_destination(root: &Utf8Path, input: &Utf8Path, d
     if root.starts_with(&destination) || resolve_path(input.as_std_path(), false)?.starts_with(&destination) {
         anyhow::bail!("Document destination contains the project root or selected input");
     }
-    for protected in [root.join(".git"), root.join(".svn"), root.join("_tmp/projr")] {
+    for protected in [root.join(".git"), root.join(".svn")] {
         if overlaps(&destination, &protected) { anyhow::bail!("Document destination overlaps protected project state"); }
     }
     if destination.exists() && !destination.is_dir() { anyhow::bail!("Document destination is not a directory"); }

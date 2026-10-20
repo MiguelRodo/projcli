@@ -4,7 +4,7 @@ use std::{fs, io::Write, process::{Command, Stdio}};
 fn noninteractive_runner_gets_eof_even_when_cli_stdin_has_data() {
     let project = tempfile::tempdir().unwrap();
     let root = project.path();
-    fs::write(root.join("_proj.yml"), "build:\n  scripts: [analysis.py]\n").unwrap();
+    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: [analysis.py]\n").unwrap();
     fs::write(root.join("analysis.py"), "import sys\nfrom pathlib import Path\nvalue = sys.stdin.read(1)\nPath('_tmp').mkdir(exist_ok=True)\nPath('_tmp/stdin.txt').write_text('eof' if value == '' else 'input')\n").unwrap();
     let mut child = Command::new(env!("CARGO_BIN_EXE_proj"))
         .args(["--non-interactive", "build-dev", "--project"]).arg(root)
