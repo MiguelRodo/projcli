@@ -799,6 +799,42 @@ rejected before push. Explicit Git lookup anchors directories absolutely but pre
 the candidate leaf spelling, supporting symlink-based name dispatchers; a fake
 git-to-dispatcher symlink regression prevents argv[0] canonicalization regressions.
 
+## Preview preservation despite managed-state writes
+
+**Different/new:** the cooperating-script-only PR123 preview guarantee is extended
+using reviewed exact-byte recovery from PR141. Captured release output/docs,
+VERSION/config/root files, selected scripts/hooks, local publication stores and
+ordinary VCS metadata restore after successful and failing previews. The pinned
+projr `3ac29595d0e39552495d863661b99ea015d59d3d` remains workflow evidence, not a
+tested runtime parity claim. No R changes or publication calls are introduced.
+
+**Bounded:** cache artifacts remain; arbitrary undeclared/external script effects,
+worktree VCS pointer targets, concurrent writes/power loss and automatic redirection
+of every script output are not covered. Recovery rejects unsafe overlaps/links,
+preserves original missing/present state and never deletes a current target before
+its existing recovery bytes are prepared. Restore failure is a failed preview,
+even when analysis returned zero, and retains available private recovery bytes.
+
+Ponytail full-mode review reused BuildState, filesystem identity/overlap guards and
+existing command environments without a new transaction framework/dependency.
+Prepared remote regressions deliberately delete/alter captured outputs, archive,
+config, selected nested source and VCS state on success/failure, including pre/post
+hooks with explicit empty analysis. Cache result bytes survive; no framework Git or
+export calls occur. A missing-backup success path verifies honest failure and safe
+current-state preservation. CI/independent review pending.
+
+PR148 review uses one resolved cache identity for both private-storage and managed
+target overlap checks. Dot-dot cache spellings with ancestor/descendant or shared
+absent-parent publication paths reject before analysis; a disjoint existing-parent
+case preserves actual cache artifact bytes. Recovery must not remove allowed cache.
+
+Recovery overlap comparisons conservatively fold ASCII names on all platforms,
+including absent suffixes (Windows/default macOS can alias them). Missing Unicode
+components reject only when overlap comparison reaches an ambiguous alias; disjoint
+existing/ASCII directory prefixes rule out overlap before a Unicode output leaf. Actual
+filesystem paths retain original spelling; these identities only bound overlap and
+deduplication. Cross-platform absent-case-alias fixtures fail before cache writes.
+
 ## Preview release/install delivery
 
 **Different/new:** replace stale SATVILab/proj-core download defaults with canonical
@@ -867,6 +903,11 @@ Retained Markdown (`keep_md` / `keep-md`, including format options) is rejected 
 individual layouts before rendering. A nested Rmd sibling sentinel regression with
 an overwrite-capable fake renderer and failing post-hook prevents this untracked
 framework artifact from damaging existing Markdown outside the recovery plan.
+
+The reviewed Unicode renderer fixture remains supported: comparison-only cache
+guards stop at disjoint directory prefixes instead of blanket-rejecting missing
+Unicode output filenames. Existing actual renderer format/promotion tests retain
+their apostrophe/Unicode inputs; no fixture reduction hides unsupported output.
 
 PR149 review qualifies checkout as refs/tags/<validated preview tag> and verifies
 HEAD against that exact tag in both jobs. Both platform artifacts record the source

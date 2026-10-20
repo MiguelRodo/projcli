@@ -14,15 +14,15 @@ impl BuildState {
         let system_temp = fs::canonicalize(std::env::temp_dir()).context("Cannot resolve system temporary directory")?;
         let backup = tempfile::Builder::new().prefix("proj-build-recovery-").tempdir_in(system_temp)?;
         let recovery = fs::canonicalize(backup.path()).context("Cannot resolve private recovery storage")?;
-        if let Some(cache) = cache {
-            let cache = crate::path_safety::resolve_path(cache, true)?;
-            if recovery.starts_with(&cache) || cache.starts_with(&recovery) {
+        let cache = cache.map(|path| crate::path_safety::resolve_path(path, true)).transpose()?;
+        if let Some(cache) = &cache {
+            if recovery_paths_overlap(cache, &recovery)? {
                 anyhow::bail!("Private recovery storage overlaps disposable project cache");
             }
         }
         let mut state = Self { backup, entries: Vec::new() };
         // Callers provide the concrete managed files/directories, not a whole-project copy.
-        let mut selected: Vec<PathBuf> = paths.iter().map(|path| {
+        let mut selected: Vec<(PathBuf, PathBuf)> = paths.iter().map(|path| {
             let mut target = crate::path_safety::resolve_path(path, true)?;
             // Also remove parent directories created solely for a previously absent target.
             while !target.try_exists()? {
@@ -30,18 +30,24 @@ impl BuildState {
                 if parent.try_exists()? { break; }
                 target = parent.to_owned();
             }
-            Ok(target)
+            Ok((recovery_path_identity(&target)?, target))
         }).collect::<anyhow::Result<_>>()?;
         selected.sort();
         selected.dedup();
-        let mut roots: Vec<PathBuf> = Vec::new();
-        for target in selected {
-            if roots.iter().any(|parent| target.starts_with(parent)) { continue; }
-            if cache.is_some_and(|cache| cache.starts_with(&target) || target.starts_with(cache))
-                || target.starts_with(&recovery) || recovery.starts_with(&target) {
+        let mut roots: Vec<(PathBuf, PathBuf)> = Vec::new();
+        for (identity, target) in selected {
+            if let Some((parent_identity, parent_path)) = roots.iter().find(|(parent, _)| identity.starts_with(parent)) {
+                if !target.starts_with(parent_path) {
+                    anyhow::bail!("Ambiguous case-alias managed recovery paths overlap: {} and {}", parent_path.display(), target.display());
+                }
+                debug_assert!(identity.starts_with(parent_identity));
+                continue;
+            }
+            if cache.as_deref().map(|cache| recovery_paths_overlap(cache, &target)).transpose()?.unwrap_or(false)
+                || recovery_paths_overlap(&target, &recovery)? {
                 anyhow::bail!("Managed build backup overlaps cache: {}", target.display());
             }
-            roots.push(target.clone());
+            roots.push((identity, target.clone()));
             let saved = state.backup.path().join(state.entries.len().to_string());
             let original = match fs::symlink_metadata(&target) {
                 Ok(_) => { copy_exact(&target, &saved)?; Some(saved) }
@@ -55,22 +61,70 @@ impl BuildState {
 
     /// Restore all entries even if one fails. Keep recovery bytes and both diagnostics.
     pub(crate) fn restore(self, primary: anyhow::Error) -> anyhow::Error {
+        self.restore_result(Err(primary)).expect_err("A primary failure remains a failure")
+    }
+
+    /// Previews restore captured state after success as well as failure.
+    pub(crate) fn restore_result(self, result: anyhow::Result<()>) -> anyhow::Result<()> {
         let mut failures = Vec::new();
         for (target, saved) in &self.entries {
             if let Err(error) = restore_entry(target, saved.as_deref()) {
                 failures.push(format!("{}: {error:#}", target.display()));
             }
         }
-        if failures.is_empty() { primary }
+        if failures.is_empty() { result }
         else {
-            if self.backup.path().is_dir() {
+            let diagnostic = if self.backup.path().is_dir() {
                 let retained = self.backup.keep();
-                primary.context(format!("Managed-state restoration also failed: {}; recovery backup retained at {}", failures.join("; "), retained.display()))
+                format!("Managed-state restoration also failed: {}; recovery backup retained at {}", failures.join("; "), retained.display())
             } else {
-                primary.context(format!("Managed-state restoration also failed: {}; recovery backup is unavailable", failures.join("; ")))
-            }
+                format!("Managed-state restoration also failed: {}; recovery backup is unavailable", failures.join("; "))
+            };
+            Err(match result {
+                Err(primary) => primary.context(diagnostic),
+                Ok(()) => anyhow::anyhow!(diagnostic),
+            })
         }
     }
+
+}
+
+// Comparison-only identity, never a filesystem operation path. ASCII folding
+// conservatively rejects absent aliases on Windows/default macOS (and on Linux).
+fn recovery_path_identity(path: &Path) -> anyhow::Result<PathBuf> {
+    let mut identity = PathBuf::new();
+    for component in path.components() {
+        if let std::path::Component::Normal(name) = component {
+            identity.push(name.to_str().context("Non-UTF-8 recovery path is unsupported")?.to_ascii_lowercase());
+        } else { identity.push(component.as_os_str()); }
+    }
+    Ok(identity)
+}
+
+// Only reject unmodeled Unicode aliases when the comparison actually reaches an
+// ambiguous missing component. Disjoint existing/ASCII directory prefixes already
+// rule out overlap, so an ordinary Unicode output leaf remains supported.
+fn recovery_paths_overlap(left: &Path, right: &Path) -> anyhow::Result<bool> {
+    let mut left_prefix = PathBuf::new();
+    let mut right_prefix = PathBuf::new();
+    for (left, right) in left.components().zip(right.components()) {
+        left_prefix.push(left.as_os_str());
+        right_prefix.push(right.as_os_str());
+        let left = left.as_os_str().to_str().context("Non-UTF-8 recovery path is unsupported")?;
+        let right = right.as_os_str().to_str().context("Non-UTF-8 recovery path is unsupported")?;
+        if left.eq_ignore_ascii_case(right) { continue; }
+        // A differing ASCII character before any differing Unicode scalar rules
+        // out native case/canonical-Unicode aliases for this component.
+        let mut pairs = left.chars().zip(right.chars());
+        let differing = pairs.find(|(left, right)| !left.eq_ignore_ascii_case(right));
+        let definitely_different = match differing {
+            Some((left, right)) => left.is_ascii() && right.is_ascii(),
+            None => left.is_ascii() && right.is_ascii(),
+        };
+        if definitely_different || (left_prefix.try_exists()? && right_prefix.try_exists()?) { return Ok(false); }
+        anyhow::bail!("Ambiguous missing Unicode components in recovery overlap comparison");
+    }
+    Ok(true)
 }
 
 fn copy_exact(source: &Path, destination: &Path) -> anyhow::Result<()> {
@@ -170,6 +224,19 @@ mod tests {
         assert!(backup_path.is_dir());
         assert_eq!(fs::read_to_string(backup_path.join("0/previous")).unwrap(), "release");
         assert_eq!(fs::read_to_string(external.path().join("keep")).unwrap(), "external");
+    }
+
+    #[test]
+    fn successful_preview_is_failure_if_recovery_is_unavailable_without_deleting_current_bytes() {
+        let project = tempfile::tempdir().unwrap();
+        let root = project.path().canonicalize().unwrap();
+        let target = root.join("VERSION");
+        fs::write(&target, "original version").unwrap();
+        let state = BuildState::capture(None, &[target.clone()]).unwrap();
+        fs::remove_dir_all(state.backup.path()).unwrap();
+        let error = state.restore_result(Ok(())).unwrap_err();
+        assert!(format!("{error:#}").contains("recovery backup is unavailable"));
+        assert_eq!(fs::read_to_string(target).unwrap(), "original version");
     }
 
     #[test]

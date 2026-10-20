@@ -215,6 +215,23 @@ Native authentication is the default. An explicit token-helper opt-in uses fixed
 host-scoped code and ephemeral environment data, never secret argv/source or
 persistent credentials. Local build success remains distinct from publication failure.
 
+## Bounded preview managed-state recovery
+
+Preview captures managed root files/config/VERSION, selected inputs, declared
+output/docs trees, configured local publication stores and ordinary VCS metadata.
+Restore exact captured bytes/presence on both success and failure; restoration
+failure makes preview fail and reports retained recovery data when available.
+Declared cache is disposable and excluded from recovery; preview/cache artifacts
+remain there. No Git/publication operations execute in preview.
+
+Recovery uses private temporary storage outside project cache. Unsafe linked or
+overlapping recovery paths fail before analysis; file-based/worktree VCS pointers
+are unsupported for this bounded metadata guarantee. This does not redirect arbitrary
+script writes, protect undeclared/external effects, prevent concurrent reads of
+temporary modifications, or provide sandbox/crash/concurrent-writer atomicity.
+New unmanaged files are not a whole-project snapshot. Automatic preview output
+isolation remains separate from post-run captured-state preservation.
+
 ## Preview binary delivery
 
 Release/install plumbing must verify version-bound platform assets/checksums before
