@@ -1,38 +1,5 @@
 [
   {
-    "objectID": "cli/path.html",
-    "href": "cli/path.html",
-    "title": "proj path get",
-    "section": "",
-    "text": "Get the resolved absolute path for a given label in the project.\nproj path get --label &lt;LABEL&gt;\n\n\nThe path resolution mapping dynamically takes the target label and computes an absolute path to the sandbox resource.\n\nExact Matches: First, the CLI checks if the provided label perfectly matches an existing block declared inside your _proj.yml. If there is a direct match, the declared path rule is applied.\nPrefix Nesting Fallbacks: If an exact match is missing, the tool attempts to gracefully interpret the label via a foundational prefix fallback. It identifies if the target begins with an approved foundation (cache, raw, output, docs).\n\nSuffix mappings are appended logically to the base directory. For example, if raw is naturally mapped to _raw, invoking a non-declared label raw-data safely resolves as a direct nested directory, constructing the path _raw/data.\n\n\n\n\n\nOutput path labels securely route into versioned target sandboxes during an active project build. The tool guarantees the resolution produces verified absolute paths directly pointing to their intended source locations, enforcing standard separation across testing segregations and pure-function results.",
-    "crumbs": [
-      "CLI Reference",
-      "`proj path get`"
-    ]
-  },
-  {
-    "objectID": "cli/path.html#resolution-rules",
-    "href": "cli/path.html#resolution-rules",
-    "title": "proj path get",
-    "section": "",
-    "text": "The path resolution mapping dynamically takes the target label and computes an absolute path to the sandbox resource.\n\nExact Matches: First, the CLI checks if the provided label perfectly matches an existing block declared inside your _proj.yml. If there is a direct match, the declared path rule is applied.\nPrefix Nesting Fallbacks: If an exact match is missing, the tool attempts to gracefully interpret the label via a foundational prefix fallback. It identifies if the target begins with an approved foundation (cache, raw, output, docs).\n\nSuffix mappings are appended logically to the base directory. For example, if raw is naturally mapped to _raw, invoking a non-declared label raw-data safely resolves as a direct nested directory, constructing the path _raw/data.",
-    "crumbs": [
-      "CLI Reference",
-      "`proj path get`"
-    ]
-  },
-  {
-    "objectID": "cli/path.html#output-path-routing",
-    "href": "cli/path.html#output-path-routing",
-    "title": "proj path get",
-    "section": "",
-    "text": "Output path labels securely route into versioned target sandboxes during an active project build. The tool guarantees the resolution produces verified absolute paths directly pointing to their intended source locations, enforcing standard separation across testing segregations and pure-function results.",
-    "crumbs": [
-      "CLI Reference",
-      "`proj path get`"
-    ]
-  },
-  {
     "objectID": "cli/ignore.html",
     "href": "cli/ignore.html",
     "title": "proj ignore",
@@ -114,7 +81,7 @@
     "href": "cli/build.html",
     "title": "proj build",
     "section": "",
-    "text": "The build pipeline script execution engine for the project.\nThis command evaluates what files need to be run based on configuration layout parameters (build.scripts in _proj.yml) or filesystem auto-discovery. It sorts them according to strict engine precedence rules, modifies format-specific configuration templates when necessary, and executes each script inside its own independent, isolated subprocess.\n\n\n\n--major, --minor, --patch: Specifies the version bump strategy for a production build.\n--profile: An optional profile to configure execution context.\n--description: An optional description string for the build commit. If omitted during a production build that involves git commits, the CLI will interactively prompt for a one-line description when running inside a valid terminal session.\n\n\n\n\n\nPre-flight Dependency Checks: Before modifying files or triggering git snapshots, the build engine statically resolves targets to identify dependencies. Depending on the matched scripts (such as .Rmd, .qmd, or .py) and configuration files, it asserts the availability of Rscript (verifying required R namespaces like rmarkdown or bookdown), quarto, or python executable commands. Any missing R packages can be resolved automatically via the PROJR_AUTO_INSTALL environment variable, or through an interactive terminal prompt.\nProduction Build Restrictions: Checks if branch rules (only_branches, not_branches) or upstream synchronicity (not_behind) are violated during a production build run.\nRemote Export Pipeline: During the post-build phase, conditionally exports resolved local target outputs into a deduplicated Content-Addressable Storage (CAS) vault as defined via build.dest targets in remotes.local.\nSystem Git Provider Abstracted: Git mutations safely resolve through a strictly encapsulated host System Git adapter, securely avoiding hanging inputs and ensuring older systems correctly push mutations.\nMutual Exclusion Checking: Before executing, proj build checks for project-level configurations (_quarto.yml and _bookdown.yml). If both exist and the build targets include Quarto or RMarkdown documents, it throws an error to prevent conflicting rendering.\nExplicit Execution (Path A):\n\nDefine exact scripts, exclusions (starting with !), or sub-directory globs in _proj.yml under build.scripts.\nCan rewrite _quarto.yml or _bookdown.yml configuration if specific subset documents are requested.\nMaintains order relative to Python and R scripts, while correctly clustering and executing project documents together.\n\nFallback Execution (Path B):\n\nIf no build.scripts is provided, the engine auto-discovers build targets.\nWill execute a Quarto project if _quarto.yml exists, or a Bookdown project if _bookdown.yml exists.\nOtherwise, it falls back to a shallow workspace sweep and runs .qmd, .Rmd, .R, and .py files in that strict order.\n\n\n\n\n\nEvery resolved file or project rendering task runs inside its own completely independent subprocess, isolated via environment profiles (PROJR_PROFILE) and correct working directory assignments (current_dir), preventing memory leaks and state pollution across execution runs."
+    "text": "The build pipeline script execution engine for the project.\nThis command evaluates what files need to be run based on configuration layout parameters (build.scripts in _proj.yml) or filesystem auto-discovery. It sorts them according to strict engine precedence rules, modifies format-specific configuration templates when necessary, and executes each script inside its own independent, isolated subprocess.\n\n\n\n--major, --minor, --patch: Specifies the version bump strategy for a production build.\n--profile: An optional profile to configure execution context.\n--description: An optional description string for the build commit. If omitted during a production build that involves git commits, the CLI will interactively prompt for a one-line description when running inside a valid terminal session.\n\n\n\n\n\nPre-flight Dependency Checks: Before modifying files or triggering git snapshots, the build engine statically resolves targets to identify dependencies. Depending on the matched scripts (such as .Rmd, .qmd, or .py) and configuration files, it asserts the availability of Rscript (verifying required R namespaces like rmarkdown or bookdown), quarto, or python executable commands. Any missing R packages can be resolved automatically via the PROJR_AUTO_INSTALL environment variable, or through an interactive terminal prompt.\nProduction Build Restrictions: Checks if branch rules (only_branches, not_branches) or upstream synchronicity (not_behind) are violated during a production build run.\nRemote Export Pipeline: During the post-build phase, conditionally exports resolved local target outputs into a deduplicated Content-Addressable Storage (CAS) vault as defined via build.dest targets in remotes.local.\nSystem Git Provider Abstracted: Git mutations safely resolve through a strictly encapsulated host System Git adapter, securely avoiding hanging inputs and ensuring older systems correctly push mutations.\nMutual Exclusion Checking: Before executing, proj build checks for project-level configurations (_quarto.yml and _bookdown.yml). If both exist and the build targets include Quarto or RMarkdown documents, it throws an error to prevent conflicting rendering.\nExplicit Execution (Path A):\n\nDefine exact scripts, exclusions (starting with !), or sub-directory globs in _proj.yml under build.scripts.\nCan rewrite _quarto.yml or _bookdown.yml configuration if specific subset documents are requested.\nMaintains order relative to Python and R scripts, while correctly clustering and executing project documents together.\n\nFallback Execution (Path B):\n\nIf no build.scripts is provided, the engine auto-discovers build targets.\nWill execute a Quarto project if _quarto.yml exists, or a Bookdown project if _bookdown.yml exists.\nOtherwise, it falls back to a shallow workspace sweep and runs .qmd, .Rmd, .R, and .py files in that strict order.\n\n\n\n\n\nEvery resolved file or project rendering task runs inside its own completely independent subprocess, isolated via environment profiles (PROJR_PROFILE) and correct working directory assignments (current_dir), preventing memory leaks and state pollution across execution runs.\n\n\n\nproj build-dev\nDevelopment runs execute the existing script selection with development Git settings disabled. The CLI does not create or update VERSION, update ignore files, clear released output or previous caches, promote rendered documents into docs, or export to configured local archives. These rules apply on success and failure, even when production configuration enables cleanup, commits or export.\nScripts should explicitly write preview artefacts into their declared cache or staging locations. A subprocess is not a filesystem sandbox: scripts, hooks and renderers can still write where their own code/configuration directs them. Renderer configuration rewriting and script working-directory behavior retain their existing semantics. This change does not introduce automatic output redirection, recursive discovery or a new project-root policy."
   },
   {
     "objectID": "cli/build.html#arguments-flags",
@@ -136,6 +103,35 @@
     "title": "proj build",
     "section": "",
     "text": "Every resolved file or project rendering task runs inside its own completely independent subprocess, isolated via environment profiles (PROJR_PROFILE) and correct working directory assignments (current_dir), preventing memory leaks and state pollution across execution runs."
+  },
+  {
+    "objectID": "cli/build.html#development-preview",
+    "href": "cli/build.html#development-preview",
+    "title": "proj build",
+    "section": "",
+    "text": "proj build-dev\nDevelopment runs execute the existing script selection with development Git settings disabled. The CLI does not create or update VERSION, update ignore files, clear released output or previous caches, promote rendered documents into docs, or export to configured local archives. These rules apply on success and failure, even when production configuration enables cleanup, commits or export.\nScripts should explicitly write preview artefacts into their declared cache or staging locations. A subprocess is not a filesystem sandbox: scripts, hooks and renderers can still write where their own code/configuration directs them. Renderer configuration rewriting and script working-directory behavior retain their existing semantics. This change does not introduce automatic output redirection, recursive discovery or a new project-root policy."
+  },
+  {
+    "objectID": "cli/yml.html",
+    "href": "cli/yml.html",
+    "title": "proj yml get",
+    "section": "",
+    "text": "Read the _proj.yml content and trigger validation and initialization.\n\n\nWhen proj yml get is executed, the tool automatically resolves parameters and defaults from the file.\n\nParameter Resolution: It scans explicitly provided configurations. If you defined custom directory labels mapped to absolute or relative paths, it retrieves them directly. It also resolves arbitrary deeply nested variables configured under the parameters block. If missing, an empty parameters block is automatically injected into the file. The tool actively protects against alias conflicts (e.g., combining parameters and params blocks simultaneously).\nDynamic Injections: Missing path parameters under valid foundational prefixes will automatically receive their default injection (e.g., an empty cache block resolves to the path _tmp).\nImplicit Base Defaults: Foundational prefixes that are not explicitly stated in the configuration will be seamlessly injected as default base targets during execution.\nIgnore Synchronization: Reading the YAML file naturally triggers the ignore demarcation engine, applying standard ignore behaviors to .gitignore and .Rbuildignore dynamically based on the verified settings.",
+    "crumbs": [
+      "CLI Reference",
+      "`proj yml get`"
+    ]
+  },
+  {
+    "objectID": "cli/yml.html#reading-parameters-and-defaults",
+    "href": "cli/yml.html#reading-parameters-and-defaults",
+    "title": "proj yml get",
+    "section": "",
+    "text": "When proj yml get is executed, the tool automatically resolves parameters and defaults from the file.\n\nParameter Resolution: It scans explicitly provided configurations. If you defined custom directory labels mapped to absolute or relative paths, it retrieves them directly. It also resolves arbitrary deeply nested variables configured under the parameters block. If missing, an empty parameters block is automatically injected into the file. The tool actively protects against alias conflicts (e.g., combining parameters and params blocks simultaneously).\nDynamic Injections: Missing path parameters under valid foundational prefixes will automatically receive their default injection (e.g., an empty cache block resolves to the path _tmp).\nImplicit Base Defaults: Foundational prefixes that are not explicitly stated in the configuration will be seamlessly injected as default base targets during execution.\nIgnore Synchronization: Reading the YAML file naturally triggers the ignore demarcation engine, applying standard ignore behaviors to .gitignore and .Rbuildignore dynamically based on the verified settings.",
+    "crumbs": [
+      "CLI Reference",
+      "`proj yml get`"
+    ]
   },
   {
     "objectID": "flow.html",
@@ -336,25 +332,36 @@
     ]
   },
   {
-    "objectID": "cli/yml.html",
-    "href": "cli/yml.html",
-    "title": "proj yml get",
+    "objectID": "cli/path.html",
+    "href": "cli/path.html",
+    "title": "proj path get",
     "section": "",
-    "text": "Read the _proj.yml content and trigger validation and initialization.\n\n\nWhen proj yml get is executed, the tool automatically resolves parameters and defaults from the file.\n\nParameter Resolution: It scans explicitly provided configurations. If you defined custom directory labels mapped to absolute or relative paths, it retrieves them directly. It also resolves arbitrary deeply nested variables configured under the parameters block. If missing, an empty parameters block is automatically injected into the file. The tool actively protects against alias conflicts (e.g., combining parameters and params blocks simultaneously).\nDynamic Injections: Missing path parameters under valid foundational prefixes will automatically receive their default injection (e.g., an empty cache block resolves to the path _tmp).\nImplicit Base Defaults: Foundational prefixes that are not explicitly stated in the configuration will be seamlessly injected as default base targets during execution.\nIgnore Synchronization: Reading the YAML file naturally triggers the ignore demarcation engine, applying standard ignore behaviors to .gitignore and .Rbuildignore dynamically based on the verified settings.",
+    "text": "Get the resolved absolute path for a given label in the project.\nproj path get --label &lt;LABEL&gt;\n\n\nThe path resolution mapping dynamically takes the target label and computes an absolute path to the sandbox resource.\n\nExact Matches: First, the CLI checks if the provided label perfectly matches an existing block declared inside your _proj.yml. If there is a direct match, the declared path rule is applied.\nPrefix Nesting Fallbacks: If an exact match is missing, the tool attempts to gracefully interpret the label via a foundational prefix fallback. It identifies if the target begins with an approved foundation (cache, raw, output, docs).\n\nSuffix mappings are appended logically to the base directory. For example, if raw is naturally mapped to _raw, invoking a non-declared label raw-data safely resolves as a direct nested directory, constructing the path _raw/data.\n\n\n\n\n\nOutput path labels securely route into versioned target sandboxes during an active project build. The tool guarantees the resolution produces verified absolute paths directly pointing to their intended source locations, enforcing standard separation across testing segregations and pure-function results.",
     "crumbs": [
       "CLI Reference",
-      "`proj yml get`"
+      "`proj path get`"
     ]
   },
   {
-    "objectID": "cli/yml.html#reading-parameters-and-defaults",
-    "href": "cli/yml.html#reading-parameters-and-defaults",
-    "title": "proj yml get",
+    "objectID": "cli/path.html#resolution-rules",
+    "href": "cli/path.html#resolution-rules",
+    "title": "proj path get",
     "section": "",
-    "text": "When proj yml get is executed, the tool automatically resolves parameters and defaults from the file.\n\nParameter Resolution: It scans explicitly provided configurations. If you defined custom directory labels mapped to absolute or relative paths, it retrieves them directly. It also resolves arbitrary deeply nested variables configured under the parameters block. If missing, an empty parameters block is automatically injected into the file. The tool actively protects against alias conflicts (e.g., combining parameters and params blocks simultaneously).\nDynamic Injections: Missing path parameters under valid foundational prefixes will automatically receive their default injection (e.g., an empty cache block resolves to the path _tmp).\nImplicit Base Defaults: Foundational prefixes that are not explicitly stated in the configuration will be seamlessly injected as default base targets during execution.\nIgnore Synchronization: Reading the YAML file naturally triggers the ignore demarcation engine, applying standard ignore behaviors to .gitignore and .Rbuildignore dynamically based on the verified settings.",
+    "text": "The path resolution mapping dynamically takes the target label and computes an absolute path to the sandbox resource.\n\nExact Matches: First, the CLI checks if the provided label perfectly matches an existing block declared inside your _proj.yml. If there is a direct match, the declared path rule is applied.\nPrefix Nesting Fallbacks: If an exact match is missing, the tool attempts to gracefully interpret the label via a foundational prefix fallback. It identifies if the target begins with an approved foundation (cache, raw, output, docs).\n\nSuffix mappings are appended logically to the base directory. For example, if raw is naturally mapped to _raw, invoking a non-declared label raw-data safely resolves as a direct nested directory, constructing the path _raw/data.",
     "crumbs": [
       "CLI Reference",
-      "`proj yml get`"
+      "`proj path get`"
+    ]
+  },
+  {
+    "objectID": "cli/path.html#output-path-routing",
+    "href": "cli/path.html#output-path-routing",
+    "title": "proj path get",
+    "section": "",
+    "text": "Output path labels securely route into versioned target sandboxes during an active project build. The tool guarantees the resolution produces verified absolute paths directly pointing to their intended source locations, enforcing standard separation across testing segregations and pure-function results.",
+    "crumbs": [
+      "CLI Reference",
+      "`proj path get`"
     ]
   }
 ]
