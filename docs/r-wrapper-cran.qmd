@@ -1,0 +1,52 @@
+# Future R wrapper: CLI installation and CRAN checks
+
+Status: design direction recorded on 2026-10-20, not a shipped wrapper or an
+accepted CRAN submission. The existing R package remains untouched. This note
+does not settle the complete frontend protocol or claim renderer parity.
+
+## Separate installation
+
+The future wrapper is intended to contain R code that calls a separately installed
+proj CLI. It should discover a compatible executable and give an actionable
+missing/incompatible-CLI error. A user-invoked installer on the user's own machine
+is distinct from automatic downloads during CRAN installation, checks or examples.
+Do not assume CRAN servers already provide proj.
+
+[CRAN source-package policy](https://cran.r-project.org/web/packages/policies.html#Source-packages)
+permits downloads of precompiled software only as a last resort with CRAN-team
+agreement. A separate executable is not an automatic exemption. Review
+[Writing R Extensions: portability](https://cran.r-project.org/doc/manuals/r-release/R-exts.html#Writing-portable-packages)
+when implementing the package, including external software availability and
+portable invocation. This work has neither requested nor obtained CRAN agreement;
+no outreach is authorized here.
+
+## Two complementary test environments
+
+| Environment | Required behavior |
+| --- | --- |
+| CRAN, CLI absent | Always run meaningful R-only validation, argument construction, missing-CLI diagnostics and mocked protocol/response tests. Skip only genuine executable integration tests, explicitly because the CLI is unavailable. |
+| CRAN, compatible CLI available | Run the applicable real integration tests as well as the R-only tests. Do not assume every check host supplies it. |
+| Our integration CI | Install an exact pinned CLI release, verify its checksum and compatible version, and run real end-to-end tests. Missing CLI or failed installation is a failure, never a silent skip. |
+
+Mocked responses check the wrapper contract; they do not prove the CLI or renderer
+works. Our mandatory integration job supplies that evidence. Examples and vignettes
+must also handle optional executable availability honestly instead of requiring
+an undeclared download. A requirement to execute proj on CRAN check servers would
+need an agreed deployment/checking arrangement, not an assumed policy exception.
+
+## Relevant Quarto precedent
+
+The pinned Quarto R package
+[DESCRIPTION at v1.5.1](https://github.com/quarto-dev/quarto-r/blob/v1.5.1/DESCRIPTION)
+declares the separate Quarto command-line tool in SystemRequirements.
+Its [test helper](https://github.com/quarto-dev/quarto-r/blob/v1.5.1/tests/testthat/helpers.R)
+can skip executable-dependent tests when Quarto is unavailable, and its
+[vignette utility](https://github.com/quarto-dev/quarto-r/blob/v1.5.1/R/utils-vignettes.R)
+checks executable availability during vignette processing. These are specific
+implementation precedents, not proof that CRAN has accepted a future proj wrapper
+or guaranteed an executable on every server. This note does not infer automatic
+binary-download permission from Quarto's existence.
+
+Before implementation, specify compatible protocol versions, executable discovery,
+argument quoting, diagnostics, and which tests are unconditional versus executable
+integration. R production changes require separate authorization.

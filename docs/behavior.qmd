@@ -110,6 +110,13 @@ proj-managed release/version/export state alone. Use tiny fixtures and remote CI
 practical. Subprocess execution is not a security sandbox, and path hashes alone
 do not establish scientific correctness or a reproducible environment.
 
+## Future R distribution and tests
+
+[The R wrapper/CRAN design note](r-wrapper-cran.qmd) records separate CLI
+installation, unconditional R-only tests, conditional CRAN executable tests and
+mandatory pinned/checksummed executable integration in our CI. It is future design,
+not a shipped wrapper, CRAN approval or automatic-download permission.
+
 ## Reference material
 
 - [projr root resolution](https://github.com/SATVILab/projr/blob/main/R/path.R)
