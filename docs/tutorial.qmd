@@ -33,14 +33,31 @@ Create a file named `_proj.yml` with this content:
 
 ```yaml
 directories:
+  raw-data:
+    path: _raw_data
   cache:
     path: _tmp
+  output:
+    path: _output
 build:
   scripts: [analysis.py]
 ```
 
-This declares the folder used for temporary results and the script to run.
-The example does not need Git setup, a remote repository or `proj init`.
+The paths are explicit: runtime does not supply missing mappings or invent
+undeclared labels.
+
+| Label | Folder | Role in this example |
+|---|---|---|
+| `raw-data` | `_raw_data` | Input files; unused because our three measurements are built into the script. |
+| `cache` | `_tmp` | Temporary results; the script writes inside `_tmp/preview`. |
+| `output` | `_output` | Result files; unused by this preview. |
+
+Only `cache` is used by this Python example. The other two mappings match the
+local initializer's preset. No `docs` path is implied: document rendering needs
+an explicit `docs` mapping too.
+
+The explicit `build.scripts` list selects our one script. No Git setup,
+remote repository or initialization command is needed for this manual setup.
 
 ## 2. Add an analysis
 
@@ -96,6 +113,25 @@ The script creates `_tmp/preview/summary.csv`. The CLI does not create a
 
 A preview is not a sandbox: your script can still write elsewhere if you
 tell it to. Keep preview writes in an explicit temporary folder.
+
+## Starting another project
+
+In another new project folder, local-only directory setup is available:
+
+```bash
+proj --project . --non-interactive init directories
+```
+
+When no base or active profile configuration exists, this writes `_proj.yml`
+with the explicit `raw-data: _raw_data`, `cache: _tmp` and `output: _output`
+paths, creates those folders, and updates ignore files. It does not run Git or
+GitHub setup. Existing configuration files are preserved; only their declared
+directories are created.
+
+The generated file omits `build.scripts`, allowing the normal shallow script
+discovery. To choose an exact analysis, add a scripts list as above.
+An explicit `scripts: []` selects no analysis scripts; hooks can still run.
+Initialization does not turn an absent scripts key into an empty list.
 
 ## Where to go next
 

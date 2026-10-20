@@ -57,6 +57,7 @@ fn missing_executable_and_child_failures_remain_nonzero() {
 #[test]
 fn successful_queries_still_return_zero() {
     let project = tempfile::tempdir().unwrap();
+    fs::write(project.path().join("_proj.yml"), "directories:\n  output:\n    path: _output\n").unwrap();
     fs::write(project.path().join("VERSION"), "v1.2.3\n").unwrap();
     for args in [&["version", "get"][..], &["path", "get", "--label", "output"], &["yml", "read"]] {
         let output = invoke(project.path(), args);

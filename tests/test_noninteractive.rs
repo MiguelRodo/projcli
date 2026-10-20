@@ -4,7 +4,7 @@ use std::{fs, io::Write, process::{Command, Stdio}};
 fn noninteractive_runner_gets_eof_even_when_cli_stdin_has_data() {
     let project = tempfile::tempdir().unwrap();
     let root = project.path();
-    fs::write(root.join("_proj.yml"), "build:\n  scripts: [analysis.py]\n").unwrap();
+    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: [analysis.py]\n").unwrap();
     fs::write(root.join("analysis.py"), "import sys\nfrom pathlib import Path\nvalue = sys.stdin.read(1)\nPath('_tmp').mkdir(exist_ok=True)\nPath('_tmp/stdin.txt').write_text('eof' if value == '' else 'input')\n").unwrap();
     let mut child = Command::new(env!("CARGO_BIN_EXE_proj"))
         .args(["--non-interactive", "build-dev", "--project"]).arg(root)
@@ -28,7 +28,7 @@ fn noninteractive_dependency_failure_never_auto_installs() {
     let root = project.path();
     let bin = root.join("bin");
     fs::create_dir(&bin).unwrap();
-    fs::write(root.join("_proj.yml"), "build:\n  scripts: [analysis.Rmd]\n").unwrap();
+    fs::write(root.join("_proj.yml"), "directories:\n  docs:\n    path: docs\nbuild:\n  scripts: [analysis.Rmd]\n").unwrap();
     fs::write(root.join("analysis.Rmd"), "fixture").unwrap();
     fs::write(root.join("_environment.local"), "PROJ_NON_INTERACTIVE=false\n").unwrap();
     fs::write(bin.join("Rscript"), r#"#!/bin/sh
@@ -60,7 +60,7 @@ fn noninteractive_r_probe_gets_eof_before_dependency_checks() {
     let root = project.path();
     let bin = root.join("bin");
     fs::create_dir(&bin).unwrap();
-    fs::write(root.join("_proj.yml"), "build:\n  scripts: [analysis.Rmd]\n").unwrap();
+    fs::write(root.join("_proj.yml"), "directories:\n  docs:\n    path: docs\nbuild:\n  scripts: [analysis.Rmd]\n").unwrap();
     fs::write(root.join("analysis.Rmd"), "fixture").unwrap();
     fs::write(bin.join("Rscript"), r#"#!/bin/sh
 if [ "$1" = --version ]; then exit 0; fi

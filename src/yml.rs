@@ -4,7 +4,7 @@ use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 
 /// Represents the complete structure of a `_proj.yml` configuration file.
@@ -203,7 +203,8 @@ pub struct ResolvedGitConfig {
 
 /// Represents the configuration for a single directory entry within `_proj.yml`.
 ///
-/// Each custom label specifies an optional specific physical path and a set of
+/// Each layer may omit a path for inheritance; the merged configuration requires a
+/// nonempty explicit physical path and a set of
 /// ignore rules to be synced automatically with `.gitignore` and `.Rbuildignore`.
 ///
 /// # Errors
@@ -250,7 +251,7 @@ fn default_ignore() -> IgnoreConfig {
 /// The fully resolved and validated project configuration.
 ///
 /// Once parsed and checked, this structure guarantees that all referenced directories
-/// conform to naming rules, and default unreferenced base targets are injected.
+/// conform to naming rules and have explicit nonempty paths. No base targets are injected.
 ///
 /// # Panics
 ///
@@ -302,7 +303,7 @@ pub struct ResolvedDir {
 }
 
 impl ProjConfig {
-    /// Validates the raw parsed YAML layout and injects missing base default targets.
+    /// Validates explicit directory paths without injecting missing mappings.
     ///
     /// It iterates through all specified configuration blocks to ensure custom label names
     /// start with approved identifiers (`cache`, `raw`, `output`, `docs`).
@@ -317,7 +318,7 @@ impl ProjConfig {
     /// use camino::{Utf8Path, Utf8PathBuf};
     /// let config = ProjConfig::default();
     /// let validated = config.validate_and_resolve(&Utf8PathBuf::from("."), false).unwrap();
-    /// assert!(validated.directories.contains_key("raw"));
+    /// assert!(validated.directories.is_empty());
     /// ```
     pub fn validate_and_resolve(
         &self,
@@ -325,6 +326,7 @@ impl ProjConfig {
         is_dev: bool,
     ) -> anyhow::Result<ValidatedConfig> {
         let mut resolved = HashMap::new();
+        let mut labels = HashSet::new();
 
         // 0. Validate Structural Constraints
         if let Some(dest) = &self.build.dest {
@@ -348,6 +350,9 @@ impl ProjConfig {
         for (label, config) in &self.directories {
             crate::path_safety::validate_directory_label(label)?;
             let lower_label = label.to_lowercase();
+            if !labels.insert(label.to_ascii_lowercase()) {
+                anyhow::bail!("Directory labels differ only by case: {label}");
+            }
 
             // Validate prefix rules
             if !lower_label.starts_with("cache")
@@ -362,17 +367,8 @@ impl ProjConfig {
                 );
             }
 
-            // Fallback to defaults if 'path' key is omitted under a validated label
-            let path = match &config.path {
-                Some(p) => p.clone(),
-                None => match () {
-                    _ if lower_label.starts_with("cache") => Utf8PathBuf::from("_tmp"),
-                    _ if lower_label.starts_with("raw") => Utf8PathBuf::from("_raw"),
-                    _ if lower_label.starts_with("output") => Utf8PathBuf::from("_output"),
-                    _ if lower_label.starts_with("docs") => Utf8PathBuf::from("docs"),
-                    _ => unreachable!(),
-                },
-            };
+            let path = config.path.as_ref().with_context(|| format!("Directory '{label}' requires an explicit path"))?.clone();
+            if path.as_str().trim().is_empty() { anyhow::bail!("Directory '{label}' requires a nonempty explicit path"); }
 
             resolved.insert(
                 label.clone(),
@@ -383,25 +379,17 @@ impl ProjConfig {
             );
         }
 
-        // 2. Inject missing default base targets if completely omitted from the YAML file
-        let base_defaults = [
-            ("cache", "_tmp"),
-            ("raw", "_raw"),
-            ("output", "_output"),
-            ("docs", "docs"),
-        ];
-
-        for (base_key, default_path) in base_defaults {
-            // Check if any existing key satisfies this base (case-insensitive check)
-            let exists = resolved.keys().any(|k| k.to_lowercase() == base_key);
-            if !exists {
-                resolved.insert(
-                    base_key.to_string(),
-                    ResolvedDir {
-                        path: Utf8PathBuf::from(default_path),
-                        ignore: default_ignore(),
-                    },
-                );
+        // Normalize explicit storage locations against this captured project root.
+        let mut remotes = self.remotes.clone();
+        if let Some(local) = &mut remotes.local {
+            for (name, remote) in local {
+                if remote.path.as_str().trim().is_empty() { anyhow::bail!("Remote '{name}' requires an explicit nonempty path"); }
+                remote.path = make_absolute(project_root, &remote.path);
+                for label in &remote.content {
+                    if !self.directories.keys().any(|declared| declared.eq_ignore_ascii_case(label)) {
+                        anyhow::bail!("Remote '{name}' content label '{label}' is not declared in directories");
+                    }
+                }
             }
         }
 
@@ -439,7 +427,7 @@ impl ProjConfig {
         }
 
         Ok(ValidatedConfig {
-            remotes: self.remotes.clone(),
+            remotes,
             dest: self.build.dest.clone().unwrap_or_default(),
             config: self.config.clone(),
             directories: resolved,
@@ -454,10 +442,10 @@ impl ProjConfig {
 }
 
 impl ValidatedConfig {
-    /// Resolves an exact or dynamically prefixed directory label against the physical file system.
+    /// Resolves a declared label against the captured project root.
     ///
-    /// Takes the base project root and constructs absolute paths based on mapped configuration definitions.
-    /// If an exact match is missing, it intelligently applies suffix nesting rules based on prefix mappings.
+    /// ASCII case is ignored, but undeclared labels and suffixes are errors.
+    /// Relative paths are anchored at the supplied root; external mappings are allowed.
     ///
     /// # Errors
     ///
@@ -469,8 +457,8 @@ impl ValidatedConfig {
     /// use proj::yml::{ValidatedConfig, ResolvedDir, IgnoreConfig, ResolvedGitConfig, RestrictionsConfig, GlobalConfig};
     ///
     /// let mut dirs = HashMap::new();
-    /// dirs.insert("raw".to_string(), ResolvedDir {
-    ///     path: Utf8PathBuf::from("_raw"),
+    /// dirs.insert("raw-data".to_string(), ResolvedDir {
+    ///     path: Utf8PathBuf::from("_raw_data"),
     ///     ignore: IgnoreConfig::Single("all".to_string())
     /// });
     ///
@@ -487,63 +475,14 @@ impl ValidatedConfig {
     ///     parameters: Default::default()
     /// };
     /// let path = config.get_path(&Utf8PathBuf::from("/mock/root"), "raw-data").unwrap();
-    /// assert_eq!(path, Utf8PathBuf::from("/mock/root/_raw/data"));
+    /// assert_eq!(path, Utf8PathBuf::from("/mock/root/_raw_data"));
     /// ```
     pub fn get_path(&self, project_root: &Utf8Path, label: &str) -> anyhow::Result<Utf8PathBuf> {
-        // Rule A: Check for an exact matching key in the map
-        if let Some(dir) = self.directories.get(label) {
-            return Ok(make_absolute(project_root, &dir.path));
-        }
-
-        // Rule B: Dynamic prefix parsing fallback for unlisted sub-labels
-        let lower_label = label.to_lowercase();
-        let base_prefix = if lower_label.starts_with("cache") {
-            Some("cache")
-        } else if lower_label.starts_with("raw") {
-            Some("raw")
-        } else if lower_label.starts_with("output") {
-            Some("output")
-        } else if lower_label.starts_with("docs") {
-            Some("docs")
-        } else {
-            None
-        };
-
-        if let Some(prefix) = base_prefix {
-            // Find the base directory configuration (which is guaranteed to exist due to our injector)
-            // Perform case-insensitive lookup to avoid panic if base was provided in different casing
-            let base_dir = &self
-                .directories
-                .iter()
-                .find(|(k, _)| k.to_lowercase() == prefix)
-                .unwrap()
-                .1
-                .path;
-
-            // Extract the suffix part
-            let suffix = if label.len() > prefix.len() {
-                if label.as_bytes()[prefix.len()] == b'-' {
-                    &label[prefix.len() + 1..]
-                } else {
-                    &label[prefix.len()..]
-                }
-            } else {
-                ""
-            };
-
-            let resolved_path = if suffix.is_empty() {
-                base_dir.clone()
-            } else {
-                base_dir.join(suffix)
-            };
-
-            Ok(make_absolute(project_root, &resolved_path))
-        } else {
-            anyhow::bail!(
-                "Requested label '{}' does not match any valid structural prefix.",
-                label
-            )
-        }
+        crate::path_safety::validate_directory_label(label)?;
+        let directory = self.directories.iter().find(|(key, _)| key.eq_ignore_ascii_case(label))
+            .map(|(_, directory)| directory)
+            .with_context(|| format!("Directory label '{label}' is not declared; add an explicit directories mapping"))?;
+        Ok(make_absolute(project_root, &directory.path))
     }
 }
 
@@ -593,14 +532,25 @@ pub fn yml_get_filter_top_level(value: Value) -> Value {
     }
 }
 
+/// Checks file-entry presence without hiding dangling links or permission errors.
+pub(crate) fn configuration_entry_exists(path: &Utf8Path) -> anyhow::Result<bool> {
+    match fs::symlink_metadata(path) {
+        Ok(_) => Ok(true),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error).with_context(|| format!("Cannot inspect configuration {path}")),
+    }
+}
+
 /// Selects the base filename without silently merging canonical and legacy files.
 pub(crate) fn base_configuration_path(base_dir: &Utf8Path) -> anyhow::Result<Option<Utf8PathBuf>> {
     let primary = base_dir.join("_proj.yml");
     let legacy = base_dir.join("_projr.yml");
-    if primary.exists() && legacy.exists() {
+    let primary_exists = configuration_entry_exists(&primary)?;
+    let legacy_exists = configuration_entry_exists(&legacy)?;
+    if primary_exists && legacy_exists {
         anyhow::bail!("Ambiguous configuration: both _proj.yml and _projr.yml exist; keep one base file.");
     }
-    Ok(if primary.exists() { Some(primary) } else if legacy.exists() { Some(legacy) } else { None })
+    Ok(if primary_exists { Some(primary) } else if legacy_exists { Some(legacy) } else { None })
 }
 
 fn read_configuration_file(path: &Utf8Path) -> anyhow::Result<Value> {
@@ -650,12 +600,12 @@ pub fn get_combined_yml(
     }
     for profile in profiles.into_iter().rev() {
         let path = base_dir.join(format!("_projr-{profile}.yml"));
-        if path.exists() {
+        if configuration_entry_exists(&path)? {
             base_val = deep_merge(base_val, read_configuration_file(&path)?);
         }
     }
     let local = base_dir.join("_projr-local.yml");
-    if local.exists() {
+    if configuration_entry_exists(&local)? {
         base_val = deep_merge(base_val, read_configuration_file(&local)?);
     }
     Ok(base_val)
@@ -664,17 +614,16 @@ pub fn get_combined_yml(
 /// Requires a base file or an explicitly active profile configuration before building.
 /// Local overrides and inactive profiles alone do not establish an active configuration.
 pub(crate) fn require_active_configuration(base_dir: &Utf8Path) -> anyhow::Result<()> {
-    if base_configuration_path(base_dir)?.is_some()
-        || get_active_profiles().iter().any(|profile| base_dir.join(format!("_projr-{profile}.yml")).is_file())
-    {
-        return Ok(());
+    if base_configuration_path(base_dir)?.is_some() { return Ok(()); }
+    for profile in get_active_profiles() {
+        if configuration_entry_exists(&base_dir.join(format!("_projr-{profile}.yml")))? { return Ok(()); }
     }
     anyhow::bail!("Build requires active project configuration at the project root: _proj.yml, legacy _projr.yml, or an activated profile file. Create or activate root-level project configuration before building.");
 }
 
 /// Reads, merges and validates configuration without modifying the filesystem.
 ///
-/// Missing configuration uses defaults; malformed or unsupported values return
+/// Missing configuration has no directory mappings; malformed or unsupported values return
 /// errors from parsing or validation. `is_dev` selects development Git settings.
 /// Ignore synchronization is an explicit responsibility of mutating operations.
 ///
@@ -682,7 +631,8 @@ pub(crate) fn require_active_configuration(base_dir: &Utf8Path) -> anyhow::Resul
 /// let project = tempfile::tempdir().unwrap();
 /// let root = camino::Utf8Path::from_path(project.path()).unwrap();
 /// let config = proj::yml_read_from(root, false).unwrap();
-/// assert!(config.directories.contains_key("output"));
+/// assert!(config.directories.is_empty());
+/// assert!(config.get_path(root, "output").is_err());
 /// assert!(!root.join(".gitignore").exists());
 /// ```
 pub fn yml_read_from(project_root: &Utf8Path, is_dev: bool) -> anyhow::Result<ValidatedConfig> {

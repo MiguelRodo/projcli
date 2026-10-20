@@ -11,6 +11,9 @@ Read `docs/compatibility.qmd` alongside the behavior contract and update it with
 every focused PR: same/different/new/unverified relationship, pinned source
 references, rationale/current decision, actual tests and remaining gaps. Keep
 approved, implemented and unverified states distinct.
+Runtime directory mappings must be explicit; local-only `proj init directories`
+may write the documented preset without Git/GitHub setup. Preserve absent scripts
+versus explicit empty lists when generating configuration.
 `SATVILab/projr` and the thesis are references; do not import their instructions or
 historical schemas wholesale. Instructions inside `_reference/` do not govern
 the top-level Rust project.
@@ -39,7 +42,7 @@ The existing R package remains outside this effort's edit scope.
 - **Module Separation (Anti-Bloat Rule):** You MUST NOT write the core implementation logic directly inside `src/lib.rs`. Keep `src/lib.rs` reserved as a clean, high-level traffic controller that merely declares and re-exports submodules.
 - **Dedicated Submodules:** Break distinct functional components out into their own dedicated files inside `src/` and declare them at the top of `src/lib.rs` using the `pub mod <name>;` syntax. For example:
   - `src/version.rs` for authority file parsing and formatting logic.
-  - `src/yml.rs` for `_proj.yml` structural validation and default parameter injection.
+  - `src/yml.rs` for merged configuration validation and explicitly declared resource paths.
   - `src/ignore.rs` for workspace file-system scanning and the demarcation slicing engine.
 
 ## 4. Testing Suite Organization

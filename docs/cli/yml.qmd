@@ -18,15 +18,19 @@ profiles winning conflicts. `_projr-local.yml` overrides all active profiles.
 Explicit profile selection replaces the environment list. Profile/local filename
 aliases are separate from the implemented base alias.
 
-Read-only queries still use in-memory defaults when configuration is missing.
-Builds require `_proj.yml`, legacy `_projr.yml`, or an explicitly activated
-`_projr-<profile>.yml` at the selected root. Inactive profiles and local overrides
-alone do not satisfy this requirement. Unsupported configuration fields fail
-validation, including nested control fields; `metadata` and `parameters` remain
-arbitrary maps. Missing directory paths and base
-labels also receive in-memory defaults, and an absent `parameters` value becomes
-an empty mapping. No parameters block or other default is inserted into a file.
-Conflicting parameter aliases in the base configuration are rejected.
+Read-only queries accept missing configuration as an empty directory inventory.
+Builds require an active base or explicitly activated profile at the root.
+Inactive profiles and local overrides alone do not qualify. Every declared
+directory requires an explicit nonempty path; missing labels are never invented.
+Unsupported control fields fail validation; `metadata` and `parameters` remain
+arbitrary maps. Parameter aliases normalize before merging; conflicting aliases
+within one file are rejected. No query writes defaults into configuration.
+
+`proj --project . --non-interactive init directories` creates a missing base with
+explicit `_raw_data`, `_tmp` and `_output` paths. It creates declared directories
+and synchronizes ignore rules without Git/GitHub setup. Existing configuration
+bytes are preserved. It leaves scripts absent, preserving discovery; `scripts: []`
+continues to mean no analysis.
 
 Configuration validation and path queries do not change `.gitignore`,
 `.Rbuildignore`, configuration files, or project directories. Production builds

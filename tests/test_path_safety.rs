@@ -110,7 +110,7 @@ fn dev_cleanup_is_a_noop_even_for_unsafe_managed_paths() {
     let raw: proj::ProjConfig = serde_yaml::from_str(&configuration("docs").replace("path: _output", "path: .")).unwrap();
     let validated = raw.validate_and_resolve(root, true).unwrap();
     proj::clear_post(root, true, &validated, Some("post"), false).unwrap();
-    proj::clear_old(root, "1.2.3", true, Some(true)).unwrap();
+    proj::clear_old(root, &validated, "1.2.3", true, Some(true)).unwrap();
     assert_eq!(fs::read_to_string(root.join("keep")).unwrap(), "project");
 }
 
@@ -180,29 +180,26 @@ fn project_renderers_reject_source_documents_in_cleanup_trees_before_mutation() 
 #[cfg(unix)]
 #[test]
 fn derived_symlink_leaves_fail_before_any_cleanup_even_when_never_or_dangling() {
-    for leaf in ["legacy-version", "configured-version", "configured-output", "legacy-docs", "dangling"] {
+    for leaf in ["default-version", "configured-version", "configured-output", "configured-docs", "dangling"] {
         let temp = tempfile::tempdir().unwrap();
         let external = tempfile::tempdir().unwrap();
         let canonical = temp.path().canonicalize().unwrap();
         let root = camino::Utf8Path::from_path(&canonical).unwrap();
         fs::write(external.path().join("keep"), "external").unwrap();
-        fs::create_dir_all(root.join("_tmp/projr")).unwrap();
-        fs::create_dir_all(root.join("_cache/projr")).unwrap();
+        let cache = if leaf == "default-version" { "_tmp" } else { "_cache" };
+        let version = root.join(cache).join("projr/1.2.3");
         let link = match leaf {
-            "legacy-version" | "dangling" => root.join("_tmp/projr/1.2.3"),
-            "configured-version" => root.join("_cache/projr/1.2.3"),
-            "configured-output" => root.join("_cache/projr/1.2.3/output"),
-            _ => root.join("_tmp/projr/1.2.3/docs"),
+            "configured-output" => version.join("output"),
+            "configured-docs" => version.join("docs"),
+            _ => version.clone(),
         };
         fs::create_dir_all(link.parent().unwrap()).unwrap();
-        let destination = if leaf == "dangling" { external.path().join("absent") } else { external.path().to_owned() };
-        let legacy_version = root.join("_tmp/projr/1.2.3");
-        if leaf != "legacy-version" && leaf != "dangling" {
-            fs::create_dir_all(&legacy_version).unwrap();
-            fs::write(legacy_version.join("keep-old-cache"), "old cache").unwrap();
+        if leaf == "configured-output" || leaf == "configured-docs" {
+            fs::write(version.join("keep-old-cache"), "old cache").unwrap();
         }
+        let destination = if leaf == "dangling" { external.path().join("absent") } else { external.path().to_owned() };
         std::os::unix::fs::symlink(&destination, &link).unwrap();
-        let contents = configuration("docs").replace("path: _tmp", "path: _cache");
+        let contents = configuration("docs").replace("path: _tmp", &format!("path: {cache}"));
         let raw: proj::ProjConfig = serde_yaml::from_str(&contents).unwrap();
         let validated = raw.validate_and_resolve(root, false).unwrap();
         assert!(proj::clear_pre(root, "1.2.3", &validated, Some("never")).is_err());
@@ -217,8 +214,8 @@ fn derived_symlink_leaves_fail_before_any_cleanup_even_when_never_or_dangling() 
         assert!(!root.join(".gitignore").exists());
         assert_eq!(fs::read_to_string(external.path().join("keep")).unwrap(), "external");
         assert!(fs::symlink_metadata(&link).unwrap().file_type().is_symlink());
-        if leaf != "legacy-version" && leaf != "dangling" {
-            assert_eq!(fs::read_to_string(legacy_version.join("keep-old-cache")).unwrap(), "old cache");
+        if leaf == "configured-output" || leaf == "configured-docs" {
+            assert_eq!(fs::read_to_string(version.join("keep-old-cache")).unwrap(), "old cache");
         }
     }
 }

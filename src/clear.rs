@@ -6,6 +6,7 @@ use std::fs;
 /// Clears old development folders if configured.
 pub fn clear_old(
     project_root: &Utf8Path,
+    config: &ValidatedConfig,
     current_version: &str,
     is_dev: bool,
     old_dev_remove: Option<bool>,
@@ -14,7 +15,8 @@ pub fn clear_old(
         return Ok(());
     }
 
-    let base_path = project_root.join("_tmp").join("projr");
+    crate::path_safety::validate_build_paths(project_root, config, &[])?;
+    let base_path = config.get_path(project_root, "cache")?.join("projr");
     crate::path_safety::resolve_path(base_path.as_std_path(), true)?;
     if !base_path.exists() {
         return Ok(());
@@ -55,10 +57,7 @@ pub fn clear_pre(
 ) -> anyhow::Result<()> {
     crate::path_safety::validate_cleanup_paths(project_root, config, current_version)?;
     // 1. Versioned cache path clearance
-    let versioned_cache_path = project_root
-        .join("_tmp")
-        .join("projr")
-        .join(current_version);
+    let versioned_cache_path = config.get_path(project_root, "cache")?.join("projr").join(current_version);
 
     if versioned_cache_path.exists() {
         for entry in fs::read_dir(versioned_cache_path.as_std_path()).context("Failed to read versioned cache directory")? {

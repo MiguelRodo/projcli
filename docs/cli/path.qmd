@@ -6,17 +6,13 @@ Get the resolved absolute path for a given label in the project.
 proj path get --label <LABEL> [--project <PATH>]
 ```
 
-## Resolution Rules
+## Declared directory paths
 
-The path resolution mapping dynamically takes the target label and computes an absolute path to the sandbox resource.
-
-1. **Exact Matches:** First, the CLI checks if the provided `label` perfectly matches an existing block declared inside your `_proj.yml`. If there is a direct match, the declared path rule is applied.
-2. **Prefix Nesting Fallbacks:** If an exact match is missing, the tool attempts to gracefully interpret the label via a foundational prefix fallback. It identifies if the target begins with an approved foundation (`cache`, `raw`, `output`, `docs`).
-   - Suffix mappings are appended logically to the base directory. For example, if `raw` is naturally mapped to `_raw`, invoking a non-declared label `raw-data` safely resolves as a direct nested directory, constructing the path `_raw/data`.
-
-## Output Path Routing
-
-Output path labels securely route into versioned target sandboxes during an active project build. The tool guarantees the resolution produces verified absolute paths directly pointing to their intended source locations, enforcing standard separation across testing segregations and pure-function results.
+A label must be declared in the active configuration with a nonempty `path`.
+ASCII case is ignored. Undeclared labels and suffixes are errors: declaring
+`raw-data` does not declare `raw` or `raw-data-extra`. Relative paths resolve
+against the captured project root; explicit external directories are allowed.
+Queries do not create directories or route output into a versioned sandbox.
 
 ## Explicit and inherited project root
 

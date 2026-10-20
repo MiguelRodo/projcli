@@ -36,7 +36,7 @@ pub enum BuildMode {
 /// std::fs::write(temp.path().join("VERSION"), "Version: v1.0.0").unwrap();
 /// // Create a dummy _proj.yml to avoid fallback searching which executes everything
 /// // We set push: false so we don't trigger GitHub token lookups in CI without env vars
-/// std::fs::write(temp.path().join("_proj.yml"), "build:\n  scripts: []\n  git:\n    commit: false\n    push: false\nconfig:\n  git:\n    use_proj_cred_helper: false").unwrap();
+/// std::fs::write(temp.path().join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: []\n  git:\n    commit: false\n    push: false\nconfig:\n  git:\n    use_proj_cred_helper: false").unwrap();
 /// build_project(camino::Utf8Path::from_path(temp.path()).unwrap(), BuildMode::ProdPatch, None, None).unwrap();
 /// ```
 use crate::git::{is_git_installed, check_git_profile, git_commit_all, create_git_provider};
@@ -159,9 +159,15 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     // An explicit empty list selects no analysis; it never enables discovery or
     // renderer setup. Hooks are still validated and executed independently.
     let run_analysis = build_scripts.as_ref().map_or(true, |scripts| !scripts.is_empty());
-    let quarto_exists = quarto_exists && run_analysis;
-    let bookdown_exists = bookdown_exists && run_analysis;
+    let selected_documents = build_scripts.is_none() || resolved_files.iter().any(|file| matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")));
+    let quarto_exists = quarto_exists && run_analysis && selected_documents;
+    let bookdown_exists = bookdown_exists && run_analysis && selected_documents;
 
+    let cache_root = if (!is_dev && run_analysis) || quarto_exists || bookdown_exists {
+        Some(config.get_path(project_root, "cache").context("Selected cleanup or project rendering requires a declared cache directory")?)
+    } else { None };
+    let has_document_analysis = quarto_exists || bookdown_exists || resolved_files.iter().any(|file| matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")));
+    if has_document_analysis { config.get_path(project_root, "docs").context("Document rendering requires a declared docs directory")?; }
     let mut validation_files = resolved_files.clone();
     validation_files.extend(resolved_hooks.clone());
     // 4. VERSION Initialization Check
@@ -238,7 +244,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     let clear_output_val = clear_output_env.as_deref().or(config.clear_output.as_deref());
 
     if !is_dev && run_analysis {
-        crate::clear::clear_old(project_root, &current_version, is_dev, config.old_dev_remove)?;
+        crate::clear::clear_old(project_root, &config, &current_version, is_dev, config.old_dev_remove)?;
         crate::clear::clear_pre(project_root, &current_version, &config, clear_output_val)?;
     }
 
@@ -268,7 +274,6 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     // Git auto-ignore synchronization was requested explicitly during config audit.
 
     // 6.5 Sidecar Output Redirection
-    let has_document_analysis = quarto_exists || bookdown_exists || resolved_files.iter().any(|file| matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")));
     let mut original_docs_path: Option<PathBuf> = if has_document_analysis {
         Some(config.get_path(project_root, "docs")?.into_std_path_buf())
     } else { None };
@@ -283,7 +288,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
             original_docs_path = Some(path.into()); /* TODO: migrate to camino */
         }
 
-        let isolated_docs_path = project_root.join("_tmp").join("projr").join(&current_version).join("docs");
+        let isolated_docs_path = cache_root.as_ref().context("Renderer staging requires declared cache")?.join("projr").join(&current_version).join("docs");
         let isolated_docs_path_str = isolated_docs_path.strip_prefix(project_root).unwrap_or(&isolated_docs_path).as_str().to_string();
 
         if quarto_exists {
@@ -370,7 +375,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
             let should_run_output = config.output_run.unwrap_or(true);
             if should_run_output && !is_dev && run_analysis && has_document_analysis {
                 let final_docs_dir = config.get_path(project_root, "docs")?.into_std_path_buf();
-                let cache_docs_dir = project_root.join("_tmp").join("projr").join(&current_version).join("docs");
+                let cache_docs_dir = cache_root.as_ref().context("Renderer staging requires declared cache")?.join("projr").join(&current_version).join("docs");
 
                 // TODO: migrate to camino
                 if quarto_exists {

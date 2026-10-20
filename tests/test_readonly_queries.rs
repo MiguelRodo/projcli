@@ -20,7 +20,7 @@ fn snapshot(root: &Path) -> BTreeMap<PathBuf, Option<Vec<u8>>> {
 
 #[test]
 fn cli_queries_preserve_files_and_directories_with_or_without_configuration() {
-    for configuration in [None, Some("directories: {}\n"), Some("directories: [malformed\n")] {
+    for configuration in [None, Some("directories: {}\n"), Some("directories: [malformed\n"), Some("directories:\n  output:\n    path: _output\n")] {
         for existing_ignores in [false, true] {
             let project = tempfile::tempdir().unwrap();
             let root = project.path();
@@ -37,7 +37,8 @@ fn cli_queries_preserve_files_and_directories_with_or_without_configuration() {
                     .args(&args).arg("--project").arg(root)
                     .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
                     .output().unwrap();
-                if configuration == Some("directories: [malformed\n") && args[0] != "version" {
+                if (configuration == Some("directories: [malformed\n") && args[0] != "version")
+                    || (args[0] == "path" && configuration != Some("directories:\n  output:\n    path: _output\n")) {
                     assert!(!output.stderr.is_empty());
                 } else {
                     assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
@@ -56,7 +57,8 @@ fn library_config_reads_are_nonmutating() {
     let before = snapshot(project.path());
     for is_dev in [false, true] {
         let config = proj::yml_read_from(root, is_dev).unwrap();
-        assert!(config.get_path(root, "output").unwrap().is_absolute());
+        assert!(config.directories.is_empty());
+        assert!(config.get_path(root, "output").is_err());
         assert_eq!(snapshot(project.path()), before);
     }
 }
@@ -66,7 +68,7 @@ fn production_build_still_requests_ignore_synchronization() {
     let project = tempfile::tempdir().unwrap();
     let root = project.path();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
-    fs::write(root.join("_proj.yml"), "config:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
     fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('_tmp').mkdir(exist_ok=True)\nPath('_tmp/production.txt').write_text('done')\n").unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_proj"))
         .args(["build", "--patch", "--description", "fixture", "--project"]).arg(root)
