@@ -55,6 +55,7 @@ pub fn clear_pre(
     config: &ValidatedConfig,
     clear_output: Option<&str>,
 ) -> anyhow::Result<()> {
+    crate::yml::validate_clear_output(clear_output)?;
     crate::path_safety::validate_cleanup_paths(project_root, config, current_version)?;
     // 1. Versioned cache path clearance
     let versioned_cache_path = config.get_path(project_root, "cache")?.join("projr").join(current_version);
@@ -151,6 +152,7 @@ pub fn clear_post(
     is_single_doc_engine: bool,
 ) -> anyhow::Result<()> {
     if is_dev { return Ok(()); }
+    crate::yml::validate_clear_output(clear_output)?;
     crate::path_safety::validate_build_paths(project_root, config, &[])?;
     if is_single_doc_engine {
         if let Ok(docs_path) = config.get_path(project_root, "docs") {
