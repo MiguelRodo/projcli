@@ -26,6 +26,41 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -45,7 +80,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-24c09a13944ec7e1f31d2917b1251fc2.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-9f363ccb86392c29656d21c3a07aec93.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -86,7 +121,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../cli/version.html">CLI Reference</a></li><li class="breadcrumb-item"><a href="../cli/yml.html"><code>proj yml get</code></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../cli/version.html">CLI Reference</a></li><li class="breadcrumb-item"><a href="../cli/yml.html"><code>proj yml read</code></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -169,7 +204,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../cli/yml.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><code>proj yml get</code></span></a>
+ <span class="menu-text"><code>proj yml read</code></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -196,31 +231,29 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#proj-yml-get" id="toc-proj-yml-get" class="nav-link active" data-scroll-target="#proj-yml-get"><code>proj yml get</code></a>
+  <li><a href="#proj-yml-read" id="toc-proj-yml-read" class="nav-link active" data-scroll-target="#proj-yml-read"><code>proj yml read</code></a>
   <ul class="collapse">
-  <li><a href="#reading-parameters-and-defaults" id="toc-reading-parameters-and-defaults" class="nav-link" data-scroll-target="#reading-parameters-and-defaults">Reading Parameters and Defaults</a></li>
+  <li><a href="#configuration-and-defaults" id="toc-configuration-and-defaults" class="nav-link" data-scroll-target="#configuration-and-defaults">Configuration and defaults</a></li>
   </ul></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../cli/version.html">CLI Reference</a></li><li class="breadcrumb-item"><a href="../cli/yml.html"><code>proj yml get</code></a></li></ol></nav></header>
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../cli/version.html">CLI Reference</a></li><li class="breadcrumb-item"><a href="../cli/yml.html"><code>proj yml read</code></a></li></ol></nav></header>
 
 
 
 
-<section id="proj-yml-get" class="level1">
-<h1><code>proj yml get</code></h1>
-<p>Read the <code>_proj.yml</code> content and trigger validation and initialization.</p>
-<section id="reading-parameters-and-defaults" class="level2">
-<h2 class="anchored" data-anchor-id="reading-parameters-and-defaults">Reading Parameters and Defaults</h2>
-<p>When <code>proj yml get</code> is executed, the tool automatically resolves parameters and defaults from the file.</p>
-<ol type="1">
-<li><strong>Parameter Resolution:</strong> It scans explicitly provided configurations. If you defined custom directory labels mapped to absolute or relative paths, it retrieves them directly. It also resolves arbitrary deeply nested variables configured under the <code>parameters</code> block. If missing, an empty <code>parameters</code> block is automatically injected into the file. The tool actively protects against alias conflicts (e.g., combining <code>parameters</code> and <code>params</code> blocks simultaneously).</li>
-<li><strong>Dynamic Injections:</strong> Missing path parameters under valid foundational prefixes will automatically receive their default injection (e.g., an empty <code>cache</code> block resolves to the path <code>_tmp</code>).</li>
-<li><strong>Implicit Base Defaults:</strong> Foundational prefixes that are not explicitly stated in the configuration will be seamlessly injected as default base targets during execution.</li>
-<li><strong>Ignore Synchronization:</strong> Reading the YAML file naturally triggers the ignore demarcation engine, applying standard ignore behaviors to <code>.gitignore</code> and <code>.Rbuildignore</code> dynamically based on the verified settings.</li>
-</ol>
+<section id="proj-yml-read" class="level1">
+<h1><code>proj yml read</code></h1>
+<p>Load and validate configuration without modifying the project:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> yml read [--project <span class="op">&lt;</span>PATH<span class="op">&gt;</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The command prints a validation confirmation on success and reports configuration errors on stderr. It does not dump configuration values; use <a href="../cli/path.html"><code>proj path get</code></a> to query a resolved directory path.</p>
+<section id="configuration-and-defaults" class="level2">
+<h2 class="anchored" data-anchor-id="configuration-and-defaults">Configuration and defaults</h2>
+<p>The current implementation merges <code>_proj.yml</code>, active <code>_projr-&lt;profile&gt;.yml</code> files, and <code>_projr-local.yml</code>. This page describes the current filenames; the command does not introduce new filename aliases.</p>
+<p>Missing configuration uses defaults in memory. Missing directory paths and base labels also receive in-memory defaults, and an absent <code>parameters</code> value becomes an empty mapping. No parameters block or other default is inserted into a file. Conflicting parameter aliases in the base configuration are rejected.</p>
+<p>Configuration validation and path queries do not change <code>.gitignore</code>, <code>.Rbuildignore</code>, configuration files, or project directories. Production builds and directory initialization request ignore synchronization explicitly. Directory initialization stops on configuration read/validation errors before changing ignore rules or creating directories.</p>
 
 
 </section>

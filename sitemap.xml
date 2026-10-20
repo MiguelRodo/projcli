@@ -1,35 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>https://MiguelRodo.github.io/projcli/cli/path.html</loc>
+    <lastmod>2026-10-20T19:23:05.887Z</lastmod>
+  </url>
+  <url>
     <loc>https://MiguelRodo.github.io/projcli/cli/ignore.html</loc>
-    <lastmod>2026-10-20T19:21:19.013Z</lastmod>
+    <lastmod>2026-10-20T19:23:05.887Z</lastmod>
   </url>
   <url>
     <loc>https://MiguelRodo.github.io/projcli/cli/build.html</loc>
-    <lastmod>2026-10-20T19:21:19.013Z</lastmod>
-  </url>
-  <url>
-    <loc>https://MiguelRodo.github.io/projcli/cli/yml.html</loc>
-    <lastmod>2026-10-20T19:21:19.013Z</lastmod>
-  </url>
-  <url>
-    <loc>https://MiguelRodo.github.io/projcli/configuration.html</loc>
-    <lastmod>2026-10-20T19:21:19.013Z</lastmod>
+    <lastmod>2026-10-20T19:23:05.887Z</lastmod>
   </url>
   <url>
     <loc>https://MiguelRodo.github.io/projcli/flow.html</loc>
-    <lastmod>2026-10-20T19:21:19.013Z</lastmod>
+    <lastmod>2026-10-20T19:23:05.887Z</lastmod>
   </url>
   <url>
     <loc>https://MiguelRodo.github.io/projcli/behavior.html</loc>
-    <lastmod>2026-10-20T19:21:19.013Z</lastmod>
+    <lastmod>2026-10-20T19:23:05.887Z</lastmod>
+  </url>
+  <url>
+    <loc>https://MiguelRodo.github.io/projcli/configuration.html</loc>
+    <lastmod>2026-10-20T19:23:05.887Z</lastmod>
   </url>
   <url>
     <loc>https://MiguelRodo.github.io/projcli/cli/version.html</loc>
-    <lastmod>2026-10-20T19:21:19.013Z</lastmod>
+    <lastmod>2026-10-20T19:23:05.887Z</lastmod>
   </url>
   <url>
-    <loc>https://MiguelRodo.github.io/projcli/cli/path.html</loc>
-    <lastmod>2026-10-20T19:21:19.013Z</lastmod>
+    <loc>https://MiguelRodo.github.io/projcli/cli/yml.html</loc>
+    <lastmod>2026-10-20T19:23:05.887Z</lastmod>
   </url>
 </urlset>
