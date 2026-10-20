@@ -214,3 +214,12 @@ build writes. Missing upstream and unmodeled custom push-only routing fail early
 Native authentication is the default. An explicit token-helper opt-in uses fixed
 host-scoped code and ephemeral environment data, never secret argv/source or
 persistent credentials. Local build success remains distinct from publication failure.
+
+## Versioned machine boundary
+
+Opt-in `--machine` emits protocol-v1 results/errors on stdout, with capability
+version negotiation independent of project discovery. Static error codes avoid
+reflecting credentials/config/argv. Queries return typed values; other existing
+commands reuse the CLI through a noninteractive worker whose logs use stderr.
+See [machine interface](machine.qmd) for supported shapes and limits. This is a
+transport boundary over existing anyhow errors, not a second domain-error overhaul.
