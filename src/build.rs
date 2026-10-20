@@ -842,10 +842,11 @@ pub fn copy_individual_quarto(file_path: &camino::Utf8Path, docs_path: &camino::
 
 // Without an explicit render list, conservatively inspect source directories for
 // unsupported nested project roots. Declared resource trees and VCS are not sources.
-fn validate_implicit_quarto_roots(root: &camino::Utf8Path, config: &ValidatedConfig) -> anyhow::Result<()> {
+fn validate_implicit_quarto_roots(root: &camino::Utf8Path, config: &crate::yml::ValidatedConfig) -> anyhow::Result<()> {
     let mut excluded = Vec::new();
-    for directory in config.directories.values() {
-        excluded.push(crate::path_safety::resolve_path(directory.path.as_std_path(), false)?);
+    for label in config.directories.keys() {
+        let directory = config.get_path(root, label)?;
+        excluded.push(crate::path_safety::resolve_path(directory.as_std_path(), false)?);
     }
     let mut pending = vec![root.to_path_buf()];
     while let Some(directory) = pending.pop() {
