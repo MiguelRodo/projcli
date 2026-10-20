@@ -12,6 +12,7 @@ website:
           - configuration.qmd
       - section: "Build Reference"
         contents:
+          - behavior.qmd
           - flow.qmd
       - section: "CLI Reference"
         contents:

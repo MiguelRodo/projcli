@@ -1,6 +1,8 @@
 # Proj Build Execution Flow
 
-This document serves as a strict technical reference detailing exactly what happens when the `proj build` (or `proj build-dev`) command is executed. The build pipeline is designed to enforce structural integrity, version control, and reproducible execution environments. The process is strictly divided into three sequential stages: Pre-Build, Actual Build, and Post-Build.
+This page records the existing `proj build` / `proj build-dev` implementation.
+It is not a normative behavior specification. The [behavior contract](behavior.qmd)
+records confirmed decisions and known gaps; current defects do not override it. The build pipeline is designed to enforce structural integrity, version control, and reproducible execution environments. The process is strictly divided into three sequential stages: Pre-Build, Actual Build, and Post-Build.
 
 ## 1. Pre-Build Stage
 
@@ -67,7 +69,12 @@ If no explicit scripts are defined:
 - If neither exists, a shallow directory sweep is performed, executing discovered files strictly in the order of: `.qmd`, `.Rmd`, `.R`, `.py`.
 
 ### 2.3 Execution and Reordering Constraint
-Scripts are executed in isolated subprocesses using their respective interpreters (e.g., `Rscript`, `python`, `quarto`). The subprocess `current_dir` is explicitly set to the directory containing the target script.
+The existing implementation starts interpreter subprocesses (for example,
+`Rscript`, `python`, `quarto`) with `current_dir` set to the target script's
+parent directory. This is a known gap against the confirmed root-relative
+execution default, not a compatibility requirement. Renderer evaluation
+directories need their own supported controls. A subprocess does not provide
+a filesystem sandbox or guarantee a clean environment.
 
 When Quarto or Bookdown configurations are active alongside explicit scripts, a strict reordering constraint is applied:
 1. **Pre-scripts:** All `.R` or `.py` files listed *before* the first documentation file are executed.
