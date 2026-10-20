@@ -1,0 +1,54 @@
+# Legacy core audit: correctness work queue
+
+Independent static review, 2026-10-20. Baseline:
+`41bd7000363f34b1e7e2d7e354971bfe9021e2b1` (relevant implementation blobs also
+match `5617a6daed1f4743a9b2609694a2f84ad4c902eb`). These are source findings,
+not reproduced runtime failures unless a later entry supplies a regression test
+and exact CI result. Do not infer that existing Rust behavior is a requirement.
+
+## Highest risks
+
+| Finding and baseline source | Required correction and evidence |
+| --- | --- |
+| Overlapping docs/output/cache paths; docs `.` or ancestor; symlinked parents; separator-bearing labels. `yml.rs:337`, `clear.rs:158`, `fs_utils.rs:1`. | Reject unsafe destructive destinations before writes; resolve identity/overlap and staging aliases; protect source/raw/root state. External resource paths remain valid. Test actual preservation with root/ancestor/overlap/traversal/symlink fixtures. |
+| VERSION and outputs change before hooks; rollback covers only the execution middle. `build.rs:236`, `build.rs:328`. | Stage managed writes and cover hooks, snapshots, execution, postprocessing and promotion with complete error handling. Restore exact prior managed state, including VERSION absence/bytes. |
+| Public docs cleared before ignored promotion failures; post-cleanup precedes CAS export. `build.rs:359`, `build.rs:370`, `build.rs:430`. | Require successful expected-output promotion and archive real output bytes before cleanup; never report success after failed/missing promotion. Preserve the previous release on failure. |
+| Environment read errors suppressed through `lines().flatten()`; invalid names can panic; required files can be ignored. `env.rs:69`, `env.rs:181`. | Bounded reads, validation before mutation, explicit errors for directory/unreadable/empty/NUL inputs; prove analysis never starts. |
+| Environment guard mutates process-wide variables across library builds. `env.rs:118`. | Resolve a per-run map and apply child-command environment explicitly. Overlapping projects must not exchange variables/profiles/credentials or change caller environment. A private mutex cannot protect unrelated readers. |
+| Credential helper embeds tokens in arguments/shell text, ignores requested host and inherited-helper behavior. `git.rs:146`. | Prefer native configured authentication. Any override needs fixed code, exact host scope and no secret in argv/source. Use synthetic punctuation-bearing sentinels and mocked Git; never real credentials in logs. |
+| Optional Git work runs implicitly; fetch despite disabled checks, duplicate commits, hardcoded branch and discarded token. `build_pre.rs:112`, `build.rs` final Git stages. | Execute only requested operations using real upstream/native auth; handle clean commits and separate local success from publication failure. Mock Git/network tests. |
+
+## Additional correctness findings
+
+| Finding and baseline source | Required correction and evidence |
+| --- | --- |
+| Literal root metacharacters become script glob syntax. `build.rs:650`, `build.rs:681`. | Escape literal root only, keep user include/exclude syntax; verify actual analysis bytes in bracket/space-named roots. |
+| Renderer YAML rewritten persistently, malformed YAML replaced by empty mapping and restoration loses original text/keys. `build.rs:709`, `build.rs:338`. | Validate early; prefer supported renderer controls, otherwise exact-byte restoration on every exit. |
+| Individual documents ignore configured docs destination; PDF/DOCX formats guessed as HTML; promotion errors discarded. `build.rs:271`, `build.rs:363`, `build_pre.rs:79`. | One validated destination and explicit supported format mapping; reject unsupported formats rather than guessing; require actual expected artifacts. |
+| Rmd filename interpolated into executable R source. `build.rs:990`. | Pass data/arguments to fixed R code; test spaces, apostrophes, backslashes and Unicode without local R execution. |
+| Remote paths stay invocation-relative and invalid content tags/errors are dropped. `yml.rs:429`, `build.rs:435`. | Normalize paths against the captured root, validate content tags before writes and propagate export failures. |
+| CAS path normalization can collide on Unix; scan/copy race can store bytes under the wrong digest. `cas.rs:202`, `cas.rs:248`. | Preserve platform path distinctions or reject unsupported names; verify stored bytes against digest and fail on source mutation. |
+| CAS broader integrity gaps: existing-object trust, unsafe boundaries, non-atomic manifest, CSV escaping, existence-only verification, malformed digest/path traversal and missing/file source accepted as empty snapshot. | Extend existing CAS work rather than claim a redesign is complete. Require a real input directory and fixture-backed integrity/error behavior. |
+| Unsupported control keys silently filtered; runtime invents directory defaults/subpaths. `yml.rs` filtering/validation/get_path. | Enforce approved active configuration and explicit used mappings, reject unsupported behavior settings before mutations. Init alone may write defaults. |
+
+## Scope and implementation order
+
+After bounded configuration fixes: destructive-path guards; complete managed-state
+failure/promotion handling; per-run environment; Git authentication/operation
+corrections; exact path/context behavior; explicit renderer checks. Each focused
+change needs actual Ponytail full-mode review, an independent review and remote
+regressions. Record implemented evidence in the [compatibility log](compatibility.qmd).
+
+Managed-state restoration cannot undo arbitrary external effects of user scripts
+or hooks. This is not an OS sandbox or global rollback promise. No trustworthy
+production-release safety claim follows from preview tests or this static audit.
+The existing R package and thesis remain untouched.
+
+The project already uses Rust edition 2024. Do not modernize for syntax alone.
+Rust 1.85 is only an MSRV candidate until the locked dependency graph is tested.
+Release builds should use reviewed stable Rust and `--locked`; add fmt, clippy and
+documentation checks without duplicating every matrix unnecessarily. A future
+fixture-backed YAML dependency migration is separate from urgent correctness fixes.
+At current memory pressure, no local compilation, R, Docker, Quarto build or
+compiling source-install is authorized; use remote tests and lightweight released
+binary smoke checks.

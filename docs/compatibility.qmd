@@ -311,3 +311,37 @@ shared file parser rather than guarding individual callers.
 - **Ponytail full-mode design review:** kept one linked design note; reused the
   repository's behavior/compatibility/AGENTS pointers. No installer, wrapper,
   binding, mock framework or external contact was added speculatively.
+
+## One merged build script/hook context (current change)
+
+- **Relationship:** follows projr's merged-configuration intent and the approved
+  local > earlier profiles > later profiles > base precedence. The prior Rust
+  pipeline validated merged settings but separately reread the base for execution.
+- **Implemented:** deserialize and validate one merged value, then select scripts
+  and hooks from it. Explicit empty dev selection remains empty; absence falls
+  back to build settings. Both base filenames use this same execution path.
+  Configuration parsing/validation, target resolution and preflight now precede
+  production environment-ignore writes.
+- **Evidence:** runnable Python fixtures check conflicting profiles, legacy base,
+  local dev overrides and hook results, plus invalid merged configuration with a
+  local environment file and missing-target failures leaving ignores/version/cache untouched. Remote CI and
+  independent review pending; no real R/renderer execution is claimed.
+- **Gaps:** required active config, explicit mappings, all unsupported-field
+  rejection and transactional rollback remain separate approved work. Environment
+  loading still uses the existing process-global guard; this change makes no new
+  same-process concurrent environment guarantee.
+- **Ponytail full-mode review:** removed the second base-only YAML parser and its
+  ignored parse failure instead of adding a second configuration model. Reused
+  existing typed validation and dev fallback rules. Traced validation, selection,
+  hooks and environment-ignore writes; retained explicit error propagation.
+
+
+## Legacy audit tracking
+
+The [2026-10-20 static audit](legacy-audit-20261020.qmd) records the pinned baseline,
+reported failure paths, required regressions and correction order. Its findings
+are not runtime reproductions or completed fixes. Highest managed-state risks
+remain blockers to production-safety claims; arbitrary external script effects
+are outside managed rollback. No mechanical edition upgrade or CAS redesign is
+claimed. This review uses the actual Ponytail full-mode skill to prioritize root
+causes and data-preservation checks over cosmetic rewriting.
