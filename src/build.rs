@@ -200,7 +200,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     }
 
     for file in &validation_files {
-        if file.extension() == Some("qmd") { validate_quarto_input(project_root, file)?; }
+        if file.extension() == Some("qmd") || (quarto_exists && matches!(file.extension(), Some("Rmd" | "rmd"))) { validate_quarto_input(project_root, file)?; }
     }
     if quarto_exists && build_scripts.is_none() { validate_implicit_quarto_roots(project_root, &config)?; }
     if has_document_analysis && !quarto_exists && !bookdown_exists {
@@ -868,6 +868,17 @@ fn validate_implicit_quarto_roots(root: &camino::Utf8Path, config: &crate::yml::
 }
 
 fn validate_quarto_input(root: &camino::Utf8Path, input: &camino::Utf8Path) -> anyhow::Result<()> {
+    // execute-dir controls evaluation cwd, not Quarto's ancestor project selection.
+    let local_project = crate::yml::configuration_entry_exists(&root.join("_quarto.yml"))?
+        || crate::yml::configuration_entry_exists(&root.join("_quarto.yaml"))?;
+    if !local_project {
+        for ancestor in root.ancestors().skip(1) {
+            if crate::yml::configuration_entry_exists(&ancestor.join("_quarto.yml"))?
+                || crate::yml::configuration_entry_exists(&ancestor.join("_quarto.yaml"))? {
+                anyhow::bail!("Effective ancestor Quarto project root differs from the captured proj root");
+            }
+        }
+    }
     let root = crate::path_safety::resolve_path(root.as_std_path(), false)?;
     let input = crate::path_safety::resolve_path(input.as_std_path(), true)?;
     if !input.starts_with(&root) { anyhow::bail!("Quarto inputs must lie inside the captured project root"); }
@@ -886,6 +897,10 @@ fn validate_quarto_input(root: &camino::Utf8Path, input: &camino::Utf8Path) -> a
 }
 
 fn validate_individual_metadata(root: &camino::Utf8Path, input: &camino::Utf8Path) -> anyhow::Result<()> {
+    let normalized_root = camino::Utf8PathBuf::try_from(crate::path_safety::resolve_path(root.as_std_path(), false)?)?;
+    let normalized_input = camino::Utf8PathBuf::try_from(crate::path_safety::resolve_path(input.as_std_path(), true)?)?;
+    let root = normalized_root.as_path();
+    let input = normalized_input.as_path();
     if crate::yml::configuration_entry_exists(&root.join("_quarto.yaml"))? { anyhow::bail!("Individual rendering under _quarto.yaml project metadata is unsupported; use the modeled _quarto.yml project layout"); }
     let is_rmd = matches!(input.extension(), Some("Rmd" | "rmd"));
     let mut directory = input.parent();

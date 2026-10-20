@@ -119,6 +119,32 @@ target.write_text('fresh artifact')
     }
 
     #[test]
+    fn effective_quarto_root_must_match_explicit_proj_root_for_all_quarto_documents() {
+        for case in ["ancestor", "nested-rmd-yml", "nested-rmd-yaml"] {
+            let temp = tempfile::tempdir().unwrap();
+            let outer = temp.path().canonicalize().unwrap();
+            let root = outer.join("inner");
+            fs::create_dir_all(root.join("nested")).unwrap();
+            let extension = if case == "ancestor" { "qmd" } else { "Rmd" };
+            config(&root, &format!("nested/report.{extension}"), "");
+            fs::write(root.join(format!("nested/report.{extension}")), "---\nformat: html\n---\n").unwrap();
+            if case == "ancestor" {
+                fs::write(outer.join("_quarto.yml"), "project: {}\n").unwrap();
+            } else {
+                fs::write(root.join("_quarto.yml"), "project: {}\n").unwrap();
+                fs::write(root.join(if case.ends_with("yaml") { "nested/_quarto.yaml" } else { "nested/_quarto.yml" }), "project: {}\n").unwrap();
+            }
+            fake(&root);
+            let output = invoke(&root, true);
+            assert!(!output.status.success(), "{case}");
+            assert!(!root.join("renderer-argv.json").exists());
+            assert!(!root.join(".gitignore").exists());
+            assert!(!root.join("cache").exists());
+            assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");
+        }
+    }
+
+    #[test]
     fn unsupported_layouts_and_nested_quarto_roots_fail_before_writes() {
         for case in ["nested-yml", "nested-yaml", "unknown", "multi", "malformed", "inherited", "rmd-custom", "qmd-ext", "qmd-format-ext", "rmd-lib", "rmd-format-lib"] {
             let temp = tempfile::tempdir().unwrap();

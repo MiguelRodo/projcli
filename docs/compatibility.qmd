@@ -760,3 +760,8 @@ PR146 review additionally rejects document/format-specific output extension and
 library-directory overrides before writes; these are outside the modeled artifact
 and recovery layout. Windows execution-root fixtures compare filesystem identity,
 preserving the cwd requirement across ordinary/verbatim path spellings.
+
+Effective ancestor Quarto projects are rejected when they differ from an explicitly
+selected inner proj root. Every selected document routed through Quarto, including
+Rmd, receives nested-root validation. Metadata traversal normalizes root/input
+filesystem identity before stopping, avoiding Windows namespace spelling differences.
