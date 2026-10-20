@@ -36,7 +36,7 @@ fn test_mixed_engine_project() {
     fs::create_dir_all(&docs_path).unwrap();
 
     // Setup an Rmd file
-    let rmd_content = "---\ntitle: abc\nformat: word_document\n---\nHello";
+    let rmd_content = "---\ntitle: abc\noutput: word_document\n---\nHello";
     let rmd_path = project_root.join("test_rmd.Rmd");
     fs::write(&rmd_path, rmd_content).unwrap();
 
