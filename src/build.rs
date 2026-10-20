@@ -93,12 +93,12 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     let quarto_exists = project_root.join("_quarto.yml").exists();
     let bookdown_exists = project_root.join("_bookdown.yml").exists();
 
-    let yml_path = project_root.join("_proj.yml");
+    let yml_path = crate::yml::base_configuration_path(project_root)?;
     let mut build_scripts: Option<Vec<String>> = None;
     let mut profile: Option<String> = cli_profile.map(|s| s.to_string());
     let mut hooks_config: crate::yml::HooksConfig = crate::yml::HooksConfig::default();
 
-    if yml_path.exists() {
+    if let Some(yml_path) = yml_path {
         let content = fs::read_to_string(&yml_path).context("Failed to read _proj.yml")?;
         if let Ok(proj_conf) = serde_yaml::from_str::<ProjConfig>(&content) {
             let build = proj_conf.build;

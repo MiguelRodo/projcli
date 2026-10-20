@@ -204,3 +204,25 @@ Completed-chunk review of PR129's empty-selection change:
   checks for real archive bytes and absence-versus-empty semantics; those checks
   passed on all three remote platforms at the code head recorded above. No R
   runtime parity was inferred.
+
+
+## Base aliases and profile precedence (current change)
+
+- **Relationship:** same projr local > profiles > base precedence, with
+  earlier-listed profiles winning; legacy `_projr.yml` is accepted alongside
+  canonical `_proj.yml` as an explicit compatibility decision. Both base files
+  together fail instead of silently merging. Source comparison remains
+  [projr yml.R at 3ac2959](https://github.com/SATVILab/projr/blob/3ac29595d0e39552495d863661b99ea015d59d3d/R/yml.R#L224).
+- **Implemented:** shared base selection for merged reads, existing build base
+  inspection, parameters insertion and local-profile cloning. Explicit profile
+  lists replace ambient lists; traversal-like explicit names fail validation.
+  Profile/local files retain their existing `_projr-` names in this bounded slice.
+- **Evidence:** new runnable query/alias/ambiguity/preservation/precedence tests
+  are prepared; remote CI and independent review pending. No R runtime tests.
+- **Gaps:** one merged build script/hook context, active-configuration requirement,
+  explicit directory mappings and early unsupported-setting validation remain
+  separate work. This does not claim builds yet satisfy those approved rules.
+- **Ponytail full-mode review:** traced base filename readers and reused one
+  stdlib path selector; reversed existing deep-merge traversal rather than adding
+  a merger or dependency. Preserved null-as-absence and explicit-empty-list
+  behavior. Checks exercise real query results and preservation on ambiguity.

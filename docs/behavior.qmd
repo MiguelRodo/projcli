@@ -77,7 +77,9 @@ it does not implement the confirmed nearest-recognized-root rule. Individual
 scripts currently start in their parent directory. Captured-root stability is
 implemented for core CLI child queries after cwd changes, including independent
 simultaneous roots; direct R frontend/renderer parity remains unimplemented.
-Base-file aliases and first-wins profile merging still need runtime implementation.
+Base-file aliases and first-wins profile merging are implemented in configuration
+reads; build script/hook selection still requires migration to that same merged
+context. Profile/local filenames retain their existing `_projr-` form for now.
 Explicit empty script selection now skips analysis while preserving hooks and
 production publication; its tests cover production archive bytes and preview
 nonpublication without invoking real renderers.
