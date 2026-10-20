@@ -58,14 +58,14 @@ fn nullify_values(val: &mut Value) {
 
 /// Scans the baseline `_proj.yml` structure and clones its layout into `_projr-local.yml` with all assignments mapped to null.
 pub fn create_local_profile(project_root: &Utf8Path) -> anyhow::Result<Utf8PathBuf> {
-    let baseline_path = project_root.join("_proj.yml");
+    let baseline_path = crate::yml::base_configuration_path(project_root)?;
     let local_path = project_root.join("_projr-local.yml");
 
     if local_path.exists() {
         anyhow::bail!("Local profile _projr-local.yml already exists.");
     }
 
-    if baseline_path.exists() {
+    if let Some(baseline_path) = baseline_path {
         let content = fs::read_to_string(&baseline_path)
             .with_context(|| format!("Failed to read baseline configuration from {}", baseline_path))?;
         let yaml_value: serde_yaml::Value = serde_yaml::from_str(&content)

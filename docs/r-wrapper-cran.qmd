@@ -7,7 +7,8 @@ does not settle the complete frontend protocol or claim renderer parity.
 ## Separate installation
 
 The future wrapper is intended to contain R code that calls a separately installed
-proj CLI. It should discover a compatible executable and give an actionable
+proj CLI. Its `DESCRIPTION` should declare that CLI in `SystemRequirements`.
+It should discover a compatible executable and give an actionable
 missing/incompatible-CLI error. A user-invoked installer on the user's own machine
 is distinct from automatic downloads during CRAN installation, checks or examples.
 Do not assume CRAN servers already provide proj.

@@ -228,7 +228,9 @@ Completed-chunk review of PR129's empty-selection change:
   passed in runs 39487247962/39487247928. Independent review compared the pinned
   marker sources and inspected all three platform logs, clearing that head.
   Symlink normalization was source-inspected, without a new dedicated test.
-  This evidence-only amendment requires its own checks; no R-runtime parity is claimed.
+  Final evidence-only head `55e5606e7916f78de7dfb03a4bb43b0ae1a87987`
+  passed all nine checks in runs 39487685152/39487685131 and independent review;
+  merged as `41bd7000363f34b1e7e2d7e354971bfe9021e2b1`. No R-runtime parity is claimed.
 - **Gaps:** required active config, explicit used-directory mappings, early
   unsupported-setting validation, legacy config-content aliases and full
   frontend/renderer parity are separate changes. A marker does not claim a Julia runner exists.
@@ -261,6 +263,40 @@ Completed-chunk review of PR129's empty-selection change:
   root-helper fixes. A later backend port/integration must establish R parity;
   no such work or runtime comparison is claimed here. Thesis text remains untouched.
 
+
+## Base aliases and profile precedence (current change)
+
+- **Relationship:** same projr local > profiles > base precedence, with
+  earlier-listed profiles winning; legacy `_projr.yml` is accepted alongside
+  canonical `_proj.yml` as an explicit compatibility decision. Both base files
+  together fail instead of silently merging. Source comparison remains
+  [projr yml.R at 3ac2959](https://github.com/SATVILab/projr/blob/3ac29595d0e39552495d863661b99ea015d59d3d/R/yml.R#L224).
+- **Implemented:** shared base selection for merged reads, existing build base
+  inspection, parameters insertion and local-profile cloning. Explicit profile
+  lists replace ambient lists; traversal-like explicit names fail validation.
+  Profile/local files retain their existing `_projr-` names in this bounded slice.
+- **Evidence:** new runnable query/alias/ambiguity/preservation/precedence tests
+  passed on all three platforms at `53463d325c85c538ae0b8a5e792caa6bc997e452`.
+  All nine checks in runs 39488461110/39488461213 passed; independent review
+  inspected alias, precedence and duplicate-key logs and cleared that head.
+  This evidence-only amendment needs its own final checks. No R runtime tests.
+- **Gaps:** one merged build script/hook context, active-configuration requirement,
+  explicit directory mappings and early unsupported-setting validation remain
+  separate work. This does not claim builds yet satisfy those approved rules.
+- **Ponytail full-mode review:** traced base filename readers and reused one
+  stdlib path selector; reversed existing deep-merge traversal rather than adding
+  a merger or dependency. Preserved null-as-absence and explicit-empty-list
+  behavior. Checks exercise real query results and preservation on ambiguity.
+
+
+PR131 failure-path review found that direct YAML-to-JSON deserialization allowed
+duplicate keys to overwrite earlier values. Restored YAML Value parsing before
+JSON conversion, preserving duplicate-key rejection at every active layer.
+Added top-level and nested duplicate-key regressions for both base filenames,
+profile and local files, including CLI failure before preview state writes.
+The prior green CI did not cover this malformed-input case; the corrected head
+above passed the new checks and independent re-review. Ponytail review kept this at the
+shared file parser rather than guarding individual callers.
 
 ## Future R wrapper distribution boundary
 

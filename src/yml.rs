@@ -581,69 +581,63 @@ pub fn yml_get_filter_top_level(value: Value) -> Value {
     }
 }
 
-/// Pipeline coordinator to merge `_proj.yml`, active profiles, and `_projr-local.yml`.
+/// Selects the base filename without silently merging canonical and legacy files.
+pub(crate) fn base_configuration_path(base_dir: &Utf8Path) -> anyhow::Result<Option<Utf8PathBuf>> {
+    let primary = base_dir.join("_proj.yml");
+    let legacy = base_dir.join("_projr.yml");
+    if primary.exists() && legacy.exists() {
+        anyhow::bail!("Ambiguous configuration: both _proj.yml and _projr.yml exist; keep one base file.");
+    }
+    Ok(if primary.exists() { Some(primary) } else if legacy.exists() { Some(legacy) } else { None })
+}
+
+fn read_configuration_file(path: &Utf8Path) -> anyhow::Result<Value> {
+    let content = fs::read_to_string(path).with_context(|| format!("Failed to read configuration {path}"))?;
+    // YAML's mapping visitor rejects duplicate keys; JSON's visitor overwrites them.
+    let yaml: serde_yaml::Value = serde_yaml::from_str(&content)
+        .with_context(|| format!("Failed to parse configuration {path}"))?;
+    let value: Value = serde_json::to_value(yaml)
+        .with_context(|| format!("Failed to convert configuration {path}"))?;
+    let aliases = ["parameters", "parameter", "params", "param"];
+    if aliases.iter().filter(|key| value.get(**key).is_some()).count() > 1 {
+        anyhow::bail!("Configuration error: multiple 'parameters' aliases found in {path}.");
+    }
+    Ok(value)
+}
+
+/// Merges canonical or legacy base configuration, active profiles, and local overrides.
+///
+/// Explicit profiles replace the environment list. Local overrides win over profiles;
+/// earlier-listed profiles win over later profiles, and profiles win over the base.
+/// Both base filenames together are an error. Reading never modifies project files.
 pub fn get_combined_yml(
     explicit_profile: Option<&str>,
     base_dir: &Utf8Path,
 ) -> anyhow::Result<Value> {
-    let base_path = base_dir.join("_proj.yml");
-    let mut base_val = if base_path.exists() {
-        let content =
-            fs::read_to_string(&base_path).context("Failed to read base configuration.")?;
-
-        // Multi-alias conflict safeguard
-        let raw_yaml: serde_yaml::Value =
-            serde_yaml::from_str(&content).context("Failed to parse base configuration.")?;
-        if let serde_yaml::Value::Mapping(map) = &raw_yaml {
-            let aliases = ["parameters", "parameter", "params", "param"];
-            let found_count = aliases
-                .iter()
-                .filter(|&a| map.contains_key(&serde_yaml::Value::String(a.to_string())))
-                .count();
-            if found_count > 1 {
-                anyhow::bail!(
-                    "Configuration error: multiple 'parameters' aliases found in _proj.yml."
-                );
-            }
-        }
-
-        let json_val: Value =
-            serde_yaml::from_str(&content).context("Failed to parse configuration into JSON.")?;
-        json_val
-    } else {
-        Value::Object(serde_json::Map::new())
+    let mut base_val = match base_configuration_path(base_dir)? {
+        Some(path) => read_configuration_file(&path)?,
+        None => Value::Object(serde_json::Map::new()),
     };
-
-    let mut profiles = get_active_profiles();
-    if let Some(ep) = explicit_profile {
-        let additional: Vec<String> = ep
-            .split(|c| c == ',' || c == ';')
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty() && s != "default" && s != "local")
-            .collect();
-        profiles.extend(additional);
+    let profiles = if let Some(explicit) = explicit_profile {
+        explicit.split(|c| c == ',' || c == ';')
+            .map(str::trim).filter(|s| !s.is_empty() && *s != "default" && *s != "local")
+            .map(str::to_string).collect()
+    } else {
+        get_active_profiles()
+    };
+    if profiles.iter().any(|name| !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')) {
+        anyhow::bail!("Invalid active profile name.");
     }
-
-    for p in profiles {
-        let profile_path = base_dir.join(format!("_projr-{}.yml", p));
-        if profile_path.exists() {
-            let content = fs::read_to_string(&profile_path)
-                .context("Failed to read profile configuration.")?;
-            let yaml_val: Value =
-                serde_yaml::from_str(&content).context("Failed to parse profile configuration.")?;
-            base_val = deep_merge(base_val, yaml_val);
+    for profile in profiles.into_iter().rev() {
+        let path = base_dir.join(format!("_projr-{profile}.yml"));
+        if path.exists() {
+            base_val = deep_merge(base_val, read_configuration_file(&path)?);
         }
     }
-
-    let local_path = base_dir.join("_projr-local.yml");
-    if local_path.exists() {
-        let content =
-            fs::read_to_string(&local_path).context("Failed to read local configuration.")?;
-        let yaml_val: Value =
-            serde_yaml::from_str(&content).context("Failed to parse local configuration.")?;
-        base_val = deep_merge(base_val, yaml_val);
+    let local = base_dir.join("_projr-local.yml");
+    if local.exists() {
+        base_val = deep_merge(base_val, read_configuration_file(&local)?);
     }
-
     Ok(yml_get_filter_top_level(base_val))
 }
 
@@ -693,10 +687,9 @@ pub fn get_parameter(validated: &ValidatedConfig, keys: &[&str]) -> Option<serde
 
 /// Scans the target configuration file and injects an empty parameters block if missing.
 pub fn add_empty_parameters_block(project_root: &Utf8Path) -> anyhow::Result<bool> {
-    let yml_path = project_root.join("_proj.yml");
-    if !yml_path.exists() {
+    let Some(yml_path) = base_configuration_path(project_root)? else {
         return Ok(false);
-    }
+    };
 
     let content = fs::read_to_string(&yml_path).context("Failed to read project configuration.")?;
     let raw_value: serde_yaml::Value =
