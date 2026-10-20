@@ -1,0 +1,30 @@
+/* Reuse Quarto layout and Bootstrap; no extra frontend dependencies. */
+:root {
+  --bs-body-color: #243447;
+  --bs-link-color: #146859;
+}
+body { font-size: 1.05rem; line-height: 1.7; }
+h1, h2, h3 { color: #142d3b; font-weight: 650; }
+h1 { letter-spacing: -.035em; line-height: 1.15; }
+h2 { margin-top: 2.1rem; letter-spacing: -.02em; }
+.navbar { background: #143b3a; }
+.navbar .navbar-brand, .navbar .nav-link { color: #fff; }
+.navbar .nav-link:hover, .navbar .nav-link:focus { color: #bce8d7; }
+.hero { padding: 1.4rem 0 2rem; font-size: 1.2rem; max-width: 48rem; }
+.hero .btn { margin: .5rem .5rem .2rem 0; font-size: 1rem; }
+.btn-primary { background: #146859; border-color: #146859; }
+.btn-outline-primary { color: #146859; border-color: #146859; }
+.btn:hover { background: #104f45; border-color: #104f45; color: #fff; }
+.grid { margin-block: 1.5rem 2.5rem; }
+.grid h2 { font-size: 1.35rem; }
+pre { border: 1px solid #dce5e5; border-radius: .4rem; }
+a { text-underline-offset: .16em; }
+a:focus-visible, button:focus-visible { outline: 3px solid #b36b00; outline-offset: 3px; }
+table { font-size: .95rem; }
+@media (max-width: 767px) {
+  body { font-size: 1rem; }
+  h1 { font-size: 2.25rem; }
+  .hero { font-size: 1.08rem; padding-top: .5rem; }
+  .hero .btn { display: block; width: fit-content; }
+  table { display: block; overflow-x: auto; }
+}

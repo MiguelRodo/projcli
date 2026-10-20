@@ -1,1 +1,1 @@
-Sitemap: https://MiguelRodo.github.io/projcli/sitemap.xml
+Sitemap: https://miguelrodo.github.io/projcli/sitemap.xml
