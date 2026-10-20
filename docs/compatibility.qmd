@@ -386,3 +386,96 @@ alias to `parameters` in the shared reader before merging. New fixtures cover al
 nested values; same-file multiple aliases and YAML duplicate keys remain errors.
 Ponytail full-mode re-review kept the fix at the shared loader, without caller
 guards or a second merge model. Exact amended CI/re-review remain required.
+
+## Destructive destination guards (prepared change)
+
+- **Relationship: new safety checks**, not a blanket ban on external resources.
+  Before production analysis cleanup, reject root/ancestor destinations, staging
+  and resource overlaps, selected-input containment, VCS metadata, label path
+  separators and symlinked managed-write paths. Directory replacement also
+  requires an existing source and disjoint destination before deleting bytes.
+- **Evidence:** runnable preservation fixtures cover root, ancestor, staging,
+  raw/output overlaps, traversal labels, Unix symlink parents and low-level
+  self/ancestor/nested/missing-source moves. Remote CI/review pending.
+- **Limits:** does not yet provide atomic promotion or complete rollback, protect
+  against concurrent hostile filesystem replacement, undo user-script external
+  effects or establish full CAS integrity. External disjoint paths remain valid.
+- **Ponytail full-mode review:** one stdlib identity resolver shared by build and
+  promotion guards; trace all promotion callers, retain explicit errors instead
+  of silently accepting missing source/read errors. No new dependency.
+
+
+Path-guard Ponytail re-review traced the public cleanup helpers as well as build:
+direct clear_pre/clear_post now apply the shared destination checks, clear_old
+rejects symlinked staging parents, and traversal-bearing version components fail
+before cache deletion. Label separator validation lives in shared typed validation
+for all modes. Generic destructive move APIs require resolved parents and reject
+symlink aliases; positive direct-API fixtures canonicalize their temporary roots
+so macOS system temp aliases do not violate that explicit safety precondition.
+Added a direct-cleanup preservation fixture. This is not complete transactional
+restoration or a guarantee against concurrent filesystem replacement.
+
+
+PR135 final evidence (batched with path guards): code head
+`3839173366e55cffa946ea0e2afe4757ae48e77d` passed all alias/conflict regressions
+on three platforms and independent re-review. Base-update head
+`abc62f966766915093351c00a6a1724a0d1b69da` changed no executable/tests/Cargo code,
+preserved the published site, passed all ten checks in runs
+39492001512/39492001479/39492001493 and focused independent review. Merged as
+`a0909e413915847498e77669a3b669941dbfe3fe`. Required active config and unsupported
+field rejection are implemented; explicit used-directory enforcement and finite
+control-value validation remain separate gaps.
+
+
+PR137 independent review found that configured-root checks alone missed derived
+version/output cache leaves. Validate all actual cleanup bases before the first
+deletion, including configured-cache and legacy staging paths. Direct dev cleanup
+is now a true no-op. The same review traced individual document promotion and
+recursive copying: validate paths before creating directories or renaming files,
+require actual outputs, reject traversal/aliasing and prevalidate asset moves.
+The two duplicate individual-renderer helpers now reuse one guarded implementation.
+Added targeted direct-API regressions; amended remote CI/re-review are required.
+This does not yet fix build callers discarding promotion errors or provide full
+restoration/atomicity; those remain the following focused work.
+
+
+The repaired PR137 guard prevalidates concrete generated-file/asset paths and both
+legacy/configured cache-derived leaves before VERSION/ignore writes, including
+dangling links. Individual and project promotion now resolve the configured docs
+destination rather than a root/docs fallback; Python-only builds do not clear
+unrelated docs. Unix fake-Quarto/fake-R CLI fixtures exercise the reported linked
+root/docs sentinel bypass and actual successful external promotion, without a real
+renderer installation. Direct helper tests remain cross-platform.
+
+Project-render source safety is explicitly conservative: recognized source-like
+`.qmd`, `.Rmd`, `.md` and `.ipynb` files or links in managed cleanup trees cause an
+early error. This can reject generated Markdown there; it is not exact Quarto or
+Bookdown input discovery. Keep sources and managed destinations separate until a
+renderer-provided input plan is supported. Quarto's documented project input types
+are described in [Project Basics](https://quarto.org/docs/projects/quarto-projects.html#render-targets).
+
+
+The prepared literal-root glob fix is included in PR137 because a metacharacter
+root otherwise hides explicit inputs from the cleanup containment guard. Reuse
+glob::Pattern::escape for the root prefix only, retaining user include/exclude
+syntax. Runnable tests verify actual analysis bytes and selected-input preservation
+under a bracket-containing root. This is the same audited root-cause fix, not an
+additional discovery policy or dependency. Existing standalone preparation remains
+preserved and must not later be merged as duplicate work.
+
+
+Windows CI at 9938173 exposed a skipped explicit failing script. Source review of
+[glob 0.3.3](https://docs.rs/glob/0.3.3/src/glob/lib.rs.html) confirmed that escaping
+the canonical Windows namespace changes its filesystem prefix. Normalize Disk/UNC
+namespaces for glob transport only, keep filesystem prefixes literal, escape only
+directory components and join patterns using native path operations. The captured
+root is unchanged. Explicit include patterns with no files now fail instead of
+reporting successful no-op execution. New native/canonical-root execution markers
+run on every platform; network UNC execution remains unverified.
+
+The same review found generated filenames could overwrite another selected script
+or hook, DESCRIPTION or environment configuration. Before renderer invocation,
+compare all concrete output/asset paths against the complete selected-input set
+and reject authoritative project/environment metadata filenames. Fake-renderer
+fixtures prove those failures happen before scripts, VERSION or ignore writes.
+Amended exact-head CI and independent re-review remain required.

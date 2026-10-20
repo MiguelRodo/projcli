@@ -10,11 +10,12 @@ pub fn clear_old(
     is_dev: bool,
     old_dev_remove: Option<bool>,
 ) -> anyhow::Result<()> {
-    if old_dev_remove != Some(true) {
+    if is_dev || old_dev_remove != Some(true) {
         return Ok(());
     }
 
     let base_path = project_root.join("_tmp").join("projr");
+    crate::path_safety::resolve_path(base_path.as_std_path(), true)?;
     if !base_path.exists() {
         return Ok(());
     }
@@ -52,6 +53,7 @@ pub fn clear_pre(
     config: &ValidatedConfig,
     clear_output: Option<&str>,
 ) -> anyhow::Result<()> {
+    crate::path_safety::validate_cleanup_paths(project_root, config, current_version)?;
     // 1. Versioned cache path clearance
     let versioned_cache_path = project_root
         .join("_tmp")
@@ -85,10 +87,7 @@ pub fn clear_pre(
     }
 
     let is_pre = clear_output == Some("pre");
-    let cache_base = match config.get_path(project_root, "cache") {
-        Ok(p) => p,
-        Err(_) => project_root.join("_tmp"), // default fallback
-    };
+    let cache_base = config.get_path(project_root, "cache")?;
 
     for (label, _) in &config.directories {
         let lower_label = label.to_lowercase();
@@ -152,7 +151,9 @@ pub fn clear_post(
     clear_output: Option<&str>,
     is_single_doc_engine: bool,
 ) -> anyhow::Result<()> {
-    if !is_dev && is_single_doc_engine {
+    if is_dev { return Ok(()); }
+    crate::path_safety::validate_build_paths(project_root, config, &[])?;
+    if is_single_doc_engine {
         if let Ok(docs_path) = config.get_path(project_root, "docs") {
             if docs_path.exists() {
                 for entry in fs::read_dir(docs_path.as_std_path()).context("Failed to read docs directory")? {

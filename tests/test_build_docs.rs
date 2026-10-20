@@ -7,8 +7,8 @@ use proj::fs_utils::dir_move_exact;
 #[test]
 fn test_dir_move_exact_protects_files() {
     let root = tempdir().unwrap();
-    let src = root.path().join("src");
-    let dest = root.path().join("dest");
+    let src = root.path().canonicalize().unwrap().join("src");
+    let dest = root.path().canonicalize().unwrap().join("dest");
 
     fs::create_dir_all(&src).unwrap();
     fs::create_dir_all(&dest).unwrap();
@@ -29,7 +29,8 @@ fn test_dir_move_exact_protects_files() {
 #[test]
 fn test_mixed_engine_project() {
     let root = tempdir().unwrap();
-    let project_root = root.path();
+    let canonical_root = root.path().canonicalize().unwrap();
+    let project_root = canonical_root.as_path();
     let docs_path = project_root.join("docs");
 
     fs::create_dir_all(&docs_path).unwrap();

@@ -164,24 +164,6 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
 
     let mut validation_files = resolved_files.clone();
     validation_files.extend(resolved_hooks.clone());
-
-    let (_resolved_token, resolved_python_cmd) = run_pre_flight_checks(
-        project_root,
-        &config,
-        is_prod_run,
-        &validation_files,
-        quarto_exists,
-        bookdown_exists,
-    )?;
-
-    // Project writes begin only after configuration, targets and preflight succeed.
-    if !is_dev {
-        if project_root.join("_environment.local").exists() {
-            crate::ignore::add_manual_ignores(project_root, &["_environment.local".to_string()], true, crate::ignore::IgnoreType::All)?;
-        }
-        crate::ignore::update_ignores(project_root, &config).context("Failed to update ignores")?;
-    }
-
     // 4. VERSION Initialization Check
     let mut initial_version = match version_get_from(project_root) {
         Some(v) => v,
@@ -202,18 +184,56 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
                 found_ver.context("Could not extract a valid Version from DESCRIPTION file")?
             } else {
                 let v = crate::version::ProjVersion { major: 0, minor: 0, patch: 1, dev: 0 };
-                if !is_dev {
-                    version_set_at(project_root, &v.to_string(true)).context("Failed to initialize a VERSION file")?;
-                }
                 v
             }
         }
     };
 
+    let current_version = initial_version.to_string(false);
+    if !is_dev {
+        crate::path_safety::validate_build_paths(project_root, &config, &validation_files)?;
+        if run_analysis {
+            crate::path_safety::validate_cleanup_paths(project_root, &config, &current_version)?;
+            if quarto_exists || bookdown_exists {
+                crate::path_safety::validate_project_source_overlap(project_root, &config)?;
+            } else {
+                for file in &resolved_files {
+                    if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) {
+                        let outputs = document_output_paths(file, &config.get_path(project_root, "docs")?, project_root)?;
+                        for input in &validation_files {
+                            let identity = crate::path_safety::resolve_path(input.as_std_path(), false)?;
+                            for target in [&outputs.target, &outputs.destination, &outputs.assets, &outputs.destination_assets] {
+                                if identity.starts_with(crate::path_safety::resolve_path(target.as_std_path(), true)?) {
+                                    anyhow::bail!("Rendered output overwrites protected input script/hook: {input}");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let (_resolved_token, resolved_python_cmd) = run_pre_flight_checks(
+        project_root,
+        &config,
+        is_prod_run,
+        &validation_files,
+        quarto_exists,
+        bookdown_exists,
+    )?;
+
+    // Project writes begin only after configuration, targets and preflight succeed.
+    if !is_dev {
+        if project_root.join("_environment.local").exists() {
+            crate::ignore::add_manual_ignores(project_root, &["_environment.local".to_string()], true, crate::ignore::IgnoreType::All)?;
+        }
+        crate::ignore::update_ignores(project_root, &config).context("Failed to update ignores")?;
+    }
+
     let version_before_build = initial_version.clone();
 
     // 4.5. Workspace Pre-clearing Hooks
-    let current_version = initial_version.to_string(false);
     let clear_output_env = std::env::var("PROJR_CLEAR_OUTPUT").ok();
     let clear_output_val = clear_output_env.as_deref().or(config.clear_output.as_deref());
 
@@ -248,14 +268,17 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     // Git auto-ignore synchronization was requested explicitly during config audit.
 
     // 6.5 Sidecar Output Redirection
-    let mut original_docs_path: Option<PathBuf> = None;
+    let has_document_analysis = quarto_exists || bookdown_exists || resolved_files.iter().any(|file| matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")));
+    let mut original_docs_path: Option<PathBuf> = if has_document_analysis {
+        Some(config.get_path(project_root, "docs")?.into_std_path_buf())
+    } else { None };
     let mut original_docs_path_str = "docs".to_string(); // default if missing or can't compute
     let mut actual_docs_key = "docs".to_string();
 
     if quarto_exists || bookdown_exists {
-        if let Some((k, docs_config)) = config.directories.iter().find(|(k, _)| k.to_lowercase() == "docs") {
+        if let Some((k, _docs_config)) = config.directories.iter().find(|(k, _)| k.to_lowercase() == "docs") {
             actual_docs_key = k.clone();
-            let path = docs_config.path.clone();
+            let path = config.get_path(project_root, k)?;
             original_docs_path_str = path.strip_prefix(project_root).unwrap_or(path.as_path()).as_str().to_string(); /* TODO: migrate to camino */
             original_docs_path = Some(path.into()); /* TODO: migrate to camino */
         }
@@ -336,7 +359,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
                 }
             }
 
-            let is_single_doc_engine = !quarto_exists && !bookdown_exists;
+            let is_single_doc_engine = has_document_analysis && !quarto_exists && !bookdown_exists;
             let clear_output_env = std::env::var("PROJR_CLEAR_OUTPUT").ok();
             let clear_output_val = clear_output_env.as_deref().or(config.clear_output.as_deref());
             if !is_dev && run_analysis {
@@ -345,8 +368,8 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
 
             // Copy docs
             let should_run_output = config.output_run.unwrap_or(true);
-            if should_run_output && !is_dev && run_analysis {
-                let final_docs_dir = original_docs_path.clone().unwrap_or_else(|| project_root.join("docs").into());
+            if should_run_output && !is_dev && run_analysis && has_document_analysis {
+                let final_docs_dir = config.get_path(project_root, "docs")?.into_std_path_buf();
                 let cache_docs_dir = project_root.join("_tmp").join("projr").join(&current_version).join("docs");
 
                 // TODO: migrate to camino
@@ -611,6 +634,42 @@ fn execute_build_pipeline(
     Ok(())
 }
 
+// Use a consistent filesystem namespace for glob enumeration and exclusions only.
+// The captured project-root identity remains canonical and unchanged.
+fn glob_path_text(path: &camino::Utf8Path) -> anyhow::Result<String> {
+    #[cfg(windows)]
+    if let Some(std::path::Component::Prefix(prefix)) = path.as_std_path().components().next() {
+        match prefix.kind() {
+            std::path::Prefix::VerbatimDisk(_) => return Ok(path.as_str()[4..].to_string()),
+            std::path::Prefix::VerbatimUNC(server, share) => {
+                let tail = &path.as_str()[prefix.as_os_str().to_str().context("Non-UTF-8 glob prefix")?.len()..];
+                return Ok(format!("\\\\{}\\{}{}", server.to_str().context("Non-UTF-8 UNC server")?, share.to_str().context("Non-UTF-8 UNC share")?, tail));
+            }
+            std::path::Prefix::Verbatim(_) | std::path::Prefix::DeviceNS(_) => anyhow::bail!("Unsupported device namespace for script glob selection"),
+            _ => {}
+        }
+    }
+    Ok(path.to_string())
+}
+
+fn script_glob_pattern(root: &camino::Utf8Path, pattern: &str) -> anyhow::Result<String> {
+    if camino::Utf8Path::new(pattern).is_absolute() {
+        return glob_path_text(camino::Utf8Path::new(pattern));
+    }
+    let root = glob_path_text(root)?;
+    let prefix_len = {
+        #[cfg(windows)]
+        { match std::path::Path::new(&root).components().next() {
+            Some(std::path::Component::Prefix(prefix)) => prefix.as_os_str().to_str().context("Non-UTF-8 glob prefix")?.len(),
+            _ => 0,
+        } }
+        #[cfg(not(windows))]
+        { 0 }
+    };
+    let escaped = format!("{}{}", &root[..prefix_len], glob::Pattern::escape(&root[prefix_len..]));
+    Ok(camino::Utf8Path::new(&escaped).join(pattern).into_string())
+}
+
 /// Evaluates Path A: Explicit Configuration via `build.scripts`.
 ///
 /// Supports exclusion globs starting with `!`, strictly matches root documents when no sub-directory
@@ -634,25 +693,21 @@ pub(crate) fn resolve_explicit_scripts(project_root: &camino::Utf8Path, scripts:
     // Convert patterns to absolute globbing targets
     let mut matched_files = Vec::new();
     for pattern in &includes {
-        // If there's no directory prefix (e.g. *.qmd), it should only match at the root.
-        let is_root_only = !pattern.contains('/');
-        let target_pattern = if is_root_only {
-            project_root.join(pattern).to_string()
-        } else {
-            project_root.join(pattern).to_string()
-        };
+        let target_pattern = script_glob_pattern(project_root, pattern)?;
 
         // TODO: migrate to camino
         let paths = glob::glob(&target_pattern)
             .context(format!("Invalid glob pattern '{}'", target_pattern))?;
 
+        let mut matched = false;
         for entry in paths {
-            if let Ok(path) = entry {
-                if path.is_file() {
-                    matched_files.push(camino::Utf8PathBuf::try_from(path).context("Non-UTF-8 path encountered")?);
-                }
+            let path = entry.with_context(|| format!("Failed to read script glob '{pattern}'"))?;
+            if path.is_file() {
+                matched = true;
+                matched_files.push(camino::Utf8PathBuf::try_from(path).context("Non-UTF-8 path encountered")?);
             }
         }
+        if !matched { anyhow::bail!("Explicit script/hook pattern matched no files: {pattern}"); }
     }
 
     // Process excludes
@@ -661,13 +716,7 @@ pub(crate) fn resolve_explicit_scripts(project_root: &camino::Utf8Path, scripts:
         let mut is_excluded = false;
 
         for exclude in &excludes {
-            // Very simple matcher for excludes
-            let is_root_only = !exclude.contains('/');
-            let exclude_pattern = if is_root_only {
-                project_root.join(exclude).to_string()
-            } else {
-                project_root.join(exclude).to_string()
-            };
+            let exclude_pattern = script_glob_pattern(project_root, exclude)?;
 
             // TODO: migrate to camino
             if let Ok(ex_pattern) = glob::Pattern::new(&exclude_pattern) {
@@ -846,74 +895,64 @@ pub(crate) fn resolve_fallback_scripts(project_root: &camino::Utf8Path) -> anyho
 use std::process::Command;
 use anyhow::Context;
 
+/// Promotes one rendered R Markdown document after validating all destinations.
+/// Missing outputs, unsafe paths and filesystem failures return errors before rename.
 pub fn copy_individual_rmd(file_path: &camino::Utf8Path, docs_path: &camino::Utf8Path, project_root: &camino::Utf8Path) -> anyhow::Result<()> {
-    let content = fs::read_to_string(file_path).unwrap_or_default();
-    let (format, output_file) = crate::build_pre::parse_frontmatter_options(&content);
-    let ext = crate::build_pre::map_format_to_extension(format.as_deref());
-
-    let file_stem = file_path.file_stem().unwrap_or("");
-    let parent_dir = file_path.parent().unwrap_or(project_root);
-
-    // Default Rmd output is usually <stem>.html or <output_file> in the same dir as the .Rmd file
-    let target_file_name = if let Some(of) = output_file {
-        of
-    } else {
-        format!("{}.{}", file_stem, ext)
-    };
-    let target_file = parent_dir.join(&target_file_name);
-
-    let files_dir_name = format!("{}_files", file_stem);
-    let files_dir = parent_dir.join(&files_dir_name);
-
-    if !docs_path.exists() {
-        let _ = fs::create_dir_all(docs_path);
-    }
-
-    if target_file.exists() {
-        let dest_file = docs_path.join(&target_file_name);
-        fs::rename(&target_file, &dest_file).context(format!("Failed to move target file {}", target_file))?;
-    }
-
-    if files_dir.exists() {
-        let dest_files_dir = docs_path.join(&files_dir_name);
-        crate::fs_utils::dir_move_exact(&files_dir, &dest_files_dir)?;
-    }
-
-    Ok(())
+    copy_individual_document(file_path, docs_path, project_root)
 }
 
+/// Promotes one rendered Quarto document with the same guarded destination rules.
 pub fn copy_individual_quarto(file_path: &camino::Utf8Path, docs_path: &camino::Utf8Path, project_root: &camino::Utf8Path) -> anyhow::Result<()> {
-    let content = fs::read_to_string(file_path).unwrap_or_default();
+    copy_individual_document(file_path, docs_path, project_root)
+}
+
+struct DocumentOutputPaths {
+    target: camino::Utf8PathBuf,
+    destination: camino::Utf8PathBuf,
+    assets: camino::Utf8PathBuf,
+    destination_assets: camino::Utf8PathBuf,
+}
+
+fn document_output_paths(file_path: &camino::Utf8Path, docs_path: &camino::Utf8Path, project_root: &camino::Utf8Path) -> anyhow::Result<DocumentOutputPaths> {
+    crate::path_safety::validate_document_destination(project_root, file_path, docs_path)?;
+    let content = fs::read_to_string(file_path).context("Failed to read document input")?;
     let (format, output_file) = crate::build_pre::parse_frontmatter_options(&content);
     let ext = crate::build_pre::map_format_to_extension(format.as_deref());
-
-    let file_stem = file_path.file_stem().unwrap_or("");
-    let parent_dir = file_path.parent().unwrap_or(project_root);
-
-    let target_file_name = if let Some(of) = output_file {
-        of
-    } else {
-        format!("{}.{}", file_stem, ext)
-    };
-    let target_file = parent_dir.join(&target_file_name);
-
-    let files_dir_name = format!("{}_files", file_stem);
-    let files_dir = parent_dir.join(&files_dir_name);
-
-    if !docs_path.exists() {
-        let _ = fs::create_dir_all(docs_path);
+    let stem = file_path.file_stem().context("Document input has no filename stem")?;
+    let parent = file_path.parent().unwrap_or(project_root);
+    let name = output_file.unwrap_or_else(|| format!("{stem}.{ext}"));
+    if name.is_empty() || name.contains('/') || name.contains('\\') || name.contains(':') || name == "." || name == ".." {
+        anyhow::bail!("Individual output-file must be a leaf filename");
     }
-
-    if target_file.exists() {
-        let dest_file = docs_path.join(&target_file_name);
-        fs::rename(&target_file, &dest_file).context(format!("Failed to move target file {}", target_file))?;
+    let lower_name = name.to_ascii_lowercase();
+    if ["version", "description", ".git", ".svn", ".gitignore", ".rbuildignore", ".rprofile", ".renviron", "pyproject.toml", "project.toml", "juliaproject.toml", "renv.lock", "_bookdown.yml", "_output.yml"].contains(&lower_name.as_str())
+        || ((lower_name.starts_with("_proj") || lower_name.starts_with("_quarto")) && (lower_name.ends_with(".yml") || lower_name.ends_with(".yaml")))
+        || lower_name == "_environment" || lower_name.starts_with("_environment.") || lower_name.starts_with("_environment-")
+    {
+        anyhow::bail!("Individual output-file must not replace framework configuration/state");
     }
-
-    if files_dir.exists() {
-        let dest_files_dir = docs_path.join(&files_dir_name);
-        crate::fs_utils::dir_move_exact(&files_dir, &dest_files_dir)?;
+    let target = parent.join(&name);
+    let target_identity = crate::path_safety::resolve_path(target.as_std_path(), true)?;
+    if target.exists() && !target.is_file() { anyhow::bail!("Expected document output path is not a file"); }
+    let destination = docs_path.join(&name);
+    if target_identity == crate::path_safety::resolve_path(file_path.as_std_path(), true)?
+        || target_identity == crate::path_safety::resolve_path(destination.as_std_path(), true)? {
+        anyhow::bail!("Document output aliases the input or promotion destination");
     }
+    let assets = parent.join(format!("{stem}_files"));
+    let destination_assets = docs_path.join(format!("{stem}_files"));
+    crate::path_safety::resolve_path(assets.as_std_path(), true)?;
+    crate::path_safety::resolve_path(destination_assets.as_std_path(), true)?;
+    if assets.exists() { crate::path_safety::validate_directory_move(&assets, &destination_assets)?; }
+    Ok(DocumentOutputPaths { target, destination, assets, destination_assets })
+}
 
+fn copy_individual_document(file_path: &camino::Utf8Path, docs_path: &camino::Utf8Path, project_root: &camino::Utf8Path) -> anyhow::Result<()> {
+    let paths = document_output_paths(file_path, docs_path, project_root)?;
+    if !paths.target.is_file() { anyhow::bail!("Expected rendered output is missing: {}", paths.target); }
+    fs::create_dir_all(docs_path).context("Failed to create document destination")?;
+    fs::rename(&paths.target, &paths.destination).with_context(|| format!("Failed to move rendered output {}", paths.target))?;
+    if paths.assets.exists() { crate::fs_utils::dir_move_exact(&paths.assets, &paths.destination_assets)?; }
     Ok(())
 }
 
@@ -1027,4 +1066,21 @@ fn execute_project_render(project_root: &camino::Utf8Path, is_quarto: bool, prof
     }
 
     Ok(())
+}
+
+
+#[cfg(all(test, windows))]
+mod glob_namespace_tests {
+    use super::{glob_path_text, script_glob_pattern};
+    use camino::Utf8Path;
+
+    #[test]
+    fn canonical_disk_and_unc_prefixes_are_filesystem_syntax_not_glob_tokens() {
+        assert_eq!(glob_path_text(Utf8Path::new(r"\\?\C:\work [1]")).unwrap(), r"C:\work [1]");
+        assert_eq!(glob_path_text(Utf8Path::new(r"\\?\UNC\server\share\work [1]")).unwrap(), r"\\server\share\work [1]");
+        let pattern = script_glob_pattern(Utf8Path::new(r"\\?\C:\work [1]"), "*.py").unwrap();
+        assert!(pattern.starts_with(r"C:\"));
+        assert!(pattern.contains(&glob::Pattern::escape("work [1]")));
+        assert!(pattern.ends_with(r"\*.py"));
+    }
 }
