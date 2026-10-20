@@ -134,7 +134,7 @@ product contract.
   retains existing requested-operation defaults and third-party code can ignore
   EOF. This does not establish general subprocess isolation.
 
-## Explicit empty selection and newly confirmed policies
+## PR129: explicit empty selection and newly confirmed policies
 
 - **Relationship: same absent-dev fallback; different explicit-empty guarantee.** R
   [yml-scripts.R](https://github.com/SATVILab/projr/blob/3ac29595d0e39552495d863661b99ea015d59d3d/R/yml-scripts.R)
@@ -145,11 +145,19 @@ product contract.
 - **Decision/rationale:** explicit `[]` selects no analysis, preserving hooks and
   production upload/export; absence still falls back. It must not discover or
   render unrequested files. Cleanup/promotion must preserve upload inputs.
-- **Implementation status:** this focused change removes the Dev-empty error and
-  derives one analysis-selection guard for renderer setup/cleanup/promotion.
-  `tests/test_empty_scripts.rs` checks hooks, existing output/docs bytes, actual
-  production archive bytes and preview nonpublication. CI/review are pending;
-  no passing result is claimed yet.
+- **Implementation status:** [PR129](https://github.com/MiguelRodo/projcli/pull/129)
+  removes the Dev-empty error and derives one analysis-selection guard for
+  renderer setup/cleanup/promotion. `tests/test_empty_scripts.rs` checks hooks,
+  existing output/docs bytes, actual production archive bytes and preview
+  nonpublication.
+- **Executed evidence:** [three-platform Rust tests](https://github.com/MiguelRodo/projcli/actions/runs/39485258868)
+  and [installer checks](https://github.com/MiguelRodo/projcli/actions/runs/39485258718)
+  passed at `f4b3739554dc548911019c450ca1e90a196d33d2`; independent review inspected
+  those logs and cleared that code head. A subsequent documentation-only update
+  records this evidence and still requires its normal final checks.
+- **Gaps:** YAML null-as-absence and malformed-list validation were inspected in
+  source, not newly exercised by this policy slice. No R runtime empty-list parity
+  test or real renderer execution is claimed.
 - **Confirmed but separate runtime gaps:** retain projr markers (including README/
   VERSION), accept legacy `_projr.yml` with a both-base-files error, and use local
   > profiles > base with earlier profiles first. The R precedence evidence is
@@ -184,7 +192,7 @@ Completed-chunk review of PR128 at `5dedee7da69cbe52837993e86bc4837c4c3342a1`:
 - All three remote Rust suites and installers passed; this self-review remained
   separate from the independent exact-head review.
 
-Completed-chunk review of the prepared empty-selection change:
+Completed-chunk review of PR129's empty-selection change:
 
 - Reused the existing explicit-list resolver and pipeline; no new execution
   framework, configuration key or dependency was added.
@@ -193,5 +201,6 @@ Completed-chunk review of the prepared empty-selection change:
   or require unused renderers. Action: derive one shared analysis-selection guard
   and apply it before those stages; keep hooks/publication outside that guard.
 - Retained data-preservation and failure handling. Added runnable integration
-  checks for real archive bytes and absence-versus-empty semantics; remote results
-  remain pending until recorded above. No R runtime parity was inferred.
+  checks for real archive bytes and absence-versus-empty semantics; those checks
+  passed on all three remote platforms at the code head recorded above. No R
+  runtime parity was inferred.
