@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-24c09a13944ec7e1f31d2917b1251fc2.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-9f363ccb86392c29656d21c3a07aec93.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -223,6 +223,8 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#superseding-configuration-failure-and-r-scope-decisions" id="toc-superseding-configuration-failure-and-r-scope-decisions" class="nav-link" data-scroll-target="#superseding-configuration-failure-and-r-scope-decisions">Superseding configuration, failure and R-scope decisions</a></li>
   <li><a href="#base-aliases-and-profile-precedence-current-change" id="toc-base-aliases-and-profile-precedence-current-change" class="nav-link" data-scroll-target="#base-aliases-and-profile-precedence-current-change">Base aliases and profile precedence (current change)</a></li>
   <li><a href="#future-r-wrapper-distribution-boundary" id="toc-future-r-wrapper-distribution-boundary" class="nav-link" data-scroll-target="#future-r-wrapper-distribution-boundary">Future R wrapper distribution boundary</a></li>
+  <li><a href="#one-merged-build-scripthook-context-current-change" id="toc-one-merged-build-scripthook-context-current-change" class="nav-link" data-scroll-target="#one-merged-build-scripthook-context-current-change">One merged build script/hook context (current change)</a></li>
+  <li><a href="#legacy-audit-tracking" id="toc-legacy-audit-tracking" class="nav-link" data-scroll-target="#legacy-audit-tracking">Legacy audit tracking</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -372,6 +374,20 @@ ul.task-list li input[type="checkbox"] {
 <li>No existing R code or tests were changed; no CRAN submission, agreement, preinstalled executable, automatic-download exemption or renderer parity is claimed. Implementation and runtime validation remain future work.</li>
 <li><strong>Ponytail full-mode design review:</strong> kept one linked design note; reused the repository’s behavior/compatibility/AGENTS pointers. No installer, wrapper, binding, mock framework or external contact was added speculatively.</li>
 </ul>
+</section>
+<section id="one-merged-build-scripthook-context-current-change" class="level2">
+<h2 class="anchored" data-anchor-id="one-merged-build-scripthook-context-current-change">One merged build script/hook context (current change)</h2>
+<ul>
+<li><strong>Relationship:</strong> follows projr’s merged-configuration intent and the approved local &gt; earlier profiles &gt; later profiles &gt; base precedence. The prior Rust pipeline validated merged settings but separately reread the base for execution.</li>
+<li><strong>Implemented:</strong> deserialize and validate one merged value, then select scripts and hooks from it. Explicit empty dev selection remains empty; absence falls back to build settings. Both base filenames use this same execution path. Configuration parsing/validation, target resolution and preflight now precede production environment-ignore writes.</li>
+<li><strong>Evidence:</strong> runnable Python fixtures check conflicting profiles, legacy base, local dev overrides and hook results, plus invalid merged configuration with a local environment file and missing-target failures leaving ignores/version/cache untouched. Remote CI and independent review pending; no real R/renderer execution is claimed.</li>
+<li><strong>Gaps:</strong> required active config, explicit mappings, all unsupported-field rejection and transactional rollback remain separate approved work. Environment loading still uses the existing process-global guard; this change makes no new same-process concurrent environment guarantee.</li>
+<li><strong>Ponytail full-mode review:</strong> removed the second base-only YAML parser and its ignored parse failure instead of adding a second configuration model. Reused existing typed validation and dev fallback rules. Traced validation, selection, hooks and environment-ignore writes; retained explicit error propagation.</li>
+</ul>
+</section>
+<section id="legacy-audit-tracking" class="level2">
+<h2 class="anchored" data-anchor-id="legacy-audit-tracking">Legacy audit tracking</h2>
+<p>The <a href="./legacy-audit-20261020.html">2026-10-20 static audit</a> records the pinned baseline, reported failure paths, required regressions and correction order. Its findings are not runtime reproductions or completed fixes. Highest managed-state risks remain blockers to production-safety claims; arbitrary external script effects are outside managed rollback. No mechanical edition upgrade or CAS redesign is claimed. This review uses the actual Ponytail full-mode skill to prioritize root causes and data-preservation checks over cosmetic rewriting.</p>
 
 
 </section>
