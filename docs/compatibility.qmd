@@ -414,3 +414,14 @@ symlink aliases; positive direct-API fixtures canonicalize their temporary roots
 so macOS system temp aliases do not violate that explicit safety precondition.
 Added a direct-cleanup preservation fixture. This is not complete transactional
 restoration or a guarantee against concurrent filesystem replacement.
+
+
+PR135 final evidence (batched with path guards): code head
+`3839173366e55cffa946ea0e2afe4757ae48e77d` passed all alias/conflict regressions
+on three platforms and independent re-review. Base-update head
+`abc62f966766915093351c00a6a1724a0d1b69da` changed no executable/tests/Cargo code,
+preserved the published site, passed all ten checks in runs
+39492001512/39492001479/39492001493 and focused independent review. Merged as
+`a0909e413915847498e77669a3b669941dbfe3fe`. Required active config and unsupported
+field rejection are implemented; explicit used-directory enforcement and finite
+control-value validation remain separate gaps.

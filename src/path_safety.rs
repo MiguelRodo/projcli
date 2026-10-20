@@ -48,6 +48,9 @@ pub(crate) fn validate_build_paths(root: &Utf8Path, config: &crate::yml::Validat
         let path = if directory.path.is_absolute() { directory.path.clone() } else { root.join(&directory.path) };
         let identity = resolve_path(path.as_std_path(), writable)?;
         if writable {
+            if path.exists() && !path.is_dir() {
+                anyhow::bail!("Managed directory '{label}' is not a directory");
+            }
             if root_identity.starts_with(&identity) {
                 anyhow::bail!("Managed directory '{label}' must not be the project root or an ancestor");
             }

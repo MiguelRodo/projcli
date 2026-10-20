@@ -85,3 +85,14 @@ fn direct_cleanup_entrypoints_reject_project_root_destination() {
     assert!(proj::clear_post(root, false, &validated, Some("post"), true).is_err());
     assert_eq!(fs::read_to_string(root.join("keep")).unwrap(), "project");
 }
+
+
+#[test]
+fn empty_analysis_still_validates_managed_destinations_and_files_are_not_directories() {
+    let temp = tempfile::tempdir().unwrap();
+    failed_build_preserves(temp.path(), &configuration(".").replace("scripts: [analysis.py]", "scripts: []"));
+    let temp = tempfile::tempdir().unwrap();
+    fs::write(temp.path().join("data-file"), "keep").unwrap();
+    failed_build_preserves(temp.path(), &configuration("data-file"));
+    assert_eq!(fs::read_to_string(temp.path().join("data-file")).unwrap(), "keep");
+}
