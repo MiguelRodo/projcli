@@ -35,8 +35,12 @@ Known limits include bounded captured-state recovery, arbitrary external script
 effects, incomplete direct R/IDE parity, incomplete attempt/release records and
 analysis-free publication retry. This is a development preview, not M2 completion.
 
-The proposed next version is `0.4.0-preview.1`, pending a separate reviewed
-Cargo/Cargo.lock version change after all applicable safety/protocol slices merge.
+The prepared CLI package version is `0.4.0-preview.1`; its review and the final
+integrated main checks precede creating tag `v0.4.0-preview.1`. Cargo.toml and the
+root proj entry in Cargo.lock match. `proj --version` and machine `cli_version`
+report that package version. `proj version get` reads an analysis project VERSION
+and is deliberately a separate value; existing project VERSION files are not bumped
+by preparing the CLI release.
 The [feature status](preview-status.qmd) distinguishes implemented Rust behavior,
 pending recovery verification, R/IDE gaps and unfinished M2 records/provenance/retry.
 No broad milestone checkbox is closed merely to enable binary delivery.
