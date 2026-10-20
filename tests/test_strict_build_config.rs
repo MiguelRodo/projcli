@@ -59,3 +59,40 @@ fn arbitrary_parameters_and_metadata_remain_supported() {
     let validated = proj::yml_read_from(root, true).unwrap();
     assert_eq!(proj::yml::get_parameter(&validated, &["study", "arbitrary"]), Some(serde_yaml::Value::Number(42.into())));
 }
+
+
+#[test]
+fn parameter_aliases_are_canonicalized_before_merging_every_layer() {
+    for base_alias in ["parameters", "parameter", "params", "param"] {
+        for profile_alias in ["parameters", "parameter", "params", "param"] {
+            for local_alias in ["parameters", "parameter", "params", "param"] {
+                let temp = tempfile::tempdir().unwrap();
+                let root = camino::Utf8Path::from_path(temp.path()).unwrap();
+                fs::write(root.join("_proj.yml"), format!("{base_alias}:\n  study:\n    x: 1\n    base_only: true\nbuild:\n  scripts: []\n")).unwrap();
+                fs::write(root.join("_projr-first.yml"), format!("{profile_alias}:\n  study:\n    x: 2\n    profile_only: true\n")).unwrap();
+                fs::write(root.join("_projr-second.yml"), "param:\n  study:\n    x: 3\n    second_only: true\n").unwrap();
+                let merged = proj::yml::get_combined_yml(Some("first,second"), root).unwrap();
+                assert_eq!(merged["parameters"]["study"]["x"], serde_json::json!(2));
+                fs::write(root.join("_projr-local.yml"), format!("{local_alias}:\n  study:\n    x: 4\n")).unwrap();
+                let merged = proj::yml::get_combined_yml(Some("first,second"), root).unwrap();
+                assert_eq!(merged["parameters"]["study"]["x"], serde_json::json!(4));
+                for key in ["base_only", "profile_only", "second_only"] {
+                    assert_eq!(merged["parameters"]["study"][key], serde_json::json!(true));
+                }
+                let typed: proj::yml::ProjConfig = serde_json::from_value(merged).unwrap();
+                assert_eq!(typed.parameters["study"]["x"], serde_yaml::Value::Number(4.into()));
+            }
+        }
+    }
+}
+
+#[test]
+fn multiple_parameter_aliases_in_one_file_still_fail_in_every_layer() {
+    for layer in ["_proj.yml", "_projr.yml", "_projr-test.yml", "_projr-local.yml"] {
+        let temp = tempfile::tempdir().unwrap();
+        let root = camino::Utf8Path::from_path(temp.path()).unwrap();
+        fs::write(root.join(layer), "parameters: {}\nparams: {}\n").unwrap();
+        let error = proj::yml::get_combined_yml(Some("test"), root).unwrap_err();
+        assert!(error.to_string().contains("multiple 'parameters' aliases"));
+    }
+}

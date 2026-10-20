@@ -607,11 +607,19 @@ fn read_configuration_file(path: &Utf8Path) -> anyhow::Result<Value> {
     // YAML's mapping visitor rejects duplicate keys; JSON's visitor overwrites them.
     let yaml: serde_yaml::Value = serde_yaml::from_str(&content)
         .with_context(|| format!("Failed to parse configuration {path}"))?;
-    let value: Value = serde_json::to_value(yaml)
+    let mut value: Value = serde_json::to_value(yaml)
         .with_context(|| format!("Failed to convert configuration {path}"))?;
     let aliases = ["parameters", "parameter", "params", "param"];
     if aliases.iter().filter(|key| value.get(**key).is_some()).count() > 1 {
         anyhow::bail!("Configuration error: multiple 'parameters' aliases found in {path}.");
+    }
+    if let Value::Object(map) = &mut value {
+        for alias in ["parameter", "params", "param"] {
+            if let Some(parameters) = map.remove(alias) {
+                map.insert("parameters".to_string(), parameters);
+                break;
+            }
+        }
     }
     Ok(value)
 }

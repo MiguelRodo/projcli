@@ -377,3 +377,12 @@ across platforms and cleared the bounded change. Merged as
 read-only; environment/profile-source unification, per-run environment safety,
 strict directories and transaction/promotion safety remain open. This evidence is
 batched with the substantive active-configuration change to avoid an extra matrix.
+
+
+PR135 review found mixed parameter aliases survived per-file parsing as separate
+keys and then conflicted at typed deserialization. Canonicalize the one accepted
+alias to `parameters` in the shared reader before merging. New fixtures cover all
+64 base/profile/local alias combinations, earlier-profile precedence and retained
+nested values; same-file multiple aliases and YAML duplicate keys remain errors.
+Ponytail full-mode re-review kept the fix at the shared loader, without caller
+guards or a second merge model. Exact amended CI/re-review remain required.
