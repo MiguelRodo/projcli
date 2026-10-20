@@ -656,3 +656,39 @@ Windows Unicode case identity and allowing a file alias to override an inherited
 key. ASCII case precedence and native non-Unicode values retain their dedicated
 platform tests. Unicode alias rejection is tested on Windows before analysis or
 authoritative writes; complete Unicode assignment-key support is not claimed.
+
+
+## Optional Git publication and transient credential safety
+
+**Different/new (approved explicit-action policy):** no commit/fetch/push/token
+requirement is inferred from Git metadata. Omitted commits and not_behind checks
+are off; explicit actions use the per-run environment. Commit builds fail before
+writes when Git already contains changes, preserving unrelated work; staged-index
+no-op is success. Publish one HEAD refspec to the configured current upstream,
+never origin/main. Custom pushRemote/pushDefault/remote.push routing is conservatively
+rejected early rather than silently choosing the wrong destination. Local release
+success remains distinct from publication failure. The retained reference projr and
+legacy Rust are evidence, not authority for these newer confirmed decisions.
+
+Native Git authentication is default. Explicit use_proj_cred_helper enables only
+existing single-line environment tokens on standard HTTPS github.com remotes;
+no build calls GitHub CLI token discovery. Fixed helper code accepts only HTTPS
+github.com credential requests; the token is quoted environment data, not argv or
+shell source. The helper list resets for that one command; no persistent config or
+credentials are created. Captured network failures report status without reflecting
+potential secret stderr. Other hosts use native configured authentication.
+See Git's [credential helper protocol](https://git-scm.com/docs/gitcredentials)
+and [upstream/refspec documentation](https://git-scm.com/docs/git-push).
+
+Ponytail full-mode review reuses native Git, existing providers and shared environment
+context. No new dependency or credential store. Prepared remote checks use fake
+Git/GH to cover zero implicit calls, configured fetch only, real upstream/refspec,
+no-op/single commit, dirty-input preservation, native versus opt-in helper behavior,
+host/protocol denial, punctuation as literal token data, helper reset and secret-free
+argv/diagnostics. No real network/auth action is tested. Remote CI and independent
+review are pending; CAS integrity and analysis-free publication retries remain open.
+
+PR143 reviewer note: the shared Windows ASCII assignment restriction also applies
+to public legacy EnvGuard::track_and_set, not just file-based keys. Inherited native
+environment values remain preserved; the legacy mutation APIs remain outside the
+build-path concurrency guarantee.

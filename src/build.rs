@@ -45,15 +45,11 @@ use crate::yml::GlobalConfig;
 use crate::build_pre::run_pre_flight_checks_in;
 
 pub fn post_build_sync(config: &GlobalConfig, repo_dir: camino::Utf8PathBuf) -> anyhow::Result<()> {
+    let environment = RunEnvironment::inherited();
+    let (remote, reference) = crate::git::push_target_in(&repo_dir, &environment)?;
     let provider = create_git_provider(config.git.engine, repo_dir)?;
-
-    println!("Staging build artifacts and committing mutations...");
-    provider.commit_all("chore: automated workspace build update [compiled asset tracking]")?;
-
-    println!("Pushing local branch mutations to remote host...");
-    provider.push("origin", "main")?;
-
-    Ok(())
+    provider.commit_all("chore: automated workspace build update")?;
+    provider.push(&remote, &format!("HEAD:{reference}"))
 }
 
 pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profile: Option<&str>, description: Option<&str>) -> anyhow::Result<()> {
@@ -82,6 +78,11 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     let project_config: ProjConfig = serde_json::from_value(combined)
         .context("Failed to deserialize combined configuration")?;
     let config = project_config.validate_and_resolve(project_root, is_dev)?;
+    environment.set("PROJCLI_GIT_TOKEN_OVERRIDE", config.config.git.use_proj_cred_helper.to_string());
+    let push_target = if config.git.push {
+        Some(crate::git::push_target_in(project_root, &environment)?)
+    } else { None };
+
 
 
     // 2. Git Capability Audit
@@ -91,6 +92,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
         }
         // TODO: migrate to camino
         check_git_profile_in(Some(project_root), &environment).context("Failed to check Git profile capability")?;
+        crate::git::require_clean_git_in(project_root, &environment)?;
     }
 
     // 3. Resolve configs and hooks
@@ -415,7 +417,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
             };
             let provider = create_git_provider_in(config.config.git.engine, project_root.to_path_buf(), &environment)?;
             provider.commit_all(&message)?;
-            if config.git.push { provider.push("origin", "main")?; }
+            if let Some((remote, reference)) = &push_target { provider.push(remote, &format!("HEAD:{reference}"))?; }
         }
         Ok(())
     })();

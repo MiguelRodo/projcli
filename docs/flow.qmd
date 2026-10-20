@@ -51,8 +51,8 @@ failure reports that local analysis succeeded and retains its release/version;
 external publication is not rolled back.
 
 Git upstream/authentication policy, stable attempt/release records and an
-analysis-free publication retry command remain unfinished. Existing Git push code
-still targets origin/main and must not be mistaken for the final policy.
+analysis-free publication retry command remain unfinished. Push uses the captured current-branch upstream; custom push-only routing remains
+unsupported and fails before authoritative writes. Native authentication is the default.
 
 ## Development previews and remaining renderer gaps
 

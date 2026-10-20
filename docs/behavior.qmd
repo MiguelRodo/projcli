@@ -164,3 +164,15 @@ The same values reach dependency probes, scripts/hooks/renderers and existing Gi
 helpers. Direct public legacy EnvGuard APIs and CLI startup guards still mutate
 process state and are not concurrent environment APIs. This change does not approve
 credential injection policy or establish a sanitized/sandboxed environment.
+
+
+## Explicit Git operations
+
+Git commits, pushes and network/upstream checks default off even when Git metadata
+exists. Only the resolved configured actions execute. Commit-enabled builds require
+clean initial Git state to avoid sweeping in unrelated edits; no-op commits succeed.
+Push captures the current branch's configured upstream remote/reference before
+build writes. Missing upstream and unmodeled custom push-only routing fail early.
+Native authentication is the default. An explicit token-helper opt-in uses fixed
+host-scoped code and ephemeral environment data, never secret argv/source or
+persistent credentials. Local build success remains distinct from publication failure.
