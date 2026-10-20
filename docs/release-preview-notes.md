@@ -1,3 +1,5 @@
+# projcli 0.4.0-preview.1 — development preview
+
 Preview/development build for disposable projects and sample data.
 
 This release is intended for testing the supported Rust CLI preview workflow.
