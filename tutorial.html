@@ -286,6 +286,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#add-an-analysis" id="toc-add-an-analysis" class="nav-link" data-scroll-target="#add-an-analysis">2. Add an analysis</a></li>
   <li><a href="#check-then-run" id="toc-check-then-run" class="nav-link" data-scroll-target="#check-then-run">3. Check, then run</a></li>
   <li><a href="#understand-what-changed" id="toc-understand-what-changed" class="nav-link" data-scroll-target="#understand-what-changed">4. Understand what changed</a></li>
+  <li><a href="#starting-another-project" id="toc-starting-another-project" class="nav-link" data-scroll-target="#starting-another-project">Starting another project</a></li>
   <li><a href="#where-to-go-next" id="toc-where-to-go-next" class="nav-link" data-scroll-target="#where-to-go-next">Where to go next</a></li>
   </ul>
 </nav>
@@ -346,11 +347,48 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> projcli-example</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Create a file named <code>_proj.yml</code> with this content:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">directories</span><span class="kw">:</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">cache</span><span class="kw">:</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">path</span><span class="kw">:</span><span class="at"> _tmp</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">build</span><span class="kw">:</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">scripts</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">analysis.py</span><span class="kw">]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>This declares the folder used for temporary results and the script to run. The example does not need Git setup, a remote repository or <code>proj init</code>.</p>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">raw-data</span><span class="kw">:</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">path</span><span class="kw">:</span><span class="at"> _raw_data</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">cache</span><span class="kw">:</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">path</span><span class="kw">:</span><span class="at"> _tmp</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">output</span><span class="kw">:</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">path</span><span class="kw">:</span><span class="at"> _output</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="fu">build</span><span class="kw">:</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">scripts</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">analysis.py</span><span class="kw">]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The paths are explicit: runtime does not supply missing mappings or invent undeclared labels.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Label</th>
+<th>Folder</th>
+<th>Role in this example</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>raw-data</code></td>
+<td><code>_raw_data</code></td>
+<td>Input files; unused because our three measurements are built into the script.</td>
+</tr>
+<tr class="even">
+<td><code>cache</code></td>
+<td><code>_tmp</code></td>
+<td>Temporary results; the script writes inside <code>_tmp/preview</code>.</td>
+</tr>
+<tr class="odd">
+<td><code>output</code></td>
+<td><code>_output</code></td>
+<td>Result files; unused by this preview.</td>
+</tr>
+</tbody>
+</table>
+<p>Only <code>cache</code> is used by this Python example. The other two mappings match the local initializer’s preset. No <code>docs</code> path is implied: document rendering needs an explicit <code>docs</code> mapping too.</p>
+<p>The explicit <code>build.scripts</code> list selects our one script. No Git setup, remote repository or initialization command is needed for this manual setup.</p>
 </section>
 <section id="add-an-analysis" class="level2">
 <h2 class="anchored" data-anchor-id="add-an-analysis">2. Add an analysis</h2>
@@ -388,6 +426,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="understand-what-changed">4. Understand what changed</h2>
 <p>The script creates <code>_tmp/preview/summary.csv</code>. The CLI does not create a <code>VERSION</code> file, publish to <code>docs</code>, or export an archive during this preview.</p>
 <p>A preview is not a sandbox: your script can still write elsewhere if you tell it to. Keep preview writes in an explicit temporary folder.</p>
+</section>
+<section id="starting-another-project" class="level2">
+<h2 class="anchored" data-anchor-id="starting-another-project">Starting another project</h2>
+<p>In another new project folder, local-only directory setup is available:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> <span class="at">--project</span> . <span class="at">--non-interactive</span> init directories</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>When no base or active profile configuration exists, this writes <code>_proj.yml</code> with the explicit <code>raw-data: _raw_data</code>, <code>cache: _tmp</code> and <code>output: _output</code> paths, creates those folders, and updates ignore files. It does not run Git or GitHub setup. Existing configuration files are preserved; only their declared directories are created.</p>
+<p>The generated file omits <code>build.scripts</code>, allowing the normal shallow script discovery. To choose an exact analysis, add a scripts list as above. An explicit <code>scripts: []</code> selects no analysis scripts; hooks can still run. Initialization does not turn an absent scripts key into an empty list.</p>
 </section>
 <section id="where-to-go-next" class="level2">
 <h2 class="anchored" data-anchor-id="where-to-go-next">Where to go next</h2>

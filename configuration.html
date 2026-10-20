@@ -250,7 +250,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#configuration-_proj.yml" id="toc-configuration-_proj.yml" class="nav-link active" data-scroll-target="#configuration-_proj.yml">Configuration <code>_proj.yml</code></a>
   <ul class="collapse">
   <li><a href="#schema-rules-and-foundational-prefixes" id="toc-schema-rules-and-foundational-prefixes" class="nav-link" data-scroll-target="#schema-rules-and-foundational-prefixes">Schema Rules and Foundational Prefixes</a></li>
-  <li><a href="#default-fallback-injections" id="toc-default-fallback-injections" class="nav-link" data-scroll-target="#default-fallback-injections">Default Fallback Injections</a></li>
+  <li><a href="#explicit-paths-and-local-initialization" id="toc-explicit-paths-and-local-initialization" class="nav-link" data-scroll-target="#explicit-paths-and-local-initialization">Explicit paths and local initialization</a></li>
   <li><a href="#strict-validation-error-behaviors" id="toc-strict-validation-error-behaviors" class="nav-link" data-scroll-target="#strict-validation-error-behaviors">Strict Validation Error Behaviors</a></li>
   <li><a href="#top-level-configuration" id="toc-top-level-configuration" class="nav-link" data-scroll-target="#top-level-configuration">Top-Level Configuration</a></li>
   <li><a href="#parameters-configuration" id="toc-parameters-configuration" class="nav-link" data-scroll-target="#parameters-configuration">Parameters Configuration</a></li>
@@ -276,10 +276,11 @@ ul.task-list li input[type="checkbox"] {
 <p>Custom directory labels are strictly validated against a set of foundational prefixes: - <code>cache</code> - <code>raw</code> - <code>output</code> - <code>docs</code></p>
 <p>These prefixes are <strong>case-insensitive</strong>. Any label defined in the configuration must begin with one of these approved identifiers.</p>
 </section>
-<section id="default-fallback-injections" class="level2">
-<h2 class="anchored" data-anchor-id="default-fallback-injections">Default Fallback Injections</h2>
-<p>If you omit the <code>path</code> key for a valid label, the system applies default paths dynamically based on the label prefix: - <strong><code>cache</code></strong> defaults to <code>_tmp</code> - <strong><code>raw</code></strong> defaults to <code>_raw</code> - <strong><code>output</code></strong> defaults to <code>_output</code> - <strong><code>docs</code></strong> defaults to <code>docs</code></p>
-<p>Furthermore, if any of the base prefixes are completely absent from the <code>_proj.yml</code> configuration block, they are automatically injected as default base targets.</p>
+<section id="explicit-paths-and-local-initialization" class="level2">
+<h2 class="anchored" data-anchor-id="explicit-paths-and-local-initialization">Explicit paths and local initialization</h2>
+<p>Every declared directory needs a nonempty <code>path</code>. Runtime does not insert missing cache/raw/output/docs mappings or synthesize subpaths for undeclared labels. For example, declaring <code>raw-data: {path: _raw_data}</code> makes <code>raw-data</code> available; it does not create an undeclared <code>raw</code> or <code>raw-data-extra</code> resource. ASCII case is ignored and case-only duplicate labels are rejected.</p>
+<p><code>proj --project . --non-interactive init directories</code> creates a missing <code>_proj.yml</code> once with explicit <code>raw-data: _raw_data</code>, <code>cache: _tmp</code>, and <code>output: _output</code> paths. It preserves existing base/profile files, creates only declared resource directories, and does not invoke Git/GitHub or add an R code directory. The preset omits <code>build.scripts</code>, preserving shallow discovery; it never serializes an accidental empty analysis list. To render documents, declare a <code>docs</code> mapping too.</p>
+<p>Production state and project-render staging require a declared <code>cache</code> directory. Framework version/staging children are derived inside that declared cache; this is distinct from inventing undeclared resource labels. Storage <code>content</code> labels must be declared and relative storage paths use the captured project root.</p>
 </section>
 <section id="strict-validation-error-behaviors" class="level2">
 <h2 class="anchored" data-anchor-id="strict-validation-error-behaviors">Strict Validation Error Behaviors</h2>
@@ -331,7 +332,7 @@ ul.task-list li input[type="checkbox"] {
 <li><strong><code>profile</code></strong>: An optional environment profile identifier. When set, the system injects the <code>PROJR_PROFILE</code> environment variable into the isolated subprocess for all executed scripts and project rendering commands. This can be overridden at runtime via the <code>--profile</code> CLI flag.</li>
 <li><strong><code>git</code></strong>: An optional Git integration configuration. This can be a boolean toggle or an object mapping out detailed toggles:
 <ul>
-<li><strong><code>commit</code></strong>: Whether to automatically perform pre and post-build commits (defaults to false).</li>
+<li><strong><code>commit</code></strong>: Controls legacy pre/post-build commits. The current runtime can enable commits merely because <code>.git</code> exists; set <code>build.git: false</code> to disable this. The approved explicit-only policy is still under development; see the safety audit.</li>
 <li><strong><code>push</code></strong>: Whether to automatically push a successful build commit to the remote repository (defaults to false).</li>
 </ul></li>
 <li><strong><code>restrictions</code></strong>: Configuration block to enforce Git checks specifically during production builds:

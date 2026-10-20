@@ -284,8 +284,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul>
   <li><a href="#proj-path-get" id="toc-proj-path-get" class="nav-link active" data-scroll-target="#proj-path-get"><code>proj path get</code></a>
   <ul class="collapse">
-  <li><a href="#resolution-rules" id="toc-resolution-rules" class="nav-link" data-scroll-target="#resolution-rules">Resolution Rules</a></li>
-  <li><a href="#output-path-routing" id="toc-output-path-routing" class="nav-link" data-scroll-target="#output-path-routing">Output Path Routing</a></li>
+  <li><a href="#declared-directory-paths" id="toc-declared-directory-paths" class="nav-link" data-scroll-target="#declared-directory-paths">Declared directory paths</a></li>
   <li><a href="#explicit-and-inherited-project-root" id="toc-explicit-and-inherited-project-root" class="nav-link" data-scroll-target="#explicit-and-inherited-project-root">Explicit and inherited project root</a></li>
   <li><a href="#nearest-root-discovery" id="toc-nearest-root-discovery" class="nav-link" data-scroll-target="#nearest-root-discovery">Nearest-root discovery</a></li>
   </ul></li>
@@ -302,20 +301,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h1><code>proj path get</code></h1>
 <p>Get the resolved absolute path for a given label in the project.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> path get <span class="at">--label</span> <span class="op">&lt;</span>LABEL<span class="op">&gt;</span> [--project <span class="op">&lt;</span>PATH<span class="op">&gt;</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<section id="resolution-rules" class="level2">
-<h2 class="anchored" data-anchor-id="resolution-rules">Resolution Rules</h2>
-<p>The path resolution mapping dynamically takes the target label and computes an absolute path to the sandbox resource.</p>
-<ol type="1">
-<li><strong>Exact Matches:</strong> First, the CLI checks if the provided <code>label</code> perfectly matches an existing block declared inside your <code>_proj.yml</code>. If there is a direct match, the declared path rule is applied.</li>
-<li><strong>Prefix Nesting Fallbacks:</strong> If an exact match is missing, the tool attempts to gracefully interpret the label via a foundational prefix fallback. It identifies if the target begins with an approved foundation (<code>cache</code>, <code>raw</code>, <code>output</code>, <code>docs</code>).
-<ul>
-<li>Suffix mappings are appended logically to the base directory. For example, if <code>raw</code> is naturally mapped to <code>_raw</code>, invoking a non-declared label <code>raw-data</code> safely resolves as a direct nested directory, constructing the path <code>_raw/data</code>.</li>
-</ul></li>
-</ol>
-</section>
-<section id="output-path-routing" class="level2">
-<h2 class="anchored" data-anchor-id="output-path-routing">Output Path Routing</h2>
-<p>Output path labels securely route into versioned target sandboxes during an active project build. The tool guarantees the resolution produces verified absolute paths directly pointing to their intended source locations, enforcing standard separation across testing segregations and pure-function results.</p>
+<section id="declared-directory-paths" class="level2">
+<h2 class="anchored" data-anchor-id="declared-directory-paths">Declared directory paths</h2>
+<p>A label must be declared in the active configuration with a nonempty <code>path</code>. ASCII case is ignored. Undeclared labels and suffixes are errors: declaring <code>raw-data</code> does not declare <code>raw</code> or <code>raw-data-extra</code>. Relative paths resolve against the captured project root; explicit external directories are allowed. Queries do not create directories or route output into a versioned sandbox.</p>
 </section>
 <section id="explicit-and-inherited-project-root" class="level2">
 <h2 class="anchored" data-anchor-id="explicit-and-inherited-project-root">Explicit and inherited project root</h2>
