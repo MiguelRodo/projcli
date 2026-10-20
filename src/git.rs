@@ -21,7 +21,7 @@ pub(crate) fn git_command_in(root: Option<&camino::Utf8Path>, environment: &RunE
             use std::os::unix::fs::PermissionsExt;
             if std::fs::metadata(&candidate)?.permissions().mode() & 0o111 == 0 { continue; }
         }
-        return Ok(environment.command(std::fs::canonicalize(candidate)?));
+        return Ok(environment.command(candidate));
     }
     anyhow::bail!("Git executable is missing from the resolved PATH")
 }
@@ -491,6 +491,24 @@ mod tests {
         let provider = create_git_provider_in(GitEngine::Auto, relative, &environment).unwrap();
         assert!(provider.is_available());
         assert_eq!(std::path::PathBuf::from(provider.get_user_name().unwrap()), git.canonicalize().unwrap());
+    }
+
+
+    #[cfg(unix)]
+    #[test]
+    fn git_symlink_dispatcher_keeps_its_invocation_name() {
+        use std::os::unix::fs::{PermissionsExt, symlink};
+        let project = tempfile::tempdir().unwrap();
+        let physical = project.path().canonicalize().unwrap();
+        let root = camino::Utf8Path::from_path(&physical).unwrap();
+        let bin = root.join("bin"); std::fs::create_dir(&bin).unwrap();
+        let dispatcher = bin.join("dispatcher");
+        std::fs::write(&dispatcher, "#!/bin/sh\ncase \"$0\" in */git) printf 'git-shim\\n' ;; *) exit 31 ;; esac\n").unwrap();
+        std::fs::set_permissions(&dispatcher, std::fs::Permissions::from_mode(0o755)).unwrap();
+        symlink("dispatcher", bin.join("git")).unwrap();
+        let mut environment = RunEnvironment::inherited(); environment.set("PATH", bin.as_str());
+        let provider = create_git_provider_in(GitEngine::Auto, root.to_owned(), &environment).unwrap();
+        assert_eq!(provider.get_user_name().unwrap(), "git-shim");
     }
 
 }
