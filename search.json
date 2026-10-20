@@ -1,31 +1,105 @@
 [
   {
-    "objectID": "legacy-audit-20261020.html",
-    "href": "legacy-audit-20261020.html",
-    "title": "Legacy core audit: correctness work queue",
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Your analysis, ready to run again.",
     "section": "",
-    "text": "Independent static review, 2026-10-20. Baseline: 41bd7000363f34b1e7e2d7e354971bfe9021e2b1 (relevant implementation blobs also match 5617a6daed1f4743a9b2609694a2f84ad4c902eb). These are source findings, not reproduced runtime failures unless a later entry supplies a regression test and exact CI result. Do not infer that existing Rust behavior is a requirement.\n\n\n\n\n\n\n\n\n\nFinding and baseline source\nRequired correction and evidence\n\n\n\n\nOverlapping docs/output/cache paths; docs . or ancestor; symlinked parents; separator-bearing labels. yml.rs:337, clear.rs:158, fs_utils.rs:1.\nReject unsafe destructive destinations before writes; resolve identity/overlap and staging aliases; protect source/raw/root state. External resource paths remain valid. Test actual preservation with root/ancestor/overlap/traversal/symlink fixtures.\n\n\nVERSION and outputs change before hooks; rollback covers only the execution middle. build.rs:236, build.rs:328.\nStage managed writes and cover hooks, snapshots, execution, postprocessing and promotion with complete error handling. Restore exact prior managed state, including VERSION absence/bytes.\n\n\nPublic docs cleared before ignored promotion failures; post-cleanup precedes CAS export. build.rs:359, build.rs:370, build.rs:430.\nRequire successful expected-output promotion and archive real output bytes before cleanup; never report success after failed/missing promotion. Preserve the previous release on failure.\n\n\nEnvironment read errors suppressed through lines().flatten(); invalid names can panic; required files can be ignored. env.rs:69, env.rs:181.\nBounded reads, validation before mutation, explicit errors for directory/unreadable/empty/NUL inputs; prove analysis never starts.\n\n\nEnvironment guard mutates process-wide variables across library builds. env.rs:118.\nResolve a per-run map and apply child-command environment explicitly. Overlapping projects must not exchange variables/profiles/credentials or change caller environment. A private mutex cannot protect unrelated readers.\n\n\nCredential helper embeds tokens in arguments/shell text, ignores requested host and inherited-helper behavior. git.rs:146.\nPrefer native configured authentication. Any override needs fixed code, exact host scope and no secret in argv/source. Use synthetic punctuation-bearing sentinels and mocked Git; never real credentials in logs.\n\n\nOptional Git work runs implicitly; fetch despite disabled checks, duplicate commits, hardcoded branch and discarded token. build_pre.rs:112, build.rs final Git stages.\nExecute only requested operations using real upstream/native auth; handle clean commits and separate local success from publication failure. Mock Git/network tests.\n\n\n\n\n\n\n\n\n\n\n\n\n\nFinding and baseline source\nRequired correction and evidence\n\n\n\n\nLiteral root metacharacters become script glob syntax. build.rs:650, build.rs:681.\nEscape literal root only, keep user include/exclude syntax; verify actual analysis bytes in bracket/space-named roots.\n\n\nRenderer YAML rewritten persistently, malformed YAML replaced by empty mapping and restoration loses original text/keys. build.rs:709, build.rs:338.\nValidate early; prefer supported renderer controls, otherwise exact-byte restoration on every exit.\n\n\nIndividual documents ignore configured docs destination; PDF/DOCX formats guessed as HTML; promotion errors discarded. build.rs:271, build.rs:363, build_pre.rs:79.\nOne validated destination and explicit supported format mapping; reject unsupported formats rather than guessing; require actual expected artifacts.\n\n\nRmd filename interpolated into executable R source. build.rs:990.\nPass data/arguments to fixed R code; test spaces, apostrophes, backslashes and Unicode without local R execution.\n\n\nRemote paths stay invocation-relative and invalid content tags/errors are dropped. yml.rs:429, build.rs:435.\nNormalize paths against the captured root, validate content tags before writes and propagate export failures.\n\n\nCAS path normalization can collide on Unix; scan/copy race can store bytes under the wrong digest. cas.rs:202, cas.rs:248.\nPreserve platform path distinctions or reject unsupported names; verify stored bytes against digest and fail on source mutation.\n\n\nCAS broader integrity gaps: existing-object trust, unsafe boundaries, non-atomic manifest, CSV escaping, existence-only verification, malformed digest/path traversal and missing/file source accepted as empty snapshot.\nExtend existing CAS work rather than claim a redesign is complete. Require a real input directory and fixture-backed integrity/error behavior.\n\n\nUnsupported control keys silently filtered; runtime invents directory defaults/subpaths. yml.rs filtering/validation/get_path.\nEnforce approved active configuration and explicit used mappings, reject unsupported behavior settings before mutations. Init alone may write defaults.\n\n\n\n\n\n\nAfter bounded configuration fixes: destructive-path guards; complete managed-state failure/promotion handling; per-run environment; Git authentication/operation corrections; exact path/context behavior; explicit renderer checks. Each focused change needs actual Ponytail full-mode review, an independent review and remote regressions. Record implemented evidence in the compatibility log.\nManaged-state restoration cannot undo arbitrary external effects of user scripts or hooks. This is not an OS sandbox or global rollback promise. No trustworthy production-release safety claim follows from preview tests or this static audit. The existing R package and thesis remain untouched.\nThe project already uses Rust edition 2024. Do not modernize for syntax alone. Rust 1.85 is only an MSRV candidate until the locked dependency graph is tested. Release builds should use reviewed stable Rust and --locked; add fmt, clippy and documentation checks without duplicating every matrix unnecessarily. A future fixture-backed YAML dependency migration is separate from urgent correctness fixes. At current memory pressure, no local compilation, R, Docker, Quarto build or compiling source-install is authorized; use remote tests and lightweight released binary smoke checks."
+    "text": "WarningTry it on a disposable project\n\n\n\nUse sample data or a disposable copy of your project. Production builds (proj build) can modify or remove files, and safety fixes are still pending. Never run production builds on the only copy of important work. Previews are not a security sandbox; code you run can still change files."
   },
   {
-    "objectID": "legacy-audit-20261020.html#highest-risks",
-    "href": "legacy-audit-20261020.html#highest-risks",
-    "title": "Legacy core audit: correctness work queue",
-    "section": "",
-    "text": "Finding and baseline source\nRequired correction and evidence\n\n\n\n\nOverlapping docs/output/cache paths; docs . or ancestor; symlinked parents; separator-bearing labels. yml.rs:337, clear.rs:158, fs_utils.rs:1.\nReject unsafe destructive destinations before writes; resolve identity/overlap and staging aliases; protect source/raw/root state. External resource paths remain valid. Test actual preservation with root/ancestor/overlap/traversal/symlink fixtures.\n\n\nVERSION and outputs change before hooks; rollback covers only the execution middle. build.rs:236, build.rs:328.\nStage managed writes and cover hooks, snapshots, execution, postprocessing and promotion with complete error handling. Restore exact prior managed state, including VERSION absence/bytes.\n\n\nPublic docs cleared before ignored promotion failures; post-cleanup precedes CAS export. build.rs:359, build.rs:370, build.rs:430.\nRequire successful expected-output promotion and archive real output bytes before cleanup; never report success after failed/missing promotion. Preserve the previous release on failure.\n\n\nEnvironment read errors suppressed through lines().flatten(); invalid names can panic; required files can be ignored. env.rs:69, env.rs:181.\nBounded reads, validation before mutation, explicit errors for directory/unreadable/empty/NUL inputs; prove analysis never starts.\n\n\nEnvironment guard mutates process-wide variables across library builds. env.rs:118.\nResolve a per-run map and apply child-command environment explicitly. Overlapping projects must not exchange variables/profiles/credentials or change caller environment. A private mutex cannot protect unrelated readers.\n\n\nCredential helper embeds tokens in arguments/shell text, ignores requested host and inherited-helper behavior. git.rs:146.\nPrefer native configured authentication. Any override needs fixed code, exact host scope and no secret in argv/source. Use synthetic punctuation-bearing sentinels and mocked Git; never real credentials in logs.\n\n\nOptional Git work runs implicitly; fetch despite disabled checks, duplicate commits, hardcoded branch and discarded token. build_pre.rs:112, build.rs final Git stages.\nExecute only requested operations using real upstream/native auth; handle clean commits and separate local success from publication failure. Mock Git/network tests."
+    "objectID": "index.html#choose-your-steps",
+    "href": "index.html#choose-your-steps",
+    "title": "Your analysis, ready to run again.",
+    "section": "Choose your steps",
+    "text": "Choose your steps\nList the scripts that belong to your analysis. Start with one Python script; add R or rendered reports when your project needs them."
   },
   {
-    "objectID": "legacy-audit-20261020.html#additional-correctness-findings",
-    "href": "legacy-audit-20261020.html#additional-correctness-findings",
-    "title": "Legacy core audit: correctness work queue",
-    "section": "",
-    "text": "Finding and baseline source\nRequired correction and evidence\n\n\n\n\nLiteral root metacharacters become script glob syntax. build.rs:650, build.rs:681.\nEscape literal root only, keep user include/exclude syntax; verify actual analysis bytes in bracket/space-named roots.\n\n\nRenderer YAML rewritten persistently, malformed YAML replaced by empty mapping and restoration loses original text/keys. build.rs:709, build.rs:338.\nValidate early; prefer supported renderer controls, otherwise exact-byte restoration on every exit.\n\n\nIndividual documents ignore configured docs destination; PDF/DOCX formats guessed as HTML; promotion errors discarded. build.rs:271, build.rs:363, build_pre.rs:79.\nOne validated destination and explicit supported format mapping; reject unsupported formats rather than guessing; require actual expected artifacts.\n\n\nRmd filename interpolated into executable R source. build.rs:990.\nPass data/arguments to fixed R code; test spaces, apostrophes, backslashes and Unicode without local R execution.\n\n\nRemote paths stay invocation-relative and invalid content tags/errors are dropped. yml.rs:429, build.rs:435.\nNormalize paths against the captured root, validate content tags before writes and propagate export failures.\n\n\nCAS path normalization can collide on Unix; scan/copy race can store bytes under the wrong digest. cas.rs:202, cas.rs:248.\nPreserve platform path distinctions or reject unsupported names; verify stored bytes against digest and fail on source mutation.\n\n\nCAS broader integrity gaps: existing-object trust, unsafe boundaries, non-atomic manifest, CSV escaping, existence-only verification, malformed digest/path traversal and missing/file source accepted as empty snapshot.\nExtend existing CAS work rather than claim a redesign is complete. Require a real input directory and fixture-backed integrity/error behavior.\n\n\nUnsupported control keys silently filtered; runtime invents directory defaults/subpaths. yml.rs filtering/validation/get_path.\nEnforce approved active configuration and explicit used mappings, reject unsupported behavior settings before mutations. Init alone may write defaults."
+    "objectID": "index.html#keep-paths-consistent",
+    "href": "index.html#keep-paths-consistent",
+    "title": "Your analysis, ready to run again.",
+    "section": "Keep paths consistent",
+    "text": "Keep paths consistent\nSelect a project explicitly with --project. Child commands keep that project context, even when an analysis changes its working folder."
   },
   {
-    "objectID": "legacy-audit-20261020.html#scope-and-implementation-order",
-    "href": "legacy-audit-20261020.html#scope-and-implementation-order",
-    "title": "Legacy core audit: correctness work queue",
+    "objectID": "index.html#preview-as-you-work",
+    "href": "index.html#preview-as-you-work",
+    "title": "Your analysis, ready to run again.",
+    "section": "Preview as you work",
+    "text": "Preview as you work\nproj build-dev runs analysis without the CLI publishing outputs or changing the project version. Your scripts still control the files they write."
+  },
+  {
+    "objectID": "index.html#a-small-first-project",
+    "href": "index.html#a-small-first-project",
+    "title": "Your analysis, ready to run again.",
+    "section": "A small first project",
+    "text": "A small first project\nPut the analysis steps in _proj.yml:\ndirectories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: [analysis.py]\nRun the preview from your project folder:\nproj --project . --non-interactive build-dev\nThe step-by-step example supplies the script, a tiny dataset, and the result to check. It uses Python’s standard library."
+  },
+  {
+    "objectID": "index.html#find-the-detail-you-need",
+    "href": "index.html#find-the-detail-you-need",
+    "title": "Your analysis, ready to run again.",
+    "section": "Find the detail you need",
+    "text": "Find the detail you need\n\nInstall: prerequisites, release status and platform limits.\nWhat works: current capabilities and work still ahead.\nBuild commands: preview and production behavior.\nConfiguration: project settings.\nBehavior contract and projr comparison: design decisions and known gaps."
+  },
+  {
+    "objectID": "cli/path.html",
+    "href": "cli/path.html",
+    "title": "proj path get",
     "section": "",
-    "text": "After bounded configuration fixes: destructive-path guards; complete managed-state failure/promotion handling; per-run environment; Git authentication/operation corrections; exact path/context behavior; explicit renderer checks. Each focused change needs actual Ponytail full-mode review, an independent review and remote regressions. Record implemented evidence in the compatibility log.\nManaged-state restoration cannot undo arbitrary external effects of user scripts or hooks. This is not an OS sandbox or global rollback promise. No trustworthy production-release safety claim follows from preview tests or this static audit. The existing R package and thesis remain untouched.\nThe project already uses Rust edition 2024. Do not modernize for syntax alone. Rust 1.85 is only an MSRV candidate until the locked dependency graph is tested. Release builds should use reviewed stable Rust and --locked; add fmt, clippy and documentation checks without duplicating every matrix unnecessarily. A future fixture-backed YAML dependency migration is separate from urgent correctness fixes. At current memory pressure, no local compilation, R, Docker, Quarto build or compiling source-install is authorized; use remote tests and lightweight released binary smoke checks."
+    "text": "Get the resolved absolute path for a given label in the project.\nproj path get --label &lt;LABEL&gt; [--project &lt;PATH&gt;]\n\n\nThe path resolution mapping dynamically takes the target label and computes an absolute path to the sandbox resource.\n\nExact Matches: First, the CLI checks if the provided label perfectly matches an existing block declared inside your _proj.yml. If there is a direct match, the declared path rule is applied.\nPrefix Nesting Fallbacks: If an exact match is missing, the tool attempts to gracefully interpret the label via a foundational prefix fallback. It identifies if the target begins with an approved foundation (cache, raw, output, docs).\n\nSuffix mappings are appended logically to the base directory. For example, if raw is naturally mapped to _raw, invoking a non-declared label raw-data safely resolves as a direct nested directory, constructing the path _raw/data.\n\n\n\n\n\nOutput path labels securely route into versioned target sandboxes during an active project build. The tool guarantees the resolution produces verified absolute paths directly pointing to their intended source locations, enforcing standard separation across testing segregations and pure-function results.\n\n\n\n--project PATH selects that exact existing directory, including a folder without configuration or VERSION. It overrides both ancestor discovery and an inherited run root. Invalid directories fail with a nonzero exit status.\nThe CLI captures an absolute root as PROJ_PROJECT_ROOT for the invocation and its child processes. A nested proj path get uses that root even after a script changes cwd. An invalid inherited root fails rather than falling back silently. Direct Rust build_project(root, ...) calls also pass their supplied root to children. See the discovery rules below for the recognized root markers.\nThis establishes CLI child-query behavior, not direct Quarto/RStudio parity or changes to the existing R frontend. Renderer configuration, execution cwd, resource links and output placement remain separate concerns. Path queries do not write ignore files or create the resolved target directories.\n\n\n\nWithout --project or an inherited run root, discovery walks upward from cwd and selects the first recognized directory. It does not search downward for projects. Recognized markers are VERSION, README.md, _quarto.yml, _proj.yml, legacy _projr.yml, Git/SVN metadata, a DESCRIPTION containing Package:, an RStudio .Rproj whose first line starts Version:, and a renv.lock with a Packages map.\npyproject.toml, Project.toml and JuliaProject.toml deliberately extend the projr marker set for Python/Julia. requirements.txt and Manifest.toml alone are not root markers. Standalone VERSION and README markers are retained, so a nested directory with one is the nearer project; explicit selection overrides it.\nMarker recognition does not change shallow default script enumeration or prove that the corresponding language runner/frontend is implemented. Legacy config content handling is a separate compatibility change from recognizing its root.\nIf no recognized marker exists, discovery selects cwd. Discovery success does not mean a build is configured: the current product contract requires active root configuration and explicit used-directory mappings. Validation changes enforcing that newer contract are separate from this root-discovery slice.",
+    "crumbs": [
+      "Home",
+      "Reference",
+      "`proj path get`"
+    ]
+  },
+  {
+    "objectID": "cli/path.html#resolution-rules",
+    "href": "cli/path.html#resolution-rules",
+    "title": "proj path get",
+    "section": "",
+    "text": "The path resolution mapping dynamically takes the target label and computes an absolute path to the sandbox resource.\n\nExact Matches: First, the CLI checks if the provided label perfectly matches an existing block declared inside your _proj.yml. If there is a direct match, the declared path rule is applied.\nPrefix Nesting Fallbacks: If an exact match is missing, the tool attempts to gracefully interpret the label via a foundational prefix fallback. It identifies if the target begins with an approved foundation (cache, raw, output, docs).\n\nSuffix mappings are appended logically to the base directory. For example, if raw is naturally mapped to _raw, invoking a non-declared label raw-data safely resolves as a direct nested directory, constructing the path _raw/data.",
+    "crumbs": [
+      "Home",
+      "Reference",
+      "`proj path get`"
+    ]
+  },
+  {
+    "objectID": "cli/path.html#output-path-routing",
+    "href": "cli/path.html#output-path-routing",
+    "title": "proj path get",
+    "section": "",
+    "text": "Output path labels securely route into versioned target sandboxes during an active project build. The tool guarantees the resolution produces verified absolute paths directly pointing to their intended source locations, enforcing standard separation across testing segregations and pure-function results.",
+    "crumbs": [
+      "Home",
+      "Reference",
+      "`proj path get`"
+    ]
+  },
+  {
+    "objectID": "cli/path.html#explicit-and-inherited-project-root",
+    "href": "cli/path.html#explicit-and-inherited-project-root",
+    "title": "proj path get",
+    "section": "",
+    "text": "--project PATH selects that exact existing directory, including a folder without configuration or VERSION. It overrides both ancestor discovery and an inherited run root. Invalid directories fail with a nonzero exit status.\nThe CLI captures an absolute root as PROJ_PROJECT_ROOT for the invocation and its child processes. A nested proj path get uses that root even after a script changes cwd. An invalid inherited root fails rather than falling back silently. Direct Rust build_project(root, ...) calls also pass their supplied root to children. See the discovery rules below for the recognized root markers.\nThis establishes CLI child-query behavior, not direct Quarto/RStudio parity or changes to the existing R frontend. Renderer configuration, execution cwd, resource links and output placement remain separate concerns. Path queries do not write ignore files or create the resolved target directories.",
+    "crumbs": [
+      "Home",
+      "Reference",
+      "`proj path get`"
+    ]
+  },
+  {
+    "objectID": "cli/path.html#nearest-root-discovery",
+    "href": "cli/path.html#nearest-root-discovery",
+    "title": "proj path get",
+    "section": "",
+    "text": "Without --project or an inherited run root, discovery walks upward from cwd and selects the first recognized directory. It does not search downward for projects. Recognized markers are VERSION, README.md, _quarto.yml, _proj.yml, legacy _projr.yml, Git/SVN metadata, a DESCRIPTION containing Package:, an RStudio .Rproj whose first line starts Version:, and a renv.lock with a Packages map.\npyproject.toml, Project.toml and JuliaProject.toml deliberately extend the projr marker set for Python/Julia. requirements.txt and Manifest.toml alone are not root markers. Standalone VERSION and README markers are retained, so a nested directory with one is the nearer project; explicit selection overrides it.\nMarker recognition does not change shallow default script enumeration or prove that the corresponding language runner/frontend is implemented. Legacy config content handling is a separate compatibility change from recognizing its root.\nIf no recognized marker exists, discovery selects cwd. Discovery success does not mean a build is configured: the current product contract requires active root configuration and explicit used-directory mappings. Validation changes enforcing that newer contract are separate from this root-discovery slice.",
+    "crumbs": [
+      "Home",
+      "Reference",
+      "`proj path get`"
+    ]
   },
   {
     "objectID": "cli/ignore.html",
@@ -112,363 +186,100 @@
     ]
   },
   {
-    "objectID": "cli/build.html",
-    "href": "cli/build.html",
-    "title": "proj build",
+    "objectID": "cli/version.html",
+    "href": "cli/version.html",
+    "title": "proj version get",
     "section": "",
-    "text": "The build pipeline script execution engine for the project.\nThis command evaluates what files need to be run based on configuration layout parameters (build.scripts in _proj.yml) or filesystem auto-discovery. It sorts them according to strict engine precedence rules, modifies format-specific configuration templates when necessary, and executes each script inside its own independent, isolated subprocess.\n\n\n\n--major, --minor, --patch: Specifies the version bump strategy for a production build.\n--profile: An optional profile to configure execution context.\n--description: An optional description string for the build commit. If omitted during a production build that involves git commits, the CLI will interactively prompt for a one-line description when running inside a valid terminal session.\n\n\n\n\n\nPre-flight Dependency Checks: Before modifying files or triggering git snapshots, the build engine statically resolves targets to identify dependencies. Depending on the matched scripts (such as .Rmd, .qmd, or .py) and configuration files, it asserts the availability of Rscript (verifying required R namespaces like rmarkdown or bookdown), quarto, or python executable commands. Any missing R packages can be resolved automatically via the PROJR_AUTO_INSTALL environment variable, or through an interactive terminal prompt.\nProduction Build Restrictions: Checks if branch rules (only_branches, not_branches) or upstream synchronicity (not_behind) are violated during a production build run.\nRemote Export Pipeline: During the post-build phase, conditionally exports resolved local target outputs into a deduplicated Content-Addressable Storage (CAS) vault as defined via build.dest targets in remotes.local.\nSystem Git Provider Abstracted: Git mutations safely resolve through a strictly encapsulated host System Git adapter, securely avoiding hanging inputs and ensuring older systems correctly push mutations.\nMutual Exclusion Checking: Before executing, proj build checks for project-level configurations (_quarto.yml and _bookdown.yml). If both exist and the build targets include Quarto or RMarkdown documents, it throws an error to prevent conflicting rendering.\nExplicit Execution (Path A):\n\nDefine exact scripts, exclusions (starting with !), or sub-directory globs in _proj.yml under build.scripts.\nCan rewrite _quarto.yml or _bookdown.yml configuration if specific subset documents are requested.\nMaintains order relative to Python and R scripts, while correctly clustering and executing project documents together.\n\nFallback Execution (Path B):\n\nIf no build.scripts is provided, the engine auto-discovers build targets.\nWill execute a Quarto project if _quarto.yml exists, or a Bookdown project if _bookdown.yml exists.\nOtherwise, it falls back to a shallow workspace sweep and runs .qmd, .Rmd, .R, and .py files in that strict order.\n\n\n\n\n\nEvery resolved file or project rendering task runs inside its own completely independent subprocess, isolated via environment profiles (PROJR_PROFILE) and correct working directory assignments (current_dir), preventing memory leaks and state pollution across execution runs.\n\n\n\nproj build-dev\nDevelopment runs execute the existing script selection with development Git settings disabled. The CLI does not create or update VERSION, update ignore files, clear released output or previous caches, promote rendered documents into docs, or export to configured local archives. These rules apply on success and failure, even when production configuration enables cleanup, commits or export.\nScripts should explicitly write preview artefacts into their declared cache or staging locations. A subprocess is not a filesystem sandbox: scripts, hooks and renderers can still write where their own code/configuration directs them. Renderer configuration rewriting and script working-directory behavior retain their existing semantics. This change does not introduce automatic output redirection, recursive discovery or a new project-root policy.\n\n\n\nbuild.scripts: [] selects no analysis scripts. Hooks still run, and production builds can version and export existing artefacts as an upload-only workflow. Analysis cleanup, renderer setup and document promotion are skipped so those existing artefacts are preserved. The CLI does not discover scripts instead.\nFor previews, an absent dev.scripts inherits build.scripts; dev.scripts: [] overrides it with no analysis. Hooks still run, but previews never publish.\n\n\n\nBuilds require root-level _proj.yml, legacy _projr.yml, or an explicitly activated _projr-&lt;profile&gt;.yml. Inactive profiles and _projr-local.yml alone do not qualify. Both base filenames together are an error. Unsupported control fields fail before build writes; arbitrary parameters and metadata maps are allowed. Configuration errors include their causes on stderr and return failure.\nThis validation is separate from project discovery. A root marker or cwd fallback does not make an unconfigured project buildable. Explicit directory enforcement, per-run environment isolation and complete managed-state failure restoration remain under development; see the behavior contract and pinned legacy audit.",
+    "text": "Get the project version based on the VERSION file.\n\n\nThe command searches upwards from the current directory to discover the project root containing the VERSION file. It parses the version text (supporting both raw strings like v1.0.0 or JSON objects) and resolves it to a standard output.\nIf the VERSION file is missing, the tool attempts to fall back and parse the version from an R package DESCRIPTION file if one is present in the project root. If neither a VERSION file nor a DESCRIPTION file exists, it defaults to a newly initialized v0.0.1.\nproj version get\n\n\n\n\n\nOmits the ‘v’ prefix from the output string.\nproj version get --no-v\n\n\n\nSpecifies the output format: - text (default): Outputs the version as a standard string identifier. - json: Outputs the version as a serialized JSON object, detailing its properties (major, minor, patch, and optionally dev).\nproj version get --format json\n\n\n\n\nWhen using --format=json, the output consists of the separated standard semantic components: - major (integer) - minor (integer) - patch (integer) - dev (integer, optional, indicating build cycles or pre-release versioning)",
     "crumbs": [
       "Home",
       "Reference",
-      "`proj build`"
+      "`proj version get`"
     ]
   },
   {
-    "objectID": "cli/build.html#arguments-flags",
-    "href": "cli/build.html#arguments-flags",
-    "title": "proj build",
+    "objectID": "cli/version.html#standard-behavior",
+    "href": "cli/version.html#standard-behavior",
+    "title": "proj version get",
     "section": "",
-    "text": "--major, --minor, --patch: Specifies the version bump strategy for a production build.\n--profile: An optional profile to configure execution context.\n--description: An optional description string for the build commit. If omitted during a production build that involves git commits, the CLI will interactively prompt for a one-line description when running inside a valid terminal session.",
+    "text": "The command searches upwards from the current directory to discover the project root containing the VERSION file. It parses the version text (supporting both raw strings like v1.0.0 or JSON objects) and resolves it to a standard output.\nIf the VERSION file is missing, the tool attempts to fall back and parse the version from an R package DESCRIPTION file if one is present in the project root. If neither a VERSION file nor a DESCRIPTION file exists, it defaults to a newly initialized v0.0.1.\nproj version get",
     "crumbs": [
       "Home",
       "Reference",
-      "`proj build`"
+      "`proj version get`"
     ]
   },
   {
-    "objectID": "cli/build.html#features",
-    "href": "cli/build.html#features",
-    "title": "proj build",
+    "objectID": "cli/version.html#options",
+    "href": "cli/version.html#options",
+    "title": "proj version get",
     "section": "",
-    "text": "Pre-flight Dependency Checks: Before modifying files or triggering git snapshots, the build engine statically resolves targets to identify dependencies. Depending on the matched scripts (such as .Rmd, .qmd, or .py) and configuration files, it asserts the availability of Rscript (verifying required R namespaces like rmarkdown or bookdown), quarto, or python executable commands. Any missing R packages can be resolved automatically via the PROJR_AUTO_INSTALL environment variable, or through an interactive terminal prompt.\nProduction Build Restrictions: Checks if branch rules (only_branches, not_branches) or upstream synchronicity (not_behind) are violated during a production build run.\nRemote Export Pipeline: During the post-build phase, conditionally exports resolved local target outputs into a deduplicated Content-Addressable Storage (CAS) vault as defined via build.dest targets in remotes.local.\nSystem Git Provider Abstracted: Git mutations safely resolve through a strictly encapsulated host System Git adapter, securely avoiding hanging inputs and ensuring older systems correctly push mutations.\nMutual Exclusion Checking: Before executing, proj build checks for project-level configurations (_quarto.yml and _bookdown.yml). If both exist and the build targets include Quarto or RMarkdown documents, it throws an error to prevent conflicting rendering.\nExplicit Execution (Path A):\n\nDefine exact scripts, exclusions (starting with !), or sub-directory globs in _proj.yml under build.scripts.\nCan rewrite _quarto.yml or _bookdown.yml configuration if specific subset documents are requested.\nMaintains order relative to Python and R scripts, while correctly clustering and executing project documents together.\n\nFallback Execution (Path B):\n\nIf no build.scripts is provided, the engine auto-discovers build targets.\nWill execute a Quarto project if _quarto.yml exists, or a Bookdown project if _bookdown.yml exists.\nOtherwise, it falls back to a shallow workspace sweep and runs .qmd, .Rmd, .R, and .py files in that strict order.",
+    "text": "Omits the ‘v’ prefix from the output string.\nproj version get --no-v\n\n\n\nSpecifies the output format: - text (default): Outputs the version as a standard string identifier. - json: Outputs the version as a serialized JSON object, detailing its properties (major, minor, patch, and optionally dev).\nproj version get --format json",
     "crumbs": [
       "Home",
       "Reference",
-      "`proj build`"
+      "`proj version get`"
     ]
   },
   {
-    "objectID": "cli/build.html#isolation",
-    "href": "cli/build.html#isolation",
-    "title": "proj build",
+    "objectID": "cli/version.html#json-output-properties",
+    "href": "cli/version.html#json-output-properties",
+    "title": "proj version get",
     "section": "",
-    "text": "Every resolved file or project rendering task runs inside its own completely independent subprocess, isolated via environment profiles (PROJR_PROFILE) and correct working directory assignments (current_dir), preventing memory leaks and state pollution across execution runs.",
+    "text": "When using --format=json, the output consists of the separated standard semantic components: - major (integer) - minor (integer) - patch (integer) - dev (integer, optional, indicating build cycles or pre-release versioning)",
     "crumbs": [
       "Home",
       "Reference",
-      "`proj build`"
+      "`proj version get`"
     ]
   },
   {
-    "objectID": "cli/build.html#development-preview",
-    "href": "cli/build.html#development-preview",
-    "title": "proj build",
+    "objectID": "r-wrapper-cran.html",
+    "href": "r-wrapper-cran.html",
+    "title": "Future R wrapper: CLI installation and CRAN checks",
     "section": "",
-    "text": "proj build-dev\nDevelopment runs execute the existing script selection with development Git settings disabled. The CLI does not create or update VERSION, update ignore files, clear released output or previous caches, promote rendered documents into docs, or export to configured local archives. These rules apply on success and failure, even when production configuration enables cleanup, commits or export.\nScripts should explicitly write preview artefacts into their declared cache or staging locations. A subprocess is not a filesystem sandbox: scripts, hooks and renderers can still write where their own code/configuration directs them. Renderer configuration rewriting and script working-directory behavior retain their existing semantics. This change does not introduce automatic output redirection, recursive discovery or a new project-root policy.",
-    "crumbs": [
-      "Home",
-      "Reference",
-      "`proj build`"
-    ]
-  },
-  {
-    "objectID": "cli/build.html#explicit-empty-script-lists",
-    "href": "cli/build.html#explicit-empty-script-lists",
-    "title": "proj build",
-    "section": "",
-    "text": "build.scripts: [] selects no analysis scripts. Hooks still run, and production builds can version and export existing artefacts as an upload-only workflow. Analysis cleanup, renderer setup and document promotion are skipped so those existing artefacts are preserved. The CLI does not discover scripts instead.\nFor previews, an absent dev.scripts inherits build.scripts; dev.scripts: [] overrides it with no analysis. Hooks still run, but previews never publish.",
-    "crumbs": [
-      "Home",
-      "Reference",
-      "`proj build`"
-    ]
-  },
-  {
-    "objectID": "cli/build.html#active-configuration-and-validation",
-    "href": "cli/build.html#active-configuration-and-validation",
-    "title": "proj build",
-    "section": "",
-    "text": "Builds require root-level _proj.yml, legacy _projr.yml, or an explicitly activated _projr-&lt;profile&gt;.yml. Inactive profiles and _projr-local.yml alone do not qualify. Both base filenames together are an error. Unsupported control fields fail before build writes; arbitrary parameters and metadata maps are allowed. Configuration errors include their causes on stderr and return failure.\nThis validation is separate from project discovery. A root marker or cwd fallback does not make an unconfigured project buildable. Explicit directory enforcement, per-run environment isolation and complete managed-state failure restoration remain under development; see the behavior contract and pinned legacy audit.",
-    "crumbs": [
-      "Home",
-      "Reference",
-      "`proj build`"
-    ]
-  },
-  {
-    "objectID": "cli/errors.html",
-    "href": "cli/errors.html",
-    "title": "Command exit status",
-    "section": "",
-    "text": "Successful CLI commands return exit status zero. Reported operation failures return a nonzero status and a diagnostic on stderr, including configuration/path queries, version reads/writes, ignore updates and initialization. Argument parsing errors also return nonzero.\nFor example, a malformed _proj.yml makes proj yml read --project demo fail, so a shell or frontend can stop instead of treating the diagnostic as success. Failed Git staging, commits and GitHub creation propagate as initialization errors; a failed remote inspection does not proceed to GitHub creation.\nThis defines success versus failure, not stable error codes, a JSON result schema or a capability protocol. Diagnostics remain human-readable text. Commands may perform work before failing; a nonzero status is not a rollback guarantee.\n\n\nproj build-dev --project demo --non-interactive\n--non-interactive disables the CLI’s own prompts and automatic R-package installation, including when PROJR_AUTO_INSTALL=true. Missing dependencies produce an error. Script, hook and renderer runners and controlled R dependency probes receive closed stdin. The mode is inherited by managed children as PROJ_NON_INTERACTIVE=true.\nInitialization still performs requested operations using its existing defaults. This flag does not choose project markers, change configuration precedence or define a structured result protocol. Third-party code remains responsible for its own behavior after receiving EOF.",
-    "crumbs": [
-      "Home",
-      "Reference",
-      "Command exit status"
-    ]
-  },
-  {
-    "objectID": "cli/errors.html#explicit-noninteractive-execution",
-    "href": "cli/errors.html#explicit-noninteractive-execution",
-    "title": "Command exit status",
-    "section": "",
-    "text": "proj build-dev --project demo --non-interactive\n--non-interactive disables the CLI’s own prompts and automatic R-package installation, including when PROJR_AUTO_INSTALL=true. Missing dependencies produce an error. Script, hook and renderer runners and controlled R dependency probes receive closed stdin. The mode is inherited by managed children as PROJ_NON_INTERACTIVE=true.\nInitialization still performs requested operations using its existing defaults. This flag does not choose project markers, change configuration precedence or define a structured result protocol. Third-party code remains responsible for its own behavior after receiving EOF.",
-    "crumbs": [
-      "Home",
-      "Reference",
-      "Command exit status"
-    ]
-  },
-  {
-    "objectID": "tutorial.html",
-    "href": "tutorial.html",
-    "title": "Run your first analysis",
-    "section": "",
-    "text": "NoteUse a current development build\n\n\n\nThis example targets the development preview on main, not the historical v0.3.0 package. See installation status first. The complete example was checked through the CLI in Ubuntu CI using source revision fafce46a and this documentation branch. Verification against a new release package is still pending."
-  },
-  {
-    "objectID": "tutorial.html#make-a-small-project",
-    "href": "tutorial.html#make-a-small-project",
-    "title": "Run your first analysis",
-    "section": "1. Make a small project",
-    "text": "1. Make a small project\nIn an Ubuntu terminal, choose a new folder and open it:\nmkdir projcli-example\ncd projcli-example\nCreate a file named _proj.yml with this content:\ndirectories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: [analysis.py]\nThis declares the folder used for temporary results and the script to run. The example does not need Git setup, a remote repository or proj init."
-  },
-  {
-    "objectID": "tutorial.html#add-an-analysis",
-    "href": "tutorial.html#add-an-analysis",
-    "title": "Run your first analysis",
-    "section": "2. Add an analysis",
-    "text": "2. Add an analysis\nCreate analysis.py in the same folder:\nimport csv\nimport os\nfrom pathlib import Path\nfrom statistics import mean\n\nroot = Path(os.environ[\"PROJ_PROJECT_ROOT\"])\npreview = root / \"_tmp\" / \"preview\"\npreview.mkdir(parents=True, exist_ok=True)\n\nmeasurements = [10, 12, 14]\nresult = preview / \"summary.csv\"\nwith result.open(\"w\", newline=\"\") as handle:\n    writer = csv.writer(handle)\n    writer.writerow([\"count\", \"mean\"])\n    writer.writerow([len(measurements), mean(measurements)])\n\nprint(f\"Saved {result}\")\nThe three measurements are deliberately built into the script so there is no data download or extra package installation. The script uses the project root provided by projcli and explicitly writes to _tmp/preview."
-  },
-  {
-    "objectID": "tutorial.html#check-then-run",
-    "href": "tutorial.html#check-then-run",
-    "title": "Run your first analysis",
-    "section": "3. Check, then run",
-    "text": "3. Check, then run\nproj --project . yml read\nproj --project . --non-interactive build-dev\ncat _tmp/preview/summary.csv\nThe CSV should contain:\ncount,mean\n3,12\nThe validation command reads configuration. The preview runs the script. Running it again replaces this example’s CSV; change a measurement and rerun to see the mean change."
-  },
-  {
-    "objectID": "tutorial.html#understand-what-changed",
-    "href": "tutorial.html#understand-what-changed",
-    "title": "Run your first analysis",
-    "section": "4. Understand what changed",
-    "text": "4. Understand what changed\nThe script creates _tmp/preview/summary.csv. The CLI does not create a VERSION file, publish to docs, or export an archive during this preview.\nA preview is not a sandbox: your script can still write elsewhere if you tell it to. Keep preview writes in an explicit temporary folder."
-  },
-  {
-    "objectID": "tutorial.html#where-to-go-next",
-    "href": "tutorial.html#where-to-go-next",
-    "title": "Run your first analysis",
-    "section": "Where to go next",
-    "text": "Where to go next\n\nQuery a declared path with proj --project . path get --label cache.\nAdd your own script to build.scripts.\nRead the build reference before using proj build. Production builds have different version, cleanup and export behavior.\nCheck what works before adding document rendering or R tooling."
-  },
-  {
-    "objectID": "behavior.html",
-    "href": "behavior.html",
-    "title": "Project and execution behavior",
-    "section": "",
-    "text": "This is the product behavior contract. Confirmed decisions below guide implementation; they are not claims that the current CLI already implements them. Proposals require review before they become requirements. The compatibility log records pinned projr comparisons, decisions, actual test evidence, Ponytail reviews and remaining gaps; update it with each PR.\n\n\n\nA project is one analysis/build unit anchored at a selected root directory. It has settings, version information and named resource paths where applicable. Resource paths may be outside the root; a project need not be a Git repository.\nExplicit project selection overrides discovery and selects that exact directory.\nAutomatic discovery walks upward from the invocation directory. The nearest recognized project root wins, including when projects are nested. Discovery does not search downward for projects.\nRetain existing projr root markers, including standalone VERSION and README, VCS roots, R-package/RStudio/renv/Quarto project markers, and extend recognition for pyproject.toml, Project.toml and JuliaProject.toml. Proj configuration files _proj.yml / _projr.yml also identify a root. requirements.txt and Manifest.toml alone do not. Recognition must no longer require VERSION before considering the other markers.\n_proj.yml is the primary base configuration. Accept _projr.yml as a legacy alias and fail clearly if both base files exist; do not silently merge them.\nConfiguration precedence follows projr: local overrides profiles, profiles override base, and earlier-listed profiles win conflicts with later ones.\nMissing dev.scripts falls back to build.scripts. An explicit empty list in either selects no analysis scripts and never triggers fallback/discovery. Hooks still run; production version/publication/export behavior remains available for upload-only workflows. Development previews never publish. Analysis cleanup and promotion are skipped when no analysis is selected, preserving upload inputs.\nWith no recognized marker, discovery falls back to cwd. This does not waive build validation: builds require an active root-level proj configuration. The agreed _proj.yml / legacy _projr.yml names apply; explicitly activated profile files may supply configuration, but inactive profile files alone do not. No-config build assumptions from the initial roadmap are superseded.\nEvery framework/resource directory used at runtime must be explicitly declared. Initialization may write familiar projr defaults into configuration; runtime must not synthesize missing directory mappings or unknown subpaths.\nUnsupported behavior-affecting configuration fails before mutations.\nFailed supported builds must restore pre-build state except permitted cache residue. This is required behavior, not an implemented transaction guarantee.\nStorage/publication retries must have an upload-only route without rerunning analysis or falsely recording a new analysis. Explicit-empty analysis supports hooks/publication, but full retry identity/transaction semantics are separate.\nThe existing R package is entirely off limits in this effort. Direct R frontend integration is later work; no existing helper changes or parity claims follow from these Rust changes.\nDefault script/document enumeration is shallow at the selected project root. Subdirectory targets require explicit selection or renderer project configuration.\nScripts execute relative to the project root by default. Selecting a script in a subdirectory does not, by itself, select a different project or execution root.\nThe resolved root is captured for the run. Path helpers, including a future frontend’s projr_path_get(), resolve against that root even if a renderer or user script changes its working directory.\nA supported Quarto project’s root must equal the proj root. Nested Quarto projects beneath that root are unsupported for now. Nested document files are distinct from nested Quarto projects.\nQMD rendering through projr, quarto::quarto_render(), and RStudio QMD Render must agree on evaluation directory and root-helper semantics. R Markdown Knit is a distinct entrypoint and must be verified separately. Shared project configuration and direct-entry root resolution are required; CLI-only flags or a parent process environment cannot establish this parity.\nDirect rendering does not imply the build, version, commit or archive/export side effects of a proj-managed build.\nRenderer evaluation roots must use supported renderer controls. Setting only the parent process cwd is insufficient. Root identity and evaluation cwd remain separate concepts; document asset/reference resolution is not redefined here.\n\nThe project root is the analysis workspace’s top-level directory, not the user’s operating-system home directory. Resolving a named resource path is also distinct from changing cwd or selecting a new root.\n\n\n\n\nApply the base filename compatibility rule consistently to profile/local files and define the effective profile-list source once for config and environment.\nEvaluate Quarto execute-dir and R Markdown knit_root_dir / knitr root.dir for root-relative execution. Define the shared persistent configuration and direct-entry initialization before broad renderer changes; do not add nested Quarto project support or rely only on flags passed by proj.\nFrontend transport/bindings and remaining environment/YAML compatibility details must be explicit. Familiar projr directory defaults belong in init-generated configuration only; Rust’s _raw and synthesized raw/data runtime paths are not acceptable substitutes for undeclared directories.\n\n\n\n\nThe core root finder implements nearest-recognized-ancestor discovery without a VERSION prerequisite. Its marker tests cover the retained projr patterns and deliberate Python/Julia/proj-config extensions and cwd fallback. Builds now require active configuration and typed validation rejects unsupported fields. Explicit directory mappings and full failure restoration still need implementation; historical passing fixtures do not demonstrate those new requirements. Individual scripts currently start in their parent directory. Captured-root stability is implemented for core CLI child queries after cwd changes, including independent simultaneous roots; direct R frontend/renderer parity remains unimplemented. Base-file aliases and first-wins profile merging use one merged typed configuration for validation and build script/hook selection. Profile/local filenames retain their existing _projr- form for now. Explicit empty script selection now skips analysis while preserving hooks and production publication; its tests cover production archive bytes and preview nonpublication without invoking real renderers.\nVerify nested projects, explicit selection, paths containing spaces, shallow default enumeration, explicit subdirectory scripts, changed cwd, and each supported renderer’s evaluation root. Compare the same nested QMD through projr, quarto::quarto_render(), and RStudio QMD Render; test R Markdown Knit separately. Reject a nested Quarto project clearly. Verify that direct rendering leaves proj-managed release/version/export state alone. Use tiny fixtures and remote CI where practical. Subprocess execution is not a security sandbox, and path hashes alone do not establish scientific correctness or a reproducible environment.\n\n\n\nThe R wrapper/CRAN design note records separate CLI installation, unconditional R-only tests, conditional CRAN executable tests and mandatory pinned/checksummed executable integration in our CI. It is future design, not a shipped wrapper, CRAN approval or automatic-download permission.\n\n\n\nThe pinned legacy audit records unresolved safety and correctness findings and the regression evidence required before claiming fixes.\n\n\n\n\nprojr root resolution\nThesis design\nPython project configuration\nJulia project environments\nQuarto working directory\nR Markdown render controls\nknitr options",
+    "text": "Status: design direction recorded on 2026-10-20, not a shipped wrapper or an accepted CRAN submission. The existing R package remains untouched. This note does not settle the complete frontend protocol or claim renderer parity.\n\n\nThe future wrapper is intended to contain R code that calls a separately installed proj CLI. Its DESCRIPTION should declare that CLI in SystemRequirements. It should discover a compatible executable and give an actionable missing/incompatible-CLI error. A user-invoked installer on the user’s own machine is distinct from automatic downloads during CRAN installation, checks or examples. Do not assume CRAN servers already provide proj.\nCRAN source-package policy permits downloads of precompiled software only as a last resort with CRAN-team agreement. A separate executable is not an automatic exemption. Review Writing R Extensions: portability when implementing the package, including external software availability and portable invocation. This work has neither requested nor obtained CRAN agreement; no outreach is authorized here.\n\n\n\n\n\n\n\n\n\n\nEnvironment\nRequired behavior\n\n\n\n\nCRAN, CLI absent\nAlways run meaningful R-only validation, argument construction, missing-CLI diagnostics and mocked protocol/response tests. Skip only genuine executable integration tests, explicitly because the CLI is unavailable.\n\n\nCRAN, compatible CLI available\nRun the applicable real integration tests as well as the R-only tests. Do not assume every check host supplies it.\n\n\nOur integration CI\nInstall an exact pinned CLI release, verify its checksum and compatible version, and run real end-to-end tests. Missing CLI or failed installation is a failure, never a silent skip.\n\n\n\nMocked responses check the wrapper contract; they do not prove the CLI or renderer works. Our mandatory integration job supplies that evidence. Examples and vignettes must also handle optional executable availability honestly instead of requiring an undeclared download. A requirement to execute proj on CRAN check servers would need an agreed deployment/checking arrangement, not an assumed policy exception.\n\n\n\nThe pinned Quarto R package DESCRIPTION at v1.5.1 declares the separate Quarto command-line tool in SystemRequirements. Its test helper can skip executable-dependent tests when Quarto is unavailable, and its vignette utility checks executable availability during vignette processing. These are specific implementation precedents, not proof that CRAN has accepted a future proj wrapper or guaranteed an executable on every server. This note does not infer automatic binary-download permission from Quarto’s existence.\nBefore implementation, specify compatible protocol versions, executable discovery, argument quoting, diagnostics, and which tests are unconditional versus executable integration. R production changes require separate authorization.",
     "crumbs": [
       "Home",
       "Design and progress",
-      "Project and execution behavior"
+      "Future R wrapper: CLI installation and CRAN checks"
     ]
   },
   {
-    "objectID": "behavior.html#confirmed-decisions",
-    "href": "behavior.html#confirmed-decisions",
-    "title": "Project and execution behavior",
+    "objectID": "r-wrapper-cran.html#separate-installation",
+    "href": "r-wrapper-cran.html#separate-installation",
+    "title": "Future R wrapper: CLI installation and CRAN checks",
     "section": "",
-    "text": "A project is one analysis/build unit anchored at a selected root directory. It has settings, version information and named resource paths where applicable. Resource paths may be outside the root; a project need not be a Git repository.\nExplicit project selection overrides discovery and selects that exact directory.\nAutomatic discovery walks upward from the invocation directory. The nearest recognized project root wins, including when projects are nested. Discovery does not search downward for projects.\nRetain existing projr root markers, including standalone VERSION and README, VCS roots, R-package/RStudio/renv/Quarto project markers, and extend recognition for pyproject.toml, Project.toml and JuliaProject.toml. Proj configuration files _proj.yml / _projr.yml also identify a root. requirements.txt and Manifest.toml alone do not. Recognition must no longer require VERSION before considering the other markers.\n_proj.yml is the primary base configuration. Accept _projr.yml as a legacy alias and fail clearly if both base files exist; do not silently merge them.\nConfiguration precedence follows projr: local overrides profiles, profiles override base, and earlier-listed profiles win conflicts with later ones.\nMissing dev.scripts falls back to build.scripts. An explicit empty list in either selects no analysis scripts and never triggers fallback/discovery. Hooks still run; production version/publication/export behavior remains available for upload-only workflows. Development previews never publish. Analysis cleanup and promotion are skipped when no analysis is selected, preserving upload inputs.\nWith no recognized marker, discovery falls back to cwd. This does not waive build validation: builds require an active root-level proj configuration. The agreed _proj.yml / legacy _projr.yml names apply; explicitly activated profile files may supply configuration, but inactive profile files alone do not. No-config build assumptions from the initial roadmap are superseded.\nEvery framework/resource directory used at runtime must be explicitly declared. Initialization may write familiar projr defaults into configuration; runtime must not synthesize missing directory mappings or unknown subpaths.\nUnsupported behavior-affecting configuration fails before mutations.\nFailed supported builds must restore pre-build state except permitted cache residue. This is required behavior, not an implemented transaction guarantee.\nStorage/publication retries must have an upload-only route without rerunning analysis or falsely recording a new analysis. Explicit-empty analysis supports hooks/publication, but full retry identity/transaction semantics are separate.\nThe existing R package is entirely off limits in this effort. Direct R frontend integration is later work; no existing helper changes or parity claims follow from these Rust changes.\nDefault script/document enumeration is shallow at the selected project root. Subdirectory targets require explicit selection or renderer project configuration.\nScripts execute relative to the project root by default. Selecting a script in a subdirectory does not, by itself, select a different project or execution root.\nThe resolved root is captured for the run. Path helpers, including a future frontend’s projr_path_get(), resolve against that root even if a renderer or user script changes its working directory.\nA supported Quarto project’s root must equal the proj root. Nested Quarto projects beneath that root are unsupported for now. Nested document files are distinct from nested Quarto projects.\nQMD rendering through projr, quarto::quarto_render(), and RStudio QMD Render must agree on evaluation directory and root-helper semantics. R Markdown Knit is a distinct entrypoint and must be verified separately. Shared project configuration and direct-entry root resolution are required; CLI-only flags or a parent process environment cannot establish this parity.\nDirect rendering does not imply the build, version, commit or archive/export side effects of a proj-managed build.\nRenderer evaluation roots must use supported renderer controls. Setting only the parent process cwd is insufficient. Root identity and evaluation cwd remain separate concepts; document asset/reference resolution is not redefined here.\n\nThe project root is the analysis workspace’s top-level directory, not the user’s operating-system home directory. Resolving a named resource path is also distinct from changing cwd or selecting a new root.",
+    "text": "The future wrapper is intended to contain R code that calls a separately installed proj CLI. Its DESCRIPTION should declare that CLI in SystemRequirements. It should discover a compatible executable and give an actionable missing/incompatible-CLI error. A user-invoked installer on the user’s own machine is distinct from automatic downloads during CRAN installation, checks or examples. Do not assume CRAN servers already provide proj.\nCRAN source-package policy permits downloads of precompiled software only as a last resort with CRAN-team agreement. A separate executable is not an automatic exemption. Review Writing R Extensions: portability when implementing the package, including external software availability and portable invocation. This work has neither requested nor obtained CRAN agreement; no outreach is authorized here.",
     "crumbs": [
       "Home",
       "Design and progress",
-      "Project and execution behavior"
+      "Future R wrapper: CLI installation and CRAN checks"
     ]
   },
   {
-    "objectID": "behavior.html#proposals-and-open-decisions",
-    "href": "behavior.html#proposals-and-open-decisions",
-    "title": "Project and execution behavior",
+    "objectID": "r-wrapper-cran.html#two-complementary-test-environments",
+    "href": "r-wrapper-cran.html#two-complementary-test-environments",
+    "title": "Future R wrapper: CLI installation and CRAN checks",
     "section": "",
-    "text": "Apply the base filename compatibility rule consistently to profile/local files and define the effective profile-list source once for config and environment.\nEvaluate Quarto execute-dir and R Markdown knit_root_dir / knitr root.dir for root-relative execution. Define the shared persistent configuration and direct-entry initialization before broad renderer changes; do not add nested Quarto project support or rely only on flags passed by proj.\nFrontend transport/bindings and remaining environment/YAML compatibility details must be explicit. Familiar projr directory defaults belong in init-generated configuration only; Rust’s _raw and synthesized raw/data runtime paths are not acceptable substitutes for undeclared directories.",
+    "text": "Environment\nRequired behavior\n\n\n\n\nCRAN, CLI absent\nAlways run meaningful R-only validation, argument construction, missing-CLI diagnostics and mocked protocol/response tests. Skip only genuine executable integration tests, explicitly because the CLI is unavailable.\n\n\nCRAN, compatible CLI available\nRun the applicable real integration tests as well as the R-only tests. Do not assume every check host supplies it.\n\n\nOur integration CI\nInstall an exact pinned CLI release, verify its checksum and compatible version, and run real end-to-end tests. Missing CLI or failed installation is a failure, never a silent skip.\n\n\n\nMocked responses check the wrapper contract; they do not prove the CLI or renderer works. Our mandatory integration job supplies that evidence. Examples and vignettes must also handle optional executable availability honestly instead of requiring an undeclared download. A requirement to execute proj on CRAN check servers would need an agreed deployment/checking arrangement, not an assumed policy exception.",
     "crumbs": [
       "Home",
       "Design and progress",
-      "Project and execution behavior"
+      "Future R wrapper: CLI installation and CRAN checks"
     ]
   },
   {
-    "objectID": "behavior.html#implementation-gaps-and-verification",
-    "href": "behavior.html#implementation-gaps-and-verification",
-    "title": "Project and execution behavior",
+    "objectID": "r-wrapper-cran.html#relevant-quarto-precedent",
+    "href": "r-wrapper-cran.html#relevant-quarto-precedent",
+    "title": "Future R wrapper: CLI installation and CRAN checks",
     "section": "",
-    "text": "The core root finder implements nearest-recognized-ancestor discovery without a VERSION prerequisite. Its marker tests cover the retained projr patterns and deliberate Python/Julia/proj-config extensions and cwd fallback. Builds now require active configuration and typed validation rejects unsupported fields. Explicit directory mappings and full failure restoration still need implementation; historical passing fixtures do not demonstrate those new requirements. Individual scripts currently start in their parent directory. Captured-root stability is implemented for core CLI child queries after cwd changes, including independent simultaneous roots; direct R frontend/renderer parity remains unimplemented. Base-file aliases and first-wins profile merging use one merged typed configuration for validation and build script/hook selection. Profile/local filenames retain their existing _projr- form for now. Explicit empty script selection now skips analysis while preserving hooks and production publication; its tests cover production archive bytes and preview nonpublication without invoking real renderers.\nVerify nested projects, explicit selection, paths containing spaces, shallow default enumeration, explicit subdirectory scripts, changed cwd, and each supported renderer’s evaluation root. Compare the same nested QMD through projr, quarto::quarto_render(), and RStudio QMD Render; test R Markdown Knit separately. Reject a nested Quarto project clearly. Verify that direct rendering leaves proj-managed release/version/export state alone. Use tiny fixtures and remote CI where practical. Subprocess execution is not a security sandbox, and path hashes alone do not establish scientific correctness or a reproducible environment.",
+    "text": "The pinned Quarto R package DESCRIPTION at v1.5.1 declares the separate Quarto command-line tool in SystemRequirements. Its test helper can skip executable-dependent tests when Quarto is unavailable, and its vignette utility checks executable availability during vignette processing. These are specific implementation precedents, not proof that CRAN has accepted a future proj wrapper or guaranteed an executable on every server. This note does not infer automatic binary-download permission from Quarto’s existence.\nBefore implementation, specify compatible protocol versions, executable discovery, argument quoting, diagnostics, and which tests are unconditional versus executable integration. R production changes require separate authorization.",
     "crumbs": [
       "Home",
       "Design and progress",
-      "Project and execution behavior"
+      "Future R wrapper: CLI installation and CRAN checks"
     ]
-  },
-  {
-    "objectID": "behavior.html#future-r-distribution-and-tests",
-    "href": "behavior.html#future-r-distribution-and-tests",
-    "title": "Project and execution behavior",
-    "section": "",
-    "text": "The R wrapper/CRAN design note records separate CLI installation, unconditional R-only tests, conditional CRAN executable tests and mandatory pinned/checksummed executable integration in our CI. It is future design, not a shipped wrapper, CRAN approval or automatic-download permission.",
-    "crumbs": [
-      "Home",
-      "Design and progress",
-      "Project and execution behavior"
-    ]
-  },
-  {
-    "objectID": "behavior.html#correctness-audit",
-    "href": "behavior.html#correctness-audit",
-    "title": "Project and execution behavior",
-    "section": "",
-    "text": "The pinned legacy audit records unresolved safety and correctness findings and the regression evidence required before claiming fixes.",
-    "crumbs": [
-      "Home",
-      "Design and progress",
-      "Project and execution behavior"
-    ]
-  },
-  {
-    "objectID": "behavior.html#reference-material",
-    "href": "behavior.html#reference-material",
-    "title": "Project and execution behavior",
-    "section": "",
-    "text": "projr root resolution\nThesis design\nPython project configuration\nJulia project environments\nQuarto working directory\nR Markdown render controls\nknitr options",
-    "crumbs": [
-      "Home",
-      "Design and progress",
-      "Project and execution behavior"
-    ]
-  },
-  {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "Your analysis, ready to run again.",
-    "section": "",
-    "text": "projcli runs the analysis steps you choose from a small project configuration. Use a preview while you work, then make a versioned build when you are ready.\nGet started Check installation options"
-  },
-  {
-    "objectID": "index.html#choose-your-steps",
-    "href": "index.html#choose-your-steps",
-    "title": "Your analysis, ready to run again.",
-    "section": "Choose your steps",
-    "text": "Choose your steps\nList the scripts that belong to your analysis. Start with one Python script; add R or rendered reports when your project needs them."
-  },
-  {
-    "objectID": "index.html#keep-paths-consistent",
-    "href": "index.html#keep-paths-consistent",
-    "title": "Your analysis, ready to run again.",
-    "section": "Keep paths consistent",
-    "text": "Keep paths consistent\nSelect a project explicitly with --project. Child commands keep that project context, even when an analysis changes its working folder."
-  },
-  {
-    "objectID": "index.html#preview-as-you-work",
-    "href": "index.html#preview-as-you-work",
-    "title": "Your analysis, ready to run again.",
-    "section": "Preview as you work",
-    "text": "Preview as you work\nproj build-dev runs analysis without the CLI publishing outputs or changing the project version. Your scripts still control the files they write."
-  },
-  {
-    "objectID": "index.html#a-small-first-project",
-    "href": "index.html#a-small-first-project",
-    "title": "Your analysis, ready to run again.",
-    "section": "A small first project",
-    "text": "A small first project\nPut the analysis steps in _proj.yml:\ndirectories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: [analysis.py]\nRun the preview from your project folder:\nproj --project . --non-interactive build-dev\nThe step-by-step example supplies the script, a tiny dataset, and the result to check. It uses Python’s standard library."
-  },
-  {
-    "objectID": "index.html#find-the-detail-you-need",
-    "href": "index.html#find-the-detail-you-need",
-    "title": "Your analysis, ready to run again.",
-    "section": "Find the detail you need",
-    "text": "Find the detail you need\n\nInstall: prerequisites, release status and platform limits.\nWhat works: current capabilities and work still ahead.\nBuild commands: preview and production behavior.\nConfiguration: project settings.\nBehavior contract and projr comparison: design decisions and known gaps."
-  },
-  {
-    "objectID": "flow.html",
-    "href": "flow.html",
-    "title": "Proj Build Execution Flow",
-    "section": "",
-    "text": "This page records the existing proj build / proj build-dev implementation. It is not a normative behavior specification. The behavior contract records confirmed decisions and known gaps; current defects do not override it. The build pipeline is designed to enforce structural integrity, version control, and reproducible execution environments. The process is strictly divided into three sequential stages: Pre-Build, Actual Build, and Post-Build.\n\n\nThe pre-build stage focuses on validation, environment auditing, and preparing the workspace state prior to executing any project code.\n\n\nThe _proj.yml configuration is parsed and validated based on the execution mode (development vs. production). The configuration audit also strictly evaluates arbitrary nested keys inside the parameters block and throws a validation error if multiple aliases (parameter, params, param) are found to prevent mapping conflicts.\n\n\n\nIf the configuration mandates version control integration (git.commit is true): - The system resolves the GitProvider based on the configured engine (config.git.engine defaults to auto or system) and verifies that Git is installed and available on the system PATH. If remote operations like fetching or pushing are necessary and config.git.use_proj_cred_helper is enabled, the credential discovery engine attempts to resolve GitHub tokens. - A check is performed to ensure the Git profile (author identity) is properly configured for the workspace.\n\n\n\nThe engine resolves scripts and hooks and detects Quarto/Bookdown configuration before version initialization, cleanup, hooks or snapshots. Preflight then checks the production Git restrictions and the interpreters required by those targets.\n\nProduction Git checks inspect branch restrictions, tracking remotes and upstream state when configured.\nRscript and required rendering namespaces are checked when needed. The current implementation can offer or perform R package installation; this is existing behavior, not a statement of the future dependency policy.\nQuarto availability is checked when needed.\nThe Python executable is resolved when Python targets are present.\n\n\n\n\nThe current version is read from VERSION, with DESCRIPTION and a default version as fallbacks. Development previews do not persist a missing VERSION.\n\n\n\nProduction builds clear pre-build caches and output directories according to clear_output (pre, post, or never) and may purge old cache versions. Development previews skip these CLI-managed cleanup stages.\n\n\n\nProduction builds apply --major, --minor or --patch, reset the development flag and write VERSION. Development previews do not bump or write VERSION.\n\n\n\nConfigured pre and both hooks run after the preceding preparation, before the Git pre-snapshot. Failures propagate from these hooks.\n\n\n\nWhen production Git commits are enabled, the engine commits the pre-build workspace with the “Snapshot pre-build” message.\n\n\n\n\nThe actual build stage handles the isolation, resolution, and execution of scripts and documents. This entire stage is executed within a catch_unwind block to safely trap panics and allow for graceful recovery.\n\n\nThe system inspects the workspace for the presence of _quarto.yml and _bookdown.yml. - Mutual Exclusion Check: The presence of both configuration files simultaneously results in a fatal validation error if the build.scripts configuration is omitted or includes documentation targets (.qmd or .Rmd).\n\n\n\nThe engine determines which scripts to execute based on two possible paths:\n\n\nDuring development builds (BuildMode::Dev), the dev.scripts configuration array overrides the standard build.scripts. An explicitly empty array ([]) selects no analysis scripts. It does not fall back to production scripts or discovery; hooks still run.\nIf target scripts are defined in _proj.yml: - Glob patterns are resolved to absolute paths. - Exclusion patterns (prefixed with !) filter the matched lists. - Empty lists skip analysis, renderer setup and analysis cleanup/promotion, while hooks and normal production publication/export remain available. Preview publication remains disabled. - Documentation files (.qmd, .Rmd) are segregated from standalone scripts (.R, .py). - Dynamic Configuration Updates: If documentation targets are specified, the respective project files (_quarto.yml or _bookdown.yml) are dynamically updated to only render the explicitly requested targets.\n\n\n\nIf no explicit scripts are defined: - The system determines if it should trigger an automated Quarto or Bookdown site render based on the presence of their configuration files. - If neither exists, a shallow directory sweep is performed, executing discovered files strictly in the order of: .qmd, .Rmd, .R, .py.\n\n\n\n\nThe existing implementation starts interpreter subprocesses (for example, Rscript, python, quarto) with current_dir set to the target script’s parent directory. This is a known gap against the confirmed root-relative execution default, not a compatibility requirement. Renderer evaluation directories need their own supported controls. A subprocess does not provide a filesystem sandbox or guarantee a clean environment.\nWhen Quarto or Bookdown configurations are active alongside explicit scripts, a strict reordering constraint is applied: 1. Pre-scripts: All .R or .py files listed before the first documentation file are executed. 2. Doc Clusters: The documentation project render engine (quarto render or rmarkdown::render_site) is triggered. 3. Post-scripts: All .R or .py files listed after the first documentation file are executed.\nOtherwise, scripts are executed sequentially exactly as resolved.\n\n\n\n\nThe post-build stage acts on the final status of the actual build stage, finalizing version control, syncing remotes, or safely rolling back the workspace.\n\n\nIf the entire build pipeline executes without error and Git integration is enabled (git.commit is true): - A final commit is generated capturing all build artifacts and modifications. - The commit message is formatted as Build v&lt;VERSION&gt; or includes an optional user-provided description (Build v&lt;VERSION&gt;: &lt;DESCRIPTION&gt;).\n\n\n\nFor production builds configured with clear_output: post, the engine cleans up post-build deployment folders. Additionally, temporary document rendering artifacts (docs/) are automatically cleaned up on successful completion of a single document rendering engine.\n\n\n\nAfter the actual build stage completes successfully and the final Git commit is generated, any configured post or both automation hooks (either build.hooks or overriding dev.hooks) are executed in isolated subprocesses.\n\n\n\nFor production builds with targets in build.dest and remotes.local configured: - The system iterates over the defined build.dest targets. - Resolved content directories mapped to these targets are piped to the Content-Addressable Storage (CAS) engine. - The CAS engine handles deduplicated storage synchronization, exporting project files into the remote vault.\n\n\n\nIf Git integration is enabled (git.commit is true) and pushing is configured (git.push is true): - The GitProvider commits the automated workspace build update (capturing compiled asset tracking or CAS mutations). - The GitProvider pushes the local branch mutations to the remote host. - If remote authentication is required and the credential helper is enabled (config.git.use_proj_cred_helper), the CLI securely injects the discovered GitHub token.\n\n\n\nIf the build pipeline returns an error or panics mid-execution: - Production Rollback: If the build was a production run (--major, --minor, or --patch), the version modifications performed in the Pre-Build stage are reversed. The system restores the pre-build version configuration and ensures the development flag (dev) is set to 1 to maintain safety. - The underlying error is propagated to the CLI output, terminating the process with a non-zero exit code.",
-    "crumbs": [
-      "Home",
-      "Design and progress",
-      "Proj Build Execution Flow"
-    ]
-  },
-  {
-    "objectID": "flow.html#pre-build-stage",
-    "href": "flow.html#pre-build-stage",
-    "title": "Proj Build Execution Flow",
-    "section": "",
-    "text": "The pre-build stage focuses on validation, environment auditing, and preparing the workspace state prior to executing any project code.\n\n\nThe _proj.yml configuration is parsed and validated based on the execution mode (development vs. production). The configuration audit also strictly evaluates arbitrary nested keys inside the parameters block and throws a validation error if multiple aliases (parameter, params, param) are found to prevent mapping conflicts.\n\n\n\nIf the configuration mandates version control integration (git.commit is true): - The system resolves the GitProvider based on the configured engine (config.git.engine defaults to auto or system) and verifies that Git is installed and available on the system PATH. If remote operations like fetching or pushing are necessary and config.git.use_proj_cred_helper is enabled, the credential discovery engine attempts to resolve GitHub tokens. - A check is performed to ensure the Git profile (author identity) is properly configured for the workspace.\n\n\n\nThe engine resolves scripts and hooks and detects Quarto/Bookdown configuration before version initialization, cleanup, hooks or snapshots. Preflight then checks the production Git restrictions and the interpreters required by those targets.\n\nProduction Git checks inspect branch restrictions, tracking remotes and upstream state when configured.\nRscript and required rendering namespaces are checked when needed. The current implementation can offer or perform R package installation; this is existing behavior, not a statement of the future dependency policy.\nQuarto availability is checked when needed.\nThe Python executable is resolved when Python targets are present.\n\n\n\n\nThe current version is read from VERSION, with DESCRIPTION and a default version as fallbacks. Development previews do not persist a missing VERSION.\n\n\n\nProduction builds clear pre-build caches and output directories according to clear_output (pre, post, or never) and may purge old cache versions. Development previews skip these CLI-managed cleanup stages.\n\n\n\nProduction builds apply --major, --minor or --patch, reset the development flag and write VERSION. Development previews do not bump or write VERSION.\n\n\n\nConfigured pre and both hooks run after the preceding preparation, before the Git pre-snapshot. Failures propagate from these hooks.\n\n\n\nWhen production Git commits are enabled, the engine commits the pre-build workspace with the “Snapshot pre-build” message.",
-    "crumbs": [
-      "Home",
-      "Design and progress",
-      "Proj Build Execution Flow"
-    ]
-  },
-  {
-    "objectID": "flow.html#actual-build-stage",
-    "href": "flow.html#actual-build-stage",
-    "title": "Proj Build Execution Flow",
-    "section": "",
-    "text": "The actual build stage handles the isolation, resolution, and execution of scripts and documents. This entire stage is executed within a catch_unwind block to safely trap panics and allow for graceful recovery.\n\n\nThe system inspects the workspace for the presence of _quarto.yml and _bookdown.yml. - Mutual Exclusion Check: The presence of both configuration files simultaneously results in a fatal validation error if the build.scripts configuration is omitted or includes documentation targets (.qmd or .Rmd).\n\n\n\nThe engine determines which scripts to execute based on two possible paths:\n\n\nDuring development builds (BuildMode::Dev), the dev.scripts configuration array overrides the standard build.scripts. An explicitly empty array ([]) selects no analysis scripts. It does not fall back to production scripts or discovery; hooks still run.\nIf target scripts are defined in _proj.yml: - Glob patterns are resolved to absolute paths. - Exclusion patterns (prefixed with !) filter the matched lists. - Empty lists skip analysis, renderer setup and analysis cleanup/promotion, while hooks and normal production publication/export remain available. Preview publication remains disabled. - Documentation files (.qmd, .Rmd) are segregated from standalone scripts (.R, .py). - Dynamic Configuration Updates: If documentation targets are specified, the respective project files (_quarto.yml or _bookdown.yml) are dynamically updated to only render the explicitly requested targets.\n\n\n\nIf no explicit scripts are defined: - The system determines if it should trigger an automated Quarto or Bookdown site render based on the presence of their configuration files. - If neither exists, a shallow directory sweep is performed, executing discovered files strictly in the order of: .qmd, .Rmd, .R, .py.\n\n\n\n\nThe existing implementation starts interpreter subprocesses (for example, Rscript, python, quarto) with current_dir set to the target script’s parent directory. This is a known gap against the confirmed root-relative execution default, not a compatibility requirement. Renderer evaluation directories need their own supported controls. A subprocess does not provide a filesystem sandbox or guarantee a clean environment.\nWhen Quarto or Bookdown configurations are active alongside explicit scripts, a strict reordering constraint is applied: 1. Pre-scripts: All .R or .py files listed before the first documentation file are executed. 2. Doc Clusters: The documentation project render engine (quarto render or rmarkdown::render_site) is triggered. 3. Post-scripts: All .R or .py files listed after the first documentation file are executed.\nOtherwise, scripts are executed sequentially exactly as resolved.",
-    "crumbs": [
-      "Home",
-      "Design and progress",
-      "Proj Build Execution Flow"
-    ]
-  },
-  {
-    "objectID": "flow.html#post-build-stage",
-    "href": "flow.html#post-build-stage",
-    "title": "Proj Build Execution Flow",
-    "section": "",
-    "text": "The post-build stage acts on the final status of the actual build stage, finalizing version control, syncing remotes, or safely rolling back the workspace.\n\n\nIf the entire build pipeline executes without error and Git integration is enabled (git.commit is true): - A final commit is generated capturing all build artifacts and modifications. - The commit message is formatted as Build v&lt;VERSION&gt; or includes an optional user-provided description (Build v&lt;VERSION&gt;: &lt;DESCRIPTION&gt;).\n\n\n\nFor production builds configured with clear_output: post, the engine cleans up post-build deployment folders. Additionally, temporary document rendering artifacts (docs/) are automatically cleaned up on successful completion of a single document rendering engine.\n\n\n\nAfter the actual build stage completes successfully and the final Git commit is generated, any configured post or both automation hooks (either build.hooks or overriding dev.hooks) are executed in isolated subprocesses.\n\n\n\nFor production builds with targets in build.dest and remotes.local configured: - The system iterates over the defined build.dest targets. - Resolved content directories mapped to these targets are piped to the Content-Addressable Storage (CAS) engine. - The CAS engine handles deduplicated storage synchronization, exporting project files into the remote vault.\n\n\n\nIf Git integration is enabled (git.commit is true) and pushing is configured (git.push is true): - The GitProvider commits the automated workspace build update (capturing compiled asset tracking or CAS mutations). - The GitProvider pushes the local branch mutations to the remote host. - If remote authentication is required and the credential helper is enabled (config.git.use_proj_cred_helper), the CLI securely injects the discovered GitHub token.\n\n\n\nIf the build pipeline returns an error or panics mid-execution: - Production Rollback: If the build was a production run (--major, --minor, or --patch), the version modifications performed in the Pre-Build stage are reversed. The system restores the pre-build version configuration and ensures the development flag (dev) is set to 1 to maintain safety. - The underlying error is propagated to the CLI output, terminating the process with a non-zero exit code.",
-    "crumbs": [
-      "Home",
-      "Design and progress",
-      "Proj Build Execution Flow"
-    ]
-  },
-  {
-    "objectID": "features.html",
-    "href": "features.html",
-    "title": "What works",
-    "section": "",
-    "text": "v0.3.0 was published on 22 May 2026. Its release page currently provides one amd64.deb package. It predates the recent changes listed below; do not assume that an installed binary reporting 0.3.0 includes them.\nSee the release assets and installation status. A new release and repaired installers are being prepared."
-  },
-  {
-    "objectID": "features.html#published-release",
-    "href": "features.html#published-release",
-    "title": "What works",
-    "section": "",
-    "text": "v0.3.0 was published on 22 May 2026. Its release page currently provides one amd64.deb package. It predates the recent changes listed below; do not assume that an installed binary reporting 0.3.0 includes them.\nSee the release assets and installation status. A new release and repaired installers are being prepared."
-  },
-  {
-    "objectID": "features.html#on-main-development-preview",
-    "href": "features.html#on-main-development-preview",
-    "title": "What works",
-    "section": "On main: development preview",
-    "text": "On main: development preview\nThese capabilities are implemented on main. They are not a claim about the older published package.\n\n\n\n\n\n\n\nCapability\nWhat it means for you\n\n\n\n\nChoose the project\n--project PATH selects the folder for a command. Child queries retain that root.\n\n\nPreview an analysis\nbuild-dev runs your selected steps without CLI version changes, output promotion or archive export.\n\n\nRead without changing files\nConfiguration validation and path queries do not create target folders or edit ignore files.\n\n\nDetect command failures\nErrors produce a nonzero exit status, so an automated run can stop.\n\n\nRun without questions\n--non-interactive disables CLI prompts and automatic package installation, and closes runner input.\n\n\nSelect no analysis\nAn explicit scripts: [] runs no analysis scripts. Hooks may still run; production can export existing outputs.\n\n\nRun scripts and render documents\nThe build engine supports Python, R, Quarto and R Markdown/Bookdown targets, with the corresponding tools installed.\n\n\nKeep a local output archive\nProduction builds can export configured outputs to local content-addressed storage, which avoids storing identical content repeatedly.\n\n\n\n\nPreview has a boundary\nThe CLI skips its own release operations during a preview, including cleanup of released outputs and prior caches. This is not a filesystem sandbox. Scripts, hooks and renderers can still change files. Write preview results to an explicitly chosen temporary folder, as in the tutorial.\nDocument renderers have their own working folders and output rules. Mixed-language scheduling is not a promise that every target runs in the exact order written in configuration. See the build reference for the current implementation and the behavior contract for limits."
-  },
-  {
-    "objectID": "features.html#known-limits",
-    "href": "features.html#known-limits",
-    "title": "What works",
-    "section": "Known limits",
-    "text": "Known limits\n\nA preview is not a filesystem sandbox. Scripts and hooks control their writes; automatic redirection of every renderer’s output is not provided.\nMatching results and paths across CLI runs, RStudio and GUI rendering has not been proved.\nComplete compatibility with every projr workflow has not been established.\nMixed script and document targets do not have a complete sequential-order guarantee.\nCurrent-preview release installers have not been verified for every operating system and processor.\nLegacy production behavior is still under review. This guide uses preview builds; it does not establish production cleanup or publication safety.\n\nThe existing R package is unchanged. A Rust library is available in this repository, but new R, Python and Julia frontend integrations are separate work."
-  },
-  {
-    "objectID": "features.html#planned-work",
-    "href": "features.html#planned-work",
-    "title": "What works",
-    "section": "Planned work",
-    "text": "Planned work\nThe broader project-root and build workflow milestones remain incomplete. Current work includes clearer project configuration and verified release and installation routes. This is not a promise that all limitations above will become features.\nFor the detailed evidence, scope and decisions, see the behavior contract and compatibility log."
   },
   {
     "objectID": "configuration.html",
@@ -589,6 +400,222 @@
       "Reference",
       "Configuration `_proj.yml`"
     ]
+  },
+  {
+    "objectID": "flow.html",
+    "href": "flow.html",
+    "title": "Proj Build Execution Flow",
+    "section": "",
+    "text": "This page records the existing proj build / proj build-dev implementation. It is not a normative behavior specification. The behavior contract records confirmed decisions and known gaps; current defects do not override it. The build pipeline is designed to enforce structural integrity, version control, and reproducible execution environments. The process is strictly divided into three sequential stages: Pre-Build, Actual Build, and Post-Build.\n\n\nThe pre-build stage focuses on validation, environment auditing, and preparing the workspace state prior to executing any project code.\n\n\nThe _proj.yml configuration is parsed and validated based on the execution mode (development vs. production). The configuration audit also strictly evaluates arbitrary nested keys inside the parameters block and throws a validation error if multiple aliases (parameter, params, param) are found to prevent mapping conflicts.\n\n\n\nIf the configuration mandates version control integration (git.commit is true): - The system resolves the GitProvider based on the configured engine (config.git.engine defaults to auto or system) and verifies that Git is installed and available on the system PATH. If remote operations like fetching or pushing are necessary and config.git.use_proj_cred_helper is enabled, the credential discovery engine attempts to resolve GitHub tokens. - A check is performed to ensure the Git profile (author identity) is properly configured for the workspace.\n\n\n\nThe engine resolves scripts and hooks and detects Quarto/Bookdown configuration before version initialization, cleanup, hooks or snapshots. Preflight then checks the production Git restrictions and the interpreters required by those targets.\n\nProduction Git checks inspect branch restrictions, tracking remotes and upstream state when configured.\nRscript and required rendering namespaces are checked when needed. The current implementation can offer or perform R package installation; this is existing behavior, not a statement of the future dependency policy.\nQuarto availability is checked when needed.\nThe Python executable is resolved when Python targets are present.\n\n\n\n\nThe current version is read from VERSION, with DESCRIPTION and a default version as fallbacks. Development previews do not persist a missing VERSION.\n\n\n\nProduction builds clear pre-build caches and output directories according to clear_output (pre, post, or never) and may purge old cache versions. Development previews skip these CLI-managed cleanup stages.\n\n\n\nProduction builds apply --major, --minor or --patch, reset the development flag and write VERSION. Development previews do not bump or write VERSION.\n\n\n\nConfigured pre and both hooks run after the preceding preparation, before the Git pre-snapshot. Failures propagate from these hooks.\n\n\n\nWhen production Git commits are enabled, the engine commits the pre-build workspace with the “Snapshot pre-build” message.\n\n\n\n\nThe actual build stage handles the isolation, resolution, and execution of scripts and documents. This entire stage is executed within a catch_unwind block to safely trap panics and allow for graceful recovery.\n\n\nThe system inspects the workspace for the presence of _quarto.yml and _bookdown.yml. - Mutual Exclusion Check: The presence of both configuration files simultaneously results in a fatal validation error if the build.scripts configuration is omitted or includes documentation targets (.qmd or .Rmd).\n\n\n\nThe engine determines which scripts to execute based on two possible paths:\n\n\nDuring development builds (BuildMode::Dev), the dev.scripts configuration array overrides the standard build.scripts. An explicitly empty array ([]) selects no analysis scripts. It does not fall back to production scripts or discovery; hooks still run.\nIf target scripts are defined in _proj.yml: - Glob patterns are resolved to absolute paths. - Exclusion patterns (prefixed with !) filter the matched lists. - Empty lists skip analysis, renderer setup and analysis cleanup/promotion, while hooks and normal production publication/export remain available. Preview publication remains disabled. - Documentation files (.qmd, .Rmd) are segregated from standalone scripts (.R, .py). - Dynamic Configuration Updates: If documentation targets are specified, the respective project files (_quarto.yml or _bookdown.yml) are dynamically updated to only render the explicitly requested targets.\n\n\n\nIf no explicit scripts are defined: - The system determines if it should trigger an automated Quarto or Bookdown site render based on the presence of their configuration files. - If neither exists, a shallow directory sweep is performed, executing discovered files strictly in the order of: .qmd, .Rmd, .R, .py.\n\n\n\n\nThe existing implementation starts interpreter subprocesses (for example, Rscript, python, quarto) with current_dir set to the target script’s parent directory. This is a known gap against the confirmed root-relative execution default, not a compatibility requirement. Renderer evaluation directories need their own supported controls. A subprocess does not provide a filesystem sandbox or guarantee a clean environment.\nWhen Quarto or Bookdown configurations are active alongside explicit scripts, a strict reordering constraint is applied: 1. Pre-scripts: All .R or .py files listed before the first documentation file are executed. 2. Doc Clusters: The documentation project render engine (quarto render or rmarkdown::render_site) is triggered. 3. Post-scripts: All .R or .py files listed after the first documentation file are executed.\nOtherwise, scripts are executed sequentially exactly as resolved.\n\n\n\n\nThe post-build stage acts on the final status of the actual build stage, finalizing version control, syncing remotes, or safely rolling back the workspace.\n\n\nIf the entire build pipeline executes without error and Git integration is enabled (git.commit is true): - A final commit is generated capturing all build artifacts and modifications. - The commit message is formatted as Build v&lt;VERSION&gt; or includes an optional user-provided description (Build v&lt;VERSION&gt;: &lt;DESCRIPTION&gt;).\n\n\n\nFor production builds configured with clear_output: post, the engine cleans up post-build deployment folders. Additionally, temporary document rendering artifacts (docs/) are automatically cleaned up on successful completion of a single document rendering engine.\n\n\n\nAfter the actual build stage completes successfully and the final Git commit is generated, any configured post or both automation hooks (either build.hooks or overriding dev.hooks) are executed in isolated subprocesses.\n\n\n\nFor production builds with targets in build.dest and remotes.local configured: - The system iterates over the defined build.dest targets. - Resolved content directories mapped to these targets are piped to the Content-Addressable Storage (CAS) engine. - The CAS engine handles deduplicated storage synchronization, exporting project files into the remote vault.\n\n\n\nIf Git integration is enabled (git.commit is true) and pushing is configured (git.push is true): - The GitProvider commits the automated workspace build update (capturing compiled asset tracking or CAS mutations). - The GitProvider pushes the local branch mutations to the remote host. - If remote authentication is required and the credential helper is enabled (config.git.use_proj_cred_helper), the CLI securely injects the discovered GitHub token.\n\n\n\nIf the build pipeline returns an error or panics mid-execution: - Production Rollback: If the build was a production run (--major, --minor, or --patch), the version modifications performed in the Pre-Build stage are reversed. The system restores the pre-build version configuration and ensures the development flag (dev) is set to 1 to maintain safety. - The underlying error is propagated to the CLI output, terminating the process with a non-zero exit code.",
+    "crumbs": [
+      "Home",
+      "Design and progress",
+      "Proj Build Execution Flow"
+    ]
+  },
+  {
+    "objectID": "flow.html#pre-build-stage",
+    "href": "flow.html#pre-build-stage",
+    "title": "Proj Build Execution Flow",
+    "section": "",
+    "text": "The pre-build stage focuses on validation, environment auditing, and preparing the workspace state prior to executing any project code.\n\n\nThe _proj.yml configuration is parsed and validated based on the execution mode (development vs. production). The configuration audit also strictly evaluates arbitrary nested keys inside the parameters block and throws a validation error if multiple aliases (parameter, params, param) are found to prevent mapping conflicts.\n\n\n\nIf the configuration mandates version control integration (git.commit is true): - The system resolves the GitProvider based on the configured engine (config.git.engine defaults to auto or system) and verifies that Git is installed and available on the system PATH. If remote operations like fetching or pushing are necessary and config.git.use_proj_cred_helper is enabled, the credential discovery engine attempts to resolve GitHub tokens. - A check is performed to ensure the Git profile (author identity) is properly configured for the workspace.\n\n\n\nThe engine resolves scripts and hooks and detects Quarto/Bookdown configuration before version initialization, cleanup, hooks or snapshots. Preflight then checks the production Git restrictions and the interpreters required by those targets.\n\nProduction Git checks inspect branch restrictions, tracking remotes and upstream state when configured.\nRscript and required rendering namespaces are checked when needed. The current implementation can offer or perform R package installation; this is existing behavior, not a statement of the future dependency policy.\nQuarto availability is checked when needed.\nThe Python executable is resolved when Python targets are present.\n\n\n\n\nThe current version is read from VERSION, with DESCRIPTION and a default version as fallbacks. Development previews do not persist a missing VERSION.\n\n\n\nProduction builds clear pre-build caches and output directories according to clear_output (pre, post, or never) and may purge old cache versions. Development previews skip these CLI-managed cleanup stages.\n\n\n\nProduction builds apply --major, --minor or --patch, reset the development flag and write VERSION. Development previews do not bump or write VERSION.\n\n\n\nConfigured pre and both hooks run after the preceding preparation, before the Git pre-snapshot. Failures propagate from these hooks.\n\n\n\nWhen production Git commits are enabled, the engine commits the pre-build workspace with the “Snapshot pre-build” message.",
+    "crumbs": [
+      "Home",
+      "Design and progress",
+      "Proj Build Execution Flow"
+    ]
+  },
+  {
+    "objectID": "flow.html#actual-build-stage",
+    "href": "flow.html#actual-build-stage",
+    "title": "Proj Build Execution Flow",
+    "section": "",
+    "text": "The actual build stage handles the isolation, resolution, and execution of scripts and documents. This entire stage is executed within a catch_unwind block to safely trap panics and allow for graceful recovery.\n\n\nThe system inspects the workspace for the presence of _quarto.yml and _bookdown.yml. - Mutual Exclusion Check: The presence of both configuration files simultaneously results in a fatal validation error if the build.scripts configuration is omitted or includes documentation targets (.qmd or .Rmd).\n\n\n\nThe engine determines which scripts to execute based on two possible paths:\n\n\nDuring development builds (BuildMode::Dev), the dev.scripts configuration array overrides the standard build.scripts. An explicitly empty array ([]) selects no analysis scripts. It does not fall back to production scripts or discovery; hooks still run.\nIf target scripts are defined in _proj.yml: - Glob patterns are resolved to absolute paths. - Exclusion patterns (prefixed with !) filter the matched lists. - Empty lists skip analysis, renderer setup and analysis cleanup/promotion, while hooks and normal production publication/export remain available. Preview publication remains disabled. - Documentation files (.qmd, .Rmd) are segregated from standalone scripts (.R, .py). - Dynamic Configuration Updates: If documentation targets are specified, the respective project files (_quarto.yml or _bookdown.yml) are dynamically updated to only render the explicitly requested targets.\n\n\n\nIf no explicit scripts are defined: - The system determines if it should trigger an automated Quarto or Bookdown site render based on the presence of their configuration files. - If neither exists, a shallow directory sweep is performed, executing discovered files strictly in the order of: .qmd, .Rmd, .R, .py.\n\n\n\n\nThe existing implementation starts interpreter subprocesses (for example, Rscript, python, quarto) with current_dir set to the target script’s parent directory. This is a known gap against the confirmed root-relative execution default, not a compatibility requirement. Renderer evaluation directories need their own supported controls. A subprocess does not provide a filesystem sandbox or guarantee a clean environment.\nWhen Quarto or Bookdown configurations are active alongside explicit scripts, a strict reordering constraint is applied: 1. Pre-scripts: All .R or .py files listed before the first documentation file are executed. 2. Doc Clusters: The documentation project render engine (quarto render or rmarkdown::render_site) is triggered. 3. Post-scripts: All .R or .py files listed after the first documentation file are executed.\nOtherwise, scripts are executed sequentially exactly as resolved.",
+    "crumbs": [
+      "Home",
+      "Design and progress",
+      "Proj Build Execution Flow"
+    ]
+  },
+  {
+    "objectID": "flow.html#post-build-stage",
+    "href": "flow.html#post-build-stage",
+    "title": "Proj Build Execution Flow",
+    "section": "",
+    "text": "The post-build stage acts on the final status of the actual build stage, finalizing version control, syncing remotes, or safely rolling back the workspace.\n\n\nIf the entire build pipeline executes without error and Git integration is enabled (git.commit is true): - A final commit is generated capturing all build artifacts and modifications. - The commit message is formatted as Build v&lt;VERSION&gt; or includes an optional user-provided description (Build v&lt;VERSION&gt;: &lt;DESCRIPTION&gt;).\n\n\n\nFor production builds configured with clear_output: post, the engine cleans up post-build deployment folders. Additionally, temporary document rendering artifacts (docs/) are automatically cleaned up on successful completion of a single document rendering engine.\n\n\n\nAfter the actual build stage completes successfully and the final Git commit is generated, any configured post or both automation hooks (either build.hooks or overriding dev.hooks) are executed in isolated subprocesses.\n\n\n\nFor production builds with targets in build.dest and remotes.local configured: - The system iterates over the defined build.dest targets. - Resolved content directories mapped to these targets are piped to the Content-Addressable Storage (CAS) engine. - The CAS engine handles deduplicated storage synchronization, exporting project files into the remote vault.\n\n\n\nIf Git integration is enabled (git.commit is true) and pushing is configured (git.push is true): - The GitProvider commits the automated workspace build update (capturing compiled asset tracking or CAS mutations). - The GitProvider pushes the local branch mutations to the remote host. - If remote authentication is required and the credential helper is enabled (config.git.use_proj_cred_helper), the CLI securely injects the discovered GitHub token.\n\n\n\nIf the build pipeline returns an error or panics mid-execution: - Production Rollback: If the build was a production run (--major, --minor, or --patch), the version modifications performed in the Pre-Build stage are reversed. The system restores the pre-build version configuration and ensures the development flag (dev) is set to 1 to maintain safety. - The underlying error is propagated to the CLI output, terminating the process with a non-zero exit code.",
+    "crumbs": [
+      "Home",
+      "Design and progress",
+      "Proj Build Execution Flow"
+    ]
+  },
+  {
+    "objectID": "install.html",
+    "href": "install.html",
+    "title": "Install",
+    "section": "",
+    "text": "WarningTry it on a disposable project\n\n\n\nUse sample data or a disposable copy of your project. Production builds (proj build) can modify or remove files, and safety fixes are still pending. Never run production builds on the only copy of important work. Previews are not a security sandbox; code you run can still change files."
+  },
+  {
+    "objectID": "install.html#ubuntu-and-wsl-ubuntu",
+    "href": "install.html#ubuntu-and-wsl-ubuntu",
+    "title": "Install",
+    "section": "Ubuntu and WSL Ubuntu",
+    "text": "Ubuntu and WSL Ubuntu\nRun Linux commands inside Ubuntu, including when Ubuntu runs through WSL. For the first analysis example you need:\n\nThe current preview build of projcli, with its source revision recorded.\nPython 3, including a python3 command.\nA terminal and a writable folder for the example.\n\nCheck Python:\npython3 --version\nThe published v0.3.0 release has an amd64.deb asset for Debian-style systems on x86-64 processors. It is a historical package, not the current preview used by this tutorial. No current-preview download command is listed here until the replacement release has been checked."
+  },
+  {
+    "objectID": "install.html#building-from-source",
+    "href": "install.html#building-from-source",
+    "title": "Install",
+    "section": "Building from source",
+    "text": "Building from source\nThis route needs Git, a current stable Rust toolchain with Cargo, and your platform’s C/C++ linker tools. The crate uses Rust’s 2024 edition. Ubuntu commonly supplies the linker tools through build-essential.\nThe source-install command below was verified on Ubuntu in CI on 20 October 2026. That run installed source revision fafce46a and ran both documented examples through the CLI:\ncargo install --git https://github.com/MiguelRodo/projcli --locked --bin proj\nThis command installs the current repository source, which can change after that check. It does not install the historical release package.\nCargo normally places the command in ~/.cargo/bin; that folder must be on your PATH. Record the installed commit from Cargo’s output when trying a development build. The version number alone does not identify the recent features."
+  },
+  {
+    "objectID": "install.html#check-which-command-you-have",
+    "href": "install.html#check-which-command-you-have",
+    "title": "Install",
+    "section": "Check which command you have",
+    "text": "Check which command you have\nAnother program can also use the name proj. In Ubuntu, check both its location and its help:\ncommand -v proj\nproj --help\nFor this project’s current preview, help lists build-dev, --project and --non-interactive. If those are missing, check which executable your shell found before continuing."
+  },
+  {
+    "objectID": "install.html#other-systems",
+    "href": "install.html#other-systems",
+    "title": "Install",
+    "section": "Other systems",
+    "text": "Other systems\nWindows amd64 builds are exercised in CI. A released native Windows installer has not yet been verified for the current preview. Published macOS and ARM binary assets have not been established either. Rust test coverage on a platform does not establish that a release installer works there."
+  },
+  {
+    "objectID": "install.html#extra-tools-depend-on-your-project",
+    "href": "install.html#extra-tools-depend-on-your-project",
+    "title": "Install",
+    "section": "Extra tools depend on your project",
+    "text": "Extra tools depend on your project\nThe first tutorial uses only Python’s standard library. R scripts need R and Rscript; reports may additionally need Quarto, rmarkdown or bookdown. Install the tools required by your own targets before running them. Git and remote credentials are needed only for workflows that use those integrations."
+  },
+  {
+    "objectID": "behavior.html",
+    "href": "behavior.html",
+    "title": "Project and execution behavior",
+    "section": "",
+    "text": "This is the product behavior contract. Confirmed decisions below guide implementation; they are not claims that the current CLI already implements them. Proposals require review before they become requirements. The compatibility log records pinned projr comparisons, decisions, actual test evidence, Ponytail reviews and remaining gaps; update it with each PR.\n\n\n\nA project is one analysis/build unit anchored at a selected root directory. It has settings, version information and named resource paths where applicable. Resource paths may be outside the root; a project need not be a Git repository.\nExplicit project selection overrides discovery and selects that exact directory.\nAutomatic discovery walks upward from the invocation directory. The nearest recognized project root wins, including when projects are nested. Discovery does not search downward for projects.\nRetain existing projr root markers, including standalone VERSION and README, VCS roots, R-package/RStudio/renv/Quarto project markers, and extend recognition for pyproject.toml, Project.toml and JuliaProject.toml. Proj configuration files _proj.yml / _projr.yml also identify a root. requirements.txt and Manifest.toml alone do not. Recognition must no longer require VERSION before considering the other markers.\n_proj.yml is the primary base configuration. Accept _projr.yml as a legacy alias and fail clearly if both base files exist; do not silently merge them.\nConfiguration precedence follows projr: local overrides profiles, profiles override base, and earlier-listed profiles win conflicts with later ones.\nMissing dev.scripts falls back to build.scripts. An explicit empty list in either selects no analysis scripts and never triggers fallback/discovery. Hooks still run; production version/publication/export behavior remains available for upload-only workflows. Development previews never publish. Analysis cleanup and promotion are skipped when no analysis is selected, preserving upload inputs.\nWith no recognized marker, discovery falls back to cwd. This does not waive build validation: builds require an active root-level proj configuration. The agreed _proj.yml / legacy _projr.yml names apply; explicitly activated profile files may supply configuration, but inactive profile files alone do not. No-config build assumptions from the initial roadmap are superseded.\nEvery framework/resource directory used at runtime must be explicitly declared. Initialization may write familiar projr defaults into configuration; runtime must not synthesize missing directory mappings or unknown subpaths.\nUnsupported behavior-affecting configuration fails before mutations.\nFailed supported builds must restore pre-build state except permitted cache residue. This is required behavior, not an implemented transaction guarantee.\nStorage/publication retries must have an upload-only route without rerunning analysis or falsely recording a new analysis. Explicit-empty analysis supports hooks/publication, but full retry identity/transaction semantics are separate.\nThe existing R package is entirely off limits in this effort. Direct R frontend integration is later work; no existing helper changes or parity claims follow from these Rust changes.\nDefault script/document enumeration is shallow at the selected project root. Subdirectory targets require explicit selection or renderer project configuration.\nScripts execute relative to the project root by default. Selecting a script in a subdirectory does not, by itself, select a different project or execution root.\nThe resolved root is captured for the run. Path helpers, including a future frontend’s projr_path_get(), resolve against that root even if a renderer or user script changes its working directory.\nA supported Quarto project’s root must equal the proj root. Nested Quarto projects beneath that root are unsupported for now. Nested document files are distinct from nested Quarto projects.\nQMD rendering through projr, quarto::quarto_render(), and RStudio QMD Render must agree on evaluation directory and root-helper semantics. R Markdown Knit is a distinct entrypoint and must be verified separately. Shared project configuration and direct-entry root resolution are required; CLI-only flags or a parent process environment cannot establish this parity.\nDirect rendering does not imply the build, version, commit or archive/export side effects of a proj-managed build.\nRenderer evaluation roots must use supported renderer controls. Setting only the parent process cwd is insufficient. Root identity and evaluation cwd remain separate concepts; document asset/reference resolution is not redefined here.\n\nThe project root is the analysis workspace’s top-level directory, not the user’s operating-system home directory. Resolving a named resource path is also distinct from changing cwd or selecting a new root.\n\n\n\n\nApply the base filename compatibility rule consistently to profile/local files and define the effective profile-list source once for config and environment.\nEvaluate Quarto execute-dir and R Markdown knit_root_dir / knitr root.dir for root-relative execution. Define the shared persistent configuration and direct-entry initialization before broad renderer changes; do not add nested Quarto project support or rely only on flags passed by proj.\nFrontend transport/bindings and remaining environment/YAML compatibility details must be explicit. Familiar projr directory defaults belong in init-generated configuration only; Rust’s _raw and synthesized raw/data runtime paths are not acceptable substitutes for undeclared directories.\n\n\n\n\nThe core root finder implements nearest-recognized-ancestor discovery without a VERSION prerequisite. Its marker tests cover the retained projr patterns and deliberate Python/Julia/proj-config extensions and cwd fallback. Builds now require active configuration and typed validation rejects unsupported fields. Explicit directory mappings and full failure restoration still need implementation; historical passing fixtures do not demonstrate those new requirements. Individual scripts currently start in their parent directory. Captured-root stability is implemented for core CLI child queries after cwd changes, including independent simultaneous roots; direct R frontend/renderer parity remains unimplemented. Base-file aliases and first-wins profile merging use one merged typed configuration for validation and build script/hook selection. Profile/local filenames retain their existing _projr- form for now. Explicit empty script selection now skips analysis while preserving hooks and production publication; its tests cover production archive bytes and preview nonpublication without invoking real renderers.\nVerify nested projects, explicit selection, paths containing spaces, shallow default enumeration, explicit subdirectory scripts, changed cwd, and each supported renderer’s evaluation root. Compare the same nested QMD through projr, quarto::quarto_render(), and RStudio QMD Render; test R Markdown Knit separately. Reject a nested Quarto project clearly. Verify that direct rendering leaves proj-managed release/version/export state alone. Use tiny fixtures and remote CI where practical. Subprocess execution is not a security sandbox, and path hashes alone do not establish scientific correctness or a reproducible environment.\n\n\n\nThe R wrapper/CRAN design note records separate CLI installation, unconditional R-only tests, conditional CRAN executable tests and mandatory pinned/checksummed executable integration in our CI. It is future design, not a shipped wrapper, CRAN approval or automatic-download permission.\n\n\n\nThe pinned legacy audit records unresolved safety and correctness findings and the regression evidence required before claiming fixes.\n\n\n\n\nprojr root resolution\nThesis design\nPython project configuration\nJulia project environments\nQuarto working directory\nR Markdown render controls\nknitr options",
+    "crumbs": [
+      "Home",
+      "Design and progress",
+      "Project and execution behavior"
+    ]
+  },
+  {
+    "objectID": "behavior.html#confirmed-decisions",
+    "href": "behavior.html#confirmed-decisions",
+    "title": "Project and execution behavior",
+    "section": "",
+    "text": "A project is one analysis/build unit anchored at a selected root directory. It has settings, version information and named resource paths where applicable. Resource paths may be outside the root; a project need not be a Git repository.\nExplicit project selection overrides discovery and selects that exact directory.\nAutomatic discovery walks upward from the invocation directory. The nearest recognized project root wins, including when projects are nested. Discovery does not search downward for projects.\nRetain existing projr root markers, including standalone VERSION and README, VCS roots, R-package/RStudio/renv/Quarto project markers, and extend recognition for pyproject.toml, Project.toml and JuliaProject.toml. Proj configuration files _proj.yml / _projr.yml also identify a root. requirements.txt and Manifest.toml alone do not. Recognition must no longer require VERSION before considering the other markers.\n_proj.yml is the primary base configuration. Accept _projr.yml as a legacy alias and fail clearly if both base files exist; do not silently merge them.\nConfiguration precedence follows projr: local overrides profiles, profiles override base, and earlier-listed profiles win conflicts with later ones.\nMissing dev.scripts falls back to build.scripts. An explicit empty list in either selects no analysis scripts and never triggers fallback/discovery. Hooks still run; production version/publication/export behavior remains available for upload-only workflows. Development previews never publish. Analysis cleanup and promotion are skipped when no analysis is selected, preserving upload inputs.\nWith no recognized marker, discovery falls back to cwd. This does not waive build validation: builds require an active root-level proj configuration. The agreed _proj.yml / legacy _projr.yml names apply; explicitly activated profile files may supply configuration, but inactive profile files alone do not. No-config build assumptions from the initial roadmap are superseded.\nEvery framework/resource directory used at runtime must be explicitly declared. Initialization may write familiar projr defaults into configuration; runtime must not synthesize missing directory mappings or unknown subpaths.\nUnsupported behavior-affecting configuration fails before mutations.\nFailed supported builds must restore pre-build state except permitted cache residue. This is required behavior, not an implemented transaction guarantee.\nStorage/publication retries must have an upload-only route without rerunning analysis or falsely recording a new analysis. Explicit-empty analysis supports hooks/publication, but full retry identity/transaction semantics are separate.\nThe existing R package is entirely off limits in this effort. Direct R frontend integration is later work; no existing helper changes or parity claims follow from these Rust changes.\nDefault script/document enumeration is shallow at the selected project root. Subdirectory targets require explicit selection or renderer project configuration.\nScripts execute relative to the project root by default. Selecting a script in a subdirectory does not, by itself, select a different project or execution root.\nThe resolved root is captured for the run. Path helpers, including a future frontend’s projr_path_get(), resolve against that root even if a renderer or user script changes its working directory.\nA supported Quarto project’s root must equal the proj root. Nested Quarto projects beneath that root are unsupported for now. Nested document files are distinct from nested Quarto projects.\nQMD rendering through projr, quarto::quarto_render(), and RStudio QMD Render must agree on evaluation directory and root-helper semantics. R Markdown Knit is a distinct entrypoint and must be verified separately. Shared project configuration and direct-entry root resolution are required; CLI-only flags or a parent process environment cannot establish this parity.\nDirect rendering does not imply the build, version, commit or archive/export side effects of a proj-managed build.\nRenderer evaluation roots must use supported renderer controls. Setting only the parent process cwd is insufficient. Root identity and evaluation cwd remain separate concepts; document asset/reference resolution is not redefined here.\n\nThe project root is the analysis workspace’s top-level directory, not the user’s operating-system home directory. Resolving a named resource path is also distinct from changing cwd or selecting a new root.",
+    "crumbs": [
+      "Home",
+      "Design and progress",
+      "Project and execution behavior"
+    ]
+  },
+  {
+    "objectID": "behavior.html#proposals-and-open-decisions",
+    "href": "behavior.html#proposals-and-open-decisions",
+    "title": "Project and execution behavior",
+    "section": "",
+    "text": "Apply the base filename compatibility rule consistently to profile/local files and define the effective profile-list source once for config and environment.\nEvaluate Quarto execute-dir and R Markdown knit_root_dir / knitr root.dir for root-relative execution. Define the shared persistent configuration and direct-entry initialization before broad renderer changes; do not add nested Quarto project support or rely only on flags passed by proj.\nFrontend transport/bindings and remaining environment/YAML compatibility details must be explicit. Familiar projr directory defaults belong in init-generated configuration only; Rust’s _raw and synthesized raw/data runtime paths are not acceptable substitutes for undeclared directories.",
+    "crumbs": [
+      "Home",
+      "Design and progress",
+      "Project and execution behavior"
+    ]
+  },
+  {
+    "objectID": "behavior.html#implementation-gaps-and-verification",
+    "href": "behavior.html#implementation-gaps-and-verification",
+    "title": "Project and execution behavior",
+    "section": "",
+    "text": "The core root finder implements nearest-recognized-ancestor discovery without a VERSION prerequisite. Its marker tests cover the retained projr patterns and deliberate Python/Julia/proj-config extensions and cwd fallback. Builds now require active configuration and typed validation rejects unsupported fields. Explicit directory mappings and full failure restoration still need implementation; historical passing fixtures do not demonstrate those new requirements. Individual scripts currently start in their parent directory. Captured-root stability is implemented for core CLI child queries after cwd changes, including independent simultaneous roots; direct R frontend/renderer parity remains unimplemented. Base-file aliases and first-wins profile merging use one merged typed configuration for validation and build script/hook selection. Profile/local filenames retain their existing _projr- form for now. Explicit empty script selection now skips analysis while preserving hooks and production publication; its tests cover production archive bytes and preview nonpublication without invoking real renderers.\nVerify nested projects, explicit selection, paths containing spaces, shallow default enumeration, explicit subdirectory scripts, changed cwd, and each supported renderer’s evaluation root. Compare the same nested QMD through projr, quarto::quarto_render(), and RStudio QMD Render; test R Markdown Knit separately. Reject a nested Quarto project clearly. Verify that direct rendering leaves proj-managed release/version/export state alone. Use tiny fixtures and remote CI where practical. Subprocess execution is not a security sandbox, and path hashes alone do not establish scientific correctness or a reproducible environment.",
+    "crumbs": [
+      "Home",
+      "Design and progress",
+      "Project and execution behavior"
+    ]
+  },
+  {
+    "objectID": "behavior.html#future-r-distribution-and-tests",
+    "href": "behavior.html#future-r-distribution-and-tests",
+    "title": "Project and execution behavior",
+    "section": "",
+    "text": "The R wrapper/CRAN design note records separate CLI installation, unconditional R-only tests, conditional CRAN executable tests and mandatory pinned/checksummed executable integration in our CI. It is future design, not a shipped wrapper, CRAN approval or automatic-download permission.",
+    "crumbs": [
+      "Home",
+      "Design and progress",
+      "Project and execution behavior"
+    ]
+  },
+  {
+    "objectID": "behavior.html#correctness-audit",
+    "href": "behavior.html#correctness-audit",
+    "title": "Project and execution behavior",
+    "section": "",
+    "text": "The pinned legacy audit records unresolved safety and correctness findings and the regression evidence required before claiming fixes.",
+    "crumbs": [
+      "Home",
+      "Design and progress",
+      "Project and execution behavior"
+    ]
+  },
+  {
+    "objectID": "behavior.html#reference-material",
+    "href": "behavior.html#reference-material",
+    "title": "Project and execution behavior",
+    "section": "",
+    "text": "projr root resolution\nThesis design\nPython project configuration\nJulia project environments\nQuarto working directory\nR Markdown render controls\nknitr options",
+    "crumbs": [
+      "Home",
+      "Design and progress",
+      "Project and execution behavior"
+    ]
+  },
+  {
+    "objectID": "tutorial.html",
+    "href": "tutorial.html",
+    "title": "Run your first analysis",
+    "section": "",
+    "text": "WarningTry it on a disposable project\n\n\n\nUse sample data or a disposable copy of your project. Production builds (proj build) can modify or remove files, and safety fixes are still pending. Never run production builds on the only copy of important work. Previews are not a security sandbox; code you run can still change files."
+  },
+  {
+    "objectID": "tutorial.html#make-a-small-project",
+    "href": "tutorial.html#make-a-small-project",
+    "title": "Run your first analysis",
+    "section": "1. Make a small project",
+    "text": "1. Make a small project\nIn an Ubuntu terminal, choose a new folder and open it:\nmkdir projcli-example\ncd projcli-example\nCreate a file named _proj.yml with this content:\ndirectories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: [analysis.py]\nThis declares the folder used for temporary results and the script to run. The example does not need Git setup, a remote repository or proj init."
+  },
+  {
+    "objectID": "tutorial.html#add-an-analysis",
+    "href": "tutorial.html#add-an-analysis",
+    "title": "Run your first analysis",
+    "section": "2. Add an analysis",
+    "text": "2. Add an analysis\nCreate analysis.py in the same folder:\nimport csv\nimport os\nfrom pathlib import Path\nfrom statistics import mean\n\nroot = Path(os.environ[\"PROJ_PROJECT_ROOT\"])\npreview = root / \"_tmp\" / \"preview\"\npreview.mkdir(parents=True, exist_ok=True)\n\nmeasurements = [10, 12, 14]\nresult = preview / \"summary.csv\"\nwith result.open(\"w\", newline=\"\") as handle:\n    writer = csv.writer(handle)\n    writer.writerow([\"count\", \"mean\"])\n    writer.writerow([len(measurements), mean(measurements)])\n\nprint(f\"Saved {result}\")\nThe three measurements are deliberately built into the script so there is no data download or extra package installation. The script uses the project root provided by projcli and explicitly writes to _tmp/preview."
+  },
+  {
+    "objectID": "tutorial.html#check-then-run",
+    "href": "tutorial.html#check-then-run",
+    "title": "Run your first analysis",
+    "section": "3. Check, then run",
+    "text": "3. Check, then run\nproj --project . yml read\nproj --project . --non-interactive build-dev\ncat _tmp/preview/summary.csv\nThe CSV should contain:\ncount,mean\n3,12\nThe validation command reads configuration. The preview runs the script. Running it again replaces this example’s CSV; change a measurement and rerun to see the mean change."
+  },
+  {
+    "objectID": "tutorial.html#understand-what-changed",
+    "href": "tutorial.html#understand-what-changed",
+    "title": "Run your first analysis",
+    "section": "4. Understand what changed",
+    "text": "4. Understand what changed\nThe script creates _tmp/preview/summary.csv. The CLI does not create a VERSION file, publish to docs, or export an archive during this preview.\nA preview is not a sandbox: your script can still write elsewhere if you tell it to. Keep preview writes in an explicit temporary folder."
+  },
+  {
+    "objectID": "tutorial.html#where-to-go-next",
+    "href": "tutorial.html#where-to-go-next",
+    "title": "Run your first analysis",
+    "section": "Where to go next",
+    "text": "Where to go next\n\nQuery a declared path with proj --project . path get --label cache.\nAdd your own script to build.scripts.\nRead the build reference before using proj build. Production builds have different version, cleanup and export behavior.\nCheck what works before adding document rendering or R tooling."
   },
   {
     "objectID": "compatibility.html",
@@ -795,51 +822,146 @@
     ]
   },
   {
-    "objectID": "r-wrapper-cran.html",
-    "href": "r-wrapper-cran.html",
-    "title": "Future R wrapper: CLI installation and CRAN checks",
+    "objectID": "features.html",
+    "href": "features.html",
+    "title": "What works",
     "section": "",
-    "text": "Status: design direction recorded on 2026-10-20, not a shipped wrapper or an accepted CRAN submission. The existing R package remains untouched. This note does not settle the complete frontend protocol or claim renderer parity.\n\n\nThe future wrapper is intended to contain R code that calls a separately installed proj CLI. Its DESCRIPTION should declare that CLI in SystemRequirements. It should discover a compatible executable and give an actionable missing/incompatible-CLI error. A user-invoked installer on the user’s own machine is distinct from automatic downloads during CRAN installation, checks or examples. Do not assume CRAN servers already provide proj.\nCRAN source-package policy permits downloads of precompiled software only as a last resort with CRAN-team agreement. A separate executable is not an automatic exemption. Review Writing R Extensions: portability when implementing the package, including external software availability and portable invocation. This work has neither requested nor obtained CRAN agreement; no outreach is authorized here.\n\n\n\n\n\n\n\n\n\n\nEnvironment\nRequired behavior\n\n\n\n\nCRAN, CLI absent\nAlways run meaningful R-only validation, argument construction, missing-CLI diagnostics and mocked protocol/response tests. Skip only genuine executable integration tests, explicitly because the CLI is unavailable.\n\n\nCRAN, compatible CLI available\nRun the applicable real integration tests as well as the R-only tests. Do not assume every check host supplies it.\n\n\nOur integration CI\nInstall an exact pinned CLI release, verify its checksum and compatible version, and run real end-to-end tests. Missing CLI or failed installation is a failure, never a silent skip.\n\n\n\nMocked responses check the wrapper contract; they do not prove the CLI or renderer works. Our mandatory integration job supplies that evidence. Examples and vignettes must also handle optional executable availability honestly instead of requiring an undeclared download. A requirement to execute proj on CRAN check servers would need an agreed deployment/checking arrangement, not an assumed policy exception.\n\n\n\nThe pinned Quarto R package DESCRIPTION at v1.5.1 declares the separate Quarto command-line tool in SystemRequirements. Its test helper can skip executable-dependent tests when Quarto is unavailable, and its vignette utility checks executable availability during vignette processing. These are specific implementation precedents, not proof that CRAN has accepted a future proj wrapper or guaranteed an executable on every server. This note does not infer automatic binary-download permission from Quarto’s existence.\nBefore implementation, specify compatible protocol versions, executable discovery, argument quoting, diagnostics, and which tests are unconditional versus executable integration. R production changes require separate authorization.",
+    "text": "v0.3.0 was published on 22 May 2026. Its release page currently provides one amd64.deb package. It predates the recent changes listed below; do not assume that an installed binary reporting 0.3.0 includes them.\nSee the release assets and installation status. A new release and repaired installers are being prepared."
+  },
+  {
+    "objectID": "features.html#published-release",
+    "href": "features.html#published-release",
+    "title": "What works",
+    "section": "",
+    "text": "v0.3.0 was published on 22 May 2026. Its release page currently provides one amd64.deb package. It predates the recent changes listed below; do not assume that an installed binary reporting 0.3.0 includes them.\nSee the release assets and installation status. A new release and repaired installers are being prepared."
+  },
+  {
+    "objectID": "features.html#on-main-development-preview",
+    "href": "features.html#on-main-development-preview",
+    "title": "What works",
+    "section": "On main: development preview",
+    "text": "On main: development preview\nThese capabilities are implemented on main. They are not a claim about the older published package.\n\n\n\n\n\n\n\nCapability\nWhat it means for you\n\n\n\n\nChoose the project\n--project PATH selects the folder for a command. Child queries retain that root.\n\n\nPreview an analysis\nbuild-dev runs your selected steps without CLI version changes, output promotion or archive export.\n\n\nRead without changing files\nConfiguration validation and path queries do not create target folders or edit ignore files.\n\n\nDetect command failures\nErrors produce a nonzero exit status, so an automated run can stop.\n\n\nRun without questions\n--non-interactive disables CLI prompts and automatic package installation, and closes runner input.\n\n\nSelect no analysis\nAn explicit scripts: [] runs no analysis scripts. Hooks may still run; production can export existing outputs.\n\n\nRun scripts and render documents\nThe build engine supports Python, R, Quarto and R Markdown/Bookdown targets, with the corresponding tools installed.\n\n\nKeep a local output archive\nProduction builds can export configured outputs to local content-addressed storage, which avoids storing identical content repeatedly.\n\n\n\n\nPreview has a boundary\nThe CLI skips its own release operations during a preview, including cleanup of released outputs and prior caches. This is not a filesystem sandbox. Scripts, hooks and renderers can still change files. Write preview results to an explicitly chosen temporary folder, as in the tutorial.\nDocument renderers have their own working folders and output rules. Mixed-language scheduling is not a promise that every target runs in the exact order written in configuration. See the build reference for the current implementation and the behavior contract for limits."
+  },
+  {
+    "objectID": "features.html#known-limits",
+    "href": "features.html#known-limits",
+    "title": "What works",
+    "section": "Known limits",
+    "text": "Known limits\n\nA preview is not a filesystem sandbox. Scripts and hooks control their writes; automatic redirection of every renderer’s output is not provided.\nMatching results and paths across CLI runs, RStudio and GUI rendering has not been proved.\nComplete compatibility with every projr workflow has not been established.\nMixed script and document targets do not have a complete sequential-order guarantee.\nCurrent-preview release installers have not been verified for every operating system and processor.\nLegacy production behavior is still under review. This guide uses preview builds; it does not establish production cleanup or publication safety.\n\nThe existing R package is unchanged. A Rust library is available in this repository, but new R, Python and Julia frontend integrations are separate work."
+  },
+  {
+    "objectID": "features.html#planned-work",
+    "href": "features.html#planned-work",
+    "title": "What works",
+    "section": "Planned work",
+    "text": "Planned work\nThe broader project-root and build workflow milestones remain incomplete. Current work includes clearer project configuration and verified release and installation routes. This is not a promise that all limitations above will become features.\nFor the detailed evidence, scope and decisions, see the behavior contract and compatibility log."
+  },
+  {
+    "objectID": "cli/build.html",
+    "href": "cli/build.html",
+    "title": "proj build",
+    "section": "",
+    "text": "The build pipeline script execution engine for the project.\nThis command evaluates what files need to be run based on configuration layout parameters (build.scripts in _proj.yml) or filesystem auto-discovery. It sorts them according to strict engine precedence rules, modifies format-specific configuration templates when necessary, and executes each script inside its own independent, isolated subprocess.\n\n\n\n--major, --minor, --patch: Specifies the version bump strategy for a production build.\n--profile: An optional profile to configure execution context.\n--description: An optional description string for the build commit. If omitted during a production build that involves git commits, the CLI will interactively prompt for a one-line description when running inside a valid terminal session.\n\n\n\n\n\nPre-flight Dependency Checks: Before modifying files or triggering git snapshots, the build engine statically resolves targets to identify dependencies. Depending on the matched scripts (such as .Rmd, .qmd, or .py) and configuration files, it asserts the availability of Rscript (verifying required R namespaces like rmarkdown or bookdown), quarto, or python executable commands. Any missing R packages can be resolved automatically via the PROJR_AUTO_INSTALL environment variable, or through an interactive terminal prompt.\nProduction Build Restrictions: Checks if branch rules (only_branches, not_branches) or upstream synchronicity (not_behind) are violated during a production build run.\nRemote Export Pipeline: During the post-build phase, conditionally exports resolved local target outputs into a deduplicated Content-Addressable Storage (CAS) vault as defined via build.dest targets in remotes.local.\nSystem Git Provider Abstracted: Git mutations safely resolve through a strictly encapsulated host System Git adapter, securely avoiding hanging inputs and ensuring older systems correctly push mutations.\nMutual Exclusion Checking: Before executing, proj build checks for project-level configurations (_quarto.yml and _bookdown.yml). If both exist and the build targets include Quarto or RMarkdown documents, it throws an error to prevent conflicting rendering.\nExplicit Execution (Path A):\n\nDefine exact scripts, exclusions (starting with !), or sub-directory globs in _proj.yml under build.scripts.\nCan rewrite _quarto.yml or _bookdown.yml configuration if specific subset documents are requested.\nMaintains order relative to Python and R scripts, while correctly clustering and executing project documents together.\n\nFallback Execution (Path B):\n\nIf no build.scripts is provided, the engine auto-discovers build targets.\nWill execute a Quarto project if _quarto.yml exists, or a Bookdown project if _bookdown.yml exists.\nOtherwise, it falls back to a shallow workspace sweep and runs .qmd, .Rmd, .R, and .py files in that strict order.\n\n\n\n\n\nEvery resolved file or project rendering task runs inside its own completely independent subprocess, isolated via environment profiles (PROJR_PROFILE) and correct working directory assignments (current_dir), preventing memory leaks and state pollution across execution runs.\n\n\n\nproj build-dev\nDevelopment runs execute the existing script selection with development Git settings disabled. The CLI does not create or update VERSION, update ignore files, clear released output or previous caches, promote rendered documents into docs, or export to configured local archives. These rules apply on success and failure, even when production configuration enables cleanup, commits or export.\nScripts should explicitly write preview artefacts into their declared cache or staging locations. A subprocess is not a filesystem sandbox: scripts, hooks and renderers can still write where their own code/configuration directs them. Renderer configuration rewriting and script working-directory behavior retain their existing semantics. This change does not introduce automatic output redirection, recursive discovery or a new project-root policy.\n\n\n\nbuild.scripts: [] selects no analysis scripts. Hooks still run, and production builds can version and export existing artefacts as an upload-only workflow. Analysis cleanup, renderer setup and document promotion are skipped so those existing artefacts are preserved. The CLI does not discover scripts instead.\nFor previews, an absent dev.scripts inherits build.scripts; dev.scripts: [] overrides it with no analysis. Hooks still run, but previews never publish.\n\n\n\nBuilds require root-level _proj.yml, legacy _projr.yml, or an explicitly activated _projr-&lt;profile&gt;.yml. Inactive profiles and _projr-local.yml alone do not qualify. Both base filenames together are an error. Unsupported control fields fail before build writes; arbitrary parameters and metadata maps are allowed. Configuration errors include their causes on stderr and return failure.\nThis validation is separate from project discovery. A root marker or cwd fallback does not make an unconfigured project buildable. Explicit directory enforcement, per-run environment isolation and complete managed-state failure restoration remain under development; see the behavior contract and pinned legacy audit.",
     "crumbs": [
       "Home",
-      "Design and progress",
-      "Future R wrapper: CLI installation and CRAN checks"
+      "Reference",
+      "`proj build`"
     ]
   },
   {
-    "objectID": "r-wrapper-cran.html#separate-installation",
-    "href": "r-wrapper-cran.html#separate-installation",
-    "title": "Future R wrapper: CLI installation and CRAN checks",
+    "objectID": "cli/build.html#arguments-flags",
+    "href": "cli/build.html#arguments-flags",
+    "title": "proj build",
     "section": "",
-    "text": "The future wrapper is intended to contain R code that calls a separately installed proj CLI. Its DESCRIPTION should declare that CLI in SystemRequirements. It should discover a compatible executable and give an actionable missing/incompatible-CLI error. A user-invoked installer on the user’s own machine is distinct from automatic downloads during CRAN installation, checks or examples. Do not assume CRAN servers already provide proj.\nCRAN source-package policy permits downloads of precompiled software only as a last resort with CRAN-team agreement. A separate executable is not an automatic exemption. Review Writing R Extensions: portability when implementing the package, including external software availability and portable invocation. This work has neither requested nor obtained CRAN agreement; no outreach is authorized here.",
+    "text": "--major, --minor, --patch: Specifies the version bump strategy for a production build.\n--profile: An optional profile to configure execution context.\n--description: An optional description string for the build commit. If omitted during a production build that involves git commits, the CLI will interactively prompt for a one-line description when running inside a valid terminal session.",
     "crumbs": [
       "Home",
-      "Design and progress",
-      "Future R wrapper: CLI installation and CRAN checks"
+      "Reference",
+      "`proj build`"
     ]
   },
   {
-    "objectID": "r-wrapper-cran.html#two-complementary-test-environments",
-    "href": "r-wrapper-cran.html#two-complementary-test-environments",
-    "title": "Future R wrapper: CLI installation and CRAN checks",
+    "objectID": "cli/build.html#features",
+    "href": "cli/build.html#features",
+    "title": "proj build",
     "section": "",
-    "text": "Environment\nRequired behavior\n\n\n\n\nCRAN, CLI absent\nAlways run meaningful R-only validation, argument construction, missing-CLI diagnostics and mocked protocol/response tests. Skip only genuine executable integration tests, explicitly because the CLI is unavailable.\n\n\nCRAN, compatible CLI available\nRun the applicable real integration tests as well as the R-only tests. Do not assume every check host supplies it.\n\n\nOur integration CI\nInstall an exact pinned CLI release, verify its checksum and compatible version, and run real end-to-end tests. Missing CLI or failed installation is a failure, never a silent skip.\n\n\n\nMocked responses check the wrapper contract; they do not prove the CLI or renderer works. Our mandatory integration job supplies that evidence. Examples and vignettes must also handle optional executable availability honestly instead of requiring an undeclared download. A requirement to execute proj on CRAN check servers would need an agreed deployment/checking arrangement, not an assumed policy exception.",
+    "text": "Pre-flight Dependency Checks: Before modifying files or triggering git snapshots, the build engine statically resolves targets to identify dependencies. Depending on the matched scripts (such as .Rmd, .qmd, or .py) and configuration files, it asserts the availability of Rscript (verifying required R namespaces like rmarkdown or bookdown), quarto, or python executable commands. Any missing R packages can be resolved automatically via the PROJR_AUTO_INSTALL environment variable, or through an interactive terminal prompt.\nProduction Build Restrictions: Checks if branch rules (only_branches, not_branches) or upstream synchronicity (not_behind) are violated during a production build run.\nRemote Export Pipeline: During the post-build phase, conditionally exports resolved local target outputs into a deduplicated Content-Addressable Storage (CAS) vault as defined via build.dest targets in remotes.local.\nSystem Git Provider Abstracted: Git mutations safely resolve through a strictly encapsulated host System Git adapter, securely avoiding hanging inputs and ensuring older systems correctly push mutations.\nMutual Exclusion Checking: Before executing, proj build checks for project-level configurations (_quarto.yml and _bookdown.yml). If both exist and the build targets include Quarto or RMarkdown documents, it throws an error to prevent conflicting rendering.\nExplicit Execution (Path A):\n\nDefine exact scripts, exclusions (starting with !), or sub-directory globs in _proj.yml under build.scripts.\nCan rewrite _quarto.yml or _bookdown.yml configuration if specific subset documents are requested.\nMaintains order relative to Python and R scripts, while correctly clustering and executing project documents together.\n\nFallback Execution (Path B):\n\nIf no build.scripts is provided, the engine auto-discovers build targets.\nWill execute a Quarto project if _quarto.yml exists, or a Bookdown project if _bookdown.yml exists.\nOtherwise, it falls back to a shallow workspace sweep and runs .qmd, .Rmd, .R, and .py files in that strict order.",
     "crumbs": [
       "Home",
-      "Design and progress",
-      "Future R wrapper: CLI installation and CRAN checks"
+      "Reference",
+      "`proj build`"
     ]
   },
   {
-    "objectID": "r-wrapper-cran.html#relevant-quarto-precedent",
-    "href": "r-wrapper-cran.html#relevant-quarto-precedent",
-    "title": "Future R wrapper: CLI installation and CRAN checks",
+    "objectID": "cli/build.html#isolation",
+    "href": "cli/build.html#isolation",
+    "title": "proj build",
     "section": "",
-    "text": "The pinned Quarto R package DESCRIPTION at v1.5.1 declares the separate Quarto command-line tool in SystemRequirements. Its test helper can skip executable-dependent tests when Quarto is unavailable, and its vignette utility checks executable availability during vignette processing. These are specific implementation precedents, not proof that CRAN has accepted a future proj wrapper or guaranteed an executable on every server. This note does not infer automatic binary-download permission from Quarto’s existence.\nBefore implementation, specify compatible protocol versions, executable discovery, argument quoting, diagnostics, and which tests are unconditional versus executable integration. R production changes require separate authorization.",
+    "text": "Every resolved file or project rendering task runs inside its own completely independent subprocess, isolated via environment profiles (PROJR_PROFILE) and correct working directory assignments (current_dir), preventing memory leaks and state pollution across execution runs.",
     "crumbs": [
       "Home",
-      "Design and progress",
-      "Future R wrapper: CLI installation and CRAN checks"
+      "Reference",
+      "`proj build`"
+    ]
+  },
+  {
+    "objectID": "cli/build.html#development-preview",
+    "href": "cli/build.html#development-preview",
+    "title": "proj build",
+    "section": "",
+    "text": "proj build-dev\nDevelopment runs execute the existing script selection with development Git settings disabled. The CLI does not create or update VERSION, update ignore files, clear released output or previous caches, promote rendered documents into docs, or export to configured local archives. These rules apply on success and failure, even when production configuration enables cleanup, commits or export.\nScripts should explicitly write preview artefacts into their declared cache or staging locations. A subprocess is not a filesystem sandbox: scripts, hooks and renderers can still write where their own code/configuration directs them. Renderer configuration rewriting and script working-directory behavior retain their existing semantics. This change does not introduce automatic output redirection, recursive discovery or a new project-root policy.",
+    "crumbs": [
+      "Home",
+      "Reference",
+      "`proj build`"
+    ]
+  },
+  {
+    "objectID": "cli/build.html#explicit-empty-script-lists",
+    "href": "cli/build.html#explicit-empty-script-lists",
+    "title": "proj build",
+    "section": "",
+    "text": "build.scripts: [] selects no analysis scripts. Hooks still run, and production builds can version and export existing artefacts as an upload-only workflow. Analysis cleanup, renderer setup and document promotion are skipped so those existing artefacts are preserved. The CLI does not discover scripts instead.\nFor previews, an absent dev.scripts inherits build.scripts; dev.scripts: [] overrides it with no analysis. Hooks still run, but previews never publish.",
+    "crumbs": [
+      "Home",
+      "Reference",
+      "`proj build`"
+    ]
+  },
+  {
+    "objectID": "cli/build.html#active-configuration-and-validation",
+    "href": "cli/build.html#active-configuration-and-validation",
+    "title": "proj build",
+    "section": "",
+    "text": "Builds require root-level _proj.yml, legacy _projr.yml, or an explicitly activated _projr-&lt;profile&gt;.yml. Inactive profiles and _projr-local.yml alone do not qualify. Both base filenames together are an error. Unsupported control fields fail before build writes; arbitrary parameters and metadata maps are allowed. Configuration errors include their causes on stderr and return failure.\nThis validation is separate from project discovery. A root marker or cwd fallback does not make an unconfigured project buildable. Explicit directory enforcement, per-run environment isolation and complete managed-state failure restoration remain under development; see the behavior contract and pinned legacy audit.",
+    "crumbs": [
+      "Home",
+      "Reference",
+      "`proj build`"
+    ]
+  },
+  {
+    "objectID": "cli/errors.html",
+    "href": "cli/errors.html",
+    "title": "Command exit status",
+    "section": "",
+    "text": "Successful CLI commands return exit status zero. Reported operation failures return a nonzero status and a diagnostic on stderr, including configuration/path queries, version reads/writes, ignore updates and initialization. Argument parsing errors also return nonzero.\nFor example, a malformed _proj.yml makes proj yml read --project demo fail, so a shell or frontend can stop instead of treating the diagnostic as success. Failed Git staging, commits and GitHub creation propagate as initialization errors; a failed remote inspection does not proceed to GitHub creation.\nThis defines success versus failure, not stable error codes, a JSON result schema or a capability protocol. Diagnostics remain human-readable text. Commands may perform work before failing; a nonzero status is not a rollback guarantee.\n\n\nproj build-dev --project demo --non-interactive\n--non-interactive disables the CLI’s own prompts and automatic R-package installation, including when PROJR_AUTO_INSTALL=true. Missing dependencies produce an error. Script, hook and renderer runners and controlled R dependency probes receive closed stdin. The mode is inherited by managed children as PROJ_NON_INTERACTIVE=true.\nInitialization still performs requested operations using its existing defaults. This flag does not choose project markers, change configuration precedence or define a structured result protocol. Third-party code remains responsible for its own behavior after receiving EOF.",
+    "crumbs": [
+      "Home",
+      "Reference",
+      "Command exit status"
+    ]
+  },
+  {
+    "objectID": "cli/errors.html#explicit-noninteractive-execution",
+    "href": "cli/errors.html#explicit-noninteractive-execution",
+    "title": "Command exit status",
+    "section": "",
+    "text": "proj build-dev --project demo --non-interactive\n--non-interactive disables the CLI’s own prompts and automatic R-package installation, including when PROJR_AUTO_INSTALL=true. Missing dependencies produce an error. Script, hook and renderer runners and controlled R dependency probes receive closed stdin. The mode is inherited by managed children as PROJ_NON_INTERACTIVE=true.\nInitialization still performs requested operations using its existing defaults. This flag does not choose project markers, change configuration precedence or define a structured result protocol. Third-party code remains responsible for its own behavior after receiving EOF.",
+    "crumbs": [
+      "Home",
+      "Reference",
+      "Command exit status"
     ]
   },
   {
@@ -867,153 +989,31 @@
     ]
   },
   {
-    "objectID": "cli/version.html",
-    "href": "cli/version.html",
-    "title": "proj version get",
+    "objectID": "legacy-audit-20261020.html",
+    "href": "legacy-audit-20261020.html",
+    "title": "Legacy core audit: correctness work queue",
     "section": "",
-    "text": "Get the project version based on the VERSION file.\n\n\nThe command searches upwards from the current directory to discover the project root containing the VERSION file. It parses the version text (supporting both raw strings like v1.0.0 or JSON objects) and resolves it to a standard output.\nIf the VERSION file is missing, the tool attempts to fall back and parse the version from an R package DESCRIPTION file if one is present in the project root. If neither a VERSION file nor a DESCRIPTION file exists, it defaults to a newly initialized v0.0.1.\nproj version get\n\n\n\n\n\nOmits the ‘v’ prefix from the output string.\nproj version get --no-v\n\n\n\nSpecifies the output format: - text (default): Outputs the version as a standard string identifier. - json: Outputs the version as a serialized JSON object, detailing its properties (major, minor, patch, and optionally dev).\nproj version get --format json\n\n\n\n\nWhen using --format=json, the output consists of the separated standard semantic components: - major (integer) - minor (integer) - patch (integer) - dev (integer, optional, indicating build cycles or pre-release versioning)",
-    "crumbs": [
-      "Home",
-      "Reference",
-      "`proj version get`"
-    ]
+    "text": "Independent static review, 2026-10-20. Baseline: 41bd7000363f34b1e7e2d7e354971bfe9021e2b1 (relevant implementation blobs also match 5617a6daed1f4743a9b2609694a2f84ad4c902eb). These are source findings, not reproduced runtime failures unless a later entry supplies a regression test and exact CI result. Do not infer that existing Rust behavior is a requirement.\n\n\n\n\n\n\n\n\n\nFinding and baseline source\nRequired correction and evidence\n\n\n\n\nOverlapping docs/output/cache paths; docs . or ancestor; symlinked parents; separator-bearing labels. yml.rs:337, clear.rs:158, fs_utils.rs:1.\nReject unsafe destructive destinations before writes; resolve identity/overlap and staging aliases; protect source/raw/root state. External resource paths remain valid. Test actual preservation with root/ancestor/overlap/traversal/symlink fixtures.\n\n\nVERSION and outputs change before hooks; rollback covers only the execution middle. build.rs:236, build.rs:328.\nStage managed writes and cover hooks, snapshots, execution, postprocessing and promotion with complete error handling. Restore exact prior managed state, including VERSION absence/bytes.\n\n\nPublic docs cleared before ignored promotion failures; post-cleanup precedes CAS export. build.rs:359, build.rs:370, build.rs:430.\nRequire successful expected-output promotion and archive real output bytes before cleanup; never report success after failed/missing promotion. Preserve the previous release on failure.\n\n\nEnvironment read errors suppressed through lines().flatten(); invalid names can panic; required files can be ignored. env.rs:69, env.rs:181.\nBounded reads, validation before mutation, explicit errors for directory/unreadable/empty/NUL inputs; prove analysis never starts.\n\n\nEnvironment guard mutates process-wide variables across library builds. env.rs:118.\nResolve a per-run map and apply child-command environment explicitly. Overlapping projects must not exchange variables/profiles/credentials or change caller environment. A private mutex cannot protect unrelated readers.\n\n\nCredential helper embeds tokens in arguments/shell text, ignores requested host and inherited-helper behavior. git.rs:146.\nPrefer native configured authentication. Any override needs fixed code, exact host scope and no secret in argv/source. Use synthetic punctuation-bearing sentinels and mocked Git; never real credentials in logs.\n\n\nOptional Git work runs implicitly; fetch despite disabled checks, duplicate commits, hardcoded branch and discarded token. build_pre.rs:112, build.rs final Git stages.\nExecute only requested operations using real upstream/native auth; handle clean commits and separate local success from publication failure. Mock Git/network tests.\n\n\n\n\n\n\n\n\n\n\n\n\n\nFinding and baseline source\nRequired correction and evidence\n\n\n\n\nLiteral root metacharacters become script glob syntax. build.rs:650, build.rs:681.\nEscape literal root only, keep user include/exclude syntax; verify actual analysis bytes in bracket/space-named roots.\n\n\nRenderer YAML rewritten persistently, malformed YAML replaced by empty mapping and restoration loses original text/keys. build.rs:709, build.rs:338.\nValidate early; prefer supported renderer controls, otherwise exact-byte restoration on every exit.\n\n\nIndividual documents ignore configured docs destination; PDF/DOCX formats guessed as HTML; promotion errors discarded. build.rs:271, build.rs:363, build_pre.rs:79.\nOne validated destination and explicit supported format mapping; reject unsupported formats rather than guessing; require actual expected artifacts.\n\n\nRmd filename interpolated into executable R source. build.rs:990.\nPass data/arguments to fixed R code; test spaces, apostrophes, backslashes and Unicode without local R execution.\n\n\nRemote paths stay invocation-relative and invalid content tags/errors are dropped. yml.rs:429, build.rs:435.\nNormalize paths against the captured root, validate content tags before writes and propagate export failures.\n\n\nCAS path normalization can collide on Unix; scan/copy race can store bytes under the wrong digest. cas.rs:202, cas.rs:248.\nPreserve platform path distinctions or reject unsupported names; verify stored bytes against digest and fail on source mutation.\n\n\nCAS broader integrity gaps: existing-object trust, unsafe boundaries, non-atomic manifest, CSV escaping, existence-only verification, malformed digest/path traversal and missing/file source accepted as empty snapshot.\nExtend existing CAS work rather than claim a redesign is complete. Require a real input directory and fixture-backed integrity/error behavior.\n\n\nUnsupported control keys silently filtered; runtime invents directory defaults/subpaths. yml.rs filtering/validation/get_path.\nEnforce approved active configuration and explicit used mappings, reject unsupported behavior settings before mutations. Init alone may write defaults.\n\n\n\n\n\n\nAfter bounded configuration fixes: destructive-path guards; complete managed-state failure/promotion handling; per-run environment; Git authentication/operation corrections; exact path/context behavior; explicit renderer checks. Each focused change needs actual Ponytail full-mode review, an independent review and remote regressions. Record implemented evidence in the compatibility log.\nManaged-state restoration cannot undo arbitrary external effects of user scripts or hooks. This is not an OS sandbox or global rollback promise. No trustworthy production-release safety claim follows from preview tests or this static audit. The existing R package and thesis remain untouched.\nThe project already uses Rust edition 2024. Do not modernize for syntax alone. Rust 1.85 is only an MSRV candidate until the locked dependency graph is tested. Release builds should use reviewed stable Rust and --locked; add fmt, clippy and documentation checks without duplicating every matrix unnecessarily. A future fixture-backed YAML dependency migration is separate from urgent correctness fixes. At current memory pressure, no local compilation, R, Docker, Quarto build or compiling source-install is authorized; use remote tests and lightweight released binary smoke checks."
   },
   {
-    "objectID": "cli/version.html#standard-behavior",
-    "href": "cli/version.html#standard-behavior",
-    "title": "proj version get",
+    "objectID": "legacy-audit-20261020.html#highest-risks",
+    "href": "legacy-audit-20261020.html#highest-risks",
+    "title": "Legacy core audit: correctness work queue",
     "section": "",
-    "text": "The command searches upwards from the current directory to discover the project root containing the VERSION file. It parses the version text (supporting both raw strings like v1.0.0 or JSON objects) and resolves it to a standard output.\nIf the VERSION file is missing, the tool attempts to fall back and parse the version from an R package DESCRIPTION file if one is present in the project root. If neither a VERSION file nor a DESCRIPTION file exists, it defaults to a newly initialized v0.0.1.\nproj version get",
-    "crumbs": [
-      "Home",
-      "Reference",
-      "`proj version get`"
-    ]
+    "text": "Finding and baseline source\nRequired correction and evidence\n\n\n\n\nOverlapping docs/output/cache paths; docs . or ancestor; symlinked parents; separator-bearing labels. yml.rs:337, clear.rs:158, fs_utils.rs:1.\nReject unsafe destructive destinations before writes; resolve identity/overlap and staging aliases; protect source/raw/root state. External resource paths remain valid. Test actual preservation with root/ancestor/overlap/traversal/symlink fixtures.\n\n\nVERSION and outputs change before hooks; rollback covers only the execution middle. build.rs:236, build.rs:328.\nStage managed writes and cover hooks, snapshots, execution, postprocessing and promotion with complete error handling. Restore exact prior managed state, including VERSION absence/bytes.\n\n\nPublic docs cleared before ignored promotion failures; post-cleanup precedes CAS export. build.rs:359, build.rs:370, build.rs:430.\nRequire successful expected-output promotion and archive real output bytes before cleanup; never report success after failed/missing promotion. Preserve the previous release on failure.\n\n\nEnvironment read errors suppressed through lines().flatten(); invalid names can panic; required files can be ignored. env.rs:69, env.rs:181.\nBounded reads, validation before mutation, explicit errors for directory/unreadable/empty/NUL inputs; prove analysis never starts.\n\n\nEnvironment guard mutates process-wide variables across library builds. env.rs:118.\nResolve a per-run map and apply child-command environment explicitly. Overlapping projects must not exchange variables/profiles/credentials or change caller environment. A private mutex cannot protect unrelated readers.\n\n\nCredential helper embeds tokens in arguments/shell text, ignores requested host and inherited-helper behavior. git.rs:146.\nPrefer native configured authentication. Any override needs fixed code, exact host scope and no secret in argv/source. Use synthetic punctuation-bearing sentinels and mocked Git; never real credentials in logs.\n\n\nOptional Git work runs implicitly; fetch despite disabled checks, duplicate commits, hardcoded branch and discarded token. build_pre.rs:112, build.rs final Git stages.\nExecute only requested operations using real upstream/native auth; handle clean commits and separate local success from publication failure. Mock Git/network tests."
   },
   {
-    "objectID": "cli/version.html#options",
-    "href": "cli/version.html#options",
-    "title": "proj version get",
+    "objectID": "legacy-audit-20261020.html#additional-correctness-findings",
+    "href": "legacy-audit-20261020.html#additional-correctness-findings",
+    "title": "Legacy core audit: correctness work queue",
     "section": "",
-    "text": "Omits the ‘v’ prefix from the output string.\nproj version get --no-v\n\n\n\nSpecifies the output format: - text (default): Outputs the version as a standard string identifier. - json: Outputs the version as a serialized JSON object, detailing its properties (major, minor, patch, and optionally dev).\nproj version get --format json",
-    "crumbs": [
-      "Home",
-      "Reference",
-      "`proj version get`"
-    ]
+    "text": "Finding and baseline source\nRequired correction and evidence\n\n\n\n\nLiteral root metacharacters become script glob syntax. build.rs:650, build.rs:681.\nEscape literal root only, keep user include/exclude syntax; verify actual analysis bytes in bracket/space-named roots.\n\n\nRenderer YAML rewritten persistently, malformed YAML replaced by empty mapping and restoration loses original text/keys. build.rs:709, build.rs:338.\nValidate early; prefer supported renderer controls, otherwise exact-byte restoration on every exit.\n\n\nIndividual documents ignore configured docs destination; PDF/DOCX formats guessed as HTML; promotion errors discarded. build.rs:271, build.rs:363, build_pre.rs:79.\nOne validated destination and explicit supported format mapping; reject unsupported formats rather than guessing; require actual expected artifacts.\n\n\nRmd filename interpolated into executable R source. build.rs:990.\nPass data/arguments to fixed R code; test spaces, apostrophes, backslashes and Unicode without local R execution.\n\n\nRemote paths stay invocation-relative and invalid content tags/errors are dropped. yml.rs:429, build.rs:435.\nNormalize paths against the captured root, validate content tags before writes and propagate export failures.\n\n\nCAS path normalization can collide on Unix; scan/copy race can store bytes under the wrong digest. cas.rs:202, cas.rs:248.\nPreserve platform path distinctions or reject unsupported names; verify stored bytes against digest and fail on source mutation.\n\n\nCAS broader integrity gaps: existing-object trust, unsafe boundaries, non-atomic manifest, CSV escaping, existence-only verification, malformed digest/path traversal and missing/file source accepted as empty snapshot.\nExtend existing CAS work rather than claim a redesign is complete. Require a real input directory and fixture-backed integrity/error behavior.\n\n\nUnsupported control keys silently filtered; runtime invents directory defaults/subpaths. yml.rs filtering/validation/get_path.\nEnforce approved active configuration and explicit used mappings, reject unsupported behavior settings before mutations. Init alone may write defaults."
   },
   {
-    "objectID": "cli/version.html#json-output-properties",
-    "href": "cli/version.html#json-output-properties",
-    "title": "proj version get",
+    "objectID": "legacy-audit-20261020.html#scope-and-implementation-order",
+    "href": "legacy-audit-20261020.html#scope-and-implementation-order",
+    "title": "Legacy core audit: correctness work queue",
     "section": "",
-    "text": "When using --format=json, the output consists of the separated standard semantic components: - major (integer) - minor (integer) - patch (integer) - dev (integer, optional, indicating build cycles or pre-release versioning)",
-    "crumbs": [
-      "Home",
-      "Reference",
-      "`proj version get`"
-    ]
-  },
-  {
-    "objectID": "cli/path.html",
-    "href": "cli/path.html",
-    "title": "proj path get",
-    "section": "",
-    "text": "Get the resolved absolute path for a given label in the project.\nproj path get --label &lt;LABEL&gt; [--project &lt;PATH&gt;]\n\n\nThe path resolution mapping dynamically takes the target label and computes an absolute path to the sandbox resource.\n\nExact Matches: First, the CLI checks if the provided label perfectly matches an existing block declared inside your _proj.yml. If there is a direct match, the declared path rule is applied.\nPrefix Nesting Fallbacks: If an exact match is missing, the tool attempts to gracefully interpret the label via a foundational prefix fallback. It identifies if the target begins with an approved foundation (cache, raw, output, docs).\n\nSuffix mappings are appended logically to the base directory. For example, if raw is naturally mapped to _raw, invoking a non-declared label raw-data safely resolves as a direct nested directory, constructing the path _raw/data.\n\n\n\n\n\nOutput path labels securely route into versioned target sandboxes during an active project build. The tool guarantees the resolution produces verified absolute paths directly pointing to their intended source locations, enforcing standard separation across testing segregations and pure-function results.\n\n\n\n--project PATH selects that exact existing directory, including a folder without configuration or VERSION. It overrides both ancestor discovery and an inherited run root. Invalid directories fail with a nonzero exit status.\nThe CLI captures an absolute root as PROJ_PROJECT_ROOT for the invocation and its child processes. A nested proj path get uses that root even after a script changes cwd. An invalid inherited root fails rather than falling back silently. Direct Rust build_project(root, ...) calls also pass their supplied root to children. See the discovery rules below for the recognized root markers.\nThis establishes CLI child-query behavior, not direct Quarto/RStudio parity or changes to the existing R frontend. Renderer configuration, execution cwd, resource links and output placement remain separate concerns. Path queries do not write ignore files or create the resolved target directories.\n\n\n\nWithout --project or an inherited run root, discovery walks upward from cwd and selects the first recognized directory. It does not search downward for projects. Recognized markers are VERSION, README.md, _quarto.yml, _proj.yml, legacy _projr.yml, Git/SVN metadata, a DESCRIPTION containing Package:, an RStudio .Rproj whose first line starts Version:, and a renv.lock with a Packages map.\npyproject.toml, Project.toml and JuliaProject.toml deliberately extend the projr marker set for Python/Julia. requirements.txt and Manifest.toml alone are not root markers. Standalone VERSION and README markers are retained, so a nested directory with one is the nearer project; explicit selection overrides it.\nMarker recognition does not change shallow default script enumeration or prove that the corresponding language runner/frontend is implemented. Legacy config content handling is a separate compatibility change from recognizing its root.\nIf no recognized marker exists, discovery selects cwd. Discovery success does not mean a build is configured: the current product contract requires active root configuration and explicit used-directory mappings. Validation changes enforcing that newer contract are separate from this root-discovery slice.",
-    "crumbs": [
-      "Home",
-      "Reference",
-      "`proj path get`"
-    ]
-  },
-  {
-    "objectID": "cli/path.html#resolution-rules",
-    "href": "cli/path.html#resolution-rules",
-    "title": "proj path get",
-    "section": "",
-    "text": "The path resolution mapping dynamically takes the target label and computes an absolute path to the sandbox resource.\n\nExact Matches: First, the CLI checks if the provided label perfectly matches an existing block declared inside your _proj.yml. If there is a direct match, the declared path rule is applied.\nPrefix Nesting Fallbacks: If an exact match is missing, the tool attempts to gracefully interpret the label via a foundational prefix fallback. It identifies if the target begins with an approved foundation (cache, raw, output, docs).\n\nSuffix mappings are appended logically to the base directory. For example, if raw is naturally mapped to _raw, invoking a non-declared label raw-data safely resolves as a direct nested directory, constructing the path _raw/data.",
-    "crumbs": [
-      "Home",
-      "Reference",
-      "`proj path get`"
-    ]
-  },
-  {
-    "objectID": "cli/path.html#output-path-routing",
-    "href": "cli/path.html#output-path-routing",
-    "title": "proj path get",
-    "section": "",
-    "text": "Output path labels securely route into versioned target sandboxes during an active project build. The tool guarantees the resolution produces verified absolute paths directly pointing to their intended source locations, enforcing standard separation across testing segregations and pure-function results.",
-    "crumbs": [
-      "Home",
-      "Reference",
-      "`proj path get`"
-    ]
-  },
-  {
-    "objectID": "cli/path.html#explicit-and-inherited-project-root",
-    "href": "cli/path.html#explicit-and-inherited-project-root",
-    "title": "proj path get",
-    "section": "",
-    "text": "--project PATH selects that exact existing directory, including a folder without configuration or VERSION. It overrides both ancestor discovery and an inherited run root. Invalid directories fail with a nonzero exit status.\nThe CLI captures an absolute root as PROJ_PROJECT_ROOT for the invocation and its child processes. A nested proj path get uses that root even after a script changes cwd. An invalid inherited root fails rather than falling back silently. Direct Rust build_project(root, ...) calls also pass their supplied root to children. See the discovery rules below for the recognized root markers.\nThis establishes CLI child-query behavior, not direct Quarto/RStudio parity or changes to the existing R frontend. Renderer configuration, execution cwd, resource links and output placement remain separate concerns. Path queries do not write ignore files or create the resolved target directories.",
-    "crumbs": [
-      "Home",
-      "Reference",
-      "`proj path get`"
-    ]
-  },
-  {
-    "objectID": "cli/path.html#nearest-root-discovery",
-    "href": "cli/path.html#nearest-root-discovery",
-    "title": "proj path get",
-    "section": "",
-    "text": "Without --project or an inherited run root, discovery walks upward from cwd and selects the first recognized directory. It does not search downward for projects. Recognized markers are VERSION, README.md, _quarto.yml, _proj.yml, legacy _projr.yml, Git/SVN metadata, a DESCRIPTION containing Package:, an RStudio .Rproj whose first line starts Version:, and a renv.lock with a Packages map.\npyproject.toml, Project.toml and JuliaProject.toml deliberately extend the projr marker set for Python/Julia. requirements.txt and Manifest.toml alone are not root markers. Standalone VERSION and README markers are retained, so a nested directory with one is the nearer project; explicit selection overrides it.\nMarker recognition does not change shallow default script enumeration or prove that the corresponding language runner/frontend is implemented. Legacy config content handling is a separate compatibility change from recognizing its root.\nIf no recognized marker exists, discovery selects cwd. Discovery success does not mean a build is configured: the current product contract requires active root configuration and explicit used-directory mappings. Validation changes enforcing that newer contract are separate from this root-discovery slice.",
-    "crumbs": [
-      "Home",
-      "Reference",
-      "`proj path get`"
-    ]
-  },
-  {
-    "objectID": "install.html",
-    "href": "install.html",
-    "title": "Install",
-    "section": "",
-    "text": "WarningRelease transition\n\n\n\nThe published v0.3.0 package predates the recent development changes. The repaired release and installer routes are still being verified. A current binary-download route is not yet recommended. The source-build route below has been checked in Ubuntu CI and requires Rust."
-  },
-  {
-    "objectID": "install.html#ubuntu-and-wsl-ubuntu",
-    "href": "install.html#ubuntu-and-wsl-ubuntu",
-    "title": "Install",
-    "section": "Ubuntu and WSL Ubuntu",
-    "text": "Ubuntu and WSL Ubuntu\nRun Linux commands inside Ubuntu, including when Ubuntu runs through WSL. For the first analysis example you need:\n\nThe current preview build of projcli, with its source revision recorded.\nPython 3, including a python3 command.\nA terminal and a writable folder for the example.\n\nCheck Python:\npython3 --version\nThe published v0.3.0 release has an amd64.deb asset for Debian-style systems on x86-64 processors. It is a historical package, not the current preview used by this tutorial. No current-preview download command is listed here until the replacement release has been checked."
-  },
-  {
-    "objectID": "install.html#building-from-source",
-    "href": "install.html#building-from-source",
-    "title": "Install",
-    "section": "Building from source",
-    "text": "Building from source\nThis route needs Git, a current stable Rust toolchain with Cargo, and your platform’s C/C++ linker tools. The crate uses Rust’s 2024 edition. Ubuntu commonly supplies the linker tools through build-essential.\nThe source-install command below was verified on Ubuntu in CI on 20 October 2026. That run installed source revision fafce46a and ran both documented examples through the CLI:\ncargo install --git https://github.com/MiguelRodo/projcli --locked --bin proj\nThis command installs the current repository source, which can change after that check. It does not install the historical release package.\nCargo normally places the command in ~/.cargo/bin; that folder must be on your PATH. Record the installed commit from Cargo’s output when trying a development build. The version number alone does not identify the recent features."
-  },
-  {
-    "objectID": "install.html#check-which-command-you-have",
-    "href": "install.html#check-which-command-you-have",
-    "title": "Install",
-    "section": "Check which command you have",
-    "text": "Check which command you have\nAnother program can also use the name proj. In Ubuntu, check both its location and its help:\ncommand -v proj\nproj --help\nFor this project’s current preview, help lists build-dev, --project and --non-interactive. If those are missing, check which executable your shell found before continuing."
-  },
-  {
-    "objectID": "install.html#other-systems",
-    "href": "install.html#other-systems",
-    "title": "Install",
-    "section": "Other systems",
-    "text": "Other systems\nWindows amd64 builds are exercised in CI. A released native Windows installer has not yet been verified for the current preview. Published macOS and ARM binary assets have not been established either. Rust test coverage on a platform does not establish that a release installer works there."
-  },
-  {
-    "objectID": "install.html#extra-tools-depend-on-your-project",
-    "href": "install.html#extra-tools-depend-on-your-project",
-    "title": "Install",
-    "section": "Extra tools depend on your project",
-    "text": "Extra tools depend on your project\nThe first tutorial uses only Python’s standard library. R scripts need R and Rscript; reports may additionally need Quarto, rmarkdown or bookdown. Install the tools required by your own targets before running them. Git and remote credentials are needed only for workflows that use those integrations."
+    "text": "After bounded configuration fixes: destructive-path guards; complete managed-state failure/promotion handling; per-run environment; Git authentication/operation corrections; exact path/context behavior; explicit renderer checks. Each focused change needs actual Ponytail full-mode review, an independent review and remote regressions. Record implemented evidence in the compatibility log.\nManaged-state restoration cannot undo arbitrary external effects of user scripts or hooks. This is not an OS sandbox or global rollback promise. No trustworthy production-release safety claim follows from preview tests or this static audit. The existing R package and thesis remain untouched.\nThe project already uses Rust edition 2024. Do not modernize for syntax alone. Rust 1.85 is only an MSRV candidate until the locked dependency graph is tested. Release builds should use reviewed stable Rust and --locked; add fmt, clippy and documentation checks without duplicating every matrix unnecessarily. A future fixture-backed YAML dependency migration is separate from urgent correctness fixes. At current memory pressure, no local compilation, R, Docker, Quarto build or compiling source-install is authorized; use remote tests and lightweight released binary smoke checks."
   }
 ]
