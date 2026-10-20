@@ -192,67 +192,57 @@ fn update_ignore_file(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Re
     Ok(())
 }
 
-/// Discovers the conceptual project root directory via heuristic path traversal.
+/// Finds the nearest recognized project root at or above a starting directory.
 ///
-/// Searches upwards from the current working directory for a `VERSION` file.
-/// When found, it verifies if a `_proj.yml` or `.git` directory exists alongside it.
-/// If not, it continues ascending up to five directory levels to find a comprehensive root.
-/// If no secondary markers are found within that limit, it falls back to the original directory containing the `VERSION` file.
-///
-/// # Panics
-///
-/// Should not panic as file traversal heavily checks boundary existence natively.
+/// Recognizes projr-style VCS, VERSION, README, R-package, RStudio, renv and
+/// Quarto markers, plus proj configuration and Python/Julia project metadata.
+/// It never searches child directories. With no marker, the starting directory
+/// is selected, matching projr's cwd fallback. Invalid paths return `None`.
+/// Discovery alone does not validate or waive the build configuration contract.
 ///
 /// ```rust
-/// use std::fs;
-/// use tempfile::TempDir;
-/// use proj::ignore::root_from;
-///
-/// let temp = TempDir::new().unwrap();
-/// let temp_path = camino::Utf8Path::from_path(temp.path()).unwrap();
-/// fs::write(temp_path.join("VERSION"), "v1.0.0").unwrap();
-///
-/// let result = root_from(temp_path).unwrap();
-/// assert!(result.exists());
+/// let project = tempfile::tempdir().unwrap();
+/// std::fs::write(project.path().join("README.md"), "research").unwrap();
+/// let path = camino::Utf8Path::from_path(project.path()).unwrap();
+/// assert_eq!(proj::root_from(path), Some(path.canonicalize_utf8().unwrap()));
 /// ```
 pub fn root_from(start_path: &camino::Utf8Path) -> Option<camino::Utf8PathBuf> {
-    let mut current_path = start_path;
+    let start = camino::Utf8PathBuf::from_path_buf(fs::canonicalize(start_path).ok()?).ok()?;
+    if !start.is_dir() {
+        return None;
+    }
+    let found = start.ancestors().find(|path| has_project_marker(path)).map(|path| path.to_owned());
+    found.or(Some(start))
+}
 
-    let first_version_dir;
+fn has_line_prefix(path: &camino::Utf8Path, prefix: &str) -> bool {
+    fs::read_to_string(path).map(|text| text.lines().any(|line| line.starts_with(prefix))).unwrap_or(false)
+}
 
-    loop {
-        if current_path.join("VERSION").exists() {
-            first_version_dir = Some(current_path.to_owned());
-            break;
-        }
-        match current_path.parent() {
-            Some(parent) => current_path = parent,
-            None => return None,
+fn has_project_marker(path: &camino::Utf8Path) -> bool {
+    if ["VERSION", "README.md", "_quarto.yml", "_proj.yml", "_projr.yml",
+        "pyproject.toml", "Project.toml", "JuliaProject.toml"]
+        .iter().any(|name| path.join(name).is_file())
+        || path.join(".git").is_dir() || path.join(".svn").is_dir()
+        || has_line_prefix(&path.join(".git"), "gitdir: ")
+        || has_line_prefix(&path.join("DESCRIPTION"), "Package: ")
+    {
+        return true;
+    }
+    if let Ok(text) = fs::read_to_string(path.join("renv.lock")) {
+        let packages = regex::Regex::new(r#""Packages":\s*\{"#).expect("constant marker pattern");
+        if text.lines().any(|line| packages.is_match(line)) {
+            return true;
         }
     }
-
-    let first_dir = first_version_dir?;
-
-    // Check if the first directory also has _proj.yml or .git
-    if first_dir.join("_proj.yml").exists() || first_dir.join(".git").exists() {
-        return Some(first_dir);
+    if let Ok(entries) = fs::read_dir(path) {
+        return entries.flatten().any(|entry| {
+            let file = entry.path();
+            file.is_file() && file.extension().and_then(|extension| extension.to_str()) == Some("Rproj")
+                && fs::read_to_string(file).map(|text| text.lines().next().is_some_and(|line| line.starts_with("Version: "))).unwrap_or(false)
+        });
     }
-
-    // Move up to 5 levels to find a directory with VERSION and (_proj.yml or .git)
-    let mut search_path = first_dir.as_path();
-    for _ in 0..5 {
-        match search_path.parent() {
-            Some(parent) => search_path = parent,
-            None => break,
-        }
-
-        if search_path.join("VERSION").exists() && (search_path.join("_proj.yml").exists() || search_path.join(".git").exists()) {
-            return Some(search_path.to_owned());
-        }
-    }
-
-    // Fallback to the first directory
-    Some(first_dir)
+    false
 }
 
 /// Thin production wrapper: discovers the conceptual project root directory via heuristic path traversal.
