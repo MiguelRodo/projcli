@@ -13,6 +13,7 @@ website:
       - section: "Build Reference"
         contents:
           - behavior.qmd
+          - compatibility.qmd
           - flow.qmd
       - section: "CLI Reference"
         contents:

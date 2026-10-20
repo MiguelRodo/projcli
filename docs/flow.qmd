@@ -62,12 +62,12 @@ The system inspects the workspace for the presence of `_quarto.yml` and `_bookdo
 The engine determines which scripts to execute based on two possible paths:
 
 #### Path A: Explicit Configuration (`build.scripts` / `dev.scripts`)
-During development builds (`BuildMode::Dev`), the `dev.scripts` configuration array overrides the standard `build.scripts`. Explicitly providing an empty array (`[]`) for `dev.scripts` causes a strict error to prevent silently running an empty development build.
+During development builds (`BuildMode::Dev`), the `dev.scripts` configuration array overrides the standard `build.scripts`. An explicitly empty array (`[]`) selects no analysis scripts. It does not fall back to production scripts or discovery; hooks still run.
 
 If target scripts are defined in `_proj.yml`:
 - Glob patterns are resolved to absolute paths.
 - Exclusion patterns (prefixed with `!`) filter the matched lists.
-- Empty lists explicitly short-circuit the execution process (The Explicit Empty Exception).
+- Empty lists skip analysis, renderer setup and analysis cleanup/promotion, while hooks and normal production publication/export remain available. Preview publication remains disabled.
 - Documentation files (`.qmd`, `.Rmd`) are segregated from standalone scripts (`.R`, `.py`).
 - **Dynamic Configuration Updates:** If documentation targets are specified, the respective project files (`_quarto.yml` or `_bookdown.yml`) are dynamically updated to only render the explicitly requested targets.
 

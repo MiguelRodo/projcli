@@ -106,9 +106,6 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
 
             if is_dev {
                 if let Some(dev_scripts) = dev.scripts {
-                    if dev_scripts.is_empty() {
-                        anyhow::bail!("dev.scripts cannot be empty when running in dev mode. The purpose of dev mode is to run scripts");
-                    }
                     build_scripts = Some(dev_scripts);
                 } else {
                     build_scripts = build.scripts;
@@ -183,6 +180,12 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     }
     check_explicit_missing(&raw_hooks)?;
 
+    // An explicit empty list selects no analysis; it never enables discovery or
+    // renderer setup. Hooks are still validated and executed independently.
+    let run_analysis = build_scripts.as_ref().map_or(true, |scripts| !scripts.is_empty());
+    let quarto_exists = quarto_exists && run_analysis;
+    let bookdown_exists = bookdown_exists && run_analysis;
+
     let mut validation_files = resolved_files.clone();
     validation_files.extend(resolved_hooks.clone());
 
@@ -230,7 +233,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     let clear_output_env = std::env::var("PROJR_CLEAR_OUTPUT").ok();
     let clear_output_val = clear_output_env.as_deref().or(config.clear_output.as_deref());
 
-    if !is_dev {
+    if !is_dev && run_analysis {
         crate::clear::clear_old(project_root, &current_version, is_dev, config.old_dev_remove)?;
         crate::clear::clear_pre(project_root, &current_version, &config, clear_output_val)?;
     }
@@ -352,13 +355,13 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
             let is_single_doc_engine = !quarto_exists && !bookdown_exists;
             let clear_output_env = std::env::var("PROJR_CLEAR_OUTPUT").ok();
             let clear_output_val = clear_output_env.as_deref().or(config.clear_output.as_deref());
-            if !is_dev {
+            if !is_dev && run_analysis {
                 crate::clear::clear_post(project_root, is_dev, &config, clear_output_val, is_single_doc_engine)?;
             }
 
             // Copy docs
             let should_run_output = config.output_run.unwrap_or(true);
-            if should_run_output && !is_dev {
+            if should_run_output && !is_dev && run_analysis {
                 let final_docs_dir = original_docs_path.clone().unwrap_or_else(|| project_root.join("docs").into());
                 let cache_docs_dir = project_root.join("_tmp").join("projr").join(&current_version).join("docs");
 

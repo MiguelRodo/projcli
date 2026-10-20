@@ -1,0 +1,197 @@
+# projr compatibility and change log
+
+The [behavior contract](behavior.qmd) owns current product decisions. This log
+records comparison evidence, implementation differences and gaps. Update it in
+every focused PR; do not infer runtime parity from similar source or green Rust CI.
+
+Relationship labels are **same**, **different**, **new**, and **unverified**.
+Each entry states whether that label concerns documented intent, static source,
+or executed behavior. No comparative R runtime tests have been run for the entries
+below. Local R/Docker workloads have not been run.
+
+## Reference baselines
+
+- R baseline: [SATVILab/projr at 3ac2959](https://github.com/SATVILab/projr/tree/3ac29595d0e39552495d863661b99ea015d59d3d).
+- Thesis baseline: [design at b110da5](https://github.com/SATVILab/Manuscript22RodoThesis/blob/b110da557b802341e425f57f4acaa0c2b4ab97cb/projr/3-design.qmd).
+- Rust pre-migration baseline: [024589b](https://github.com/MiguelRodo/projcli/tree/024589bbb6d471c3b1430057f76f5b2149444fac).
+
+New comparisons must pin source commits and relevant files, record the decision
+and rationale, link executed tests, and distinguish approved, implemented and
+unverified behavior. Changing a reference baseline does not silently change the
+product contract.
+
+## PR123: development-preview mutation gates
+
+- **Relationship: unverified runtime parity; same documented intent.** The R
+  [README](https://github.com/SATVILab/projr/blob/3ac29595d0e39552495d863661b99ea015d59d3d/README.md)
+  and thesis design describe development previews separately from publication.
+  This is evidence of intent, not proof that every R development path is inert.
+- **Decision/rationale:** keep CLI-managed release/version/archive changes out of
+  previews so researchers can inspect development results without publishing.
+- **Implemented:** [PR123](https://github.com/MiguelRodo/projcli/pull/123), merged
+  `5d145293e596c5797e9620bd3f00978fa6f99411`; Dev-gated VERSION writes, cleanup,
+  document promotion, local export and ignore updates in
+  [build.rs](https://github.com/MiguelRodo/projcli/blob/5d145293e596c5797e9620bd3f00978fa6f99411/src/build.rs),
+  env.rs and yml.rs.
+- **Executed evidence:** [three-platform Rust tests](https://github.com/MiguelRodo/projcli/actions/runs/39479251265),
+  including `test_preview_safety.rs`, and installer checks passed on reviewed
+  head `5d3ac227f52b33fd0c32fddd479cb7296c4072a5`. A disposable installed-CLI
+  Python fixture reproduced the previous version/output/ignore mutations.
+- **Gaps:** cooperating Python scripts only; renderer YAML rewriting, automatic
+  output isolation, repeated runs, same-project concurrency and full production
+  lifecycle behavior were not established. Subprocesses are not a sandbox.
+
+## PR124: product authority and renderer contract
+
+- **Relationship: new explicit contract; renderer parity unverified.** R
+  [path.R](https://github.com/SATVILab/projr/blob/3ac29595d0e39552495d863661b99ea015d59d3d/R/path.R)
+  dynamically discovers a root, while the thesis defines the project workflow.
+- **Decision/rationale:** current approved behavior supersedes defects and stale
+  architecture claims. Root/path defaults must agree across projr,
+  `quarto::quarto_render()` and RStudio QMD Render. Quarto root equals proj root;
+  nested Quarto projects are unsupported. Direct rendering does not imply release
+  lifecycle parity; R Markdown Knit is a separate entrypoint.
+- **Implemented:** [PR124](https://github.com/MiguelRodo/projcli/pull/124), merged
+  `635aa9efac0d7a28971236ab78c879b21be5ec31`, corrected AGENTS/README/flow guidance
+  and added the behavior contract. This was documentation, not renderer code.
+- **Executed evidence:** independent document review and
+  [remote Rust CI](https://github.com/MiguelRodo/projcli/actions/runs/39481010442)
+  passed at `dbf8d5fd94a87bba32ffc95cd2ee3b47f1e04277`.
+- **Gaps:** no direct R frontend, Quarto/RStudio GUI or fresh-render-session
+  parity test was performed. No projr production code or thesis text was changed.
+
+## PR125: captured root and explicit selection
+
+- **Relationship: different root-resolution mechanism; new CLI selection.** R
+  [path.R](https://github.com/SATVILab/projr/blob/3ac29595d0e39552495d863661b99ea015d59d3d/R/path.R)
+  calls root discovery from current context. The CLI now captures one absolute
+  root and passes it to each managed child as `PROJ_PROJECT_ROOT`.
+- **Decision/rationale:** explicit selection wins, and path queries must not
+  change projects after cwd changes. This deliberately improves unstable root
+  behavior rather than copying it.
+- **Implemented:** [PR125](https://github.com/MiguelRodo/projcli/pull/125), merged
+  `f265eb46c91a300fe0aafad3119d998038946a0b`; project.rs, ignore.rs, main.rs and
+  build.rs. Direct library builds configure each child command instead of
+  mutating the caller's process-global root.
+- **Executed evidence:** [three-platform tests](https://github.com/MiguelRodo/projcli/actions/runs/39481104695)
+  at `779b3010040eeb23f08434478e0812173eb2a723` cover explicit precedence, spaces,
+  invalid roots, changed cwd and overlapping builds in two distinct roots.
+- **Gaps:** marker discovery was not changed; R path helpers and direct render
+  entrypoints do not yet consume this captured context. The tests do not promise
+  general environment isolation or same-project concurrent builds.
+
+## PR126: nonmutating queries and initializer failure preservation
+
+- **Relationship: same static read-only configuration intent; runtime R parity
+  unverified.** R [yml.R](https://github.com/SATVILab/projr/blob/3ac29595d0e39552495d863661b99ea015d59d3d/R/yml.R)
+  reads/merges configuration; this does not establish equivalence of every R
+  public path helper or its cache routing.
+- **Decision/rationale:** reading configuration or paths must not update ignore
+  files. Mutating build/init operations request synchronization explicitly, and
+  bad configuration must not replace custom ignores with default rules.
+- **Implemented:** [PR126](https://github.com/MiguelRodo/projcli/pull/126), merged
+  `cd34c3208f1ed1c3c27571e7ce2828498a4aecdb`; yml.rs, build.rs, init.rs/main.rs.
+- **Executed evidence:** [three-platform tests](https://github.com/MiguelRodo/projcli/actions/runs/39482261938)
+  at `cc132f1e1b288c7560ff6b6b06fcac369a475355` snapshot files/directories for CLI
+  queries, exercise direct API reads and production ignore synchronization, and
+  preserve custom ignores on malformed/read-failing config. Permission-denied
+  coverage ran on Linux/macOS.
+- **Gaps:** supported aliases, unknown-option handling and effective merged
+  script/hook configuration remained unchanged and incomplete.
+
+## PR127: operation failures and exit status
+
+- **Relationship: new CLI transport contract; same failure-reporting intent.** R
+  [build-engine.R](https://github.com/SATVILab/projr/blob/3ac29595d0e39552495d863661b99ea015d59d3d/R/build-engine.R)
+  uses R errors; that is not a process exit-code protocol for language wrappers.
+- **Decision/rationale:** a printed error must not be returned as successful
+  execution. Failed Git remote inspection must not proceed to GitHub creation.
+- **Implemented:** [PR127](https://github.com/MiguelRodo/projcli/pull/127), merged
+  `8e955b32bc1f611d38a8931d489de2bdfc50d5c7`; main.rs routes operation failures to
+  nonzero status and init.rs propagates previously swallowed external failures.
+- **Executed evidence:** [three-platform tests](https://github.com/MiguelRodo/projcli/actions/runs/39482993953)
+  at `a741b5f9de63dcb96ca527607105e5547be1da7c` cover failing queries/version/init/
+  ignores, missing executables, child failure and successful queries. Local fake
+  Git/GitHub commands on Linux/macOS made no network requests.
+- **Gaps:** structured error/capability protocols and clean/idempotent Git-init
+  coverage remained open; failure status is not rollback or R-runtime parity.
+
+## PR128: explicit noninteractive execution
+
+- **Relationship: new CLI mode.** The R baseline's
+  [build-engine.R](https://github.com/SATVILab/projr/blob/3ac29595d0e39552495d863661b99ea015d59d3d/R/build-engine.R)
+  calls dependency helpers; no equivalent explicit CLI flag/parity is claimed.
+- **Decision/rationale:** machine invocations must not need the CLI's prompts or
+  automatic package installation. Controlled child stdin must actually be closed.
+- **Implemented:** [PR128](https://github.com/MiguelRodo/projcli/pull/128), merged
+  `f7ff7e92451a3174d6cb9c5fd60151621e66bd04` after independent review at
+  `5dedee7da69cbe52837993e86bc4837c4c3342a1`; adds the flag, inherited mode,
+  runner stdin closure and controlled R-probe stdin closure.
+- **Executed evidence:** [three-platform tests](https://github.com/MiguelRodo/projcli/actions/runs/39484182256)
+  and installer checks passed at that head; fake-R EOF/no-install tests ran on
+  Linux/macOS and Python runner-stdin coverage ran on all three platforms.
+- **Gaps:** no actual R startup/renderer execution comparison; initialization
+  retains existing requested-operation defaults and third-party code can ignore
+  EOF. This does not establish general subprocess isolation.
+
+## Explicit empty selection and newly confirmed policies
+
+- **Relationship: same absent-dev fallback; different explicit-empty guarantee.** R
+  [yml-scripts.R](https://github.com/SATVILab/projr/blob/3ac29595d0e39552495d863661b99ea015d59d3d/R/yml-scripts.R)
+  falls back when dev scripts are absent. Empty-list behavior also passes through
+  [validation](https://github.com/SATVILab/projr/blob/3ac29595d0e39552495d863661b99ea015d59d3d/R/yml-check.R)
+  and renderer selection, so a reliable R upload-only no-analysis contract has
+  not been demonstrated.
+- **Decision/rationale:** explicit `[]` selects no analysis, preserving hooks and
+  production upload/export; absence still falls back. It must not discover or
+  render unrequested files. Cleanup/promotion must preserve upload inputs.
+- **Implementation status:** this focused change removes the Dev-empty error and
+  derives one analysis-selection guard for renderer setup/cleanup/promotion.
+  `tests/test_empty_scripts.rs` checks hooks, existing output/docs bytes, actual
+  production archive bytes and preview nonpublication. CI/review are pending;
+  no passing result is claimed yet.
+- **Confirmed but separate runtime gaps:** retain projr markers (including README/
+  VERSION), accept legacy `_projr.yml` with a both-base-files error, and use local
+  > profiles > base with earlier profiles first. The R precedence evidence is
+  [yml.R](https://github.com/SATVILab/projr/blob/3ac29595d0e39552495d863661b99ea015d59d3d/R/yml.R#L224).
+  These approvals are recorded in the behavior contract; this change does not
+  implement aliases, marker expansion or merged script/hook context.
+
+## Ponytail source verification and completed-chunk review
+
+The actual [.agents/skills/ponytail/SKILL.md](https://github.com/MiguelRodo/projcli/blob/be625b670b914c85b669257eefd60ae678662d33/.agents/skills/ponytail/SKILL.md)
+is vendored unchanged from DietrichGebert/ponytail **v4.10.0**, upstream commit
+`e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156`, as installed by PR121. Its pinned
+upstream bytes and the existing projcli, projr, setupmjr and projects copies all
+have SHA-256 `1316a2f3f95741d2300b116fe0c2d81ce4a9568656ed0a62643f54aaf09957f2`.
+The established setupmjr vendoring contract matches; no duplicate or replacement
+skill was installed.
+
+The skill prescribes the full-mode simplicity ladder, tracing callers before
+changing shared behavior, reusing existing code/stdlib/dependencies, and leaving
+an appropriate runnable check. It supplies no separate executable review script.
+Applying that guidance is a self-review, separate from independent review and CI.
+
+Completed-chunk review of PR128 at `5dedee7da69cbe52837993e86bc4837c4c3342a1`:
+
+- Traced the prompt helpers, main description prompt, dependency probes, install
+  branch, script/hooks and project-render runners. Reused the existing EnvGuard,
+  one shared mode predicate and standard-library null stdin; no dependency or
+  custom execution framework was introduced.
+- Finding/action: the R package probe also needed closed stdin before package
+  detection. That path was corrected and covered by a live-input/fake-R EOF test.
+  Rechecking all controlled status/output paths found no further necessary change.
+- All three remote Rust suites and installers passed; this self-review remained
+  separate from the independent exact-head review.
+
+Completed-chunk review of the prepared empty-selection change:
+
+- Reused the existing explicit-list resolver and pipeline; no new execution
+  framework, configuration key or dependency was added.
+- Traced preflight, version, cleanup, hooks, document promotion and publication.
+  Finding: skipping script execution alone could still erase upload-only inputs
+  or require unused renderers. Action: derive one shared analysis-selection guard
+  and apply it before those stages; keep hooks/publication outside that guard.
+- Retained data-preservation and failure handling. Added runnable integration
+  checks for real archive bytes and absence-versus-empty semantics; remote results
+  remain pending until recorded above. No R runtime parity was inferred.
