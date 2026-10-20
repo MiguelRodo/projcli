@@ -41,3 +41,18 @@
     - `docs/cli/ignore.qmd` – Reference documentation for `proj ignore` logic, protected lists, and boundaries.
     - *Add new `docs/cli` qmds as needed, and update their functional descriptions here.*
 - **Continuous Alignment:** Do not leave pages blank or create placeholders. The technical narrative inside the `docs/` files must mirror the behavior of the active Rust code and the terminal `--help` output exactly as features are implemented.
+
+## Ponytail
+
+For coding, refactoring, bug-fixing, review and implementation design, read
+`.agents/skills/ponytail/SKILL.md` and apply Ponytail in **full** mode by
+default. Use **ultra** only when explicitly requested. Repository-specific
+correctness, security, architecture and validation requirements take precedence
+over generic simplification guidance.
+
+## GitHub issues and Projects
+
+For issue and Project administration, use the canonical
+[MiguelRodo/github-projects-skill](https://github.com/MiguelRodo/github-projects-skill/tree/main/skills/github-projects)
+skill and read `.projects/project.md` for this repository's routing contract.
+The central issue store owns planning; this repository is its implementation mirror.
