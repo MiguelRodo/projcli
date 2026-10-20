@@ -222,18 +222,23 @@ pub fn run_pre_flight_checks(
         }
 
         for package_name in required_packages {
-            let status = Command::new("Rscript")
-                .args(&[
-                    "-e",
-                    &format!("if (!requireNamespace('{}', quietly = TRUE)) q(status = 1)", package_name),
-                ])
-                .status();
+            let mut probe = Command::new("Rscript");
+            probe.args(&[
+                "-e",
+                &format!("if (!requireNamespace('{}', quietly = TRUE)) q(status = 1)", package_name),
+            ]);
+            if crate::env::is_non_interactive() {
+                probe.stdin(std::process::Stdio::null());
+            }
+            let status = probe.status();
 
             let is_installed = status.map(|s| s.success()).unwrap_or(false);
 
             if !is_installed {
                 let auto_install = std::env::var("PROJR_AUTO_INSTALL").unwrap_or_default();
-                let should_install = if auto_install == "true" {
+                let should_install = if crate::env::is_non_interactive() {
+                    false
+                } else if auto_install == "true" {
                     true
                 } else if auto_install == "false" {
                     false

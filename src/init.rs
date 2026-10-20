@@ -6,6 +6,9 @@ use crate::version::version_set;
 use crate::ignore::root;
 
 pub fn is_prompt_enabled() -> bool {
+    if crate::env::is_non_interactive() {
+        return false;
+    }
     if !std::io::stdin().is_terminal() {
         return false;
     }

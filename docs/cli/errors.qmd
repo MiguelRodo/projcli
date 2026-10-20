@@ -13,3 +13,20 @@ a failed remote inspection does not proceed to GitHub creation.
 This defines success versus failure, not stable error codes, a JSON result schema
 or a capability protocol. Diagnostics remain human-readable text. Commands may
 perform work before failing; a nonzero status is not a rollback guarantee.
+
+## Explicit noninteractive execution
+
+```bash
+proj build-dev --project demo --non-interactive
+```
+
+`--non-interactive` disables the CLI's own prompts and automatic R-package
+installation, including when `PROJR_AUTO_INSTALL=true`. Missing dependencies
+produce an error. Script, hook and renderer runners and controlled R dependency
+probes receive closed stdin.
+The mode is inherited by managed children as `PROJ_NON_INTERACTIVE=true`.
+
+Initialization still performs requested operations using its existing defaults.
+This flag does not choose project markers, change configuration precedence or
+define a structured result protocol. Third-party code remains responsible for
+its own behavior after receiving EOF.
