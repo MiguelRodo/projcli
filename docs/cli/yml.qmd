@@ -18,7 +18,12 @@ profiles winning conflicts. `_projr-local.yml` overrides all active profiles.
 Explicit profile selection replaces the environment list. Profile/local filename
 aliases are separate from the implemented base alias.
 
-Missing configuration uses defaults in memory. Missing directory paths and base
+Read-only queries still use in-memory defaults when configuration is missing.
+Builds require `_proj.yml`, legacy `_projr.yml`, or an explicitly activated
+`_projr-<profile>.yml` at the selected root. Inactive profiles and local overrides
+alone do not satisfy this requirement. Unsupported configuration fields fail
+validation, including nested control fields; `metadata` and `parameters` remain
+arbitrary maps. Missing directory paths and base
 labels also receive in-memory defaults, and an absent `parameters` value becomes
 an empty mapping. No parameters block or other default is inserted into a file.
 Conflicting parameter aliases in the base configuration are rejected.

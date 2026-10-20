@@ -58,3 +58,17 @@ existing artefacts are preserved. The CLI does not discover scripts instead.
 
 For previews, an absent `dev.scripts` inherits `build.scripts`; `dev.scripts: []`
 overrides it with no analysis. Hooks still run, but previews never publish.
+
+
+## Active configuration and validation
+
+Builds require root-level `_proj.yml`, legacy `_projr.yml`, or an explicitly
+activated `_projr-<profile>.yml`. Inactive profiles and `_projr-local.yml` alone
+do not qualify. Both base filenames together are an error. Unsupported control
+fields fail before build writes; arbitrary `parameters` and `metadata` maps are
+allowed. Configuration errors include their causes on stderr and return failure.
+
+This validation is separate from project discovery. A root marker or cwd fallback
+does not make an unconfigured project buildable. Explicit directory enforcement,
+per-run environment isolation and complete managed-state failure restoration
+remain under development; see the behavior contract and pinned legacy audit.
