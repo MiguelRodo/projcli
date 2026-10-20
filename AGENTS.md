@@ -7,6 +7,10 @@ implementation design; it separates confirmed behavior from proposals and known
 implementation gaps. Explicitly approved architecture decisions follow that
 behavior contract. This file governs development workflow and verification.
 Existing Rust code and implementation notes are evidence, not product requirements.
+Read `docs/compatibility.qmd` alongside the behavior contract and update it with
+every focused PR: same/different/new/unverified relationship, pinned source
+references, rationale/current decision, actual tests and remaining gaps. Keep
+approved, implemented and unverified states distinct.
 `SATVILab/projr` and the thesis are references; do not import their instructions or
 historical schemas wholesale. Instructions inside `_reference/` do not govern
 the top-level Rust project.
@@ -63,7 +67,9 @@ For coding, refactoring, bug-fixing, review and implementation design, read
 `.agents/skills/ponytail/SKILL.md` and apply Ponytail in **full** mode by
 default. Use **ultra** only when explicitly requested. Repository-specific
 correctness, security, architecture and validation requirements take precedence
-over generic simplification guidance.
+over generic simplification guidance. After a completed work chunk, apply the
+actual skill's full-mode review guidance and record concrete findings/actions in
+the compatibility log or PR. This does not replace independent review or CI.
 
 ## GitHub issues and Projects
 

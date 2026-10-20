@@ -48,3 +48,13 @@ renderers can still write where their own code/configuration directs them.
 Renderer configuration rewriting and script working-directory behavior retain
 their existing semantics. This change does not introduce automatic output
 redirection, recursive discovery or a new project-root policy.
+
+## Explicit empty script lists
+
+`build.scripts: []` selects no analysis scripts. Hooks still run, and production
+builds can version and export existing artefacts as an upload-only workflow.
+Analysis cleanup, renderer setup and document promotion are skipped so those
+existing artefacts are preserved. The CLI does not discover scripts instead.
+
+For previews, an absent `dev.scripts` inherits `build.scripts`; `dev.scripts: []`
+overrides it with no analysis. Hooks still run, but previews never publish.
