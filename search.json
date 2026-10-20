@@ -1,5 +1,187 @@
 [
   {
+    "objectID": "cli/path.html",
+    "href": "cli/path.html",
+    "title": "proj path get",
+    "section": "",
+    "text": "Get the resolved absolute path for a given label in the project.\nproj path get --label &lt;LABEL&gt;\n\n\nThe path resolution mapping dynamically takes the target label and computes an absolute path to the sandbox resource.\n\nExact Matches: First, the CLI checks if the provided label perfectly matches an existing block declared inside your _proj.yml. If there is a direct match, the declared path rule is applied.\nPrefix Nesting Fallbacks: If an exact match is missing, the tool attempts to gracefully interpret the label via a foundational prefix fallback. It identifies if the target begins with an approved foundation (cache, raw, output, docs).\n\nSuffix mappings are appended logically to the base directory. For example, if raw is naturally mapped to _raw, invoking a non-declared label raw-data safely resolves as a direct nested directory, constructing the path _raw/data.\n\n\n\n\n\nOutput path labels securely route into versioned target sandboxes during an active project build. The tool guarantees the resolution produces verified absolute paths directly pointing to their intended source locations, enforcing standard separation across testing segregations and pure-function results.",
+    "crumbs": [
+      "CLI Reference",
+      "`proj path get`"
+    ]
+  },
+  {
+    "objectID": "cli/path.html#resolution-rules",
+    "href": "cli/path.html#resolution-rules",
+    "title": "proj path get",
+    "section": "",
+    "text": "The path resolution mapping dynamically takes the target label and computes an absolute path to the sandbox resource.\n\nExact Matches: First, the CLI checks if the provided label perfectly matches an existing block declared inside your _proj.yml. If there is a direct match, the declared path rule is applied.\nPrefix Nesting Fallbacks: If an exact match is missing, the tool attempts to gracefully interpret the label via a foundational prefix fallback. It identifies if the target begins with an approved foundation (cache, raw, output, docs).\n\nSuffix mappings are appended logically to the base directory. For example, if raw is naturally mapped to _raw, invoking a non-declared label raw-data safely resolves as a direct nested directory, constructing the path _raw/data.",
+    "crumbs": [
+      "CLI Reference",
+      "`proj path get`"
+    ]
+  },
+  {
+    "objectID": "cli/path.html#output-path-routing",
+    "href": "cli/path.html#output-path-routing",
+    "title": "proj path get",
+    "section": "",
+    "text": "Output path labels securely route into versioned target sandboxes during an active project build. The tool guarantees the resolution produces verified absolute paths directly pointing to their intended source locations, enforcing standard separation across testing segregations and pure-function results.",
+    "crumbs": [
+      "CLI Reference",
+      "`proj path get`"
+    ]
+  },
+  {
+    "objectID": "cli/ignore.html",
+    "href": "cli/ignore.html",
+    "title": "proj ignore",
+    "section": "",
+    "text": "Commands for interacting with tracking file exclusions, handling operations to manually or automatically modify .gitignore and .Rbuildignore files.\n\n\nManually appends one or more raw file or directory paths to the project ignore files.\nUnlike automatic configurations driven by _proj.yml, these manual entries represent permanent, user-specified exclusions and are placed strictly above the # --- PROJ MANAGED --- blocks.\n\n\n\n&lt;PATHS&gt;...: One or more raw file or directory paths to be ignored.\n--force-create: Boolean flag (default true). If true, creates ignore files if they don’t exist. If false, skips file creation unless inherently warranted by environmental cues (e.g. finding a .git folder or a DESCRIPTION file).\n--type: Optional filter selection (all [default], git, rbuild). Determines which tracking surface receives the manual path entries. Note that .Rbuildignore is skipped entirely if no DESCRIPTION file exists at the project root.\n\n\n\n\n\nManually forces paths to be tracked by appending negated syntax (e.g. !path/ or ^!pattern$).\nThese unignore entries represent permanent, user-specified negations and are placed strictly below the # --- END PROJ MANAGED --- boundary in .gitignore and .Rbuildignore files.\n\n\n\n&lt;PATHS&gt;...: One or more raw file or directory paths to force tracking.\n--type: Optional filter selection (all [default], git, rbuild). Determines which tracking surface receives the negated entries. Note that .Rbuildignore is skipped entirely if no DESCRIPTION file exists at the project root.\n\n\n\n\n\nThe library core automatically synchronizes ignore rules dynamically across .gitignore and .Rbuildignore based on the configuration of _proj.yml.\n\nNote: While the automated ignore synchronization is invoked implicitly by the CLI via commands like proj yml read (and acts seamlessly under the hood), the ignore subcommand namespace exists openly to support explicit manual additions via proj ignore add.\n\n\n\n\nThe tool automatically locates the project boundaries via a heuristic upward path traversal. It begins checking from the user’s current working directory upward: - It discovers the conceptual root by finding a directory containing a VERSION file. - It continues upward through up to 5 directory levels seeking an optimal foundational root confirming the presence of either _proj.yml or a .git tracking context alongside the VERSION.\n\n\n\nThe tool targets specifically two core exception list files: - .gitignore (safeguards git commit environments) - .Rbuildignore (safeguards strict CRAN environments and rbuild processes)\nBased on the individual block ignore settings within _proj.yml (e.g. ignore: all), properties are intelligently resolved as standard git glob patterns and Rbuild regex match patterns appropriately.\n\n\n\nModifications made by the tool into .gitignore and .Rbuildignore are safely strictly demarcated with protected slice logic block comments. This preserves user-defined modifications outside the managed span: - Operations scan for # --- PROJ MANAGED --- and # --- END PROJ MANAGED ---. - Targeted slice elements are swapped or appended into existing scopes only between these exact markers. - If the boundary blocks are absent, the tool automatically injects them natively at the base end.",
+    "crumbs": [
+      "CLI Reference",
+      "`proj ignore`"
+    ]
+  },
+  {
+    "objectID": "cli/ignore.html#proj-ignore-add",
+    "href": "cli/ignore.html#proj-ignore-add",
+    "title": "proj ignore",
+    "section": "",
+    "text": "Manually appends one or more raw file or directory paths to the project ignore files.\nUnlike automatic configurations driven by _proj.yml, these manual entries represent permanent, user-specified exclusions and are placed strictly above the # --- PROJ MANAGED --- blocks.\n\n\n\n&lt;PATHS&gt;...: One or more raw file or directory paths to be ignored.\n--force-create: Boolean flag (default true). If true, creates ignore files if they don’t exist. If false, skips file creation unless inherently warranted by environmental cues (e.g. finding a .git folder or a DESCRIPTION file).\n--type: Optional filter selection (all [default], git, rbuild). Determines which tracking surface receives the manual path entries. Note that .Rbuildignore is skipped entirely if no DESCRIPTION file exists at the project root.",
+    "crumbs": [
+      "CLI Reference",
+      "`proj ignore`"
+    ]
+  },
+  {
+    "objectID": "cli/ignore.html#proj-ignore-remove",
+    "href": "cli/ignore.html#proj-ignore-remove",
+    "title": "proj ignore",
+    "section": "",
+    "text": "Manually forces paths to be tracked by appending negated syntax (e.g. !path/ or ^!pattern$).\nThese unignore entries represent permanent, user-specified negations and are placed strictly below the # --- END PROJ MANAGED --- boundary in .gitignore and .Rbuildignore files.\n\n\n\n&lt;PATHS&gt;...: One or more raw file or directory paths to force tracking.\n--type: Optional filter selection (all [default], git, rbuild). Determines which tracking surface receives the negated entries. Note that .Rbuildignore is skipped entirely if no DESCRIPTION file exists at the project root.",
+    "crumbs": [
+      "CLI Reference",
+      "`proj ignore`"
+    ]
+  },
+  {
+    "objectID": "cli/ignore.html#automated-synchronization",
+    "href": "cli/ignore.html#automated-synchronization",
+    "title": "proj ignore",
+    "section": "",
+    "text": "The library core automatically synchronizes ignore rules dynamically across .gitignore and .Rbuildignore based on the configuration of _proj.yml.\n\nNote: While the automated ignore synchronization is invoked implicitly by the CLI via commands like proj yml read (and acts seamlessly under the hood), the ignore subcommand namespace exists openly to support explicit manual additions via proj ignore add.",
+    "crumbs": [
+      "CLI Reference",
+      "`proj ignore`"
+    ]
+  },
+  {
+    "objectID": "cli/ignore.html#automated-root-scans",
+    "href": "cli/ignore.html#automated-root-scans",
+    "title": "proj ignore",
+    "section": "",
+    "text": "The tool automatically locates the project boundaries via a heuristic upward path traversal. It begins checking from the user’s current working directory upward: - It discovers the conceptual root by finding a directory containing a VERSION file. - It continues upward through up to 5 directory levels seeking an optimal foundational root confirming the presence of either _proj.yml or a .git tracking context alongside the VERSION.",
+    "crumbs": [
+      "CLI Reference",
+      "`proj ignore`"
+    ]
+  },
+  {
+    "objectID": "cli/ignore.html#protected-exceptions-file-list",
+    "href": "cli/ignore.html#protected-exceptions-file-list",
+    "title": "proj ignore",
+    "section": "",
+    "text": "The tool targets specifically two core exception list files: - .gitignore (safeguards git commit environments) - .Rbuildignore (safeguards strict CRAN environments and rbuild processes)\nBased on the individual block ignore settings within _proj.yml (e.g. ignore: all), properties are intelligently resolved as standard git glob patterns and Rbuild regex match patterns appropriately.",
+    "crumbs": [
+      "CLI Reference",
+      "`proj ignore`"
+    ]
+  },
+  {
+    "objectID": "cli/ignore.html#demarcation-slice-logic",
+    "href": "cli/ignore.html#demarcation-slice-logic",
+    "title": "proj ignore",
+    "section": "",
+    "text": "Modifications made by the tool into .gitignore and .Rbuildignore are safely strictly demarcated with protected slice logic block comments. This preserves user-defined modifications outside the managed span: - Operations scan for # --- PROJ MANAGED --- and # --- END PROJ MANAGED ---. - Targeted slice elements are swapped or appended into existing scopes only between these exact markers. - If the boundary blocks are absent, the tool automatically injects them natively at the base end.",
+    "crumbs": [
+      "CLI Reference",
+      "`proj ignore`"
+    ]
+  },
+  {
+    "objectID": "cli/build.html",
+    "href": "cli/build.html",
+    "title": "proj build",
+    "section": "",
+    "text": "The build pipeline script execution engine for the project.\nThis command evaluates what files need to be run based on configuration layout parameters (build.scripts in _proj.yml) or filesystem auto-discovery. It sorts them according to strict engine precedence rules, modifies format-specific configuration templates when necessary, and executes each script inside its own independent, isolated subprocess.\n\n\n\n--major, --minor, --patch: Specifies the version bump strategy for a production build.\n--profile: An optional profile to configure execution context.\n--description: An optional description string for the build commit. If omitted during a production build that involves git commits, the CLI will interactively prompt for a one-line description when running inside a valid terminal session.\n\n\n\n\n\nPre-flight Dependency Checks: Before modifying files or triggering git snapshots, the build engine statically resolves targets to identify dependencies. Depending on the matched scripts (such as .Rmd, .qmd, or .py) and configuration files, it asserts the availability of Rscript (verifying required R namespaces like rmarkdown or bookdown), quarto, or python executable commands. Any missing R packages can be resolved automatically via the PROJR_AUTO_INSTALL environment variable, or through an interactive terminal prompt.\nProduction Build Restrictions: Checks if branch rules (only_branches, not_branches) or upstream synchronicity (not_behind) are violated during a production build run.\nRemote Export Pipeline: During the post-build phase, conditionally exports resolved local target outputs into a deduplicated Content-Addressable Storage (CAS) vault as defined via build.dest targets in remotes.local.\nSystem Git Provider Abstracted: Git mutations safely resolve through a strictly encapsulated host System Git adapter, securely avoiding hanging inputs and ensuring older systems correctly push mutations.\nMutual Exclusion Checking: Before executing, proj build checks for project-level configurations (_quarto.yml and _bookdown.yml). If both exist and the build targets include Quarto or RMarkdown documents, it throws an error to prevent conflicting rendering.\nExplicit Execution (Path A):\n\nDefine exact scripts, exclusions (starting with !), or sub-directory globs in _proj.yml under build.scripts.\nCan rewrite _quarto.yml or _bookdown.yml configuration if specific subset documents are requested.\nMaintains order relative to Python and R scripts, while correctly clustering and executing project documents together.\n\nFallback Execution (Path B):\n\nIf no build.scripts is provided, the engine auto-discovers build targets.\nWill execute a Quarto project if _quarto.yml exists, or a Bookdown project if _bookdown.yml exists.\nOtherwise, it falls back to a shallow workspace sweep and runs .qmd, .Rmd, .R, and .py files in that strict order.\n\n\n\n\n\nEvery resolved file or project rendering task runs inside its own completely independent subprocess, isolated via environment profiles (PROJR_PROFILE) and correct working directory assignments (current_dir), preventing memory leaks and state pollution across execution runs."
+  },
+  {
+    "objectID": "cli/build.html#arguments-flags",
+    "href": "cli/build.html#arguments-flags",
+    "title": "proj build",
+    "section": "",
+    "text": "--major, --minor, --patch: Specifies the version bump strategy for a production build.\n--profile: An optional profile to configure execution context.\n--description: An optional description string for the build commit. If omitted during a production build that involves git commits, the CLI will interactively prompt for a one-line description when running inside a valid terminal session."
+  },
+  {
+    "objectID": "cli/build.html#features",
+    "href": "cli/build.html#features",
+    "title": "proj build",
+    "section": "",
+    "text": "Pre-flight Dependency Checks: Before modifying files or triggering git snapshots, the build engine statically resolves targets to identify dependencies. Depending on the matched scripts (such as .Rmd, .qmd, or .py) and configuration files, it asserts the availability of Rscript (verifying required R namespaces like rmarkdown or bookdown), quarto, or python executable commands. Any missing R packages can be resolved automatically via the PROJR_AUTO_INSTALL environment variable, or through an interactive terminal prompt.\nProduction Build Restrictions: Checks if branch rules (only_branches, not_branches) or upstream synchronicity (not_behind) are violated during a production build run.\nRemote Export Pipeline: During the post-build phase, conditionally exports resolved local target outputs into a deduplicated Content-Addressable Storage (CAS) vault as defined via build.dest targets in remotes.local.\nSystem Git Provider Abstracted: Git mutations safely resolve through a strictly encapsulated host System Git adapter, securely avoiding hanging inputs and ensuring older systems correctly push mutations.\nMutual Exclusion Checking: Before executing, proj build checks for project-level configurations (_quarto.yml and _bookdown.yml). If both exist and the build targets include Quarto or RMarkdown documents, it throws an error to prevent conflicting rendering.\nExplicit Execution (Path A):\n\nDefine exact scripts, exclusions (starting with !), or sub-directory globs in _proj.yml under build.scripts.\nCan rewrite _quarto.yml or _bookdown.yml configuration if specific subset documents are requested.\nMaintains order relative to Python and R scripts, while correctly clustering and executing project documents together.\n\nFallback Execution (Path B):\n\nIf no build.scripts is provided, the engine auto-discovers build targets.\nWill execute a Quarto project if _quarto.yml exists, or a Bookdown project if _bookdown.yml exists.\nOtherwise, it falls back to a shallow workspace sweep and runs .qmd, .Rmd, .R, and .py files in that strict order."
+  },
+  {
+    "objectID": "cli/build.html#isolation",
+    "href": "cli/build.html#isolation",
+    "title": "proj build",
+    "section": "",
+    "text": "Every resolved file or project rendering task runs inside its own completely independent subprocess, isolated via environment profiles (PROJR_PROFILE) and correct working directory assignments (current_dir), preventing memory leaks and state pollution across execution runs."
+  },
+  {
+    "objectID": "flow.html",
+    "href": "flow.html",
+    "title": "Proj Build Execution Flow",
+    "section": "",
+    "text": "This document serves as a strict technical reference detailing exactly what happens when the proj build (or proj build-dev) command is executed. The build pipeline is designed to enforce structural integrity, version control, and reproducible execution environments. The process is strictly divided into three sequential stages: Pre-Build, Actual Build, and Post-Build.\n\n\nThe pre-build stage focuses on validation, environment auditing, and preparing the workspace state prior to executing any project code.\n\n\nThe _proj.yml configuration is parsed and validated based on the execution mode (development vs. production). The configuration audit also strictly evaluates arbitrary nested keys inside the parameters block and throws a validation error if multiple aliases (parameter, params, param) are found to prevent mapping conflicts.\n\n\n\nIf the configuration mandates version control integration (git.commit is true): - The system resolves the GitProvider based on the configured engine (config.git.engine defaults to auto or system) and verifies that Git is installed and available on the system PATH. If remote operations like fetching or pushing are necessary and config.git.use_proj_cred_helper is enabled, the credential discovery engine attempts to resolve GitHub tokens. - A check is performed to ensure the Git profile (author identity) is properly configured for the workspace.\n\n\n\nThe engine safely clears pre-build caches and output directories based on the clear_output configuration (pre, post, or never). The legacy cache old versions are also purged if dev.old_dev_remove is enabled.\n\n\n\nThe project’s current version is resolved by checking the VERSION file. If absent, the system attempts to extract it from an R DESCRIPTION file, or defaults to v0.0.1. - Development Builds (proj build-dev): If the development flag is 0, it is bumped to 1. - Production Builds (proj build): The version is bumped according to the specified strategy (--major, --minor, or --patch), and the development flag is reset to 0. The newly computed version is then written back to the project configuration.\n\n\n\nIf the configuration defines pre or both automation hooks (either build.hooks or overriding dev.hooks), these are executed in isolated subprocesses. They strictly run after version modification but before the pre-snapshot.\n\n\n\nIf git.commit is enabled, all current workspace changes are staged and committed with a “Snapshot pre-build” message. This creates a clean rollback point should the build process fail.\n\n\n\nThe system dynamically scans the configuration and targeted scripts (such as .Rmd, .qmd, .py) to determine which interpreters and frameworks are required. Before any file modifications or executions occur: - R dependencies (like bookdown or rmarkdown) and Rscript availability are verified. Missing R packages are remediated interactively or automatically via PROJR_AUTO_INSTALL. - Quarto availability is checked. - Python executable availability (python or python3) is resolved and cached for the build stage.\n\n\n\nFor production builds, the system enforces optional git restrictions configured in _proj.yml: - Ensures the current branch matches only_branches or is not in not_branches. - Verifies that the branch has a tracking remote configured, and is not behind upstream if not_behind is enabled.\n\n\n\n\nThe actual build stage handles the isolation, resolution, and execution of scripts and documents. This entire stage is executed within a catch_unwind block to safely trap panics and allow for graceful recovery.\n\n\nThe system inspects the workspace for the presence of _quarto.yml and _bookdown.yml. - Mutual Exclusion Check: The presence of both configuration files simultaneously results in a fatal validation error if the build.scripts configuration is omitted or includes documentation targets (.qmd or .Rmd).\n\n\n\nThe engine determines which scripts to execute based on two possible paths:\n\n\nDuring development builds (BuildMode::Dev), the dev.scripts configuration array overrides the standard build.scripts. Explicitly providing an empty array ([]) for dev.scripts causes a strict error to prevent silently running an empty development build.\nIf target scripts are defined in _proj.yml: - Glob patterns are resolved to absolute paths. - Exclusion patterns (prefixed with !) filter the matched lists. - Empty lists explicitly short-circuit the execution process (The Explicit Empty Exception). - Documentation files (.qmd, .Rmd) are segregated from standalone scripts (.R, .py). - Dynamic Configuration Updates: If documentation targets are specified, the respective project files (_quarto.yml or _bookdown.yml) are dynamically updated to only render the explicitly requested targets.\n\n\n\nIf no explicit scripts are defined: - The system determines if it should trigger an automated Quarto or Bookdown site render based on the presence of their configuration files. - If neither exists, a shallow directory sweep is performed, executing discovered files strictly in the order of: .qmd, .Rmd, .R, .py.\n\n\n\n\nScripts are executed in isolated subprocesses using their respective interpreters (e.g., Rscript, python, quarto). The subprocess current_dir is explicitly set to the directory containing the target script.\nWhen Quarto or Bookdown configurations are active alongside explicit scripts, a strict reordering constraint is applied: 1. Pre-scripts: All .R or .py files listed before the first documentation file are executed. 2. Doc Clusters: The documentation project render engine (quarto render or rmarkdown::render_site) is triggered. 3. Post-scripts: All .R or .py files listed after the first documentation file are executed.\nOtherwise, scripts are executed sequentially exactly as resolved.\n\n\n\n\nThe post-build stage acts on the final status of the actual build stage, finalizing version control, syncing remotes, or safely rolling back the workspace.\n\n\nIf the entire build pipeline executes without error and Git integration is enabled (git.commit is true): - A final commit is generated capturing all build artifacts and modifications. - The commit message is formatted as Build v&lt;VERSION&gt; or includes an optional user-provided description (Build v&lt;VERSION&gt;: &lt;DESCRIPTION&gt;).\n\n\n\nIf configured (clear_output: post), the engine cleans up post-build deployment folders. Additionally, temporary document rendering artifacts (docs/) are automatically cleaned up on successful completion of a single document rendering engine.\n\n\n\nAfter the actual build stage completes successfully and the final Git commit is generated, any configured post or both automation hooks (either build.hooks or overriding dev.hooks) are executed in isolated subprocesses.\n\n\n\nIf remote targets are specified in build.dest and remotes.local is configured: - The system iterates over the defined build.dest targets. - Resolved content directories mapped to these targets are piped to the Content-Addressable Storage (CAS) engine. - The CAS engine handles deduplicated storage synchronization, exporting project files into the remote vault.\n\n\n\nIf Git integration is enabled (git.commit is true) and pushing is configured (git.push is true): - The GitProvider commits the automated workspace build update (capturing compiled asset tracking or CAS mutations). - The GitProvider pushes the local branch mutations to the remote host. - If remote authentication is required and the credential helper is enabled (config.git.use_proj_cred_helper), the CLI securely injects the discovered GitHub token.\n\n\n\nIf the build pipeline returns an error or panics mid-execution: - Production Rollback: If the build was a production run (--major, --minor, or --patch), the version modifications performed in the Pre-Build stage are reversed. The system restores the pre-build version configuration and ensures the development flag (dev) is set to 1 to maintain safety. - The underlying error is propagated to the CLI output, terminating the process with a non-zero exit code.",
+    "crumbs": [
+      "Build Reference",
+      "Proj Build Execution Flow"
+    ]
+  },
+  {
+    "objectID": "flow.html#pre-build-stage",
+    "href": "flow.html#pre-build-stage",
+    "title": "Proj Build Execution Flow",
+    "section": "",
+    "text": "The pre-build stage focuses on validation, environment auditing, and preparing the workspace state prior to executing any project code.\n\n\nThe _proj.yml configuration is parsed and validated based on the execution mode (development vs. production). The configuration audit also strictly evaluates arbitrary nested keys inside the parameters block and throws a validation error if multiple aliases (parameter, params, param) are found to prevent mapping conflicts.\n\n\n\nIf the configuration mandates version control integration (git.commit is true): - The system resolves the GitProvider based on the configured engine (config.git.engine defaults to auto or system) and verifies that Git is installed and available on the system PATH. If remote operations like fetching or pushing are necessary and config.git.use_proj_cred_helper is enabled, the credential discovery engine attempts to resolve GitHub tokens. - A check is performed to ensure the Git profile (author identity) is properly configured for the workspace.\n\n\n\nThe engine safely clears pre-build caches and output directories based on the clear_output configuration (pre, post, or never). The legacy cache old versions are also purged if dev.old_dev_remove is enabled.\n\n\n\nThe project’s current version is resolved by checking the VERSION file. If absent, the system attempts to extract it from an R DESCRIPTION file, or defaults to v0.0.1. - Development Builds (proj build-dev): If the development flag is 0, it is bumped to 1. - Production Builds (proj build): The version is bumped according to the specified strategy (--major, --minor, or --patch), and the development flag is reset to 0. The newly computed version is then written back to the project configuration.\n\n\n\nIf the configuration defines pre or both automation hooks (either build.hooks or overriding dev.hooks), these are executed in isolated subprocesses. They strictly run after version modification but before the pre-snapshot.\n\n\n\nIf git.commit is enabled, all current workspace changes are staged and committed with a “Snapshot pre-build” message. This creates a clean rollback point should the build process fail.\n\n\n\nThe system dynamically scans the configuration and targeted scripts (such as .Rmd, .qmd, .py) to determine which interpreters and frameworks are required. Before any file modifications or executions occur: - R dependencies (like bookdown or rmarkdown) and Rscript availability are verified. Missing R packages are remediated interactively or automatically via PROJR_AUTO_INSTALL. - Quarto availability is checked. - Python executable availability (python or python3) is resolved and cached for the build stage.\n\n\n\nFor production builds, the system enforces optional git restrictions configured in _proj.yml: - Ensures the current branch matches only_branches or is not in not_branches. - Verifies that the branch has a tracking remote configured, and is not behind upstream if not_behind is enabled.",
+    "crumbs": [
+      "Build Reference",
+      "Proj Build Execution Flow"
+    ]
+  },
+  {
+    "objectID": "flow.html#actual-build-stage",
+    "href": "flow.html#actual-build-stage",
+    "title": "Proj Build Execution Flow",
+    "section": "",
+    "text": "The actual build stage handles the isolation, resolution, and execution of scripts and documents. This entire stage is executed within a catch_unwind block to safely trap panics and allow for graceful recovery.\n\n\nThe system inspects the workspace for the presence of _quarto.yml and _bookdown.yml. - Mutual Exclusion Check: The presence of both configuration files simultaneously results in a fatal validation error if the build.scripts configuration is omitted or includes documentation targets (.qmd or .Rmd).\n\n\n\nThe engine determines which scripts to execute based on two possible paths:\n\n\nDuring development builds (BuildMode::Dev), the dev.scripts configuration array overrides the standard build.scripts. Explicitly providing an empty array ([]) for dev.scripts causes a strict error to prevent silently running an empty development build.\nIf target scripts are defined in _proj.yml: - Glob patterns are resolved to absolute paths. - Exclusion patterns (prefixed with !) filter the matched lists. - Empty lists explicitly short-circuit the execution process (The Explicit Empty Exception). - Documentation files (.qmd, .Rmd) are segregated from standalone scripts (.R, .py). - Dynamic Configuration Updates: If documentation targets are specified, the respective project files (_quarto.yml or _bookdown.yml) are dynamically updated to only render the explicitly requested targets.\n\n\n\nIf no explicit scripts are defined: - The system determines if it should trigger an automated Quarto or Bookdown site render based on the presence of their configuration files. - If neither exists, a shallow directory sweep is performed, executing discovered files strictly in the order of: .qmd, .Rmd, .R, .py.\n\n\n\n\nScripts are executed in isolated subprocesses using their respective interpreters (e.g., Rscript, python, quarto). The subprocess current_dir is explicitly set to the directory containing the target script.\nWhen Quarto or Bookdown configurations are active alongside explicit scripts, a strict reordering constraint is applied: 1. Pre-scripts: All .R or .py files listed before the first documentation file are executed. 2. Doc Clusters: The documentation project render engine (quarto render or rmarkdown::render_site) is triggered. 3. Post-scripts: All .R or .py files listed after the first documentation file are executed.\nOtherwise, scripts are executed sequentially exactly as resolved.",
+    "crumbs": [
+      "Build Reference",
+      "Proj Build Execution Flow"
+    ]
+  },
+  {
+    "objectID": "flow.html#post-build-stage",
+    "href": "flow.html#post-build-stage",
+    "title": "Proj Build Execution Flow",
+    "section": "",
+    "text": "The post-build stage acts on the final status of the actual build stage, finalizing version control, syncing remotes, or safely rolling back the workspace.\n\n\nIf the entire build pipeline executes without error and Git integration is enabled (git.commit is true): - A final commit is generated capturing all build artifacts and modifications. - The commit message is formatted as Build v&lt;VERSION&gt; or includes an optional user-provided description (Build v&lt;VERSION&gt;: &lt;DESCRIPTION&gt;).\n\n\n\nIf configured (clear_output: post), the engine cleans up post-build deployment folders. Additionally, temporary document rendering artifacts (docs/) are automatically cleaned up on successful completion of a single document rendering engine.\n\n\n\nAfter the actual build stage completes successfully and the final Git commit is generated, any configured post or both automation hooks (either build.hooks or overriding dev.hooks) are executed in isolated subprocesses.\n\n\n\nIf remote targets are specified in build.dest and remotes.local is configured: - The system iterates over the defined build.dest targets. - Resolved content directories mapped to these targets are piped to the Content-Addressable Storage (CAS) engine. - The CAS engine handles deduplicated storage synchronization, exporting project files into the remote vault.\n\n\n\nIf Git integration is enabled (git.commit is true) and pushing is configured (git.push is true): - The GitProvider commits the automated workspace build update (capturing compiled asset tracking or CAS mutations). - The GitProvider pushes the local branch mutations to the remote host. - If remote authentication is required and the credential helper is enabled (config.git.use_proj_cred_helper), the CLI securely injects the discovered GitHub token.\n\n\n\nIf the build pipeline returns an error or panics mid-execution: - Production Rollback: If the build was a production run (--major, --minor, or --patch), the version modifications performed in the Pre-Build stage are reversed. The system restores the pre-build version configuration and ensures the development flag (dev) is set to 1 to maintain safety. - The underlying error is propagated to the CLI output, terminating the process with a non-zero exit code.",
+    "crumbs": [
+      "Build Reference",
+      "Proj Build Execution Flow"
+    ]
+  },
+  {
     "objectID": "configuration.html",
     "href": "configuration.html",
     "title": "Configuration _proj.yml",
@@ -174,187 +356,5 @@
       "CLI Reference",
       "`proj yml get`"
     ]
-  },
-  {
-    "objectID": "flow.html",
-    "href": "flow.html",
-    "title": "Proj Build Execution Flow",
-    "section": "",
-    "text": "This document serves as a strict technical reference detailing exactly what happens when the proj build (or proj build-dev) command is executed. The build pipeline is designed to enforce structural integrity, version control, and reproducible execution environments. The process is strictly divided into three sequential stages: Pre-Build, Actual Build, and Post-Build.\n\n\nThe pre-build stage focuses on validation, environment auditing, and preparing the workspace state prior to executing any project code.\n\n\nThe _proj.yml configuration is parsed and validated based on the execution mode (development vs. production). The configuration audit also strictly evaluates arbitrary nested keys inside the parameters block and throws a validation error if multiple aliases (parameter, params, param) are found to prevent mapping conflicts.\n\n\n\nIf the configuration mandates version control integration (git.commit is true): - The system resolves the GitProvider based on the configured engine (config.git.engine defaults to auto or system) and verifies that Git is installed and available on the system PATH. If remote operations like fetching or pushing are necessary and config.git.use_proj_cred_helper is enabled, the credential discovery engine attempts to resolve GitHub tokens. - A check is performed to ensure the Git profile (author identity) is properly configured for the workspace.\n\n\n\nThe engine safely clears pre-build caches and output directories based on the clear_output configuration (pre, post, or never). The legacy cache old versions are also purged if dev.old_dev_remove is enabled.\n\n\n\nThe project’s current version is resolved by checking the VERSION file. If absent, the system attempts to extract it from an R DESCRIPTION file, or defaults to v0.0.1. - Development Builds (proj build-dev): If the development flag is 0, it is bumped to 1. - Production Builds (proj build): The version is bumped according to the specified strategy (--major, --minor, or --patch), and the development flag is reset to 0. The newly computed version is then written back to the project configuration.\n\n\n\nIf the configuration defines pre or both automation hooks (either build.hooks or overriding dev.hooks), these are executed in isolated subprocesses. They strictly run after version modification but before the pre-snapshot.\n\n\n\nIf git.commit is enabled, all current workspace changes are staged and committed with a “Snapshot pre-build” message. This creates a clean rollback point should the build process fail.\n\n\n\nThe system dynamically scans the configuration and targeted scripts (such as .Rmd, .qmd, .py) to determine which interpreters and frameworks are required. Before any file modifications or executions occur: - R dependencies (like bookdown or rmarkdown) and Rscript availability are verified. Missing R packages are remediated interactively or automatically via PROJR_AUTO_INSTALL. - Quarto availability is checked. - Python executable availability (python or python3) is resolved and cached for the build stage.\n\n\n\nFor production builds, the system enforces optional git restrictions configured in _proj.yml: - Ensures the current branch matches only_branches or is not in not_branches. - Verifies that the branch has a tracking remote configured, and is not behind upstream if not_behind is enabled.\n\n\n\n\nThe actual build stage handles the isolation, resolution, and execution of scripts and documents. This entire stage is executed within a catch_unwind block to safely trap panics and allow for graceful recovery.\n\n\nThe system inspects the workspace for the presence of _quarto.yml and _bookdown.yml. - Mutual Exclusion Check: The presence of both configuration files simultaneously results in a fatal validation error if the build.scripts configuration is omitted or includes documentation targets (.qmd or .Rmd).\n\n\n\nThe engine determines which scripts to execute based on two possible paths:\n\n\nDuring development builds (BuildMode::Dev), the dev.scripts configuration array overrides the standard build.scripts. Explicitly providing an empty array ([]) for dev.scripts causes a strict error to prevent silently running an empty development build.\nIf target scripts are defined in _proj.yml: - Glob patterns are resolved to absolute paths. - Exclusion patterns (prefixed with !) filter the matched lists. - Empty lists explicitly short-circuit the execution process (The Explicit Empty Exception). - Documentation files (.qmd, .Rmd) are segregated from standalone scripts (.R, .py). - Dynamic Configuration Updates: If documentation targets are specified, the respective project files (_quarto.yml or _bookdown.yml) are dynamically updated to only render the explicitly requested targets.\n\n\n\nIf no explicit scripts are defined: - The system determines if it should trigger an automated Quarto or Bookdown site render based on the presence of their configuration files. - If neither exists, a shallow directory sweep is performed, executing discovered files strictly in the order of: .qmd, .Rmd, .R, .py.\n\n\n\n\nScripts are executed in isolated subprocesses using their respective interpreters (e.g., Rscript, python, quarto). The subprocess current_dir is explicitly set to the directory containing the target script.\nWhen Quarto or Bookdown configurations are active alongside explicit scripts, a strict reordering constraint is applied: 1. Pre-scripts: All .R or .py files listed before the first documentation file are executed. 2. Doc Clusters: The documentation project render engine (quarto render or rmarkdown::render_site) is triggered. 3. Post-scripts: All .R or .py files listed after the first documentation file are executed.\nOtherwise, scripts are executed sequentially exactly as resolved.\n\n\n\n\nThe post-build stage acts on the final status of the actual build stage, finalizing version control, syncing remotes, or safely rolling back the workspace.\n\n\nIf the entire build pipeline executes without error and Git integration is enabled (git.commit is true): - A final commit is generated capturing all build artifacts and modifications. - The commit message is formatted as Build v&lt;VERSION&gt; or includes an optional user-provided description (Build v&lt;VERSION&gt;: &lt;DESCRIPTION&gt;).\n\n\n\nIf configured (clear_output: post), the engine cleans up post-build deployment folders. Additionally, temporary document rendering artifacts (docs/) are automatically cleaned up on successful completion of a single document rendering engine.\n\n\n\nAfter the actual build stage completes successfully and the final Git commit is generated, any configured post or both automation hooks (either build.hooks or overriding dev.hooks) are executed in isolated subprocesses.\n\n\n\nIf remote targets are specified in build.dest and remotes.local is configured: - The system iterates over the defined build.dest targets. - Resolved content directories mapped to these targets are piped to the Content-Addressable Storage (CAS) engine. - The CAS engine handles deduplicated storage synchronization, exporting project files into the remote vault.\n\n\n\nIf Git integration is enabled (git.commit is true) and pushing is configured (git.push is true): - The GitProvider commits the automated workspace build update (capturing compiled asset tracking or CAS mutations). - The GitProvider pushes the local branch mutations to the remote host. - If remote authentication is required and the credential helper is enabled (config.git.use_proj_cred_helper), the CLI securely injects the discovered GitHub token.\n\n\n\nIf the build pipeline returns an error or panics mid-execution: - Production Rollback: If the build was a production run (--major, --minor, or --patch), the version modifications performed in the Pre-Build stage are reversed. The system restores the pre-build version configuration and ensures the development flag (dev) is set to 1 to maintain safety. - The underlying error is propagated to the CLI output, terminating the process with a non-zero exit code.",
-    "crumbs": [
-      "Build Reference",
-      "Proj Build Execution Flow"
-    ]
-  },
-  {
-    "objectID": "flow.html#pre-build-stage",
-    "href": "flow.html#pre-build-stage",
-    "title": "Proj Build Execution Flow",
-    "section": "",
-    "text": "The pre-build stage focuses on validation, environment auditing, and preparing the workspace state prior to executing any project code.\n\n\nThe _proj.yml configuration is parsed and validated based on the execution mode (development vs. production). The configuration audit also strictly evaluates arbitrary nested keys inside the parameters block and throws a validation error if multiple aliases (parameter, params, param) are found to prevent mapping conflicts.\n\n\n\nIf the configuration mandates version control integration (git.commit is true): - The system resolves the GitProvider based on the configured engine (config.git.engine defaults to auto or system) and verifies that Git is installed and available on the system PATH. If remote operations like fetching or pushing are necessary and config.git.use_proj_cred_helper is enabled, the credential discovery engine attempts to resolve GitHub tokens. - A check is performed to ensure the Git profile (author identity) is properly configured for the workspace.\n\n\n\nThe engine safely clears pre-build caches and output directories based on the clear_output configuration (pre, post, or never). The legacy cache old versions are also purged if dev.old_dev_remove is enabled.\n\n\n\nThe project’s current version is resolved by checking the VERSION file. If absent, the system attempts to extract it from an R DESCRIPTION file, or defaults to v0.0.1. - Development Builds (proj build-dev): If the development flag is 0, it is bumped to 1. - Production Builds (proj build): The version is bumped according to the specified strategy (--major, --minor, or --patch), and the development flag is reset to 0. The newly computed version is then written back to the project configuration.\n\n\n\nIf the configuration defines pre or both automation hooks (either build.hooks or overriding dev.hooks), these are executed in isolated subprocesses. They strictly run after version modification but before the pre-snapshot.\n\n\n\nIf git.commit is enabled, all current workspace changes are staged and committed with a “Snapshot pre-build” message. This creates a clean rollback point should the build process fail.\n\n\n\nThe system dynamically scans the configuration and targeted scripts (such as .Rmd, .qmd, .py) to determine which interpreters and frameworks are required. Before any file modifications or executions occur: - R dependencies (like bookdown or rmarkdown) and Rscript availability are verified. Missing R packages are remediated interactively or automatically via PROJR_AUTO_INSTALL. - Quarto availability is checked. - Python executable availability (python or python3) is resolved and cached for the build stage.\n\n\n\nFor production builds, the system enforces optional git restrictions configured in _proj.yml: - Ensures the current branch matches only_branches or is not in not_branches. - Verifies that the branch has a tracking remote configured, and is not behind upstream if not_behind is enabled.",
-    "crumbs": [
-      "Build Reference",
-      "Proj Build Execution Flow"
-    ]
-  },
-  {
-    "objectID": "flow.html#actual-build-stage",
-    "href": "flow.html#actual-build-stage",
-    "title": "Proj Build Execution Flow",
-    "section": "",
-    "text": "The actual build stage handles the isolation, resolution, and execution of scripts and documents. This entire stage is executed within a catch_unwind block to safely trap panics and allow for graceful recovery.\n\n\nThe system inspects the workspace for the presence of _quarto.yml and _bookdown.yml. - Mutual Exclusion Check: The presence of both configuration files simultaneously results in a fatal validation error if the build.scripts configuration is omitted or includes documentation targets (.qmd or .Rmd).\n\n\n\nThe engine determines which scripts to execute based on two possible paths:\n\n\nDuring development builds (BuildMode::Dev), the dev.scripts configuration array overrides the standard build.scripts. Explicitly providing an empty array ([]) for dev.scripts causes a strict error to prevent silently running an empty development build.\nIf target scripts are defined in _proj.yml: - Glob patterns are resolved to absolute paths. - Exclusion patterns (prefixed with !) filter the matched lists. - Empty lists explicitly short-circuit the execution process (The Explicit Empty Exception). - Documentation files (.qmd, .Rmd) are segregated from standalone scripts (.R, .py). - Dynamic Configuration Updates: If documentation targets are specified, the respective project files (_quarto.yml or _bookdown.yml) are dynamically updated to only render the explicitly requested targets.\n\n\n\nIf no explicit scripts are defined: - The system determines if it should trigger an automated Quarto or Bookdown site render based on the presence of their configuration files. - If neither exists, a shallow directory sweep is performed, executing discovered files strictly in the order of: .qmd, .Rmd, .R, .py.\n\n\n\n\nScripts are executed in isolated subprocesses using their respective interpreters (e.g., Rscript, python, quarto). The subprocess current_dir is explicitly set to the directory containing the target script.\nWhen Quarto or Bookdown configurations are active alongside explicit scripts, a strict reordering constraint is applied: 1. Pre-scripts: All .R or .py files listed before the first documentation file are executed. 2. Doc Clusters: The documentation project render engine (quarto render or rmarkdown::render_site) is triggered. 3. Post-scripts: All .R or .py files listed after the first documentation file are executed.\nOtherwise, scripts are executed sequentially exactly as resolved.",
-    "crumbs": [
-      "Build Reference",
-      "Proj Build Execution Flow"
-    ]
-  },
-  {
-    "objectID": "flow.html#post-build-stage",
-    "href": "flow.html#post-build-stage",
-    "title": "Proj Build Execution Flow",
-    "section": "",
-    "text": "The post-build stage acts on the final status of the actual build stage, finalizing version control, syncing remotes, or safely rolling back the workspace.\n\n\nIf the entire build pipeline executes without error and Git integration is enabled (git.commit is true): - A final commit is generated capturing all build artifacts and modifications. - The commit message is formatted as Build v&lt;VERSION&gt; or includes an optional user-provided description (Build v&lt;VERSION&gt;: &lt;DESCRIPTION&gt;).\n\n\n\nIf configured (clear_output: post), the engine cleans up post-build deployment folders. Additionally, temporary document rendering artifacts (docs/) are automatically cleaned up on successful completion of a single document rendering engine.\n\n\n\nAfter the actual build stage completes successfully and the final Git commit is generated, any configured post or both automation hooks (either build.hooks or overriding dev.hooks) are executed in isolated subprocesses.\n\n\n\nIf remote targets are specified in build.dest and remotes.local is configured: - The system iterates over the defined build.dest targets. - Resolved content directories mapped to these targets are piped to the Content-Addressable Storage (CAS) engine. - The CAS engine handles deduplicated storage synchronization, exporting project files into the remote vault.\n\n\n\nIf Git integration is enabled (git.commit is true) and pushing is configured (git.push is true): - The GitProvider commits the automated workspace build update (capturing compiled asset tracking or CAS mutations). - The GitProvider pushes the local branch mutations to the remote host. - If remote authentication is required and the credential helper is enabled (config.git.use_proj_cred_helper), the CLI securely injects the discovered GitHub token.\n\n\n\nIf the build pipeline returns an error or panics mid-execution: - Production Rollback: If the build was a production run (--major, --minor, or --patch), the version modifications performed in the Pre-Build stage are reversed. The system restores the pre-build version configuration and ensures the development flag (dev) is set to 1 to maintain safety. - The underlying error is propagated to the CLI output, terminating the process with a non-zero exit code.",
-    "crumbs": [
-      "Build Reference",
-      "Proj Build Execution Flow"
-    ]
-  },
-  {
-    "objectID": "cli/path.html",
-    "href": "cli/path.html",
-    "title": "proj path get",
-    "section": "",
-    "text": "Get the resolved absolute path for a given label in the project.\nproj path get --label &lt;LABEL&gt;\n\n\nThe path resolution mapping dynamically takes the target label and computes an absolute path to the sandbox resource.\n\nExact Matches: First, the CLI checks if the provided label perfectly matches an existing block declared inside your _proj.yml. If there is a direct match, the declared path rule is applied.\nPrefix Nesting Fallbacks: If an exact match is missing, the tool attempts to gracefully interpret the label via a foundational prefix fallback. It identifies if the target begins with an approved foundation (cache, raw, output, docs).\n\nSuffix mappings are appended logically to the base directory. For example, if raw is naturally mapped to _raw, invoking a non-declared label raw-data safely resolves as a direct nested directory, constructing the path _raw/data.\n\n\n\n\n\nOutput path labels securely route into versioned target sandboxes during an active project build. The tool guarantees the resolution produces verified absolute paths directly pointing to their intended source locations, enforcing standard separation across testing segregations and pure-function results.",
-    "crumbs": [
-      "CLI Reference",
-      "`proj path get`"
-    ]
-  },
-  {
-    "objectID": "cli/path.html#resolution-rules",
-    "href": "cli/path.html#resolution-rules",
-    "title": "proj path get",
-    "section": "",
-    "text": "The path resolution mapping dynamically takes the target label and computes an absolute path to the sandbox resource.\n\nExact Matches: First, the CLI checks if the provided label perfectly matches an existing block declared inside your _proj.yml. If there is a direct match, the declared path rule is applied.\nPrefix Nesting Fallbacks: If an exact match is missing, the tool attempts to gracefully interpret the label via a foundational prefix fallback. It identifies if the target begins with an approved foundation (cache, raw, output, docs).\n\nSuffix mappings are appended logically to the base directory. For example, if raw is naturally mapped to _raw, invoking a non-declared label raw-data safely resolves as a direct nested directory, constructing the path _raw/data.",
-    "crumbs": [
-      "CLI Reference",
-      "`proj path get`"
-    ]
-  },
-  {
-    "objectID": "cli/path.html#output-path-routing",
-    "href": "cli/path.html#output-path-routing",
-    "title": "proj path get",
-    "section": "",
-    "text": "Output path labels securely route into versioned target sandboxes during an active project build. The tool guarantees the resolution produces verified absolute paths directly pointing to their intended source locations, enforcing standard separation across testing segregations and pure-function results.",
-    "crumbs": [
-      "CLI Reference",
-      "`proj path get`"
-    ]
-  },
-  {
-    "objectID": "cli/ignore.html",
-    "href": "cli/ignore.html",
-    "title": "proj ignore",
-    "section": "",
-    "text": "Commands for interacting with tracking file exclusions, handling operations to manually or automatically modify .gitignore and .Rbuildignore files.\n\n\nManually appends one or more raw file or directory paths to the project ignore files.\nUnlike automatic configurations driven by _proj.yml, these manual entries represent permanent, user-specified exclusions and are placed strictly above the # --- PROJ MANAGED --- blocks.\n\n\n\n&lt;PATHS&gt;...: One or more raw file or directory paths to be ignored.\n--force-create: Boolean flag (default true). If true, creates ignore files if they don’t exist. If false, skips file creation unless inherently warranted by environmental cues (e.g. finding a .git folder or a DESCRIPTION file).\n--type: Optional filter selection (all [default], git, rbuild). Determines which tracking surface receives the manual path entries. Note that .Rbuildignore is skipped entirely if no DESCRIPTION file exists at the project root.\n\n\n\n\n\nManually forces paths to be tracked by appending negated syntax (e.g. !path/ or ^!pattern$).\nThese unignore entries represent permanent, user-specified negations and are placed strictly below the # --- END PROJ MANAGED --- boundary in .gitignore and .Rbuildignore files.\n\n\n\n&lt;PATHS&gt;...: One or more raw file or directory paths to force tracking.\n--type: Optional filter selection (all [default], git, rbuild). Determines which tracking surface receives the negated entries. Note that .Rbuildignore is skipped entirely if no DESCRIPTION file exists at the project root.\n\n\n\n\n\nThe library core automatically synchronizes ignore rules dynamically across .gitignore and .Rbuildignore based on the configuration of _proj.yml.\n\nNote: While the automated ignore synchronization is invoked implicitly by the CLI via commands like proj yml read (and acts seamlessly under the hood), the ignore subcommand namespace exists openly to support explicit manual additions via proj ignore add.\n\n\n\n\nThe tool automatically locates the project boundaries via a heuristic upward path traversal. It begins checking from the user’s current working directory upward: - It discovers the conceptual root by finding a directory containing a VERSION file. - It continues upward through up to 5 directory levels seeking an optimal foundational root confirming the presence of either _proj.yml or a .git tracking context alongside the VERSION.\n\n\n\nThe tool targets specifically two core exception list files: - .gitignore (safeguards git commit environments) - .Rbuildignore (safeguards strict CRAN environments and rbuild processes)\nBased on the individual block ignore settings within _proj.yml (e.g. ignore: all), properties are intelligently resolved as standard git glob patterns and Rbuild regex match patterns appropriately.\n\n\n\nModifications made by the tool into .gitignore and .Rbuildignore are safely strictly demarcated with protected slice logic block comments. This preserves user-defined modifications outside the managed span: - Operations scan for # --- PROJ MANAGED --- and # --- END PROJ MANAGED ---. - Targeted slice elements are swapped or appended into existing scopes only between these exact markers. - If the boundary blocks are absent, the tool automatically injects them natively at the base end.",
-    "crumbs": [
-      "CLI Reference",
-      "`proj ignore`"
-    ]
-  },
-  {
-    "objectID": "cli/ignore.html#proj-ignore-add",
-    "href": "cli/ignore.html#proj-ignore-add",
-    "title": "proj ignore",
-    "section": "",
-    "text": "Manually appends one or more raw file or directory paths to the project ignore files.\nUnlike automatic configurations driven by _proj.yml, these manual entries represent permanent, user-specified exclusions and are placed strictly above the # --- PROJ MANAGED --- blocks.\n\n\n\n&lt;PATHS&gt;...: One or more raw file or directory paths to be ignored.\n--force-create: Boolean flag (default true). If true, creates ignore files if they don’t exist. If false, skips file creation unless inherently warranted by environmental cues (e.g. finding a .git folder or a DESCRIPTION file).\n--type: Optional filter selection (all [default], git, rbuild). Determines which tracking surface receives the manual path entries. Note that .Rbuildignore is skipped entirely if no DESCRIPTION file exists at the project root.",
-    "crumbs": [
-      "CLI Reference",
-      "`proj ignore`"
-    ]
-  },
-  {
-    "objectID": "cli/ignore.html#proj-ignore-remove",
-    "href": "cli/ignore.html#proj-ignore-remove",
-    "title": "proj ignore",
-    "section": "",
-    "text": "Manually forces paths to be tracked by appending negated syntax (e.g. !path/ or ^!pattern$).\nThese unignore entries represent permanent, user-specified negations and are placed strictly below the # --- END PROJ MANAGED --- boundary in .gitignore and .Rbuildignore files.\n\n\n\n&lt;PATHS&gt;...: One or more raw file or directory paths to force tracking.\n--type: Optional filter selection (all [default], git, rbuild). Determines which tracking surface receives the negated entries. Note that .Rbuildignore is skipped entirely if no DESCRIPTION file exists at the project root.",
-    "crumbs": [
-      "CLI Reference",
-      "`proj ignore`"
-    ]
-  },
-  {
-    "objectID": "cli/ignore.html#automated-synchronization",
-    "href": "cli/ignore.html#automated-synchronization",
-    "title": "proj ignore",
-    "section": "",
-    "text": "The library core automatically synchronizes ignore rules dynamically across .gitignore and .Rbuildignore based on the configuration of _proj.yml.\n\nNote: While the automated ignore synchronization is invoked implicitly by the CLI via commands like proj yml read (and acts seamlessly under the hood), the ignore subcommand namespace exists openly to support explicit manual additions via proj ignore add.",
-    "crumbs": [
-      "CLI Reference",
-      "`proj ignore`"
-    ]
-  },
-  {
-    "objectID": "cli/ignore.html#automated-root-scans",
-    "href": "cli/ignore.html#automated-root-scans",
-    "title": "proj ignore",
-    "section": "",
-    "text": "The tool automatically locates the project boundaries via a heuristic upward path traversal. It begins checking from the user’s current working directory upward: - It discovers the conceptual root by finding a directory containing a VERSION file. - It continues upward through up to 5 directory levels seeking an optimal foundational root confirming the presence of either _proj.yml or a .git tracking context alongside the VERSION.",
-    "crumbs": [
-      "CLI Reference",
-      "`proj ignore`"
-    ]
-  },
-  {
-    "objectID": "cli/ignore.html#protected-exceptions-file-list",
-    "href": "cli/ignore.html#protected-exceptions-file-list",
-    "title": "proj ignore",
-    "section": "",
-    "text": "The tool targets specifically two core exception list files: - .gitignore (safeguards git commit environments) - .Rbuildignore (safeguards strict CRAN environments and rbuild processes)\nBased on the individual block ignore settings within _proj.yml (e.g. ignore: all), properties are intelligently resolved as standard git glob patterns and Rbuild regex match patterns appropriately.",
-    "crumbs": [
-      "CLI Reference",
-      "`proj ignore`"
-    ]
-  },
-  {
-    "objectID": "cli/ignore.html#demarcation-slice-logic",
-    "href": "cli/ignore.html#demarcation-slice-logic",
-    "title": "proj ignore",
-    "section": "",
-    "text": "Modifications made by the tool into .gitignore and .Rbuildignore are safely strictly demarcated with protected slice logic block comments. This preserves user-defined modifications outside the managed span: - Operations scan for # --- PROJ MANAGED --- and # --- END PROJ MANAGED ---. - Targeted slice elements are swapped or appended into existing scopes only between these exact markers. - If the boundary blocks are absent, the tool automatically injects them natively at the base end.",
-    "crumbs": [
-      "CLI Reference",
-      "`proj ignore`"
-    ]
-  },
-  {
-    "objectID": "cli/build.html",
-    "href": "cli/build.html",
-    "title": "proj build",
-    "section": "",
-    "text": "The build pipeline script execution engine for the project.\nThis command evaluates what files need to be run based on configuration layout parameters (build.scripts in _proj.yml) or filesystem auto-discovery. It sorts them according to strict engine precedence rules, modifies format-specific configuration templates when necessary, and executes each script inside its own independent, isolated subprocess.\n\n\n\n--major, --minor, --patch: Specifies the version bump strategy for a production build.\n--profile: An optional profile to configure execution context.\n--description: An optional description string for the build commit. If omitted during a production build that involves git commits, the CLI will interactively prompt for a one-line description when running inside a valid terminal session.\n\n\n\n\n\nPre-flight Dependency Checks: Before modifying files or triggering git snapshots, the build engine statically resolves targets to identify dependencies. Depending on the matched scripts (such as .Rmd, .qmd, or .py) and configuration files, it asserts the availability of Rscript (verifying required R namespaces like rmarkdown or bookdown), quarto, or python executable commands. Any missing R packages can be resolved automatically via the PROJR_AUTO_INSTALL environment variable, or through an interactive terminal prompt.\nProduction Build Restrictions: Checks if branch rules (only_branches, not_branches) or upstream synchronicity (not_behind) are violated during a production build run.\nRemote Export Pipeline: During the post-build phase, conditionally exports resolved local target outputs into a deduplicated Content-Addressable Storage (CAS) vault as defined via build.dest targets in remotes.local.\nSystem Git Provider Abstracted: Git mutations safely resolve through a strictly encapsulated host System Git adapter, securely avoiding hanging inputs and ensuring older systems correctly push mutations.\nMutual Exclusion Checking: Before executing, proj build checks for project-level configurations (_quarto.yml and _bookdown.yml). If both exist and the build targets include Quarto or RMarkdown documents, it throws an error to prevent conflicting rendering.\nExplicit Execution (Path A):\n\nDefine exact scripts, exclusions (starting with !), or sub-directory globs in _proj.yml under build.scripts.\nCan rewrite _quarto.yml or _bookdown.yml configuration if specific subset documents are requested.\nMaintains order relative to Python and R scripts, while correctly clustering and executing project documents together.\n\nFallback Execution (Path B):\n\nIf no build.scripts is provided, the engine auto-discovers build targets.\nWill execute a Quarto project if _quarto.yml exists, or a Bookdown project if _bookdown.yml exists.\nOtherwise, it falls back to a shallow workspace sweep and runs .qmd, .Rmd, .R, and .py files in that strict order.\n\n\n\n\n\nEvery resolved file or project rendering task runs inside its own completely independent subprocess, isolated via environment profiles (PROJR_PROFILE) and correct working directory assignments (current_dir), preventing memory leaks and state pollution across execution runs."
-  },
-  {
-    "objectID": "cli/build.html#arguments-flags",
-    "href": "cli/build.html#arguments-flags",
-    "title": "proj build",
-    "section": "",
-    "text": "--major, --minor, --patch: Specifies the version bump strategy for a production build.\n--profile: An optional profile to configure execution context.\n--description: An optional description string for the build commit. If omitted during a production build that involves git commits, the CLI will interactively prompt for a one-line description when running inside a valid terminal session."
-  },
-  {
-    "objectID": "cli/build.html#features",
-    "href": "cli/build.html#features",
-    "title": "proj build",
-    "section": "",
-    "text": "Pre-flight Dependency Checks: Before modifying files or triggering git snapshots, the build engine statically resolves targets to identify dependencies. Depending on the matched scripts (such as .Rmd, .qmd, or .py) and configuration files, it asserts the availability of Rscript (verifying required R namespaces like rmarkdown or bookdown), quarto, or python executable commands. Any missing R packages can be resolved automatically via the PROJR_AUTO_INSTALL environment variable, or through an interactive terminal prompt.\nProduction Build Restrictions: Checks if branch rules (only_branches, not_branches) or upstream synchronicity (not_behind) are violated during a production build run.\nRemote Export Pipeline: During the post-build phase, conditionally exports resolved local target outputs into a deduplicated Content-Addressable Storage (CAS) vault as defined via build.dest targets in remotes.local.\nSystem Git Provider Abstracted: Git mutations safely resolve through a strictly encapsulated host System Git adapter, securely avoiding hanging inputs and ensuring older systems correctly push mutations.\nMutual Exclusion Checking: Before executing, proj build checks for project-level configurations (_quarto.yml and _bookdown.yml). If both exist and the build targets include Quarto or RMarkdown documents, it throws an error to prevent conflicting rendering.\nExplicit Execution (Path A):\n\nDefine exact scripts, exclusions (starting with !), or sub-directory globs in _proj.yml under build.scripts.\nCan rewrite _quarto.yml or _bookdown.yml configuration if specific subset documents are requested.\nMaintains order relative to Python and R scripts, while correctly clustering and executing project documents together.\n\nFallback Execution (Path B):\n\nIf no build.scripts is provided, the engine auto-discovers build targets.\nWill execute a Quarto project if _quarto.yml exists, or a Bookdown project if _bookdown.yml exists.\nOtherwise, it falls back to a shallow workspace sweep and runs .qmd, .Rmd, .R, and .py files in that strict order."
-  },
-  {
-    "objectID": "cli/build.html#isolation",
-    "href": "cli/build.html#isolation",
-    "title": "proj build",
-    "section": "",
-    "text": "Every resolved file or project rendering task runs inside its own completely independent subprocess, isolated via environment profiles (PROJR_PROFILE) and correct working directory assignments (current_dir), preventing memory leaks and state pollution across execution runs."
   }
 ]

@@ -1,1 +1,1 @@
-Sitemap: https://SATVILab.github.io/proj-core/sitemap.xml
+Sitemap: https://MiguelRodo.github.io/projcli/sitemap.xml
