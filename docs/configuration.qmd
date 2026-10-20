@@ -43,7 +43,7 @@ The system performs strict validation on `_proj.yml`:
 The `_proj.yml` file supports a top-level `config` block for project-wide settings:
 
 - **`config.git.engine`**: The Git execution engine to use. Can be `auto` (default) or `system`. This determines how the CLI interfaces with Git capabilities natively.
-- **`config.git.use_proj_cred_helper`**: Boolean (defaults to `true`). Enables the project's internal GitHub token discovery and credential injection for required remote Git operations. It evaluates sources in strict order (Environment variables `GITHUB_PAT`/`GH_TOKEN`/`GITHUB_TOKEN`, system Git credential helper, and GitHub CLI) to securely override credentials per-command and prevent freezing on interactive prompts.
+- **`config.git.use_proj_cred_helper`**: Defaults to `false`: use existing native Git authentication. Explicit `true` permits an existing single-line `GITHUB_PAT`, `GH_TOKEN` or `GITHUB_TOKEN` for standard HTTPS github.com remotes through a temporary host-scoped helper. There is no automatic token discovery or GitHub CLI call during builds. Tokens are environment data, never argv or shell source; persistent auth settings are unchanged.
 
 
 ## Parameters Configuration
@@ -72,17 +72,17 @@ The `_proj.yml` file can also contain a `build` block to configure the behavior 
   - Prefix a pattern with `!` to exclude matching files from execution.
   - When provided, this selects scripts instead of automatic discovery. Document targets may be grouped for rendering, so mixed script and document targets are not guaranteed to run in the exact listed order.
 - **`hooks`**: An optional map of lifecycle hook scripts to execute.
-  - **`pre`**: Scripts executed before the actual build phase and Git pre-snapshot.
-  - **`post`**: Scripts executed after the finalized post-build Git commit.
+  - **`pre`**: Scripts executed before the actual build phase.
+  - **`post`**: Scripts executed after analysis/promotion, before VERSION and publication.
   - **`both`**: Scripts executed during both `pre` and `post` phases.
 - **`profile`**: An optional environment profile identifier. When set, the system injects the `PROJR_PROFILE` environment variable into the isolated subprocess for all executed scripts and project rendering commands. This can be overridden at runtime via the `--profile` CLI flag.
 - **`git`**: An optional Git integration configuration. This can be a boolean toggle or an object mapping out detailed toggles:
-  - **`commit`**: Controls legacy pre/post-build commits. The current runtime can enable commits merely because `.git` exists; set `build.git: false` to disable this. The approved explicit-only policy is still under development; see the safety audit.
-  - **`push`**: Whether to automatically push a successful build commit to the remote repository (defaults to false).
+  - **`commit`**: Defaults to false, including inside an existing Git repository. Explicit true requires initially clean Git state and commits once after successful local build; an unchanged staged index is a successful no-op.
+  - **`push`**: Defaults to false. Explicit true publishes HEAD to the current branch's configured upstream remote/reference. Missing upstream or custom push-only routing fails before build writes; origin/main is never invented.
 - **`restrictions`**: Configuration block to enforce Git checks specifically during production builds:
   - **`only_branches`**: A list of allowed branch names. Production builds will abort if the current branch is not in this list.
   - **`not_branches`**: A list of restricted branch names. Production builds will abort if the current branch is in this list.
-  - **`not_behind`**: Boolean (defaults to `true`). If enabled, production builds will verify that the local branch has an upstream tracking remote and is not behind it, aborting if the local branch needs to pull upstream changes.
+  - **`not_behind`**: Omitted/false performs no fetch. Explicit `true` fetches the current configured upstream and compares its state. If enabled, production builds will verify that the local branch has an upstream tracking remote and is not behind it, aborting if the local branch needs to pull upstream changes.
 - **`clear_output`**: An optional string controlling workspace clearing routines for output directories. Can be set to `"pre"`, `"post"`, or `"never"`. If omitted, defaults to evaluating the `PROJR_CLEAR_OUTPUT` environment variable.
 
 ## Development Overrides

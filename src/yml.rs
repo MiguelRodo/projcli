@@ -113,14 +113,14 @@ pub struct GeneralGitConfig {
 impl Default for GeneralGitConfig {
     fn default() -> Self {
         Self {
-            use_proj_cred_helper: true,
+            use_proj_cred_helper: false,
             engine: GitEngine::Auto,
         }
     }
 }
 
 fn default_use_proj_cred_helper() -> bool {
-    true
+    false
 }
 
 /// Represents the build configuration options within `_proj.yml`.
@@ -161,7 +161,7 @@ impl Default for RestrictionsConfig {
         RestrictionsConfig {
             only_branches: None,
             not_branches: None,
-            not_behind: None, // Omitted means implicitly true
+            not_behind: None, // Network checks require explicit true
         }
     }
 }
@@ -394,7 +394,6 @@ impl ProjConfig {
         }
 
         // 3. Resolve Git configuration
-        let has_git = project_root.join(".git").exists();
 
         let mut resolved_git = ResolvedGitConfig {
             commit: false,
@@ -416,7 +415,7 @@ impl ProjConfig {
                     resolved_git.push = false;
                 }
                 GitConfigOpt::Detailed(detail) => {
-                    resolved_git.commit = detail.commit.unwrap_or(has_git);
+                    resolved_git.commit = detail.commit.unwrap_or(false);
                     resolved_git.push = detail.push.unwrap_or(false);
                 }
             }
