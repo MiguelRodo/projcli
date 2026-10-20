@@ -127,159 +127,211 @@ use crate::yml::{ValidatedConfig, InspectStrategy};
 ///
 /// # Errors
 /// Returns an `io::Error` if the remote isn't found, manifest lacks files, or an integrity constraint fails.
-pub fn verify_remote_integrity(remote_title: &str, validated: &ValidatedConfig) -> Result<()> {
-    let remotes = validated.remotes.local.as_ref().context("No remotes configured")?;
-    let remote = remotes.get(remote_title).with_context(|| format!("Remote '{}' not found", remote_title))?;
-
-    let manifests_dir = remote.path.join("manifests");
-    let objects_dir = remote.path.join("objects");
-
-    if !manifests_dir.exists() {
-        return Ok(()); // Empty but structurally valid
+fn validate_digest(digest: &str) -> Result<()> {
+    if digest.len() != 64 || !digest.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)) {
+        anyhow::bail!("CAS digest must be 64 lowercase hexadecimal ASCII characters");
     }
-
-    for entry in fs::read_dir(manifests_dir.as_std_path()).context("Failed to read manifests directory")? {
-        let entry = entry.context("Failed to read directory entry")?;
-        let entry_path = camino::Utf8PathBuf::try_from(entry.path())
-            .context("Encountered non-UTF-8 path in manifests directory")?;
-
-        if entry_path.extension() != Some("json") {
-            continue;
-        }
-
-        match remote.inspect {
-            InspectStrategy::Manifest => {
-                // If the strategy is Manifest, the mere existence of the JSON file implies integrity.
-                // It was confirmed by the read_dir above.
-                continue;
-            }
-            InspectStrategy::File => {
-                // Read and check each file
-                let content = fs::read_to_string(entry_path.as_std_path())
-                    .context("Failed to read manifest file content")?;
-                let manifest: DirectoryManifest = serde_json::from_str(&content)
-                    .context("Failed to parse manifest file JSON")?;
-
-                for file_entry in manifest.files {
-                    if file_entry.hash.len() < 2 {
-                         anyhow::bail!("Invalid hash found.");
-                    }
-                    let prefix = &file_entry.hash[0..2];
-                    let suffix = &file_entry.hash[2..];
-                    let expected_path = objects_dir.join(prefix).join(suffix);
-
-                    if !expected_path.exists() {
-                        anyhow::bail!("Missing file object for hash {}.", file_entry.hash);
-                    }
-                }
-            }
-        }
-    }
-
     Ok(())
 }
 
-pub fn ingest_directory(
-    project_root: &Utf8Path,
-    cas_remote_root: &Utf8Path,
-    label: &str,
-    source_dir: &Utf8Path,
-    version: &str,
-) -> Result<()> {
-    let mut files = Vec::new();
+fn validate_logical_path(path: &str) -> Result<()> {
+    if path.is_empty() || path.contains(['\\', ':', '\0'])
+        || path.split('/').any(|part| part.is_empty() || part == "." || part == "..") {
+        anyhow::bail!("Ambiguous or unsafe CAS logical path");
+    }
+    Ok(())
+}
 
-    // 1. Scan and compute hashes
-    fn scan_dir(dir: &Utf8Path, source_root: &Utf8Path, files: &mut Vec<FileEntry>) -> Result<()> {
-        if dir.is_dir() {
-            for entry in fs::read_dir(dir.as_std_path()).context("Failed to read directory during scan")? {
-                let entry = entry.context("Failed to read directory entry")?;
-                let path = camino::Utf8PathBuf::try_from(entry.path())
-                    .context("Encountered non-UTF-8 path during scan")?;
+fn object_path(objects: &Utf8Path, digest: &str) -> Result<camino::Utf8PathBuf> {
+    validate_digest(digest)?;
+    Ok(objects.join(&digest[..2]).join(&digest[2..]))
+}
 
-                if path.is_dir() {
-                    scan_dir(&path, source_root, files)?;
-                } else {
-                    let hash = hash_file(&path)?;
-                    // Calculate relative path
-                    let rel_path = path.strip_prefix(source_root).context("Failed to strip prefix")?.to_string();
+fn checked_directory(path: &Utf8Path) -> Result<()> {
+    crate::path_safety::resolve_path(path.as_std_path(), true)?;
+    if path.exists() && !path.is_dir() { anyhow::bail!("CAS directory path is not a directory: {path}"); }
+    Ok(())
+}
 
-                    // Standardize path separators to forward slashes
-                    let rel_path = rel_path.replace("\\", "/");
+fn validate_manifest(manifest: &DirectoryManifest) -> Result<()> {
+    if manifest.label.is_empty() || manifest.version.is_empty() || manifest.label.contains('\0') || manifest.version.contains('\0') {
+        anyhow::bail!("CAS label/version must be nonempty and contain no NUL");
+    }
+    let mut seen = std::collections::HashSet::<&str>::new();
+    for entry in &manifest.files {
+        validate_logical_path(&entry.path)?;
+        validate_digest(&entry.hash)?;
+        if !seen.insert(entry.path.as_str()) { anyhow::bail!("Duplicate CAS logical path"); }
+    }
+    for entry in &manifest.files {
+        for (index, character) in entry.path.char_indices() {
+            if character == '/' && seen.contains(&entry.path[..index]) {
+                anyhow::bail!("CAS manifest contains a file/directory path collision");
+            }
+        }
+    }
+    Ok(())
+}
 
-                    files.push(FileEntry { path: rel_path, hash });
+pub fn verify_remote_integrity(remote_title: &str, validated: &ValidatedConfig) -> Result<()> {
+    let remotes = validated.remotes.local.as_ref().context("No remotes configured")?;
+    let remote = remotes.get(remote_title).context("Configured CAS remote not found")?;
+    checked_directory(&remote.path)?;
+    if !remote.path.is_dir() { anyhow::bail!("CAS remote directory does not exist"); }
+    let manifests = remote.path.join("manifests");
+    let objects = remote.path.join("objects");
+    checked_directory(&manifests)?;
+    checked_directory(&objects)?;
+    if !manifests.exists() { return Ok(()); }
+    for entry in fs::read_dir(&manifests)? {
+        let path = camino::Utf8PathBuf::try_from(entry?.path()).context("Non-UTF-8 CAS manifest path")?;
+        if path.extension() != Some("json") { continue; }
+        crate::path_safety::resolve_path(path.as_std_path(), true)?;
+        if !path.is_file() { anyhow::bail!("CAS manifest is not a regular file"); }
+        let digest = path.file_stem().context("CAS manifest has no digest filename")?;
+        validate_digest(digest)?;
+        let bytes = fs::read(&path)?;
+        if blake3::hash(&bytes).to_hex().as_str() != digest { anyhow::bail!("CAS manifest digest does not match its bytes"); }
+        let manifest: DirectoryManifest = serde_json::from_slice(&bytes).context("Invalid CAS manifest JSON")?;
+        validate_manifest(&manifest)?;
+        if remote.inspect == InspectStrategy::File {
+            for entry in &manifest.files {
+                let object = object_path(&objects, &entry.hash)?;
+                crate::path_safety::resolve_path(object.as_std_path(), true)?;
+                if !object.is_file() || hash_file(&object)? != entry.hash {
+                    anyhow::bail!("CAS object is missing or its bytes do not match the digest");
                 }
             }
         }
+    }
+    Ok(())
+}
+
+/// Copy and hash the same stream: never re-open a source under a previously computed digest.
+fn store_object(reader: &mut impl Read, objects: &Utf8Path) -> Result<String> {
+    checked_directory(objects)?;
+    fs::create_dir_all(objects)?;
+    let mut staged = NamedTempFile::new_in(objects)?;
+    let mut hasher = blake3::Hasher::new();
+    let mut buffer = [0; 65536];
+    loop {
+        let count = reader.read(&mut buffer).context("Cannot read CAS source stream")?;
+        if count == 0 { break; }
+        staged.write_all(&buffer[..count]).context("Cannot stage CAS object bytes")?;
+        hasher.update(&buffer[..count]);
+    }
+    staged.flush()?;
+    staged.as_file().sync_all()?;
+    let digest = hasher.finalize().to_hex().to_string();
+    let target = object_path(objects, &digest)?;
+    let parent = target.parent().context("CAS object has no prefix directory")?;
+    checked_directory(parent)?;
+    fs::create_dir_all(parent)?;
+    crate::path_safety::resolve_path(target.as_std_path(), true)?;
+    if target.exists() {
+        if !target.is_file() || hash_file(&target)? != digest { anyhow::bail!("Existing CAS object is corrupt"); }
+        return Ok(digest);
+    }
+    match staged.persist_noclobber(&target) {
+        Ok(_) => {}
+        Err(error) if error.error.kind() == io::ErrorKind::AlreadyExists => {
+            crate::path_safety::resolve_path(target.as_std_path(), true)?;
+            if !target.is_file() || hash_file(&target)? != digest { anyhow::bail!("Conflicting CAS object publication"); }
+        }
+        Err(error) => return Err(error.error).context("Cannot publish CAS object"),
+    }
+    Ok(digest)
+}
+
+fn write_metadata(path: &Utf8Path, bytes: &[u8], immutable: bool) -> Result<()> {
+    let parent = path.parent().context("CAS metadata has no parent")?;
+    checked_directory(parent)?;
+    fs::create_dir_all(parent)?;
+    crate::path_safety::resolve_path(path.as_std_path(), true)?;
+    if path.exists() && !path.is_file() { anyhow::bail!("CAS metadata target is not a regular file"); }
+    let mut staged = NamedTempFile::new_in(parent)?;
+    staged.write_all(bytes)?;
+    staged.flush()?;
+    staged.as_file().sync_all()?;
+    if immutable {
+        if path.exists() {
+            if fs::read(path)? != bytes { anyhow::bail!("Existing CAS manifest conflicts with its digest"); }
+            return Ok(());
+        }
+        match staged.persist_noclobber(path) {
+            Ok(_) => {}
+            Err(error) if error.error.kind() == io::ErrorKind::AlreadyExists => {
+                crate::path_safety::resolve_path(path.as_std_path(), true)?;
+                if fs::read(path)? != bytes { anyhow::bail!("Conflicting CAS manifest publication"); }
+            }
+            Err(error) => return Err(error.error).context("Cannot publish CAS manifest"),
+        }
+    } else {
+        staged.persist(path).map_err(|error| error.error).context("Cannot replace complete CAS project index")?;
+    }
+    Ok(())
+}
+
+fn csv_field(value: &str) -> String {
+    if value.contains([',', '"', '\n', '\r']) { format!("\"{}\"", value.replace('"', "\"\"")) }
+    else { value.to_owned() }
+}
+
+pub fn ingest_directory(project_root: &Utf8Path, cas_remote_root: &Utf8Path, label: &str, source_dir: &Utf8Path, version: &str) -> Result<()> {
+    validate_manifest(&DirectoryManifest { label: label.to_owned(), version: version.to_owned(), files: vec![] })?;
+    let source = crate::path_safety::resolve_path(source_dir.as_std_path(), true)?;
+    if !source.is_dir() { anyhow::bail!("CAS ingestion source must be an existing directory"); }
+    let remote = crate::path_safety::resolve_path(cas_remote_root.as_std_path(), true)?;
+    let ledger = project_root.join(".projr/manifests.csv");
+    let ledger_identity = crate::path_safety::resolve_path(ledger.as_std_path(), true)?;
+    if source.starts_with(&remote) || remote.starts_with(&source) || ledger_identity.starts_with(&source) {
+        anyhow::bail!("CAS source overlaps its storage or project metadata");
+    }
+    checked_directory(cas_remote_root)?;
+    checked_directory(&cas_remote_root.join("objects"))?;
+    checked_directory(&cas_remote_root.join("manifests"))?;
+    checked_directory(&project_root.join(".projr"))?;
+    if ledger.exists() && !ledger.is_file() { anyhow::bail!("CAS project index is not a regular file"); }
+    let mut index = match fs::read(&ledger) {
+        Ok(bytes) => bytes,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Vec::new(),
+        Err(error) => return Err(error).context("Cannot read existing CAS project index"),
+    };
+    fn scan(directory: &std::path::Path, root: &std::path::Path, files: &mut Vec<(String, camino::Utf8PathBuf)>) -> Result<()> {
+        for entry in fs::read_dir(directory)? {
+            let entry = entry?;
+            let metadata = entry.file_type()?;
+            let path = entry.path();
+            if metadata.is_symlink() { anyhow::bail!("Linked CAS source entries are unsupported"); }
+            if metadata.is_dir() { scan(&path, root, files)?; }
+            else if metadata.is_file() {
+                let components: Vec<_> = path.strip_prefix(root)?.components().map(|component| component.as_os_str().to_str().context("Non-UTF-8 CAS source filename")).collect::<Result<_>>()?;
+                let logical = components.join("/");
+                validate_logical_path(&logical)?;
+                files.push((logical, camino::Utf8PathBuf::try_from(path)?));
+            } else { anyhow::bail!("Unsupported CAS source entry"); }
+        }
         Ok(())
     }
-
-    scan_dir(source_dir, source_dir, &mut files)?;
-
-    // Sort files by path for deterministic hashing
-    files.sort_by(|a, b| a.path.cmp(&b.path));
-
-    let manifest = DirectoryManifest {
-        label: label.to_string(),
-        version: version.to_string(),
-        files: files.clone(),
-    };
-
-    // Serialize manifest and compute directory hash
-    let manifest_json = serde_json::to_string(&manifest).context("Failed to serialize manifest JSON")?;
-    let directory_hash = blake3::hash(manifest_json.as_bytes()).to_hex().to_string();
-
-    // 2. Ingest files into CAS remote
-    let objects_dir = cas_remote_root.join("objects");
-    fs::create_dir_all(objects_dir.as_std_path()).context("Failed to create objects directory")?;
-
-    for entry in &manifest.files {
-        let hash = &entry.hash;
-        if hash.len() < 2 {
-            continue; // Invalid hash
-        }
-        let prefix = &hash[0..2];
-        let suffix = &hash[2..];
-
-        let target_dir = objects_dir.join(prefix);
-        fs::create_dir_all(target_dir.as_std_path()).context("Failed to create target prefix directory")?;
-
-        let target_path = target_dir.join(suffix);
-
-        if !target_path.exists() {
-            let source_file_path = source_dir.join(&entry.path);
-
-            // Atomic copy using tempfile in the same directory
-            let mut temp_file = NamedTempFile::new_in(&target_dir).context("Failed to create temporary file")?;
-            let mut src_file = File::open(source_file_path.as_std_path()).context("Failed to open source file")?;
-            io::copy(&mut src_file, &mut temp_file).context("Failed to copy file contents")?;
-
-            temp_file.persist(&target_path)
-                .context("Failed to persist temporary file to target path")?;
-        }
+    let mut selected = Vec::new();
+    scan(&source, &source, &mut selected)?;
+    selected.sort_by(|left, right| left.0.cmp(&right.0));
+    let objects = cas_remote_root.join("objects");
+    let mut files = Vec::new();
+    for (logical, path) in selected {
+        crate::path_safety::resolve_path(path.as_std_path(), true)?;
+        let mut file = File::open(&path).context("Cannot open CAS source file")?;
+        let digest = store_object(&mut file, &objects)?;
+        files.push(FileEntry { path: logical, hash: digest });
     }
-
-    // 3. Export Manifests
-    let manifests_dir = cas_remote_root.join("manifests");
-    fs::create_dir_all(manifests_dir.as_std_path()).context("Failed to create manifests directory")?;
-
-    let manifest_path = manifests_dir.join(format!("{}.json", directory_hash));
-    fs::write(manifest_path.as_std_path(), manifest_json).context("Failed to write manifest file")?;
-
-    // 4. Update Flat Project Index
-    let projr_dir = project_root.join(".projr");
-    fs::create_dir_all(projr_dir.as_std_path()).context("Failed to create projr directory")?;
-
-    let ledger_path = projr_dir.join("manifests.csv");
-    let mut ledger_file = fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&ledger_path)
-        .context("Failed to open ledger file")?;
-
-    let timestamp = Utc::now().to_rfc3339();
-    writeln!(ledger_file, "{},{},{},{}", version, label, directory_hash, timestamp)
-        .context("Failed to write to ledger file")?;
-
+    let manifest = DirectoryManifest { label: label.to_owned(), version: version.to_owned(), files };
+    validate_manifest(&manifest)?;
+    let bytes = serde_json::to_vec(&manifest)?;
+    let digest = blake3::hash(&bytes).to_hex().to_string();
+    write_metadata(&cas_remote_root.join("manifests").join(format!("{digest}.json")), &bytes, true)?;
+    if !index.is_empty() && !index.ends_with(b"\n") { index.push(b'\n'); }
+    index.extend_from_slice(format!("{},{},{},{}\n", csv_field(version), csv_field(label), digest, Utc::now().to_rfc3339()).as_bytes());
+    write_metadata(&ledger, &index, false)?;
     Ok(())
 }
 
@@ -305,8 +357,9 @@ mod tests {
     #[test]
     fn test_ingest_directory_empty() {
         let root = tempdir().unwrap();
-        let cas_remote = Utf8PathBuf::try_from(root.path().join("cas")).unwrap();
-        let proj_root = Utf8PathBuf::try_from(root.path().join("proj")).unwrap();
+        let physical_root = root.path().canonicalize().unwrap();
+        let cas_remote = Utf8PathBuf::try_from(physical_root.join("cas")).unwrap();
+        let proj_root = Utf8PathBuf::try_from(physical_root.join("proj")).unwrap();
         let source_dir = proj_root.join("data").join("raw");
 
         fs::create_dir_all(cas_remote.as_std_path()).unwrap();
@@ -328,4 +381,63 @@ mod tests {
         let ledger_path = proj_root.join(".projr").join("manifests.csv");
         assert!(ledger_path.exists());
     }
+
+    #[test]
+    fn copied_stream_digest_binds_stored_bytes_even_when_source_path_changes() {
+        struct ReplacedSource { original: std::io::Cursor<Vec<u8>>, path: std::path::PathBuf, replaced: bool }
+        impl Read for ReplacedSource {
+            fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+                if !self.replaced {
+                    fs::write(&self.path, b"replacement-path-bytes")?;
+                    self.replaced = true;
+                }
+                self.original.read(buffer)
+            }
+        }
+        let directory = tempdir().unwrap();
+        let root = Utf8PathBuf::try_from(directory.path().canonicalize().unwrap()).unwrap();
+        let source = root.join("source");
+        fs::write(&source, b"opened-source-bytes").unwrap();
+        let mut reader = ReplacedSource { original: io::Cursor::new(b"opened-source-bytes".to_vec()), path: source.clone().into_std_path_buf(), replaced: false };
+        let objects = root.join("objects");
+        let digest = store_object(&mut reader, &objects).unwrap();
+        assert_eq!(fs::read(object_path(&objects, &digest).unwrap()).unwrap(), b"opened-source-bytes");
+        assert_eq!(digest, blake3::hash(b"opened-source-bytes").to_hex().to_string());
+        assert_ne!(digest, hash_file(&source).unwrap());
+    }
+
+    #[test]
+    fn failed_stream_never_publishes_an_object() {
+        struct FailedRead(bool);
+        impl Read for FailedRead {
+            fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+                if self.0 { return Err(io::Error::other("injected read failure")); }
+                self.0 = true; buffer[..3].copy_from_slice(b"abc"); Ok(3)
+            }
+        }
+        let directory = tempdir().unwrap();
+        let objects = Utf8PathBuf::try_from(directory.path().canonicalize().unwrap()).unwrap().join("objects");
+        assert!(store_object(&mut FailedRead(false), &objects).is_err());
+        assert_eq!(fs::read_dir(objects).unwrap().count(), 0);
+    }
+
+    #[test]
+    fn failed_metadata_publication_preserves_existing_bytes() {
+        let directory = tempdir().unwrap();
+        let root = Utf8PathBuf::try_from(directory.path().canonicalize().unwrap()).unwrap();
+        let manifest = root.join("manifest.json");
+        fs::write(&manifest, "original manifest").unwrap();
+        assert!(write_metadata(&manifest, b"conflicting manifest", true).is_err());
+        assert_eq!(fs::read(&manifest).unwrap(), b"original manifest");
+        let index = root.join("index.csv");
+        fs::create_dir(&index).unwrap();
+        fs::write(index.join("keep"), "unrelated bytes").unwrap();
+        assert!(write_metadata(&index, b"new index", false).is_err());
+        assert_eq!(fs::read(index.join("keep")).unwrap(), b"unrelated bytes");
+        fs::remove_dir_all(&index).unwrap();
+        fs::write(&index, "old index\n").unwrap();
+        write_metadata(&index, b"complete replacement\n", false).unwrap();
+        assert_eq!(fs::read(&index).unwrap(), b"complete replacement\n");
+    }
+
 }

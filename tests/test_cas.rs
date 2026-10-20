@@ -8,8 +8,9 @@ use tempfile::tempdir;
 #[test]
 fn test_cas_integration_deduplication() {
     let root = tempdir().unwrap();
-    let project_root = root.path().join("proj");
-    let cas_remote_root = root.path().join("cas");
+    let physical_root = root.path().canonicalize().unwrap();
+    let project_root = physical_root.join("proj");
+    let cas_remote_root = physical_root.join("cas");
 
     fs::create_dir_all(camino::Utf8Path::from_path(&project_root).unwrap()).unwrap();
     fs::create_dir_all(camino::Utf8Path::from_path(&cas_remote_root).unwrap()).unwrap();
@@ -115,8 +116,9 @@ fn walkdir(dir: &std::path::Path) -> Vec<PathBuf> {
 #[test]
 fn test_verify_remote_integrity() {
     let root = tempdir().unwrap();
-    let cas_remote_root = root.path().join("cas");
-    let project_root = root.path().join("proj");
+    let physical_root = root.path().canonicalize().unwrap();
+    let cas_remote_root = physical_root.join("cas");
+    let project_root = physical_root.join("proj");
     fs::create_dir_all(camino::Utf8Path::from_path(&project_root).unwrap()).unwrap();
     fs::create_dir_all(camino::Utf8Path::from_path(&cas_remote_root).unwrap()).unwrap();
     let source_dir = project_root.join("data").join("raw");

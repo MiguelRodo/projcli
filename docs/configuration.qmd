@@ -60,7 +60,7 @@ The `_proj.yml` file supports a top-level `remotes` block, which currently suppo
   - **`path`**: The physical absolute or relative path to the remote storage directory.
   - **`structure`**: Specifies the storage structure algorithm. Must be `cas` (Content-Addressable Storage).
   - **`content`**: An array of string tags (matching foundational prefixes or defined directories) specifying which project output directories to sync into the remote upon build completion.
-  - **`inspect`**: Specifies the structural integrity verification strategy (`manifest` or `file`).
+  - **`inspect`**: `manifest` validates JSON, logical paths/digests and manifest filename/content identity; `file` additionally hashes every referenced object and compares actual bytes. Manifest-only inspection does not verify object bytes.
 
 ## Build Configuration
 

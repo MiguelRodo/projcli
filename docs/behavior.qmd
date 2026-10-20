@@ -166,6 +166,24 @@ process state and are not concurrent environment APIs. This change does not appr
 credential injection policy or establish a sanitized/sandboxed environment.
 
 
+## Bounded CAS integrity
+
+Ingestion requires an existing directory, disjoint from its CAS storage and project
+index. Reject linked/unsupported source entries, non-UTF-8 filenames and ambiguous
+logical paths; logical identities use slash-separated components and case-sensitive
+names. Digests are canonical 64-character lowercase hexadecimal BLAKE3 values.
+Copy and hash the same stream; verify existing objects before reuse. Publish complete
+objects/manifests without replacing conflicting content. Replace project index bytes
+through a same-directory temporary file, escaping CSV metadata fields.
+
+Manifest inspection validates structure and manifest byte identity; file inspection
+also hashes referenced object bytes. This does not provide a stable snapshot across
+concurrent source changes, multi-writer serialization, power-loss durability or one
+transaction across remote manifest and project index. Failure may leave valid orphan
+objects or an unindexed complete manifest; errors propagate and old index bytes stay
+intact. No source file is modified by ingestion. Symlink-alias paths remain unsupported
+under the conservative path guards; callers should supply resolved physical paths.
+
 ## Explicit Git operations
 
 Git commits, pushes and network/upstream checks default off even when Git metadata
