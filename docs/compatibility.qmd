@@ -525,3 +525,45 @@ project marker exists. The custom-cache fixture now executes Python and checks
 actual custom staging cleanup plus preserved legacy `_tmp` bytes. Fake-R
 fixtures declare docs while retaining EOF/no-install assertions. These amendments
 require fresh remote checks and exact-head re-review.
+
+## Prepared managed-state restoration invariant (not yet verified)
+
+The restoration implementation under preparation replaces the legacy middle-only
+catch and synthesized development-version rollback. Before controlled production
+mutations, capture exact bytes, permissions and absence for VERSION, ignore files,
+root configuration/state and existing root regular files; selected in-project
+inputs; declared output/docs directory trees; and concrete individual renderer
+output/asset paths. Capture initially absent parent directories too. Declared
+external output/docs paths are supported. Raw data, Git internals, arbitrary
+external user-script effects and cache contents are not backed up. Managed trees
+containing symlinks or unsupported entries are rejected rather than followed.
+
+Backups use existing tempfile and streaming std::fs copies, in declared cache when
+the selected operation uses it. Cache-free empty-analysis operations use private
+OS temporary recovery storage without inventing a project resource mapping. Cache
+residue is permitted. This does not make an otherwise unused cache mapping required.
+
+One local failure boundary covers ignore synchronization, cleanup, all pre/both/
+post hooks, engine configuration, execution, output promotion and VERSION writing.
+Promotion errors propagate; renderer configuration is restored byte-for-byte on
+success and failure. VERSION changes only after hooks/render/promotion succeed.
+Failures and caught panics restore captured state. All restore entries are attempted;
+if restoration fails, retain recovery bytes and report both the original failure
+and restoration failures with the backup path. Substituted links are rejected.
+
+After local success, storage export/Git publication form a separate failure phase:
+publication failure reports successful local analysis and retains the new local
+release. Export precedes requested post-output cleanup so archives contain actual
+build bytes. A failure during this later cleanup is explicitly reported as such;
+there is no external publication rollback. No pre-build Git snapshot or second
+post-build commit is needed. Upstream selection/native credentials and publication
+retry identity remain separate unfinished work.
+
+Prepared checks cover each hook/analysis failure, initially absent VERSION, exact
+old output/docs bytes and empty directories, renderer execution/missing promotion,
+exact YAML comments/render lists, restore-failure backup retention with external
+sentinels, and successful local analysis followed by failed storage publication.
+These are unrun: no local compilation under memory pressure; remote CI and
+independent review are still required. No power-loss atomicity, concurrent-writer
+or global script-side-effect guarantee is claimed. M2 attempt/release records and
+analysis-free retry commands remain open.

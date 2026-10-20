@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::fs;
 use crate::yml::ProjConfig;
 use crate::version::{version_get_from, version_set_at};
@@ -39,7 +39,7 @@ pub enum BuildMode {
 /// std::fs::write(temp.path().join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: []\n  git:\n    commit: false\n    push: false\nconfig:\n  git:\n    use_proj_cred_helper: false").unwrap();
 /// build_project(camino::Utf8Path::from_path(temp.path()).unwrap(), BuildMode::ProdPatch, None, None).unwrap();
 /// ```
-use crate::git::{is_git_installed, check_git_profile, git_commit_all, create_git_provider};
+use crate::git::{is_git_installed, check_git_profile, create_git_provider};
 use crate::yml::GlobalConfig;
 use crate::build_pre::run_pre_flight_checks;
 
@@ -78,7 +78,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
         .context("Failed to read project configuration")?;
     let project_config: ProjConfig = serde_json::from_value(combined)
         .context("Failed to deserialize combined configuration")?;
-    let mut config = project_config.validate_and_resolve(project_root, is_dev)?;
+    let config = project_config.validate_and_resolve(project_root, is_dev)?;
 
 
     // 2. Git Capability Audit
@@ -229,303 +229,162 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
         bookdown_exists,
     )?;
 
-    // Project writes begin only after configuration, targets and preflight succeed.
-    if !is_dev {
-        if project_root.join("_environment.local").exists() {
-            crate::ignore::add_manual_ignores(project_root, &["_environment.local".to_string()], true, crate::ignore::IgnoreType::All)?;
+    // Capture exact local state before the first controlled project mutation.
+    let mut managed = vec![];
+    for name in ["VERSION", ".gitignore", ".Rbuildignore", "_proj.yml", "_projr.yml", "_projr-local.yml", "DESCRIPTION", "_quarto.yml", "_bookdown.yml"] {
+        managed.push(project_root.join(name).into_std_path_buf());
+    }
+    for entry in fs::read_dir(project_root)? {
+        let entry = entry?;
+        if entry.file_type()?.is_file() { managed.push(entry.path()); }
+    }
+    for (label, _) in &config.directories {
+        let lower = label.to_ascii_lowercase();
+        if lower.starts_with("output") || lower.starts_with("docs") {
+            managed.push(config.get_path(project_root, label)?.into_std_path_buf());
         }
-        crate::ignore::update_ignores(project_root, &config).context("Failed to update ignores")?;
     }
-
-    let version_before_build = initial_version.clone();
-
-    // 4.5. Workspace Pre-clearing Hooks
-    let clear_output_env = std::env::var("PROJR_CLEAR_OUTPUT").ok();
-    let clear_output_val = clear_output_env.as_deref().or(config.clear_output.as_deref());
-
-    if !is_dev && run_analysis {
-        crate::clear::clear_old(project_root, &config, &current_version, is_dev, config.old_dev_remove)?;
-        crate::clear::clear_pre(project_root, &current_version, &config, clear_output_val)?;
+    for input in &validation_files {
+        if input.starts_with(project_root) { managed.push(input.clone().into_std_path_buf()); }
     }
-
-    // 5. Version Bump
-    if !is_dev {
-        match mode {
-            BuildMode::ProdMajor => {
-                initial_version.major += 1;
-                initial_version.minor = 0;
-                initial_version.patch = 0;
-                initial_version.dev = 0;
+    if has_document_analysis && !quarto_exists && !bookdown_exists {
+        let docs = config.get_path(project_root, "docs")?;
+        for file in &resolved_files {
+            if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) {
+                let paths = document_output_paths(file, &docs, project_root)?;
+                managed.extend([paths.target.into_std_path_buf(), paths.assets.into_std_path_buf()]);
             }
-            BuildMode::ProdMinor => {
-                initial_version.minor += 1;
-                initial_version.patch = 0;
-                initial_version.dev = 0;
-            }
-            BuildMode::ProdPatch => {
-                initial_version.patch += 1;
-                initial_version.dev = 0;
-            }
-            _ => {}
         }
-        version_set_at(project_root, &initial_version.to_string(false))?;
     }
-
-    // Git auto-ignore synchronization was requested explicitly during config audit.
-
-    // 6.5 Sidecar Output Redirection
-    let mut original_docs_path: Option<PathBuf> = if has_document_analysis {
-        Some(config.get_path(project_root, "docs")?.into_std_path_buf())
+    let backup = if !is_dev {
+        Some(crate::build_state::BuildState::capture(cache_root.as_ref().map(|path| path.as_std_path()), &managed)?)
     } else { None };
-    let mut original_docs_path_str = "docs".to_string(); // default if missing or can't compute
-    let mut actual_docs_key = "docs".to_string();
-
-    if quarto_exists || bookdown_exists {
-        if let Some((k, _docs_config)) = config.directories.iter().find(|(k, _)| k.to_lowercase() == "docs") {
-            actual_docs_key = k.clone();
-            let path = config.get_path(project_root, k)?;
-            original_docs_path_str = path.strip_prefix(project_root).unwrap_or(path.as_path()).as_str().to_string(); /* TODO: migrate to camino */
-            original_docs_path = Some(path.into()); /* TODO: migrate to camino */
+    let mut engine_originals = Vec::new();
+    for (active, name) in [(quarto_exists, "_quarto.yml"), (bookdown_exists, "_bookdown.yml")] {
+        if active {
+            let path = project_root.join(name);
+            crate::path_safety::resolve_path(path.as_std_path(), true)?;
+            let bytes = fs::read(&path)?;
+            let parsed: serde_yaml::Value = serde_yaml::from_slice(&bytes).with_context(|| format!("Invalid renderer configuration {name}"))?;
+            if !parsed.is_mapping() { anyhow::bail!("Renderer configuration {name} must be a mapping"); }
+            engine_originals.push((path, bytes));
         }
-
-        let isolated_docs_path = cache_root.as_ref().context("Renderer staging requires declared cache")?.join("projr").join(&current_version).join("docs");
-        let isolated_docs_path_str = isolated_docs_path.strip_prefix(project_root).unwrap_or(&isolated_docs_path).as_str().to_string();
-
-        if quarto_exists {
-            rewrite_engine_output_dir(project_root.as_std_path(), "quarto", &isolated_docs_path_str)?;
-        }
-        if bookdown_exists {
-            rewrite_engine_output_dir(project_root.as_std_path(), "bookdown", &isolated_docs_path_str)?;
-        }
-
-        if original_docs_path.is_some() {
-            if let Some(docs_mut) = config.directories.get_mut(&actual_docs_key) {
-                docs_mut.path = isolated_docs_path.into();
+    }
+    let restore_engines = || -> anyhow::Result<()> {
+        for (path, bytes) in &engine_originals { crate::path_safety::resolve_path(path.as_std_path(), true)?; fs::write(path, bytes).with_context(|| format!("Cannot restore exact renderer configuration {path}"))?; }
+        Ok(())
+    };
+    let local_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| -> anyhow::Result<()> {
+        if !is_dev {
+            if project_root.join("_environment.local").exists() {
+                crate::ignore::add_manual_ignores(project_root, &["_environment.local".to_string()], true, crate::ignore::IgnoreType::All)?;
             }
-        } else {
-            config.directories.insert("docs".to_string(), crate::yml::ResolvedDir {
-                path: isolated_docs_path.into(),
-                ignore: crate::yml::IgnoreConfig::Single("git".to_string()),
-            });
+            crate::ignore::update_ignores(project_root, &config)?;
         }
-    }
-
-    // Execute Pre-Build Hooks
-    if let Some(pre_hooks) = &hooks_config.pre {
-        let pre_resolved = resolve_explicit_scripts(project_root, pre_hooks)?;
-        for hook in pre_resolved {
-            execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref())?;
+        let clear_output_env = std::env::var("PROJR_CLEAR_OUTPUT").ok();
+        let clear_output_val = clear_output_env.as_deref().or(config.clear_output.as_deref());
+        if !is_dev && run_analysis {
+            crate::clear::clear_old(project_root, &config, &current_version, false, config.old_dev_remove)?;
+            crate::clear::clear_pre(project_root, &current_version, &config, clear_output_val)?;
         }
-    }
-    if let Some(both_hooks) = &hooks_config.both {
-        let both_resolved = resolve_explicit_scripts(project_root, both_hooks)?;
-        for hook in both_resolved {
-            execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref())?;
+        if !is_dev {
+            match mode {
+                BuildMode::ProdMajor => { initial_version.major += 1; initial_version.minor = 0; initial_version.patch = 0; }
+                BuildMode::ProdMinor => { initial_version.minor += 1; initial_version.patch = 0; }
+                BuildMode::ProdPatch => { initial_version.patch += 1; }
+                BuildMode::Dev => {}
+            }
+            initial_version.dev = 0;
         }
-    }
-
-    // 6. Git Pre-Snapshot
-    if config.git.commit {
-        git_commit_all("Snapshot pre-build", Some(project_root)).context("Failed to snapshot pre-build")?;
-    }
-
-    // ==========================================
-    // STEP C: Core Document Compilation
-    // ==========================================
-
-    // Isolate execution logic inside catch_unwind
-    let pr = project_root.to_path_buf();
-    let profile_clone = profile.clone();
-    let build_scripts_clone = build_scripts.clone();
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        execute_build_pipeline(&camino::Utf8PathBuf::try_from(pr).unwrap(), build_scripts_clone, profile_clone, quarto_exists, bookdown_exists, resolved_python_cmd.as_deref())
+        if quarto_exists || bookdown_exists {
+            let staging = cache_root.as_ref().context("Project rendering requires cache")?.join("projr").join(&current_version).join("docs");
+            if quarto_exists { rewrite_engine_output_dir(project_root.as_std_path(), "quarto", staging.as_str())?; }
+            if bookdown_exists { rewrite_engine_output_dir(project_root.as_std_path(), "bookdown", staging.as_str())?; }
+        }
+        for hooks in [&hooks_config.pre, &hooks_config.both] {
+            if let Some(hooks) = hooks {
+                for hook in resolve_explicit_scripts(project_root, hooks)? {
+                    execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref())?;
+                }
+            }
+        }
+        execute_build_pipeline(project_root, build_scripts.clone(), profile.clone(), quarto_exists, bookdown_exists, resolved_python_cmd.as_deref())?;
+        restore_engines()?;
+        if !is_dev && run_analysis && has_document_analysis && config.output_run.unwrap_or(true) {
+            let docs = config.get_path(project_root, "docs")?;
+            crate::clear::clear_post(project_root, false, &config, Some("never"), !quarto_exists && !bookdown_exists)?;
+            if quarto_exists || bookdown_exists {
+                let staging = cache_root.as_ref().context("Project rendering requires cache")?.join("projr").join(&current_version).join("docs");
+                if quarto_exists { copy_global_quarto_project(&staging, &docs)?; }
+                else { copy_global_bookdown(&staging, &docs, project_root)?; }
+            } else {
+                for file in &resolved_files {
+                    match file.extension() {
+                        Some("qmd") => copy_individual_quarto(file, &docs, project_root)?,
+                        Some("Rmd" | "rmd") => copy_individual_rmd(file, &docs, project_root)?,
+                        _ => {}
+                    }
+                }
+            }
+        }
+        for hooks in [&hooks_config.post, &hooks_config.both] {
+            if let Some(hooks) = hooks {
+                for hook in resolve_explicit_scripts(project_root, hooks)? {
+                    execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref())?;
+                }
+            }
+        }
+        // VERSION is authoritative only after hooks, rendering and promotion succeeded.
+        if !is_dev {
+            crate::path_safety::resolve_path(project_root.join("VERSION").as_std_path(), true)?;
+            version_set_at(project_root, &initial_version.to_string(false))?;
+        }
+        Ok(())
     }));
-
-    match result {
-        Ok(Ok(())) => {
-            // ==========================================
-            // STEP D: Post-Build Operations
-            // ==========================================
-
-            // Restore Sidecar Configs
-            if quarto_exists {
-                let _ = rewrite_engine_output_dir(project_root.as_std_path(), "quarto", &original_docs_path_str);
-            }
-            if bookdown_exists {
-                let _ = rewrite_engine_output_dir(project_root.as_std_path(), "bookdown", &original_docs_path_str);
-            }
-            if quarto_exists || bookdown_exists {
-                if let Some(orig_path) = original_docs_path.as_ref() {
-                    if let Some(docs_mut) = config.directories.get_mut(&actual_docs_key) {
-                        docs_mut.path = camino::Utf8PathBuf::from_path_buf(orig_path.clone()).unwrap(); /* TODO: migrate to camino */
-                    }
-                } else {
-                    config.directories.remove(&actual_docs_key);
-                }
-            }
-
-            let is_single_doc_engine = has_document_analysis && !quarto_exists && !bookdown_exists;
-            let clear_output_env = std::env::var("PROJR_CLEAR_OUTPUT").ok();
-            let clear_output_val = clear_output_env.as_deref().or(config.clear_output.as_deref());
-            if !is_dev && run_analysis {
-                crate::clear::clear_post(project_root, is_dev, &config, clear_output_val, is_single_doc_engine)?;
-            }
-
-            // Copy docs
-            let should_run_output = config.output_run.unwrap_or(true);
-            if should_run_output && !is_dev && run_analysis && has_document_analysis {
-                let final_docs_dir = config.get_path(project_root, "docs")?.into_std_path_buf();
-                let cache_docs_dir = cache_root.as_ref().context("Renderer staging requires declared cache")?.join("projr").join(&current_version).join("docs");
-
-                // TODO: migrate to camino
-                if quarto_exists {
-                    let _ = copy_global_quarto_project(&camino::Utf8PathBuf::try_from(cache_docs_dir).unwrap(), &camino::Utf8PathBuf::try_from(final_docs_dir).unwrap());
-                } else if bookdown_exists {
-                    let _ = copy_global_bookdown(&camino::Utf8PathBuf::try_from(cache_docs_dir).unwrap(), &camino::Utf8PathBuf::try_from(final_docs_dir).unwrap(), project_root);
-                } else {
-                    // It's a mixed/individual file run
-                    if let Some(scripts) = &build_scripts {
-                        if let Ok(resolved_files) = resolve_explicit_scripts(project_root, scripts) {
-                            for file in resolved_files {
-                                let ext = file.extension().unwrap_or("");
-                                if ext == "qmd" {
-                                    // TODO: migrate to camino
-                                    let _ = copy_individual_quarto(&file, camino::Utf8Path::from_path(final_docs_dir.as_path()).unwrap(), project_root);
-                                } else if ext == "Rmd" || ext == "rmd" {
-                                    // TODO: migrate to camino
-                                    let _ = copy_individual_rmd(&file, camino::Utf8Path::from_path(final_docs_dir.as_path()).unwrap(), project_root);
-                                }
-                            }
-                        }
-                    } else {
-                        if let Ok(resolved_files) = resolve_fallback_scripts(project_root) {
-                            for file in resolved_files {
-                                let ext = file.extension().unwrap_or("");
-                                if ext == "qmd" {
-                                    // TODO: migrate to camino
-                                    let _ = copy_individual_quarto(&file, camino::Utf8Path::from_path(final_docs_dir.as_path()).unwrap(), project_root);
-                                } else if ext == "Rmd" || ext == "rmd" {
-                                    // TODO: migrate to camino
-                                    let _ = copy_individual_rmd(&file, camino::Utf8Path::from_path(final_docs_dir.as_path()).unwrap(), project_root);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if config.git.commit {
-                let ver_str = initial_version.to_string(false);
-                let final_message = match description {
-                    Some(desc) if !desc.trim().is_empty() => format!("Build v{}: {}", ver_str, desc.trim()),
-                    _ => format!("Build v{}", ver_str),
-                };
-
-                let provider = create_git_provider(config.config.git.engine, project_root.to_path_buf())?;
-                provider.commit_all(&final_message)?;
-            }
-
-            // Execute Post-Build Hooks (after post-build commit, before push)
-            if let Some(post_hooks) = &hooks_config.post {
-                let post_resolved = resolve_explicit_scripts(project_root, post_hooks)?;
-                for hook in post_resolved {
-                    execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref())?;
-                }
-            }
-            if let Some(both_hooks) = &hooks_config.both {
-                let both_resolved = resolve_explicit_scripts(project_root, both_hooks)?;
-                for hook in both_resolved {
-                    execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref())?;
-                }
-            }
-
-            // Execute Remote Export Pipelines
-            if !is_dev && !config.dest.is_empty() {
-                if let Some(remotes) = &config.remotes.local {
-                    for dest_target in &config.dest {
-                        if let Some(remote) = remotes.get(dest_target) {
-                            for tag in &remote.content {
-                                if let Ok(dir_path) = config.get_path(project_root, tag) /* TODO: migrate to camino */ {
-                                    if dir_path.exists() {
-                                        crate::cas::ingest_directory(
-                                            project_root,
-                                            remote.path.as_path(),
-                                            tag,
-                                            dir_path.as_path(),
-                                            &initial_version.to_string(false)
-                                        ).context(format!("Failed remote CAS export for {}", tag))?;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if config.git.commit {
-                if config.git.push {
-                    post_build_sync(&config.config, project_root.to_path_buf())?;
-                }
-            }
-            Ok(())
-        },
-        Ok(Err(e)) => {
-            // Restore Sidecar Configs on failure
-            if quarto_exists {
-                let _ = rewrite_engine_output_dir(project_root.as_std_path(), "quarto", &original_docs_path_str);
-            }
-            if bookdown_exists {
-                let _ = rewrite_engine_output_dir(project_root.as_std_path(), "bookdown", &original_docs_path_str);
-            }
-            if quarto_exists || bookdown_exists {
-                if let Some(orig_path) = original_docs_path.as_ref() {
-                    if let Some(docs_mut) = config.directories.get_mut(&actual_docs_key) {
-                        docs_mut.path = camino::Utf8PathBuf::from_path_buf(orig_path.clone()).unwrap(); /* TODO: migrate to camino */
-                    }
-                } else {
-                    config.directories.remove(&actual_docs_key);
-                }
-            }
-
-            if is_prod_run {
-                // Revert to Development State of Previous Baseline
-                let mut reverted = version_before_build.clone();
-                if reverted.dev == 0 {
-                    reverted.dev = 1;
-                }
-                let _ = version_set_at(project_root, &reverted.to_string(false));
-            }
-            Err(e)
-        }
-        Err(_) => {
-            // Restore Sidecar Configs on failure
-            if quarto_exists {
-                let _ = rewrite_engine_output_dir(project_root.as_std_path(), "quarto", &original_docs_path_str);
-            }
-            if bookdown_exists {
-                let _ = rewrite_engine_output_dir(project_root.as_std_path(), "bookdown", &original_docs_path_str);
-            }
-            if quarto_exists || bookdown_exists {
-                if let Some(orig_path) = original_docs_path.as_ref() {
-                    if let Some(docs_mut) = config.directories.get_mut(&actual_docs_key) {
-                        docs_mut.path = camino::Utf8PathBuf::from_path_buf(orig_path.clone()).unwrap(); /* TODO: migrate to camino */
-                    }
-                } else {
-                    config.directories.remove(&actual_docs_key);
-                }
-            }
-
-            if is_prod_run {
-                // Revert to Development State of Previous Baseline
-                let mut reverted = version_before_build.clone();
-                if reverted.dev == 0 {
-                    reverted.dev = 1;
-                }
-            let _ = version_set_at(project_root, &reverted.to_string(false));
-            }
-            anyhow::bail!("Build pipeline panicked unexpectedly.");
-        }
+    let mut local_result = match local_result {
+        Ok(result) => result,
+        Err(_) => Err(anyhow::anyhow!("Build pipeline panicked unexpectedly")),
+    };
+    if let Err(restore_error) = restore_engines() {
+        local_result = Err(match local_result {
+            Err(primary) => primary.context(format!("Renderer configuration restoration also failed: {restore_error:#}")),
+            Ok(()) => restore_error,
+        });
     }
+    if let Err(error) = local_result {
+        return Err(match backup { Some(backup) => backup.restore(error), None => error });
+    }
+    drop(backup); // Local release is complete. Publication cannot undo that success.
+    if is_dev { return Ok(()); }
+    let publication = (|| -> anyhow::Result<()> {
+        if let Some(remotes) = &config.remotes.local {
+            for target in &config.dest {
+                let remote = remotes.get(target).context("Validated publication target disappeared")?;
+                for label in &remote.content {
+                    let source = config.get_path(project_root, label)?;
+                    if !source.is_dir() { anyhow::bail!("Publication source is not a directory: {source}"); }
+                    crate::cas::ingest_directory(project_root, &remote.path, label, &source, &initial_version.to_string(false))?;
+                }
+            }
+        }
+        // Export the built bytes before requested post-output cleanup.
+        if run_analysis {
+            let clear_output_env = std::env::var("PROJR_CLEAR_OUTPUT").ok();
+            crate::clear::clear_post(project_root, false, &config, clear_output_env.as_deref().or(config.clear_output.as_deref()), false)?;
+        }
+        if config.git.commit {
+            let version = initial_version.to_string(false);
+            let message = match description {
+                Some(description) if !description.trim().is_empty() => format!("Build v{version}: {}", description.trim()),
+                _ => format!("Build v{version}"),
+            };
+            let provider = create_git_provider(config.config.git.engine, project_root.to_path_buf())?;
+            provider.commit_all(&message)?;
+            if config.git.push { provider.push("origin", "main")?; }
+        }
+        Ok(())
+    })();
+    publication.context("Local build succeeded; publication or post-publication cleanup failed")
 }
 
 fn execute_build_pipeline(
