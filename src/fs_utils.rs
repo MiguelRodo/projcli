@@ -54,9 +54,7 @@ pub fn dir_move_exact(source: &Utf8Path, dest: &Utf8Path) -> anyhow::Result<()> 
 /// Copies a directory tree, rejecting symlinked destination paths before file writes.
 /// Filesystem errors propagate; callers must provide transaction/rollback boundaries.
 pub fn copy_dir_recursive(src: &Utf8Path, dst: &Utf8Path) -> anyhow::Result<()> {
-    if !src.exists() {
-        return Ok(());
-    }
+    crate::path_safety::validate_directory_move(src, dst)?;
     if !dst.exists() {
         fs::create_dir_all(dst.as_std_path()).context("Failed to create destination directory")?;
     }

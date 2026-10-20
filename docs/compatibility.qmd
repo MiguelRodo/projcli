@@ -425,3 +425,40 @@ preserved the published site, passed all ten checks in runs
 `a0909e413915847498e77669a3b669941dbfe3fe`. Required active config and unsupported
 field rejection are implemented; explicit used-directory enforcement and finite
 control-value validation remain separate gaps.
+
+
+PR137 independent review found that configured-root checks alone missed derived
+version/output cache leaves. Validate all actual cleanup bases before the first
+deletion, including configured-cache and legacy staging paths. Direct dev cleanup
+is now a true no-op. The same review traced individual document promotion and
+recursive copying: validate paths before creating directories or renaming files,
+require actual outputs, reject traversal/aliasing and prevalidate asset moves.
+The two duplicate individual-renderer helpers now reuse one guarded implementation.
+Added targeted direct-API regressions; amended remote CI/re-review are required.
+This does not yet fix build callers discarding promotion errors or provide full
+restoration/atomicity; those remain the following focused work.
+
+
+The repaired PR137 guard prevalidates concrete generated-file/asset paths and both
+legacy/configured cache-derived leaves before VERSION/ignore writes, including
+dangling links. Individual and project promotion now resolve the configured docs
+destination rather than a root/docs fallback; Python-only builds do not clear
+unrelated docs. Unix fake-Quarto/fake-R CLI fixtures exercise the reported linked
+root/docs sentinel bypass and actual successful external promotion, without a real
+renderer installation. Direct helper tests remain cross-platform.
+
+Project-render source safety is explicitly conservative: recognized source-like
+`.qmd`, `.Rmd`, `.md` and `.ipynb` files or links in managed cleanup trees cause an
+early error. This can reject generated Markdown there; it is not exact Quarto or
+Bookdown input discovery. Keep sources and managed destinations separate until a
+renderer-provided input plan is supported. Quarto's documented project input types
+are described in [Project Basics](https://quarto.org/docs/projects/quarto-projects.html#render-targets).
+
+
+The prepared literal-root glob fix is included in PR137 because a metacharacter
+root otherwise hides explicit inputs from the cleanup containment guard. Reuse
+glob::Pattern::escape for the root prefix only, retaining user include/exclude
+syntax. Runnable tests verify actual analysis bytes and selected-input preservation
+under a bracket-containing root. This is the same audited root-cause fix, not an
+additional discovery policy or dependency. Existing standalone preparation remains
+preserved and must not later be merged as duplicate work.

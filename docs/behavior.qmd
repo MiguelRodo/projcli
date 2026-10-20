@@ -127,6 +127,14 @@ runs hooks and must validate managed destinations. Disjoint external resource
 paths remain supported. Generic directory moves require an existing source and
 disjoint destination with resolved parents; symlink aliases are rejected.
 
+Project renderers are conservatively rejected when managed cleanup trees contain
+recognized source-like documents or linked entries; this is not exact renderer
+input discovery and can reject generated Markdown. Individual outputs must use
+portable leaf filenames and may not replace framework configuration/state.
+Concrete cache/output/asset paths are checked before VERSION or ignore writes.
+Literal project roots are escaped for explicit include/exclude globs so brackets
+in a root cannot hide selected inputs from safety checks.
+
 These checks do not establish atomic promotion, full rollback, protection against
 concurrent filesystem replacement, or undo arbitrary external script effects.
 

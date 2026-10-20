@@ -32,6 +32,14 @@ pub(crate) fn resolve_path(path: &Path, reject_symlinks: bool) -> anyhow::Result
     Ok(resolved)
 }
 
+/// Rejects labels that could escape a derived cache directory.
+pub(crate) fn validate_directory_label(label: &str) -> anyhow::Result<()> {
+    if label.contains('/') || label.contains('\\') {
+        anyhow::bail!("Directory label must not contain path separators: {label}");
+    }
+    Ok(())
+}
+
 fn overlaps(left: &Path, right: &Path) -> bool {
     left.starts_with(right) || right.starts_with(left)
 }
@@ -43,6 +51,7 @@ pub(crate) fn validate_build_paths(root: &Utf8Path, config: &crate::yml::Validat
     let staging = resolve_path(root.join("_tmp/projr").as_std_path(), true)?;
     let mut directories = Vec::new();
     for (label, directory) in &config.directories {
+        validate_directory_label(label)?;
         let lower = label.to_lowercase();
         let writable = lower.starts_with("cache") || lower.starts_with("output") || lower.starts_with("docs");
         let path = if directory.path.is_absolute() { directory.path.clone() } else { root.join(&directory.path) };
@@ -92,6 +101,69 @@ pub(crate) fn validate_directory_move(source: &Utf8Path, destination: &Utf8Path)
     // Existing protected files survive cleanup, so reject links before copy can follow them.
     for name in ["CHANGELOG.md", ".gitignore", "README.md"] {
         resolve_path(destination.join(name).as_std_path(), true)?;
+    }
+    Ok(())
+}
+
+
+/// Validates every derived cleanup base before the first cleanup mutation.
+pub(crate) fn validate_cleanup_paths(root: &Utf8Path, config: &crate::yml::ValidatedConfig, version: &str) -> anyhow::Result<()> {
+    validate_build_paths(root, config, &[])?;
+    if version.contains('/') || version.contains('\\') || version == "." || version == ".." {
+        anyhow::bail!("Invalid cache version component");
+    }
+    let legacy_version = root.join("_tmp/projr").join(version);
+    resolve_path(legacy_version.as_std_path(), true)?;
+    resolve_path(legacy_version.join("docs").as_std_path(), true)?;
+    let cache = config.get_path(root, "cache")?;
+    resolve_path(cache.join("projr").join(version).as_std_path(), true)?;
+    for label in config.directories.keys() {
+        if label.to_lowercase().starts_with("output") || label == "data" {
+            resolve_path(cache.join("projr").join(version).join(label).as_std_path(), true)?;
+            resolve_path(legacy_version.join(label).as_std_path(), true)?;
+        }
+    }
+    Ok(())
+}
+
+/// Validates a direct document-promotion destination before creating it.
+pub(crate) fn validate_document_destination(root: &Utf8Path, input: &Utf8Path, destination: &Utf8Path) -> anyhow::Result<()> {
+    let root = resolve_path(root.as_std_path(), false)?;
+    let destination = resolve_path(destination.as_std_path(), true)?;
+    if root.starts_with(&destination) || resolve_path(input.as_std_path(), false)?.starts_with(&destination) {
+        anyhow::bail!("Document destination contains the project root or selected input");
+    }
+    for protected in [root.join(".git"), root.join(".svn"), root.join("_tmp/projr")] {
+        if overlaps(&destination, &protected) { anyhow::bail!("Document destination overlaps protected project state"); }
+    }
+    if destination.exists() && !destination.is_dir() { anyhow::bail!("Document destination is not a directory"); }
+    Ok(())
+}
+
+
+/// Conservatively bounds project-render inputs instead of claiming exact renderer discovery.
+/// Source-like documents in managed cleanup trees must be moved to separate source paths.
+pub(crate) fn validate_project_source_overlap(root: &Utf8Path, config: &crate::yml::ValidatedConfig) -> anyhow::Result<()> {
+    // ponytail: conservative O(tree) scan; a renderer input manifest can narrow rejections later.
+    let mut pending = Vec::new();
+    for label in config.directories.keys() {
+        let lower = label.to_lowercase();
+        if lower.starts_with("cache") || lower.starts_with("docs") || lower.starts_with("output") {
+            let path = config.get_path(root, label)?;
+            if path.is_dir() { pending.push(path.into_std_path_buf()); }
+        }
+    }
+    while let Some(directory) = pending.pop() {
+        for entry in fs::read_dir(&directory).with_context(|| format!("Cannot inspect project-render cleanup tree {}", directory.display()))? {
+            let entry = entry?;
+            let kind = entry.file_type()?;
+            let path = entry.path();
+            if kind.is_symlink() { anyhow::bail!("Cannot safely bound project-render inputs through linked cleanup-tree entry {}", path.display()); }
+            if kind.is_dir() { pending.push(path); }
+            else if path.extension().and_then(|extension| extension.to_str()).is_some_and(|extension| matches!(extension.to_ascii_lowercase().as_str(), "qmd" | "rmd" | "md" | "ipynb")) {
+                anyhow::bail!("Project-render input/source-like document overlaps managed cleanup tree: {}. Keep project sources and managed outputs separate", path.display());
+            }
+        }
     }
     Ok(())
 }

@@ -346,9 +346,7 @@ impl ProjConfig {
 
         // 1. Process explicit user configurations
         for (label, config) in &self.directories {
-            if label.contains('/') || label.contains('\\') {
-                anyhow::bail!("Directory label must not contain path separators: {label}");
-            }
+            crate::path_safety::validate_directory_label(label)?;
             let lower_label = label.to_lowercase();
 
             // Validate prefix rules
