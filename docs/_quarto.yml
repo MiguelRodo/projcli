@@ -6,6 +6,8 @@ website:
   site-url: https://miguelrodo.github.io/projcli/
   description: "Run research analyses with clear project paths and a separate preview step."
   navbar:
+    background: "#143b3a"
+    foreground: "#ffffff"
     left:
       - href: index.qmd
         text: Home
@@ -23,12 +25,6 @@ website:
     style: docked
     search: true
     contents:
-      - section: Start here
-        contents:
-          - index.qmd
-          - install.qmd
-          - tutorial.qmd
-          - features.qmd
       - section: Reference
         contents:
           - configuration.qmd
