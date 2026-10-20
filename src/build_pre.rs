@@ -233,7 +233,9 @@ pub fn run_pre_flight_checks(
 
             if !is_installed {
                 let auto_install = std::env::var("PROJR_AUTO_INSTALL").unwrap_or_default();
-                let should_install = if auto_install == "true" {
+                let should_install = if crate::env::is_non_interactive() {
+                    false
+                } else if auto_install == "true" {
                     true
                 } else if auto_install == "false" {
                     false

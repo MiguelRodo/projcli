@@ -17,6 +17,9 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[command(name = "proj", version)]
 pub struct Cli {
+    /// Disable CLI prompts and automatic package installation, and close runner stdin.
+    #[arg(long, global = true)]
+    non_interactive: bool,
     /// Select an exact existing project directory without requiring root markers.
     #[arg(long, global = true, value_name = "PATH")]
     project: Option<camino::Utf8PathBuf>,
@@ -209,6 +212,10 @@ fn fail(message: std::fmt::Arguments<'_>) -> ! {
 
 fn main() {
     let cli = Cli::parse();
+    let mut interaction_guard = proj::EnvGuard::new();
+    if cli.non_interactive {
+        interaction_guard.track_and_set(proj::NON_INTERACTIVE_ENV, "true");
+    }
     let root = match proj::resolve_project_root(cli.project.as_deref()) {
         Ok(root) => root,
         Err(error) => {
@@ -259,7 +266,7 @@ fn main() {
                 if desc.as_ref().map(|s| s.trim().is_empty()).unwrap_or(true) {
                     use std::io::{self, BufRead};
                     let is_terminal = std::io::IsTerminal::is_terminal(&io::stdin());
-                    if is_terminal {
+                    if is_terminal && !proj::is_non_interactive() {
                         let mut input = String::new();
                         let stdin = io::stdin();
                         loop {

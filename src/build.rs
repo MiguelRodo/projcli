@@ -996,6 +996,9 @@ fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Pat
 
     // TODO: migrate to camino
     cmd.current_dir(parent_dir.as_std_path());
+    if crate::env::is_non_interactive() {
+        cmd.stdin(std::process::Stdio::null());
+    }
     cmd.env(crate::project::PROJECT_ROOT_ENV, project_root.as_str());
     if let Some(p) = profile {
         cmd.env("PROJR_PROFILE", p);
@@ -1023,6 +1026,9 @@ fn execute_project_render(project_root: &camino::Utf8Path, is_quarto: bool, prof
 
     // TODO: migrate to camino
     cmd.current_dir(project_root.as_std_path());
+    if crate::env::is_non_interactive() {
+        cmd.stdin(std::process::Stdio::null());
+    }
     cmd.env(crate::project::PROJECT_ROOT_ENV, project_root.as_str());
     if let Some(p) = profile {
         cmd.env("PROJR_PROFILE", p);

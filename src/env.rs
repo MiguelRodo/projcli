@@ -241,3 +241,25 @@ impl Drop for EnvGuard {
         }
     }
 }
+
+/// Environment flag inherited by managed children for explicit noninteractive runs.
+///
+/// ```rust
+/// assert_eq!(proj::NON_INTERACTIVE_ENV, "PROJ_NON_INTERACTIVE");
+/// ```
+pub const NON_INTERACTIVE_ENV: &str = "PROJ_NON_INTERACTIVE";
+
+/// Returns whether the inherited noninteractive flag is `true` or `1`.
+///
+/// Missing or other values leave ordinary interaction behavior enabled. This
+/// reads process state without changing it; it does not isolate child filesystems.
+///
+/// ```rust
+/// let enabled: bool = proj::is_non_interactive();
+/// let _ = enabled;
+/// ```
+pub fn is_non_interactive() -> bool {
+    std::env::var(NON_INTERACTIVE_ENV)
+        .map(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+        .unwrap_or(false)
+}
