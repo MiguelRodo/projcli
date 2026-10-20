@@ -28,12 +28,18 @@ jobs:
     env:
       RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.tag || github.ref_name }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Validate tag input before checkout
+        shell: bash
+        run: python -c 'import os,re; assert re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+-preview\.[0-9]+",os.environ["RELEASE_TAG"])'
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+      - name: Verify checked-out qualified tag commit
+        shell: bash
+        run: python scripts/release-assets.py verify-tag --tag "$RELEASE_TAG"
       - name: Validate preview tag and package version
         shell: bash
         run: |
@@ -55,7 +61,7 @@ jobs:
           "$RELEASE_BINARY" --version
           "$RELEASE_BINARY" --machine capabilities > capabilities.json
           python -c 'import json,tomllib; result=json.load(open("capabilities.json")); assert result["ok"] and result["protocol_version"] == 1 and result["cli_version"] == tomllib.load(open("Cargo.toml","rb"))["package"]["version"]'
-          python scripts/release-assets.py stage --binary "$RELEASE_BINARY" --platform "$RELEASE_PLATFORM" --output dist --tag "$RELEASE_TAG"
+          python scripts/release-assets.py stage --binary "$RELEASE_BINARY" --platform "$RELEASE_PLATFORM" --output dist --tag "$RELEASE_TAG" --commit "$(git rev-parse HEAD)"
       - name: Verify installer against actual tagged binary
         if: runner.os == 'Linux'
         run: python tests/check-installer.py --shell bash --fixture dist
@@ -75,18 +81,24 @@ jobs:
     env:
       RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.tag || github.ref_name }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Validate tag input before checkout
+        shell: bash
+        run: python -c 'import os,re; assert re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+-preview\.[0-9]+",os.environ["RELEASE_TAG"])'
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+      - name: Verify checked-out qualified tag commit
+        shell: bash
+        run: python scripts/release-assets.py verify-tag --tag "$RELEASE_TAG"
       - uses: actions/download-artifact@v4
         with:
           pattern: preview-*
           path: artifacts
       - name: Verify and collect both platform assets
-        run: python scripts/release-assets.py collect --input artifacts --output release-assets --tag "$RELEASE_TAG"
+        run: python scripts/release-assets.py collect --input artifacts --output release-assets --tag "$RELEASE_TAG" --commit "$(git rev-parse HEAD)"
       - name: Create reviewable preview draft without publishing
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -73,8 +73,10 @@ jobs:
         shell: pwsh
         run: |
           cargo build --release --locked
+          if ($LASTEXITCODE -ne 0) { throw "Cargo release build failed" }
           New-Item -ItemType Directory -Path dist -Force | Out-Null
           python scripts/release-assets.py stage --binary target/release/proj.exe --platform windows_amd64 --output dist
+          if ($LASTEXITCODE -ne 0) { throw "Artifact staging failed" }
 
       - name: Upload Built Windows Artifacts
         uses: actions/upload-artifact@v4

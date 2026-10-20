@@ -835,3 +835,11 @@ Retained Markdown (`keep_md` / `keep-md`, including format options) is rejected 
 individual layouts before rendering. A nested Rmd sibling sentinel regression with
 an overwrite-capable fake renderer and failing post-hook prevents this untracked
 framework artifact from damaging existing Markdown outside the recovery plan.
+
+PR149 review qualifies checkout as refs/tags/<validated preview tag> and verifies
+HEAD against that exact tag in both jobs. Both platform artifacts record the source
+commit; collection rejects any mismatch with the draft job's checked-out tag and
+publishes the source identity with checksums. Same-named branch regression proves
+the guard. Windows native Cargo/staging failures are checked before cached bytes
+can reach artifact upload. The tag-only workflow remains unexercised until an
+authorized reviewed preview tag is actually created; PR CI is not release evidence.
