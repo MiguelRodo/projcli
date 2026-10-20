@@ -1,0 +1,71 @@
+---
+title: "Your analysis, ready to run again."
+subtitle: "Keep the steps, paths and outputs of a research project together."
+toc: false
+---
+
+::: {.hero}
+projcli runs the analysis steps you choose from a small project configuration.
+Use a preview while you work, then make a versioned build when you are ready.
+
+[Get started](tutorial.qmd){.btn .btn-primary}
+[Check installation options](install.qmd){.btn .btn-outline-primary}
+:::
+
+::: {.callout-note}
+## Development preview
+This site describes work on the `main` branch. The published **v0.3.0** release
+predates the recent preview and project-root changes. Read
+[what works](features.qmd) before choosing a version.
+:::
+
+::: {.grid}
+::: {.g-col-12 .g-col-md-4}
+## Choose your steps
+
+List the scripts that belong to your analysis. Start with one Python script;
+add R or rendered reports when your project needs them.
+:::
+::: {.g-col-12 .g-col-md-4}
+## Keep paths consistent
+
+Select a project explicitly with `--project`. Child commands keep that project
+context, even when an analysis changes its working folder.
+:::
+::: {.g-col-12 .g-col-md-4}
+## Preview as you work
+
+`proj build-dev` runs analysis without the CLI publishing outputs or changing
+the project version. Your scripts still control the files they write.
+:::
+:::
+
+## A small first project
+
+Put the analysis steps in `_proj.yml`:
+
+```yaml
+directories:
+  cache:
+    path: _tmp
+build:
+  scripts: [analysis.py]
+```
+
+Run the preview from your project folder:
+
+```bash
+proj --project . --non-interactive build-dev
+```
+
+The [step-by-step example](tutorial.qmd) supplies the script, a tiny dataset,
+and the result to check. It uses Python's standard library.
+
+## Find the detail you need
+
+- [Install](install.qmd): prerequisites, release status and platform limits.
+- [What works](features.qmd): current capabilities and work still ahead.
+- [Build commands](cli/build.qmd): preview and production behavior.
+- [Configuration](configuration.qmd): project settings.
+- [Behavior contract](behavior.qmd) and [projr comparison](compatibility.qmd):
+  design decisions and known gaps.
