@@ -248,6 +248,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#resolution-rules" id="toc-resolution-rules" class="nav-link" data-scroll-target="#resolution-rules">Resolution Rules</a></li>
   <li><a href="#output-path-routing" id="toc-output-path-routing" class="nav-link" data-scroll-target="#output-path-routing">Output Path Routing</a></li>
   <li><a href="#explicit-and-inherited-project-root" id="toc-explicit-and-inherited-project-root" class="nav-link" data-scroll-target="#explicit-and-inherited-project-root">Explicit and inherited project root</a></li>
+  <li><a href="#nearest-root-discovery" id="toc-nearest-root-discovery" class="nav-link" data-scroll-target="#nearest-root-discovery">Nearest-root discovery</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -280,8 +281,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="explicit-and-inherited-project-root" class="level2">
 <h2 class="anchored" data-anchor-id="explicit-and-inherited-project-root">Explicit and inherited project root</h2>
 <p><code>--project PATH</code> selects that exact existing directory, including a folder without configuration or VERSION. It overrides both ancestor discovery and an inherited run root. Invalid directories fail with a nonzero exit status.</p>
-<p>The CLI captures an absolute root as <code>PROJ_PROJECT_ROOT</code> for the invocation and its child processes. A nested <code>proj path get</code> uses that root even after a script changes cwd. An invalid inherited root fails rather than falling back silently. Direct Rust <code>build_project(root, ...)</code> calls also pass their supplied root to children. Discovery marker policy is unchanged by this slice.</p>
+<p>The CLI captures an absolute root as <code>PROJ_PROJECT_ROOT</code> for the invocation and its child processes. A nested <code>proj path get</code> uses that root even after a script changes cwd. An invalid inherited root fails rather than falling back silently. Direct Rust <code>build_project(root, ...)</code> calls also pass their supplied root to children. See the discovery rules below for the recognized root markers.</p>
 <p>This establishes CLI child-query behavior, not direct Quarto/RStudio parity or changes to the existing R frontend. Renderer configuration, execution cwd, resource links and output placement remain separate concerns. Path queries do not write ignore files or create the resolved target directories.</p>
+</section>
+<section id="nearest-root-discovery" class="level2">
+<h2 class="anchored" data-anchor-id="nearest-root-discovery">Nearest-root discovery</h2>
+<p>Without <code>--project</code> or an inherited run root, discovery walks upward from cwd and selects the first recognized directory. It does not search downward for projects. Recognized markers are VERSION, README.md, <code>_quarto.yml</code>, <code>_proj.yml</code>, legacy <code>_projr.yml</code>, Git/SVN metadata, a DESCRIPTION containing <code>Package:</code>, an RStudio <code>.Rproj</code> whose first line starts <code>Version:</code>, and a renv.lock with a Packages map.</p>
+<p><code>pyproject.toml</code>, <code>Project.toml</code> and <code>JuliaProject.toml</code> deliberately extend the projr marker set for Python/Julia. <code>requirements.txt</code> and <code>Manifest.toml</code> alone are not root markers. Standalone VERSION and README markers are retained, so a nested directory with one is the nearer project; explicit selection overrides it.</p>
+<p>Marker recognition does not change shallow default script enumeration or prove that the corresponding language runner/frontend is implemented. Legacy config content handling is a separate compatibility change from recognizing its root.</p>
+<p>If no recognized marker exists, discovery selects cwd. Discovery success does not mean a build is configured: the current product contract requires active root configuration and explicit used-directory mappings. Validation changes enforcing that newer contract are separate from this root-discovery slice.</p>
 
 
 </section>
