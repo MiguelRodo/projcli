@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-7cb861d3ce1fbbd82c7b4974d7f1ef06.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-c08d3273e37e7f5e3c9409009cd7f4c7.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -299,6 +299,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#future-r-wrapper-distribution-boundary" id="toc-future-r-wrapper-distribution-boundary" class="nav-link" data-scroll-target="#future-r-wrapper-distribution-boundary">Future R wrapper distribution boundary</a></li>
   <li><a href="#one-merged-build-scripthook-context-current-change" id="toc-one-merged-build-scripthook-context-current-change" class="nav-link" data-scroll-target="#one-merged-build-scripthook-context-current-change">One merged build script/hook context (current change)</a></li>
   <li><a href="#legacy-audit-tracking" id="toc-legacy-audit-tracking" class="nav-link" data-scroll-target="#legacy-audit-tracking">Legacy audit tracking</a></li>
+  <li><a href="#active-configuration-and-unsupported-fields-prepared-change" id="toc-active-configuration-and-unsupported-fields-prepared-change" class="nav-link" data-scroll-target="#active-configuration-and-unsupported-fields-prepared-change">Active configuration and unsupported fields (prepared change)</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -435,7 +436,7 @@ ul.task-list li input[type="checkbox"] {
 <ul>
 <li><strong>Relationship:</strong> same projr local &gt; profiles &gt; base precedence, with earlier-listed profiles winning; legacy <code>_projr.yml</code> is accepted alongside canonical <code>_proj.yml</code> as an explicit compatibility decision. Both base files together fail instead of silently merging. Source comparison remains <a href="https://github.com/SATVILab/projr/blob/3ac29595d0e39552495d863661b99ea015d59d3d/R/yml.R#L224">projr yml.R at 3ac2959</a>.</li>
 <li><strong>Implemented:</strong> shared base selection for merged reads, existing build base inspection, parameters insertion and local-profile cloning. Explicit profile lists replace ambient lists; traversal-like explicit names fail validation. Profile/local files retain their existing <code>_projr-</code> names in this bounded slice.</li>
-<li><strong>Evidence:</strong> new runnable query/alias/ambiguity/preservation/precedence tests passed on all three platforms at <code>53463d325c85c538ae0b8a5e792caa6bc997e452</code>. All nine checks in runs 39488461110/39488461213 passed; independent review inspected alias, precedence and duplicate-key logs and cleared that head. This evidence-only amendment needs its own final checks. No R runtime tests.</li>
+<li><strong>Evidence:</strong> new runnable query/alias/ambiguity/preservation/precedence tests passed on all three platforms at <code>53463d325c85c538ae0b8a5e792caa6bc997e452</code>. All nine checks in runs 39488461110/39488461213 passed; independent review inspected alias, precedence and duplicate-key logs and cleared that head. Final documentation/instruction head <code>c8b208f9243f828de05977f8e76d6f2074535a9b</code> passed all nine checks in runs 39489639669/39489639654 and independent review; merged as <code>0fec2735355ee5e9b9ba64d33ecd4796bf396301</code>. Post-merge checks passed. No R runtime tests.</li>
 <li><strong>Gaps:</strong> one merged build script/hook context, active-configuration requirement, explicit directory mappings and early unsupported-setting validation remain separate work. This does not claim builds yet satisfy those approved rules.</li>
 <li><strong>Ponytail full-mode review:</strong> traced base filename readers and reused one stdlib path selector; reversed existing deep-merge traversal rather than adding a merger or dependency. Preserved null-as-absence and explicit-empty-list behavior. Checks exercise real query results and preservation on ambiguity.</li>
 </ul>
@@ -462,6 +463,17 @@ ul.task-list li input[type="checkbox"] {
 <section id="legacy-audit-tracking" class="level2">
 <h2 class="anchored" data-anchor-id="legacy-audit-tracking">Legacy audit tracking</h2>
 <p>The <a href="./legacy-audit-20261020.html">2026-10-20 static audit</a> records the pinned baseline, reported failure paths, required regressions and correction order. Its findings are not runtime reproductions or completed fixes. Highest managed-state risks remain blockers to production-safety claims; arbitrary external script effects are outside managed rollback. No mechanical edition upgrade or CAS redesign is claimed. This review uses the actual Ponytail full-mode skill to prioritize root causes and data-preservation checks over cosmetic rewriting.</p>
+</section>
+<section id="active-configuration-and-unsupported-fields-prepared-change" class="level2">
+<h2 class="anchored" data-anchor-id="active-configuration-and-unsupported-fields-prepared-change">Active configuration and unsupported fields (prepared change)</h2>
+<ul>
+<li><strong>Relationship: deliberate difference</strong> from projr convenience defaults, as explicitly approved. Every build requires a base file or activated profile; inactive profile/local files alone do not qualify. Discovery still falls back to cwd independently. Empty analysis is valid with active configuration.</li>
+<li><strong>Implemented:</strong> build gate before writes; unsupported typed configuration fields fail instead of disappearing in a top-level filter. Build failures include their error causes so unsupported-field diagnostics name the field. Arbitrary parameter and metadata maps remain supported and parameter aliases reach validation.</li>
+<li><strong>Evidence:</strong> runnable tests cover active/base/legacy/inactive/local/no-config cases, unsupported nested keys, dynamic maps and no pre-build state writes. Remote CI/independent review pending. Explicit directory enforcement is still a separate gap; this does not yet establish transaction/promotion safety.</li>
+<li><strong>Ponytail full-mode review:</strong> reused Serde’s unknown-field validation and the existing active profile resolver; removed silent filtering from runtime reads. No new parser/schema/dependency. Kept the old public filter helper only for compatibility; runtime no longer uses it.</li>
+</ul>
+<p>PR134 merged-context evidence: exact head <code>29b2bdfb564f3193a0e93eb43096f89f2691653a</code> passed all nine checks in runs 39490264159/39490264169. Independent review inspected the three new regressions across platforms and cleared the bounded change. Merged as <code>eb1204026e8809780fc783f27b0be7edf9b5033e</code>. Preflight itself is not guaranteed read-only; environment/profile-source unification, per-run environment safety, strict directories and transaction/promotion safety remain open. This evidence is batched with the substantive active-configuration change to avoid an extra matrix.</p>
+<p>PR135 review found mixed parameter aliases survived per-file parsing as separate keys and then conflicted at typed deserialization. Canonicalize the one accepted alias to <code>parameters</code> in the shared reader before merging. New fixtures cover all 64 base/profile/local alias combinations, earlier-profile precedence and retained nested values; same-file multiple aliases and YAML duplicate keys remain errors. Ponytail full-mode re-review kept the fix at the shared loader, without caller guards or a second merge model. Exact amended CI/re-review remain required.</p>
 
 
 </section>

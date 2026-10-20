@@ -80,7 +80,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-7cb861d3ce1fbbd82c7b4974d7f1ef06.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-c08d3273e37e7f5e3c9409009cd7f4c7.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -324,6 +324,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#isolation" id="toc-isolation" class="nav-link" data-scroll-target="#isolation">Isolation</a></li>
   <li><a href="#development-preview" id="toc-development-preview" class="nav-link" data-scroll-target="#development-preview">Development preview</a></li>
   <li><a href="#explicit-empty-script-lists" id="toc-explicit-empty-script-lists" class="nav-link" data-scroll-target="#explicit-empty-script-lists">Explicit empty script lists</a></li>
+  <li><a href="#active-configuration-and-validation" id="toc-active-configuration-and-validation" class="nav-link" data-scroll-target="#active-configuration-and-validation">Active configuration and validation</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -382,6 +383,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="explicit-empty-script-lists">Explicit empty script lists</h2>
 <p><code>build.scripts: []</code> selects no analysis scripts. Hooks still run, and production builds can version and export existing artefacts as an upload-only workflow. Analysis cleanup, renderer setup and document promotion are skipped so those existing artefacts are preserved. The CLI does not discover scripts instead.</p>
 <p>For previews, an absent <code>dev.scripts</code> inherits <code>build.scripts</code>; <code>dev.scripts: []</code> overrides it with no analysis. Hooks still run, but previews never publish.</p>
+</section>
+<section id="active-configuration-and-validation" class="level2">
+<h2 class="anchored" data-anchor-id="active-configuration-and-validation">Active configuration and validation</h2>
+<p>Builds require root-level <code>_proj.yml</code>, legacy <code>_projr.yml</code>, or an explicitly activated <code>_projr-&lt;profile&gt;.yml</code>. Inactive profiles and <code>_projr-local.yml</code> alone do not qualify. Both base filenames together are an error. Unsupported control fields fail before build writes; arbitrary <code>parameters</code> and <code>metadata</code> maps are allowed. Configuration errors include their causes on stderr and return failure.</p>
+<p>This validation is separate from project discovery. A root marker or cwd fallback does not make an unconfigured project buildable. Explicit directory enforcement, per-run environment isolation and complete managed-state failure restoration remain under development; see the behavior contract and pinned legacy audit.</p>
 
 
 </section>

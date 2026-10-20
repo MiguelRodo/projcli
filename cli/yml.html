@@ -80,7 +80,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-7cb861d3ce1fbbd82c7b4974d7f1ef06.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-c08d3273e37e7f5e3c9409009cd7f4c7.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -338,7 +338,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="configuration-and-defaults" class="level2">
 <h2 class="anchored" data-anchor-id="configuration-and-defaults">Configuration and defaults</h2>
 <p>The base is <code>_proj.yml</code>, or the legacy alias <code>_projr.yml</code>. Having both is an error. Active <code>_projr-&lt;profile&gt;.yml</code> files override the base, with earlier-listed profiles winning conflicts. <code>_projr-local.yml</code> overrides all active profiles. Explicit profile selection replaces the environment list. Profile/local filename aliases are separate from the implemented base alias.</p>
-<p>Missing configuration uses defaults in memory. Missing directory paths and base labels also receive in-memory defaults, and an absent <code>parameters</code> value becomes an empty mapping. No parameters block or other default is inserted into a file. Conflicting parameter aliases in the base configuration are rejected.</p>
+<p>Read-only queries still use in-memory defaults when configuration is missing. Builds require <code>_proj.yml</code>, legacy <code>_projr.yml</code>, or an explicitly activated <code>_projr-&lt;profile&gt;.yml</code> at the selected root. Inactive profiles and local overrides alone do not satisfy this requirement. Unsupported configuration fields fail validation, including nested control fields; <code>metadata</code> and <code>parameters</code> remain arbitrary maps. Missing directory paths and base labels also receive in-memory defaults, and an absent <code>parameters</code> value becomes an empty mapping. No parameters block or other default is inserted into a file. Conflicting parameter aliases in the base configuration are rejected.</p>
 <p>Configuration validation and path queries do not change <code>.gitignore</code>, <code>.Rbuildignore</code>, configuration files, or project directories. Production builds and directory initialization request ignore synchronization explicitly. Directory initialization stops on configuration read/validation errors before changing ignore rules or creating directories.</p>
 
 
