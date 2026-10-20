@@ -5,7 +5,8 @@ use anyhow::Context;
 /// Replaces a disjoint destination directory with an existing source directory.
 /// Preserves existing README, CHANGELOG and ignore files during destination cleanup.
 /// Rejects missing sources, overlapping identities and symlinked write destinations
-/// before deletion. Copy/removal failures propagate; this is not atomic promotion.
+/// before deletion. Use resolved parents: symlinked write paths, including parent
+/// aliases, are rejected. Copy/removal failures propagate; this is not atomic promotion.
 pub fn dir_move_exact(source: &Utf8Path, dest: &Utf8Path) -> anyhow::Result<()> {
     crate::path_safety::validate_directory_move(source, dest)?;
 

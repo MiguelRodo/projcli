@@ -15,6 +15,7 @@ pub fn clear_old(
     }
 
     let base_path = project_root.join("_tmp").join("projr");
+    crate::path_safety::resolve_path(base_path.as_std_path(), true)?;
     if !base_path.exists() {
         return Ok(());
     }
@@ -52,6 +53,10 @@ pub fn clear_pre(
     config: &ValidatedConfig,
     clear_output: Option<&str>,
 ) -> anyhow::Result<()> {
+    crate::path_safety::validate_build_paths(project_root, config, &[])?;
+    if current_version.contains('/') || current_version.contains('\\') || current_version == "." || current_version == ".." {
+        anyhow::bail!("Invalid cache version component");
+    }
     // 1. Versioned cache path clearance
     let versioned_cache_path = project_root
         .join("_tmp")
@@ -152,6 +157,9 @@ pub fn clear_post(
     clear_output: Option<&str>,
     is_single_doc_engine: bool,
 ) -> anyhow::Result<()> {
+    if !is_dev {
+        crate::path_safety::validate_build_paths(project_root, config, &[])?;
+    }
     if !is_dev && is_single_doc_engine {
         if let Ok(docs_path) = config.get_path(project_root, "docs") {
             if docs_path.exists() {

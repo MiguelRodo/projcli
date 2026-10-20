@@ -43,9 +43,6 @@ pub(crate) fn validate_build_paths(root: &Utf8Path, config: &crate::yml::Validat
     let staging = resolve_path(root.join("_tmp/projr").as_std_path(), true)?;
     let mut directories = Vec::new();
     for (label, directory) in &config.directories {
-        if label.contains('/') || label.contains('\\') {
-            anyhow::bail!("Directory label must not contain path separators: {label}");
-        }
         let lower = label.to_lowercase();
         let writable = lower.starts_with("cache") || lower.starts_with("output") || lower.starts_with("docs");
         let path = if directory.path.is_absolute() { directory.path.clone() } else { root.join(&directory.path) };

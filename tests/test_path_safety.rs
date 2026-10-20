@@ -42,7 +42,8 @@ fn symlinked_destination_preserves_project_and_external_files() {
 #[test]
 fn invalid_directory_moves_do_not_delete_existing_bytes() {
     let temp = tempfile::tempdir().unwrap();
-    let root = camino::Utf8Path::from_path(temp.path()).unwrap();
+    let canonical = temp.path().canonicalize().unwrap();
+    let root = camino::Utf8Path::from_path(&canonical).unwrap();
     let source = root.join("source");
     fs::create_dir(&source).unwrap();
     fs::write(source.join("keep"), "source").unwrap();
@@ -69,4 +70,18 @@ fn disjoint_external_resource_destination_is_allowed() {
         .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
     assert!(output.status.success(), "{} {}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
     assert_eq!(fs::read_to_string(root.join("_output/result")).unwrap(), "completed");
+}
+
+
+#[test]
+fn direct_cleanup_entrypoints_reject_project_root_destination() {
+    let temp = tempfile::tempdir().unwrap();
+    let canonical = temp.path().canonicalize().unwrap();
+    let root = camino::Utf8Path::from_path(&canonical).unwrap();
+    fs::write(root.join("keep"), "project").unwrap();
+    let config: proj::ProjConfig = serde_yaml::from_str(&configuration(".")).unwrap();
+    let validated = config.validate_and_resolve(root, false).unwrap();
+    assert!(proj::clear_pre(root, "1.2.3", &validated, Some("pre")).is_err());
+    assert!(proj::clear_post(root, false, &validated, Some("post"), true).is_err());
+    assert_eq!(fs::read_to_string(root.join("keep")).unwrap(), "project");
 }

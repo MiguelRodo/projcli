@@ -403,3 +403,14 @@ guards or a second merge model. Exact amended CI/re-review remain required.
 - **Ponytail full-mode review:** one stdlib identity resolver shared by build and
   promotion guards; trace all promotion callers, retain explicit errors instead
   of silently accepting missing source/read errors. No new dependency.
+
+
+Path-guard Ponytail re-review traced the public cleanup helpers as well as build:
+direct clear_pre/clear_post now apply the shared destination checks, clear_old
+rejects symlinked staging parents, and traversal-bearing version components fail
+before cache deletion. Label separator validation lives in shared typed validation
+for all modes. Generic destructive move APIs require resolved parents and reject
+symlink aliases; positive direct-API fixtures canonicalize their temporary roots
+so macOS system temp aliases do not violate that explicit safety precondition.
+Added a direct-cleanup preservation fixture. This is not complete transactional
+restoration or a guarantee against concurrent filesystem replacement.
