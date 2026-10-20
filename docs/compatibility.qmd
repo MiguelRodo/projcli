@@ -276,7 +276,10 @@ Completed-chunk review of PR129's empty-selection change:
   lists replace ambient lists; traversal-like explicit names fail validation.
   Profile/local files retain their existing `_projr-` names in this bounded slice.
 - **Evidence:** new runnable query/alias/ambiguity/preservation/precedence tests
-  are prepared; remote CI and independent review pending. No R runtime tests.
+  passed on all three platforms at `53463d325c85c538ae0b8a5e792caa6bc997e452`.
+  All nine checks in runs 39488461110/39488461213 passed; independent review
+  inspected alias, precedence and duplicate-key logs and cleared that head.
+  This evidence-only amendment needs its own final checks. No R runtime tests.
 - **Gaps:** one merged build script/hook context, active-configuration requirement,
   explicit directory mappings and early unsupported-setting validation remain
   separate work. This does not claim builds yet satisfy those approved rules.
@@ -291,6 +294,6 @@ duplicate keys to overwrite earlier values. Restored YAML Value parsing before
 JSON conversion, preserving duplicate-key rejection at every active layer.
 Added top-level and nested duplicate-key regressions for both base filenames,
 profile and local files, including CLI failure before preview state writes.
-The prior green CI did not cover this malformed-input case; amended-head remote
-checks and independent re-review are required. Ponytail review kept this at the
+The prior green CI did not cover this malformed-input case; the corrected head
+above passed the new checks and independent re-review. Ponytail review kept this at the
 shared file parser rather than guarding individual callers.
