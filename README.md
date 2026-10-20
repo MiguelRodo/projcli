@@ -20,7 +20,8 @@ currently has one amd64 Debian package; it is not the preview described below.
 
 For a source build you need Git, a current stable Rust toolchain with Cargo,
 and platform linker tools (for example Ubuntu's `build-essential`).
-This source-install command is a candidate awaiting installation verification:
+The following command was [verified on Ubuntu in CI](https://github.com/MiguelRodo/projcli/actions/runs/39489440429)
+on 20 October 2026, installing source revision `fafce46a`:
 
 ```bash
 cargo install --git https://github.com/MiguelRodo/projcli --locked --bin proj
@@ -37,8 +38,9 @@ See [installation details](docs/install.qmd) for prerequisites and limits.
 
 ## Quickstart: a small Python analysis
 
-This example targets the current development preview and still needs checking
-against the next release. You need Python 3 available as `python3`.
+This example was checked through the real CLI in Ubuntu CI using the current
+source and this documentation branch. It has not been checked against a new
+release package. You need Python 3 available as `python3`.
 
 In a new folder, create `_proj.yml`:
 
