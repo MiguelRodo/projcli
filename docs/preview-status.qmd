@@ -1,0 +1,27 @@
+# Preview feature status
+
+This is an early Rust CLI for disposable analysis projects. A development preview
+does not mean the complete roadmap is finished. Use independent backups and sample
+data while evaluating it. The existing projr R package and thesis remain unchanged.
+
+| Area | Available Rust behavior | Verification and limits |
+|---|---|---|
+| Project selection | Explicit root; nearest recognized ancestor; markerless cwd fallback; shallow default script discovery. | Cross-platform fixtures cover markers, nested invocation and explicit override. Root recognition includes Python/Julia markers; that does not imply Julia execution or a wrapper. |
+| Configuration and init | Active root YAML required; legacy alias/ambiguity rule; profile precedence; explicitly declared resource directories; local-only directory initialization. | Cross-platform configuration/error-preservation fixtures. Old no-config roadmap assumptions were superseded. |
+| Execution context | Ordered explicit scripts/hooks; captured-root process cwd; supported Quarto/R Markdown root controls; unsafe/unknown layouts fail early. | Real Python execution and fake-renderer argument/artifact tests. Complete real R/renderer/IDE end-to-end parity has not been established. |
+| Automation | Opt-in protocol-v1 JSON, capability version, typed queries, noninteractive command worker, nonzero failures; child logs on stderr. | Cross-platform machine tests. Static coarse error codes; no invented attempt/release record on success. |
+| Preview preservation | Recovery of captured managed state after successful/failed preview is under final review. Cache results remain. | Pending final integrated recovery CI/review. Do not claim this shipped until the reviewed slice merges. Not automatic output redirection or an OS sandbox. |
+| Production safety groundwork | Path guards, bounded local failure recovery, optional checked Git publication and verified CAS bytes. | Focused fixtures and reviews; incomplete release identity/provenance/retry model. This page is not an invitation to run on valuable production data. |
+| Binary delivery | Versioned Linux/Windows x86-64 assets and mandatory checksum verification are prepared for a draft preview. | Installer CI tests actual built binaries and failure preservation. Exact tag-only release pipeline and uploaded assets are unverified until actually run. No new installed/released version is implied here. |
+
+Still unfinished: direct projr/quarto R API/RStudio parity, existing R helper
+integration, full real R demo coverage, automatic isolation of every script write,
+durable attempt/release identifiers, complete input/code/config/dependency provenance,
+multi-writer/crash atomicity and analysis-free publication retry. Capture/recovery
+cannot undo arbitrary external script effects or guarantee concurrent readers never
+observe temporary changes. User/third-party logs are not automatically secret-redacted.
+
+M1 and M2 remain open as broad milestones. Individual implemented slices are evidence
+toward acceptance; this status does not close or rewrite private roadmap checkboxes.
+See [delivery boundaries](release-delivery.qmd), [behavior](behavior.qmd) and the
+[compatibility log](compatibility.qmd) for supported details and remaining gaps.
