@@ -34,3 +34,9 @@ power-loss atomicity guarantee and does not undo arbitrary external script effec
 M1/M2 remain incomplete; the package version is not a scientific release identity.
 Publication remains gated on the final reviewed main checks and verified draft assets.
 Current status: https://miguelrodo.github.io/projcli/preview-status.html
+
+
+Delivery verification completed: [exact-tag workflow](https://github.com/MiguelRodo/projcli/actions/runs/39515169842), complete uploaded
+and public asset checks, both native version/protocol smokes, and a user-local WSL
+installation with disposable successful/failing Python previews. Source commit:
+`bbd12edc8de9865a96b6145d0c7702f1300cb1a8`. Stable Latest v0.3.0 is unchanged.

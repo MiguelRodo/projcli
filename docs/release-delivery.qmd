@@ -44,3 +44,18 @@ by preparing the CLI release.
 The [feature status](preview-status.qmd) distinguishes implemented Rust behavior,
 pending recovery verification, R/IDE gaps and unfinished M2 records/provenance/retry.
 No broad milestone checkbox is closed merely to enable binary delivery.
+
+## Verified delivery
+
+[0.4.0-preview.1](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1) is published as a prerelease; stable Latest remains
+v0.3.0. Its [tag workflow](https://github.com/MiguelRodo/projcli/actions/runs/39515169842) passed, and both uploaded binaries were
+downloaded, hash-checked and executed for help/version/capabilities. Public downloads
+matched the verified asset bytes. Source identity is
+`bbd12edc8de9865a96b6145d0c7702f1300cb1a8`; package version is 0.4.0-preview.1,
+protocol version 1. The WSL user-local install and disposable Python success/failure
+smokes passed without local compilation. See [compatibility evidence](compatibility.qmd).
+
+Pin `PROJ_RELEASE_VERSION=0.4.0-preview.1` when using the installer from that tag.
+Use an existing absolute user-local `PROJ_INSTALL_DIR`; installation changes no
+system/PATH settings. macOS/ARM artifacts remain unavailable. Keep the disposable-
+project limits and unfinished R/IDE/M2 scope from [feature status](preview-status.qmd).
