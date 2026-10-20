@@ -81,72 +81,63 @@ if ($Uninstall) {
     exit 0
 }
 
-$releaseRepo = if ($env:PROJ_RELEASE_REPO) { $env:PROJ_RELEASE_REPO } else { "SATVILab/proj-core" }
+$releaseRepo = if ($env:PROJ_RELEASE_REPO) { $env:PROJ_RELEASE_REPO } else { "MiguelRodo/projcli" }
 $binaryName = if ($env:PROJ_BINARY_NAME) { $env:PROJ_BINARY_NAME } else { "proj" }
-$osName = "windows"
+if ($binaryName -notmatch '^[A-Za-z0-9_-]+$') { throw "Invalid binary name." }
 $archName = Get-ArchName
-$installDir = Get-WritablePathDirectory
-$downloadBase = if ($env:PROJ_DOWNLOAD_BASE_URL) {
-    $env:PROJ_DOWNLOAD_BASE_URL
-} else {
-    "https://github.com/$releaseRepo/releases/latest/download"
-}
-$tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) "$binaryName-$PID.exe"
-
-$assets = @(
-    "${binaryName}_${osName}_${archName}.exe",
-    "${binaryName}-${osName}-${archName}.exe",
-    "${binaryName}.exe"
-)
+$installDir = if ($env:PROJ_INSTALL_DIR) { $env:PROJ_INSTALL_DIR } else { Get-WritablePathDirectory }
+if (-not (Test-WritableDirectory $installDir)) { throw "Install directory must be an existing writable absolute directory." }
+$requestedVersion = if ($env:PROJ_RELEASE_VERSION) { $env:PROJ_RELEASE_VERSION -replace '^v', '' } else { $null }
+$downloadBase = if ($env:PROJ_DOWNLOAD_BASE_URL) { $env:PROJ_DOWNLOAD_BASE_URL } elseif ($requestedVersion) {
+    "https://github.com/$releaseRepo/releases/download/v$requestedVersion"
+} else { "https://github.com/$releaseRepo/releases/latest/download" }
 
 function Invoke-DownloadAsset([string]$Url, [string]$OutFile) {
-    if ($Url -match '^file:///(.+)$') {
-        # Convert forward slashes to OS path separators and handle Windows drive
-        # letters (e.g. file:///C:/path → C:\path) cleanly with URI unescaping.
-        $localPath = [uri]::UnescapeDataString($Matches[1]) -replace '/', [System.IO.Path]::DirectorySeparatorChar
-        if ($localPath -match "^([A-Za-z]):\\") { }
-        elseif ($localPath -match "^([A-Za-z]):") { $localPath = $localPath -replace "^([A-Za-z]):", "`$1:\" }
-        
-        if (-not (Test-Path -LiteralPath $localPath)) {
-            throw "Local tracking source file does not exist: $localPath"
-        }
-        Copy-Item -LiteralPath $localPath -Destination $OutFile -Force
-        return
-    }
-    Invoke-WebRequest -Uri $Url -OutFile $OutFile
-}
-
-$downloadedAsset = $null
-foreach ($asset in $assets) {
-    $url = "$downloadBase/$asset"
-    Write-Host "Trying $url..."
-    try {
-        Invoke-DownloadAsset -Url $url -OutFile $tmpFile
-        $downloadedAsset = $asset
-        break
-    } catch {
-        $statusCode = $null
-        if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
-            $statusCode = [int]$_.Exception.Response.StatusCode
-        }
-        $message = $_.Exception.Message
-        if ($statusCode -eq 404 -or $message -match '404' -or $message -match 'does not exist') {
-            Write-Warning "Asset ${asset} not found at ${url}"
-            continue
-        }
-        throw "Download failed for ${url}: $message"
+    $uri = [uri]$Url
+    if ($uri.IsFile) {
+        Copy-Item -LiteralPath $uri.LocalPath -Destination $OutFile -Force
+    } else {
+        Invoke-WebRequest -Uri $uri -OutFile $OutFile
     }
 }
 
-if (-not $downloadedAsset) {
-    throw "Could not download a release asset for $osName/$archName. Tried: $($assets -join ', ') from $downloadBase"
+$temporary = Join-Path ([System.IO.Path]::GetTempPath()) "proj-install-$([guid]::NewGuid())"
+New-Item -ItemType Directory -Path $temporary | Out-Null
+$stagedBinary = $null
+try {
+    $versionFile = Join-Path $temporary "version.txt"
+    Invoke-DownloadAsset "$downloadBase/version.txt" $versionFile
+    $version = (Get-Content -LiteralPath $versionFile -Raw).TrimEnd("`r", "`n")
+    if ($version -notmatch '^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?(\+[A-Za-z0-9.-]+)?$') { throw "Invalid release version metadata." }
+    if ($requestedVersion -and $requestedVersion -cne $version) { throw "Downloaded version differs from the requested release." }
+    $asset = "${binaryName}_${version}_windows_${archName}.exe"
+    $binary = Join-Path $temporary "binary.exe"
+    $checksums = Join-Path $temporary "checksums.txt"
+    Invoke-DownloadAsset "$downloadBase/$asset" $binary
+    Invoke-DownloadAsset "$downloadBase/checksums.txt" $checksums
+    $matching = @(Get-Content -LiteralPath $checksums | Where-Object { $_ -cmatch "^[0-9a-fA-F]{64}\s+\*?$([regex]::Escape($asset))$" })
+    if ($matching.Count -ne 1) { throw "Release requires exactly one matching SHA256 checksum." }
+    $expected = ($matching[0] -split '\s+')[0]
+    $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $binary).Hash
+    if ($actual -ine $expected) { throw "Checksum verification failed; installed binary unchanged." }
+    $target = Join-Path $installDir "$binaryName.exe"
+    if (Test-Path -LiteralPath $target -PathType Container) { throw "Binary target is a directory." }
+    $stagedBinary = Join-Path $installDir ".proj-install-$([guid]::NewGuid()).exe"
+    Copy-Item -LiteralPath $binary -Destination $stagedBinary
+    [System.IO.File]::Move($stagedBinary, $target, $true)
+    $stagedBinary = $null
+    New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
+    Set-Content -LiteralPath $stateFile -Value $installDir -Encoding ascii
+    Write-Host "Installed $binaryName $version to $target (SHA256 verified)."
+} finally {
+    if ($stagedBinary -and (Test-Path -LiteralPath $stagedBinary)) { Remove-Item -LiteralPath $stagedBinary -Force }
+    # Verify the resolved deletion target is the installer-owned temp directory.
+    $resolvedTemporary = [System.IO.Path]::GetFullPath($temporary)
+    $temporaryRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
+    if (-not $resolvedTemporary.StartsWith($temporaryRoot, [System.StringComparison]::OrdinalIgnoreCase) -or
+        (Split-Path $resolvedTemporary -Leaf) -notmatch '^proj-install-[0-9a-f-]{36}$') {
+        throw "Refusing an unexpected installer cleanup path."
+    }
+    Remove-Item -LiteralPath $resolvedTemporary -Recurse -Force
 }
-
-$target = Join-Path $installDir "$binaryName.exe"
-Move-Item -LiteralPath $tmpFile -Destination $target -Force
-New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
-Set-Content -LiteralPath $stateFile -Value $installDir -Encoding ascii
-Write-Host "Installed $binaryName ($downloadedAsset) to $target" -ForegroundColor Green
-
-
 Write-Host "Run: $binaryName --help"

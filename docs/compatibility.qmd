@@ -799,6 +799,28 @@ rejected before push. Explicit Git lookup anchors directories absolutely but pre
 the candidate leaf spelling, supporting symlink-based name dispatchers; a fake
 git-to-dispatcher symlink regression prevents argv[0] canonicalization regressions.
 
+## Preview release/install delivery
+
+**Different/new:** replace stale SATVILab/proj-core download defaults with canonical
+MiguelRodo/projcli. Require version-bound asset names and exact mandatory SHA256
+matches before replacing installed bytes, rather than generic binary fallbacks or
+optional checksums. User-local destination staging preserves prior bytes on failed
+download/verification. No system/PATH/auth settings are changed by installation.
+
+Remote builds/tests use Cargo.lock. The existing release workflow becomes a
+draft-only explicitly labeled preview pipeline for matching reviewed preview tags;
+it does not mutate version/main, configure APT or publish releases automatically.
+Linux/Windows x86-64 artifacts are the initial supported delivery scope, not a
+claim that every platform works. Existing R package remains untouched.
+
+Ponytail full-mode review reuses curl/native PowerShell SHA256 and Python stdlib
+staging/manifest checks without dependencies or a hosting/packaging framework.
+Prepared remote checks install the actual CI binaries and reject absent/wrong/
+duplicate checksums, corrupted bytes and version mismatches while retaining an
+existing target. Artifact collection rejects corrupt/missing/duplicate/version-
+mismatched inputs; help smoke failures are no longer swallowed. CI/review pending.
+No tag, publication, WSL install, signature or reproducible-build claim yet.
+
 ## M1 machine transport (issue682, existing error work87)
 
 **New:** protocol-v1 opt-in JSON envelope and capability version, with static
@@ -845,3 +867,11 @@ Retained Markdown (`keep_md` / `keep-md`, including format options) is rejected 
 individual layouts before rendering. A nested Rmd sibling sentinel regression with
 an overwrite-capable fake renderer and failing post-hook prevents this untracked
 framework artifact from damaging existing Markdown outside the recovery plan.
+
+PR149 review qualifies checkout as refs/tags/<validated preview tag> and verifies
+HEAD against that exact tag in both jobs. Both platform artifacts record the source
+commit; collection rejects any mismatch with the draft job's checked-out tag and
+publishes the source identity with checksums. Same-named branch regression proves
+the guard. Windows native Cargo/staging failures are checked before cached bytes
+can reach artifact upload. The tag-only workflow remains unexercised until an
+authorized reviewed preview tag is actually created; PR CI is not release evidence.
