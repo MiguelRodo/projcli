@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-24c09a13944ec7e1f31d2917b1251fc2.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-9f363ccb86392c29656d21c3a07aec93.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -145,6 +145,12 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./compatibility.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">projr compatibility and change log</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./flow.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Proj Build Execution Flow</span></a>
   </div>
@@ -220,13 +226,17 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="project-and-execution-behavior" class="level1">
 <h1>Project and execution behavior</h1>
-<p>This is the product behavior contract. Confirmed decisions below guide implementation; they are not claims that the current CLI already implements them. Proposals require review before they become requirements.</p>
+<p>This is the product behavior contract. Confirmed decisions below guide implementation; they are not claims that the current CLI already implements them. Proposals require review before they become requirements. The <a href="./compatibility.html">compatibility log</a> records pinned projr comparisons, decisions, actual test evidence, Ponytail reviews and remaining gaps; update it with each PR.</p>
 <section id="confirmed-decisions" class="level2">
 <h2 class="anchored" data-anchor-id="confirmed-decisions">Confirmed decisions</h2>
 <ul>
 <li>A project is one analysis/build unit anchored at a selected root directory. It has settings, version information and named resource paths where applicable. Resource paths may be outside the root; a project need not be a Git repository.</li>
 <li>Explicit project selection overrides discovery and selects that exact directory.</li>
 <li>Automatic discovery walks upward from the invocation directory. The nearest recognized project root wins, including when projects are nested. Discovery does not search downward for projects.</li>
+<li>Retain existing projr root markers, including standalone VERSION and README, VCS roots, R-package/RStudio/renv/Quarto project markers, and extend recognition for Python/Julia project metadata. Recognition must no longer require VERSION before considering the other markers.</li>
+<li><code>_proj.yml</code> is the primary base configuration. Accept <code>_projr.yml</code> as a legacy alias and fail clearly if both base files exist; do not silently merge them.</li>
+<li>Configuration precedence follows projr: local overrides profiles, profiles override base, and earlier-listed profiles win conflicts with later ones.</li>
+<li>Missing <code>dev.scripts</code> falls back to <code>build.scripts</code>. An explicit empty list in either selects no analysis scripts and never triggers fallback/discovery. Hooks still run; production version/publication/export behavior remains available for upload-only workflows. Development previews never publish. Analysis cleanup and promotion are skipped when no analysis is selected, preserving upload inputs.</li>
 <li>Default script/document enumeration is shallow at the selected project root. Subdirectory targets require explicit selection or renderer project configuration.</li>
 <li>Scripts execute relative to the project root by default. Selecting a script in a subdirectory does not, by itself, select a different project or execution root.</li>
 <li>The resolved root is captured for the run. Path helpers, including a future frontend’s <code>projr_path_get()</code>, resolve against that root even if a renderer or user script changes its working directory.</li>
@@ -240,17 +250,15 @@ ul.task-list li input[type="checkbox"] {
 <section id="proposals-and-open-decisions" class="level2">
 <h2 class="anchored" data-anchor-id="proposals-and-open-decisions">Proposals and open decisions</h2>
 <ul>
-<li>Start from projr-style marker discovery rather than requiring VERSION first. Review the exact marker set and markerless-directory fallback before adoption. Existing projr recognizes VCS roots, VERSION, README, R packages, RStudio, renv and Quarto projects. These markers have different strengths; this list documents reference behavior, not an implicitly approved final marker table.</li>
-<li>Candidate Python markers: <code>pyproject.toml</code>, with <code>setup.py</code> / <code>setup.cfg</code> as possible legacy compatibility. A tool-only pyproject and weak standalone dependency files need an explicit policy.</li>
-<li>Candidate Julia markers: <code>Project.toml</code> and <code>JuliaProject.toml</code>. Whether an orphan manifest should count is a separate decision.</li>
+<li>Finalize markerless-directory fallback and exact Python/Julia metadata file coverage. Retaining projr’s cwd fallback and using <code>pyproject.toml</code>, <code>Project.toml</code> and <code>JuliaProject.toml</code> are the proposed bounded starting point; legacy packaging files and orphan manifests need an explicit decision.</li>
+<li>Apply the base filename compatibility rule consistently to profile/local files and define the effective profile-list source once for config and environment.</li>
 <li>Evaluate Quarto <code>execute-dir</code> and R Markdown <code>knit_root_dir</code> / knitr <code>root.dir</code> for root-relative execution. Define the shared persistent configuration and direct-entry initialization before broad renderer changes; do not add nested Quarto project support or rely only on flags passed by proj.</li>
-<li>Decide frontend transport/bindings, environment forwarding, supported YAML aliases and resource defaults explicitly. In particular, <code>_raw</code> / synthesized <code>raw/data</code> paths in Rust differ from projr’s <code>_raw_data</code> and explicit labels. Neither historical schema nor existing Rust defaults resolve that choice.</li>
-<li>Development-script fallback and empty-list behavior need a deliberate supported configuration contract; conflicting historical instructions are not authority.</li>
+<li>Decide frontend transport/bindings, environment forwarding, remaining YAML compatibility details and resource defaults explicitly. In particular, <code>_raw</code> / synthesized <code>raw/data</code> paths in Rust differ from projr’s <code>_raw_data</code> and explicit labels. Neither historical schema nor existing Rust defaults resolve that choice.</li>
 </ul>
 </section>
 <section id="implementation-gaps-and-verification" class="level2">
 <h2 class="anchored" data-anchor-id="implementation-gaps-and-verification">Implementation gaps and verification</h2>
-<p>The current Rust root finder requires VERSION before its extra ancestor checks; it does not implement the confirmed nearest-recognized-root rule. Individual scripts currently start in their parent directory. Root stability across renderer cwd changes and language frontends is not yet an established capability.</p>
+<p>The current Rust root finder requires VERSION before its extra ancestor checks; it does not implement the confirmed nearest-recognized-root rule. Individual scripts currently start in their parent directory. Captured-root stability is implemented for core CLI child queries after cwd changes, including independent simultaneous roots; direct R frontend/renderer parity remains unimplemented. Base-file aliases and first-wins profile merging still need runtime implementation. Explicit empty script selection now skips analysis while preserving hooks and production publication; its tests cover production archive bytes and preview nonpublication without invoking real renderers.</p>
 <p>Verify nested projects, explicit selection, paths containing spaces, shallow default enumeration, explicit subdirectory scripts, changed cwd, and each supported renderer’s evaluation root. Compare the same nested QMD through projr, <code>quarto::quarto_render()</code>, and RStudio QMD Render; test R Markdown Knit separately. Reject a nested Quarto project clearly. Verify that direct rendering leaves proj-managed release/version/export state alone. Use tiny fixtures and remote CI where practical. Subprocess execution is not a security sandbox, and path hashes alone do not establish scientific correctness or a reproducible environment.</p>
 </section>
 <section id="reference-material" class="level2">

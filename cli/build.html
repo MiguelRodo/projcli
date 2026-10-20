@@ -80,7 +80,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-24c09a13944ec7e1f31d2917b1251fc2.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-9f363ccb86392c29656d21c3a07aec93.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -182,6 +182,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../compatibility.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">projr compatibility and change log</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../flow.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Proj Build Execution Flow</span></a>
   </div>
@@ -245,6 +251,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#features" id="toc-features" class="nav-link" data-scroll-target="#features">Features</a></li>
   <li><a href="#isolation" id="toc-isolation" class="nav-link" data-scroll-target="#isolation">Isolation</a></li>
   <li><a href="#development-preview" id="toc-development-preview" class="nav-link" data-scroll-target="#development-preview">Development preview</a></li>
+  <li><a href="#explicit-empty-script-lists" id="toc-explicit-empty-script-lists" class="nav-link" data-scroll-target="#explicit-empty-script-lists">Explicit empty script lists</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -298,6 +305,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> build-dev</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Development runs execute the existing script selection with development Git settings disabled. The CLI does not create or update VERSION, update ignore files, clear released output or previous caches, promote rendered documents into <code>docs</code>, or export to configured local archives. These rules apply on success and failure, even when production configuration enables cleanup, commits or export.</p>
 <p>Scripts should explicitly write preview artefacts into their declared cache or staging locations. A subprocess is not a filesystem sandbox: scripts, hooks and renderers can still write where their own code/configuration directs them. Renderer configuration rewriting and script working-directory behavior retain their existing semantics. This change does not introduce automatic output redirection, recursive discovery or a new project-root policy.</p>
+</section>
+<section id="explicit-empty-script-lists" class="level2">
+<h2 class="anchored" data-anchor-id="explicit-empty-script-lists">Explicit empty script lists</h2>
+<p><code>build.scripts: []</code> selects no analysis scripts. Hooks still run, and production builds can version and export existing artefacts as an upload-only workflow. Analysis cleanup, renderer setup and document promotion are skipped so those existing artefacts are preserved. The CLI does not discover scripts instead.</p>
+<p>For previews, an absent <code>dev.scripts</code> inherits <code>build.scripts</code>; <code>dev.scripts: []</code> overrides it with no analysis. Hooks still run, but previews never publish.</p>
 
 
 </section>
