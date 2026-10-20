@@ -1,124 +1,63 @@
-# Proj Build Execution Flow
+# Build execution flow
 
-This page records the existing `proj build` / `proj build-dev` implementation.
-It is not a normative behavior specification. The [behavior contract](behavior.qmd)
-records confirmed decisions and known gaps; current defects do not override it. The build pipeline is designed to enforce structural integrity, version control, and reproducible execution environments. The process is strictly divided into three sequential stages: Pre-Build, Actual Build, and Post-Build.
+This describes the current Rust implementation, not a complete correctness or
+reproducibility guarantee. The [behavior contract](behavior.qmd) records approved
+semantics and the [compatibility log](compatibility.qmd) records evidence and gaps.
 
-## 1. Pre-Build Stage
+## Read-only resolution and preflight
 
-The pre-build stage focuses on validation, environment auditing, and preparing the workspace state prior to executing any project code.
+Capture the project root, load the environment, require active root configuration,
+and merge base/profile/local settings. Validate fields, explicit directory paths,
+targets, hooks and destructive destinations. Explicit empty scripts select no
+analysis. Otherwise explicit globs or shallow root discovery select inputs;
+project rendering may use its own input discovery. Explicit Python-only selection
+does not activate an unused Quarto/Bookdown project marker.
 
-### 1.1 Config Audit
-The `_proj.yml` configuration is parsed and validated based on the execution mode (development vs. production). The configuration audit also strictly evaluates arbitrary nested keys inside the `parameters` block and throws a validation error if multiple aliases (`parameter`, `params`, `param`) are found to prevent mapping conflicts.
+Read VERSION with DESCRIPTION/default fallbacks. Check selected interpreters and
+configured Git restrictions before controlled project writes. Existing preflight
+can still invoke Git/network checks or R package remediation; these are known
+limitations, not a clean-environment guarantee.
 
-### 1.2 Git Capability Audit
-If the configuration mandates version control integration (`git.commit` is `true`):
-- The system resolves the `GitProvider` based on the configured engine (`config.git.engine` defaults to `auto` or `system`) and verifies that Git is installed and available on the system `PATH`. If remote operations like fetching or pushing are necessary and `config.git.use_proj_cred_helper` is enabled, the credential discovery engine attempts to resolve GitHub tokens.
-- A check is performed to ensure the Git profile (author identity) is properly configured for the workspace.
+## Local production build and restoration boundary
 
-### 1.3 Target Resolution and Dependency Preflight
-The engine resolves scripts and hooks and detects Quarto/Bookdown configuration
-before version initialization, cleanup, hooks or snapshots. Preflight then checks
-the production Git restrictions and the interpreters required by those targets.
+Before authoritative writes, capture exact bytes, permissions and presence/absence
+for the managed set documented in the compatibility log. This includes VERSION,
+ignore/configuration files, existing root regular files, selected in-project
+inputs, declared output/docs trees and planned individual rendering artifacts.
+External declared output/docs directories are allowed. Linked managed trees are
+rejected. Backups stream into private temporary storage, using selected cache
+when available. Backup creation failure prevents authoritative project writes.
 
-- Production Git checks inspect branch restrictions, tracking remotes and upstream
-  state when configured.
-- Rscript and required rendering namespaces are checked when needed. The current
-  implementation can offer or perform R package installation; this is existing
-  behavior, not a statement of the future dependency policy.
-- Quarto availability is checked when needed.
-- The Python executable is resolved when Python targets are present.
+One local error/panic boundary covers ignore synchronization, requested pre-cleanup,
+pre/both hooks, script/document execution, renderer configuration, promotion and
+post/both hooks. Required output promotion errors propagate. Renderer configuration
+is restored exactly, retaining comments and originally absent keys. Candidate
+version changes stay in memory; VERSION is written only after those stages succeed.
+No pre-build Git commit is created.
 
-### 1.4 Version Input
-The current version is read from VERSION, with DESCRIPTION and a default version
-as fallbacks. Development previews do not persist a missing VERSION.
+On local failure, restore the captured managed set, including originally absent
+files/directories. Attempt all restorations; retain recovery backups and report
+both the primary and restoration errors when recovery fails. This does not undo
+arbitrary script effects outside the captured set or provide a filesystem sandbox,
+power-loss atomicity or protection against concurrent filesystem replacement.
 
-### 1.5 Production Workspace Clearing
-Production builds clear pre-build caches and output directories according to
-`clear_output` (`pre`, `post`, or `never`) and may purge old cache versions.
-Development previews skip these CLI-managed cleanup stages.
+## Publication after local success
 
-### 1.6 Production Version Bump
-Production builds apply `--major`, `--minor` or `--patch`, reset the development
-flag and write VERSION. Development previews do not bump or write VERSION.
+Storage export and Git publication start after successful local completion. Export
+actual declared content before requested `clear_output: post` cleanup. Create one
+configured final Git commit, then push when enabled. A publication or later cleanup
+failure reports that local analysis succeeded and retains its release/version;
+external publication is not rolled back.
 
-### 1.7 Pre-Build Hooks
-Configured `pre` and `both` hooks run after the preceding preparation, before the
-Git pre-snapshot. Failures propagate from these hooks.
+Git upstream/authentication policy, stable attempt/release records and an
+analysis-free publication retry command remain unfinished. Existing Git push code
+still targets origin/main and must not be mistaken for the final policy.
 
-### 1.8 Git Pre-Snapshot
-When production Git commits are enabled, the engine commits the pre-build
-workspace with the "Snapshot pre-build" message.
+## Development previews and remaining renderer gaps
 
-## 2. Actual Build Stage
-
-The actual build stage handles the isolation, resolution, and execution of scripts and documents. This entire stage is executed within a `catch_unwind` block to safely trap panics and allow for graceful recovery.
-
-### 2.1 Workspace Evaluation
-The system inspects the workspace for the presence of `_quarto.yml` and `_bookdown.yml`.
-- **Mutual Exclusion Check:** The presence of both configuration files simultaneously results in a fatal validation error if the `build.scripts` configuration is omitted or includes documentation targets (`.qmd` or `.Rmd`).
-
-### 2.2 Script Resolution Strategies
-The engine determines which scripts to execute based on two possible paths:
-
-#### Path A: Explicit Configuration (`build.scripts` / `dev.scripts`)
-During development builds (`BuildMode::Dev`), the `dev.scripts` configuration array overrides the standard `build.scripts`. An explicitly empty array (`[]`) selects no analysis scripts. It does not fall back to production scripts or discovery; hooks still run.
-
-If target scripts are defined in `_proj.yml`:
-- Glob patterns are resolved to absolute paths.
-- Exclusion patterns (prefixed with `!`) filter the matched lists.
-- Empty lists skip analysis, renderer setup and analysis cleanup/promotion, while hooks and normal production publication/export remain available. Preview publication remains disabled.
-- Documentation files (`.qmd`, `.Rmd`) are segregated from standalone scripts (`.R`, `.py`).
-- **Dynamic Configuration Updates:** If documentation targets are specified, the respective project files (`_quarto.yml` or `_bookdown.yml`) are dynamically updated to only render the explicitly requested targets.
-
-#### Path B: Fallback Automated Auto-Discovery
-If no explicit scripts are defined:
-- The system determines if it should trigger an automated Quarto or Bookdown site render based on the presence of their configuration files.
-- If neither exists, a shallow directory sweep is performed, executing discovered files strictly in the order of: `.qmd`, `.Rmd`, `.R`, `.py`.
-
-### 2.3 Execution and Reordering Constraint
-The existing implementation starts interpreter subprocesses (for example,
-`Rscript`, `python`, `quarto`) with `current_dir` set to the target script's
-parent directory. This is a known gap against the confirmed root-relative
-execution default, not a compatibility requirement. Renderer evaluation
-directories need their own supported controls. A subprocess does not provide
-a filesystem sandbox or guarantee a clean environment.
-
-When Quarto or Bookdown configurations are active alongside explicit scripts, a strict reordering constraint is applied:
-1. **Pre-scripts:** All `.R` or `.py` files listed *before* the first documentation file are executed.
-2. **Doc Clusters:** The documentation project render engine (`quarto render` or `rmarkdown::render_site`) is triggered.
-3. **Post-scripts:** All `.R` or `.py` files listed *after* the first documentation file are executed.
-
-Otherwise, scripts are executed sequentially exactly as resolved.
-
-## 3. Post-Build Stage
-
-The post-build stage acts on the final status of the actual build stage, finalizing version control, syncing remotes, or safely rolling back the workspace.
-
-### 3.1 On Build Success (Initial Commit)
-If the entire build pipeline executes without error and Git integration is enabled (`git.commit` is `true`):
-- A final commit is generated capturing all build artifacts and modifications.
-- The commit message is formatted as `Build v<VERSION>` or includes an optional user-provided description (`Build v<VERSION>: <DESCRIPTION>`).
-
-### 3.2 Post-Build Workspace Clearing
-For production builds configured with `clear_output: post`, the engine cleans up post-build deployment folders. Additionally, temporary document rendering artifacts (`docs/`) are automatically cleaned up on successful completion of a single document rendering engine.
-
-### 3.3 Post-Build Automation Hooks
-After the actual build stage completes successfully and the final Git commit is generated, any configured `post` or `both` automation hooks (either `build.hooks` or overriding `dev.hooks`) are executed in isolated subprocesses.
-
-### 3.4 Remote Export Pipeline
-For production builds with targets in `build.dest` and `remotes.local` configured:
-- The system iterates over the defined `build.dest` targets.
-- Resolved content directories mapped to these targets are piped to the Content-Addressable Storage (CAS) engine.
-- The CAS engine handles deduplicated storage synchronization, exporting project files into the remote vault.
-
-### 3.5 Remote Sync and Push
-If Git integration is enabled (`git.commit` is `true`) and pushing is configured (`git.push` is `true`):
-- The `GitProvider` commits the automated workspace build update (capturing compiled asset tracking or CAS mutations).
-- The `GitProvider` pushes the local branch mutations to the remote host.
-- If remote authentication is required and the credential helper is enabled (`config.git.use_proj_cred_helper`), the CLI securely injects the discovered GitHub token.
-
-### 3.6 On Build Failure or Panic
-If the build pipeline returns an error or panics mid-execution:
-- **Production Rollback:** If the build was a production run (`--major`, `--minor`, or `--patch`), the version modifications performed in the Pre-Build stage are reversed. The system restores the pre-build version configuration and ensures the development flag (`dev`) is set to `1` to maintain safety.
-- The underlying error is propagated to the CLI output, terminating the process with a non-zero exit code.
+Previews skip production version changes, cleanup, commits and exports. They run
+selected hooks/analysis and restore renderer configuration bytes. Cooperating
+scripts must choose appropriate output locations; preview is not automatic output
+isolation or an OS sandbox. Individual script subprocesses still start in their
+parent directory: the approved root-relative execution and direct R/IDE renderer
+parity are separate unfinished work. The existing R package remains untouched.
