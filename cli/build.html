@@ -353,6 +353,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="active-configuration-and-validation">Active configuration and validation</h2>
 <p>Builds require root-level <code>_proj.yml</code>, legacy <code>_projr.yml</code>, or an explicitly activated <code>_projr-&lt;profile&gt;.yml</code>. Inactive profiles and <code>_projr-local.yml</code> alone do not qualify. Both base filenames together are an error. Unsupported control fields fail before build writes; arbitrary <code>parameters</code> and <code>metadata</code> maps are allowed. Configuration errors include their causes on stderr and return failure.</p>
 <p>This validation is separate from project discovery. A root marker or cwd fallback does not make an unconfigured project buildable. Explicit directory enforcement, per-run environment isolation and complete managed-state failure restoration remain under development; see the behavior contract and pinned legacy audit.</p>
+<p>Explicit script/hook include patterns must match at least one file. Use an empty list (<code>scripts: []</code>) when intentionally selecting no analysis; unmatched configured includes return an error instead of a successful no-op.</p>
 
 
 </section>

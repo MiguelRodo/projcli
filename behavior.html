@@ -253,6 +253,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#proposals-and-open-decisions" id="toc-proposals-and-open-decisions" class="nav-link" data-scroll-target="#proposals-and-open-decisions">Proposals and open decisions</a></li>
   <li><a href="#implementation-gaps-and-verification" id="toc-implementation-gaps-and-verification" class="nav-link" data-scroll-target="#implementation-gaps-and-verification">Implementation gaps and verification</a></li>
   <li><a href="#future-r-distribution-and-tests" id="toc-future-r-distribution-and-tests" class="nav-link" data-scroll-target="#future-r-distribution-and-tests">Future R distribution and tests</a></li>
+  <li><a href="#managed-destructive-destinations" id="toc-managed-destructive-destinations" class="nav-link" data-scroll-target="#managed-destructive-destinations">Managed destructive destinations</a></li>
   <li><a href="#correctness-audit" id="toc-correctness-audit" class="nav-link" data-scroll-target="#correctness-audit">Correctness audit</a></li>
   <li><a href="#reference-material" id="toc-reference-material" class="nav-link" data-scroll-target="#reference-material">Reference material</a></li>
   </ul></li>
@@ -310,6 +311,12 @@ ul.task-list li input[type="checkbox"] {
 <section id="future-r-distribution-and-tests" class="level2">
 <h2 class="anchored" data-anchor-id="future-r-distribution-and-tests">Future R distribution and tests</h2>
 <p><a href="./r-wrapper-cran.html">The R wrapper/CRAN design note</a> records separate CLI installation, unconditional R-only tests, conditional CRAN executable tests and mandatory pinned/checksummed executable integration in our CI. It is future design, not a shipped wrapper, CRAN approval or automatic-download permission.</p>
+</section>
+<section id="managed-destructive-destinations" class="level2">
+<h2 class="anchored" data-anchor-id="managed-destructive-destinations">Managed destructive destinations</h2>
+<p>Production builds and direct cleanup helpers reject project-root/ancestor write destinations, resource/staging overlaps, selected-input containment, VCS metadata, path separators in labels and symlinked write destinations. Empty analysis still runs hooks and must validate managed destinations. Disjoint external resource paths remain supported. Generic directory moves require an existing source and disjoint destination with resolved parents; symlink aliases are rejected.</p>
+<p>Project renderers are conservatively rejected when managed cleanup trees contain recognized source-like documents or linked entries; this is not exact renderer input discovery and can reject generated Markdown. Individual outputs must use portable leaf filenames and may not replace framework configuration/state. Concrete cache/output/asset paths are checked before VERSION or ignore writes. Literal project roots are escaped for explicit include/exclude globs so brackets in a root cannot hide selected inputs from safety checks.</p>
+<p>These checks do not establish atomic promotion, full rollback, protection against concurrent filesystem replacement, or undo arbitrary external script effects.</p>
 </section>
 <section id="correctness-audit" class="level2">
 <h2 class="anchored" data-anchor-id="correctness-audit">Correctness audit</h2>
