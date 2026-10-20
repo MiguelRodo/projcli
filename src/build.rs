@@ -69,6 +69,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     let mut environment = RunEnvironment::resolve(cli_profile, project_root)
         .context("Failed to resolve build environment")?;
     environment.set(crate::PROJECT_ROOT_ENV, project_root.as_str());
+    crate::yml::validate_clear_output(environment.text("PROJR_CLEAR_OUTPUT"))?;
 
     // ==========================================
     // STEP B: Pre-Build Validation & Execution
@@ -173,6 +174,26 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     if has_document_analysis { config.get_path(project_root, "docs").context("Document rendering requires a declared docs directory")?; }
     let mut validation_files = resolved_files.clone();
     validation_files.extend(resolved_hooks.clone());
+    for file in &validation_files {
+        if !matches!(file.extension(), Some("R" | "r" | "py" | "qmd" | "Rmd" | "rmd")) {
+            anyhow::bail!("Unsupported selected script extension; select R, Python, QMD or R Markdown inputs");
+        }
+    }
+    if resolved_hooks.iter().any(|file| matches!(file.extension(), Some("qmd" | "Rmd" | "rmd"))) {
+        anyhow::bail!("Document-rendering hooks have no supported output plan; use R/Python hooks and select documents as analysis");
+    }
+
+    for file in &validation_files {
+        if file.extension() == Some("qmd") { validate_quarto_input(project_root, file)?; }
+    }
+    if quarto_exists && build_scripts.is_none() { validate_implicit_quarto_roots(project_root, &config)?; }
+    if has_document_analysis && !quarto_exists && !bookdown_exists {
+        let docs = config.get_path(project_root, "docs")?;
+        for file in &validation_files {
+            if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) { document_output_paths(file, &docs, project_root)?; }
+        }
+    }
+
     // 4. VERSION Initialization Check
     let mut initial_version = match version_get_from(project_root) {
         Some(v) => v,
@@ -805,6 +826,65 @@ pub fn copy_individual_quarto(file_path: &camino::Utf8Path, docs_path: &camino::
     copy_individual_document(file_path, docs_path, project_root)
 }
 
+// Without an explicit render list, conservatively inspect source directories for
+// unsupported nested project roots. Declared resource trees and VCS are not sources.
+fn validate_implicit_quarto_roots(root: &camino::Utf8Path, config: &ValidatedConfig) -> anyhow::Result<()> {
+    let mut excluded = Vec::new();
+    for directory in config.directories.values() {
+        excluded.push(crate::path_safety::resolve_path(directory.path.as_std_path(), false)?);
+    }
+    let mut pending = vec![root.to_path_buf()];
+    while let Some(directory) = pending.pop() {
+        for entry in fs::read_dir(&directory).context("Cannot inspect Quarto source directories")? {
+            let entry = entry?;
+            if matches!(entry.file_name().to_str(), Some(".git" | ".svn" | ".hg")) { continue; }
+            let kind = entry.file_type()?;
+            let path = camino::Utf8PathBuf::try_from(entry.path()).context("Non-UTF-8 Quarto source path")?;
+            let identity = crate::path_safety::resolve_path(path.as_std_path(), false)?;
+            if excluded.iter().any(|resource| identity.starts_with(resource)) { continue; }
+            if kind.is_symlink() { anyhow::bail!("Implicit Quarto input discovery through linked entries is unsupported; select explicit source documents"); }
+            if kind.is_dir() { pending.push(path); }
+            else if directory != root && matches!(path.file_name(), Some("_quarto.yml" | "_quarto.yaml")) {
+                anyhow::bail!("Nested Quarto project roots are unsupported; Quarto and proj roots must match");
+            }
+        }
+    }
+    Ok(())
+}
+
+fn validate_quarto_input(root: &camino::Utf8Path, input: &camino::Utf8Path) -> anyhow::Result<()> {
+    let root = crate::path_safety::resolve_path(root.as_std_path(), false)?;
+    let input = crate::path_safety::resolve_path(input.as_std_path(), true)?;
+    if !input.starts_with(&root) { anyhow::bail!("Quarto inputs must lie inside the captured project root"); }
+    let mut directory = input.parent().context("Quarto input has no parent")?;
+    while directory != root.as_path() {
+        for name in ["_quarto.yml", "_quarto.yaml"] {
+            match fs::symlink_metadata(directory.join(name)) {
+                Ok(_) => anyhow::bail!("Nested Quarto project roots are unsupported; Quarto and proj roots must match"),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                Err(error) => return Err(error).context("Cannot inspect Quarto root metadata"),
+            }
+        }
+        directory = directory.parent().context("Quarto input root mismatch")?;
+    }
+    Ok(())
+}
+
+fn validate_individual_metadata(root: &camino::Utf8Path, input: &camino::Utf8Path) -> anyhow::Result<()> {
+    if crate::yml::configuration_entry_exists(&root.join("_quarto.yaml"))? { anyhow::bail!("Individual rendering under _quarto.yaml project metadata is unsupported; use the modeled _quarto.yml project layout"); }
+    let is_rmd = matches!(input.extension(), Some("Rmd" | "rmd"));
+    let mut directory = input.parent();
+    while let Some(parent) = directory {
+        let names = if is_rmd { ["_output.yml", "_output.yaml"] } else { ["_metadata.yml", "_metadata.yaml"] };
+        for name in names {
+            if crate::yml::configuration_entry_exists(&parent.join(name))? { anyhow::bail!("Inherited individual-renderer metadata is unsupported; declare one format in the input document"); }
+        }
+        if parent == root { break; }
+        directory = parent.parent();
+    }
+    Ok(())
+}
+
 struct DocumentOutputPaths {
     target: camino::Utf8PathBuf,
     destination: camino::Utf8PathBuf,
@@ -815,8 +895,9 @@ struct DocumentOutputPaths {
 fn document_output_paths(file_path: &camino::Utf8Path, docs_path: &camino::Utf8Path, project_root: &camino::Utf8Path) -> anyhow::Result<DocumentOutputPaths> {
     crate::path_safety::validate_document_destination(project_root, file_path, docs_path)?;
     let content = fs::read_to_string(file_path).context("Failed to read document input")?;
-    let (format, output_file) = crate::build_pre::parse_frontmatter_options(&content);
-    let ext = crate::build_pre::map_format_to_extension(format.as_deref());
+    validate_individual_metadata(project_root, file_path)?;
+    let (format, output_file) = crate::build_pre::individual_output_options(&content, matches!(file_path.extension(), Some("Rmd" | "rmd")))?;
+    let ext = crate::build_pre::map_format_to_extension(Some(&format))?;
     let stem = file_path.file_stem().context("Document input has no filename stem")?;
     let parent = file_path.parent().unwrap_or(project_root);
     let name = output_file.unwrap_or_else(|| format!("{stem}.{ext}"));
@@ -830,6 +911,7 @@ fn document_output_paths(file_path: &camino::Utf8Path, docs_path: &camino::Utf8P
     {
         anyhow::bail!("Individual output-file must not replace framework configuration/state");
     }
+    if std::path::Path::new(&name).extension().is_none() { anyhow::bail!("Individual output filenames require an explicit extension"); }
     let target = parent.join(&name);
     let target_identity = crate::path_safety::resolve_path(target.as_std_path(), true)?;
     if target.exists() && !target.is_file() { anyhow::bail!("Expected document output path is not a file"); }
@@ -916,10 +998,9 @@ pub fn copy_global_quarto_project(cache_docs_dir: &camino::Utf8Path, final_docs_
 
 /// Executes a single script in an isolated subprocess.
 fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Path, profile: Option<&str>, resolved_python_cmd: Option<&str>, environment: &RunEnvironment) -> anyhow::Result<()> {
-    let parent_dir = script_path.parent().unwrap_or(camino::Utf8Path::new(""));
     let ext = script_path.extension().unwrap_or("");
     let mut cmd = match ext {
-        "R" => {
+        "R" | "r" => {
             let mut c = environment.command("Rscript");
             c.arg(script_path.as_std_path());
             c
@@ -932,12 +1013,13 @@ fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Pat
         },
         "qmd" => {
             let mut c = environment.command("quarto");
-            c.arg("render").arg(script_path.as_std_path());
+            c.arg("render").arg(script_path.as_std_path()).arg("--execute-dir").arg(project_root.as_std_path());
             c
         },
-        "Rmd" => {
+        "Rmd" | "rmd" => {
             let mut c = environment.command("Rscript");
-            c.arg("-e").arg(format!("rmarkdown::render('{}')", script_path.file_name().unwrap()));
+            c.arg("-e").arg("args <- commandArgs(trailingOnly = TRUE); rmarkdown::render(input = args[[1]], knit_root_dir = args[[2]])")
+                .arg(script_path.as_std_path()).arg(project_root.as_std_path());
             c
         },
         _ => {
@@ -946,7 +1028,7 @@ fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Pat
     };
 
     // TODO: migrate to camino
-    cmd.current_dir(parent_dir.as_std_path());
+    cmd.current_dir(project_root.as_std_path());
     if environment.non_interactive() {
         cmd.stdin(std::process::Stdio::null());
     }
@@ -967,7 +1049,7 @@ fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Pat
 fn execute_project_render(project_root: &camino::Utf8Path, is_quarto: bool, profile: Option<&str>, environment: &RunEnvironment) -> anyhow::Result<()> {
     let mut cmd = if is_quarto {
         let mut c = environment.command("quarto");
-        c.arg("render");
+        c.arg("render").arg("--execute-dir").arg(project_root.as_std_path());
         c
     } else {
         let mut c = environment.command("Rscript");

@@ -51,14 +51,14 @@ failure reports that local analysis succeeded and retains its release/version;
 external publication is not rolled back.
 
 Git upstream/authentication policy, stable attempt/release records and an
-analysis-free publication retry command remain unfinished. Existing Git push code
-still targets origin/main and must not be mistaken for the final policy.
+analysis-free publication retry command remain unfinished. Optional Git publication captures and revalidates the configured upstream; no
+origin/main destination is invented.
 
 ## Development previews and remaining renderer gaps
 
 Previews skip production version changes, cleanup, commits and exports. They run
 selected hooks/analysis and restore renderer configuration bytes. Cooperating
 scripts must choose appropriate output locations; preview is not automatic output
-isolation or an OS sandbox. Individual script subprocesses still start in their
-parent directory: the approved root-relative execution and direct R/IDE renderer
-parity are separate unfinished work. The existing R package remains untouched.
+isolation or an OS sandbox. Script/hook subprocesses start in the captured root. Quarto receives an explicit
+execution directory and individual R Markdown receives knit_root_dir. Direct R/IDE
+renderer parity remains unfinished and is not established by these CLI controls. The existing R package remains untouched.

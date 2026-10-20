@@ -81,14 +81,69 @@ pub fn parse_frontmatter_options(content: &str) -> (Option<String>, Option<Strin
 }
 
 /// Maps a document format to its output file extension.
-pub fn map_format_to_extension(format: Option<&str>) -> String {
-    let format_str = format.unwrap_or("html");
-    match format_str {
-        "html_notebook" => "nb.html".to_string(),
-        "word_document" => "docx".to_string(),
-        "beamer_presentation" | "typst" => "pdf".to_string(),
-        _ => "html".to_string()
+pub fn map_format_to_extension(format: Option<&str>) -> anyhow::Result<String> {
+    let extension = match format.unwrap_or("html") {
+        "html" | "html_document" | "revealjs" => "html",
+        "html_notebook" => "nb.html",
+        "word_document" | "docx" => "docx",
+        "pdf" | "pdf_document" | "beamer" | "beamer_presentation" | "typst" => "pdf",
+        "pptx" => "pptx",
+        "epub" => "epub",
+        _ => anyhow::bail!("Unsupported individual document format; supported layouts are HTML, PDF, Word, PowerPoint and EPUB"),
+    };
+    Ok(extension.to_owned())
+}
+
+/// Model one document-local format. External metadata and multiple formats need a separate plan.
+pub(crate) fn individual_output_options(content: &str, is_rmd: bool) -> anyhow::Result<(String, Option<String>)> {
+    let mut lines = content.lines();
+    let metadata = if lines.next().is_some_and(|line| line.trim() == "---") {
+        let mut header = String::new();
+        let mut closed = false;
+        for line in lines {
+            if line.trim() == "---" { closed = true; break; }
+            header.push_str(line); header.push('\n');
+        }
+        if !closed { anyhow::bail!("Document YAML frontmatter is not closed"); }
+        let value: serde_yaml::Value = serde_yaml::from_str(&header).context("Invalid document YAML frontmatter")?;
+        if value.is_null() { serde_yaml::Value::Mapping(Default::default()) } else { value }
+    } else { serde_yaml::Value::Mapping(Default::default()) };
+    let mapping = metadata.as_mapping().context("Document YAML frontmatter must be a mapping")?;
+    let get = |key: &str| mapping.get(serde_yaml::Value::String(key.to_owned()));
+    for key in ["output-dir", "output_dir", "metadata-files", "output_yaml", "output-yaml"] {
+        if get(key).is_some() { anyhow::bail!("Individual rendering does not support external metadata or output-directory overrides"); }
     }
+    if is_rmd && get("runtime").is_some_and(|value| !matches!(value.as_str(), Some("auto" | "static"))) {
+        anyhow::bail!("Only static individual R Markdown runtime layouts are supported");
+    }
+    let key = if is_rmd { "output" } else { "format" };
+    let format = match get(key) {
+        None => if is_rmd { "html_document" } else { "html" }.to_owned(),
+        Some(serde_yaml::Value::String(name)) => name.clone(),
+        Some(serde_yaml::Value::Mapping(formats)) if formats.len() == 1 => {
+            let (name, options) = formats.iter().next().unwrap();
+            if let Some(options) = options.as_mapping() {
+                if ["output-file", "output_file", "output-dir", "output_dir"].iter().any(|key| options.contains_key(serde_yaml::Value::String((*key).to_owned()))) {
+                    anyhow::bail!("Format-specific output overrides are unsupported for individual rendering");
+                }
+            } else if !options.is_null() && options.as_str() != Some("default") {
+                anyhow::bail!("Individual format options must be a mapping or default");
+            }
+            name.as_str().context("Individual format name must be a string")?.to_owned()
+        }
+        _ => anyhow::bail!("Individual rendering requires exactly one named output format"),
+    };
+    let supported = if is_rmd {
+        ["html_document", "html_notebook", "pdf_document", "word_document", "beamer_presentation"].contains(&format.as_str())
+    } else { ["html", "pdf", "docx", "typst", "beamer", "revealjs", "pptx", "epub"].contains(&format.as_str()) };
+    if !supported { anyhow::bail!("Unsupported individual document format for this renderer"); }
+    let first = get("output-file"); let second = get("output_file");
+    if first.is_some() && second.is_some() { anyhow::bail!("Document output filename aliases are ambiguous"); }
+    if is_rmd && (first.is_some() || second.is_some()) {
+        anyhow::bail!("Individual R Markdown output filename overrides are unsupported; use the input-basename layout");
+    }
+    let output = first.or(second).map(|value| value.as_str().context("Document output filename must be a string").map(str::to_owned)).transpose()?;
+    Ok((format, output))
 }
 
 pub fn find_python_command() -> Option<String> {

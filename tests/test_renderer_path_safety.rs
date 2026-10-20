@@ -130,7 +130,7 @@ fn renderer_outputs_cannot_overwrite_other_selected_scripts_or_hooks() {
             fs::write(root.join(format!("report.{extension}")), format!("---\nformat: html\noutput-file: {output_name}\n---\n")).unwrap();
             let output = build(&root);
             assert!(!output.status.success());
-            assert!(String::from_utf8_lossy(&output.stderr).contains("overwrites protected input"), "{}", String::from_utf8_lossy(&output.stderr));
+            assert!(String::from_utf8_lossy(&output.stderr).contains(if extension == "Rmd" { "output filename overrides are unsupported" } else { "overwrites protected input" }), "{}", String::from_utf8_lossy(&output.stderr));
             assert_eq!(fs::read_to_string(&protected).unwrap(), "raise RuntimeError('must not run')\n");
             assert!(!root.join("renderer-called").exists());
             assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");

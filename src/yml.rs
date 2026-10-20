@@ -244,6 +244,24 @@ pub enum IgnoreConfig {
     Multiple(Vec<String>),
 }
 
+pub(crate) fn validate_clear_output(value: Option<&str>) -> anyhow::Result<()> {
+    if value.is_some_and(|value| !["pre", "post", "never"].contains(&value)) {
+        anyhow::bail!("clear_output must be pre, post, or never");
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_ignore(value: &IgnoreConfig) -> anyhow::Result<()> {
+    let values: &[String] = match value {
+        IgnoreConfig::Single(value) => std::slice::from_ref(value),
+        IgnoreConfig::Multiple(values) => values,
+    };
+    if values.iter().any(|value| !["all", "git", "rbuild"].iter().any(|allowed| value.eq_ignore_ascii_case(allowed))) {
+        anyhow::bail!("Directory ignore values must be all, git, or rbuild; use [] for no ignores");
+    }
+    Ok(())
+}
+
 fn default_ignore() -> IgnoreConfig {
     IgnoreConfig::Single("all".to_string())
 }
@@ -325,6 +343,7 @@ impl ProjConfig {
         project_root: &Utf8Path,
         is_dev: bool,
     ) -> anyhow::Result<ValidatedConfig> {
+        validate_clear_output(self.build.clear_output.as_deref())?;
         let mut resolved = HashMap::new();
         let mut labels = HashSet::new();
 
@@ -349,6 +368,7 @@ impl ProjConfig {
         // 1. Process explicit user configurations
         for (label, config) in &self.directories {
             crate::path_safety::validate_directory_label(label)?;
+            validate_ignore(&config.ignore)?;
             let lower_label = label.to_lowercase();
             if !labels.insert(label.to_ascii_lowercase()) {
                 anyhow::bail!("Directory labels differ only by case: {label}");
