@@ -40,7 +40,7 @@ pub enum BuildMode {
 /// build_project(camino::Utf8Path::from_path(temp.path()).unwrap(), BuildMode::ProdPatch, None, None).unwrap();
 /// ```
 use crate::git::{is_git_installed, check_git_profile, git_commit_all, create_git_provider};
-use crate::yml::{yml_read_from, GlobalConfig};
+use crate::yml::GlobalConfig;
 use crate::build_pre::run_pre_flight_checks;
 
 pub fn post_build_sync(config: &GlobalConfig, repo_dir: camino::Utf8PathBuf) -> anyhow::Result<()> {
@@ -64,19 +64,24 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     // ==========================================
     // STEP A: Activate Environment Guard
     // ==========================================
-    let _env_guard = if is_dev {
-        crate::env::EnvGuard::activate_for_preview(cli_profile, project_root)
-    } else {
-        crate::env::EnvGuard::activate(cli_profile, project_root)
-    }.context("Failed to activate environment guard")?;
+    // Load inputs without writing ignores; configuration errors must stay read-only.
+    let _env_guard = crate::env::EnvGuard::activate_for_preview(cli_profile, project_root)
+        .context("Failed to activate environment guard")?;
 
     // ==========================================
     // STEP B: Pre-Build Validation & Execution
     // ==========================================
 
     // 1. Config Audit
-    let mut config = yml_read_from(project_root, is_dev).context("Failed to read _proj.yml config")?; /* TODO: migrate to camino */
+    let combined = crate::yml::get_combined_yml(None, project_root)
+        .context("Failed to read project configuration")?;
+    let project_config: ProjConfig = serde_json::from_value(combined)
+        .context("Failed to deserialize combined configuration")?;
+    let mut config = project_config.validate_and_resolve(project_root, is_dev)?;
     if !is_dev {
+        if project_root.join("_environment.local").exists() {
+            crate::ignore::add_manual_ignores(project_root, &["_environment.local".to_string()], true, crate::ignore::IgnoreType::All)?;
+        }
         crate::ignore::update_ignores(project_root, &config).context("Failed to update ignores")?;
     }
 
@@ -93,39 +98,14 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     let quarto_exists = project_root.join("_quarto.yml").exists();
     let bookdown_exists = project_root.join("_bookdown.yml").exists();
 
-    let yml_path = crate::yml::base_configuration_path(project_root)?;
-    let mut build_scripts: Option<Vec<String>> = None;
-    let mut profile: Option<String> = cli_profile.map(|s| s.to_string());
-    let mut hooks_config: crate::yml::HooksConfig = crate::yml::HooksConfig::default();
-
-    if let Some(yml_path) = yml_path {
-        let content = fs::read_to_string(&yml_path).context("Failed to read _proj.yml")?;
-        if let Ok(proj_conf) = serde_yaml::from_str::<ProjConfig>(&content) {
-            let build = proj_conf.build;
-            let dev = proj_conf.dev;
-
-            if is_dev {
-                if let Some(dev_scripts) = dev.scripts {
-                    build_scripts = Some(dev_scripts);
-                } else {
-                    build_scripts = build.scripts;
-                }
-
-                if dev.hooks.is_some() {
-                    hooks_config = dev.hooks.unwrap();
-                } else {
-                    hooks_config = build.hooks;
-                }
-            } else {
-                build_scripts = build.scripts;
-                hooks_config = build.hooks;
-            }
-
-            if profile.is_none() {
-                profile = build.profile;
-            }
-        }
-    }
+    let build = project_config.build;
+    let dev = project_config.dev;
+    let profile = cli_profile.map(str::to_string).or(build.profile);
+    let (build_scripts, hooks_config) = if is_dev {
+        (dev.scripts.or(build.scripts), dev.hooks.unwrap_or(build.hooks))
+    } else {
+        (build.scripts, build.hooks)
+    };
 
     // Extract hooks paths
     let mut raw_hooks = Vec::new();
