@@ -72,3 +72,8 @@ This validation is separate from project discovery. A root marker or cwd fallbac
 does not make an unconfigured project buildable. Explicit directory enforcement,
 per-run environment isolation and complete managed-state failure restoration
 remain under development; see the behavior contract and pinned legacy audit.
+
+
+Explicit script/hook include patterns must match at least one file. Use an empty
+list (`scripts: []`) when intentionally selecting no analysis; unmatched configured
+includes return an error instead of a successful no-op.

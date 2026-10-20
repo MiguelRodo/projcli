@@ -462,3 +462,20 @@ syntax. Runnable tests verify actual analysis bytes and selected-input preservat
 under a bracket-containing root. This is the same audited root-cause fix, not an
 additional discovery policy or dependency. Existing standalone preparation remains
 preserved and must not later be merged as duplicate work.
+
+
+Windows CI at 9938173 exposed a skipped explicit failing script. Source review of
+[glob 0.3.3](https://docs.rs/glob/0.3.3/src/glob/lib.rs.html) confirmed that escaping
+the canonical Windows namespace changes its filesystem prefix. Normalize Disk/UNC
+namespaces for glob transport only, keep filesystem prefixes literal, escape only
+directory components and join patterns using native path operations. The captured
+root is unchanged. Explicit include patterns with no files now fail instead of
+reporting successful no-op execution. New native/canonical-root execution markers
+run on every platform; network UNC execution remains unverified.
+
+The same review found generated filenames could overwrite another selected script
+or hook, DESCRIPTION or environment configuration. Before renderer invocation,
+compare all concrete output/asset paths against the complete selected-input set
+and reject authoritative project/environment metadata filenames. Fake-renderer
+fixtures prove those failures happen before scripts, VERSION or ignore writes.
+Amended exact-head CI and independent re-review remain required.

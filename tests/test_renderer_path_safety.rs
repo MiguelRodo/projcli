@@ -107,3 +107,53 @@ fn invalid_output_file_relationships_fail_before_fake_renderer_execution() {
         }
     }
 }
+
+
+#[test]
+fn renderer_outputs_cannot_overwrite_other_selected_scripts_or_hooks() {
+    for extension in ["qmd", "Rmd"] {
+        for selection in ["script", "hook", "asset-hook"] {
+            let project = tempfile::tempdir().unwrap();
+            let root = project.path().canonicalize().unwrap();
+            fixture(&root, "published", extension);
+            let config_path = root.join("_proj.yml");
+            let mut config = fs::read_to_string(&config_path).unwrap();
+            if selection == "script" {
+                config = config.replace(&format!("scripts: [report.{extension}]"), &format!("scripts: [report.{extension}, post.py]"));
+            } else if selection == "hook" { config.push_str("  hooks:\n    post: [post.py]\n"); }
+            else { config.push_str("  hooks:\n    post: [report_files/post.py]\n"); }
+            fs::write(&config_path, config).unwrap();
+            let protected = if selection == "asset-hook" { root.join("report_files/post.py") } else { root.join("post.py") };
+            fs::create_dir_all(protected.parent().unwrap()).unwrap();
+            fs::write(&protected, "raise RuntimeError('must not run')\n").unwrap();
+            let output_name = if selection == "asset-hook" { "report.html" } else { "post.py" };
+            fs::write(root.join(format!("report.{extension}")), format!("---\nformat: html\noutput-file: {output_name}\n---\n")).unwrap();
+            let output = build(&root);
+            assert!(!output.status.success());
+            assert!(String::from_utf8_lossy(&output.stderr).contains("overwrites protected input"), "{}", String::from_utf8_lossy(&output.stderr));
+            assert_eq!(fs::read_to_string(&protected).unwrap(), "raise RuntimeError('must not run')\n");
+            assert!(!root.join("renderer-called").exists());
+            assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");
+            assert!(!root.join(".gitignore").exists());
+        }
+    }
+}
+
+#[test]
+fn renderer_outputs_cannot_replace_authoritative_configuration_or_state() {
+    for extension in ["qmd", "Rmd"] {
+        for name in ["DESCRIPTION", "_environment.local", "_projr-extra.yml", "pyproject.toml"] {
+            let project = tempfile::tempdir().unwrap();
+            let root = project.path().canonicalize().unwrap();
+            fixture(&root, "published", extension);
+            fs::write(root.join(name), "# original configuration\n").unwrap();
+            fs::write(root.join(format!("report.{extension}")), format!("---\nformat: html\noutput-file: {name}\n---\n")).unwrap();
+            let output = build(&root);
+            assert!(!output.status.success());
+            assert!(!root.join("renderer-called").exists());
+            assert_eq!(fs::read_to_string(root.join(name)).unwrap(), "# original configuration\n");
+            assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");
+            assert!(!root.join(".gitignore").exists());
+        }
+    }
+}

@@ -199,7 +199,15 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
             } else {
                 for file in &resolved_files {
                     if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) {
-                        document_output_paths(file, &config.get_path(project_root, "docs")?, project_root)?;
+                        let outputs = document_output_paths(file, &config.get_path(project_root, "docs")?, project_root)?;
+                        for input in &validation_files {
+                            let identity = crate::path_safety::resolve_path(input.as_std_path(), false)?;
+                            for target in [&outputs.target, &outputs.destination, &outputs.assets, &outputs.destination_assets] {
+                                if identity.starts_with(crate::path_safety::resolve_path(target.as_std_path(), true)?) {
+                                    anyhow::bail!("Rendered output overwrites protected input script/hook: {input}");
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -626,6 +634,42 @@ fn execute_build_pipeline(
     Ok(())
 }
 
+// Use a consistent filesystem namespace for glob enumeration and exclusions only.
+// The captured project-root identity remains canonical and unchanged.
+fn glob_path_text(path: &camino::Utf8Path) -> anyhow::Result<String> {
+    #[cfg(windows)]
+    if let Some(std::path::Component::Prefix(prefix)) = path.as_std_path().components().next() {
+        match prefix.kind() {
+            std::path::Prefix::VerbatimDisk(_) => return Ok(path.as_str()[4..].to_string()),
+            std::path::Prefix::VerbatimUNC(server, share) => {
+                let tail = &path.as_str()[prefix.as_os_str().to_str().context("Non-UTF-8 glob prefix")?.len()..];
+                return Ok(format!("\\\\{}\\{}{}", server.to_str().context("Non-UTF-8 UNC server")?, share.to_str().context("Non-UTF-8 UNC share")?, tail));
+            }
+            std::path::Prefix::Verbatim(_) | std::path::Prefix::DeviceNS(_) => anyhow::bail!("Unsupported device namespace for script glob selection"),
+            _ => {}
+        }
+    }
+    Ok(path.to_string())
+}
+
+fn script_glob_pattern(root: &camino::Utf8Path, pattern: &str) -> anyhow::Result<String> {
+    if camino::Utf8Path::new(pattern).is_absolute() {
+        return glob_path_text(camino::Utf8Path::new(pattern));
+    }
+    let root = glob_path_text(root)?;
+    let prefix_len = {
+        #[cfg(windows)]
+        { match std::path::Path::new(&root).components().next() {
+            Some(std::path::Component::Prefix(prefix)) => prefix.as_os_str().to_str().context("Non-UTF-8 glob prefix")?.len(),
+            _ => 0,
+        } }
+        #[cfg(not(windows))]
+        { 0 }
+    };
+    let escaped = format!("{}{}", &root[..prefix_len], glob::Pattern::escape(&root[prefix_len..]));
+    Ok(camino::Utf8Path::new(&escaped).join(pattern).into_string())
+}
+
 /// Evaluates Path A: Explicit Configuration via `build.scripts`.
 ///
 /// Supports exclusion globs starting with `!`, strictly matches root documents when no sub-directory
@@ -649,24 +693,21 @@ pub(crate) fn resolve_explicit_scripts(project_root: &camino::Utf8Path, scripts:
     // Convert patterns to absolute globbing targets
     let mut matched_files = Vec::new();
     for pattern in &includes {
-        // The root is literal; only the supplied script pattern is glob syntax.
-        let target_pattern = if camino::Utf8Path::new(pattern).is_absolute() {
-            pattern.clone()
-        } else {
-            format!("{}/{}", glob::Pattern::escape(project_root.as_str()), pattern)
-        };
+        let target_pattern = script_glob_pattern(project_root, pattern)?;
 
         // TODO: migrate to camino
         let paths = glob::glob(&target_pattern)
             .context(format!("Invalid glob pattern '{}'", target_pattern))?;
 
+        let mut matched = false;
         for entry in paths {
-            if let Ok(path) = entry {
-                if path.is_file() {
-                    matched_files.push(camino::Utf8PathBuf::try_from(path).context("Non-UTF-8 path encountered")?);
-                }
+            let path = entry.with_context(|| format!("Failed to read script glob '{pattern}'"))?;
+            if path.is_file() {
+                matched = true;
+                matched_files.push(camino::Utf8PathBuf::try_from(path).context("Non-UTF-8 path encountered")?);
             }
         }
+        if !matched { anyhow::bail!("Explicit script/hook pattern matched no files: {pattern}"); }
     }
 
     // Process excludes
@@ -675,11 +716,7 @@ pub(crate) fn resolve_explicit_scripts(project_root: &camino::Utf8Path, scripts:
         let mut is_excluded = false;
 
         for exclude in &excludes {
-            let exclude_pattern = if camino::Utf8Path::new(exclude).is_absolute() {
-                exclude.to_string()
-            } else {
-                format!("{}/{}", glob::Pattern::escape(project_root.as_str()), exclude)
-            };
+            let exclude_pattern = script_glob_pattern(project_root, exclude)?;
 
             // TODO: migrate to camino
             if let Ok(ex_pattern) = glob::Pattern::new(&exclude_pattern) {
@@ -887,11 +924,16 @@ fn document_output_paths(file_path: &camino::Utf8Path, docs_path: &camino::Utf8P
     if name.is_empty() || name.contains('/') || name.contains('\\') || name.contains(':') || name == "." || name == ".." {
         anyhow::bail!("Individual output-file must be a leaf filename");
     }
-    if ["VERSION", "_proj.yml", "_projr.yml", "_quarto.yml", "_bookdown.yml", ".gitignore", ".Rbuildignore"].iter().any(|reserved| name.eq_ignore_ascii_case(reserved)) {
+    let lower_name = name.to_ascii_lowercase();
+    if ["version", "description", ".git", ".svn", ".gitignore", ".rbuildignore", ".rprofile", ".renviron", "pyproject.toml", "project.toml", "juliaproject.toml", "renv.lock", "_bookdown.yml", "_output.yml"].contains(&lower_name.as_str())
+        || ((lower_name.starts_with("_proj") || lower_name.starts_with("_quarto")) && (lower_name.ends_with(".yml") || lower_name.ends_with(".yaml")))
+        || lower_name == "_environment" || lower_name.starts_with("_environment.") || lower_name.starts_with("_environment-")
+    {
         anyhow::bail!("Individual output-file must not replace framework configuration/state");
     }
     let target = parent.join(&name);
     let target_identity = crate::path_safety::resolve_path(target.as_std_path(), true)?;
+    if target.exists() && !target.is_file() { anyhow::bail!("Expected document output path is not a file"); }
     let destination = docs_path.join(&name);
     if target_identity == crate::path_safety::resolve_path(file_path.as_std_path(), true)?
         || target_identity == crate::path_safety::resolve_path(destination.as_std_path(), true)? {
@@ -1024,4 +1066,21 @@ fn execute_project_render(project_root: &camino::Utf8Path, is_quarto: bool, prof
     }
 
     Ok(())
+}
+
+
+#[cfg(all(test, windows))]
+mod glob_namespace_tests {
+    use super::{glob_path_text, script_glob_pattern};
+    use camino::Utf8Path;
+
+    #[test]
+    fn canonical_disk_and_unc_prefixes_are_filesystem_syntax_not_glob_tokens() {
+        assert_eq!(glob_path_text(Utf8Path::new(r"\\?\C:\work [1]")).unwrap(), r"C:\work [1]");
+        assert_eq!(glob_path_text(Utf8Path::new(r"\\?\UNC\server\share\work [1]")).unwrap(), r"\\server\share\work [1]");
+        let pattern = script_glob_pattern(Utf8Path::new(r"\\?\C:\work [1]"), "*.py").unwrap();
+        assert!(pattern.starts_with(r"C:\"));
+        assert!(pattern.contains(&glob::Pattern::escape("work [1]")));
+        assert!(pattern.ends_with(r"\*.py"));
+    }
 }
