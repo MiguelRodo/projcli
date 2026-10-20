@@ -116,7 +116,18 @@
     "href": "cli/errors.html",
     "title": "Command exit status",
     "section": "",
-    "text": "Command exit status\nSuccessful CLI commands return exit status zero. Reported operation failures return a nonzero status and a diagnostic on stderr, including configuration/path queries, version reads/writes, ignore updates and initialization. Argument parsing errors also return nonzero.\nFor example, a malformed _proj.yml makes proj yml read --project demo fail, so a shell or frontend can stop instead of treating the diagnostic as success. Failed Git staging, commits and GitHub creation propagate as initialization errors; a failed remote inspection does not proceed to GitHub creation.\nThis defines success versus failure, not stable error codes, a JSON result schema or a capability protocol. Diagnostics remain human-readable text. Commands may perform work before failing; a nonzero status is not a rollback guarantee.",
+    "text": "Successful CLI commands return exit status zero. Reported operation failures return a nonzero status and a diagnostic on stderr, including configuration/path queries, version reads/writes, ignore updates and initialization. Argument parsing errors also return nonzero.\nFor example, a malformed _proj.yml makes proj yml read --project demo fail, so a shell or frontend can stop instead of treating the diagnostic as success. Failed Git staging, commits and GitHub creation propagate as initialization errors; a failed remote inspection does not proceed to GitHub creation.\nThis defines success versus failure, not stable error codes, a JSON result schema or a capability protocol. Diagnostics remain human-readable text. Commands may perform work before failing; a nonzero status is not a rollback guarantee.\n\n\nproj build-dev --project demo --non-interactive\n--non-interactive disables the CLI’s own prompts and automatic R-package installation, including when PROJR_AUTO_INSTALL=true. Missing dependencies produce an error. Script, hook and renderer runners and controlled R dependency probes receive closed stdin. The mode is inherited by managed children as PROJ_NON_INTERACTIVE=true.\nInitialization still performs requested operations using its existing defaults. This flag does not choose project markers, change configuration precedence or define a structured result protocol. Third-party code remains responsible for its own behavior after receiving EOF.",
+    "crumbs": [
+      "CLI Reference",
+      "Command exit status"
+    ]
+  },
+  {
+    "objectID": "cli/errors.html#explicit-noninteractive-execution",
+    "href": "cli/errors.html#explicit-noninteractive-execution",
+    "title": "Command exit status",
+    "section": "",
+    "text": "proj build-dev --project demo --non-interactive\n--non-interactive disables the CLI’s own prompts and automatic R-package installation, including when PROJR_AUTO_INSTALL=true. Missing dependencies produce an error. Script, hook and renderer runners and controlled R dependency probes receive closed stdin. The mode is inherited by managed children as PROJ_NON_INTERACTIVE=true.\nInitialization still performs requested operations using its existing defaults. This flag does not choose project markers, change configuration precedence or define a structured result protocol. Third-party code remains responsible for its own behavior after receiving EOF.",
     "crumbs": [
       "CLI Reference",
       "Command exit status"
