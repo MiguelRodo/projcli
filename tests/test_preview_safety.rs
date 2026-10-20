@@ -187,3 +187,22 @@ fn normalized_cache_identity_protects_preview_artifacts_from_absent_parent_recov
         else { assert!(!root.join("state").exists(), "unsafe overlap must fail before analysis"); }
     }
 }
+
+
+#[test]
+fn absent_case_aliases_cannot_make_recovery_delete_cache_artifacts() {
+    for remote in ["_TMP", "_TMP/archive", "shared/../_TMP/archive"] {
+        let project = tempfile::tempdir().unwrap();
+        let root = project.path().canonicalize().unwrap();
+        fs::create_dir(root.join("shared")).unwrap();
+        fs::write(root.join("_proj.yml"), format!("directories:\n  cache:\n    path: _tmp\nremotes:\n  local:\n    archive:\n      path: {remote}\n      structure: cas\n      inspect: manifest\n      content: []\nbuild:\n  scripts: [analysis.py]\n")).unwrap();
+        fs::write(root.join("analysis.py"), "import os\nfrom pathlib import Path\nroot = Path(os.environ['PROJ_PROJECT_ROOT'])\n(root / '_tmp').mkdir(exist_ok=True)\n(root / '_tmp/result').write_bytes(b'preview')\n").unwrap();
+        let output = Command::new(env!("CARGO_BIN_EXE_proj"))
+            .args(["build-dev", "--non-interactive", "--project"]).arg(&root)
+            .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE")
+            .env_remove("QUARTO_PROFILE").output().unwrap();
+        assert!(!output.status.success(), "{remote}");
+        assert!(!root.join("_tmp").exists());
+        assert!(!root.join("_TMP").exists());
+    }
+}

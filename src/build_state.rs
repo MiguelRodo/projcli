@@ -15,14 +15,16 @@ impl BuildState {
         let backup = tempfile::Builder::new().prefix("proj-build-recovery-").tempdir_in(system_temp)?;
         let recovery = fs::canonicalize(backup.path()).context("Cannot resolve private recovery storage")?;
         let cache = cache.map(|path| crate::path_safety::resolve_path(path, true)).transpose()?;
-        if let Some(cache) = &cache {
-            if recovery.starts_with(cache) || cache.starts_with(&recovery) {
+        let cache_identity = cache.as_deref().map(recovery_path_identity).transpose()?;
+        let recovery_identity = recovery_path_identity(&recovery)?;
+        if let Some(cache) = &cache_identity {
+            if recovery_identity.starts_with(cache) || cache.starts_with(&recovery_identity) {
                 anyhow::bail!("Private recovery storage overlaps disposable project cache");
             }
         }
         let mut state = Self { backup, entries: Vec::new() };
         // Callers provide the concrete managed files/directories, not a whole-project copy.
-        let mut selected: Vec<PathBuf> = paths.iter().map(|path| {
+        let mut selected: Vec<(PathBuf, PathBuf)> = paths.iter().map(|path| {
             let mut target = crate::path_safety::resolve_path(path, true)?;
             // Also remove parent directories created solely for a previously absent target.
             while !target.try_exists()? {
@@ -30,18 +32,18 @@ impl BuildState {
                 if parent.try_exists()? { break; }
                 target = parent.to_owned();
             }
-            Ok(target)
+            Ok((recovery_path_identity(&target)?, target))
         }).collect::<anyhow::Result<_>>()?;
         selected.sort();
         selected.dedup();
         let mut roots: Vec<PathBuf> = Vec::new();
-        for target in selected {
-            if roots.iter().any(|parent| target.starts_with(parent)) { continue; }
-            if cache.as_deref().is_some_and(|cache| cache.starts_with(&target) || target.starts_with(cache))
-                || target.starts_with(&recovery) || recovery.starts_with(&target) {
+        for (identity, target) in selected {
+            if roots.iter().any(|parent| identity.starts_with(parent)) { continue; }
+            if cache_identity.as_deref().is_some_and(|cache| cache.starts_with(&identity) || identity.starts_with(cache))
+                || identity.starts_with(&recovery_identity) || recovery_identity.starts_with(&identity) {
                 anyhow::bail!("Managed build backup overlaps cache: {}", target.display());
             }
-            roots.push(target.clone());
+            roots.push(identity);
             let saved = state.backup.path().join(state.entries.len().to_string());
             let original = match fs::symlink_metadata(&target) {
                 Ok(_) => { copy_exact(&target, &saved)?; Some(saved) }
@@ -81,6 +83,26 @@ impl BuildState {
         }
     }
 
+}
+
+// Comparison-only conservative alias identity, never a filesystem operation path.
+// Existing prefixes are already canonical. Fold ASCII on every platform because
+// absent suffixes can alias on Windows and default macOS filesystems. Reject an
+// unmodeled missing Unicode suffix instead of guessing volume normalization rules.
+fn recovery_path_identity(path: &Path) -> anyhow::Result<PathBuf> {
+    let mut physical = PathBuf::new();
+    let mut identity = PathBuf::new();
+    for component in path.components() {
+        physical.push(component.as_os_str());
+        if let std::path::Component::Normal(name) = component {
+            let name = name.to_str().context("Non-UTF-8 recovery path is unsupported")?;
+            if !physical.try_exists()? && !name.is_ascii() {
+                anyhow::bail!("Absent non-ASCII recovery path components have unsupported alias semantics");
+            }
+            identity.push(name.to_ascii_lowercase());
+        } else { identity.push(component.as_os_str()); }
+    }
+    Ok(identity)
 }
 
 fn copy_exact(source: &Path, destination: &Path) -> anyhow::Result<()> {
