@@ -76,6 +76,9 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
 
     // 1. Config Audit
     let mut config = yml_read_from(project_root, is_dev).context("Failed to read _proj.yml config")?; /* TODO: migrate to camino */
+    if !is_dev {
+        crate::ignore::update_ignores(project_root, &config).context("Failed to update ignores")?;
+    }
 
     // 2. Git Capability Audit
     if config.git.commit {
@@ -255,7 +258,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
         version_set_at(project_root, &initial_version.to_string(false))?;
     }
 
-    // 6. Git auto-ignore (already handled in yml_read_from via update_ignores)
+    // Git auto-ignore synchronization was requested explicitly during config audit.
 
     // 6.5 Sidecar Output Redirection
     let mut original_docs_path: Option<PathBuf> = None;

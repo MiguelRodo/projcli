@@ -1,7 +1,7 @@
 use std::io::{self, BufRead, IsTerminal, Write};
 
 use std::fs;
-use crate::yml::{yml_read, ProjConfig};
+use crate::yml::yml_read;
 use crate::version::version_set;
 use crate::ignore::root;
 
@@ -132,11 +132,12 @@ pub fn init_version() -> anyhow::Result<()> {
 pub fn init_directories() -> anyhow::Result<()> {
     let project_root = root().context("Failed to find project root.")?;
 
-    // Read config to find resolved paths
-    let config = yml_read(false).unwrap_or_else(|_| {
-        let default_config = ProjConfig::default();
-        default_config.validate_and_resolve(project_root.as_path(), false).unwrap()
-    });
+    // Missing configuration resolves to defaults; genuine read/validation errors
+    // must stop before synchronization can replace existing custom ignore rules.
+    let config = yml_read(false).context("Failed to read configuration for directory initialization")?;
+
+    crate::ignore::update_ignores(&project_root, &config)
+        .context("Failed to update project ignores during initialization")?;
 
     let default_labels = ["cache", "raw", "output", "docs"];
     for label in &default_labels {

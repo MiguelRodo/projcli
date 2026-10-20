@@ -1,4 +1,4 @@
-use crate::ignore::{root, update_ignores};
+use crate::ignore::root;
 use crate::profile::get_active_profiles;
 use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};
@@ -647,14 +647,24 @@ pub fn get_combined_yml(
     Ok(yml_get_filter_top_level(base_val))
 }
 
+/// Reads, merges and validates configuration without modifying the filesystem.
+///
+/// Missing configuration uses defaults; malformed or unsupported values return
+/// errors from parsing or validation. `is_dev` selects development Git settings.
+/// Ignore synchronization is an explicit responsibility of mutating operations.
+///
+/// ```rust
+/// let project = tempfile::tempdir().unwrap();
+/// let root = camino::Utf8Path::from_path(project.path()).unwrap();
+/// let config = proj::yml_read_from(root, false).unwrap();
+/// assert!(config.directories.contains_key("output"));
+/// assert!(!root.join(".gitignore").exists());
+/// ```
 pub fn yml_read_from(project_root: &Utf8Path, is_dev: bool) -> anyhow::Result<ValidatedConfig> {
     let combined_val = get_combined_yml(None, project_root)?;
     let config: ProjConfig = serde_json::from_value(combined_val)
         .context("Failed to deserialize combined configuration.")?;
     let validated = config.validate_and_resolve(project_root, is_dev)?;
-    if !is_dev {
-        update_ignores(project_root, &validated).context("Failed to update ignores.")?;
-    }
     Ok(validated)
 }
 
