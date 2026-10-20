@@ -11,6 +11,7 @@ pub(crate) fn git_command_in(root: Option<&camino::Utf8Path>, environment: &RunE
         None => environment.value(crate::PROJECT_ROOT_ENV).map(std::path::PathBuf::from)
             .unwrap_or(std::env::current_dir()?),
     };
+    let directory = if directory.is_absolute() { directory } else { std::env::current_dir()?.join(directory) };
     let search = environment.value("PATH").unwrap_or(std::ffi::OsStr::new(""));
     for entry in std::env::split_paths(search) {
         let entry = if entry.is_absolute() { entry } else { directory.join(entry) };
@@ -20,7 +21,7 @@ pub(crate) fn git_command_in(root: Option<&camino::Utf8Path>, environment: &RunE
             use std::os::unix::fs::PermissionsExt;
             if std::fs::metadata(&candidate)?.permissions().mode() & 0o111 == 0 { continue; }
         }
-        return Ok(environment.command(candidate));
+        return Ok(environment.command(std::fs::canonicalize(candidate)?));
     }
     anyhow::bail!("Git executable is missing from the resolved PATH")
 }
@@ -471,6 +472,25 @@ mod tests {
         let lines: Vec<_> = argv.lines().collect();
         assert_eq!(&lines[..3], &["-c", "credential.helper=", "-c"]);
         assert!(lines[3].starts_with("credential.helper=!"));
+    }
+
+
+    #[cfg(unix)]
+    #[test]
+    fn relative_repo_and_path_execute_the_resolved_absolute_git_file() {
+        use std::os::unix::fs::PermissionsExt;
+        let cwd = std::env::current_dir().unwrap().canonicalize().unwrap();
+        let container = tempfile::Builder::new().prefix("relative-git-").tempdir_in(&cwd).unwrap();
+        let repo = container.path().join("project");
+        std::fs::create_dir_all(repo.join("bin")).unwrap();
+        let git = repo.join("bin/git");
+        std::fs::write(&git, "#!/bin/sh\nprintf '%s\\n' \"$0\"\n").unwrap();
+        std::fs::set_permissions(&git, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let relative = camino::Utf8PathBuf::try_from(repo.strip_prefix(&cwd).unwrap().to_owned()).unwrap();
+        let mut environment = RunEnvironment::inherited(); environment.set("PATH", "bin");
+        let provider = create_git_provider_in(GitEngine::Auto, relative, &environment).unwrap();
+        assert!(provider.is_available());
+        assert_eq!(std::path::PathBuf::from(provider.get_user_name().unwrap()), git.canonicalize().unwrap());
     }
 
 }
