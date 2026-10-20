@@ -17,7 +17,9 @@ actual test evidence, Ponytail reviews and remaining gaps; update it with each P
   does not search downward for projects.
 - Retain existing projr root markers, including standalone VERSION and README,
   VCS roots, R-package/RStudio/renv/Quarto project markers, and extend recognition
-  for Python/Julia project metadata. Recognition must no longer require VERSION
+  for `pyproject.toml`, `Project.toml` and `JuliaProject.toml`. Proj configuration
+  files `_proj.yml` / `_projr.yml` also identify a root. `requirements.txt` and
+  `Manifest.toml` alone do not. Recognition must no longer require VERSION
   before considering the other markers.
 - `_proj.yml` is the primary base configuration. Accept `_projr.yml` as a legacy
   alias and fail clearly if both base files exist; do not silently merge them.
@@ -28,6 +30,23 @@ actual test evidence, Ponytail reviews and remaining gaps; update it with each P
   Hooks still run; production version/publication/export behavior remains available
   for upload-only workflows. Development previews never publish. Analysis cleanup
   and promotion are skipped when no analysis is selected, preserving upload inputs.
+- With no recognized marker, discovery falls back to cwd. This does not waive
+  build validation: builds require an active root-level proj configuration.
+  The agreed `_proj.yml` / legacy `_projr.yml` names apply; explicitly activated
+  profile files may supply configuration, but inactive profile files alone do not.
+  No-config build assumptions from the initial roadmap are superseded.
+- Every framework/resource directory used at runtime must be explicitly declared.
+  Initialization may write familiar projr defaults into configuration; runtime
+  must not synthesize missing directory mappings or unknown subpaths.
+- Unsupported behavior-affecting configuration fails before mutations.
+- Failed supported builds must restore pre-build state except permitted cache
+  residue. This is required behavior, not an implemented transaction guarantee.
+- Storage/publication retries must have an upload-only route without rerunning
+  analysis or falsely recording a new analysis. Explicit-empty analysis supports
+  hooks/publication, but full retry identity/transaction semantics are separate.
+- The existing R package is entirely off limits in this effort. Direct R frontend
+  integration is later work; no existing helper changes or parity claims follow
+  from these Rust changes.
 - Default script/document enumeration is shallow at the selected project root.
   Subdirectory targets require explicit selection or renderer project configuration.
 - Scripts execute relative to the project root by default. Selecting a script in
@@ -55,26 +74,26 @@ from changing cwd or selecting a new root.
 
 ## Proposals and open decisions
 
-- Finalize markerless-directory fallback and exact Python/Julia metadata file
-  coverage. Retaining projr's cwd fallback and using `pyproject.toml`,
-  `Project.toml` and `JuliaProject.toml` are the proposed bounded starting point;
-  legacy packaging files and orphan manifests need an explicit decision.
 - Apply the base filename compatibility rule consistently to profile/local files
   and define the effective profile-list source once for config and environment.
 - Evaluate Quarto `execute-dir` and R Markdown `knit_root_dir` / knitr `root.dir`
   for root-relative execution. Define the shared persistent configuration and
   direct-entry initialization before broad renderer changes; do not add nested
   Quarto project support or rely only on flags passed by proj.
-- Decide frontend transport/bindings, environment forwarding, remaining YAML
-  compatibility details and resource defaults explicitly. In particular, `_raw` / synthesized
-  `raw/data` paths in Rust differ from projr's `_raw_data` and explicit labels.
-  Neither historical schema nor existing Rust defaults resolve that choice.
+- Frontend transport/bindings and remaining environment/YAML compatibility details
+  must be explicit. Familiar projr directory defaults belong in init-generated
+  configuration only; Rust's `_raw` and synthesized `raw/data` runtime paths are
+  not acceptable substitutes for undeclared directories.
 
 ## Implementation gaps and verification
 
-The current Rust root finder requires VERSION before its extra ancestor checks;
-it does not implement the confirmed nearest-recognized-root rule. Individual
-scripts currently start in their parent directory. Captured-root stability is
+The core root finder implements nearest-recognized-ancestor discovery without a
+VERSION prerequisite. Its marker tests cover the retained projr patterns and
+deliberate Python/Julia/proj-config extensions and cwd fallback. Required active
+configuration, explicit directory mappings, early unknown-setting rejection and
+full failure restoration still need implementation; historical passing fixtures
+do not demonstrate those new requirements.
+Individual scripts currently start in their parent directory. Captured-root stability is
 implemented for core CLI child queries after cwd changes, including independent
 simultaneous roots; direct R frontend/renderer parity remains unimplemented.
 Base-file aliases and first-wins profile merging still need runtime implementation.
