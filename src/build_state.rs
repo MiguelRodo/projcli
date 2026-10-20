@@ -10,14 +10,15 @@ pub(crate) struct BuildState {
 
 impl BuildState {
     pub(crate) fn capture(cache: Option<&Path>, paths: &[PathBuf]) -> anyhow::Result<Self> {
-        let backup = if let Some(cache) = cache {
-            crate::path_safety::resolve_path(cache, true)?;
-            fs::create_dir_all(cache).context("Cannot create declared cache for build backup")?;
-            tempfile::Builder::new().prefix("proj-build-backup-").tempdir_in(cache)?
-        } else {
-            // Internal temporary storage does not invent a project directory mapping.
-            tempfile::Builder::new().prefix("proj-build-backup-").tempdir()?
-        };
+        // Disposable project cache is not a safe location for recovery bytes.
+        let backup = tempfile::Builder::new().prefix("proj-build-recovery-").tempdir()?;
+        if let Some(cache) = cache {
+            let cache = crate::path_safety::resolve_path(cache, true)?;
+            let recovery = crate::path_safety::resolve_path(backup.path(), true)?;
+            if recovery.starts_with(&cache) || cache.starts_with(&recovery) {
+                anyhow::bail!("Private recovery storage overlaps disposable project cache");
+            }
+        }
         let mut state = Self { backup, entries: Vec::new() };
         // Callers provide the concrete managed files/directories, not a whole-project copy.
         let mut selected: Vec<PathBuf> = paths.iter().map(|path| {
@@ -61,8 +62,12 @@ impl BuildState {
         }
         if failures.is_empty() { primary }
         else {
-            let retained = self.backup.keep();
-            primary.context(format!("Managed-state restoration also failed: {}; recovery backup retained at {}", failures.join("; "), retained.display()))
+            if self.backup.path().is_dir() {
+                let retained = self.backup.keep();
+                primary.context(format!("Managed-state restoration also failed: {}; recovery backup retained at {}", failures.join("; "), retained.display()))
+            } else {
+                primary.context(format!("Managed-state restoration also failed: {}; recovery backup is unavailable", failures.join("; ")))
+            }
         }
     }
 }
@@ -85,6 +90,14 @@ fn copy_exact(source: &Path, destination: &Path) -> anyhow::Result<()> {
 fn restore_entry(target: &Path, saved: Option<&Path>) -> anyhow::Result<()> {
     let parent = target.parent().context("Managed state has no parent")?;
     crate::path_safety::resolve_path(parent, true)?;
+    // Prepare and validate all recovery bytes before removing the current target.
+    // A missing/corrupt backup must never turn recovery into further data loss.
+    let prepared = if let Some(saved) = saved {
+        fs::create_dir_all(parent)?;
+        let staging = tempfile::Builder::new().prefix(".proj-restore-").tempdir_in(parent)?;
+        copy_exact(saved, &staging.path().join("entry"))?;
+        Some(staging)
+    } else { None };
     match fs::symlink_metadata(target) {
         Ok(metadata) => {
             // Refuse substituted links, including directory junctions, rather than following them.
@@ -96,9 +109,8 @@ fn restore_entry(target: &Path, saved: Option<&Path>) -> anyhow::Result<()> {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
         Err(error) => return Err(error.into()),
     }
-    if let Some(saved) = saved {
-        fs::create_dir_all(parent)?;
-        copy_exact(saved, target)?;
+    if let Some(prepared) = prepared {
+        fs::rename(prepared.path().join("entry"), target)?;
     }
     Ok(())
 }
@@ -158,4 +170,21 @@ mod tests {
         assert_eq!(fs::read_to_string(backup_path.join("0/previous")).unwrap(), "release");
         assert_eq!(fs::read_to_string(external.path().join("keep")).unwrap(), "external");
     }
+
+    #[test]
+    fn unavailable_backup_does_not_delete_intact_current_state() {
+        let project = tempfile::tempdir().unwrap();
+        let root = project.path().canonicalize().unwrap();
+        let target = root.join("VERSION");
+        fs::write(&target, "v1.2.3\n").unwrap();
+        let state = BuildState::capture(None, &[target.clone()]).unwrap();
+        fs::remove_dir_all(state.backup.path()).unwrap();
+        let error = state.restore(anyhow::anyhow!("analysis failed"));
+        assert_eq!(fs::read_to_string(&target).unwrap(), "v1.2.3\n");
+        let message = format!("{error:#}");
+        assert!(message.contains("analysis failed"));
+        assert!(message.contains("backup is unavailable"));
+        assert!(!message.contains("backup retained"));
+    }
+
 }

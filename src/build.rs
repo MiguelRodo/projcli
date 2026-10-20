@@ -244,8 +244,10 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
             managed.push(config.get_path(project_root, label)?.into_std_path_buf());
         }
     }
+    let root_identity = crate::path_safety::resolve_path(project_root.as_std_path(), false)?;
     for input in &validation_files {
-        if input.starts_with(project_root) { managed.push(input.clone().into_std_path_buf()); }
+        let identity = crate::path_safety::resolve_path(input.as_std_path(), false)?;
+        if identity.starts_with(&root_identity) { managed.push(identity); }
     }
     if has_document_analysis && !quarto_exists && !bookdown_exists {
         let docs = config.get_path(project_root, "docs")?;
@@ -308,6 +310,23 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
                 }
             }
         }
+        // Artifacts from a previous run or pre-hook cannot prove renderer success.
+        if !is_dev && has_document_analysis {
+            if quarto_exists || bookdown_exists {
+                let staging = cache_root.as_ref().context("Project rendering requires cache")?.join("projr").join(&current_version).join("docs");
+                crate::path_safety::resolve_path(staging.as_std_path(), true)?;
+                if staging.exists() { fs::remove_dir_all(&staging)?; }
+            } else {
+                let docs = config.get_path(project_root, "docs")?;
+                for file in &resolved_files {
+                    if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) {
+                        let paths = document_output_paths(file, &docs, project_root)?;
+                        if paths.target.exists() { fs::remove_file(&paths.target)?; }
+                        if paths.assets.exists() { fs::remove_dir_all(&paths.assets)?; }
+                    }
+                }
+            }
+        }
         execute_build_pipeline(project_root, build_scripts.clone(), profile.clone(), quarto_exists, bookdown_exists, resolved_python_cmd.as_deref())?;
         restore_engines()?;
         if !is_dev && run_analysis && has_document_analysis && config.output_run.unwrap_or(true) {
@@ -315,7 +334,24 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
             crate::clear::clear_post(project_root, false, &config, Some("never"), !quarto_exists && !bookdown_exists)?;
             if quarto_exists || bookdown_exists {
                 let staging = cache_root.as_ref().context("Project rendering requires cache")?.join("projr").join(&current_version).join("docs");
-                if quarto_exists { copy_global_quarto_project(&staging, &docs)?; }
+                if quarto_exists {
+                    // Explicit Quarto targets must each produce their expected document.
+                    for file in &resolved_files {
+                        if file.extension() == Some("qmd") {
+                            let paths = document_output_paths(file, &docs, project_root)?;
+                            let identity = crate::path_safety::resolve_path(file.as_std_path(), false)?;
+                            let relative_parent = identity.parent().context("Document has no parent")?.strip_prefix(&root_identity)
+                                .context("Project document lies outside its resolved root")?;
+                            let expected = staging.join(camino::Utf8Path::from_path(relative_parent).context("Non-UTF-8 document parent")?)
+                                .join(paths.target.file_name().context("Expected document has no filename")?);
+                            crate::path_safety::resolve_path(expected.as_std_path(), true)?;
+                            if !expected.is_file() || fs::metadata(&expected)?.len() == 0 {
+                                anyhow::bail!("Expected project document is missing or empty: {expected}");
+                            }
+                        }
+                    }
+                    copy_global_quarto_project(&staging, &docs)?;
+                }
                 else { copy_global_bookdown(&staging, &docs, project_root)?; }
             } else {
                 for file in &resolved_files {
@@ -813,14 +849,37 @@ fn document_output_paths(file_path: &camino::Utf8Path, docs_path: &camino::Utf8P
 
 fn copy_individual_document(file_path: &camino::Utf8Path, docs_path: &camino::Utf8Path, project_root: &camino::Utf8Path) -> anyhow::Result<()> {
     let paths = document_output_paths(file_path, docs_path, project_root)?;
-    if !paths.target.is_file() { anyhow::bail!("Expected rendered output is missing: {}", paths.target); }
+    if !paths.target.is_file() || fs::metadata(&paths.target)?.len() == 0 { anyhow::bail!("Expected rendered output is missing or empty: {}", paths.target); }
     fs::create_dir_all(docs_path).context("Failed to create document destination")?;
     fs::rename(&paths.target, &paths.destination).with_context(|| format!("Failed to move rendered output {}", paths.target))?;
     if paths.assets.exists() { crate::fs_utils::dir_move_exact(&paths.assets, &paths.destination_assets)?; }
     Ok(())
 }
 
+// Project render success requires document bytes, not merely an empty staging tree.
+fn validate_project_artifacts(directory: &camino::Utf8Path) -> anyhow::Result<()> {
+    fn contains_document(directory: &std::path::Path) -> anyhow::Result<bool> {
+        crate::path_safety::resolve_path(directory, true)?;
+        let mut found = false;
+        for entry in fs::read_dir(directory).context("Cannot inspect project render artifacts")? {
+            let path = entry?.path();
+            let metadata = fs::symlink_metadata(&path)?;
+            if metadata.file_type().is_symlink() { anyhow::bail!("Project render artifacts contain a symlink"); }
+            if metadata.is_dir() { found |= contains_document(&path)?; }
+            else if metadata.is_file() && metadata.len() > 0 {
+                found |= matches!(path.extension().and_then(|value| value.to_str()), Some("html" | "htm" | "pdf" | "docx" | "epub" | "pptx"));
+            } else if !metadata.is_file() { anyhow::bail!("Unsupported project render artifact"); }
+        }
+        Ok(found)
+    }
+    if !contains_document(directory.as_std_path())? {
+        anyhow::bail!("Project renderer produced no supported nonempty document artifacts");
+    }
+    Ok(())
+}
+
 pub fn copy_global_bookdown(cache_docs_dir: &camino::Utf8Path, final_docs_dir: &camino::Utf8Path, project_root: &camino::Utf8Path) -> anyhow::Result<()> {
+    validate_project_artifacts(cache_docs_dir)?;
     crate::fs_utils::dir_move_exact(cache_docs_dir, final_docs_dir)?;
 
     // We also need to locate <book_filename>_files and move to final target context.
@@ -849,6 +908,7 @@ pub fn copy_global_bookdown(cache_docs_dir: &camino::Utf8Path, final_docs_dir: &
 }
 
 pub fn copy_global_quarto_project(cache_docs_dir: &camino::Utf8Path, final_docs_dir: &camino::Utf8Path) -> anyhow::Result<()> {
+    validate_project_artifacts(cache_docs_dir)?;
     crate::fs_utils::dir_move_exact(cache_docs_dir, final_docs_dir)?;
     Ok(())
 }

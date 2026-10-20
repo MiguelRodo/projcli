@@ -538,10 +538,11 @@ external output/docs paths are supported. Raw data, Git internals, arbitrary
 external user-script effects and cache contents are not backed up. Managed trees
 containing symlinks or unsupported entries are rejected rather than followed.
 
-Backups use existing tempfile and streaming std::fs copies, in declared cache when
-the selected operation uses it. Cache-free empty-analysis operations use private
-OS temporary recovery storage without inventing a project resource mapping. Cache
-residue is permitted. This does not make an otherwise unused cache mapping required.
+Backups use existing tempfile and streaming std::fs copies in private OS temporary
+recovery storage outside disposable project cache. No project mapping is invented,
+and cache-free upload-only operations remain supported. Recovery sources are copied
+to temporary restore staging before any current target is removed. Missing recovery
+bytes leave intact current state alone and are reported as unavailable.
 
 One local failure boundary covers ignore synchronization, cleanup, all pre/both/
 post hooks, engine configuration, execution, output promotion and VERSION writing.
@@ -567,3 +568,14 @@ These are unrun: no local compilation under memory pressure; remote CI and
 independent review are still required. No power-loss atomicity, concurrent-writer
 or global script-side-effect guarantee is claimed. M2 attempt/release records and
 analysis-free retry commands remain open.
+
+
+PR141 review corrections: normalize selected-input identities before comparing
+root containment (including Windows namespace forms); require nonempty supported
+document artifacts before project promotion; remove prior expected individual
+artifacts and project staging immediately before rendering. New regressions cover
+nested scripts/hooks modifying or deleting themselves, empty renderer staging,
+stale individual artifacts, cache purge during failed analysis, and unavailable
+recovery bytes without further deletion. These amendments require fresh remote
+CI and independent review. Project artifact scanning remains a conservative
+supported-document check, not a complete renderer manifest guarantee.

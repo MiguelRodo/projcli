@@ -25,8 +25,8 @@ for the managed set documented in the compatibility log. This includes VERSION,
 ignore/configuration files, existing root regular files, selected in-project
 inputs, declared output/docs trees and planned individual rendering artifacts.
 External declared output/docs directories are allowed. Linked managed trees are
-rejected. Backups stream into private temporary storage, using selected cache
-when available. Backup creation failure prevents authoritative project writes.
+rejected. Backups stream into private OS temporary storage outside disposable project
+cache. Backup creation failure prevents authoritative project writes.
 
 One local error/panic boundary covers ignore synchronization, requested pre-cleanup,
 pre/both hooks, script/document execution, renderer configuration, promotion and

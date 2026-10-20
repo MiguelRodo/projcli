@@ -66,7 +66,7 @@ fn publication_failure_reports_local_success_and_keeps_the_new_release() {
 #[test]
 fn missing_renderer_promotion_is_a_failure_and_restores_exact_project_config() {
     use std::os::unix::fs::PermissionsExt;
-    for renderer_fails in [false, true] {
+    for mode in ["missing", "empty", "failed"] {
         let project = tempfile::tempdir().unwrap();
         let root = project.path().canonicalize().unwrap();
         let original = "# keep comments and render selection\nproject:\n  type: default\n  render: [report.qmd]\nformat: html\n";
@@ -77,7 +77,7 @@ fn missing_renderer_promotion_is_a_failure_and_restores_exact_project_config() {
         fs::create_dir(root.join("published")).unwrap();
         fs::write(root.join("published/old.html"), "previous release").unwrap();
         fs::create_dir(root.join("bin")).unwrap();
-        let fake = format!("#!/bin/sh\nif [ \"$1\" = --version ]; then echo fake; exit 0; fi\nexit {}\n", if renderer_fails { 17 } else { 0 });
+        let fake = format!("#!/bin/sh\nif [ \"$1\" = --version ]; then echo fake; exit 0; fi\n{}\nexit {}\n", if mode == "empty" { "mkdir -p cache/projr/1.2.3/docs/empty" } else { "" }, if mode == "failed" { 17 } else { 0 });
         for name in ["quarto", "Rscript"] {
             let path = root.join("bin").join(name);
             fs::write(&path, &fake).unwrap();
@@ -92,7 +92,7 @@ fn missing_renderer_promotion_is_a_failure_and_restores_exact_project_config() {
             .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
             .env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
         assert!(!result.status.success(), "missing render output must not report success");
-        assert_eq!(snapshot(&root), before, "renderer_fails={renderer_fails}: {}", String::from_utf8_lossy(&result.stderr));
+        assert_eq!(snapshot(&root), before, "mode={mode}: {}", String::from_utf8_lossy(&result.stderr));
         assert_eq!(fs::read_to_string(root.join("_quarto.yml")).unwrap(), original);
     }
 }
@@ -162,4 +162,106 @@ fn actual_analysis_bytes_are_archived_before_post_output_cleanup() {
     assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
     assert!(contains_bytes(&root.join("archives"), b"actual-analysis-bytes"));
     assert!(!root.join("output/result.csv").exists());
+}
+
+
+#[test]
+fn nested_selected_scripts_and_hooks_restore_themselves_after_failure() {
+    for hook in [false, true] {
+        for deleted in [false, true] {
+            let project = tempfile::tempdir().unwrap();
+            let root = project.path();
+            fs::create_dir(root.join("nested")).unwrap();
+            let script = if deleted { "from pathlib import Path\nPath(__file__).unlink()\nraise SystemExit(17)\n" }
+                else { "from pathlib import Path\nPath(__file__).write_text('changed')\nraise SystemExit(17)\n" };
+            fs::write(root.join("nested/fail.py"), script).unwrap();
+            let selection = if hook { "  scripts: []\n  hooks:\n    pre: [nested/fail.py]\n" }
+                else { "  scripts: [nested/fail.py]\n" };
+            fs::write(root.join("_proj.yml"), format!("directories:\n  cache:\n    path: cache\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n{selection}  git: false\n  restrictions:\n    not_behind: false\n")).unwrap();
+            let result = Command::new(env!("CARGO_BIN_EXE_proj"))
+                .args(["build", "--patch", "--non-interactive", "--project"]).arg(root).current_dir(root)
+                .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
+                .env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
+            assert!(!result.status.success());
+            assert!(String::from_utf8_lossy(&result.stderr).contains("17"));
+            assert_eq!(fs::read_to_string(root.join("nested/fail.py")).unwrap(), script, "hook={hook}, deleted={deleted}");
+            assert!(!root.join("VERSION").exists());
+        }
+    }
+}
+
+
+#[test]
+fn purging_disposable_cache_cannot_destroy_recovery_or_the_previous_release() {
+    let project = tempfile::tempdir().unwrap();
+    let root = project.path();
+    fs::create_dir(root.join("output")).unwrap();
+    fs::write(root.join("output/previous"), "old release").unwrap();
+    fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
+    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\n  output:\n    path: output\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+    fs::write(root.join("analysis.py"), "import shutil\nshutil.rmtree('cache', ignore_errors=True)\nraise SystemExit(17)\n").unwrap();
+    let before = snapshot(root);
+    let result = Command::new(env!("CARGO_BIN_EXE_proj"))
+        .args(["build", "--patch", "--non-interactive", "--project"]).arg(root).current_dir(root)
+        .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
+        .env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("17"));
+    assert_eq!(snapshot(root), before);
+}
+
+#[cfg(unix)]
+#[test]
+fn no_op_renderer_cannot_promote_a_stale_individual_document() {
+    use std::os::unix::fs::PermissionsExt;
+    let project = tempfile::tempdir().unwrap();
+    let root = project.path().canonicalize().unwrap();
+    fs::create_dir(root.join("published")).unwrap();
+    fs::write(root.join("published/old.html"), "old released docs").unwrap();
+    fs::write(root.join("report.html"), "stale native output").unwrap();
+    fs::write(root.join("report.qmd"), "---\nformat: html\n---\nReport\n").unwrap();
+    fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
+    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\n  docs:\n    path: published\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [report.qmd]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+    fs::create_dir(root.join("bin")).unwrap();
+    for name in ["quarto", "Rscript"] {
+        let path = root.join("bin").join(name);
+        fs::write(&path, "#!/bin/sh\nexit 0\n").unwrap();
+        fs::set_permissions(path, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let before = snapshot(&root);
+    let mut paths = vec![root.join("bin")];
+    paths.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()));
+    let result = Command::new(env!("CARGO_BIN_EXE_proj"))
+        .args(["build", "--patch", "--non-interactive", "--project"]).arg(&root).current_dir(&root)
+        .env("PATH", std::env::join_paths(paths).unwrap())
+        .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
+        .env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("missing"));
+    assert_eq!(snapshot(&root), before);
+}
+
+
+#[test]
+fn direct_project_promotion_rejects_empty_and_asset_only_trees_before_clearing_docs() {
+    for mode in ["empty", "assets", "zero-document", "document"] {
+        let project = tempfile::tempdir().unwrap();
+        let root_path = project.path().canonicalize().unwrap();
+        let root = camino::Utf8Path::from_path(&root_path).unwrap();
+        let staging = root.join("staging");
+        let docs = root.join("docs");
+        fs::create_dir_all(staging.join("empty")).unwrap();
+        fs::create_dir(&docs).unwrap();
+        fs::write(docs.join("old.html"), "old document").unwrap();
+        match mode {
+            "assets" => fs::write(staging.join("style.css"), "body {}").unwrap(),
+            "zero-document" => fs::write(staging.join("report.html"), "").unwrap(),
+            "document" => fs::write(staging.join("report.html"), "new document").unwrap(),
+            _ => {}
+        }
+        let result = proj::copy_global_quarto_project(&staging, &docs);
+        assert_eq!(result.is_ok(), mode == "document");
+        if mode == "document" { assert_eq!(fs::read_to_string(docs.join("report.html")).unwrap(), "new document"); }
+        else { assert_eq!(fs::read_to_string(docs.join("old.html")).unwrap(), "old document"); }
+    }
 }
