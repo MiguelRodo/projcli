@@ -58,8 +58,6 @@ pub fn post_build_sync(config: &GlobalConfig, repo_dir: camino::Utf8PathBuf) -> 
 pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profile: Option<&str>, description: Option<&str>) -> anyhow::Result<()> {
     let resolved_root = crate::project::resolve_project_root(Some(project_root))?;
     let project_root = resolved_root.as_path();
-    let mut root_guard = crate::env::EnvGuard::new();
-    root_guard.track_and_set(crate::project::PROJECT_ROOT_ENV, project_root.as_str());
     let is_dev = mode == BuildMode::Dev;
     let is_prod_run = matches!(mode, BuildMode::ProdMajor | BuildMode::ProdMinor | BuildMode::ProdPatch);
 
@@ -298,13 +296,13 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     if let Some(pre_hooks) = &hooks_config.pre {
         let pre_resolved = resolve_explicit_scripts(project_root, pre_hooks)?;
         for hook in pre_resolved {
-            execute_script(&hook, profile.as_deref(), resolved_python_cmd.as_deref())?;
+            execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref())?;
         }
     }
     if let Some(both_hooks) = &hooks_config.both {
         let both_resolved = resolve_explicit_scripts(project_root, both_hooks)?;
         for hook in both_resolved {
-            execute_script(&hook, profile.as_deref(), resolved_python_cmd.as_deref())?;
+            execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref())?;
         }
     }
 
@@ -413,13 +411,13 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
             if let Some(post_hooks) = &hooks_config.post {
                 let post_resolved = resolve_explicit_scripts(project_root, post_hooks)?;
                 for hook in post_resolved {
-                    execute_script(&hook, profile.as_deref(), resolved_python_cmd.as_deref())?;
+                    execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref())?;
                 }
             }
             if let Some(both_hooks) = &hooks_config.both {
                 let both_resolved = resolve_explicit_scripts(project_root, both_hooks)?;
                 for hook in both_resolved {
-                    execute_script(&hook, profile.as_deref(), resolved_python_cmd.as_deref())?;
+                    execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref())?;
                 }
             }
 
@@ -576,7 +574,7 @@ fn execute_build_pipeline(
             // Execute pre-scripts
             for script in pre_scripts {
                 let p = profile.clone();
-                execute_script(&script, p.as_deref(), resolved_python_cmd)?;
+                execute_script(project_root, &script, p.as_deref(), resolved_python_cmd)?;
             }
 
             // Execute doc clusters
@@ -591,13 +589,13 @@ fn execute_build_pipeline(
             // Execute post-scripts
             for script in post_scripts {
                 let p = profile.clone();
-                execute_script(&script, p.as_deref(), resolved_python_cmd)?;
+                execute_script(project_root, &script, p.as_deref(), resolved_python_cmd)?;
             }
         } else {
             // No project files, just execute in exact relative order
             for file in resolved_files {
                 let p = profile.clone();
-                execute_script(&file, p.as_deref(), resolved_python_cmd)?;
+                execute_script(project_root, &file, p.as_deref(), resolved_python_cmd)?;
             }
         }
 
@@ -615,7 +613,7 @@ fn execute_build_pipeline(
         } else {
             let resolved_files = resolve_fallback_scripts(project_root)?;
             for file in resolved_files {
-                execute_script(&file, profile.as_deref(), resolved_python_cmd)?;
+                execute_script(project_root, &file, profile.as_deref(), resolved_python_cmd)?;
             }
         }
     }
@@ -963,7 +961,7 @@ pub fn copy_global_quarto_project(cache_docs_dir: &camino::Utf8Path, final_docs_
 }
 
 /// Executes a single script in an isolated subprocess.
-fn execute_script(script_path: &camino::Utf8Path, profile: Option<&str>, resolved_python_cmd: Option<&str>) -> anyhow::Result<()> {
+fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Path, profile: Option<&str>, resolved_python_cmd: Option<&str>) -> anyhow::Result<()> {
     let parent_dir = script_path.parent().unwrap_or(camino::Utf8Path::new(""));
     let ext = script_path.extension().unwrap_or("");
     let mut cmd = match ext {
@@ -995,6 +993,7 @@ fn execute_script(script_path: &camino::Utf8Path, profile: Option<&str>, resolve
 
     // TODO: migrate to camino
     cmd.current_dir(parent_dir.as_std_path());
+    cmd.env(crate::project::PROJECT_ROOT_ENV, project_root.as_str());
     if let Some(p) = profile {
         cmd.env("PROJR_PROFILE", p);
     }
@@ -1021,6 +1020,7 @@ fn execute_project_render(project_root: &camino::Utf8Path, is_quarto: bool, prof
 
     // TODO: migrate to camino
     cmd.current_dir(project_root.as_std_path());
+    cmd.env(crate::project::PROJECT_ROOT_ENV, project_root.as_str());
     if let Some(p) = profile {
         cmd.env("PROJR_PROFILE", p);
     }

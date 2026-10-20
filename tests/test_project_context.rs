@@ -63,3 +63,18 @@ assert Path(path) == root / '_output', (path, root)
     assert_eq!(std::path::Path::new(&observed), root.canonicalize().unwrap());
     assert!(!root.join("VERSION").exists());
 }
+
+
+#[test]
+fn direct_build_supplies_child_root_without_replacing_callers_root() {
+    let project = tempfile::tempdir().unwrap();
+    let root = camino::Utf8Path::from_path(project.path()).unwrap();
+    let expected = serde_json::to_string(root.canonicalize_utf8().unwrap().as_str()).unwrap();
+    fs::write(root.join("_proj.yml"), "build:\n  scripts: [analysis.py]\n").unwrap();
+    let script = format!("import os\nfrom pathlib import Path\nassert Path(os.environ['PROJ_PROJECT_ROOT']) == Path({expected})\nPath('_tmp').mkdir(exist_ok=True)\nPath('_tmp/direct.txt').write_text('done')\n");
+    fs::write(root.join("analysis.py"), script).unwrap();
+    let before = std::env::var_os(proj::PROJECT_ROOT_ENV);
+    proj::build_project(root, proj::BuildMode::Dev, None, None).unwrap();
+    assert_eq!(std::env::var_os(proj::PROJECT_ROOT_ENV), before);
+    assert_eq!(fs::read_to_string(root.join("_tmp/direct.txt")).unwrap(), "done");
+}
