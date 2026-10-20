@@ -78,12 +78,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     let project_config: ProjConfig = serde_json::from_value(combined)
         .context("Failed to deserialize combined configuration")?;
     let mut config = project_config.validate_and_resolve(project_root, is_dev)?;
-    if !is_dev {
-        if project_root.join("_environment.local").exists() {
-            crate::ignore::add_manual_ignores(project_root, &["_environment.local".to_string()], true, crate::ignore::IgnoreType::All)?;
-        }
-        crate::ignore::update_ignores(project_root, &config).context("Failed to update ignores")?;
-    }
+
 
     // 2. Git Capability Audit
     if config.git.commit {
@@ -177,6 +172,14 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
         quarto_exists,
         bookdown_exists,
     )?;
+
+    // Project writes begin only after configuration, targets and preflight succeed.
+    if !is_dev {
+        if project_root.join("_environment.local").exists() {
+            crate::ignore::add_manual_ignores(project_root, &["_environment.local".to_string()], true, crate::ignore::IgnoreType::All)?;
+        }
+        crate::ignore::update_ignores(project_root, &config).context("Failed to update ignores")?;
+    }
 
     // 4. VERSION Initialization Check
     let mut initial_version = match version_get_from(project_root) {

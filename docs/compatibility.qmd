@@ -320,10 +320,11 @@ shared file parser rather than guarding individual callers.
 - **Implemented:** deserialize and validate one merged value, then select scripts
   and hooks from it. Explicit empty dev selection remains empty; absence falls
   back to build settings. Both base filenames use this same execution path.
-  Configuration parsing/validation now precedes production environment-ignore writes.
+  Configuration parsing/validation, target resolution and preflight now precede
+  production environment-ignore writes.
 - **Evidence:** runnable Python fixtures check conflicting profiles, legacy base,
   local dev overrides and hook results, plus invalid merged configuration with a
-  local environment file leaving ignores/version/cache untouched. Remote CI and
+  local environment file and missing-target failures leaving ignores/version/cache untouched. Remote CI and
   independent review pending; no real R/renderer execution is claimed.
 - **Gaps:** required active config, explicit mappings, all unsupported-field
   rejection and transactional rollback remain separate approved work. Environment

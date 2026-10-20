@@ -43,3 +43,18 @@ fn invalid_merged_config_does_not_write_environment_ignores_or_version() {
     for name in [".gitignore", ".Rbuildignore", "VERSION", "_tmp"] { assert!(!root.join(name).exists(), "unexpected {name}"); }
     assert_eq!(fs::read_to_string(root.join("_environment.local")).unwrap(), "FIXTURE_VALUE=local\n");
 }
+
+
+#[test]
+fn missing_analysis_target_does_not_write_environment_ignores_or_version() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    fs::write(root.join("_proj.yml"), "build:\n  scripts: [missing.py]\n  git: false\n").unwrap();
+    fs::write(root.join("_environment.local"), "FIXTURE_VALUE=local\n").unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_proj"))
+        .args(["build", "--patch", "--non-interactive", "--project"])
+        .arg(root).current_dir(root).env_remove(proj::PROJECT_ROOT_ENV)
+        .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
+    assert!(!output.status.success());
+    for name in [".gitignore", ".Rbuildignore", "VERSION", "_tmp"] { assert!(!root.join(name).exists(), "unexpected {name}"); }
+}
