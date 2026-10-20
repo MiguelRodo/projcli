@@ -1,0 +1,36 @@
+# Preview release delivery
+
+The reviewed pipeline prepares a draft prerelease for an existing
+`vX.Y.Z-preview.N` tag whose version exactly matches Cargo.toml. It does not bump
+versions, push commits, publish an APT repository, sign credentials or publish the
+draft automatically. No new release is implied by this documentation.
+
+Remote locked tests/builds produce Linux x86-64 and Windows x86-64 binaries.
+Linux uses Ubuntu 22.04 (glibc 2.35 or newer); Miguel's current WSL is Ubuntu
+24.04 x86-64. macOS/ARM delivery is not verified or supplied by this pipeline.
+Each asset is named `proj_<version>_<os>_<arch>[.exe]`, with matching `version.txt`
+and `checksums.txt`. Exact-tag help/version/protocol smokes and actual installer
+tests must pass before assets enter the draft. Checksums detect corruption and
+mismatches; they are not independent signatures or reproducible-build attestations.
+
+Installers default to MiguelRodo/projcli, require version metadata and exactly one
+matching SHA256 entry, and verify downloaded bytes before replacement. They stage
+on the installation filesystem and need only an existing user-writable directory.
+`PROJ_RELEASE_VERSION` pins a release (with optional `v`); preview releases should
+always be pinned because GitHub's latest URL normally selects stable releases.
+`PROJ_INSTALL_DIR` selects an existing absolute user directory without changing
+PATH or system settings. Existing older releases lacking the new metadata fail
+closed instead of installing an unverified fallback binary.
+
+Before publication: reconcile reviewed supported behavior and limits, update the
+Cargo/Cargo.lock preview version in a reviewed change, verify required checks,
+then create the exact reviewed tag. Inspect the resulting draft assets/version/
+checksums and retain disposable-project warnings. Publish only after those checks.
+For WSL, download the pinned binary/manifest, verify SHA256, preserve any existing
+user-local binary, install into the chosen user-local directory and smoke help,
+version, capabilities and a disposable configured preview. No local compilation,
+sudo, persistent authentication change or R package modification is needed.
+
+Known limits include bounded captured-state recovery, arbitrary external script
+effects, incomplete direct R/IDE parity, incomplete attempt/release records and
+analysis-free publication retry. This is a development preview, not M2 completion.

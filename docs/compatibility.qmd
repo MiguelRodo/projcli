@@ -768,3 +768,25 @@ publication helper as build_project. A fake commit hook changing the endpoint is
 rejected before push. Explicit Git lookup anchors directories absolutely but preserves
 the candidate leaf spelling, supporting symlink-based name dispatchers; a fake
 git-to-dispatcher symlink regression prevents argv[0] canonicalization regressions.
+
+## Preview release/install delivery
+
+**Different/new:** replace stale SATVILab/proj-core download defaults with canonical
+MiguelRodo/projcli. Require version-bound asset names and exact mandatory SHA256
+matches before replacing installed bytes, rather than generic binary fallbacks or
+optional checksums. User-local destination staging preserves prior bytes on failed
+download/verification. No system/PATH/auth settings are changed by installation.
+
+Remote builds/tests use Cargo.lock. The existing release workflow becomes a
+draft-only explicitly labeled preview pipeline for matching reviewed preview tags;
+it does not mutate version/main, configure APT or publish releases automatically.
+Linux/Windows x86-64 artifacts are the initial supported delivery scope, not a
+claim that every platform works. Existing R package remains untouched.
+
+Ponytail full-mode review reuses curl/native PowerShell SHA256 and Python stdlib
+staging/manifest checks without dependencies or a hosting/packaging framework.
+Prepared remote checks install the actual CI binaries and reject absent/wrong/
+duplicate checksums, corrupted bytes and version mismatches while retaining an
+existing target. Artifact collection rejects corrupt/missing/duplicate/version-
+mismatched inputs; help smoke failures are no longer swallowed. CI/review pending.
+No tag, publication, WSL install, signature or reproducible-build claim yet.

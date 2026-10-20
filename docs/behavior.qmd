@@ -194,3 +194,11 @@ build writes. Missing upstream and unmodeled custom push-only routing fail early
 Native authentication is the default. An explicit token-helper opt-in uses fixed
 host-scoped code and ephemeral environment data, never secret argv/source or
 persistent credentials. Local build success remains distinct from publication failure.
+
+## Preview binary delivery
+
+Release/install plumbing must verify version-bound platform assets/checksums before
+replacement and use locked remote tests/builds. The pipeline creates a draft
+prerelease only; publication and user-local WSL binary installation follow explicit
+artifact verification. See [delivery boundaries](release-delivery.qmd). No local
+source compilation or production-readiness claim follows from installer CI.

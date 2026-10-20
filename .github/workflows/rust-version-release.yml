@@ -1,50 +1,94 @@
-name: Rust Version and Release
+name: Preview binaries and draft release
 
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ['v*-preview.*']
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Exact version (e.g. 1.2.3). Cannot be used with bump_type.'
-        required: false
-      bump_type:
-        description: 'Component to bump: major | minor | patch. Cannot be used with version.'
-        required: false
-      version_force:
-        description: 'Run strict version progression checks (true/false).'
-        required: false
-      rust_version:
-        description: 'Rust version to install.'
-        required: false
-      apt_repo:
-        description: 'Optional target GitHub repository in owner/name form for publishing generated .deb artifacts.'
-        required: false
-        default: MiguelRodo/apt-miguelrodo
-      apt_repo_token:
-        description: 'Optional token for apt_repo access when publishing to a different repository.'
-        required: false
-      apt_signing_key:
-        description: 'Optional ASCII-armored GPG private key for signing apt repository metadata.'
-        required: false
+      tag:
+        description: 'Existing reviewed preview tag matching Cargo.toml (vX.Y.Z-preview.N)'
+        required: true
+
+permissions:
+  contents: read
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            platform: linux_amd64
+            binary: target/release/proj
+          - os: windows-2022
+            platform: windows_amd64
+            binary: target/release/proj.exe
+    runs-on: ${{ matrix.os }}
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-      - uses: MiguelRodo/actions/rust-version-release@v3
+          ref: ${{ inputs.tag || github.ref_name }}
+      - uses: actions/setup-python@v5
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          apt_repo_token: ${{ secrets.APT_REPO_TOKEN }}
-          apt_signing_key: ${{ secrets.APT_SIGNING_KEY }}
-          apt_signing_key_passphrase: ${{ secrets.APT_SIGNING_KEY_PASSPHRASE }}
-          version: ${{ inputs.version }}
-          bump_type: ${{ inputs.bump_type }}
-          version_force: ${{ inputs.version_force }}
-          rust_version: ${{ inputs.rust_version }}
+          python-version: '3.12'
+      - name: Validate preview tag and package version
+        shell: bash
+        run: |
+          python -c 'import os,re,tomllib; tag=os.environ["RELEASE_TAG"]; version=tomllib.load(open("Cargo.toml","rb"))["package"]["version"]; assert re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+-preview\.[0-9]+",tag) and tag == "v"+version'
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Test exact tag and build locked binary
+        shell: bash
+        run: |
+          cargo test --locked
+          cargo build --release --locked
+      - name: Smoke actual release binary and stage checksums
+        shell: bash
+        env:
+          RELEASE_BINARY: ${{ matrix.binary }}
+          RELEASE_PLATFORM: ${{ matrix.platform }}
+        run: |
+          "$RELEASE_BINARY" --help
+          "$RELEASE_BINARY" --version
+          "$RELEASE_BINARY" --machine capabilities > capabilities.json
+          python -c 'import json,tomllib; result=json.load(open("capabilities.json")); assert result["ok"] and result["protocol_version"] == 1 and result["cli_version"] == tomllib.load(open("Cargo.toml","rb"))["package"]["version"]'
+          python scripts/release-assets.py stage --binary "$RELEASE_BINARY" --platform "$RELEASE_PLATFORM" --output dist --tag "$RELEASE_TAG"
+      - name: Verify installer against actual tagged binary
+        if: runner.os == 'Linux'
+        run: python tests/check-installer.py --shell bash --fixture dist
+      - name: Verify installer against actual tagged binary
+        if: runner.os == 'Windows'
+        run: python tests/check-installer.py --shell pwsh --fixture dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: preview-${{ matrix.platform }}
+          path: dist/
+
+  draft:
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: preview-*
+          path: artifacts
+      - name: Verify and collect both platform assets
+        run: python scripts/release-assets.py collect --input artifacts --output release-assets --tag "$RELEASE_TAG"
+      - name: Create reviewable preview draft without publishing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$RELEASE_TAG" --verify-tag --draft --prerelease --title "projcli $RELEASE_TAG (preview)" --notes-file docs/release-preview-notes.md release-assets/*

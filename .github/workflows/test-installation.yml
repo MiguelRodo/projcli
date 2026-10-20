@@ -23,6 +23,10 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Enable Rust Cache
         uses: Swatinem/rust-cache@v2
 
@@ -31,13 +35,16 @@ jobs:
         run: |
           cargo install cargo-deb
 
+      - name: Validate artifact collection failure paths
+        run: python -m unittest discover -s tests -p test_release_assets.py
+
       - name: Compile Release Binary and Debian Package
         run: |
-          cargo build --release
+          cargo build --release --locked
           mkdir -p dist
-          cargo deb --output dist/
+          cargo deb --no-build --output dist/
           # Copy raw binary to dist for the local script testing job
-          cp target/release/proj dist/proj_linux_amd64
+          python scripts/release-assets.py stage --binary target/release/proj --platform linux_amd64 --output dist
 
       - name: Upload Built Linux Artifacts
         uses: actions/upload-artifact@v4
@@ -55,15 +62,19 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Enable Rust Cache
         uses: Swatinem/rust-cache@v2
 
       - name: Build Windows Binary
         shell: pwsh
         run: |
-          cargo build --release
+          cargo build --release --locked
           New-Item -ItemType Directory -Path dist -Force | Out-Null
-          Copy-Item "target\release\proj.exe" -Destination "dist\proj_windows_amd64.exe" -Force
+          python scripts/release-assets.py stage --binary target/release/proj.exe --platform windows_amd64 --output dist
 
       - name: Upload Built Windows Artifacts
         uses: actions/upload-artifact@v4
@@ -95,6 +106,13 @@ jobs:
           name: linux-dist
           path: /tmp/fake-release
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check verified replacement and rejected downloads
+        run: python tests/check-installer.py --shell bash --fixture /tmp/fake-release
+
       - name: Run local installation script
         env:
           PROJ_DOWNLOAD_BASE_URL: "file:///tmp/fake-release"
@@ -107,7 +125,7 @@ jobs:
       - name: Verify proj command is available
         run: |
           which proj
-          proj --help || true
+          proj --help
           test -f $HOME/.local/bin/proj
           test -x $HOME/.local/bin/proj
           echo "Local Unix installation test passed successfully."
@@ -126,29 +144,15 @@ jobs:
           name: linux-dist
           path: dist
 
-      - name: Install APT prerequisites
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y curl gpg
-
-      - name: Add MiguelRodo Managed APT Repository
-        run: |
-          curl -fsSL https://miguelrodo.github.io/apt-miguelrodo/KEY.gpg \
-            | sudo gpg --dearmor -o /usr/share/keyrings/apt-miguelrodo.gpg
-          echo "deb [signed-by=/usr/share/keyrings/apt-miguelrodo.gpg] https://miguelrodo.github.io/apt-miguelrodo stable main" \
-            | sudo tee /etc/apt/sources.list.d/apt-miguelrodo.list >/dev/null
-          sudo apt-get update
-
       # Installs the pre-built .deb artifact to ensure package metadata/paths are sound
       - name: Install generated .deb artifact
         run: |
-          sudo dpkg -i dist/*.deb || true
-          sudo apt-get install -f -y
+          sudo dpkg -i dist/*.deb
 
       - name: Verify debian execution profile
         run: |
           which proj
-          proj --help || true
+          proj --help
 
   test-windows-manual:
     name: Test PowerShell Installer (Clean Windows)
@@ -164,6 +168,13 @@ jobs:
         with:
           name: windows-dist
           path: fake-release
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check verified replacement and rejected downloads
+        run: python tests/check-installer.py --shell pwsh --fixture fake-release
 
       - name: Run install.ps1 script execution pass
         shell: pwsh
@@ -181,7 +192,11 @@ jobs:
         run: |
           $installDir = Join-Path $env:USERPROFILE ".local\bin"
           if (Test-Path (Join-Path $installDir "proj.exe")) {
-            Write-Host "proj.exe verified in write targets."
+            $binary = Join-Path $installDir "proj.exe"
+            & $binary --help
+            if ($LASTEXITCODE -ne 0) { throw "Installed help smoke failed" }
+            & $binary --version
+            if ($LASTEXITCODE -ne 0) { throw "Installed version smoke failed" }
           } else {
             Write-Error "proj.exe missing from installation target destination paths"
             throw "Failed"
