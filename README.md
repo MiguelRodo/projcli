@@ -51,11 +51,21 @@ In a new folder, create `_proj.yml`:
 
 ```yaml
 directories:
+  raw-data:
+    path: _raw_data
   cache:
     path: _tmp
+  output:
+    path: _output
 build:
   scripts: [analysis.py]
 ```
+
+These explicit paths match the local directory initializer's preset.
+This example uses `cache` for temporary results; `raw-data` names an input
+folder and `output` names a result folder, both unused by this tiny preview.
+Runtime does not fill in missing directory mappings. Document rendering needs
+an explicit `docs` mapping as well.
 
 Create `analysis.py` beside it:
 
@@ -87,6 +97,12 @@ not a filesystem sandbox.
 The [full tutorial](docs/tutorial.qmd) saves a CSV and explains each step.
 Read the [build reference](docs/cli/build.qmd) before using production
 `proj build`, which has different version, cleanup and export behavior.
+
+For another new project, `proj --project . --non-interactive init directories`
+can write the three explicit directory mappings and create their folders
+without Git/GitHub setup. It preserves existing configuration and does not add
+a `scripts` key: an absent key allows discovery, while `scripts: []` explicitly
+selects no analysis scripts.
 
 ## More detail
 

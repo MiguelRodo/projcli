@@ -54,11 +54,19 @@ Put the analysis steps in `_proj.yml`:
 
 ```yaml
 directories:
+  raw-data:
+    path: _raw_data
   cache:
     path: _tmp
+  output:
+    path: _output
 build:
   scripts: [analysis.py]
 ```
+
+These paths are explicit, not runtime defaults. The Python example uses
+`cache`; `raw-data` and `output` match the local setup preset.
+The [tutorial](tutorial.qmd) explains their roles and local-only initialization.
 
 Run the preview from your project folder:
 
