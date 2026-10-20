@@ -28,6 +28,9 @@ The pipeline creates a draft prerelease only after exact-tag tests, binary smoke
 installer verification and checksum collection pass. Publication and user-local WSL
 installation follow separate verification of the actual uploaded assets.
 
-Before publishing, reconcile these notes with the final reviewed commit, including
-the managed-preview preservation slice. Do not advertise an unmerged feature.
+This candidate includes captured managed-state recovery after successful and failed
+previews, retaining cache artifacts. Capture/recovery has no concurrent-writer or
+power-loss atomicity guarantee and does not undo arbitrary external script effects.
+M1/M2 remain incomplete; the package version is not a scientific release identity.
+Publication remains gated on the final reviewed main checks and verified draft assets.
 Current status: https://miguelrodo.github.io/projcli/preview-status.html

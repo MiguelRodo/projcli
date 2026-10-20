@@ -916,3 +916,18 @@ publishes the source identity with checksums. Same-named branch regression prove
 the guard. Windows native Cargo/staging failures are checked before cached bytes
 can reach artifact upload. The tag-only workflow remains unexercised until an
 authorized reviewed preview tag is actually created; PR CI is not release evidence.
+
+## CLI package preview version
+
+**New delivery metadata:** prepare Cargo/Cargo.lock package version
+`0.4.0-preview.1`, matching planned tag `v0.4.0-preview.1`. Protocol version remains
+1; a cross-platform CLI test compares ordinary `--version` with machine
+`cli_version` and the compiled Cargo package version. Analysis project VERSION
+files and `proj version get` semantics are separate and remain unchanged.
+
+Ponytail full-mode review keeps the version slice to package metadata, consistency
+verification and accurate feature/limit notes. No dependency/schema/runtime feature
+changes. It includes the recovery dependency, but broad milestone completion,
+R/IDE parity, full real R demo coverage and M2 records/provenance/retry remain open.
+Final main checks, exact-tag workflow, uploaded assets and WSL binary verification
+are required before claiming delivery. No tag/publication/install has occurred.
