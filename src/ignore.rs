@@ -71,6 +71,7 @@ pub fn update_ignores_for(project_root: &camino::Utf8Path, validated: &Validated
     let mut rbuild_ignores = Vec::new();
 
     for (_, dir) in &validated.directories {
+        crate::yml::validate_ignore(&dir.ignore)?;
         // Collect ignores based on the ignore config
         let (should_git, should_rbuild) = match &dir.ignore {
             IgnoreConfig::Single(s) => {

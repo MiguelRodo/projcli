@@ -165,6 +165,26 @@ helpers. Direct public legacy EnvGuard APIs and CLI startup guards still mutate
 process state and are not concurrent environment APIs. This change does not approve
 credential injection policy or establish a sanitized/sandboxed environment.
 
+## Captured execution root and bounded individual render layouts
+
+Script and hook subprocesses start in the captured project root, retaining explicit
+selected input paths. Quarto receives `--execute-dir` with that root; individual
+R Markdown uses `knit_root_dir` and passes the input/root as data arguments to fixed
+R code. This implements CLI defaults, not direct R/IDE parity or a changed resource
+link resolution policy. The existing R package remains untouched.
+
+Nested Quarto project metadata is rejected for selected documents and conservatively
+scanned implicit source trees. Individual rendering models one document-local format:
+HTML, PDF, Word, or supported native presentation/EPUB variants. Unknown/multiple
+formats, inherited individual metadata, custom R Markdown output filenames, dynamic
+R Markdown runtime and document-rendering hooks fail before controlled writes.
+Project-render validation remains conservative fresh-tree validation, not a complete
+renderer output manifest. Unsupported layout rejection does not assert renderer parity.
+
+`clear_output` accepts only `pre`, `post`, or `never`; directory `ignore` accepts
+`all`, `git`, `rbuild` (case-insensitive), or an empty list. Invalid values fail
+before analysis, ignore synchronization or cleanup, including direct cleanup APIs.
+
 
 ## Bounded CAS integrity
 
