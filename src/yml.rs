@@ -652,7 +652,9 @@ pub fn yml_read_from(project_root: &Utf8Path, is_dev: bool) -> anyhow::Result<Va
     let config: ProjConfig = serde_json::from_value(combined_val)
         .context("Failed to deserialize combined configuration.")?;
     let validated = config.validate_and_resolve(project_root, is_dev)?;
-    update_ignores(project_root, &validated).context("Failed to update ignores.")?;
+    if !is_dev {
+        update_ignores(project_root, &validated).context("Failed to update ignores.")?;
+    }
     Ok(validated)
 }
 

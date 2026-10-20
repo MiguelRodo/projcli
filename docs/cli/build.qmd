@@ -29,3 +29,22 @@ This command evaluates what files need to be run based on configuration layout p
 ## Isolation
 
 Every resolved file or project rendering task runs inside its own completely independent subprocess, isolated via environment profiles (`PROJR_PROFILE`) and correct working directory assignments (`current_dir`), preventing memory leaks and state pollution across execution runs.
+
+## Development preview
+
+```bash
+proj build-dev
+```
+
+Development runs execute the existing script selection with development Git
+settings disabled. The CLI does not create or update VERSION, update ignore
+files, clear released output or previous caches, promote rendered documents into
+`docs`, or export to configured local archives. These rules apply on success and
+failure, even when production configuration enables cleanup, commits or export.
+
+Scripts should explicitly write preview artefacts into their declared cache or
+staging locations. A subprocess is not a filesystem sandbox: scripts, hooks and
+renderers can still write where their own code/configuration directs them.
+Renderer configuration rewriting and script working-directory behavior retain
+their existing semantics. This change does not introduce automatic output
+redirection, recursive discovery or a new project-root policy.
