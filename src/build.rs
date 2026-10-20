@@ -39,20 +39,30 @@ pub enum BuildMode {
 /// std::fs::write(temp.path().join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: []\n  git:\n    commit: false\n    push: false\nconfig:\n  git:\n    use_proj_cred_helper: false").unwrap();
 /// build_project(camino::Utf8Path::from_path(temp.path()).unwrap(), BuildMode::ProdPatch, None, None).unwrap();
 /// ```
-use crate::git::{is_git_installed_in, check_git_profile_in, create_git_provider, create_git_provider_in};
+use crate::git::{is_git_installed_in, check_git_profile_in, create_git_provider_in};
 use crate::run_environment::RunEnvironment;
 use crate::yml::GlobalConfig;
 use crate::build_pre::run_pre_flight_checks_in;
 
 pub fn post_build_sync(config: &GlobalConfig, repo_dir: camino::Utf8PathBuf) -> anyhow::Result<()> {
-    let provider = create_git_provider(config.git.engine, repo_dir)?;
+    post_build_sync_in(config, &repo_dir, &RunEnvironment::inherited())
+}
 
-    println!("Staging build artifacts and committing mutations...");
-    provider.commit_all("chore: automated workspace build update [compiled asset tracking]")?;
+fn post_build_sync_in(config: &GlobalConfig, root: &camino::Utf8Path, inherited: &RunEnvironment) -> anyhow::Result<()> {
+    let mut environment = inherited.clone();
+    environment.set("PROJCLI_GIT_TOKEN_OVERRIDE", config.git.use_proj_cred_helper.to_string());
+    let target = crate::git::push_target_in(root, &environment)?;
+    publish_git_in(root, &environment, config.git.engine, "chore: automated workspace build update", Some(&target))
+}
 
-    println!("Pushing local branch mutations to remote host...");
-    provider.push("origin", "main")?;
-
+fn publish_git_in(root: &camino::Utf8Path, environment: &RunEnvironment, engine: crate::yml::GitEngine, message: &str, target: Option<&crate::git::PushTarget>) -> anyhow::Result<()> {
+    let provider = create_git_provider_in(engine, root.to_owned(), environment)?;
+    if let Some(target) = target { crate::git::validate_push_target_in(root, environment, target)?; }
+    provider.commit_all(message)?;
+    if let Some(target) = target {
+        crate::git::validate_push_target_in(root, environment, target)?;
+        provider.push(&target.remote, &format!("HEAD:{}", target.reference))?;
+    }
     Ok(())
 }
 
@@ -82,6 +92,11 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     let project_config: ProjConfig = serde_json::from_value(combined)
         .context("Failed to deserialize combined configuration")?;
     let config = project_config.validate_and_resolve(project_root, is_dev)?;
+    environment.set("PROJCLI_GIT_TOKEN_OVERRIDE", config.config.git.use_proj_cred_helper.to_string());
+    let push_target = if config.git.push {
+        Some(crate::git::push_target_in(project_root, &environment)?)
+    } else { None };
+
 
 
     // 2. Git Capability Audit
@@ -91,6 +106,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
         }
         // TODO: migrate to camino
         check_git_profile_in(Some(project_root), &environment).context("Failed to check Git profile capability")?;
+        crate::git::require_clean_git_in(project_root, &environment)?;
     }
 
     // 3. Resolve configs and hooks
@@ -413,9 +429,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
                 Some(description) if !description.trim().is_empty() => format!("Build v{version}: {}", description.trim()),
                 _ => format!("Build v{version}"),
             };
-            let provider = create_git_provider_in(config.config.git.engine, project_root.to_path_buf(), &environment)?;
-            provider.commit_all(&message)?;
-            if config.git.push { provider.push("origin", "main")?; }
+            publish_git_in(project_root, &environment, config.config.git.engine, &message, push_target.as_ref())?;
         }
         Ok(())
     })();
@@ -1007,5 +1021,48 @@ mod glob_namespace_tests {
         assert!(pattern.starts_with(r"C:\"));
         assert!(pattern.contains(&glob::Pattern::escape("work [1]")));
         assert!(pattern.ends_with(r"\*.py"));
+    }
+}
+
+
+#[cfg(all(test, unix))]
+mod publication_sync_tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+
+    #[test]
+    fn post_build_sync_refuses_a_commit_hooks_endpoint_change() {
+        let project = tempfile::tempdir().unwrap();
+        let root_path = project.path().canonicalize().unwrap();
+        let root = camino::Utf8Path::from_path(&root_path).unwrap();
+        fs::create_dir(root.join("bin")).unwrap();
+        let fake = r#"#!/bin/sh
+case "$1" in
+--version) exit 0 ;;
+symbolic-ref) echo feature ;;
+check-ref-format) exit 0 ;;
+config)
+ for key do :; done
+ case "$key" in
+  *.remote) echo upstream ;;
+  *.merge) echo refs/heads/release ;;
+  *.mirror) echo false ;;
+  *) exit 1 ;;
+ esac ;;
+remote)
+ if [ -f endpoint-changed ]; then echo https://other.example/changed.git; else echo https://github.com/example/repo.git; fi ;;
+add) printf 'add\n' >> events ;;
+diff) exit 1 ;;
+commit) printf 'commit\n' >> events; : > endpoint-changed ;;
+push) printf 'push\n' >> events ;;
+esac
+"#;
+        let git = root.join("bin/git"); fs::write(&git, fake).unwrap();
+        fs::set_permissions(&git, fs::Permissions::from_mode(0o755)).unwrap();
+        let mut environment = RunEnvironment::inherited(); environment.set("PATH", root.join("bin").as_str());
+        let result = post_build_sync_in(&GlobalConfig::default(), root, &environment);
+        assert!(result.is_err());
+        assert!(format!("{:#}", result.unwrap_err()).contains("changed"));
+        assert_eq!(fs::read_to_string(root.join("events")).unwrap(), "add\ncommit\n");
     }
 }
