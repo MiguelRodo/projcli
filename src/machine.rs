@@ -83,9 +83,17 @@ pub(crate) fn run(cli: &Cli) -> i32 {
 
 fn run_worker(root: &camino::Utf8Path) -> Result<Value, MachineError> {
     let executable = std::env::current_exe().map_err(|_| failure(ErrorCode::WorkerUnavailable, "Cannot locate the CLI command worker."))?;
-    let mut arguments: Vec<_> = std::env::args_os().skip(1).filter(|arg| arg != "--machine").collect();
-    if !arguments.iter().any(|arg| arg == "--non-interactive") { arguments.push("--non-interactive".into()); }
-    let status = Command::new(executable).args(arguments)
+    let arguments: Vec<_> = std::env::args_os().skip(1).collect();
+    let boundary = arguments.iter().position(|arg| arg == "--").unwrap_or(arguments.len());
+    // Only controls before the option terminator are flags. Literal positional
+    // values after it (including --machine) must reach the existing CLI unchanged.
+    let non_interactive = arguments[..boundary].iter().any(|arg| arg == "--non-interactive");
+    let mut worker_arguments = Vec::new();
+    if !non_interactive { worker_arguments.push("--non-interactive".into()); }
+    worker_arguments.extend(arguments.into_iter().enumerate().filter_map(|(index, arg)| {
+        if index < boundary && arg == "--machine" { None } else { Some(arg) }
+    }));
+    let status = Command::new(executable).args(worker_arguments)
         .env(proj::PROJECT_ROOT_ENV, root.as_str())
         .stdin(Stdio::null()).stdout(Stdio::from(io::stderr())).stderr(Stdio::inherit())
         .status().map_err(|_| failure(ErrorCode::WorkerUnavailable, "Cannot start the CLI command worker."))?;

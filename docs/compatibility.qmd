@@ -796,3 +796,7 @@ PR145 re-cleared CAS head `79050b3a46749a561b5a0cf0cca0451ae5532c6e` passed all
 ten checks and merged `0e10b3e66face673fe966ed61b1be6d2eabf5004`; post-merge
 workflows 39510143656/39510143483/39510143388 passed. CAS multi-writer/crash limits
 remain as previously recorded.
+
+PR147 reviewer regression preserves the CLI option terminator and literal option-like
+positional values. Worker controls are inserted before `--`, and only actual machine
+flags before that boundary are removed; user paths/option values are retained.

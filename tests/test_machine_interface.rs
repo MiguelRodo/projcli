@@ -107,3 +107,23 @@ fn local_init_and_version_mutation_reuse_existing_commands_with_json_completion(
     let output = command(root).args(["version", "get"]).output().unwrap();
     assert_eq!(envelope(&output, true)["result"]["version"]["major"], 2);
 }
+
+
+#[test]
+fn worker_preserves_terminator_and_literal_option_values() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    let output = command(root).args(["ignore", "add", "--", "ordinary-path"]).output().unwrap();
+    envelope(&output, true);
+    let ignores = fs::read_to_string(root.join(".gitignore")).unwrap();
+    assert!(ignores.contains("ordinary-path"));
+    assert!(!ignores.contains("--non-interactive"));
+    let output = command(root).args(["ignore", "add", "--", "--machine", "--non-interactive"]).output().unwrap();
+    envelope(&output, true);
+    let ignores = fs::read_to_string(root.join(".gitignore")).unwrap();
+    assert!(ignores.contains("--machine"));
+    assert!(ignores.contains("--non-interactive"));
+    let output = command(root).args(["init", "readme", "--title=literal", "--description=--machine"]).output().unwrap();
+    envelope(&output, true);
+    assert!(fs::read_to_string(root.join("README.md")).unwrap().contains("--machine"));
+}
