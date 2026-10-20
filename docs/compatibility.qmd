@@ -488,8 +488,9 @@ paths and never invents missing labels or suffix subpaths. This supersedes earli
 in-memory directory-default behavior, including read-only path queries. Missing
 configuration can still be queried as an empty inventory; builds require active
 configuration. Storage content labels must exist, and relative storage locations
-resolve against the captured root. Production managed state requires `cache`;
-rendered documentation requires `docs`. Cache cleanup uses the declared mapping,
+resolve against the captured root. Selected cleanup and project-render staging require `cache`; upload-only empty
+analysis does not require an unused cache mapping.
+Rendered documentation requires `docs`. Cache cleanup uses the declared mapping,
 not a parallel hard-coded `_tmp` tree.
 
 **Same preset / different timing:** pinned projr
@@ -514,3 +515,13 @@ PR137 final `eb727912f2f0302d01611cca7b84188d34c34e82` independently cleared;
 all ten checks passed (runs 39496127892/39496127915/39496127894). Merge
 `56564b9a4aeeef03ae199b04140b5f3d325b3505` passed post-merge test and installation
 runs 39496869636/39496869586 and published the site in 39496869590.
+
+
+Independent PR139 review removed an over-broad production cache prerequisite.
+Only selected operations that consume cache require its mapping. Explicit empty
+analysis can export declared existing results without cache/docs mappings. An
+explicit Python-only selection does not activate a renderer merely because its
+project marker exists. The custom-cache fixture now executes Python and checks
+actual custom staging cleanup plus preserved legacy `_tmp` bytes. Fake-R
+fixtures declare docs while retaining EOF/no-install assertions. These amendments
+require fresh remote checks and exact-head re-review.

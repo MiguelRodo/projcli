@@ -159,11 +159,12 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     // An explicit empty list selects no analysis; it never enables discovery or
     // renderer setup. Hooks are still validated and executed independently.
     let run_analysis = build_scripts.as_ref().map_or(true, |scripts| !scripts.is_empty());
-    let quarto_exists = quarto_exists && run_analysis;
-    let bookdown_exists = bookdown_exists && run_analysis;
+    let selected_documents = build_scripts.is_none() || resolved_files.iter().any(|file| matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")));
+    let quarto_exists = quarto_exists && run_analysis && selected_documents;
+    let bookdown_exists = bookdown_exists && run_analysis && selected_documents;
 
-    let cache_root = if !is_dev || quarto_exists || bookdown_exists {
-        Some(config.get_path(project_root, "cache").context("Production state and project rendering require a declared cache directory")?)
+    let cache_root = if (!is_dev && run_analysis) || quarto_exists || bookdown_exists {
+        Some(config.get_path(project_root, "cache").context("Selected cleanup or project rendering requires a declared cache directory")?)
     } else { None };
     let has_document_analysis = quarto_exists || bookdown_exists || resolved_files.iter().any(|file| matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")));
     if has_document_analysis { config.get_path(project_root, "docs").context("Document rendering requires a declared docs directory")?; }
