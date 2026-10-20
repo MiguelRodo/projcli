@@ -1,0 +1,88 @@
+# Project and execution behavior
+
+This is the product behavior contract. Confirmed decisions below guide
+implementation; they are not claims that the current CLI already implements
+them. Proposals require review before they become requirements.
+
+## Confirmed decisions
+
+- A project is one analysis/build unit anchored at a selected root directory.
+  It has settings, version information and named resource paths where applicable.
+  Resource paths may be outside the root; a project need not be a Git repository.
+- Explicit project selection overrides discovery and selects that exact directory.
+- Automatic discovery walks upward from the invocation directory. The nearest
+  recognized project root wins, including when projects are nested. Discovery
+  does not search downward for projects.
+- Default script/document enumeration is shallow at the selected project root.
+  Subdirectory targets require explicit selection or renderer project configuration.
+- Scripts execute relative to the project root by default. Selecting a script in
+  a subdirectory does not, by itself, select a different project or execution root.
+- The resolved root is captured for the run. Path helpers, including a future
+  frontend's `projr_path_get()`, resolve against that root even if a renderer or
+  user script changes its working directory.
+- A supported Quarto project's root must equal the proj root. Nested Quarto
+  projects beneath that root are unsupported for now. Nested document files are
+  distinct from nested Quarto projects.
+- QMD rendering through projr, `quarto::quarto_render()`, and RStudio QMD Render
+  must agree on evaluation directory and root-helper semantics.
+  R Markdown Knit is a distinct entrypoint and must be verified separately.
+  Shared project configuration and direct-entry root resolution are required;
+  CLI-only flags or a parent process environment cannot establish this parity.
+- Direct rendering does not imply the build, version, commit or archive/export
+  side effects of a proj-managed build.
+- Renderer evaluation roots must use supported renderer controls. Setting only
+  the parent process cwd is insufficient. Root identity and evaluation cwd remain
+  separate concepts; document asset/reference resolution is not redefined here.
+
+The project root is the analysis workspace's top-level directory, not the user's
+operating-system home directory. Resolving a named resource path is also distinct
+from changing cwd or selecting a new root.
+
+## Proposals and open decisions
+
+- Start from projr-style marker discovery rather than requiring VERSION first.
+  Review the exact marker set and markerless-directory fallback before adoption.
+  Existing projr recognizes VCS roots, VERSION, README, R packages, RStudio,
+  renv and Quarto projects. These markers have different strengths; this list
+  documents reference behavior, not an implicitly approved final marker table.
+- Candidate Python markers: `pyproject.toml`, with `setup.py` / `setup.cfg` as
+  possible legacy compatibility. A tool-only pyproject and weak standalone
+  dependency files need an explicit policy.
+- Candidate Julia markers: `Project.toml` and `JuliaProject.toml`. Whether an
+  orphan manifest should count is a separate decision.
+- Evaluate Quarto `execute-dir` and R Markdown `knit_root_dir` / knitr `root.dir`
+  for root-relative execution. Define the shared persistent configuration and
+  direct-entry initialization before broad renderer changes; do not add nested
+  Quarto project support or rely only on flags passed by proj.
+- Decide frontend transport/bindings, environment forwarding, supported YAML
+  aliases and resource defaults explicitly. In particular, `_raw` / synthesized
+  `raw/data` paths in Rust differ from projr's `_raw_data` and explicit labels.
+  Neither historical schema nor existing Rust defaults resolve that choice.
+- Development-script fallback and empty-list behavior need a deliberate supported
+  configuration contract; conflicting historical instructions are not authority.
+
+## Implementation gaps and verification
+
+The current Rust root finder requires VERSION before its extra ancestor checks;
+it does not implement the confirmed nearest-recognized-root rule. Individual
+scripts currently start in their parent directory. Root stability across renderer
+cwd changes and language frontends is not yet an established capability.
+
+Verify nested projects, explicit selection, paths containing spaces, shallow
+default enumeration, explicit subdirectory scripts, changed cwd, and each
+supported renderer's evaluation root. Compare the same nested QMD through
+projr, `quarto::quarto_render()`, and RStudio QMD Render; test R Markdown Knit separately.
+Reject a nested Quarto project clearly. Verify that direct rendering leaves
+proj-managed release/version/export state alone. Use tiny fixtures and remote CI where
+practical. Subprocess execution is not a security sandbox, and path hashes alone
+do not establish scientific correctness or a reproducible environment.
+
+## Reference material
+
+- [projr root resolution](https://github.com/SATVILab/projr/blob/main/R/path.R)
+- [Thesis design](https://github.com/SATVILab/Manuscript22RodoThesis/blob/b110da557b802341e425f57f4acaa0c2b4ab97cb/projr/3-design.qmd)
+- [Python project configuration](https://packaging.python.org/en/latest/guides/writing-pyproject-toml/)
+- [Julia project environments](https://docs.julialang.org/en/v1/manual/code-loading/)
+- [Quarto working directory](https://quarto.org/docs/projects/code-execution.html#working-dir)
+- [R Markdown render controls](https://rmarkdown.rstudio.com/docs/reference/render.html)
+- [knitr options](https://yihui.org/knitr/options/)
