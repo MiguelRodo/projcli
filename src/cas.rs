@@ -157,11 +157,18 @@ fn validate_manifest(manifest: &DirectoryManifest) -> Result<()> {
     if manifest.label.is_empty() || manifest.version.is_empty() || manifest.label.contains('\0') || manifest.version.contains('\0') {
         anyhow::bail!("CAS label/version must be nonempty and contain no NUL");
     }
-    let mut seen = std::collections::HashSet::new();
+    let mut seen = std::collections::HashSet::<&str>::new();
     for entry in &manifest.files {
         validate_logical_path(&entry.path)?;
         validate_digest(&entry.hash)?;
-        if !seen.insert(&entry.path) { anyhow::bail!("Duplicate CAS logical path"); }
+        if !seen.insert(entry.path.as_str()) { anyhow::bail!("Duplicate CAS logical path"); }
+    }
+    for entry in &manifest.files {
+        for (index, character) in entry.path.char_indices() {
+            if character == '/' && seen.contains(&entry.path[..index]) {
+                anyhow::bail!("CAS manifest contains a file/directory path collision");
+            }
+        }
     }
     Ok(())
 }

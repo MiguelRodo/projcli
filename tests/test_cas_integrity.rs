@@ -140,3 +140,20 @@ fn index_write_failure_keeps_old_index_and_only_complete_remote_metadata() {
     // A failed index may leave a complete unindexed manifest, never truncated JSON.
     proj::verify_remote_integrity("archive", &configuration(&remote, InspectStrategy::File)).unwrap();
 }
+
+
+#[test]
+fn impossible_file_directory_layouts_fail_in_both_inspection_modes_regardless_of_order() {
+    for paths in [vec!["a", "a/b"], vec!["a/b", "a"], vec!["a", "a-b", "a/b"]] {
+        let directory = tempfile::tempdir().unwrap(); let remote = root(&directory);
+        let digest = blake3::hash(b"actual object").to_hex().to_string();
+        let object = remote.join("objects").join(&digest[..2]).join(&digest[2..]);
+        fs::create_dir_all(object.parent().unwrap()).unwrap(); fs::write(object, b"actual object").unwrap();
+        let manifest = DirectoryManifest { label: "output".into(), version: "1.0.0".into(), files: paths.into_iter().map(|path| FileEntry { path: path.to_owned(), hash: digest.clone() }).collect() };
+        write_manifest(&remote, &manifest);
+        for inspect in [InspectStrategy::Manifest, InspectStrategy::File] {
+            let error = proj::verify_remote_integrity("archive", &configuration(&remote, inspect)).unwrap_err();
+            assert!(format!("{error:#}").contains("file/directory path collision"));
+        }
+    }
+}

@@ -690,3 +690,9 @@ multi-writer index updates and crash durability remain open. Failed index public
 may leave a complete unindexed manifest; object residue is valid but not a successful
 indexed export. There is no full cross-filesystem metadata transaction or global
 scientific reproducibility guarantee. Existing R package remains untouched.
+
+
+PR145 review adds shared manifest file/directory prefix-collision validation.
+Logical files `a` and `a/b` cannot coexist, independent of input order or intervening
+names. Both inspection strategies are tested with real digest-matching objects so
+the rejection proves layout validation, not an unrelated missing-object failure.
