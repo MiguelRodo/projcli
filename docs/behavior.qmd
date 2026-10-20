@@ -20,6 +20,16 @@ them. Proposals require review before they become requirements.
 - The resolved root is captured for the run. Path helpers, including a future
   frontend's `projr_path_get()`, resolve against that root even if a renderer or
   user script changes its working directory.
+- A supported Quarto project's root must equal the proj root. Nested Quarto
+  projects beneath that root are unsupported for now. Nested document files are
+  distinct from nested Quarto projects.
+- Direct Quarto rendering through its R API or RStudio Render must agree with
+  proj-driven QMD rendering on evaluation directory and root-helper semantics.
+  R Markdown Knit is a distinct entrypoint and must be verified separately.
+  Shared project configuration and direct-entry root resolution are required;
+  CLI-only flags or a parent process environment cannot establish this parity.
+- Direct rendering does not imply the build, version, commit or archive/export
+  side effects of a proj-managed build.
 - Renderer evaluation roots must use supported renderer controls. Setting only
   the parent process cwd is insufficient. Root identity and evaluation cwd remain
   separate concepts; document asset/reference resolution is not redefined here.
@@ -41,8 +51,9 @@ from changing cwd or selecting a new root.
 - Candidate Julia markers: `Project.toml` and `JuliaProject.toml`. Whether an
   orphan manifest should count is a separate decision.
 - Evaluate Quarto `execute-dir` and R Markdown `knit_root_dir` / knitr `root.dir`
-  for root-relative execution. Define explicit overrides and renderer-specific
-  exceptions before broad renderer changes.
+  for root-relative execution. Define the shared persistent configuration and
+  direct-entry initialization before broad renderer changes; do not add nested
+  Quarto project support or rely only on flags passed by proj.
 - Decide frontend transport/bindings, environment forwarding, supported YAML
   aliases and resource defaults explicitly. In particular, `_raw` / synthesized
   `raw/data` paths in Rust differ from projr's `_raw_data` and explicit labels.
@@ -59,7 +70,10 @@ cwd changes and language frontends is not yet an established capability.
 
 Verify nested projects, explicit selection, paths containing spaces, shallow
 default enumeration, explicit subdirectory scripts, changed cwd, and each
-supported renderer's evaluation root. Use tiny fixtures and remote CI where
+supported renderer's evaluation root. Compare the same nested QMD through
+proj, the direct Quarto R API and RStudio Render; test R Markdown Knit separately.
+Reject a nested Quarto project clearly. Verify that direct rendering leaves
+proj-managed release/version/export state alone. Use tiny fixtures and remote CI where
 practical. Subprocess execution is not a security sandbox, and path hashes alone
 do not establish scientific correctness or a reproducible environment.
 

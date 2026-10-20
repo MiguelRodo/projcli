@@ -17,16 +17,16 @@ If the configuration mandates version control integration (`git.commit` is `true
 - A check is performed to ensure the Git profile (author identity) is properly configured for the workspace.
 
 ### 1.3 Pre-Build Workspace Clearing
-The engine safely clears pre-build caches and output directories based on the `clear_output` configuration (`pre`, `post`, or `never`). The legacy cache old versions are also purged if `dev.old_dev_remove` is enabled.
+Production builds clear pre-build caches and output directories according to `clear_output` (`pre`, `post`, or `never`) and may purge old cache versions. Development previews skip these CLI-managed cleanup stages.
 
 ### 1.4 Version Initialization and Bumping
 The project's current version is resolved by checking the `VERSION` file. If absent, the system attempts to extract it from an R `DESCRIPTION` file, or defaults to `v0.0.1`.
-- **Development Builds (`proj build-dev`):** If the development flag is `0`, it is bumped to `1`.
+- **Development Builds (`proj build-dev`):** The CLI does not create or update VERSION.
 - **Production Builds (`proj build`):** The version is bumped according to the specified strategy (`--major`, `--minor`, or `--patch`), and the development flag is reset to `0`.
-The newly computed version is then written back to the project configuration.
+Production builds write the computed version back to VERSION.
 
 ### 1.5 Pre-Build Automation Hooks
-If the configuration defines `pre` or `both` automation hooks (either `build.hooks` or overriding `dev.hooks`), these are executed in isolated subprocesses. They strictly run after version modification but before the pre-snapshot.
+If the configuration defines `pre` or `both` automation hooks (either `build.hooks` or overriding `dev.hooks`), these are executed in isolated subprocesses. They run before the pre-snapshot; production version updates precede them.
 
 ### 1.6 Git Pre-Snapshot
 If `git.commit` is enabled, all current workspace changes are staged and committed with a "Snapshot pre-build" message. This creates a clean rollback point should the build process fail.
@@ -93,13 +93,13 @@ If the entire build pipeline executes without error and Git integration is enabl
 - The commit message is formatted as `Build v<VERSION>` or includes an optional user-provided description (`Build v<VERSION>: <DESCRIPTION>`).
 
 ### 3.2 Post-Build Workspace Clearing
-If configured (`clear_output: post`), the engine cleans up post-build deployment folders. Additionally, temporary document rendering artifacts (`docs/`) are automatically cleaned up on successful completion of a single document rendering engine.
+For production builds configured with `clear_output: post`, the engine cleans up post-build deployment folders. Additionally, temporary document rendering artifacts (`docs/`) are automatically cleaned up on successful completion of a single document rendering engine.
 
 ### 3.3 Post-Build Automation Hooks
 After the actual build stage completes successfully and the final Git commit is generated, any configured `post` or `both` automation hooks (either `build.hooks` or overriding `dev.hooks`) are executed in isolated subprocesses.
 
 ### 3.4 Remote Export Pipeline
-If remote targets are specified in `build.dest` and `remotes.local` is configured:
+For production builds with targets in `build.dest` and `remotes.local` configured:
 - The system iterates over the defined `build.dest` targets.
 - Resolved content directories mapped to these targets are piped to the Content-Addressable Storage (CAS) engine.
 - The CAS engine handles deduplicated storage synchronization, exporting project files into the remote vault.
