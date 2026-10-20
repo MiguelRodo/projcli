@@ -224,72 +224,42 @@
     "href": "tutorial.html",
     "title": "Run your first analysis",
     "section": "",
-    "text": "NoteUse a current development build\n\n\n\nThis example targets the development preview on main, not the historical v0.3.0 package. See installation status first. The complete example was checked through the CLI in Ubuntu CI using source revision fafce46a and this documentation branch. Verification against a new release package is still pending.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "Run your first analysis"
-    ]
+    "text": "NoteUse a current development build\n\n\n\nThis example targets the development preview on main, not the historical v0.3.0 package. See installation status first. The complete example was checked through the CLI in Ubuntu CI using source revision fafce46a and this documentation branch. Verification against a new release package is still pending."
   },
   {
     "objectID": "tutorial.html#make-a-small-project",
     "href": "tutorial.html#make-a-small-project",
     "title": "Run your first analysis",
     "section": "1. Make a small project",
-    "text": "1. Make a small project\nIn an Ubuntu terminal, choose a new folder and open it:\nmkdir projcli-example\ncd projcli-example\nCreate a file named _proj.yml with this content:\ndirectories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: [analysis.py]\nThis declares the folder used for temporary results and the script to run. The example does not need Git setup, a remote repository or proj init.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "Run your first analysis"
-    ]
+    "text": "1. Make a small project\nIn an Ubuntu terminal, choose a new folder and open it:\nmkdir projcli-example\ncd projcli-example\nCreate a file named _proj.yml with this content:\ndirectories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: [analysis.py]\nThis declares the folder used for temporary results and the script to run. The example does not need Git setup, a remote repository or proj init."
   },
   {
     "objectID": "tutorial.html#add-an-analysis",
     "href": "tutorial.html#add-an-analysis",
     "title": "Run your first analysis",
     "section": "2. Add an analysis",
-    "text": "2. Add an analysis\nCreate analysis.py in the same folder:\nimport csv\nimport os\nfrom pathlib import Path\nfrom statistics import mean\n\nroot = Path(os.environ[\"PROJ_PROJECT_ROOT\"])\npreview = root / \"_tmp\" / \"preview\"\npreview.mkdir(parents=True, exist_ok=True)\n\nmeasurements = [10, 12, 14]\nresult = preview / \"summary.csv\"\nwith result.open(\"w\", newline=\"\") as handle:\n    writer = csv.writer(handle)\n    writer.writerow([\"count\", \"mean\"])\n    writer.writerow([len(measurements), mean(measurements)])\n\nprint(f\"Saved {result}\")\nThe three measurements are deliberately built into the script so there is no data download or extra package installation. The script uses the project root provided by projcli and explicitly writes to _tmp/preview.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "Run your first analysis"
-    ]
+    "text": "2. Add an analysis\nCreate analysis.py in the same folder:\nimport csv\nimport os\nfrom pathlib import Path\nfrom statistics import mean\n\nroot = Path(os.environ[\"PROJ_PROJECT_ROOT\"])\npreview = root / \"_tmp\" / \"preview\"\npreview.mkdir(parents=True, exist_ok=True)\n\nmeasurements = [10, 12, 14]\nresult = preview / \"summary.csv\"\nwith result.open(\"w\", newline=\"\") as handle:\n    writer = csv.writer(handle)\n    writer.writerow([\"count\", \"mean\"])\n    writer.writerow([len(measurements), mean(measurements)])\n\nprint(f\"Saved {result}\")\nThe three measurements are deliberately built into the script so there is no data download or extra package installation. The script uses the project root provided by projcli and explicitly writes to _tmp/preview."
   },
   {
     "objectID": "tutorial.html#check-then-run",
     "href": "tutorial.html#check-then-run",
     "title": "Run your first analysis",
     "section": "3. Check, then run",
-    "text": "3. Check, then run\nproj --project . yml read\nproj --project . --non-interactive build-dev\ncat _tmp/preview/summary.csv\nThe CSV should contain:\ncount,mean\n3,12\nThe validation command reads configuration. The preview runs the script. Running it again replaces this example’s CSV; change a measurement and rerun to see the mean change.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "Run your first analysis"
-    ]
+    "text": "3. Check, then run\nproj --project . yml read\nproj --project . --non-interactive build-dev\ncat _tmp/preview/summary.csv\nThe CSV should contain:\ncount,mean\n3,12\nThe validation command reads configuration. The preview runs the script. Running it again replaces this example’s CSV; change a measurement and rerun to see the mean change."
   },
   {
     "objectID": "tutorial.html#understand-what-changed",
     "href": "tutorial.html#understand-what-changed",
     "title": "Run your first analysis",
     "section": "4. Understand what changed",
-    "text": "4. Understand what changed\nThe script creates _tmp/preview/summary.csv. The CLI does not create a VERSION file, publish to docs, or export an archive during this preview.\nA preview is not a sandbox: your script can still write elsewhere if you tell it to. Keep preview writes in an explicit temporary folder.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "Run your first analysis"
-    ]
+    "text": "4. Understand what changed\nThe script creates _tmp/preview/summary.csv. The CLI does not create a VERSION file, publish to docs, or export an archive during this preview.\nA preview is not a sandbox: your script can still write elsewhere if you tell it to. Keep preview writes in an explicit temporary folder."
   },
   {
     "objectID": "tutorial.html#where-to-go-next",
     "href": "tutorial.html#where-to-go-next",
     "title": "Run your first analysis",
     "section": "Where to go next",
-    "text": "Where to go next\n\nQuery a declared path with proj --project . path get --label cache.\nAdd your own script to build.scripts.\nRead the build reference before using proj build. Production builds have different version, cleanup and export behavior.\nCheck what works before adding document rendering or R tooling.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "Run your first analysis"
-    ]
+    "text": "Where to go next\n\nQuery a declared path with proj --project . path get --label cache.\nAdd your own script to build.scripts.\nRead the build reference before using proj build. Production builds have different version, cleanup and export behavior.\nCheck what works before adding document rendering or R tooling."
   },
   {
     "objectID": "behavior.html",
@@ -380,72 +350,42 @@
     "href": "index.html",
     "title": "Your analysis, ready to run again.",
     "section": "",
-    "text": "projcli runs the analysis steps you choose from a small project configuration. Use a preview while you work, then make a versioned build when you are ready.\nGet started Check installation options",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "Your analysis, ready to run again."
-    ]
+    "text": "projcli runs the analysis steps you choose from a small project configuration. Use a preview while you work, then make a versioned build when you are ready.\nGet started Check installation options"
   },
   {
     "objectID": "index.html#choose-your-steps",
     "href": "index.html#choose-your-steps",
     "title": "Your analysis, ready to run again.",
     "section": "Choose your steps",
-    "text": "Choose your steps\nList the scripts that belong to your analysis. Start with one Python script; add R or rendered reports when your project needs them.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "Your analysis, ready to run again."
-    ]
+    "text": "Choose your steps\nList the scripts that belong to your analysis. Start with one Python script; add R or rendered reports when your project needs them."
   },
   {
     "objectID": "index.html#keep-paths-consistent",
     "href": "index.html#keep-paths-consistent",
     "title": "Your analysis, ready to run again.",
     "section": "Keep paths consistent",
-    "text": "Keep paths consistent\nSelect a project explicitly with --project. Child commands keep that project context, even when an analysis changes its working folder.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "Your analysis, ready to run again."
-    ]
+    "text": "Keep paths consistent\nSelect a project explicitly with --project. Child commands keep that project context, even when an analysis changes its working folder."
   },
   {
     "objectID": "index.html#preview-as-you-work",
     "href": "index.html#preview-as-you-work",
     "title": "Your analysis, ready to run again.",
     "section": "Preview as you work",
-    "text": "Preview as you work\nproj build-dev runs analysis without the CLI publishing outputs or changing the project version. Your scripts still control the files they write.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "Your analysis, ready to run again."
-    ]
+    "text": "Preview as you work\nproj build-dev runs analysis without the CLI publishing outputs or changing the project version. Your scripts still control the files they write."
   },
   {
     "objectID": "index.html#a-small-first-project",
     "href": "index.html#a-small-first-project",
     "title": "Your analysis, ready to run again.",
     "section": "A small first project",
-    "text": "A small first project\nPut the analysis steps in _proj.yml:\ndirectories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: [analysis.py]\nRun the preview from your project folder:\nproj --project . --non-interactive build-dev\nThe step-by-step example supplies the script, a tiny dataset, and the result to check. It uses Python’s standard library.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "Your analysis, ready to run again."
-    ]
+    "text": "A small first project\nPut the analysis steps in _proj.yml:\ndirectories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: [analysis.py]\nRun the preview from your project folder:\nproj --project . --non-interactive build-dev\nThe step-by-step example supplies the script, a tiny dataset, and the result to check. It uses Python’s standard library."
   },
   {
     "objectID": "index.html#find-the-detail-you-need",
     "href": "index.html#find-the-detail-you-need",
     "title": "Your analysis, ready to run again.",
     "section": "Find the detail you need",
-    "text": "Find the detail you need\n\nInstall: prerequisites, release status and platform limits.\nWhat works: current capabilities and work still ahead.\nBuild commands: preview and production behavior.\nConfiguration: project settings.\nBehavior contract and projr comparison: design decisions and known gaps.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "Your analysis, ready to run again."
-    ]
+    "text": "Find the detail you need\n\nInstall: prerequisites, release status and platform limits.\nWhat works: current capabilities and work still ahead.\nBuild commands: preview and production behavior.\nConfiguration: project settings.\nBehavior contract and projr comparison: design decisions and known gaps."
   },
   {
     "objectID": "flow.html",
@@ -500,60 +440,35 @@
     "href": "features.html",
     "title": "What works",
     "section": "",
-    "text": "v0.3.0 was published on 22 May 2026. Its release page currently provides one amd64.deb package. It predates the recent changes listed below; do not assume that an installed binary reporting 0.3.0 includes them.\nSee the release assets and installation status. A new release and repaired installers are being prepared.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "What works"
-    ]
+    "text": "v0.3.0 was published on 22 May 2026. Its release page currently provides one amd64.deb package. It predates the recent changes listed below; do not assume that an installed binary reporting 0.3.0 includes them.\nSee the release assets and installation status. A new release and repaired installers are being prepared."
   },
   {
     "objectID": "features.html#published-release",
     "href": "features.html#published-release",
     "title": "What works",
     "section": "",
-    "text": "v0.3.0 was published on 22 May 2026. Its release page currently provides one amd64.deb package. It predates the recent changes listed below; do not assume that an installed binary reporting 0.3.0 includes them.\nSee the release assets and installation status. A new release and repaired installers are being prepared.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "What works"
-    ]
+    "text": "v0.3.0 was published on 22 May 2026. Its release page currently provides one amd64.deb package. It predates the recent changes listed below; do not assume that an installed binary reporting 0.3.0 includes them.\nSee the release assets and installation status. A new release and repaired installers are being prepared."
   },
   {
     "objectID": "features.html#on-main-development-preview",
     "href": "features.html#on-main-development-preview",
     "title": "What works",
     "section": "On main: development preview",
-    "text": "On main: development preview\nThese capabilities are implemented on main. They are not a claim about the older published package.\n\n\n\n\n\n\n\nCapability\nWhat it means for you\n\n\n\n\nChoose the project\n--project PATH selects the folder for a command. Child queries retain that root.\n\n\nPreview an analysis\nbuild-dev runs your selected steps without CLI version changes, output promotion or archive export.\n\n\nRead without changing files\nConfiguration validation and path queries do not create target folders or edit ignore files.\n\n\nDetect command failures\nErrors produce a nonzero exit status, so an automated run can stop.\n\n\nRun without questions\n--non-interactive disables CLI prompts and automatic package installation, and closes runner input.\n\n\nSelect no analysis\nAn explicit scripts: [] runs no analysis scripts. Hooks may still run; production can export existing outputs.\n\n\nRun scripts and render documents\nThe build engine supports Python, R, Quarto and R Markdown/Bookdown targets, with the corresponding tools installed.\n\n\nKeep a local output archive\nProduction builds can export configured outputs to local content-addressed storage, which avoids storing identical content repeatedly.\n\n\n\n\nPreview has a boundary\nThe CLI skips its own release operations during a preview, including cleanup of released outputs and prior caches. This is not a filesystem sandbox. Scripts, hooks and renderers can still change files. Write preview results to an explicitly chosen temporary folder, as in the tutorial.\nDocument renderers have their own working folders and output rules. Mixed-language scheduling is not a promise that every target runs in the exact order written in configuration. See the build reference for the current implementation and the behavior contract for limits.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "What works"
-    ]
+    "text": "On main: development preview\nThese capabilities are implemented on main. They are not a claim about the older published package.\n\n\n\n\n\n\n\nCapability\nWhat it means for you\n\n\n\n\nChoose the project\n--project PATH selects the folder for a command. Child queries retain that root.\n\n\nPreview an analysis\nbuild-dev runs your selected steps without CLI version changes, output promotion or archive export.\n\n\nRead without changing files\nConfiguration validation and path queries do not create target folders or edit ignore files.\n\n\nDetect command failures\nErrors produce a nonzero exit status, so an automated run can stop.\n\n\nRun without questions\n--non-interactive disables CLI prompts and automatic package installation, and closes runner input.\n\n\nSelect no analysis\nAn explicit scripts: [] runs no analysis scripts. Hooks may still run; production can export existing outputs.\n\n\nRun scripts and render documents\nThe build engine supports Python, R, Quarto and R Markdown/Bookdown targets, with the corresponding tools installed.\n\n\nKeep a local output archive\nProduction builds can export configured outputs to local content-addressed storage, which avoids storing identical content repeatedly.\n\n\n\n\nPreview has a boundary\nThe CLI skips its own release operations during a preview, including cleanup of released outputs and prior caches. This is not a filesystem sandbox. Scripts, hooks and renderers can still change files. Write preview results to an explicitly chosen temporary folder, as in the tutorial.\nDocument renderers have their own working folders and output rules. Mixed-language scheduling is not a promise that every target runs in the exact order written in configuration. See the build reference for the current implementation and the behavior contract for limits."
   },
   {
     "objectID": "features.html#known-limits",
     "href": "features.html#known-limits",
     "title": "What works",
     "section": "Known limits",
-    "text": "Known limits\n\nA preview is not a filesystem sandbox. Scripts and hooks control their writes; automatic redirection of every renderer’s output is not provided.\nMatching results and paths across CLI runs, RStudio and GUI rendering has not been proved.\nComplete compatibility with every projr workflow has not been established.\nMixed script and document targets do not have a complete sequential-order guarantee.\nCurrent-preview release installers have not been verified for every operating system and processor.\nLegacy production behavior is still under review. This guide uses preview builds; it does not establish production cleanup or publication safety.\n\nThe existing R package is unchanged. A Rust library is available in this repository, but new R, Python and Julia frontend integrations are separate work.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "What works"
-    ]
+    "text": "Known limits\n\nA preview is not a filesystem sandbox. Scripts and hooks control their writes; automatic redirection of every renderer’s output is not provided.\nMatching results and paths across CLI runs, RStudio and GUI rendering has not been proved.\nComplete compatibility with every projr workflow has not been established.\nMixed script and document targets do not have a complete sequential-order guarantee.\nCurrent-preview release installers have not been verified for every operating system and processor.\nLegacy production behavior is still under review. This guide uses preview builds; it does not establish production cleanup or publication safety.\n\nThe existing R package is unchanged. A Rust library is available in this repository, but new R, Python and Julia frontend integrations are separate work."
   },
   {
     "objectID": "features.html#planned-work",
     "href": "features.html#planned-work",
     "title": "What works",
     "section": "Planned work",
-    "text": "Planned work\nThe broader project-root and build workflow milestones remain incomplete. Current work includes clearer project configuration and verified release and installation routes. This is not a promise that all limitations above will become features.\nFor the detailed evidence, scope and decisions, see the behavior contract and compatibility log.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "What works"
-    ]
+    "text": "Planned work\nThe broader project-root and build workflow milestones remain incomplete. Current work includes clearer project configuration and verified release and installation routes. This is not a promise that all limitations above will become features.\nFor the detailed evidence, scope and decisions, see the behavior contract and compatibility log."
   },
   {
     "objectID": "configuration.html",
@@ -1064,71 +979,41 @@
     "href": "install.html",
     "title": "Install",
     "section": "",
-    "text": "WarningRelease transition\n\n\n\nThe published v0.3.0 package predates the recent development changes. The repaired release and installer routes are still being verified. A current binary-download route is not yet recommended. The source-build route below has been checked in Ubuntu CI and requires Rust.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "Install"
-    ]
+    "text": "WarningRelease transition\n\n\n\nThe published v0.3.0 package predates the recent development changes. The repaired release and installer routes are still being verified. A current binary-download route is not yet recommended. The source-build route below has been checked in Ubuntu CI and requires Rust."
   },
   {
     "objectID": "install.html#ubuntu-and-wsl-ubuntu",
     "href": "install.html#ubuntu-and-wsl-ubuntu",
     "title": "Install",
     "section": "Ubuntu and WSL Ubuntu",
-    "text": "Ubuntu and WSL Ubuntu\nRun Linux commands inside Ubuntu, including when Ubuntu runs through WSL. For the first analysis example you need:\n\nThe current preview build of projcli, with its source revision recorded.\nPython 3, including a python3 command.\nA terminal and a writable folder for the example.\n\nCheck Python:\npython3 --version\nThe published v0.3.0 release has an amd64.deb asset for Debian-style systems on x86-64 processors. It is a historical package, not the current preview used by this tutorial. No current-preview download command is listed here until the replacement release has been checked.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "Install"
-    ]
+    "text": "Ubuntu and WSL Ubuntu\nRun Linux commands inside Ubuntu, including when Ubuntu runs through WSL. For the first analysis example you need:\n\nThe current preview build of projcli, with its source revision recorded.\nPython 3, including a python3 command.\nA terminal and a writable folder for the example.\n\nCheck Python:\npython3 --version\nThe published v0.3.0 release has an amd64.deb asset for Debian-style systems on x86-64 processors. It is a historical package, not the current preview used by this tutorial. No current-preview download command is listed here until the replacement release has been checked."
   },
   {
     "objectID": "install.html#building-from-source",
     "href": "install.html#building-from-source",
     "title": "Install",
     "section": "Building from source",
-    "text": "Building from source\nThis route needs Git, a current stable Rust toolchain with Cargo, and your platform’s C/C++ linker tools. The crate uses Rust’s 2024 edition. Ubuntu commonly supplies the linker tools through build-essential.\nThe source-install command below was verified on Ubuntu in CI on 20 October 2026. That run installed source revision fafce46a and ran both documented examples through the CLI:\ncargo install --git https://github.com/MiguelRodo/projcli --locked --bin proj\nThis command installs the current repository source, which can change after that check. It does not install the historical release package.\nCargo normally places the command in ~/.cargo/bin; that folder must be on your PATH. Record the installed commit from Cargo’s output when trying a development build. The version number alone does not identify the recent features.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "Install"
-    ]
+    "text": "Building from source\nThis route needs Git, a current stable Rust toolchain with Cargo, and your platform’s C/C++ linker tools. The crate uses Rust’s 2024 edition. Ubuntu commonly supplies the linker tools through build-essential.\nThe source-install command below was verified on Ubuntu in CI on 20 October 2026. That run installed source revision fafce46a and ran both documented examples through the CLI:\ncargo install --git https://github.com/MiguelRodo/projcli --locked --bin proj\nThis command installs the current repository source, which can change after that check. It does not install the historical release package.\nCargo normally places the command in ~/.cargo/bin; that folder must be on your PATH. Record the installed commit from Cargo’s output when trying a development build. The version number alone does not identify the recent features."
   },
   {
     "objectID": "install.html#check-which-command-you-have",
     "href": "install.html#check-which-command-you-have",
     "title": "Install",
     "section": "Check which command you have",
-    "text": "Check which command you have\nAnother program can also use the name proj. In Ubuntu, check both its location and its help:\ncommand -v proj\nproj --help\nFor this project’s current preview, help lists build-dev, --project and --non-interactive. If those are missing, check which executable your shell found before continuing.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "Install"
-    ]
+    "text": "Check which command you have\nAnother program can also use the name proj. In Ubuntu, check both its location and its help:\ncommand -v proj\nproj --help\nFor this project’s current preview, help lists build-dev, --project and --non-interactive. If those are missing, check which executable your shell found before continuing."
   },
   {
     "objectID": "install.html#other-systems",
     "href": "install.html#other-systems",
     "title": "Install",
     "section": "Other systems",
-    "text": "Other systems\nWindows amd64 builds are exercised in CI. A released native Windows installer has not yet been verified for the current preview. Published macOS and ARM binary assets have not been established either. Rust test coverage on a platform does not establish that a release installer works there.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "Install"
-    ]
+    "text": "Other systems\nWindows amd64 builds are exercised in CI. A released native Windows installer has not yet been verified for the current preview. Published macOS and ARM binary assets have not been established either. Rust test coverage on a platform does not establish that a release installer works there."
   },
   {
     "objectID": "install.html#extra-tools-depend-on-your-project",
     "href": "install.html#extra-tools-depend-on-your-project",
     "title": "Install",
     "section": "Extra tools depend on your project",
-    "text": "Extra tools depend on your project\nThe first tutorial uses only Python’s standard library. R scripts need R and Rscript; reports may additionally need Quarto, rmarkdown or bookdown. Install the tools required by your own targets before running them. Git and remote credentials are needed only for workflows that use those integrations.",
-    "crumbs": [
-      "Home",
-      "Start here",
-      "Install"
-    ]
+    "text": "Extra tools depend on your project\nThe first tutorial uses only Python’s standard library. R scripts need R and Rscript; reports may additionally need Quarto, rmarkdown or bookdown. Install the tools required by your own targets before running them. Git and remote credentials are needed only for workflows that use those integrations."
   }
 ]
