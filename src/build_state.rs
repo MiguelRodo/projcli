@@ -15,10 +15,8 @@ impl BuildState {
         let backup = tempfile::Builder::new().prefix("proj-build-recovery-").tempdir_in(system_temp)?;
         let recovery = fs::canonicalize(backup.path()).context("Cannot resolve private recovery storage")?;
         let cache = cache.map(|path| crate::path_safety::resolve_path(path, true)).transpose()?;
-        let cache_identity = cache.as_deref().map(recovery_path_identity).transpose()?;
-        let recovery_identity = recovery_path_identity(&recovery)?;
-        if let Some(cache) = &cache_identity {
-            if recovery_identity.starts_with(cache) || cache.starts_with(&recovery_identity) {
+        if let Some(cache) = &cache {
+            if recovery_paths_overlap(cache, &recovery)? {
                 anyhow::bail!("Private recovery storage overlaps disposable project cache");
             }
         }
@@ -45,8 +43,8 @@ impl BuildState {
                 debug_assert!(identity.starts_with(parent_identity));
                 continue;
             }
-            if cache_identity.as_deref().is_some_and(|cache| cache.starts_with(&identity) || identity.starts_with(cache))
-                || identity.starts_with(&recovery_identity) || recovery_identity.starts_with(&identity) {
+            if cache.as_deref().map(|cache| recovery_paths_overlap(cache, &target)).transpose()?.unwrap_or(false)
+                || recovery_paths_overlap(&target, &recovery)? {
                 anyhow::bail!("Managed build backup overlaps cache: {}", target.display());
             }
             roots.push((identity, target.clone()));
@@ -91,24 +89,42 @@ impl BuildState {
 
 }
 
-// Comparison-only conservative alias identity, never a filesystem operation path.
-// Existing prefixes are already canonical. Fold ASCII on every platform because
-// absent suffixes can alias on Windows and default macOS filesystems. Reject an
-// unmodeled missing Unicode suffix instead of guessing volume normalization rules.
+// Comparison-only identity, never a filesystem operation path. ASCII folding
+// conservatively rejects absent aliases on Windows/default macOS (and on Linux).
 fn recovery_path_identity(path: &Path) -> anyhow::Result<PathBuf> {
-    let mut physical = PathBuf::new();
     let mut identity = PathBuf::new();
     for component in path.components() {
-        physical.push(component.as_os_str());
         if let std::path::Component::Normal(name) = component {
-            let name = name.to_str().context("Non-UTF-8 recovery path is unsupported")?;
-            if !physical.try_exists()? && !name.is_ascii() {
-                anyhow::bail!("Absent non-ASCII recovery path components have unsupported alias semantics");
-            }
-            identity.push(name.to_ascii_lowercase());
+            identity.push(name.to_str().context("Non-UTF-8 recovery path is unsupported")?.to_ascii_lowercase());
         } else { identity.push(component.as_os_str()); }
     }
     Ok(identity)
+}
+
+// Only reject unmodeled Unicode aliases when the comparison actually reaches an
+// ambiguous missing component. Disjoint existing/ASCII directory prefixes already
+// rule out overlap, so an ordinary Unicode output leaf remains supported.
+fn recovery_paths_overlap(left: &Path, right: &Path) -> anyhow::Result<bool> {
+    let mut left_prefix = PathBuf::new();
+    let mut right_prefix = PathBuf::new();
+    for (left, right) in left.components().zip(right.components()) {
+        left_prefix.push(left.as_os_str());
+        right_prefix.push(right.as_os_str());
+        let left = left.as_os_str().to_str().context("Non-UTF-8 recovery path is unsupported")?;
+        let right = right.as_os_str().to_str().context("Non-UTF-8 recovery path is unsupported")?;
+        if left.eq_ignore_ascii_case(right) { continue; }
+        // A differing ASCII character before any differing Unicode scalar rules
+        // out native case/canonical-Unicode aliases for this component.
+        let mut pairs = left.chars().zip(right.chars());
+        let differing = pairs.find(|(left, right)| !left.eq_ignore_ascii_case(right));
+        let definitely_different = match differing {
+            Some((left, right)) => left.is_ascii() && right.is_ascii(),
+            None => left.is_ascii() && right.is_ascii(),
+        };
+        if definitely_different || (left_prefix.try_exists()? && right_prefix.try_exists()?) { return Ok(false); }
+        anyhow::bail!("Ambiguous missing Unicode components in recovery overlap comparison");
+    }
+    Ok(true)
 }
 
 fn copy_exact(source: &Path, destination: &Path) -> anyhow::Result<()> {

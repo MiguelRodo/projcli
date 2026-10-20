@@ -829,8 +829,9 @@ absent-parent publication paths reject before analysis; a disjoint existing-pare
 case preserves actual cache artifact bytes. Recovery must not remove allowed cache.
 
 Recovery overlap comparisons conservatively fold ASCII names on all platforms,
-including absent suffixes (Windows/default macOS can alias them). Missing non-ASCII
-components are rejected rather than guessing volume Unicode normalization. Actual
+including absent suffixes (Windows/default macOS can alias them). Missing Unicode
+components reject only when overlap comparison reaches an ambiguous alias; disjoint
+existing/ASCII directory prefixes rule out overlap before a Unicode output leaf. Actual
 filesystem paths retain original spelling; these identities only bound overlap and
 deduplication. Cross-platform absent-case-alias fixtures fail before cache writes.
 
@@ -848,3 +849,8 @@ Retained Markdown (`keep_md` / `keep-md`, including format options) is rejected 
 individual layouts before rendering. A nested Rmd sibling sentinel regression with
 an overwrite-capable fake renderer and failing post-hook prevents this untracked
 framework artifact from damaging existing Markdown outside the recovery plan.
+
+The reviewed Unicode renderer fixture remains supported: comparison-only cache
+guards stop at disjoint directory prefixes instead of blanket-rejecting missing
+Unicode output filenames. Existing actual renderer format/promotion tests retain
+their apostrophe/Unicode inputs; no fixture reduction hides unsupported output.
