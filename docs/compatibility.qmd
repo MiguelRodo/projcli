@@ -931,3 +931,61 @@ changes. It includes the recovery dependency, but broad milestone completion,
 R/IDE parity, full real R demo coverage and M2 records/provenance/retry remain open.
 Final main checks, exact-tag workflow, uploaded assets and WSL binary verification
 are required before claiming delivery. No tag/publication/install has occurred.
+
+## Verified preview delivery: 0.4.0-preview.1
+
+Published [development prerelease](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1) on 2026-10-20 from reviewed commit
+`bbd12edc8de9865a96b6145d0c7702f1300cb1a8`. PR148 recovery and PR150 version
+changes passed independent review and exact-head checks before normal merges.
+Final-main test/install/Pages workflows 39514900047/39514900123/39514900037 passed.
+The [exact-tag draft workflow](https://github.com/MiguelRodo/projcli/actions/runs/39515169842) passed locked tests/builds, qualified-tag
+identity checks, both binary smokes, installer tests and source-bound collection.
+
+All five uploaded assets were downloaded and checked against GitHub asset metadata,
+the four-entry SHA256 manifest, version.txt and source-commit.txt. Both downloaded
+binaries executed help, version and protocol capability checks. Anonymous public
+downloads matched the same verified bytes before user-local WSL installation.
+
+| Binary | SHA256 |
+|---|---|
+| Linux x86-64 | `99c018f7dc676d8aad3d6f6f5aa0e3a8449fb1b92ea8489d1e3f0c0f2cb470b4` |
+| Windows x86-64 | `4bbf69198be0e8614beba309865c8dc867c425fe41fd01441592667eeff678cc` |
+
+Installed Linux bytes matched that hash in `~/.local/bin/proj` on WSL Ubuntu 24.04.
+`proj --version` reported `0.4.0-preview.1`; machine protocol remained 1. No sudo,
+local compilation, PATH/auth setting changes or existing R package edits. Existing
+system proj bytes and unrelated dirty checkout files remained unchanged. A tiny
+disposable Python project verified local init, ordered success, deliberate failure,
+structured stdout, preserved VERSION/released output and retained cache artifacts.
+No local R/Docker tests or full real R/IDE parity verification is implied.
+
+The preview did not replace stable Latest v0.3.0. Broader M1/M2 issues remain open:
+automatic isolation of arbitrary writes, complete real R/IDE parity, durable attempt/
+release records, whole-build provenance, multi-writer/crash atomicity and analysis-free
+publication retries are unfinished. Ponytail delivery review reused the reviewed
+installer and raw assets with standard hash/runtime checks; no new runtime framework.
+
+
+## Human-facing pinned preview installation
+
+- **Relationship: new delivery instructions; comparative R runtime unverified.**
+  The guide uses the published `0.4.0-preview.1` Rust assets whose exact source,
+  hashes, native smokes and WSL delivery are recorded above. No existing R
+  package, renderer/IDE parity, broad M1/M2 completion or reproducible-build
+  attestation follows from binary availability.
+- **Decision:** pin both the release version and reviewed installer source;
+  stable Latest remains `v0.3.0`. Linux x86-64 needs glibc 2.35+, Windows
+  x86-64 instructions use PowerShell 7, and macOS/ARM assets are not supplied.
+  Reuse mandatory installer SHA256 verification and a chosen user-local
+  directory without administrator access or Rust compilation.
+- **Verification boundary:** inspected the actual Bash/PowerShell environment
+  interfaces and reviewed source commit. This PR's read-only docs CI extracts
+  and executes the authored installer snippets on remote Linux/Windows, runs
+  both complete Python examples through the downloaded Linux binary and PR
+  code, and retains transcripts/generated pages. Its checks and independent
+  review are merge gates; source wording alone is not execution evidence.
+- **Ponytail full-mode review:** reused the two existing installers, Quarto
+  warning blocks and standard-library extraction/checks. Replaced redundant
+  source compilation in docs CI with the actual binary install users follow;
+  added no package manager, frontend dependency or installation abstraction.
+  Disposable-copy warnings, bounded recovery, provenance and retry limits remain.

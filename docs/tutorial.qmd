@@ -12,12 +12,11 @@ Previews are not a security sandbox; code you run can still change files.
 :::
 
 ::: {.callout-note}
-## Use a current development build
-This example targets the development preview on `main`, not the historical
-v0.3.0 package. See [installation status](install.qmd) first. The complete
-example was [checked through the CLI in Ubuntu CI](https://github.com/MiguelRodo/projcli/actions/runs/39489440429)
-using source revision `fafce46a` and this documentation branch. Verification
-against a new release package is still pending.
+## Use the pinned preview
+[Install `0.4.0-preview.1`](install.qmd) and check `proj --version` before
+starting. Stable v0.3.0 predates this workflow. Remote docs checks run the
+complete example through the downloaded preview binary as well as the current
+PR code. You also need Python 3 available as `python3`.
 :::
 
 ## 1. Make a small project

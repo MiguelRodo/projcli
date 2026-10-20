@@ -1,6 +1,6 @@
 ---
-title: "Install"
-subtitle: "Choose a version before you choose an installation method."
+title: "Install the development preview"
+subtitle: "Download a checked binary. No Rust compiler or administrator access needed."
 ---
 
 ::: {.callout-warning}
@@ -11,83 +11,103 @@ Use sample data or a disposable copy of your project. Production builds
 Previews are not a security sandbox; code you run can still change files.
 :::
 
-::: {.callout-warning}
-## Release transition
-The published v0.3.0 package predates the recent development changes.
-The repaired release and installer routes are still being verified.
-A current binary-download route is not yet recommended. The source-build route
-below has been checked in Ubuntu CI and requires Rust.
-:::
+## Choose the preview explicitly
+
+The published [v0.4.0-preview.1](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1)
+is an early development release. These instructions pin that version.
+GitHub's stable **Latest** release is still v0.3.0; it does not contain the
+current preview features or the new binary-delivery metadata.
+
+| Download | Requirements |
+|---|---|
+| Linux / WSL Ubuntu | x86-64 processor, glibc 2.35 or newer; Bash, `curl` and `sha256sum` or `shasum`. Ubuntu 22.04 or newer meets the glibc requirement; user-local installation was verified in WSL Ubuntu 24.04. |
+| Windows | x86-64 processor; use PowerShell 7 (`pwsh`) for the installer below. |
+| macOS / ARM | No binaries supplied for this preview. |
+
+You do not need Git, Rust, Cargo or administrator access to install these binaries.
+The [Python tutorial](tutorial.qmd) additionally needs Python 3. Other analysis
+tools are needed only if your own scripts or reports use them.
 
 ## Ubuntu and WSL Ubuntu
 
-Run Linux commands **inside Ubuntu**, including when Ubuntu runs through WSL.
-For the first analysis example you need:
-
-- The current preview build of projcli, with its source revision recorded.
-- Python 3, including a `python3` command.
-- A terminal and a writable folder for the example.
-
-Check Python:
+Run this **inside Ubuntu**, not in a Windows terminal. Check that `uname -m`
+reports `x86_64` and `getconf GNU_LIBC_VERSION` reports glibc 2.35 or newer.
 
 ```bash
-python3 --version
+mkdir -p "$HOME/.local/bin"
+installer="$(mktemp)"
+curl -fsSL "https://raw.githubusercontent.com/MiguelRodo/projcli/bbd12edc8de9865a96b6145d0c7702f1300cb1a8/install-local.sh" -o "$installer" &&
+  PROJ_RELEASE_VERSION=0.4.0-preview.1 \
+  PROJ_INSTALL_DIR="$HOME/.local/bin" bash "$installer"
+rm -f "$installer"
+export PATH="$HOME/.local/bin:$PATH"
+hash -r
+proj --version
 ```
 
-The [published v0.3.0 release](https://github.com/MiguelRodo/projcli/releases/tag/v0.3.0)
-has an `amd64.deb` asset for Debian-style systems on x86-64 processors.
-It is a historical package, not the current preview used by this tutorial.
-No current-preview download command is listed here until the replacement
-release has been checked.
+Expected version: `proj 0.4.0-preview.1`.
 
-## Building from source
+The script comes from the reviewed source commit. It downloads the pinned Linux
+binary, checks its SHA256 against the release manifest, and installs it as
+`~/.local/bin/proj`. It replaces an existing `proj` in that folder only after
+verification succeeds. No `sudo` or local compilation is involved.
 
-This route needs Git, a current stable Rust toolchain with Cargo, and your
-platform's C/C++ linker tools. The crate uses Rust's 2024 edition.
-Ubuntu commonly supplies the linker tools through `build-essential`.
+## Windows
 
-The source-install command below was [verified on Ubuntu in CI](https://github.com/MiguelRodo/projcli/actions/runs/39489440429)
-on 20 October 2026. That run installed
-[source revision `fafce46a`](https://github.com/MiguelRodo/projcli/commit/fafce46aaba458ef0fbef65718a81076c0a46b40)
-and ran both documented examples through the CLI:
+Open **PowerShell 7** (`pwsh`) as your normal user:
 
-```bash
-cargo install --git https://github.com/MiguelRodo/projcli --locked --bin proj
+```powershell
+$installDir = Join-Path $env:USERPROFILE ".local\bin"
+New-Item -ItemType Directory -Force -Path $installDir | Out-Null
+$installer = Join-Path ([IO.Path]::GetTempPath()) ("proj-install-" + [guid]::NewGuid() + ".ps1")
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/MiguelRodo/projcli/bbd12edc8de9865a96b6145d0c7702f1300cb1a8/install.ps1" -OutFile $installer
+$env:PROJ_RELEASE_VERSION = "0.4.0-preview.1"
+$env:PROJ_INSTALL_DIR = $installDir
+& $installer
+Remove-Item -LiteralPath $installer
+$env:Path = "$installDir;$env:Path"
+proj --version
 ```
 
-This command installs the current repository source, which can change after
-that check. It does not install the historical release package.
+Expected version: `proj 0.4.0-preview.1`.
 
-Cargo normally places the command in `~/.cargo/bin`; that folder must be on
-your `PATH`. Record the installed commit from Cargo's output when trying a
-development build. The version number alone does not identify the recent
-features.
+The script checks the Windows binary's SHA256 before installing
+`proj.exe` in `$HOME\.local\bin`. It does not change system settings or require
+an administrator terminal. This installer is checked with PowerShell 7;
+these instructions do not claim Windows PowerShell 5.1 compatibility.
 
-## Check which command you have
+## Finding the command later
 
-Another program can also use the name `proj`. In Ubuntu, check both its
-location and its help:
+The PATH lines above make the command available in the **current terminal**.
+In a new terminal, repeat that PATH line or add the installation folder to your
+own user PATH. The installer does not make that permanent change for you.
 
-```bash
-command -v proj
-proj --help
-```
+Another program can also be named `proj`. Check `command -v proj` in Ubuntu
+or `Get-Command proj` in PowerShell, then `proj --version`, if you see unexpected
+help or results.
 
-For this project's current preview, help lists `build-dev`, `--project`
-and `--non-interactive`. If those are missing, check which executable your
-shell found before continuing.
+## What the checksum proves
 
-## Other systems
+The installer requires the release's `version.txt` and exactly one matching
+entry in [checksums.txt](https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.1/checksums.txt).
+A missing or incorrect checksum stops installation before the existing binary is
+replaced. For a manual download, use `sha256sum` on Linux or `Get-FileHash -Algorithm SHA256`
+in PowerShell and compare the result with the manifest's exact filename entry
+before running it.
 
-Windows amd64 builds are exercised in CI. A released native Windows installer
-has not yet been verified for the current preview. Published macOS and ARM
-binary assets have not been established either. Rust test coverage on a
-platform does not establish that a release installer works there.
+The manifest comes from the same GitHub release. Checksums detect corruption and
+mismatches; they are not independent signatures or proof of a reproducible build.
+The release also includes
+[source-commit.txt](https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.1/source-commit.txt)
+and [version.txt](https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.1/version.txt).
+The reviewed source is `bbd12edc8de9865a96b6145d0c7702f1300cb1a8`.
 
-## Extra tools depend on your project
+## Start small
 
-The [first tutorial](tutorial.qmd) uses only Python's standard library.
-R scripts need R and `Rscript`; reports may additionally need Quarto,
-`rmarkdown` or `bookdown`. Install the tools required by your own targets
-before running them. Git and remote credentials are needed only for workflows
-that use those integrations.
+Follow [Run your first analysis](tutorial.qmd) with sample data. Broad M1/M2
+milestones, R/IDE parity, complete input/code/dependency provenance, and reliable
+analysis-free publication retries remain unfinished. Preview recovery is bounded:
+it does not isolate every write or undo arbitrary external effects.
+
+See [what works](features.qmd), [detailed preview status](preview-status.qmd) and
+[verified delivery notes](release-delivery.qmd) for the evidence and limits.

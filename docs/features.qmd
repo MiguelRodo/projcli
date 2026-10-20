@@ -3,20 +3,17 @@ title: "What works"
 subtitle: "A clear view of the release, the development preview and the work ahead."
 ---
 
-## Published release
+## Available development release
 
-**v0.3.0** was published on 22 May 2026. Its release page currently provides
-one `amd64.deb` package. It predates the recent changes listed below;
-do not assume that an installed binary reporting `0.3.0` includes them.
+[**v0.4.0-preview.1**](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1)
+provides checked Linux x86-64 (glibc 2.35+) and Windows x86-64 binaries.
+No Rust compilation is needed. [Install that explicit version](install.qmd);
+GitHub's stable Latest remains the older v0.3.0.
 
-See the [release assets](https://github.com/MiguelRodo/projcli/releases/tag/v0.3.0)
-and [installation status](install.qmd). A new release and repaired installers
-are being prepared.
-
-## On main: development preview
-
-These capabilities are implemented on `main`. They are not a claim about the
-older published package.
+This is a development prerelease. The table summarizes Rust CLI behavior,
+not completion of M1/M2 or proven R/IDE parity. See the
+[detailed status](preview-status.qmd) and [delivery evidence](release-delivery.qmd)
+for exact verification and limits. Newer changes on main need their own evidence.
 
 | Capability | What it means for you |
 |---|---|
@@ -50,8 +47,8 @@ the current implementation and the [behavior contract](behavior.qmd) for limits.
 - Complete compatibility with every `projr` workflow has not been established.
 - Mixed script and document targets do not have a complete sequential-order
   guarantee.
-- Current-preview release installers have not been verified for every operating
-  system and processor.
+- This preview supplies only Linux and Windows x86-64 binaries; macOS and ARM
+  delivery are unavailable.
 - Legacy production behavior is still under review. This guide uses preview
   builds; it does not establish production cleanup or publication safety.
 
@@ -61,8 +58,8 @@ repository, but new R, Python and Julia frontend integrations are separate work.
 ## Planned work
 
 The broader project-root and build workflow milestones remain incomplete.
-Current work includes clearer project configuration and verified release and
-installation routes. This is not a promise that all limitations above will
+M1 and M2 remain open. Complete input/code/config/dependency provenance, durable
+attempt/release records and analysis-free publication retry are still unfinished. This is not a promise that all limitations above will
 become features.
 
 For the detailed evidence, scope and decisions, see the

@@ -150,14 +150,24 @@ jobs:
           
           print(f"Validated using {binary}")
           PY
-      - name: Install using the documented official-source command
+      - name: Install using the documented pinned Linux command
         run: |
-          rustc --version | tee validation-evidence/source-install.txt
-          cargo install --git https://github.com/MiguelRodo/projcli --locked --bin proj 2>&1 | tee -a validation-evidence/source-install.txt
-          cargo install --list | tee -a validation-evidence/source-install.txt
-          "$HOME/.cargo/bin/proj" --help | tee -a validation-evidence/source-install.txt
-      - name: Run documented examples using source installation
-        run: python3 validation-evidence/check-examples.py "$HOME/.cargo/bin/proj" 2>&1 | tee validation-evidence/source-examples.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          readme = Path("README.md").read_text()
+          guide = Path("docs/install.qmd").read_text()
+          snippet = re.search(r"```bash\n(.*?)```", readme, re.S).group(1)
+          assert snippet == re.search(r"```bash\n(.*?)```", guide, re.S).group(1), "install snippets diverged"
+          Path("validation-evidence/install-linux.sh").write_text(snippet)
+          PY
+          bash --noprofile --norc -e -o pipefail validation-evidence/install-linux.sh 2>&1 | tee validation-evidence/release-install.txt
+          test -x "$HOME/.local/bin/proj"
+          test "$("$HOME/.local/bin/proj" --version)" = "proj 0.4.0-preview.1"
+          curl -fsSL https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.1/source-commit.txt | tee validation-evidence/release-source.txt
+          test "$(cat validation-evidence/release-source.txt)" = "bbd12edc8de9865a96b6145d0c7702f1300cb1a8"
+      - name: Run documented examples using the downloaded preview
+        run: python3 validation-evidence/check-examples.py "$HOME/.local/bin/proj" 2>&1 | tee validation-evidence/release-examples.txt
       - name: Build the exact PR core revision
         run: cargo build --locked --bin proj 2>&1 | tee validation-evidence/pr-build.txt
       - name: Run documented examples using PR core revision
@@ -169,4 +179,44 @@ jobs:
           path: |
             docs/_site
             validation-evidence
+          retention-days: 7
+
+  windows-install-docs:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Run the documented pinned Windows command
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue'
+          $PSNativeCommandUseErrorActionPreference = $true
+          New-Item -ItemType Directory -Force validation-evidence | Out-Null
+          $markdown = Get-Content -Raw docs/install.qmd
+          $match = [regex]::Match($markdown, '```powershell\r?\n(.*?)```', [Text.RegularExpressions.RegexOptions]::Singleline)
+          if (-not $match.Success) { throw 'Missing documented PowerShell installer command' }
+          Set-Content -LiteralPath validation-evidence/install-windows.ps1 -Value $match.Groups[1].Value
+          Start-Transcript -Path validation-evidence/windows-install.txt
+          try {
+            & ./validation-evidence/install-windows.ps1
+            if ($LASTEXITCODE -ne 0) { throw 'Documented installation command failed' }
+            $binary = Join-Path $env:USERPROFILE '.local\bin\proj.exe'
+            $version = (& $binary --version).Trim()
+            if ($version -cne 'proj 0.4.0-preview.1') { throw "Unexpected installed version: $version" }
+            & $binary --help
+            if ($LASTEXITCODE -ne 0) { throw 'Installed binary help failed' }
+            Get-FileHash -Algorithm SHA256 -LiteralPath $binary | Format-List
+          } finally {
+            Stop-Transcript
+          }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: windows-install-docs-validation
+          path: validation-evidence
           retention-days: 7

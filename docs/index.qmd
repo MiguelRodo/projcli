@@ -22,8 +22,9 @@ Start with the preview example below; production build safety is still being imp
 
 ::: {.callout-note}
 ## Development preview
-This site describes work on the `main` branch. The published **v0.3.0** release
-predates the recent preview and project-root changes. Read
+[v0.4.0-preview.1 is available](install.qmd) for Linux and Windows x86-64,
+without compiling Rust. It is a development prerelease; broad M1/M2 milestones
+remain incomplete. Stable Latest is still v0.3.0. Read
 [what works](features.qmd) before choosing a version.
 :::
 

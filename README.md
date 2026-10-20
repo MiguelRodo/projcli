@@ -9,9 +9,9 @@ paths together and explore the documented preview workflow.
 > **Never run production builds on the only copy of important work.**
 > Previews are not a security sandbox; code you run can still change files.
 
-**Status:** the `main` branch is a development preview. The published v0.3.0
-release predates recent preview-safety and project-root changes. Its version
-number alone does not identify those features.
+**Status:** [v0.4.0-preview.1](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1)
+is a development prerelease, not completion of M1/M2. Stable Latest remains
+v0.3.0 and predates the current preview features.
 
 [Website](https://miguelrodo.github.io/projcli/) ·
 [What works](https://miguelrodo.github.io/projcli/features.html) ·
@@ -19,33 +19,40 @@ number alone does not identify those features.
 
 ## Installation
 
-The current preview's release and installer routes are being repaired and
-verified. The [published v0.3.0 release](https://github.com/MiguelRodo/projcli/releases/tag/v0.3.0)
-currently has one amd64 Debian package; it is not the preview described below.
+Use the pinned [v0.4.0-preview.1 development release](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1).
+It supplies Linux x86-64 (glibc 2.35 or newer) and Windows x86-64 binaries.
+**No Rust compiler or administrator access is needed.** macOS and ARM binaries
+are not supplied.
 
-For a source build you need Git, a current stable Rust toolchain with Cargo,
-and platform linker tools (for example Ubuntu's `build-essential`).
-The following command was [verified on Ubuntu in CI](https://github.com/MiguelRodo/projcli/actions/runs/39489440429)
-on 20 October 2026, installing source revision `fafce46a`:
+For Ubuntu / WSL Ubuntu, you need Bash, `curl` and `sha256sum` or `shasum`.
+Run this inside Ubuntu:
 
 ```bash
-cargo install --git https://github.com/MiguelRodo/projcli --locked --bin proj
+mkdir -p "$HOME/.local/bin"
+installer="$(mktemp)"
+curl -fsSL "https://raw.githubusercontent.com/MiguelRodo/projcli/bbd12edc8de9865a96b6145d0c7702f1300cb1a8/install-local.sh" -o "$installer" &&
+  PROJ_RELEASE_VERSION=0.4.0-preview.1 \
+  PROJ_INSTALL_DIR="$HOME/.local/bin" bash "$installer"
+rm -f "$installer"
+export PATH="$HOME/.local/bin:$PATH"
+hash -r
+proj --version
 ```
 
-Cargo normally installs to `~/.cargo/bin`, which must be on your `PATH`.
-Record the source commit from the install output. Check `command -v proj`
-and `proj --help`: another program may use the same command name.
-Current-preview help includes `build-dev`, `--project` and `--non-interactive`.
+Expected version: `proj 0.4.0-preview.1`. The installer verifies SHA256 before
+replacing `~/.local/bin/proj`. The PATH change applies to the current terminal.
+The explicit version pin matters: GitHub's stable **Latest** is still v0.3.0.
 
-Use Linux commands inside Ubuntu when working in WSL. Native Windows,
-macOS and ARM release installers are not yet verified for this preview.
-See [installation details](docs/install.qmd) for prerequisites and limits.
+See [the install guide](docs/install.qmd) for PowerShell 7 Windows instructions,
+prerequisites, manual checksum checks and PATH help. The installer comes from
+the reviewed source commit; checksums detect corruption, not independent
+publisher identity or reproducible builds.
 
 ## Quickstart: a small Python analysis
 
-This example was checked through the real CLI in Ubuntu CI using the current
-source and this documentation branch. It has not been checked against a new
-release package. You need Python 3 available as `python3`.
+This example targets `0.4.0-preview.1`. Remote docs checks run it through the
+downloaded release binary and the current PR code. You need Python 3 available
+as `python3`; the shell commands below assume Ubuntu / WSL Ubuntu.
 
 In a new folder, create `_proj.yml`:
 
@@ -112,3 +119,6 @@ selects no analysis scripts.
 
 The existing R package is unchanged. Matching CLI, RStudio and GUI renderer
 behavior has not yet been proved; new frontend integrations are separate work.
+M1/M2, complete input/code/dependency provenance and analysis-free publication
+retry remain unfinished. Preview recovery is bounded and does not isolate every
+write or undo arbitrary external effects.
