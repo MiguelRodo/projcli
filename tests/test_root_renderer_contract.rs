@@ -29,7 +29,7 @@ fn nested_scripts_and_hooks_execute_in_root_in_selected_order() {
     }
     let output = invoke(&root, false);
     assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
-    assert_eq!(fs::read_to_string(root.join("order.txt")).unwrap(), "pre\nfirst\nsecond\npost\n");
+    assert_eq!(fs::read_to_string(root.join("order.txt")).unwrap().lines().collect::<Vec<_>>(), vec!["pre", "first", "second", "post"]);
     assert!(!root.join("nested/order.txt").exists());
 }
 
