@@ -1,0 +1,44 @@
+# Machine interface
+
+Use `proj --machine <command>` for automation. Human command output remains the
+default. `proj capabilities` (also with `--machine`) reports protocol/capability
+versions and supported command families without loading a project.
+
+Protocol version **1** writes one JSON object and a newline to stdout. Both success
+and failure include `protocol_version`, `cli_version`, `ok`, `result`, and `error`.
+`result` is null on failure; `error` is null on success. Failures exit nonzero.
+Broken output pipes cannot receive a complete object and also exit nonzero.
+
+```sh
+proj --machine capabilities
+proj --machine --project . path get --label output
+proj --machine --project . version get
+proj --machine --project . yml read
+proj --machine --project . build-dev
+```
+
+Successful queries return `{ "path": "..." }`, `{ "version": { "major": 1,
+"minor": 2, "patch": 3, "dev": 0 }, "text": "v1.2.3" }`, or
+`{ "validated": true }`. Configuration queries validate without returning raw
+configuration or parameter values. Other existing command families reuse the
+ordinary CLI in a noninteractive subprocess and return `{ "completed": true }`
+only when that command succeeds. Unsupported command arguments fail; capability
+flags explicitly report absent preview isolation, attempt/release records and
+direct R/IDE parity.
+
+Stable error codes are `invalid_arguments`, `project_selection_failed`,
+`query_failed`, `command_failed`, and `worker_unavailable`. Messages are static;
+raw config, environment values, command arguments and chained domain errors are
+not copied into protocol errors. This transport reuses existing `anyhow` domain
+handling tracked by issue87; it does not promise a finer domain-error taxonomy.
+With `--machine`, help/version display requests return capability negotiation.
+
+All command progress and child stdout/stderr go to stderr, streamed directly
+without accumulating logs in memory. Machine mode closes child stdin and enables
+noninteractive policy. Child logs are user/third-party output and are not a secret
+redaction service; avoid printing credentials in scripts. No environment/config
+dump is included in the machine result. Callers must keep stdout and stderr separate.
+
+A failed publication can follow successful local analysis. `command_failed` is
+not a rollback or retry instruction: inspect local state/diagnostics before retrying.
+No analysis-free publication retry or successful release record is invented here.

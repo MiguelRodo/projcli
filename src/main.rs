@@ -1,3 +1,4 @@
+mod machine;
 use clap::{Parser, Subcommand};
 
 /// Cross-platform CLI for version-linked project builds.
@@ -17,6 +18,9 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[command(name = "proj", version)]
 pub struct Cli {
+    /// Emit one protocol-v1 JSON result on stdout; diagnostics and child logs use stderr.
+    #[arg(long, global = true)]
+    machine: bool,
     /// Disable CLI prompts and automatic package installation, and close runner stdin.
     #[arg(long, global = true)]
     non_interactive: bool,
@@ -41,6 +45,8 @@ pub struct Cli {
 /// ```
 #[derive(Subcommand)]
 pub enum Commands {
+    /// Report the CLI and machine protocol capabilities without loading a project.
+    Capabilities,
     /// Init related operations
     Init {
         #[command(subcommand)]
@@ -211,7 +217,22 @@ fn fail(message: std::fmt::Arguments<'_>) -> ! {
 }
 
 fn main() {
-    let cli = Cli::parse();
+    let machine_requested = std::env::args_os().skip(1).any(|argument| argument == "--machine");
+    let cli = match Cli::try_parse() {
+        Ok(cli) => cli,
+        Err(error) if machine_requested => {
+            let informational = matches!(error.kind(), clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion);
+            let code = if informational { machine::emit_capabilities() } else { machine::emit_argument_error() };
+            std::process::exit(code);
+        }
+        Err(error) => error.exit(),
+    };
+    if cli.machine {
+        std::process::exit(machine::run(&cli));
+    }
+    if matches!(&cli.command, Commands::Capabilities) {
+        std::process::exit(machine::emit_capabilities());
+    }
     let mut interaction_guard = proj::EnvGuard::new();
     if cli.non_interactive {
         interaction_guard.track_and_set(proj::NON_INTERACTIVE_ENV, "true")
@@ -228,6 +249,7 @@ fn main() {
         .unwrap_or_else(|error| fail(format_args!("Invalid project environment: {error}")));
 
     match &cli.command {
+        Commands::Capabilities => unreachable!("Capabilities handled before project selection"),
         Commands::Yml { command } => match command {
             YmlCommands::Read => {
                 // Pass false for is_dev as this is just a read check
