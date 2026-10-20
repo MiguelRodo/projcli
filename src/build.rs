@@ -73,6 +73,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     // ==========================================
 
     // 1. Config Audit
+    crate::yml::require_active_configuration(project_root)?;
     let combined = crate::yml::get_combined_yml(None, project_root)
         .context("Failed to read project configuration")?;
     let project_config: ProjConfig = serde_json::from_value(combined)

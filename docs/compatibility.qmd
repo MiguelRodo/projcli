@@ -345,3 +345,22 @@ remain blockers to production-safety claims; arbitrary external script effects
 are outside managed rollback. No mechanical edition upgrade or CAS redesign is
 claimed. This review uses the actual Ponytail full-mode skill to prioritize root
 causes and data-preservation checks over cosmetic rewriting.
+
+## Active configuration and unsupported fields (prepared change)
+
+- **Relationship: deliberate difference** from projr convenience defaults, as
+  explicitly approved. Every build requires a base file or activated profile;
+  inactive profile/local files alone do not qualify. Discovery still falls back
+  to cwd independently. Empty analysis is valid with active configuration.
+- **Implemented:** build gate before writes; unsupported typed configuration
+  fields fail instead of disappearing in a top-level filter. Build failures
+  include their error causes so unsupported-field diagnostics name the field. Arbitrary parameter
+  and metadata maps remain supported and parameter aliases reach validation.
+- **Evidence:** runnable tests cover active/base/legacy/inactive/local/no-config
+  cases, unsupported nested keys, dynamic maps and no pre-build state writes.
+  Remote CI/independent review pending. Explicit directory enforcement is still
+  a separate gap; this does not yet establish transaction/promotion safety.
+- **Ponytail full-mode review:** reused Serde's unknown-field validation and the
+  existing active profile resolver; removed silent filtering from runtime reads.
+  No new parser/schema/dependency. Kept the old public filter helper only for
+  compatibility; runtime no longer uses it.

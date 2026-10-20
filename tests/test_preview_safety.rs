@@ -77,6 +77,7 @@ fn preview_preserves_release_archive_version_ignores_and_previous_cache() {
 #[test]
 fn preview_without_version_does_not_create_one() {
     let project = tempfile::tempdir().unwrap();
+    fs::write(project.path().join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\n").unwrap();
     fs::write(project.path().join("analysis.py"), "from pathlib import Path\nPath('_tmp').mkdir(exist_ok=True)\nPath('_tmp/result.txt').write_text('done')\n").unwrap();
     let root = camino::Utf8Path::from_path(project.path()).unwrap();
     proj::build_project(root, proj::BuildMode::Dev, None, None).unwrap();

@@ -284,7 +284,7 @@ fn main() {
                 }
 
                 if let Err(e) = proj::build_project(&camino::Utf8PathBuf::try_from(root).unwrap(), mode, profile.as_deref(), desc.as_deref()) {
-                    fail(format_args!("Build failed: {}", e));
+                    fail(format_args!("Build failed: {:#}", e));
                 } else {
                     println!("Build completed successfully.");
                 }
@@ -295,7 +295,7 @@ fn main() {
         Commands::BuildDev { profile } => {
             if let Some(root) = proj::root() {
                 if let Err(e) = proj::build_project(&camino::Utf8PathBuf::try_from(root).unwrap(), proj::BuildMode::Dev, profile.as_deref(), None) {
-                    fail(format_args!("Build failed: {}", e));
+                    fail(format_args!("Build failed: {:#}", e));
                 } else {
                     println!("Build completed successfully.");
                 }
