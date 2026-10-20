@@ -25,7 +25,7 @@ fn nested_scripts_and_hooks_execute_in_root_in_selected_order() {
     fs::create_dir_all(root.join("nested")).unwrap();
     config(&root, "nested/first.py, nested/second.py", "  hooks:\n    pre: [nested/pre.py]\n    post: [nested/post.py]\n");
     for name in ["pre", "first", "second", "post"] {
-        fs::write(root.join(format!("nested/{name}.py")), format!("from pathlib import Path\nimport os\nassert Path.cwd() == Path(os.environ['PROJ_PROJECT_ROOT'])\nwith open('order.txt', 'a') as f: f.write('{name}\\n')\n")).unwrap();
+        fs::write(root.join(format!("nested/{name}.py")), format!("from pathlib import Path\nimport os\nassert Path.cwd().samefile(Path(os.environ['PROJ_PROJECT_ROOT']))\nwith open('order.txt', 'a') as f: f.write('{name}\\n')\n")).unwrap();
     }
     let output = invoke(&root, false);
     assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
@@ -120,13 +120,17 @@ target.write_text('fresh artifact')
 
     #[test]
     fn unsupported_layouts_and_nested_quarto_roots_fail_before_writes() {
-        for case in ["nested-yml", "nested-yaml", "unknown", "multi", "malformed", "inherited", "rmd-custom"] {
+        for case in ["nested-yml", "nested-yaml", "unknown", "multi", "malformed", "inherited", "rmd-custom", "qmd-ext", "qmd-format-ext", "rmd-lib", "rmd-format-lib"] {
             let temp = tempfile::tempdir().unwrap();
             let root = temp.path().canonicalize().unwrap();
             fs::create_dir(root.join("nested")).unwrap();
-            let extension = if case == "rmd-custom" { "Rmd" } else { "qmd" };
+            let extension = if case.starts_with("rmd-") { "Rmd" } else { "qmd" };
             config(&root, &format!("nested/report.{extension}"), "");
             let body = match case {
+                "qmd-ext" => "---\nformat: html\noutput-ext: txt\n---\n",
+                "qmd-format-ext" => "---\nformat: {html: {output-ext: txt}}\n---\n",
+                "rmd-lib" => "---\noutput: html_document\nlib_dir: external\n---\n",
+                "rmd-format-lib" => "---\noutput: {html_document: {lib_dir: external}}\n---\n",
                 "unknown" => "---\nformat: mystery\n---\n",
                 "multi" => "---\nformat: {html: default, pdf: default}\n---\n",
                 "malformed" => "---\nformat: [\n---\n",

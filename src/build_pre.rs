@@ -107,7 +107,7 @@ pub(crate) fn individual_output_options(content: &str, is_rmd: bool) -> anyhow::
     } else { serde_yaml::Value::Mapping(Default::default()) };
     let mapping = metadata.as_mapping().context("Document YAML frontmatter must be a mapping")?;
     let get = |key: &str| mapping.get(serde_yaml::Value::String(key.to_owned()));
-    for key in ["output-dir", "output_dir", "metadata-files", "output_yaml", "output-yaml"] {
+    for key in ["output-dir", "output_dir", "output-ext", "output_ext", "lib_dir", "lib-dir", "metadata-files", "output_yaml", "output-yaml"] {
         if get(key).is_some() { anyhow::bail!("Individual rendering does not support external metadata or output-directory overrides"); }
     }
     if is_rmd && get("runtime").is_some_and(|value| !matches!(value.as_str(), Some("auto" | "static"))) {
@@ -120,7 +120,7 @@ pub(crate) fn individual_output_options(content: &str, is_rmd: bool) -> anyhow::
         Some(serde_yaml::Value::Mapping(formats)) if formats.len() == 1 => {
             let (name, options) = formats.iter().next().unwrap();
             if let Some(options) = options.as_mapping() {
-                if ["output-file", "output_file", "output-dir", "output_dir"].iter().any(|key| options.contains_key(serde_yaml::Value::String((*key).to_owned()))) {
+                if ["output-file", "output_file", "output-dir", "output_dir", "output-ext", "output_ext", "lib_dir", "lib-dir"].iter().any(|key| options.contains_key(serde_yaml::Value::String((*key).to_owned()))) {
                     anyhow::bail!("Format-specific output overrides are unsupported for individual rendering");
                 }
             } else if !options.is_null() && options.as_str() != Some("default") {

@@ -755,3 +755,8 @@ publication helper as build_project. A fake commit hook changing the endpoint is
 rejected before push. Explicit Git lookup anchors directories absolutely but preserves
 the candidate leaf spelling, supporting symlink-based name dispatchers; a fake
 git-to-dispatcher symlink regression prevents argv[0] canonicalization regressions.
+
+PR146 review additionally rejects document/format-specific output extension and
+library-directory overrides before writes; these are outside the modeled artifact
+and recovery layout. Windows execution-root fixtures compare filesystem identity,
+preserving the cwd requirement across ordinary/verbatim path spellings.
