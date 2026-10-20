@@ -119,6 +119,31 @@ target.write_text('fresh artifact')
     }
 
     #[test]
+    fn retained_markdown_overrides_cannot_overwrite_a_sibling_before_failing_post_hook() {
+        for metadata in ["output: html_document\nkeep_md: true", "output: html_document\nkeep-md: true", "output: {html_document: {keep_md: true}}", "output: {html_document: {keep-md: true}}"] {
+            let temp = tempfile::tempdir().unwrap();
+            let root = temp.path().canonicalize().unwrap();
+            fs::create_dir(root.join("nested")).unwrap();
+            config(&root, "nested/report.Rmd", "  hooks:\n    post: [post.py]\n");
+            fs::write(root.join("post.py"), "open('post-called', 'w').write('bad')\nraise SystemExit(17)\n").unwrap();
+            fs::write(root.join("nested/report.Rmd"), format!("---\n{metadata}\n---\n")).unwrap();
+            fs::write(root.join("nested/report.md"), "unrelated sibling sentinel").unwrap();
+            fs::write(root.join("expected-output"), "nested/report.html").unwrap();
+            fake(&root);
+            let renderer = root.join("bin/Rscript");
+            let script = fs::read_to_string(&renderer).unwrap().replace("(root / 'renderer-argv.json')", "(root / 'nested/report.md').write_text('overwritten')\n(root / 'renderer-argv.json')");
+            fs::write(renderer, script).unwrap();
+            let output = invoke(&root, true);
+            assert!(!output.status.success());
+            assert!(!root.join("renderer-argv.json").exists());
+            assert!(!root.join("post-called").exists());
+            assert_eq!(fs::read_to_string(root.join("nested/report.md")).unwrap(), "unrelated sibling sentinel");
+            assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");
+            assert!(!root.join(".gitignore").exists());
+        }
+    }
+
+    #[test]
     fn effective_quarto_root_must_match_explicit_proj_root_for_all_quarto_documents() {
         for case in ["ancestor", "nested-rmd-yml", "nested-rmd-yaml"] {
             let temp = tempfile::tempdir().unwrap();

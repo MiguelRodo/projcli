@@ -765,3 +765,8 @@ Effective ancestor Quarto projects are rejected when they differ from an explici
 selected inner proj root. Every selected document routed through Quarto, including
 Rmd, receives nested-root validation. Metadata traversal normalizes root/input
 filesystem identity before stopping, avoiding Windows namespace spelling differences.
+
+Retained Markdown (`keep_md` / `keep-md`, including format options) is rejected in
+individual layouts before rendering. A nested Rmd sibling sentinel regression with
+an overwrite-capable fake renderer and failing post-hook prevents this untracked
+framework artifact from damaging existing Markdown outside the recovery plan.
