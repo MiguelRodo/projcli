@@ -232,6 +232,10 @@ pub(crate) fn required_environment_keys(text: &str) -> anyhow::Result<Vec<(usize
 }
 
 fn validate_assignment(key: &str, value: &str) -> anyhow::Result<()> {
+    #[cfg(windows)]
+    if !key.is_ascii() {
+        anyhow::bail!("Non-ASCII environment assignment keys are unsupported on Windows; inherited native keys and values are preserved");
+    }
     if key.is_empty() || key.contains('=') || key.contains('\0') || value.contains('\0') {
         anyhow::bail!("Invalid environment key or value");
     }

@@ -138,3 +138,25 @@ fn inherited_ascii_key_case_remains_equivalent_on_windows() {
     assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
     assert_eq!(fs::read_to_string(root.join("case-value")).unwrap(), "inherited");
 }
+
+
+#[cfg(windows)]
+#[test]
+fn unicode_case_aliases_cannot_override_inherited_windows_environment_keys() {
+    for filename in ["_environment", "_environment.required"] {
+        let project = tempfile::tempdir().unwrap();
+        let root = project.path();
+        fs::write(root.join("_proj.yml"), "dev:\n  scripts: [analysis.py]\n").unwrap();
+        fs::write(root.join(filename), "PROJCLI_é=file\n").unwrap();
+        fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('analysis-ran').touch()\n").unwrap();
+        let result = Command::new(env!("CARGO_BIN_EXE_proj"))
+            .args(["build-dev", "--non-interactive", "--project"]).arg(root)
+            .env("PROJCLI_É", "parent")
+            .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
+            .output().unwrap();
+        assert!(!result.status.success());
+        assert!(String::from_utf8_lossy(&result.stderr).contains("Non-ASCII environment assignment keys"));
+        assert!(!root.join("analysis-ran").exists());
+        for absent in ["VERSION", ".gitignore", ".Rbuildignore"] { assert!(!root.join(absent).exists()); }
+    }
+}

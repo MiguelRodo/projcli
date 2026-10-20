@@ -647,3 +647,12 @@ The guarantee is bounded to the build path and commands receiving this context;
 unrelated external code that concurrently mutates std::env remains outside it.
 Native Git authentication/upstream policy and broader environment sanitization are
 separate unfinished work. R package and CAS code are unchanged.
+
+
+PR143 Windows review correction: inherited native keys/values are passed through,
+but non-ASCII assignment/required keys in environment files are rejected early
+with a precise diagnostic. This deliberately bounded support avoids approximating
+Windows Unicode case identity and allowing a file alias to override an inherited
+key. ASCII case precedence and native non-Unicode values retain their dedicated
+platform tests. Unicode alias rejection is tested on Windows before analysis or
+authoritative writes; complete Unicode assignment-key support is not claimed.
