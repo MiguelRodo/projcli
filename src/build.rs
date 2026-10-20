@@ -56,6 +56,10 @@ pub fn post_build_sync(config: &GlobalConfig, repo_dir: camino::Utf8PathBuf) -> 
 }
 
 pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profile: Option<&str>, description: Option<&str>) -> anyhow::Result<()> {
+    let resolved_root = crate::project::resolve_project_root(Some(project_root))?;
+    let project_root = resolved_root.as_path();
+    let mut root_guard = crate::env::EnvGuard::new();
+    root_guard.track_and_set(crate::project::PROJECT_ROOT_ENV, project_root.as_str());
     let is_dev = mode == BuildMode::Dev;
     let is_prod_run = matches!(mode, BuildMode::ProdMajor | BuildMode::ProdMinor | BuildMode::ProdPatch);
 
