@@ -257,6 +257,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#correctness-audit" id="toc-correctness-audit" class="nav-link" data-scroll-target="#correctness-audit">Correctness audit</a></li>
   <li><a href="#reference-material" id="toc-reference-material" class="nav-link" data-scroll-target="#reference-material">Reference material</a></li>
   <li><a href="#build-environment-context" id="toc-build-environment-context" class="nav-link" data-scroll-target="#build-environment-context">Build environment context</a></li>
+  <li><a href="#explicit-git-operations" id="toc-explicit-git-operations" class="nav-link" data-scroll-target="#explicit-git-operations">Explicit Git operations</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -338,6 +339,10 @@ ul.task-list li input[type="checkbox"] {
 <section id="build-environment-context" class="level2">
 <h2 class="anchored" data-anchor-id="build-environment-context">Build environment context</h2>
 <p>Builds resolve one environment snapshot and pass it to their child commands and configuration-profile selection. Environment files do not mutate the parent process on this path. Inherited OS values win over local, earlier environment profiles and base assignments; explicit build profiles override inherited PROJR_PROFILE. The same values reach dependency probes, scripts/hooks/renderers and existing Git helpers. Direct public legacy EnvGuard APIs and CLI startup guards still mutate process state and are not concurrent environment APIs. This change does not approve credential injection policy or establish a sanitized/sandboxed environment.</p>
+</section>
+<section id="explicit-git-operations" class="level2">
+<h2 class="anchored" data-anchor-id="explicit-git-operations">Explicit Git operations</h2>
+<p>Git commits, pushes and network/upstream checks default off even when Git metadata exists. Only the resolved configured actions execute. Commit-enabled builds require clean initial Git state to avoid sweeping in unrelated edits; no-op commits succeed. Push captures the current branch’s configured upstream remote/reference before build writes. Missing upstream and unmodeled custom push-only routing fail early. Native authentication is the default. An explicit token-helper opt-in uses fixed host-scoped code and ephemeral environment data, never secret argv/source or persistent credentials. Local build success remains distinct from publication failure.</p>
 
 
 </section>

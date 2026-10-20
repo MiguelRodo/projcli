@@ -280,7 +280,7 @@ ul.task-list li input[type="checkbox"] {
 <section id="publication-after-local-success" class="level2">
 <h2 class="anchored" data-anchor-id="publication-after-local-success">Publication after local success</h2>
 <p>Storage export and Git publication start after successful local completion. Export actual declared content before requested <code>clear_output: post</code> cleanup. Create one configured final Git commit, then push when enabled. A publication or later cleanup failure reports that local analysis succeeded and retains its release/version; external publication is not rolled back.</p>
-<p>Git upstream/authentication policy, stable attempt/release records and an analysis-free publication retry command remain unfinished. Existing Git push code still targets origin/main and must not be mistaken for the final policy.</p>
+<p>Git upstream/authentication policy, stable attempt/release records and an analysis-free publication retry command remain unfinished. Push uses the captured current-branch upstream; custom push-only routing remains unsupported and fails before authoritative writes. Native authentication is the default.</p>
 </section>
 <section id="development-previews-and-remaining-renderer-gaps" class="level2">
 <h2 class="anchored" data-anchor-id="development-previews-and-remaining-renderer-gaps">Development previews and remaining renderer gaps</h2>

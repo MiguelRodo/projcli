@@ -291,7 +291,7 @@ ul.task-list li input[type="checkbox"] {
 <p>The <code>_proj.yml</code> file supports a top-level <code>config</code> block for project-wide settings:</p>
 <ul>
 <li><strong><code>config.git.engine</code></strong>: The Git execution engine to use. Can be <code>auto</code> (default) or <code>system</code>. This determines how the CLI interfaces with Git capabilities natively.</li>
-<li><strong><code>config.git.use_proj_cred_helper</code></strong>: Boolean (defaults to <code>true</code>). Enables the project’s internal GitHub token discovery and credential injection for required remote Git operations. It evaluates sources in strict order (Environment variables <code>GITHUB_PAT</code>/<code>GH_TOKEN</code>/<code>GITHUB_TOKEN</code>, system Git credential helper, and GitHub CLI) to securely override credentials per-command and prevent freezing on interactive prompts.</li>
+<li><strong><code>config.git.use_proj_cred_helper</code></strong>: Defaults to <code>false</code>: use existing native Git authentication. Explicit <code>true</code> permits an existing single-line <code>GITHUB_PAT</code>, <code>GH_TOKEN</code> or <code>GITHUB_TOKEN</code> for standard HTTPS github.com remotes through a temporary host-scoped helper. There is no automatic token discovery or GitHub CLI call during builds. Tokens are environment data, never argv or shell source; persistent auth settings are unchanged.</li>
 </ul>
 </section>
 <section id="parameters-configuration" class="level2">
@@ -325,21 +325,21 @@ ul.task-list li input[type="checkbox"] {
 </ul></li>
 <li><strong><code>hooks</code></strong>: An optional map of lifecycle hook scripts to execute.
 <ul>
-<li><strong><code>pre</code></strong>: Scripts executed before the actual build phase and Git pre-snapshot.</li>
-<li><strong><code>post</code></strong>: Scripts executed after the finalized post-build Git commit.</li>
+<li><strong><code>pre</code></strong>: Scripts executed before the actual build phase.</li>
+<li><strong><code>post</code></strong>: Scripts executed after analysis/promotion, before VERSION and publication.</li>
 <li><strong><code>both</code></strong>: Scripts executed during both <code>pre</code> and <code>post</code> phases.</li>
 </ul></li>
 <li><strong><code>profile</code></strong>: An optional environment profile identifier. When set, the system injects the <code>PROJR_PROFILE</code> environment variable into the isolated subprocess for all executed scripts and project rendering commands. This can be overridden at runtime via the <code>--profile</code> CLI flag.</li>
 <li><strong><code>git</code></strong>: An optional Git integration configuration. This can be a boolean toggle or an object mapping out detailed toggles:
 <ul>
-<li><strong><code>commit</code></strong>: Controls legacy pre/post-build commits. The current runtime can enable commits merely because <code>.git</code> exists; set <code>build.git: false</code> to disable this. The approved explicit-only policy is still under development; see the safety audit.</li>
-<li><strong><code>push</code></strong>: Whether to automatically push a successful build commit to the remote repository (defaults to false).</li>
+<li><strong><code>commit</code></strong>: Defaults to false, including inside an existing Git repository. Explicit true requires initially clean Git state and commits once after successful local build; an unchanged staged index is a successful no-op.</li>
+<li><strong><code>push</code></strong>: Defaults to false. Explicit true publishes HEAD to the current branch’s configured upstream remote/reference. Missing upstream or custom push-only routing fails before build writes; origin/main is never invented.</li>
 </ul></li>
 <li><strong><code>restrictions</code></strong>: Configuration block to enforce Git checks specifically during production builds:
 <ul>
 <li><strong><code>only_branches</code></strong>: A list of allowed branch names. Production builds will abort if the current branch is not in this list.</li>
 <li><strong><code>not_branches</code></strong>: A list of restricted branch names. Production builds will abort if the current branch is in this list.</li>
-<li><strong><code>not_behind</code></strong>: Boolean (defaults to <code>true</code>). If enabled, production builds will verify that the local branch has an upstream tracking remote and is not behind it, aborting if the local branch needs to pull upstream changes.</li>
+<li><strong><code>not_behind</code></strong>: Omitted/false performs no fetch. Explicit <code>true</code> fetches the current configured upstream and compares its state. If enabled, production builds will verify that the local branch has an upstream tracking remote and is not behind it, aborting if the local branch needs to pull upstream changes.</li>
 </ul></li>
 <li><strong><code>clear_output</code></strong>: An optional string controlling workspace clearing routines for output directories. Can be set to <code>"pre"</code>, <code>"post"</code>, or <code>"never"</code>. If omitted, defaults to evaluating the <code>PROJR_CLEAR_OUTPUT</code> environment variable.</li>
 </ul>
