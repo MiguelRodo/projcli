@@ -23,8 +23,8 @@ them. Proposals require review before they become requirements.
 - A supported Quarto project's root must equal the proj root. Nested Quarto
   projects beneath that root are unsupported for now. Nested document files are
   distinct from nested Quarto projects.
-- Direct Quarto rendering through its R API or RStudio Render must agree with
-  proj-driven QMD rendering on evaluation directory and root-helper semantics.
+- QMD rendering through projr, `quarto::quarto_render()`, and RStudio QMD Render
+  must agree on evaluation directory and root-helper semantics.
   R Markdown Knit is a distinct entrypoint and must be verified separately.
   Shared project configuration and direct-entry root resolution are required;
   CLI-only flags or a parent process environment cannot establish this parity.
@@ -71,7 +71,7 @@ cwd changes and language frontends is not yet an established capability.
 Verify nested projects, explicit selection, paths containing spaces, shallow
 default enumeration, explicit subdirectory scripts, changed cwd, and each
 supported renderer's evaluation root. Compare the same nested QMD through
-proj, the direct Quarto R API and RStudio Render; test R Markdown Knit separately.
+projr, `quarto::quarto_render()`, and RStudio QMD Render; test R Markdown Knit separately.
 Reject a nested Quarto project clearly. Verify that direct rendering leaves
 proj-managed release/version/export state alone. Use tiny fixtures and remote CI where
 practical. Subprocess execution is not a security sandbox, and path hashes alone

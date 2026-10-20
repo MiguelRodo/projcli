@@ -39,7 +39,7 @@ the top-level Rust project.
 
 ## 5. Documentation Strategy
 - For every struct, enum, and public function implemented, you must immediately author inline Rust documentation comments (`///`).
-- Include a descriptive overview, details on expected parameters, edge cases/errors, and an executable markdown ````rust ... ```` code example block within the comments. This ensures that CLI help screens (`--help`) and API definitions stay perfectly synchronized.
+- Include a descriptive overview, expected parameters, edge cases/errors, and an executable Rust example where useful. Rustdoc checks validate Rust examples; separately verify CLI `--help` and command examples. Neither check alone proves that API behavior, CLI help and user documentation agree.
 - Run `cargo test --doc` to verify that the examples written inside your documentation comments actually compile and pass successfully.
 - Verify that running `cargo doc --no-deps` generates clean, complete API reference pages without warnings.
 
