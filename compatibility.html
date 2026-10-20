@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-9f363ccb86392c29656d21c3a07aec93.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-24c09a13944ec7e1f31d2917b1251fc2.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -221,6 +221,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#ponytail-source-verification-and-completed-chunk-review" id="toc-ponytail-source-verification-and-completed-chunk-review" class="nav-link" data-scroll-target="#ponytail-source-verification-and-completed-chunk-review">Ponytail source verification and completed-chunk review</a></li>
   <li><a href="#nearest-recognized-roots-current-change" id="toc-nearest-recognized-roots-current-change" class="nav-link" data-scroll-target="#nearest-recognized-roots-current-change">Nearest recognized roots (current change)</a></li>
   <li><a href="#superseding-configuration-failure-and-r-scope-decisions" id="toc-superseding-configuration-failure-and-r-scope-decisions" class="nav-link" data-scroll-target="#superseding-configuration-failure-and-r-scope-decisions">Superseding configuration, failure and R-scope decisions</a></li>
+  <li><a href="#future-r-wrapper-distribution-boundary" id="toc-future-r-wrapper-distribution-boundary" class="nav-link" data-scroll-target="#future-r-wrapper-distribution-boundary">Future R wrapper distribution boundary</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -350,6 +351,14 @@ ul.task-list li input[type="checkbox"] {
 <li><strong>Failure/publication target:</strong> restore pre-build state except permitted cache residue; storage/publication retry must not rerun or mislabel analysis. Existing staging/version/publication behavior does not yet prove that transaction.</li>
 <li><strong>Evidence/gaps:</strong> earlier CI entries remain accurate historical evidence for their source commits, not acceptance of the superseded no-config/default-path policy. Future fixtures must declare used paths and active configuration. The current core still needs enforcement and failure tests for the new rules.</li>
 <li><strong>Authorship boundary:</strong> the existing R package is entirely off limits, including root-helper fixes. A later backend port/integration must establish R parity; no such work or runtime comparison is claimed here. Thesis text remains untouched.</li>
+</ul>
+</section>
+<section id="future-r-wrapper-distribution-boundary" class="level2">
+<h2 class="anchored" data-anchor-id="future-r-wrapper-distribution-boundary">Future R wrapper distribution boundary</h2>
+<ul>
+<li><strong>Relationship: new/unverified design.</strong> The <a href="./r-wrapper-cran.html">durable CRAN note</a> records the discussed future R-code wrapper around a separately installed CLI, meaningful unconditional R-only/mocked tests, conditional executable integration on CRAN, and mandatory pinned/checksummed CLI integration in our own CI. It cites current policy and pinned Quarto precedent.</li>
+<li>No existing R code or tests were changed; no CRAN submission, agreement, preinstalled executable, automatic-download exemption or renderer parity is claimed. Implementation and runtime validation remain future work.</li>
+<li><strong>Ponytail full-mode design review:</strong> kept one linked design note; reused the repository’s behavior/compatibility/AGENTS pointers. No installer, wrapper, binding, mock framework or external contact was added speculatively.</li>
 </ul>
 
 
