@@ -80,7 +80,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-9f363ccb86392c29656d21c3a07aec93.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-24c09a13944ec7e1f31d2917b1251fc2.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -235,6 +235,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#resolution-rules" id="toc-resolution-rules" class="nav-link" data-scroll-target="#resolution-rules">Resolution Rules</a></li>
   <li><a href="#output-path-routing" id="toc-output-path-routing" class="nav-link" data-scroll-target="#output-path-routing">Output Path Routing</a></li>
+  <li><a href="#explicit-and-inherited-project-root" id="toc-explicit-and-inherited-project-root" class="nav-link" data-scroll-target="#explicit-and-inherited-project-root">Explicit and inherited project root</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -248,7 +249,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="proj-path-get" class="level1">
 <h1><code>proj path get</code></h1>
 <p>Get the resolved absolute path for a given label in the project.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> path get <span class="at">--label</span> <span class="op">&lt;</span>LABEL<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> path get <span class="at">--label</span> <span class="op">&lt;</span>LABEL<span class="op">&gt;</span> [--project <span class="op">&lt;</span>PATH<span class="op">&gt;</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <section id="resolution-rules" class="level2">
 <h2 class="anchored" data-anchor-id="resolution-rules">Resolution Rules</h2>
 <p>The path resolution mapping dynamically takes the target label and computes an absolute path to the sandbox resource.</p>
@@ -263,6 +264,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="output-path-routing" class="level2">
 <h2 class="anchored" data-anchor-id="output-path-routing">Output Path Routing</h2>
 <p>Output path labels securely route into versioned target sandboxes during an active project build. The tool guarantees the resolution produces verified absolute paths directly pointing to their intended source locations, enforcing standard separation across testing segregations and pure-function results.</p>
+</section>
+<section id="explicit-and-inherited-project-root" class="level2">
+<h2 class="anchored" data-anchor-id="explicit-and-inherited-project-root">Explicit and inherited project root</h2>
+<p><code>--project PATH</code> selects that exact existing directory, including a folder without configuration or VERSION. It overrides both ancestor discovery and an inherited run root. Invalid directories fail with a nonzero exit status.</p>
+<p>The CLI captures an absolute root as <code>PROJ_PROJECT_ROOT</code> for the invocation and its child processes. A nested <code>proj path get</code> uses that root even after a script changes cwd. An invalid inherited root fails rather than falling back silently. Direct Rust <code>build_project(root, ...)</code> calls also pass their supplied root to children. Discovery marker policy is unchanged by this slice.</p>
+<p>This establishes CLI child-query behavior, not direct Quarto/RStudio parity or changes to the existing R frontend. Renderer configuration, execution cwd, resource links and output placement remain separate concerns. Query ignore-file writes are a separate known gap.</p>
 
 
 </section>
