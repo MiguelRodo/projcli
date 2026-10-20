@@ -613,9 +613,9 @@ pub fn get_combined_yml(
 
 /// Requires a base file or an explicitly active profile configuration before building.
 /// Local overrides and inactive profiles alone do not establish an active configuration.
-pub(crate) fn require_active_configuration(base_dir: &Utf8Path) -> anyhow::Result<()> {
+pub(crate) fn require_active_configuration_for_profiles(base_dir: &Utf8Path, profiles: &[String]) -> anyhow::Result<()> {
     if base_configuration_path(base_dir)?.is_some() { return Ok(()); }
-    for profile in get_active_profiles() {
+    for profile in profiles {
         if configuration_entry_exists(&base_dir.join(format!("_projr-{profile}.yml")))? { return Ok(()); }
     }
     anyhow::bail!("Build requires active project configuration at the project root: _proj.yml, legacy _projr.yml, or an activated profile file. Create or activate root-level project configuration before building.");

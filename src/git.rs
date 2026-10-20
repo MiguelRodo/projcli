@@ -1,4 +1,5 @@
 use anyhow::Context;
+use crate::run_environment::RunEnvironment;
 use std::process::Command;
 
 use std::io::Write;
@@ -14,16 +15,17 @@ pub trait GitProvider {
 
 pub struct SystemGit {
     repo_path: camino::Utf8PathBuf,
+    environment: RunEnvironment,
 }
 
 impl SystemGit {
     pub fn new(repo_path: camino::Utf8PathBuf) -> Self {
-        Self { repo_path }
+        Self { repo_path, environment: RunEnvironment::inherited() }
     }
 
     // Helper to execute standard git actions safely with uniform string handling
     fn run_cmd(&self, args: &[&str]) -> anyhow::Result<String> {
-        let output = Command::new("git")
+        let output = self.environment.command("git")
             .current_dir(&self.repo_path)
             .args(args)
             .output()
@@ -40,7 +42,7 @@ impl SystemGit {
 impl GitProvider for SystemGit {
     fn is_available(&self) -> bool {
         // Quick check to see if the executable exists in PATH and runs
-        Command::new("git").arg("--version").output().is_ok()
+        self.environment.command("git").arg("--version").output().is_ok()
     }
 
     fn get_user_name(&self) -> Option<String> {
@@ -77,7 +79,11 @@ impl GitProvider for SystemGit {
 
 // Unified Factory pattern isolated away from your pipeline logic
 pub fn create_git_provider(engine: crate::yml::GitEngine, repo_path: camino::Utf8PathBuf) -> anyhow::Result<Box<dyn GitProvider>> {
-    let provider = Box::new(SystemGit::new(repo_path));
+    create_git_provider_in(engine, repo_path, &RunEnvironment::inherited())
+}
+
+pub(crate) fn create_git_provider_in(engine: crate::yml::GitEngine, repo_path: camino::Utf8PathBuf, environment: &RunEnvironment) -> anyhow::Result<Box<dyn GitProvider>> {
+    let provider = Box::new(SystemGit { repo_path, environment: environment.clone() });
 
     match engine {
         crate::yml::GitEngine::System | crate::yml::GitEngine::Auto => {
@@ -91,10 +97,14 @@ pub fn create_git_provider(engine: crate::yml::GitEngine, repo_path: camino::Utf
 }
 
 pub fn get_github_token() -> anyhow::Result<String> {
+    get_github_token_in(&RunEnvironment::inherited())
+}
+
+pub(crate) fn get_github_token_in(environment: &RunEnvironment) -> anyhow::Result<String> {
     // Track A: Environment Context Inspection
     let env_vars = ["GITHUB_PAT", "GH_TOKEN", "GITHUB_TOKEN"];
     for var in &env_vars {
-        if let Ok(val) = std::env::var(var) {
+        if let Some(val) = environment.text(var) {
             let trimmed = val.trim();
             if !trimmed.is_empty() {
                 return Ok(trimmed.to_string());
@@ -103,7 +113,7 @@ pub fn get_github_token() -> anyhow::Result<String> {
     }
 
     // Track B: System Git Credential Helper Interrogation
-    let mut child = Command::new("git")
+    let mut child = environment.command("git")
         .args(["credential", "fill"])
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
@@ -129,7 +139,7 @@ pub fn get_github_token() -> anyhow::Result<String> {
     }
 
     // Track C: GitHub CLI Engine Query
-    if let Ok(output) = Command::new("gh").args(["auth", "token"]).output() {
+    if let Ok(output) = environment.command("gh").args(["auth", "token"]).output() {
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             let trimmed = stdout.trim();
@@ -144,11 +154,15 @@ pub fn get_github_token() -> anyhow::Result<String> {
 }
 
 pub fn execute_authenticated_git(args: &[&str], token: &str, current_dir: Option<&camino::Utf8Path>) -> anyhow::Result<()> {
+    execute_authenticated_git_in(args, token, current_dir, &RunEnvironment::inherited())
+}
+
+pub(crate) fn execute_authenticated_git_in(args: &[&str], token: &str, current_dir: Option<&camino::Utf8Path>, environment: &RunEnvironment) -> anyhow::Result<()> {
     // Construct an inline script helper string that Git will execute to read the password.
     // Git credential helpers expect output formatted as key=value lines.
     let inline_helper = format!("!f() {{ echo \"password={}\"; }}; f", token);
 
-    let mut cmd = Command::new("git");
+    let mut cmd = environment.command("git");
 
     // Wipe out standard global credential helpers for this command context only
     cmd.arg("-c")
@@ -172,7 +186,11 @@ pub fn execute_authenticated_git(args: &[&str], token: &str, current_dir: Option
 
 /// Returns true if executing `git --version` succeeds.
 pub fn is_git_installed() -> bool {
-    Command::new("git")
+    is_git_installed_in(&RunEnvironment::inherited())
+}
+
+pub(crate) fn is_git_installed_in(environment: &RunEnvironment) -> bool {
+    environment.command("git")
         .arg("--version")
         .output()
         .map(|out| out.status.success())
@@ -182,8 +200,12 @@ pub fn is_git_installed() -> bool {
 /// Queries local, global, and system variables via `git config --get user.name` and `git config --get user.email`.
 /// If either stdout buffer returns blank or throws an error, return an explicit error string detailing exactly what config parameter is missing and how the user can configure it.
 pub fn check_git_profile(current_dir: Option<&camino::Utf8Path>) -> anyhow::Result<()> {
+    check_git_profile_in(current_dir, &RunEnvironment::inherited())
+}
+
+pub(crate) fn check_git_profile_in(current_dir: Option<&camino::Utf8Path>, environment: &RunEnvironment) -> anyhow::Result<()> {
     let check_config = |key: &str| -> anyhow::Result<()> {
-        let mut cmd = Command::new("git");
+        let mut cmd = environment.command("git");
         cmd.args(["config", "--get", key]);
         if let Some(dir) = current_dir {
             cmd.current_dir(dir);

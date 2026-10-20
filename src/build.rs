@@ -39,9 +39,10 @@ pub enum BuildMode {
 /// std::fs::write(temp.path().join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: []\n  git:\n    commit: false\n    push: false\nconfig:\n  git:\n    use_proj_cred_helper: false").unwrap();
 /// build_project(camino::Utf8Path::from_path(temp.path()).unwrap(), BuildMode::ProdPatch, None, None).unwrap();
 /// ```
-use crate::git::{is_git_installed, check_git_profile, create_git_provider};
+use crate::git::{is_git_installed_in, check_git_profile_in, create_git_provider, create_git_provider_in};
+use crate::run_environment::RunEnvironment;
 use crate::yml::GlobalConfig;
-use crate::build_pre::run_pre_flight_checks;
+use crate::build_pre::run_pre_flight_checks_in;
 
 pub fn post_build_sync(config: &GlobalConfig, repo_dir: camino::Utf8PathBuf) -> anyhow::Result<()> {
     let provider = create_git_provider(config.git.engine, repo_dir)?;
@@ -62,19 +63,21 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     let is_prod_run = matches!(mode, BuildMode::ProdMajor | BuildMode::ProdMinor | BuildMode::ProdPatch);
 
     // ==========================================
-    // STEP A: Activate Environment Guard
+    // STEP A: Resolve Per-Run Environment
     // ==========================================
     // Load inputs without writing ignores; configuration errors must stay read-only.
-    let _env_guard = crate::env::EnvGuard::activate_for_preview(cli_profile, project_root)
-        .context("Failed to activate environment guard")?;
+    let mut environment = RunEnvironment::resolve(cli_profile, project_root)
+        .context("Failed to resolve build environment")?;
+    environment.set(crate::PROJECT_ROOT_ENV, project_root.as_str());
 
     // ==========================================
     // STEP B: Pre-Build Validation & Execution
     // ==========================================
 
     // 1. Config Audit
-    crate::yml::require_active_configuration(project_root)?;
-    let combined = crate::yml::get_combined_yml(None, project_root)
+    let selected_profile = environment.text("PROJR_PROFILE").unwrap_or_default();
+    crate::yml::require_active_configuration_for_profiles(project_root, &crate::profile::parse_active_profiles(selected_profile))?;
+    let combined = crate::yml::get_combined_yml(Some(selected_profile), project_root)
         .context("Failed to read project configuration")?;
     let project_config: ProjConfig = serde_json::from_value(combined)
         .context("Failed to deserialize combined configuration")?;
@@ -83,11 +86,11 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
 
     // 2. Git Capability Audit
     if config.git.commit {
-        if !is_git_installed() {
+        if !is_git_installed_in(&environment) {
             anyhow::bail!("Git is required for commit but not found on system PATH");
         }
         // TODO: migrate to camino
-        check_git_profile(Some(project_root)).context("Failed to check Git profile capability")?;
+        check_git_profile_in(Some(project_root), &environment).context("Failed to check Git profile capability")?;
     }
 
     // 3. Resolve configs and hooks
@@ -220,13 +223,14 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
         }
     }
 
-    let (_resolved_token, resolved_python_cmd) = run_pre_flight_checks(
+    let (_resolved_token, resolved_python_cmd) = run_pre_flight_checks_in(
         project_root,
         &config,
         is_prod_run,
         &validation_files,
         quarto_exists,
         bookdown_exists,
+        &environment,
     )?;
 
     // Capture exact local state before the first controlled project mutation.
@@ -295,8 +299,8 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
             }
             crate::ignore::update_ignores(project_root, &config)?;
         }
-        let clear_output_env = std::env::var("PROJR_CLEAR_OUTPUT").ok();
-        let clear_output_val = clear_output_env.as_deref().or(config.clear_output.as_deref());
+        let clear_output_env = environment.text("PROJR_CLEAR_OUTPUT");
+        let clear_output_val = clear_output_env.or(config.clear_output.as_deref());
         if !is_dev && run_analysis {
             crate::clear::clear_old(project_root, &config, &current_version, false, config.old_dev_remove)?;
             crate::clear::clear_pre(project_root, &current_version, &config, clear_output_val)?;
@@ -318,7 +322,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
         for hooks in [&hooks_config.pre, &hooks_config.both] {
             if let Some(hooks) = hooks {
                 for hook in resolve_explicit_scripts(project_root, hooks)? {
-                    execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref())?;
+                    execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref(), &environment)?;
                 }
             }
         }
@@ -339,7 +343,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
                 }
             }
         }
-        execute_build_pipeline(project_root, build_scripts.clone(), profile.clone(), quarto_exists, bookdown_exists, resolved_python_cmd.as_deref())?;
+        execute_build_pipeline(project_root, build_scripts.clone(), profile.clone(), quarto_exists, bookdown_exists, resolved_python_cmd.as_deref(), &environment)?;
         restore_engines()?;
         if !is_dev && run_analysis && has_document_analysis && config.output_run.unwrap_or(true) {
             let docs = config.get_path(project_root, "docs")?;
@@ -361,7 +365,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
         for hooks in [&hooks_config.post, &hooks_config.both] {
             if let Some(hooks) = hooks {
                 for hook in resolve_explicit_scripts(project_root, hooks)? {
-                    execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref())?;
+                    execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref(), &environment)?;
                 }
             }
         }
@@ -400,8 +404,8 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
         }
         // Export the built bytes before requested post-output cleanup.
         if run_analysis {
-            let clear_output_env = std::env::var("PROJR_CLEAR_OUTPUT").ok();
-            crate::clear::clear_post(project_root, false, &config, clear_output_env.as_deref().or(config.clear_output.as_deref()), false)?;
+            let clear_output_env = environment.text("PROJR_CLEAR_OUTPUT");
+            crate::clear::clear_post(project_root, false, &config, clear_output_env.or(config.clear_output.as_deref()), false)?;
         }
         if config.git.commit {
             let version = initial_version.to_string(false);
@@ -409,7 +413,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
                 Some(description) if !description.trim().is_empty() => format!("Build v{version}: {}", description.trim()),
                 _ => format!("Build v{version}"),
             };
-            let provider = create_git_provider(config.config.git.engine, project_root.to_path_buf())?;
+            let provider = create_git_provider_in(config.config.git.engine, project_root.to_path_buf(), &environment)?;
             provider.commit_all(&message)?;
             if config.git.push { provider.push("origin", "main")?; }
         }
@@ -425,6 +429,7 @@ fn execute_build_pipeline(
     quarto_exists: bool,
     bookdown_exists: bool,
     resolved_python_cmd: Option<&str>,
+    environment: &RunEnvironment,
 ) -> anyhow::Result<()> {
     if let Some(scripts) = build_scripts {
         // Path A: Explicit Configuration via build.scripts
@@ -482,28 +487,28 @@ fn execute_build_pipeline(
             // Execute pre-scripts
             for script in pre_scripts {
                 let p = profile.clone();
-                execute_script(project_root, &script, p.as_deref(), resolved_python_cmd)?;
+                execute_script(project_root, &script, p.as_deref(), resolved_python_cmd, environment)?;
             }
 
             // Execute doc clusters
             if quarto_exists && !doc_files.is_empty() {
                 let p = profile.clone();
-                execute_project_render(project_root, true, p.as_deref())?;
+                execute_project_render(project_root, true, p.as_deref(), environment)?;
             } else if bookdown_exists && !doc_files.is_empty() {
                 let p = profile.clone();
-                execute_project_render(project_root, false, p.as_deref())?;
+                execute_project_render(project_root, false, p.as_deref(), environment)?;
             }
 
             // Execute post-scripts
             for script in post_scripts {
                 let p = profile.clone();
-                execute_script(project_root, &script, p.as_deref(), resolved_python_cmd)?;
+                execute_script(project_root, &script, p.as_deref(), resolved_python_cmd, environment)?;
             }
         } else {
             // No project files, just execute in exact relative order
             for file in resolved_files {
                 let p = profile.clone();
-                execute_script(project_root, &file, p.as_deref(), resolved_python_cmd)?;
+                execute_script(project_root, &file, p.as_deref(), resolved_python_cmd, environment)?;
             }
         }
 
@@ -515,13 +520,13 @@ fn execute_build_pipeline(
 
         // Path B: Fallback Automated Auto-Discovery
         if quarto_exists {
-            execute_project_render(project_root, true, profile.as_deref())?;
+            execute_project_render(project_root, true, profile.as_deref(), environment)?;
         } else if bookdown_exists {
-            execute_project_render(project_root, false, profile.as_deref())?;
+            execute_project_render(project_root, false, profile.as_deref(), environment)?;
         } else {
             let resolved_files = resolve_fallback_scripts(project_root)?;
             for file in resolved_files {
-                execute_script(project_root, &file, profile.as_deref(), resolved_python_cmd)?;
+                execute_script(project_root, &file, profile.as_deref(), resolved_python_cmd, environment)?;
             }
         }
     }
@@ -787,7 +792,6 @@ pub(crate) fn resolve_fallback_scripts(project_root: &camino::Utf8Path) -> anyho
     Ok(files)
 }
 
-use std::process::Command;
 use anyhow::Context;
 
 /// Promotes one rendered R Markdown document after validating all destinations.
@@ -911,28 +915,28 @@ pub fn copy_global_quarto_project(cache_docs_dir: &camino::Utf8Path, final_docs_
 }
 
 /// Executes a single script in an isolated subprocess.
-fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Path, profile: Option<&str>, resolved_python_cmd: Option<&str>) -> anyhow::Result<()> {
+fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Path, profile: Option<&str>, resolved_python_cmd: Option<&str>, environment: &RunEnvironment) -> anyhow::Result<()> {
     let parent_dir = script_path.parent().unwrap_or(camino::Utf8Path::new(""));
     let ext = script_path.extension().unwrap_or("");
     let mut cmd = match ext {
         "R" => {
-            let mut c = Command::new("Rscript");
+            let mut c = environment.command("Rscript");
             c.arg(script_path.as_std_path());
             c
         },
         "py" => {
             let python_exe = resolved_python_cmd.unwrap_or("python");
-            let mut c = Command::new(python_exe);
+            let mut c = environment.command(python_exe);
             c.arg(script_path.as_std_path());
             c
         },
         "qmd" => {
-            let mut c = Command::new("quarto");
+            let mut c = environment.command("quarto");
             c.arg("render").arg(script_path.as_std_path());
             c
         },
         "Rmd" => {
-            let mut c = Command::new("Rscript");
+            let mut c = environment.command("Rscript");
             c.arg("-e").arg(format!("rmarkdown::render('{}')", script_path.file_name().unwrap()));
             c
         },
@@ -943,7 +947,7 @@ fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Pat
 
     // TODO: migrate to camino
     cmd.current_dir(parent_dir.as_std_path());
-    if crate::env::is_non_interactive() {
+    if environment.non_interactive() {
         cmd.stdin(std::process::Stdio::null());
     }
     cmd.env(crate::project::PROJECT_ROOT_ENV, project_root.as_str());
@@ -960,20 +964,20 @@ fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Pat
 }
 
 /// Executes a quarto or bookdown project render.
-fn execute_project_render(project_root: &camino::Utf8Path, is_quarto: bool, profile: Option<&str>) -> anyhow::Result<()> {
+fn execute_project_render(project_root: &camino::Utf8Path, is_quarto: bool, profile: Option<&str>, environment: &RunEnvironment) -> anyhow::Result<()> {
     let mut cmd = if is_quarto {
-        let mut c = Command::new("quarto");
+        let mut c = environment.command("quarto");
         c.arg("render");
         c
     } else {
-        let mut c = Command::new("Rscript");
+        let mut c = environment.command("Rscript");
         c.arg("-e").arg("rmarkdown::render_site()");
         c
     };
 
     // TODO: migrate to camino
     cmd.current_dir(project_root.as_std_path());
-    if crate::env::is_non_interactive() {
+    if environment.non_interactive() {
         cmd.stdin(std::process::Stdio::null());
     }
     cmd.env(crate::project::PROJECT_ROOT_ENV, project_root.as_str());

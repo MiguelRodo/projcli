@@ -105,16 +105,7 @@ impl EnvGuard {
     /// Loads environment variables from the given file, setting them via `track_and_set`
     /// only if they are not already set in the current process.
     pub fn load_file(&mut self, path: &Utf8Path) -> anyhow::Result<()> {
-        let text = fs::read_to_string(path).with_context(|| format!("Cannot read environment file {path}"))?;
-        let mut entries = Vec::new();
-        for (index, line) in text.lines().enumerate() {
-            if let Some((key, value)) = Self::parse_line(line) {
-                validate_assignment(&key, &value).with_context(|| format!("Invalid environment assignment at {path}:{}", index + 1))?;
-                entries.push((key, value));
-            } else if line.contains('\0') {
-                anyhow::bail!("Invalid environment assignment at {path}:{}", index + 1);
-            }
-        }
+        let entries = read_environment_file(path)?;
         // Validate the entire file before applying any assignment from it.
         for (key, value) in entries {
             if std::env::var_os(&key).is_none() { self.track_and_set(&key, &value)?; }
@@ -182,16 +173,8 @@ impl EnvGuard {
         if crate::yml::configuration_entry_exists(&required_file)? {
             let text = fs::read_to_string(&required_file)
                 .with_context(|| format!("Cannot read required environment file {required_file}"))?;
-            for (index, line) in text.lines().enumerate() {
-                let trimmed = line.trim();
-                if trimmed.is_empty() || trimmed.starts_with('#') { continue; }
-                let key = if let Some((key, _)) = trimmed.split_once('=') { key.trim() }
-                    else {
-                        trimmed.split_once('#').filter(|(before, _)| before.chars().last().is_some_and(char::is_whitespace))
-                            .map_or(trimmed, |(before, _)| before).trim()
-                    };
-                validate_assignment(key, trimmed).with_context(|| format!("Invalid required environment entry at {required_file}:{}", index + 1))?;
-                if std::env::var_os(key).is_none() {
+            for (index, key) in required_environment_keys(&text)? {
+                if std::env::var_os(&key).is_none() {
                     anyhow::bail!("Required environment variable is missing (entry {} in {required_file})", index + 1);
                 }
             }
@@ -218,7 +201,41 @@ impl EnvGuard {
     }
 }
 
+pub(crate) fn read_environment_file(path: &Utf8Path) -> anyhow::Result<Vec<(String, String)>> {
+    let text = fs::read_to_string(path).with_context(|| format!("Cannot read environment file {path}"))?;
+    let mut entries = Vec::new();
+    for (index, line) in text.lines().enumerate() {
+        if let Some((key, value)) = EnvGuard::parse_line(line) {
+        validate_assignment(&key, &value).with_context(|| format!("Invalid environment assignment at {path}:{}", index + 1))?;
+        entries.push((key, value));
+        } else if line.contains('\0') {
+        anyhow::bail!("Invalid environment assignment at {path}:{}", index + 1);
+        }
+    }
+    Ok(entries)
+}
+
+pub(crate) fn required_environment_keys(text: &str) -> anyhow::Result<Vec<(usize, String)>> {
+    let mut entries = Vec::new();
+    for (index, line) in text.lines().enumerate() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') { continue; }
+        let key = if let Some((key, _)) = trimmed.split_once('=') { key.trim() }
+            else {
+                trimmed.split_once('#').filter(|(before, _)| before.chars().last().is_some_and(char::is_whitespace))
+                    .map_or(trimmed, |(before, _)| before).trim()
+            };
+        validate_assignment(key, trimmed).with_context(|| format!("Invalid required environment entry at line {}", index + 1))?;
+        entries.push((index, key.to_owned()));
+    }
+    Ok(entries)
+}
+
 fn validate_assignment(key: &str, value: &str) -> anyhow::Result<()> {
+    #[cfg(windows)]
+    if !key.is_ascii() {
+        anyhow::bail!("Non-ASCII environment assignment keys are unsupported on Windows; inherited native keys and values are preserved");
+    }
     if key.is_empty() || key.contains('=') || key.contains('\0') || value.contains('\0') {
         anyhow::bail!("Invalid environment key or value");
     }
