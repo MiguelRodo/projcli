@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Install – projcli</title>
+<title>Install the development preview – projcli</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -164,7 +164,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Install</li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Install the development preview</li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -282,11 +282,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#ubuntu-and-wsl-ubuntu" id="toc-ubuntu-and-wsl-ubuntu" class="nav-link active" data-scroll-target="#ubuntu-and-wsl-ubuntu">Ubuntu and WSL Ubuntu</a></li>
-  <li><a href="#building-from-source" id="toc-building-from-source" class="nav-link" data-scroll-target="#building-from-source">Building from source</a></li>
-  <li><a href="#check-which-command-you-have" id="toc-check-which-command-you-have" class="nav-link" data-scroll-target="#check-which-command-you-have">Check which command you have</a></li>
-  <li><a href="#other-systems" id="toc-other-systems" class="nav-link" data-scroll-target="#other-systems">Other systems</a></li>
-  <li><a href="#extra-tools-depend-on-your-project" id="toc-extra-tools-depend-on-your-project" class="nav-link" data-scroll-target="#extra-tools-depend-on-your-project">Extra tools depend on your project</a></li>
+  <li><a href="#choose-the-preview-explicitly" id="toc-choose-the-preview-explicitly" class="nav-link active" data-scroll-target="#choose-the-preview-explicitly">Choose the preview explicitly</a></li>
+  <li><a href="#ubuntu-and-wsl-ubuntu" id="toc-ubuntu-and-wsl-ubuntu" class="nav-link" data-scroll-target="#ubuntu-and-wsl-ubuntu">Ubuntu and WSL Ubuntu</a></li>
+  <li><a href="#windows" id="toc-windows" class="nav-link" data-scroll-target="#windows">Windows</a></li>
+  <li><a href="#finding-the-command-later" id="toc-finding-the-command-later" class="nav-link" data-scroll-target="#finding-the-command-later">Finding the command later</a></li>
+  <li><a href="#what-the-checksum-proves" id="toc-what-the-checksum-proves" class="nav-link" data-scroll-target="#what-the-checksum-proves">What the checksum proves</a></li>
+  <li><a href="#start-small" id="toc-start-small" class="nav-link" data-scroll-target="#start-small">Start small</a></li>
   </ul>
 </nav>
     </div>
@@ -295,8 +296,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Install</h1>
-<p class="subtitle lead">Choose a version before you choose an installation method.</p>
+<h1 class="title">Install the development preview</h1>
+<p class="subtitle lead">Download a checked binary. No Rust compiler or administrator access needed.</p>
 </div>
 
 
@@ -326,53 +327,82 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Use sample data or a disposable copy of your project. Production builds (<code>proj build</code>) can modify or remove files, and safety fixes are still pending. <strong>Never run production builds on the only copy of important work.</strong> Previews are not a security sandbox; code you run can still change files.</p>
 </div>
 </div>
-<div class="callout callout-style-default callout-warning callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Warning</span>Release transition
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>The published v0.3.0 package predates the recent development changes. The repaired release and installer routes are still being verified. A current binary-download route is not yet recommended. The source-build route below has been checked in Ubuntu CI and requires Rust.</p>
-</div>
-</div>
+<section id="choose-the-preview-explicitly" class="level2">
+<h2 class="anchored" data-anchor-id="choose-the-preview-explicitly">Choose the preview explicitly</h2>
+<p>The published <a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1">v0.4.0-preview.1</a> is an early development release. These instructions pin that version. GitHub’s stable <strong>Latest</strong> release is still v0.3.0; it does not contain the current preview features or the new binary-delivery metadata.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Download</th>
+<th>Requirements</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Linux / WSL Ubuntu</td>
+<td>x86-64 processor, glibc 2.35 or newer; Bash, <code>curl</code> and <code>sha256sum</code> or <code>shasum</code>. Ubuntu 22.04 or newer meets the glibc requirement; user-local installation was verified in WSL Ubuntu 24.04.</td>
+</tr>
+<tr class="even">
+<td>Windows</td>
+<td>x86-64 processor; use PowerShell 7 (<code>pwsh</code>) for the installer below.</td>
+</tr>
+<tr class="odd">
+<td>macOS / ARM</td>
+<td>No binaries supplied for this preview.</td>
+</tr>
+</tbody>
+</table>
+<p>You do not need Git, Rust, Cargo or administrator access to install these binaries. The <a href="./tutorial.html">Python tutorial</a> additionally needs Python 3. Other analysis tools are needed only if your own scripts or reports use them.</p>
+</section>
 <section id="ubuntu-and-wsl-ubuntu" class="level2">
 <h2 class="anchored" data-anchor-id="ubuntu-and-wsl-ubuntu">Ubuntu and WSL Ubuntu</h2>
-<p>Run Linux commands <strong>inside Ubuntu</strong>, including when Ubuntu runs through WSL. For the first analysis example you need:</p>
-<ul>
-<li>The current preview build of projcli, with its source revision recorded.</li>
-<li>Python 3, including a <code>python3</code> command.</li>
-<li>A terminal and a writable folder for the example.</li>
-</ul>
-<p>Check Python:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">--version</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The <a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.3.0">published v0.3.0 release</a> has an <code>amd64.deb</code> asset for Debian-style systems on x86-64 processors. It is a historical package, not the current preview used by this tutorial. No current-preview download command is listed here until the replacement release has been checked.</p>
+<p>Run this <strong>inside Ubuntu</strong>, not in a Windows terminal. Check that <code>uname -m</code> reports <code>x86_64</code> and <code>getconf GNU_LIBC_VERSION</code> reports glibc 2.35 or newer.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> <span class="st">"</span><span class="va">$HOME</span><span class="st">/.local/bin"</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="va">installer</span><span class="op">=</span><span class="st">"</span><span class="va">$(</span><span class="fu">mktemp</span><span class="va">)</span><span class="st">"</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-fsSL</span> <span class="st">"https://raw.githubusercontent.com/MiguelRodo/projcli/bbd12edc8de9865a96b6145d0c7702f1300cb1a8/install-local.sh"</span> <span class="at">-o</span> <span class="st">"</span><span class="va">$installer</span><span class="st">"</span> <span class="kw">&amp;&amp;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="va">PROJ_RELEASE_VERSION</span><span class="op">=</span>0.4.0-preview.1 <span class="dt">\</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="va">PROJ_INSTALL_DIR</span><span class="op">=</span><span class="st">"</span><span class="va">$HOME</span><span class="st">/.local/bin"</span> <span class="fu">bash</span> <span class="st">"</span><span class="va">$installer</span><span class="st">"</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span> <span class="at">-f</span> <span class="st">"</span><span class="va">$installer</span><span class="st">"</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">PATH</span><span class="op">=</span><span class="st">"</span><span class="va">$HOME</span><span class="st">/.local/bin:</span><span class="va">$PATH</span><span class="st">"</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="bu">hash</span> <span class="at">-r</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> <span class="at">--version</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Expected version: <code>proj 0.4.0-preview.1</code>.</p>
+<p>The script comes from the reviewed source commit. It downloads the pinned Linux binary, checks its SHA256 against the release manifest, and installs it as <code>~/.local/bin/proj</code>. It replaces an existing <code>proj</code> in that folder only after verification succeeds. No <code>sudo</code> or local compilation is involved.</p>
 </section>
-<section id="building-from-source" class="level2">
-<h2 class="anchored" data-anchor-id="building-from-source">Building from source</h2>
-<p>This route needs Git, a current stable Rust toolchain with Cargo, and your platform’s C/C++ linker tools. The crate uses Rust’s 2024 edition. Ubuntu commonly supplies the linker tools through <code>build-essential</code>.</p>
-<p>The source-install command below was <a href="https://github.com/MiguelRodo/projcli/actions/runs/39489440429">verified on Ubuntu in CI</a> on 20 October 2026. That run installed <a href="https://github.com/MiguelRodo/projcli/commit/fafce46aaba458ef0fbef65718a81076c0a46b40">source revision <code>fafce46a</code></a> and ran both documented examples through the CLI:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">cargo</span> install <span class="at">--git</span> https://github.com/MiguelRodo/projcli <span class="at">--locked</span> <span class="at">--bin</span> proj</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>This command installs the current repository source, which can change after that check. It does not install the historical release package.</p>
-<p>Cargo normally places the command in <code>~/.cargo/bin</code>; that folder must be on your <code>PATH</code>. Record the installed commit from Cargo’s output when trying a development build. The version number alone does not identify the recent features.</p>
+<section id="windows" class="level2">
+<h2 class="anchored" data-anchor-id="windows">Windows</h2>
+<p>Open <strong>PowerShell 7</strong> (<code>pwsh</code>) as your normal user:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">$installDir</span> <span class="op">=</span> <span class="fu">Join-Path</span> <span class="va">$env</span><span class="op">:</span><span class="va">USERPROFILE</span> <span class="st">".local\bin"</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">New-Item</span> <span class="op">-</span>ItemType Directory <span class="op">-</span>Force <span class="op">-</span>Path <span class="va">$installDir</span> <span class="op">|</span> <span class="fu">Out-Null</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="va">$installer</span> <span class="op">=</span> <span class="fu">Join-Path</span> <span class="op">([</span>IO<span class="op">.</span><span class="fu">Path</span><span class="op">]::</span>GetTempPath<span class="op">())</span> <span class="op">(</span><span class="st">"proj-install-"</span> <span class="op">+</span> <span class="op">[</span>guid<span class="op">]::</span>NewGuid<span class="op">()</span> <span class="op">+</span> <span class="st">".ps1"</span><span class="op">)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">Invoke-WebRequest</span> <span class="op">-</span>Uri <span class="st">"https://raw.githubusercontent.com/MiguelRodo/projcli/bbd12edc8de9865a96b6145d0c7702f1300cb1a8/install.ps1"</span> <span class="op">-</span>OutFile <span class="va">$installer</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="va">$env</span><span class="op">:</span><span class="va">PROJ_RELEASE_VERSION</span> <span class="op">=</span> <span class="st">"0.4.0-preview.1"</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="va">$env</span><span class="op">:</span><span class="va">PROJ_INSTALL_DIR</span> <span class="op">=</span> <span class="va">$installDir</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="va">$installer</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="fu">Remove-Item</span> <span class="op">-</span>LiteralPath <span class="va">$installer</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="va">$env</span><span class="op">:</span><span class="va">Path</span> <span class="op">=</span> <span class="st">"</span><span class="va">$installDir</span><span class="st">;</span><span class="va">$env</span><span class="op">:</span><span class="va">Path</span><span class="st">"</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>proj <span class="op">--</span>version</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Expected version: <code>proj 0.4.0-preview.1</code>.</p>
+<p>The script checks the Windows binary’s SHA256 before installing <code>proj.exe</code> in <code>$HOME\.local\bin</code>. It does not change system settings or require an administrator terminal. This installer is checked with PowerShell 7; these instructions do not claim Windows PowerShell 5.1 compatibility.</p>
 </section>
-<section id="check-which-command-you-have" class="level2">
-<h2 class="anchored" data-anchor-id="check-which-command-you-have">Check which command you have</h2>
-<p>Another program can also use the name <code>proj</code>. In Ubuntu, check both its location and its help:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">command</span> <span class="at">-v</span> proj</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> <span class="at">--help</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>For this project’s current preview, help lists <code>build-dev</code>, <code>--project</code> and <code>--non-interactive</code>. If those are missing, check which executable your shell found before continuing.</p>
+<section id="finding-the-command-later" class="level2">
+<h2 class="anchored" data-anchor-id="finding-the-command-later">Finding the command later</h2>
+<p>The PATH lines above make the command available in the <strong>current terminal</strong>. In a new terminal, repeat that PATH line or add the installation folder to your own user PATH. The installer does not make that permanent change for you.</p>
+<p>Another program can also be named <code>proj</code>. Check <code>command -v proj</code> in Ubuntu or <code>Get-Command proj</code> in PowerShell, then <code>proj --version</code>, if you see unexpected help or results.</p>
 </section>
-<section id="other-systems" class="level2">
-<h2 class="anchored" data-anchor-id="other-systems">Other systems</h2>
-<p>Windows amd64 builds are exercised in CI. A released native Windows installer has not yet been verified for the current preview. Published macOS and ARM binary assets have not been established either. Rust test coverage on a platform does not establish that a release installer works there.</p>
+<section id="what-the-checksum-proves" class="level2">
+<h2 class="anchored" data-anchor-id="what-the-checksum-proves">What the checksum proves</h2>
+<p>The installer requires the release’s <code>version.txt</code> and exactly one matching entry in <a href="https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.1/checksums.txt">checksums.txt</a>. A missing or incorrect checksum stops installation before the existing binary is replaced. For a manual download, use <code>sha256sum</code> on Linux or <code>Get-FileHash -Algorithm SHA256</code> in PowerShell and compare the result with the manifest’s exact filename entry before running it.</p>
+<p>The manifest comes from the same GitHub release. Checksums detect corruption and mismatches; they are not independent signatures or proof of a reproducible build. The release also includes <a href="https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.1/source-commit.txt">source-commit.txt</a> and <a href="https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.1/version.txt">version.txt</a>. The reviewed source is <code>bbd12edc8de9865a96b6145d0c7702f1300cb1a8</code>.</p>
 </section>
-<section id="extra-tools-depend-on-your-project" class="level2">
-<h2 class="anchored" data-anchor-id="extra-tools-depend-on-your-project">Extra tools depend on your project</h2>
-<p>The <a href="./tutorial.html">first tutorial</a> uses only Python’s standard library. R scripts need R and <code>Rscript</code>; reports may additionally need Quarto, <code>rmarkdown</code> or <code>bookdown</code>. Install the tools required by your own targets before running them. Git and remote credentials are needed only for workflows that use those integrations.</p>
+<section id="start-small" class="level2">
+<h2 class="anchored" data-anchor-id="start-small">Start small</h2>
+<p>Follow <a href="./tutorial.html">Run your first analysis</a> with sample data. Broad M1/M2 milestones, R/IDE parity, complete input/code/dependency provenance, and reliable analysis-free publication retries remain unfinished. Preview recovery is bounded: it does not isolate every write or undo arbitrary external effects.</p>
+<p>See <a href="./features.html">what works</a>, <a href="./preview-status.html">detailed preview status</a> and <a href="./release-delivery.html">verified delivery notes</a> for the evidence and limits.</p>
 
 
 </section>

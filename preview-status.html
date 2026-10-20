@@ -261,11 +261,6 @@ ul.task-list li input[type="checkbox"] {
 <h1>Preview feature status</h1>
 <p>This is an early Rust CLI for disposable analysis projects. A development preview does not mean the complete roadmap is finished. Use independent backups and sample data while evaluating it. The existing projr R package and thesis remain unchanged.</p>
 <table class="caption-top table">
-<colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
-</colgroup>
 <thead>
 <tr class="header">
 <th>Area</th>
@@ -297,7 +292,7 @@ ul.task-list li input[type="checkbox"] {
 <tr class="odd">
 <td>Preview preservation</td>
 <td>This candidate restores captured managed state after successful/failed previews. Cache results remain.</td>
-<td>Included through the reviewed recovery dependency; final integrated release checks remain pending. Not automatic output redirection or an OS sandbox.</td>
+<td>Included through the reviewed recovery dependency; final integrated tests and actual released-binary checks passed. Not automatic output redirection or an OS sandbox.</td>
 </tr>
 <tr class="even">
 <td>Production safety groundwork</td>
@@ -306,8 +301,8 @@ ul.task-list li input[type="checkbox"] {
 </tr>
 <tr class="odd">
 <td>Binary delivery</td>
-<td>Versioned Linux/Windows x86-64 assets and mandatory checksum verification are prepared for a draft preview.</td>
-<td>Installer CI tests actual built binaries and failure preservation. Exact tag-only release pipeline and uploaded assets are unverified until actually run. No new installed/released version is implied here.</td>
+<td><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1">Development prerelease 0.4.0-preview.1</a> supplies versioned Linux/Windows x86-64 assets with mandatory checksums.</td>
+<td>Exact-tag workflow, uploaded/public asset hashes and both native binary smokes passed. WSL user-local installation and tiny success/failure Python previews passed. Other platforms are not supplied.</td>
 </tr>
 </tbody>
 </table>

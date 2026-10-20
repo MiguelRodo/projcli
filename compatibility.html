@@ -276,6 +276,8 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#preview-releaseinstall-delivery" id="toc-preview-releaseinstall-delivery" class="nav-link" data-scroll-target="#preview-releaseinstall-delivery">Preview release/install delivery</a></li>
   <li><a href="#m1-machine-transport-issue682-existing-error-work87" id="toc-m1-machine-transport-issue682-existing-error-work87" class="nav-link" data-scroll-target="#m1-machine-transport-issue682-existing-error-work87">M1 machine transport (issue682, existing error work87)</a></li>
   <li><a href="#cli-package-preview-version" id="toc-cli-package-preview-version" class="nav-link" data-scroll-target="#cli-package-preview-version">CLI package preview version</a></li>
+  <li><a href="#verified-preview-delivery-0.4.0-preview.1" id="toc-verified-preview-delivery-0.4.0-preview.1" class="nav-link" data-scroll-target="#verified-preview-delivery-0.4.0-preview.1">Verified preview delivery: 0.4.0-preview.1</a></li>
+  <li><a href="#human-facing-pinned-preview-installation" id="toc-human-facing-pinned-preview-installation" class="nav-link" data-scroll-target="#human-facing-pinned-preview-installation">Human-facing pinned preview installation</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -554,6 +556,44 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="cli-package-preview-version">CLI package preview version</h2>
 <p><strong>New delivery metadata:</strong> prepare Cargo/Cargo.lock package version <code>0.4.0-preview.1</code>, matching planned tag <code>v0.4.0-preview.1</code>. Protocol version remains 1; a cross-platform CLI test compares ordinary <code>--version</code> with machine <code>cli_version</code> and the compiled Cargo package version. Analysis project VERSION files and <code>proj version get</code> semantics are separate and remain unchanged.</p>
 <p>Ponytail full-mode review keeps the version slice to package metadata, consistency verification and accurate feature/limit notes. No dependency/schema/runtime feature changes. It includes the recovery dependency, but broad milestone completion, R/IDE parity, full real R demo coverage and M2 records/provenance/retry remain open. Final main checks, exact-tag workflow, uploaded assets and WSL binary verification are required before claiming delivery. No tag/publication/install has occurred.</p>
+</section>
+<section id="verified-preview-delivery-0.4.0-preview.1" class="level2">
+<h2 class="anchored" data-anchor-id="verified-preview-delivery-0.4.0-preview.1">Verified preview delivery: 0.4.0-preview.1</h2>
+<p>Published <a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1">development prerelease</a> on 2026-10-20 from reviewed commit <code>bbd12edc8de9865a96b6145d0c7702f1300cb1a8</code>. PR148 recovery and PR150 version changes passed independent review and exact-head checks before normal merges. Final-main test/install/Pages workflows 39514900047/39514900123/39514900037 passed. The <a href="https://github.com/MiguelRodo/projcli/actions/runs/39515169842">exact-tag draft workflow</a> passed locked tests/builds, qualified-tag identity checks, both binary smokes, installer tests and source-bound collection.</p>
+<p>All five uploaded assets were downloaded and checked against GitHub asset metadata, the four-entry SHA256 manifest, version.txt and source-commit.txt. Both downloaded binaries executed help, version and protocol capability checks. Anonymous public downloads matched the same verified bytes before user-local WSL installation.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Binary</th>
+<th>SHA256</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Linux x86-64</td>
+<td><code>99c018f7dc676d8aad3d6f6f5aa0e3a8449fb1b92ea8489d1e3f0c0f2cb470b4</code></td>
+</tr>
+<tr class="even">
+<td>Windows x86-64</td>
+<td><code>4bbf69198be0e8614beba309865c8dc867c425fe41fd01441592667eeff678cc</code></td>
+</tr>
+</tbody>
+</table>
+<p>Installed Linux bytes matched that hash in <code>~/.local/bin/proj</code> on WSL Ubuntu 24.04. <code>proj --version</code> reported <code>0.4.0-preview.1</code>; machine protocol remained 1. No sudo, local compilation, PATH/auth setting changes or existing R package edits. Existing system proj bytes and unrelated dirty checkout files remained unchanged. A tiny disposable Python project verified local init, ordered success, deliberate failure, structured stdout, preserved VERSION/released output and retained cache artifacts. No local R/Docker tests or full real R/IDE parity verification is implied.</p>
+<p>The preview did not replace stable Latest v0.3.0. Broader M1/M2 issues remain open: automatic isolation of arbitrary writes, complete real R/IDE parity, durable attempt/ release records, whole-build provenance, multi-writer/crash atomicity and analysis-free publication retries are unfinished. Ponytail delivery review reused the reviewed installer and raw assets with standard hash/runtime checks; no new runtime framework.</p>
+</section>
+<section id="human-facing-pinned-preview-installation" class="level2">
+<h2 class="anchored" data-anchor-id="human-facing-pinned-preview-installation">Human-facing pinned preview installation</h2>
+<ul>
+<li><strong>Relationship: new delivery instructions; comparative R runtime unverified.</strong> The guide uses the published <code>0.4.0-preview.1</code> Rust assets whose exact source, hashes, native smokes and WSL delivery are recorded above. No existing R package, renderer/IDE parity, broad M1/M2 completion or reproducible-build attestation follows from binary availability.</li>
+<li><strong>Decision:</strong> pin both the release version and reviewed installer source; stable Latest remains <code>v0.3.0</code>. Linux x86-64 needs glibc 2.35+, Windows x86-64 instructions use PowerShell 7, and macOS/ARM assets are not supplied. Reuse mandatory installer SHA256 verification and a chosen user-local directory without administrator access or Rust compilation.</li>
+<li><strong>Verification boundary:</strong> inspected the actual Bash/PowerShell environment interfaces and reviewed source commit. This PR’s read-only docs CI extracts and executes the authored installer snippets on remote Linux/Windows, runs both complete Python examples through the downloaded Linux binary and PR code, and retains transcripts/generated pages. Its checks and independent review are merge gates; source wording alone is not execution evidence.</li>
+<li><strong>Ponytail full-mode review:</strong> reused the two existing installers, Quarto warning blocks and standard-library extraction/checks. Replaced redundant source compilation in docs CI with the actual binary install users follow; added no package manager, frontend dependency or installation abstraction. Disposable-copy warnings, bounded recovery, provenance and retry limits remain.</li>
+</ul>
 
 
 </section>
