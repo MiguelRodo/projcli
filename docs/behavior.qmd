@@ -118,6 +118,11 @@ installation, unconditional R-only tests, conditional CRAN executable tests and
 mandatory pinned/checksummed executable integration in our CI. It is future design,
 not a shipped wrapper, CRAN approval or automatic-download permission.
 
+## Correctness audit
+
+[The pinned legacy audit](legacy-audit-20261020.qmd) records unresolved safety and
+correctness findings and the regression evidence required before claiming fixes.
+
 ## Reference material
 
 - [projr root resolution](https://github.com/SATVILab/projr/blob/main/R/path.R)
