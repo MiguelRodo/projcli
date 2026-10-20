@@ -24,6 +24,7 @@ use std::fs;
 /// ```
 
 #[derive(Deserialize, Debug, Default, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct RemotesConfig {
     pub local: Option<HashMap<String, LocalRemoteConfig>>,
 }
@@ -42,6 +43,7 @@ pub enum InspectStrategy {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct LocalRemoteConfig {
     pub path: Utf8PathBuf,
     pub structure: StorageStructure,
@@ -50,6 +52,7 @@ pub struct LocalRemoteConfig {
 }
 
 #[derive(Deserialize, Debug, Default, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct ProjConfig {
     #[serde(default)]
     pub remotes: RemotesConfig,
@@ -87,6 +90,7 @@ pub enum GitEngine {
 
 /// Represents the top-level configuration key `config` in `_proj.yml`.
 #[derive(Deserialize, Debug, Default, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct GlobalConfig {
     #[serde(default)]
     pub git: GeneralGitConfig,
@@ -98,6 +102,7 @@ fn default_git_engine() -> GitEngine {
 
 /// Represents general git settings inside `config.git`.
 #[derive(Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct GeneralGitConfig {
     #[serde(default = "default_use_proj_cred_helper")]
     pub use_proj_cred_helper: bool,
@@ -120,6 +125,7 @@ fn default_use_proj_cred_helper() -> bool {
 
 /// Represents the build configuration options within `_proj.yml`.
 #[derive(Deserialize, Debug, Default, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct BuildConfig {
     pub dest: Option<Vec<String>>,
     pub scripts: Option<Vec<String>>,
@@ -135,6 +141,7 @@ pub struct BuildConfig {
 }
 
 #[derive(Deserialize, Debug, Default, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct HooksConfig {
     pub pre: Option<Vec<String>>,
     pub post: Option<Vec<String>>,
@@ -142,6 +149,7 @@ pub struct HooksConfig {
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct RestrictionsConfig {
     pub only_branches: Option<Vec<String>>,
     pub not_branches: Option<Vec<String>>,
@@ -159,6 +167,7 @@ impl Default for RestrictionsConfig {
 }
 
 #[derive(Deserialize, Debug, Default, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct DevConfig {
     pub scripts: Option<Vec<String>>,
     pub hooks: Option<HooksConfig>,
@@ -180,6 +189,7 @@ impl Default for GitConfigOpt {
 }
 
 #[derive(Deserialize, Debug, Default, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct GitConfig {
     pub commit: Option<bool>,
     pub push: Option<bool>,
@@ -205,6 +215,7 @@ pub struct ResolvedGitConfig {
 /// let dir = DirConfig { path: None, ignore: IgnoreConfig::Single("all".to_string()) };
 /// ```
 #[derive(Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct DirConfig {
     pub path: Option<Utf8PathBuf>,
     #[serde(default = "default_ignore")]
@@ -596,11 +607,19 @@ fn read_configuration_file(path: &Utf8Path) -> anyhow::Result<Value> {
     // YAML's mapping visitor rejects duplicate keys; JSON's visitor overwrites them.
     let yaml: serde_yaml::Value = serde_yaml::from_str(&content)
         .with_context(|| format!("Failed to parse configuration {path}"))?;
-    let value: Value = serde_json::to_value(yaml)
+    let mut value: Value = serde_json::to_value(yaml)
         .with_context(|| format!("Failed to convert configuration {path}"))?;
     let aliases = ["parameters", "parameter", "params", "param"];
     if aliases.iter().filter(|key| value.get(**key).is_some()).count() > 1 {
         anyhow::bail!("Configuration error: multiple 'parameters' aliases found in {path}.");
+    }
+    if let Value::Object(map) = &mut value {
+        for alias in ["parameter", "params", "param"] {
+            if let Some(parameters) = map.remove(alias) {
+                map.insert("parameters".to_string(), parameters);
+                break;
+            }
+        }
     }
     Ok(value)
 }
@@ -638,7 +657,18 @@ pub fn get_combined_yml(
     if local.exists() {
         base_val = deep_merge(base_val, read_configuration_file(&local)?);
     }
-    Ok(yml_get_filter_top_level(base_val))
+    Ok(base_val)
+}
+
+/// Requires a base file or an explicitly active profile configuration before building.
+/// Local overrides and inactive profiles alone do not establish an active configuration.
+pub(crate) fn require_active_configuration(base_dir: &Utf8Path) -> anyhow::Result<()> {
+    if base_configuration_path(base_dir)?.is_some()
+        || get_active_profiles().iter().any(|profile| base_dir.join(format!("_projr-{profile}.yml")).is_file())
+    {
+        return Ok(());
+    }
+    anyhow::bail!("Build requires active project configuration at the project root: _proj.yml, legacy _projr.yml, or an activated profile file. Create or activate root-level project configuration before building.");
 }
 
 /// Reads, merges and validates configuration without modifying the filesystem.

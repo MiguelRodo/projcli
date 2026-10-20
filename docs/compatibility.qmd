@@ -279,7 +279,10 @@ Completed-chunk review of PR129's empty-selection change:
   passed on all three platforms at `53463d325c85c538ae0b8a5e792caa6bc997e452`.
   All nine checks in runs 39488461110/39488461213 passed; independent review
   inspected alias, precedence and duplicate-key logs and cleared that head.
-  This evidence-only amendment needs its own final checks. No R runtime tests.
+  Final documentation/instruction head `c8b208f9243f828de05977f8e76d6f2074535a9b`
+  passed all nine checks in runs 39489639669/39489639654 and independent review;
+  merged as `0fec2735355ee5e9b9ba64d33ecd4796bf396301`. Post-merge checks passed.
+  No R runtime tests.
 - **Gaps:** one merged build script/hook context, active-configuration requirement,
   explicit directory mappings and early unsupported-setting validation remain
   separate work. This does not claim builds yet satisfy those approved rules.
@@ -345,3 +348,41 @@ remain blockers to production-safety claims; arbitrary external script effects
 are outside managed rollback. No mechanical edition upgrade or CAS redesign is
 claimed. This review uses the actual Ponytail full-mode skill to prioritize root
 causes and data-preservation checks over cosmetic rewriting.
+
+## Active configuration and unsupported fields (prepared change)
+
+- **Relationship: deliberate difference** from projr convenience defaults, as
+  explicitly approved. Every build requires a base file or activated profile;
+  inactive profile/local files alone do not qualify. Discovery still falls back
+  to cwd independently. Empty analysis is valid with active configuration.
+- **Implemented:** build gate before writes; unsupported typed configuration
+  fields fail instead of disappearing in a top-level filter. Build failures
+  include their error causes so unsupported-field diagnostics name the field. Arbitrary parameter
+  and metadata maps remain supported and parameter aliases reach validation.
+- **Evidence:** runnable tests cover active/base/legacy/inactive/local/no-config
+  cases, unsupported nested keys, dynamic maps and no pre-build state writes.
+  Remote CI/independent review pending. Explicit directory enforcement is still
+  a separate gap; this does not yet establish transaction/promotion safety.
+- **Ponytail full-mode review:** reused Serde's unknown-field validation and the
+  existing active profile resolver; removed silent filtering from runtime reads.
+  No new parser/schema/dependency. Kept the old public filter helper only for
+  compatibility; runtime no longer uses it.
+
+
+PR134 merged-context evidence: exact head
+`29b2bdfb564f3193a0e93eb43096f89f2691653a` passed all nine checks in runs
+39490264159/39490264169. Independent review inspected the three new regressions
+across platforms and cleared the bounded change. Merged as
+`eb1204026e8809780fc783f27b0be7edf9b5033e`. Preflight itself is not guaranteed
+read-only; environment/profile-source unification, per-run environment safety,
+strict directories and transaction/promotion safety remain open. This evidence is
+batched with the substantive active-configuration change to avoid an extra matrix.
+
+
+PR135 review found mixed parameter aliases survived per-file parsing as separate
+keys and then conflicted at typed deserialization. Canonicalize the one accepted
+alias to `parameters` in the shared reader before merging. New fixtures cover all
+64 base/profile/local alias combinations, earlier-profile precedence and retained
+nested values; same-file multiple aliases and YAML duplicate keys remain errors.
+Ponytail full-mode re-review kept the fix at the shared loader, without caller
+guards or a second merge model. Exact amended CI/re-review remain required.
