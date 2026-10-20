@@ -696,3 +696,7 @@ PR145 review adds shared manifest file/directory prefix-collision validation.
 Logical files `a` and `a/b` cannot coexist, independent of input order or intervening
 names. Both inspection strategies are tested with real digest-matching objects so
 the rejection proves layout validation, not an unrelated missing-object failure.
+
+CAS metadata readers/writers require regular files before reading existing manifest
+or index bytes; Unix named-pipe regressions use a bounded completion check so hostile
+special metadata cannot block verification or ingestion indefinitely.

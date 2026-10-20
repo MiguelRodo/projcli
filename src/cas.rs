@@ -187,6 +187,7 @@ pub fn verify_remote_integrity(remote_title: &str, validated: &ValidatedConfig) 
         let path = camino::Utf8PathBuf::try_from(entry?.path()).context("Non-UTF-8 CAS manifest path")?;
         if path.extension() != Some("json") { continue; }
         crate::path_safety::resolve_path(path.as_std_path(), true)?;
+        if !path.is_file() { anyhow::bail!("CAS manifest is not a regular file"); }
         let digest = path.file_stem().context("CAS manifest has no digest filename")?;
         validate_digest(digest)?;
         let bytes = fs::read(&path)?;
@@ -247,6 +248,7 @@ fn write_metadata(path: &Utf8Path, bytes: &[u8], immutable: bool) -> Result<()> 
     checked_directory(parent)?;
     fs::create_dir_all(parent)?;
     crate::path_safety::resolve_path(path.as_std_path(), true)?;
+    if path.exists() && !path.is_file() { anyhow::bail!("CAS metadata target is not a regular file"); }
     let mut staged = NamedTempFile::new_in(parent)?;
     staged.write_all(bytes)?;
     staged.flush()?;
@@ -289,6 +291,7 @@ pub fn ingest_directory(project_root: &Utf8Path, cas_remote_root: &Utf8Path, lab
     checked_directory(&cas_remote_root.join("objects"))?;
     checked_directory(&cas_remote_root.join("manifests"))?;
     checked_directory(&project_root.join(".projr"))?;
+    if ledger.exists() && !ledger.is_file() { anyhow::bail!("CAS project index is not a regular file"); }
     let mut index = match fs::read(&ledger) {
         Ok(bytes) => bytes,
         Err(error) if error.kind() == io::ErrorKind::NotFound => Vec::new(),

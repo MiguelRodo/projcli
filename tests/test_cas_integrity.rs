@@ -157,3 +157,25 @@ fn impossible_file_directory_layouts_fail_in_both_inspection_modes_regardless_of
         }
     }
 }
+
+
+#[cfg(unix)]
+#[test]
+fn special_manifest_and_index_files_are_rejected_without_blocking_reads() {
+    for index in [false, true] {
+        let directory = tempfile::tempdir().unwrap(); let project = root(&directory);
+        let remote = project.join("archive"); let source = project.join("source");
+        fs::create_dir_all(remote.join("manifests")).unwrap(); fs::create_dir(&source).unwrap();
+        let target = if index { fs::create_dir(project.join(".projr")).unwrap(); project.join(".projr/manifests.csv") }
+            else { remote.join("manifests").join(format!("{}.json", "a".repeat(64))) };
+        assert!(std::process::Command::new("mkfifo").arg(&target).status().unwrap().success());
+        let (sender, receiver) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let result = if index { proj::ingest_directory(&project, &remote, "output", &source, "1.0.0") }
+                else { proj::verify_remote_integrity("archive", &configuration(&remote, InspectStrategy::Manifest)) };
+            let _ = sender.send(result.map_err(|error| format!("{error:#}")));
+        });
+        let result = receiver.recv_timeout(std::time::Duration::from_secs(2)).expect("CAS read blocked on special metadata");
+        assert!(result.unwrap_err().contains("regular file"));
+    }
+}
