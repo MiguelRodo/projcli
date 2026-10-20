@@ -26,3 +26,5 @@ pub use fs_utils::*;
 
 pub mod project;
 pub use project::*;
+
+pub(crate) mod path_safety;

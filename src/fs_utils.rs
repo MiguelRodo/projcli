@@ -2,16 +2,19 @@ use std::fs;
 use camino::Utf8Path;
 use anyhow::Context;
 
+/// Replaces a disjoint destination directory with an existing source directory.
+/// Preserves existing README, CHANGELOG and ignore files during destination cleanup.
+/// Rejects missing sources, overlapping identities and symlinked write destinations
+/// before deletion. Copy/removal failures propagate; this is not atomic promotion.
 pub fn dir_move_exact(source: &Utf8Path, dest: &Utf8Path) -> anyhow::Result<()> {
-    if !source.exists() {
-        return Ok(());
-    }
+    crate::path_safety::validate_directory_move(source, dest)?;
 
     if dest.exists() {
         // Clear destination except protected files
         if dest.is_dir() {
-            if let Ok(entries) = fs::read_dir(dest.as_std_path()) {
-                for entry in entries.flatten() {
+            {
+                for entry in fs::read_dir(dest.as_std_path()).context("Failed to read promotion destination")? {
+                    let entry = entry.context("Failed to read promotion destination entry")?;
                     let entry_path_utf8 = camino::Utf8PathBuf::try_from(entry.path())
                         .context("Encountered non-UTF-8 path during directory iteration")?;
 
@@ -47,6 +50,8 @@ pub fn dir_move_exact(source: &Utf8Path, dest: &Utf8Path) -> anyhow::Result<()> 
     Ok(())
 }
 
+/// Copies a directory tree, rejecting symlinked destination paths before file writes.
+/// Filesystem errors propagate; callers must provide transaction/rollback boundaries.
 pub fn copy_dir_recursive(src: &Utf8Path, dst: &Utf8Path) -> anyhow::Result<()> {
     if !src.exists() {
         return Ok(());
@@ -68,6 +73,7 @@ pub fn copy_dir_recursive(src: &Utf8Path, dst: &Utf8Path) -> anyhow::Result<()> 
         if ty.is_dir() {
             copy_dir_recursive(&entry_path_utf8, &dest_path)?;
         } else {
+            crate::path_safety::resolve_path(dest_path.as_std_path(), true)?;
             fs::copy(entry_path_utf8.as_std_path(), dest_path.as_std_path())
                 .context("Failed to copy file")?;
         }

@@ -164,6 +164,9 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
 
     let mut validation_files = resolved_files.clone();
     validation_files.extend(resolved_hooks.clone());
+    if !is_dev && run_analysis {
+        crate::path_safety::validate_build_paths(project_root, &config, &validation_files)?;
+    }
 
     let (_resolved_token, resolved_python_cmd) = run_pre_flight_checks(
         project_root,

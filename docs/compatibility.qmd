@@ -386,3 +386,20 @@ alias to `parameters` in the shared reader before merging. New fixtures cover al
 nested values; same-file multiple aliases and YAML duplicate keys remain errors.
 Ponytail full-mode re-review kept the fix at the shared loader, without caller
 guards or a second merge model. Exact amended CI/re-review remain required.
+
+## Destructive destination guards (prepared change)
+
+- **Relationship: new safety checks**, not a blanket ban on external resources.
+  Before production analysis cleanup, reject root/ancestor destinations, staging
+  and resource overlaps, selected-input containment, VCS metadata, label path
+  separators and symlinked managed-write paths. Directory replacement also
+  requires an existing source and disjoint destination before deleting bytes.
+- **Evidence:** runnable preservation fixtures cover root, ancestor, staging,
+  raw/output overlaps, traversal labels, Unix symlink parents and low-level
+  self/ancestor/nested/missing-source moves. Remote CI/review pending.
+- **Limits:** does not yet provide atomic promotion or complete rollback, protect
+  against concurrent hostile filesystem replacement, undo user-script external
+  effects or establish full CAS integrity. External disjoint paths remain valid.
+- **Ponytail full-mode review:** one stdlib identity resolver shared by build and
+  promotion guards; trace all promotion callers, retain explicit errors instead
+  of silently accepting missing source/read errors. No new dependency.
