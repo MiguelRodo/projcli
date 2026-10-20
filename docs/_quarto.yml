@@ -20,6 +20,7 @@ website:
           - cli/yml.qmd
           - cli/path.qmd
           - cli/ignore.qmd
+          - cli/errors.qmd
 
 format:
   html:

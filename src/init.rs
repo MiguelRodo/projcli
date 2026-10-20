@@ -240,11 +240,13 @@ pub fn init_git(commit_opt: Option<bool>) -> anyhow::Result<()> {
 
     let should_commit = commit_opt.unwrap_or_else(|| ask_yes_no("Commit initial changes?", true));
     if is_new && should_commit {
-        Command::new("git")
+        let add_output = Command::new("git")
             .args(["add", "."])
             .current_dir(project_root.as_std_path())
             .output()
-            .unwrap();
+            .context("Failed to execute git add")?;
+        anyhow::ensure!(add_output.status.success(), "Failed to stage initial files: {}",
+            String::from_utf8_lossy(&add_output.stderr));
 
         let commit_output = Command::new("git")
             .args(["commit", "-m", "Initial commit from proj init"])
@@ -256,10 +258,10 @@ pub fn init_git(commit_opt: Option<bool>) -> anyhow::Result<()> {
             println!("Initial commit created.");
         } else {
             let err = String::from_utf8_lossy(&commit_output.stderr);
-            if err.contains("nothing to commit") {
+            if err.contains("nothing to commit") || String::from_utf8_lossy(&commit_output.stdout).contains("nothing to commit") {
                 println!("Nothing to commit.");
             } else {
-                println!("Warning: Failed to create initial commit: {}", err);
+                anyhow::bail!("Failed to create initial commit: {}", err);
             }
         }
     }
@@ -276,6 +278,8 @@ pub fn init_github(public_opt: Option<bool>) -> anyhow::Result<()> {
         .output()
         .context("Failed to check git remotes.")?;
 
+    anyhow::ensure!(remote_output.status.success(), "Failed to check git remotes: {}",
+        String::from_utf8_lossy(&remote_output.stderr));
     let remotes = String::from_utf8_lossy(&remote_output.stdout);
     if remotes.trim().is_empty() {
         if ask_yes_no("Create a GitHub repository?", true) {
@@ -299,7 +303,7 @@ pub fn init_github(public_opt: Option<bool>) -> anyhow::Result<()> {
                 println!("Successfully created and pushed to GitHub repository.");
             } else {
                 let err = String::from_utf8_lossy(&gh_output.stderr);
-                println!("Warning: Failed to create GitHub repository: {}", err);
+                anyhow::bail!("Failed to create GitHub repository: {}", err);
             }
         }
     } else {
