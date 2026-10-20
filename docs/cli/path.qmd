@@ -32,5 +32,5 @@ children. Discovery marker policy is unchanged by this slice.
 
 This establishes CLI child-query behavior, not direct Quarto/RStudio parity or
 changes to the existing R frontend. Renderer configuration, execution cwd,
-resource links and output placement remain separate concerns. Query ignore-file
-writes are a separate known gap.
+resource links and output placement remain separate concerns. Path queries do
+not write ignore files or create the resolved target directories.

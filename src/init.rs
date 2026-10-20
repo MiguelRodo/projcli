@@ -138,6 +138,9 @@ pub fn init_directories() -> anyhow::Result<()> {
         default_config.validate_and_resolve(project_root.as_path(), false).unwrap()
     });
 
+    crate::ignore::update_ignores(&project_root, &config)
+        .context("Failed to update project ignores during initialization")?;
+
     let default_labels = ["cache", "raw", "output", "docs"];
     for label in &default_labels {
         if let Ok(dir_path) = config.get_path(project_root.as_path(), label) {
