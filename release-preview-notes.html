@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -242,8 +242,14 @@ ul.task-list li input[type="checkbox"] {
 </nav>
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#projcli-0.4.0-preview.1-development-preview" id="toc-projcli-0.4.0-preview.1-development-preview" class="nav-link active" data-scroll-target="#projcli-0.4.0-preview.1-development-preview">projcli 0.4.0-preview.1 — development preview</a></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"></header>
@@ -251,15 +257,18 @@ ul.task-list li input[type="checkbox"] {
 
 
 
+<section id="projcli-0.4.0-preview.1-development-preview" class="level1">
+<h1>projcli 0.4.0-preview.1 — development preview</h1>
 <p>Preview/development build for disposable projects and sample data.</p>
 <p>This release is intended for testing the supported Rust CLI preview workflow. It is not a declaration that M1/M2 or the original roadmap is complete.</p>
 <p>Supported delivery: Linux x86-64 (built on Ubuntu 22.04; glibc 2.35 or newer) and Windows x86-64. Other platform binaries are not supplied by this preview pipeline. Each versioned binary has an exact SHA256 entry in checksums.txt; version.txt binds installer asset selection to this release. A checksum detects corrupted/mismatched downloads; it is not an independent signature or reproducible-build attestation.</p>
 <p>Included Rust pieces: explicit/nearest-root project selection, active YAML/profile validation, explicitly declared resource paths, local-only initialization, ordered scripts/hooks with a captured execution root, and protocol-v1 machine results. Real Python and mocked renderer tests cover the supported CLI boundaries; complete real R/renderer/IDE end-to-end parity is not established.</p>
 <p>Use explicit active configuration and declare every resource directory used. Machine capabilities report implemented protocol features. Preview recovery protects captured managed paths, not arbitrary external script side effects or concurrent writers. Keep independent backups and test on disposable copies. Direct R/IDE parity, automatic output redirection, durable attempt/release records and analysis-free publication retry remain unfinished. Existing R package is unchanged.</p>
 <p>The pipeline creates a draft prerelease only after exact-tag tests, binary smokes, installer verification and checksum collection pass. Publication and user-local WSL installation follow separate verification of the actual uploaded assets.</p>
-<p>Before publishing, reconcile these notes with the final reviewed commit, including the managed-preview preservation slice. Do not advertise an unmerged feature. Current status: https://miguelrodo.github.io/projcli/preview-status.html</p>
+<p>This candidate includes captured managed-state recovery after successful and failed previews, retaining cache artifacts. Capture/recovery has no concurrent-writer or power-loss atomicity guarantee and does not undo arbitrary external script effects. M1/M2 remain incomplete; the package version is not a scientific release identity. Publication remains gated on the final reviewed main checks and verified draft assets. Current status: https://miguelrodo.github.io/projcli/preview-status.html</p>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

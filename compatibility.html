@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -275,6 +275,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#preview-preservation-despite-managed-state-writes" id="toc-preview-preservation-despite-managed-state-writes" class="nav-link" data-scroll-target="#preview-preservation-despite-managed-state-writes">Preview preservation despite managed-state writes</a></li>
   <li><a href="#preview-releaseinstall-delivery" id="toc-preview-releaseinstall-delivery" class="nav-link" data-scroll-target="#preview-releaseinstall-delivery">Preview release/install delivery</a></li>
   <li><a href="#m1-machine-transport-issue682-existing-error-work87" id="toc-m1-machine-transport-issue682-existing-error-work87" class="nav-link" data-scroll-target="#m1-machine-transport-issue682-existing-error-work87">M1 machine transport (issue682, existing error work87)</a></li>
+  <li><a href="#cli-package-preview-version" id="toc-cli-package-preview-version" class="nav-link" data-scroll-target="#cli-package-preview-version">CLI package preview version</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -548,6 +549,11 @@ ul.task-list li input[type="checkbox"] {
 <p>Retained Markdown (<code>keep_md</code> / <code>keep-md</code>, including format options) is rejected in individual layouts before rendering. A nested Rmd sibling sentinel regression with an overwrite-capable fake renderer and failing post-hook prevents this untracked framework artifact from damaging existing Markdown outside the recovery plan.</p>
 <p>The reviewed Unicode renderer fixture remains supported: comparison-only cache guards stop at disjoint directory prefixes instead of blanket-rejecting missing Unicode output filenames. Existing actual renderer format/promotion tests retain their apostrophe/Unicode inputs; no fixture reduction hides unsupported output.</p>
 <p>PR149 review qualifies checkout as refs/tags/<validated preview="" tag=""> and verifies HEAD against that exact tag in both jobs. Both platform artifacts record the source commit; collection rejects any mismatch with the draft job’s checked-out tag and publishes the source identity with checksums. Same-named branch regression proves the guard. Windows native Cargo/staging failures are checked before cached bytes can reach artifact upload. The tag-only workflow remains unexercised until an authorized reviewed preview tag is actually created; PR CI is not release evidence.</validated></p>
+</section>
+<section id="cli-package-preview-version" class="level2">
+<h2 class="anchored" data-anchor-id="cli-package-preview-version">CLI package preview version</h2>
+<p><strong>New delivery metadata:</strong> prepare Cargo/Cargo.lock package version <code>0.4.0-preview.1</code>, matching planned tag <code>v0.4.0-preview.1</code>. Protocol version remains 1; a cross-platform CLI test compares ordinary <code>--version</code> with machine <code>cli_version</code> and the compiled Cargo package version. Analysis project VERSION files and <code>proj version get</code> semantics are separate and remain unchanged.</p>
+<p>Ponytail full-mode review keeps the version slice to package metadata, consistency verification and accurate feature/limit notes. No dependency/schema/runtime feature changes. It includes the recovery dependency, but broad milestone completion, R/IDE parity, full real R demo coverage and M2 records/provenance/retry remain open. Final main checks, exact-tag workflow, uploaded assets and WSL binary verification are required before claiming delivery. No tag/publication/install has occurred.</p>
 
 
 </section>
