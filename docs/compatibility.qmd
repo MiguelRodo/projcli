@@ -821,6 +821,38 @@ existing target. Artifact collection rejects corrupt/missing/duplicate/version-
 mismatched inputs; help smoke failures are no longer swallowed. CI/review pending.
 No tag, publication, WSL install, signature or reproducible-build claim yet.
 
+## M1 machine transport (issue682, existing error work87)
+
+**New:** protocol-v1 opt-in JSON envelope and capability version, with static
+structured failure codes/nonzero exits. Existing human CLI remains default.
+Queries use explicit-root typed APIs rather than stripping progress prose; config
+validation returns no raw parameter values. Other command families reuse the
+existing CLI/domain paths in a noninteractive worker, redirecting child stdout
+and stderr directly to stderr without log buffering. No credentials/config/argv
+are copied into protocol errors. User/third-party logs are not auto-redacted.
+
+Pinned projr `3ac29595d0e39552495d863661b99ea015d59d3d` is the workflow reference;
+this machine transport is a new language-neutral boundary, not established R API
+compatibility. No R code changes, finer domain-error taxonomy, release record or
+publication-retry semantics. Existing anyhow handling remains the domain layer;
+issue87 is not duplicated by a cross-module error rewrite.
+
+Ponytail full-mode review uses existing clap/serde/anyhow/query/CLI facilities,
+standard subprocess stream redirection and no new dependencies. Prepared remote
+tests cover capability negotiation, typed queries without prose/secrets, malformed
+config/arguments/root, missing interpreter, child failure/logs, local init and
+version mutation. CI/independent review pending. Managed preview output isolation
+remains outstanding and is advertised as false, not described as sandboxing.
+
+PR145 re-cleared CAS head `79050b3a46749a561b5a0cf0cca0451ae5532c6e` passed all
+ten checks and merged `0e10b3e66face673fe966ed61b1be6d2eabf5004`; post-merge
+workflows 39510143656/39510143483/39510143388 passed. CAS multi-writer/crash limits
+remain as previously recorded.
+
+PR147 reviewer regression preserves the CLI option terminator and literal option-like
+positional values. Worker controls are inserted before `--`, and only actual machine
+flags before that boundary are removed; user paths/option values are retained.
+
 PR146 review additionally rejects document/format-specific output extension and
 library-directory overrides before writes; these are outside the modeled artifact
 and recovery layout. Windows execution-root fixtures compare filesystem identity,
