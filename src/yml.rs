@@ -593,7 +593,11 @@ pub(crate) fn base_configuration_path(base_dir: &Utf8Path) -> anyhow::Result<Opt
 
 fn read_configuration_file(path: &Utf8Path) -> anyhow::Result<Value> {
     let content = fs::read_to_string(path).with_context(|| format!("Failed to read configuration {path}"))?;
-    let value: Value = serde_yaml::from_str(&content).with_context(|| format!("Failed to parse configuration {path}"))?;
+    // YAML's mapping visitor rejects duplicate keys; JSON's visitor overwrites them.
+    let yaml: serde_yaml::Value = serde_yaml::from_str(&content)
+        .with_context(|| format!("Failed to parse configuration {path}"))?;
+    let value: Value = serde_json::to_value(yaml)
+        .with_context(|| format!("Failed to convert configuration {path}"))?;
     let aliases = ["parameters", "parameter", "params", "param"];
     if aliases.iter().filter(|key| value.get(**key).is_some()).count() > 1 {
         anyhow::bail!("Configuration error: multiple 'parameters' aliases found in {path}.");

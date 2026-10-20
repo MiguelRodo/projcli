@@ -50,3 +50,28 @@ fn earlier_profiles_win_and_local_overrides_both_base_names() {
         assert!(get_combined_yml(Some("../outside"), root).is_err());
     }
 }
+
+
+#[test]
+fn duplicate_keys_are_rejected_in_every_active_configuration_layer() {
+    for layer in ["_proj.yml", "_projr.yml", "_projr-test.yml", "_projr-local.yml"] {
+        for invalid in ["build: {}\nbuild: {scripts: []}\n", "build:\n  scripts: []\n  scripts: [unexpected.py]\n"] {
+            let temp = tempfile::tempdir().unwrap();
+            let root = camino::Utf8Path::from_path(temp.path()).unwrap();
+            if layer != "_proj.yml" && layer != "_projr.yml" {
+                fs::write(root.join("_proj.yml"), "build: {}\n").unwrap();
+            }
+            fs::write(root.join(layer), invalid).unwrap();
+            let error = get_combined_yml(Some("test"), root).unwrap_err();
+            assert!(format!("{error:#}").contains("duplicate"), "{error:#}");
+            let output = Command::new(env!("CARGO_BIN_EXE_proj"))
+                .args(["build-dev", "--non-interactive", "--profile", "test", "--project", root.as_str()])
+                .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
+            assert!(!output.status.success(), "duplicate keys accepted in {layer}");
+            assert_eq!(fs::read_to_string(root.join(layer)).unwrap(), invalid);
+            for name in ["VERSION", ".gitignore", ".Rbuildignore", "_tmp"] {
+                assert!(!root.join(name).exists(), "unexpected {name} after invalid {layer}");
+            }
+        }
+    }
+}

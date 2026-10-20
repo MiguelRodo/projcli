@@ -226,3 +226,13 @@ Completed-chunk review of PR129's empty-selection change:
   stdlib path selector; reversed existing deep-merge traversal rather than adding
   a merger or dependency. Preserved null-as-absence and explicit-empty-list
   behavior. Checks exercise real query results and preservation on ambiguity.
+
+
+PR131 failure-path review found that direct YAML-to-JSON deserialization allowed
+duplicate keys to overwrite earlier values. Restored YAML Value parsing before
+JSON conversion, preserving duplicate-key rejection at every active layer.
+Added top-level and nested duplicate-key regressions for both base filenames,
+profile and local files, including CLI failure before preview state writes.
+The prior green CI did not cover this malformed-input case; amended-head remote
+checks and independent re-review are required. Ponytail review kept this at the
+shared file parser rather than guarding individual callers.
