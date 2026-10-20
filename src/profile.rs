@@ -8,14 +8,13 @@ use serde_json::Value;
 ///
 /// Splits by ',' or ';', strips whitespace, and rejects 'default' and 'local'.
 pub fn get_active_profiles() -> Vec<String> {
-    if let Ok(val) = env::var("PROJR_PROFILE") {
-        val.split(|c| c == ',' || c == ';')
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty() && s != "default" && s != "local" && is_valid_profile_name(s))
-            .collect()
-    } else {
-        Vec::new()
-    }
+    parse_active_profiles(&env::var("PROJR_PROFILE").unwrap_or_default())
+}
+
+pub(crate) fn parse_active_profiles(value: &str) -> Vec<String> {
+    value.split([',', ';']).map(str::trim)
+        .filter(|value| !value.is_empty() && *value != "default" && *value != "local" && is_valid_profile_name(value))
+        .map(str::to_owned).collect()
 }
 
 fn is_valid_profile_name(s: &str) -> bool {

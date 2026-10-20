@@ -6,7 +6,8 @@ semantics and the [compatibility log](compatibility.qmd) records evidence and ga
 
 ## Read-only resolution and preflight
 
-Capture the project root, load the environment, require active root configuration,
+Capture the project root, resolve a private per-run environment without changing
+the parent process, require active root configuration,
 and merge base/profile/local settings. Validate fields, explicit directory paths,
 targets, hooks and destructive destinations. Explicit empty scripts select no
 analysis. Otherwise explicit globs or shallow root discovery select inputs;

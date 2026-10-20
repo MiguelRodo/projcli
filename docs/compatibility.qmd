@@ -620,3 +620,30 @@ Their exact prior bytes/presence join the recovery set. A fake successful render
 followed by a failing post-hook checks both default/custom native asset trees and
 released docs are restored. Unsupported path-like stems fail instead of traversing
 outside the project. Remote verification and independent review remain required.
+
+
+## Per-command build environment isolation
+
+**Deliberate implementation change:** build_project resolves inherited OS values,
+explicit profiles, local/earlier-profile/base environment files and required keys
+without modifying std::env. The same immutable context drives YAML profile selection,
+clear-output/installation/interaction controls, interpreter dependency probes,
+scripts/hooks/renderers and existing Git capability/preflight/publication commands.
+Child commands receive a captured environment, with the resolved project root and
+intentional script profile values applied per command. Inherited non-Unicode values
+remain intact. Existing Git credential selection/policy is forwarded, not redesigned.
+
+Prepared remote checks force two library builds with different roots, profiles and
+fixture values to overlap while an unrelated child observes the unchanged parent.
+Mock R and Git commands verify probes and execution receive file-supplied values.
+Existing input/preflight/preview/root-context tests remain. Ponytail full-mode review
+reuses shared parsers and the standard Command.env_clear/envs API, with no global
+mutex or new dependency. No credentials are formatted through Debug or diagnostics.
+Remote CI and independent review are pending.
+
+Legacy public EnvGuard activation/assignment APIs and CLI startup guards still
+mutate process state and are explicitly not safe concurrent environment APIs.
+The guarantee is bounded to the build path and commands receiving this context;
+unrelated external code that concurrently mutates std::env remains outside it.
+Native Git authentication/upstream policy and broader environment sanitization are
+separate unfinished work. R package and CAS code are unchanged.

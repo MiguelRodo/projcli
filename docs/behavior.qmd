@@ -152,3 +152,15 @@ correctness findings and the regression evidence required before claiming fixes.
 - [Quarto working directory](https://quarto.org/docs/projects/code-execution.html#working-dir)
 - [R Markdown render controls](https://rmarkdown.rstudio.com/docs/reference/render.html)
 - [knitr options](https://yihui.org/knitr/options/)
+
+
+## Build environment context
+
+Builds resolve one environment snapshot and pass it to their child commands and
+configuration-profile selection. Environment files do not mutate the parent process
+on this path. Inherited OS values win over local, earlier environment profiles and
+base assignments; explicit build profiles override inherited PROJR_PROFILE.
+The same values reach dependency probes, scripts/hooks/renderers and existing Git
+helpers. Direct public legacy EnvGuard APIs and CLI startup guards still mutate
+process state and are not concurrent environment APIs. This change does not approve
+credential injection policy or establish a sanitized/sandboxed environment.
