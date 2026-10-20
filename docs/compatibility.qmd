@@ -964,3 +964,28 @@ automatic isolation of arbitrary writes, complete real R/IDE parity, durable att
 release records, whole-build provenance, multi-writer/crash atomicity and analysis-free
 publication retries are unfinished. Ponytail delivery review reused the reviewed
 installer and raw assets with standard hash/runtime checks; no new runtime framework.
+
+
+## Human-facing pinned preview installation
+
+- **Relationship: new delivery instructions; comparative R runtime unverified.**
+  The guide uses the published `0.4.0-preview.1` Rust assets whose exact source,
+  hashes, native smokes and WSL delivery are recorded above. No existing R
+  package, renderer/IDE parity, broad M1/M2 completion or reproducible-build
+  attestation follows from binary availability.
+- **Decision:** pin both the release version and reviewed installer source;
+  stable Latest remains `v0.3.0`. Linux x86-64 needs glibc 2.35+, Windows
+  x86-64 instructions use PowerShell 7, and macOS/ARM assets are not supplied.
+  Reuse mandatory installer SHA256 verification and a chosen user-local
+  directory without administrator access or Rust compilation.
+- **Verification boundary:** inspected the actual Bash/PowerShell environment
+  interfaces and reviewed source commit. This PR's read-only docs CI extracts
+  and executes the authored installer snippets on remote Linux/Windows, runs
+  both complete Python examples through the downloaded Linux binary and PR
+  code, and retains transcripts/generated pages. Its checks and independent
+  review are merge gates; source wording alone is not execution evidence.
+- **Ponytail full-mode review:** reused the two existing installers, Quarto
+  warning blocks and standard-library extraction/checks. Replaced redundant
+  source compilation in docs CI with the actual binary install users follow;
+  added no package manager, frontend dependency or installation abstraction.
+  Disposable-copy warnings, bounded recovery, provenance and retry limits remain.
