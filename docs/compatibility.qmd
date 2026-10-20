@@ -224,7 +224,11 @@ Completed-chunk review of PR129's empty-selection change:
   never child projects. `tests/test_root_markers.rs` covers retained marker
   patterns, invalid structured markers, weak/nested markers, deep invocation,
   explicit override and a configured Python preview with shallow enumeration.
-  Remote CI and independent review are pending; no R-runtime parity is claimed.
+  At code head `a0d459c5b3a31437443832436535b70d34838553`, all nine checks
+  passed in runs 39487247962/39487247928. Independent review compared the pinned
+  marker sources and inspected all three platform logs, clearing that head.
+  Symlink normalization was source-inspected, without a new dedicated test.
+  This evidence-only amendment requires its own checks; no R-runtime parity is claimed.
 - **Gaps:** required active config, explicit used-directory mappings, early
   unsupported-setting validation, legacy config-content aliases and full
   frontend/renderer parity are separate changes. A marker does not claim a Julia runner exists.
