@@ -36,14 +36,20 @@ impl BuildState {
         }).collect::<anyhow::Result<_>>()?;
         selected.sort();
         selected.dedup();
-        let mut roots: Vec<PathBuf> = Vec::new();
+        let mut roots: Vec<(PathBuf, PathBuf)> = Vec::new();
         for (identity, target) in selected {
-            if roots.iter().any(|parent| identity.starts_with(parent)) { continue; }
+            if let Some((parent_identity, parent_path)) = roots.iter().find(|(parent, _)| identity.starts_with(parent)) {
+                if !target.starts_with(parent_path) {
+                    anyhow::bail!("Ambiguous case-alias managed recovery paths overlap: {} and {}", parent_path.display(), target.display());
+                }
+                debug_assert!(identity.starts_with(parent_identity));
+                continue;
+            }
             if cache_identity.as_deref().is_some_and(|cache| cache.starts_with(&identity) || identity.starts_with(cache))
                 || identity.starts_with(&recovery_identity) || recovery_identity.starts_with(&identity) {
                 anyhow::bail!("Managed build backup overlaps cache: {}", target.display());
             }
-            roots.push(identity);
+            roots.push((identity, target.clone()));
             let saved = state.backup.path().join(state.entries.len().to_string());
             let original = match fs::symlink_metadata(&target) {
                 Ok(_) => { copy_exact(&target, &saved)?; Some(saved) }
