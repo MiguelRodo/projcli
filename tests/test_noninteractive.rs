@@ -28,7 +28,7 @@ fn noninteractive_dependency_failure_never_auto_installs() {
     let root = project.path();
     let bin = root.join("bin");
     fs::create_dir(&bin).unwrap();
-    fs::write(root.join("_proj.yml"), "build:\n  scripts: [analysis.Rmd]\n").unwrap();
+    fs::write(root.join("_proj.yml"), "directories:\n  docs:\n    path: docs\nbuild:\n  scripts: [analysis.Rmd]\n").unwrap();
     fs::write(root.join("analysis.Rmd"), "fixture").unwrap();
     fs::write(root.join("_environment.local"), "PROJ_NON_INTERACTIVE=false\n").unwrap();
     fs::write(bin.join("Rscript"), r#"#!/bin/sh
@@ -60,7 +60,7 @@ fn noninteractive_r_probe_gets_eof_before_dependency_checks() {
     let root = project.path();
     let bin = root.join("bin");
     fs::create_dir(&bin).unwrap();
-    fs::write(root.join("_proj.yml"), "build:\n  scripts: [analysis.Rmd]\n").unwrap();
+    fs::write(root.join("_proj.yml"), "directories:\n  docs:\n    path: docs\nbuild:\n  scripts: [analysis.Rmd]\n").unwrap();
     fs::write(root.join("analysis.Rmd"), "fixture").unwrap();
     fs::write(bin.join("Rscript"), r#"#!/bin/sh
 if [ "$1" = --version ]; then exit 0; fi
