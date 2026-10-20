@@ -214,7 +214,8 @@ fn main() {
     let cli = Cli::parse();
     let mut interaction_guard = proj::EnvGuard::new();
     if cli.non_interactive {
-        interaction_guard.track_and_set(proj::NON_INTERACTIVE_ENV, "true");
+        interaction_guard.track_and_set(proj::NON_INTERACTIVE_ENV, "true")
+            .unwrap_or_else(|error| fail(format_args!("Invalid interaction environment: {error}")));
     }
     let root = match proj::resolve_project_root(cli.project.as_deref()) {
         Ok(root) => root,
@@ -223,7 +224,8 @@ fn main() {
         }
     };
     let mut root_guard = proj::EnvGuard::new();
-    root_guard.track_and_set(proj::PROJECT_ROOT_ENV, root.as_str());
+    root_guard.track_and_set(proj::PROJECT_ROOT_ENV, root.as_str())
+        .unwrap_or_else(|error| fail(format_args!("Invalid project environment: {error}")));
 
     match &cli.command {
         Commands::Yml { command } => match command {

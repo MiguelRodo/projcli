@@ -1,9 +1,12 @@
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::{fs, ffi::OsString};
+use anyhow::Context;
 use camino::Utf8Path;
 
-/// A Scoped Transaction guard for environment variables.
+/// Legacy process-global environment guard.
+///
+/// Input validation does not make this safe for concurrent environment readers or
+/// independent parallel builds. Per-command context replacement is separate work.
 ///
 /// Records the original state of the environment and automatically restores or unsets
 /// modified keys when the guard goes out of scope, mimicking R's `on.exit()` behavior.
@@ -15,13 +18,13 @@ use camino::Utf8Path;
 /// use camino::Utf8Path;
 ///
 /// let mut guard = EnvGuard::new();
-/// guard.track_and_set("DUMMY_VAR_TEST", "123");
+/// guard.track_and_set("DUMMY_VAR_TEST", "123").unwrap();
 /// assert_eq!(std::env::var("DUMMY_VAR_TEST").unwrap(), "123");
 /// drop(guard);
 /// assert!(std::env::var("DUMMY_VAR_TEST").is_err());
 /// ```
 pub struct EnvGuard {
-    original_state: HashMap<String, Option<String>>,
+    original_state: HashMap<String, Option<OsString>>,
 }
 
 impl Default for EnvGuard {
@@ -101,17 +104,22 @@ impl EnvGuard {
 
     /// Loads environment variables from the given file, setting them via `track_and_set`
     /// only if they are not already set in the current process.
-    pub fn load_file(&mut self, path: &Utf8Path) {
-        if let Ok(file) = File::open(path) {
-            let reader = BufReader::new(file);
-            for line in reader.lines().flatten() {
-                if let Some((key, value)) = Self::parse_line(&line) {
-                    if std::env::var(&key).is_err() {
-                        self.track_and_set(&key, &value);
-                    }
-                }
+    pub fn load_file(&mut self, path: &Utf8Path) -> anyhow::Result<()> {
+        let text = fs::read_to_string(path).with_context(|| format!("Cannot read environment file {path}"))?;
+        let mut entries = Vec::new();
+        for (index, line) in text.lines().enumerate() {
+            if let Some((key, value)) = Self::parse_line(line) {
+                validate_assignment(&key, &value).with_context(|| format!("Invalid environment assignment at {path}:{}", index + 1))?;
+                entries.push((key, value));
+            } else if line.contains('\0') {
+                anyhow::bail!("Invalid environment assignment at {path}:{}", index + 1);
             }
         }
+        // Validate the entire file before applying any assignment from it.
+        for (key, value) in entries {
+            if std::env::var_os(&key).is_none() { self.track_and_set(&key, &value)?; }
+        }
+        Ok(())
     }
 
     /// Commences an environment block, parsing profiles and backing up state.
@@ -140,7 +148,7 @@ impl EnvGuard {
 
         // Temporarily handle PROJR_PROFILE swap if explicitly overridden for this build run
         if let Some(prof) = explicit_profile {
-            guard.track_and_set("PROJR_PROFILE", prof);
+            guard.track_and_set("PROJR_PROFILE", prof)?;
         }
 
         let profiles = Self::resolve_profiles();
@@ -158,74 +166,63 @@ impl EnvGuard {
         files_to_load.push(local_env_file.clone());
 
         for profile in profiles {
+            if !profile.chars().all(|character| character.is_ascii_alphanumeric() || character == '_' || character == '-') {
+                anyhow::bail!("Invalid environment profile name");
+            }
             files_to_load.push(base_dir.join(format!("_environment-{}", profile)));
         }
 
         files_to_load.push(base_dir.join("_environment"));
 
         for file in files_to_load {
-            if file.exists() {
-                if update_ignores && file == local_env_file {
-                    // Automatically add _environment.local to ignores
-                    let _ = crate::ignore::add_manual_ignores(
-                        base_dir,
-                        &["_environment.local".to_string()],
-                        true,
-                        crate::ignore::IgnoreType::All,
-                    );
-                }
-                guard.load_file(&file);
-            }
+            if crate::yml::configuration_entry_exists(&file)? { guard.load_file(&file)?; }
         }
 
-        // Validate _environment.required
         let required_file = base_dir.join("_environment.required");
-        if required_file.exists() {
-            if let Ok(file) = File::open(&required_file) {
-                let reader = BufReader::new(file);
-                for line in reader.lines().flatten() {
-                    let trimmed = line.trim();
-                    if trimmed.is_empty() || trimmed.starts_with('#') {
-                        continue;
-                    }
-
-                    let key = if let Some((k, _)) = trimmed.split_once('=') {
-                        k.trim().to_string()
-                    } else {
-                        // Extract just the key if there is no assignment
-                        let mut k_part = trimmed;
-                        if let Some(comment_idx) = k_part.find('#') {
-                            let before_comment = &k_part[..comment_idx];
-                            if before_comment.chars().last().map_or(false, |c| c.is_whitespace()) {
-                                k_part = before_comment;
-                            }
-                        }
-                        k_part.trim().to_string()
+        if crate::yml::configuration_entry_exists(&required_file)? {
+            let text = fs::read_to_string(&required_file)
+                .with_context(|| format!("Cannot read required environment file {required_file}"))?;
+            for (index, line) in text.lines().enumerate() {
+                let trimmed = line.trim();
+                if trimmed.is_empty() || trimmed.starts_with('#') { continue; }
+                let key = if let Some((key, _)) = trimmed.split_once('=') { key.trim() }
+                    else {
+                        trimmed.split_once('#').filter(|(before, _)| before.chars().last().is_some_and(char::is_whitespace))
+                            .map_or(trimmed, |(before, _)| before).trim()
                     };
-
-                    if !key.is_empty() && std::env::var(&key).is_err() {
-                        anyhow::bail!(
-                            "Required environment variable '{}' is missing from the environment.",
-                            key
-                        );
-                    }
+                validate_assignment(key, trimmed).with_context(|| format!("Invalid required environment entry at {required_file}:{}", index + 1))?;
+                if std::env::var_os(key).is_none() {
+                    anyhow::bail!("Required environment variable is missing (entry {} in {required_file})", index + 1);
                 }
             }
+        }
+        if update_ignores && crate::yml::configuration_entry_exists(&local_env_file)? {
+            crate::ignore::add_manual_ignores(base_dir, &["_environment.local".to_string()], true, crate::ignore::IgnoreType::All)?;
         }
 
         Ok(guard)
     }
 
-    /// Safely updates `std::env` while snapshotting what it looked like before mutation.
-    pub fn track_and_set(&mut self, key: &str, value: &str) {
+    /// Validates OS inputs and records the previous value before process-global mutation.
+    /// This method does not establish thread isolation.
+    pub fn track_and_set(&mut self, key: &str, value: &str) -> anyhow::Result<()> {
+        validate_assignment(key, value)?;
         if !self.original_state.contains_key(key) {
-            let old_val = std::env::var(key).ok();
+            let old_val = std::env::var_os(key);
             self.original_state.insert(key.to_string(), old_val);
         }
         unsafe {
             std::env::set_var(key, value);
         }
+        Ok(())
     }
+}
+
+fn validate_assignment(key: &str, value: &str) -> anyhow::Result<()> {
+    if key.is_empty() || key.contains('=') || key.contains('\0') || value.contains('\0') {
+        anyhow::bail!("Invalid environment key or value");
+    }
+    Ok(())
 }
 
 impl Drop for EnvGuard {
