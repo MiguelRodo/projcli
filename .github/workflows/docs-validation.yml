@@ -161,14 +161,13 @@ jobs:
           assert snippet == re.search(r"```bash\n(.*?)```", guide, re.S).group(1), "install snippets diverged"
           Path("validation-evidence/install-linux.sh").write_text(snippet)
           PY
-          mkdir -p "$RUNNER_TEMP/proj-docs-home"
-          HOME="$RUNNER_TEMP/proj-docs-home" bash --noprofile --norc -e -o pipefail validation-evidence/install-linux.sh 2>&1 | tee validation-evidence/release-install.txt
-          test -x "$RUNNER_TEMP/proj-docs-home/.local/bin/proj"
-          test "$("$RUNNER_TEMP/proj-docs-home/.local/bin/proj" --version)" = "proj 0.4.0-preview.1"
+          bash --noprofile --norc -e -o pipefail validation-evidence/install-linux.sh 2>&1 | tee validation-evidence/release-install.txt
+          test -x "$HOME/.local/bin/proj"
+          test "$("$HOME/.local/bin/proj" --version)" = "proj 0.4.0-preview.1"
           curl -fsSL https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.1/source-commit.txt | tee validation-evidence/release-source.txt
           test "$(cat validation-evidence/release-source.txt)" = "bbd12edc8de9865a96b6145d0c7702f1300cb1a8"
       - name: Run documented examples using the downloaded preview
-        run: python3 validation-evidence/check-examples.py "$RUNNER_TEMP/proj-docs-home/.local/bin/proj" 2>&1 | tee validation-evidence/release-examples.txt
+        run: python3 validation-evidence/check-examples.py "$HOME/.local/bin/proj" 2>&1 | tee validation-evidence/release-examples.txt
       - name: Build the exact PR core revision
         run: cargo build --locked --bin proj 2>&1 | tee validation-evidence/pr-build.txt
       - name: Run documented examples using PR core revision
@@ -202,9 +201,6 @@ jobs:
           $match = [regex]::Match($markdown, '```powershell\r?\n(.*?)```', [Text.RegularExpressions.RegexOptions]::Singleline)
           if (-not $match.Success) { throw 'Missing documented PowerShell installer command' }
           Set-Content -LiteralPath validation-evidence/install-windows.ps1 -Value $match.Groups[1].Value
-          $env:USERPROFILE = Join-Path $env:RUNNER_TEMP 'proj-docs-home'
-          $env:LOCALAPPDATA = Join-Path $env:USERPROFILE 'AppData\Local'
-          New-Item -ItemType Directory -Force $env:USERPROFILE | Out-Null
           Start-Transcript -Path validation-evidence/windows-install.txt
           try {
             & ./validation-evidence/install-windows.ps1
