@@ -2,28 +2,58 @@ project:
   type: website
 
 website:
-  title: "Proj CLI"
+  title: "projcli"
+  site-url: https://miguelrodo.github.io/projcli/
+  description: "Run research analyses with clear project paths and a separate preview step."
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: install.qmd
+        text: Install
+      - href: tutorial.qmd
+        text: Get started
+      - href: features.qmd
+        text: What works
+    right:
+      - icon: github
+        href: https://github.com/MiguelRodo/projcli
+        aria-label: GitHub repository
   sidebar:
-    style: "docked"
+    style: docked
     search: true
     contents:
-      - section: "Configuration"
+      - section: Start here
+        contents:
+          - index.qmd
+          - install.qmd
+          - tutorial.qmd
+          - features.qmd
+      - section: Reference
         contents:
           - configuration.qmd
-      - section: "Build Reference"
-        contents:
-          - behavior.qmd
-          - compatibility.qmd
-          - flow.qmd
-      - section: "CLI Reference"
-        contents:
+          - cli/build.qmd
           - cli/version.qmd
           - cli/yml.qmd
           - cli/path.qmd
           - cli/ignore.qmd
           - cli/errors.qmd
+      - section: Design and progress
+        contents:
+          - behavior.qmd
+          - compatibility.qmd
+          - flow.qmd
+          - r-wrapper-cran.qmd
+  page-footer:
+    left: "projcli · research builds, one project at a time"
+    right:
+      - text: Source and releases
+        href: https://github.com/MiguelRodo/projcli
 
 format:
   html:
     theme: cosmo
+    css: styles.css
     toc: true
+    code-copy: true
+    link-external-newwindow: false

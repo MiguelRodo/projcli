@@ -60,7 +60,7 @@ The `_proj.yml` file can also contain a `build` block to configure the behavior 
 - **`scripts`**: An optional list of explicit script paths or glob patterns to execute during the build pipeline.
   - Globbing patterns are supported.
   - Prefix a pattern with `!` to exclude matching files from execution.
-  - When provided, execution strictly follows the resolved relative order of scripts, bypassing automated project discovery fallbacks unless mutually exclusive configuration states are detected.
+  - When provided, this selects scripts instead of automatic discovery. Document targets may be grouped for rendering, so mixed script and document targets are not guaranteed to run in the exact listed order.
 - **`hooks`**: An optional map of lifecycle hook scripts to execute.
   - **`pre`**: Scripts executed before the actual build phase and Git pre-snapshot.
   - **`post`**: Scripts executed after the finalized post-build Git commit.
@@ -79,9 +79,9 @@ The `_proj.yml` file can also contain a `build` block to configure the behavior 
 
 You can define a `dev` block to completely override specific configurations during development builds (`proj build-dev`).
 
-- **`scripts`**: A list of script paths or globs. During development builds, this array entirely overrides `build.scripts`. Providing an explicitly empty array (`[]`) results in a strict error to prevent silently running an empty development build.
+- **`scripts`**: A list of script paths or globs. During development builds, this array entirely overrides `build.scripts`. An explicitly empty array (`[]`) selects no analysis scripts. An absent `dev.scripts` inherits `build.scripts`. Hooks can still run.
 - **`hooks`**: A mapping identical to `build.hooks`. When specified, these completely replace `build.hooks` during a development build.
-- **`old_dev_remove`**: Boolean flag. When `true`, enables purging of legacy cache versions during development builds to save disk space.
+- **`old_dev_remove`**: Retained configuration field. The current preview protections skip CLI cleanup of prior caches during development builds, even when this is `true`. Scripts and hooks still control their own writes.
 
 ## Environment Variables
 

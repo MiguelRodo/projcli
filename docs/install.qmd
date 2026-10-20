@@ -1,0 +1,85 @@
+---
+title: "Install"
+subtitle: "Choose a version before you choose an installation method."
+---
+
+::: {.callout-warning}
+## Release transition
+The published v0.3.0 package predates the recent development changes.
+The repaired release and installer routes are still being verified.
+A current binary-download route is not yet recommended. The source-build route
+below has been checked in Ubuntu CI and requires Rust.
+:::
+
+## Ubuntu and WSL Ubuntu
+
+Run Linux commands **inside Ubuntu**, including when Ubuntu runs through WSL.
+For the first analysis example you need:
+
+- The current preview build of projcli, with its source revision recorded.
+- Python 3, including a `python3` command.
+- A terminal and a writable folder for the example.
+
+Check Python:
+
+```bash
+python3 --version
+```
+
+The [published v0.3.0 release](https://github.com/MiguelRodo/projcli/releases/tag/v0.3.0)
+has an `amd64.deb` asset for Debian-style systems on x86-64 processors.
+It is a historical package, not the current preview used by this tutorial.
+No current-preview download command is listed here until the replacement
+release has been checked.
+
+## Building from source
+
+This route needs Git, a current stable Rust toolchain with Cargo, and your
+platform's C/C++ linker tools. The crate uses Rust's 2024 edition.
+Ubuntu commonly supplies the linker tools through `build-essential`.
+
+The source-install command below was [verified on Ubuntu in CI](https://github.com/MiguelRodo/projcli/actions/runs/39489440429)
+on 20 October 2026. That run installed
+[source revision `fafce46a`](https://github.com/MiguelRodo/projcli/commit/fafce46aaba458ef0fbef65718a81076c0a46b40)
+and ran both documented examples through the CLI:
+
+```bash
+cargo install --git https://github.com/MiguelRodo/projcli --locked --bin proj
+```
+
+This command installs the current repository source, which can change after
+that check. It does not install the historical release package.
+
+Cargo normally places the command in `~/.cargo/bin`; that folder must be on
+your `PATH`. Record the installed commit from Cargo's output when trying a
+development build. The version number alone does not identify the recent
+features.
+
+## Check which command you have
+
+Another program can also use the name `proj`. In Ubuntu, check both its
+location and its help:
+
+```bash
+command -v proj
+proj --help
+```
+
+For this project's current preview, help lists `build-dev`, `--project`
+and `--non-interactive`. If those are missing, check which executable your
+shell found before continuing.
+
+## Other systems
+
+Windows amd64 builds are exercised in CI. A released native Windows installer
+has not yet been verified for the current preview. Published macOS and ARM
+binary assets have not been established either. Rust test coverage on a
+platform does not establish that a release installer works there.
+
+## Extra tools depend on your project
+
+The [first tutorial](tutorial.qmd) uses only Python's standard library.
+R scripts need R and `Rscript`; reports may additionally need Quarto,
+`rmarkdown` or `bookdown`. Install the tools required by your own targets
+before running them. Git and remote credentials are needed only for workflows
+that use those integrations.

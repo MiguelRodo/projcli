@@ -1,0 +1,69 @@
+---
+title: "What works"
+subtitle: "A clear view of the release, the development preview and the work ahead."
+---
+
+## Published release
+
+**v0.3.0** was published on 22 May 2026. Its release page currently provides
+one `amd64.deb` package. It predates the recent changes listed below;
+do not assume that an installed binary reporting `0.3.0` includes them.
+
+See the [release assets](https://github.com/MiguelRodo/projcli/releases/tag/v0.3.0)
+and [installation status](install.qmd). A new release and repaired installers
+are being prepared.
+
+## On main: development preview
+
+These capabilities are implemented on `main`. They are not a claim about the
+older published package.
+
+| Capability | What it means for you |
+|---|---|
+| Choose the project | `--project PATH` selects the folder for a command. Child queries retain that root. |
+| Preview an analysis | `build-dev` runs your selected steps without CLI version changes, output promotion or archive export. |
+| Read without changing files | Configuration validation and path queries do not create target folders or edit ignore files. |
+| Detect command failures | Errors produce a nonzero exit status, so an automated run can stop. |
+| Run without questions | `--non-interactive` disables CLI prompts and automatic package installation, and closes runner input. |
+| Select no analysis | An explicit `scripts: []` runs no analysis scripts. Hooks may still run; production can export existing outputs. |
+| Run scripts and render documents | The build engine supports Python, R, Quarto and R Markdown/Bookdown targets, with the corresponding tools installed. |
+| Keep a local output archive | Production builds can export configured outputs to local content-addressed storage, which avoids storing identical content repeatedly. |
+
+### Preview has a boundary
+
+The CLI skips its own release operations during a preview, including cleanup
+of released outputs and prior caches. **This is not a filesystem sandbox.**
+Scripts, hooks and renderers can still change files. Write preview results
+to an explicitly chosen temporary folder, as in the [tutorial](tutorial.qmd).
+
+Document renderers have their own working folders and output rules.
+Mixed-language scheduling is not a promise that every target runs in the exact
+order written in configuration. See the [build reference](cli/build.qmd) for
+the current implementation and the [behavior contract](behavior.qmd) for limits.
+
+## Known limits
+
+- A preview is not a filesystem sandbox. Scripts and hooks control their writes;
+  automatic redirection of every renderer's output is not provided.
+- Matching results and paths across CLI runs, RStudio and GUI rendering has not
+  been proved.
+- Complete compatibility with every `projr` workflow has not been established.
+- Mixed script and document targets do not have a complete sequential-order
+  guarantee.
+- Current-preview release installers have not been verified for every operating
+  system and processor.
+- Legacy production behavior is still under review. This guide uses preview
+  builds; it does not establish production cleanup or publication safety.
+
+The existing R package is unchanged. A Rust library is available in this
+repository, but new R, Python and Julia frontend integrations are separate work.
+
+## Planned work
+
+The broader project-root and build workflow milestones remain incomplete.
+Current work includes clearer project configuration and verified release and
+installation routes. This is not a promise that all limitations above will
+become features.
+
+For the detailed evidence, scope and decisions, see the
+[behavior contract](behavior.qmd) and [compatibility log](compatibility.qmd).

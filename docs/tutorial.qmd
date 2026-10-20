@@ -1,0 +1,98 @@
+---
+title: "Run your first analysis"
+subtitle: "Calculate a mean and save a preview, using only Python's standard library."
+---
+
+::: {.callout-note}
+## Use a current development build
+This example targets the development preview on `main`, not the historical
+v0.3.0 package. See [installation status](install.qmd) first. The complete
+example was [checked through the CLI in Ubuntu CI](https://github.com/MiguelRodo/projcli/actions/runs/39489440429)
+using source revision `fafce46a` and this documentation branch. Verification
+against a new release package is still pending.
+:::
+
+## 1. Make a small project
+
+In an Ubuntu terminal, choose a new folder and open it:
+
+```bash
+mkdir projcli-example
+cd projcli-example
+```
+
+Create a file named `_proj.yml` with this content:
+
+```yaml
+directories:
+  cache:
+    path: _tmp
+build:
+  scripts: [analysis.py]
+```
+
+This declares the folder used for temporary results and the script to run.
+The example does not need Git setup, a remote repository or `proj init`.
+
+## 2. Add an analysis
+
+Create `analysis.py` in the same folder:
+
+```python
+import csv
+import os
+from pathlib import Path
+from statistics import mean
+
+root = Path(os.environ["PROJ_PROJECT_ROOT"])
+preview = root / "_tmp" / "preview"
+preview.mkdir(parents=True, exist_ok=True)
+
+measurements = [10, 12, 14]
+result = preview / "summary.csv"
+with result.open("w", newline="") as handle:
+    writer = csv.writer(handle)
+    writer.writerow(["count", "mean"])
+    writer.writerow([len(measurements), mean(measurements)])
+
+print(f"Saved {result}")
+```
+
+The three measurements are deliberately built into the script so there is no
+data download or extra package installation. The script uses the project root
+provided by projcli and explicitly writes to `_tmp/preview`.
+
+## 3. Check, then run
+
+```bash
+proj --project . yml read
+proj --project . --non-interactive build-dev
+cat _tmp/preview/summary.csv
+```
+
+The CSV should contain:
+
+```text
+count,mean
+3,12
+```
+
+The validation command reads configuration. The preview runs the script.
+Running it again replaces this example's CSV; change a measurement and rerun
+to see the mean change.
+
+## 4. Understand what changed
+
+The script creates `_tmp/preview/summary.csv`. The CLI does not create a
+`VERSION` file, publish to `docs`, or export an archive during this preview.
+
+A preview is not a sandbox: your script can still write elsewhere if you
+tell it to. Keep preview writes in an explicit temporary folder.
+
+## Where to go next
+
+- Query a declared path with `proj --project . path get --label cache`.
+- Add your own script to `build.scripts`.
+- Read the [build reference](cli/build.qmd) before using `proj build`.
+  Production builds have different version, cleanup and export behavior.
+- Check [what works](features.qmd) before adding document rendering or R tooling.
