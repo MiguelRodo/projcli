@@ -1,0 +1,156 @@
+name: Docs validation
+
+on:
+  pull_request:
+    paths:
+      - README.md
+      - docs/**
+      - .github/workflows/docs-validation.yml
+
+permissions:
+  contents: read
+
+jobs:
+  validate-docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      - uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b # v2
+        with:
+          version: "1.10.19"
+          tinytex: false
+      - name: Render without executing examples
+        run: |
+          mkdir -p validation-evidence
+          git rev-parse HEAD | tee validation-evidence/pr-checkout.txt
+          quarto render docs --no-execute 2>&1 | tee validation-evidence/quarto-render.txt
+      - name: Check rendered navigation and local links
+        run: |
+          python3 - <<'PY' 2>&1 | tee validation-evidence/links.txt
+          """Check local rendered links, assets and fragment identifiers."""
+          from html.parser import HTMLParser
+          from pathlib import Path
+          from urllib.parse import unquote, urlsplit
+          
+          site = Path("docs/_site").resolve()
+          class Page(HTMLParser):
+              def __init__(self, path):
+                  super().__init__()
+                  self.ids = set()
+                  self.links = []
+                  self.feed(path.read_text())
+              def handle_starttag(self, tag, attrs):
+                  attrs = dict(attrs)
+                  if "id" in attrs:
+                      self.ids.add(attrs["id"])
+                  for attr in ("href", "src"):
+                      if attr in attrs:
+                          self.links.append(attrs[attr])
+          
+          pages = {path: Page(path) for path in site.rglob("*.html")}
+          errors = []
+          for source, page in pages.items():
+              for link in page.links:
+                  url = urlsplit(link)
+                  if url.scheme or url.netloc:
+                      continue
+                  path = unquote(url.path)
+                  if path.startswith("/projcli/"):
+                      target = site / path[len("/projcli/"):]
+                  elif path.startswith("/"):
+                      target = site / path.lstrip("/")
+                  else:
+                      target = source.parent / path if path else source
+                  target = target.resolve()
+                  if target.is_dir():
+                      target /= "index.html"
+                  if not target.exists():
+                      errors.append(f"{source.relative_to(site)}: missing {link}")
+                  elif url.fragment and target in pages and unquote(url.fragment) not in pages[target].ids:
+                      errors.append(f"{source.relative_to(site)}: missing fragment {link}")
+          assert not errors, "\n".join(errors[:30])
+          print(f"PASS: local links, assets and fragments across {len(pages)} rendered pages")
+          PY
+      - name: Prepare example checker from authored fences
+        run: |
+          cat > validation-evidence/check-examples.py <<'PY'
+          """Validate the actual fenced examples against a supplied proj executable."""
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+          import sys
+          import shlex
+          import tempfile
+          
+          root = Path.cwd()
+          binary = str(Path(sys.argv[1]).resolve())
+          
+          def run(command, **kwargs):
+              print("+ " + shlex.join(command), flush=True)
+              result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                      text=True, **kwargs)
+              print(result.stdout, end="", flush=True)
+              result.check_returncode()
+              return result.stdout
+          
+          for page, filename, expected in [
+              ("README.md", "mean.txt", "12\n"),
+              ("docs/tutorial.qmd", "summary.csv", "count,mean\n3,12\n"),
+          ]:
+              text = (root / page).read_text()
+              config = re.search(r"```yaml\n(.*?)```", text, re.S).group(1)
+              analysis = re.search(r"```python\n(.*?)```", text, re.S).group(1)
+              with tempfile.TemporaryDirectory(prefix="projcli-docs-") as temporary:
+                  project = Path(temporary)
+                  (project / "_proj.yml").write_text(config)
+                  (project / "analysis.py").write_text(analysis)
+                  env = dict(os.environ)
+                  for name in ("PROJ_PROJECT_ROOT", "PROJR_PROFILE", "QUARTO_PROFILE", "PROJR_CLEAR_OUTPUT"):
+                      env.pop(name, None)
+                  before = {p.name: p.read_bytes() for p in project.iterdir()}
+                  run([binary, "--project", ".", "yml", "read"], cwd=project, env=env)
+                  assert before == {p.name: p.read_bytes() for p in project.iterdir()}, "validation changed the project"
+                  run([binary, "--project", ".", "--non-interactive", "build-dev"],
+                      cwd=project, env=env)
+                  result = project / "_tmp" / "preview" / filename
+                  assert result.read_text() == expected, (page, result.read_text())
+                  print(f"Output {filename}:\n{result.read_text()}", flush=True)
+                  assert not (project / "VERSION").exists(), "preview created VERSION"
+                  assert not (project / ".gitignore").exists(), "preview changed ignores"
+                  assert not (project / ".Rbuildignore").exists(), "preview changed ignores"
+                  assert before == {p.name: p.read_bytes() for p in project.iterdir() if p.is_file()}, "preview changed inputs"
+                  path = run([binary, "--project", ".", "path", "get", "--label", "cache"],
+                             cwd=project, env=env).strip()
+                  assert Path(path) == project / "_tmp", path
+                  print(f"PASS {page}: real configuration, CLI validation, preview and output")
+          
+          print(f"Validated using {binary}")
+          PY
+      - name: Install using the documented official-source command
+        run: |
+          rustc --version | tee validation-evidence/source-install.txt
+          cargo install --git https://github.com/MiguelRodo/projcli --locked --bin proj 2>&1 | tee -a validation-evidence/source-install.txt
+          cargo install --list | tee -a validation-evidence/source-install.txt
+          "$HOME/.cargo/bin/proj" --help | tee -a validation-evidence/source-install.txt
+      - name: Run documented examples using source installation
+        run: python3 validation-evidence/check-examples.py "$HOME/.cargo/bin/proj" 2>&1 | tee validation-evidence/source-examples.txt
+      - name: Build the exact PR core revision
+        run: cargo build --locked --bin proj 2>&1 | tee validation-evidence/pr-build.txt
+      - name: Run documented examples using PR core revision
+        run: python3 validation-evidence/check-examples.py target/debug/proj 2>&1 | tee validation-evidence/pr-examples.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: docs-preview-and-validation
+          path: |
+            docs/_site
+            validation-evidence
+          retention-days: 7
