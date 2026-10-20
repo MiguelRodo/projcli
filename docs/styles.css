@@ -7,7 +7,6 @@ body { font-size: 1.05rem; line-height: 1.7; }
 h1, h2, h3 { color: #142d3b; font-weight: 650; }
 h1 { letter-spacing: -.035em; line-height: 1.15; }
 h2 { margin-top: 2.1rem; letter-spacing: -.02em; }
-.navbar { background: #143b3a; }
 .navbar .navbar-brand, .navbar .nav-link { color: #fff; }
 .navbar .navbar-nav .nav-link.active {
   color: #fff;

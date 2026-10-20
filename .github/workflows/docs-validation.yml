@@ -45,16 +45,32 @@ jobs:
                   super().__init__()
                   self.ids = set()
                   self.links = []
+                  self.navbar_links = []
+                  self.in_navbar = False
                   self.feed(path.read_text())
               def handle_starttag(self, tag, attrs):
                   attrs = dict(attrs)
+                  if tag == "nav" and "navbar" in attrs.get("class", "").split():
+                      self.in_navbar = True
+                  if self.in_navbar and tag == "a" and "nav-link" in attrs.get("class", "").split():
+                      self.navbar_links.append(attrs)
                   if "id" in attrs:
                       self.ids.add(attrs["id"])
                   for attr in ("href", "src"):
                       if attr in attrs:
                           self.links.append(attrs[attr])
+              def handle_endtag(self, tag):
+                  if tag == "nav":
+                      self.in_navbar = False
           
           pages = {path: Page(path) for path in site.rglob("*.html")}
+          for name in ("index.html", "install.html", "tutorial.html", "features.html"):
+              navbar = pages[site / name].navbar_links
+              active = [a for a in navbar if "active" in a.get("class", "").split()]
+              current = [a for a in navbar if a.get("aria-current") == "page"]
+              assert active == current and len(active) == 1, (name, active, current)
+              assert Path(urlsplit(active[0]["href"]).path).name == name, (name, active)
+          print("PASS: each top-level navbar marks only its own page active and aria-current")
           errors = []
           for source, page in pages.items():
               for link in page.links:
