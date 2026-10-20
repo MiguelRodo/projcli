@@ -308,7 +308,7 @@ ul.task-list li input[type="checkbox"] {
 <li><strong><code>path</code></strong>: The physical absolute or relative path to the remote storage directory.</li>
 <li><strong><code>structure</code></strong>: Specifies the storage structure algorithm. Must be <code>cas</code> (Content-Addressable Storage).</li>
 <li><strong><code>content</code></strong>: An array of string tags (matching foundational prefixes or defined directories) specifying which project output directories to sync into the remote upon build completion.</li>
-<li><strong><code>inspect</code></strong>: Specifies the structural integrity verification strategy (<code>manifest</code> or <code>file</code>).</li>
+<li><strong><code>inspect</code></strong>: <code>manifest</code> validates JSON, logical paths/digests and manifest filename/content identity; <code>file</code> additionally hashes every referenced object and compares actual bytes. Manifest-only inspection does not verify object bytes.</li>
 </ul></li>
 </ul>
 </section>

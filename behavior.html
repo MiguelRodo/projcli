@@ -257,6 +257,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#correctness-audit" id="toc-correctness-audit" class="nav-link" data-scroll-target="#correctness-audit">Correctness audit</a></li>
   <li><a href="#reference-material" id="toc-reference-material" class="nav-link" data-scroll-target="#reference-material">Reference material</a></li>
   <li><a href="#build-environment-context" id="toc-build-environment-context" class="nav-link" data-scroll-target="#build-environment-context">Build environment context</a></li>
+  <li><a href="#bounded-cas-integrity" id="toc-bounded-cas-integrity" class="nav-link" data-scroll-target="#bounded-cas-integrity">Bounded CAS integrity</a></li>
   <li><a href="#explicit-git-operations" id="toc-explicit-git-operations" class="nav-link" data-scroll-target="#explicit-git-operations">Explicit Git operations</a></li>
   </ul></li>
   </ul>
@@ -339,6 +340,11 @@ ul.task-list li input[type="checkbox"] {
 <section id="build-environment-context" class="level2">
 <h2 class="anchored" data-anchor-id="build-environment-context">Build environment context</h2>
 <p>Builds resolve one environment snapshot and pass it to their child commands and configuration-profile selection. Environment files do not mutate the parent process on this path. Inherited OS values win over local, earlier environment profiles and base assignments; explicit build profiles override inherited PROJR_PROFILE. The same values reach dependency probes, scripts/hooks/renderers and existing Git helpers. Direct public legacy EnvGuard APIs and CLI startup guards still mutate process state and are not concurrent environment APIs. This change does not approve credential injection policy or establish a sanitized/sandboxed environment.</p>
+</section>
+<section id="bounded-cas-integrity" class="level2">
+<h2 class="anchored" data-anchor-id="bounded-cas-integrity">Bounded CAS integrity</h2>
+<p>Ingestion requires an existing directory, disjoint from its CAS storage and project index. Reject linked/unsupported source entries, non-UTF-8 filenames and ambiguous logical paths; logical identities use slash-separated components and case-sensitive names. Digests are canonical 64-character lowercase hexadecimal BLAKE3 values. Copy and hash the same stream; verify existing objects before reuse. Publish complete objects/manifests without replacing conflicting content. Replace project index bytes through a same-directory temporary file, escaping CSV metadata fields.</p>
+<p>Manifest inspection validates structure and manifest byte identity; file inspection also hashes referenced object bytes. This does not provide a stable snapshot across concurrent source changes, multi-writer serialization, power-loss durability or one transaction across remote manifest and project index. Failure may leave valid orphan objects or an unindexed complete manifest; errors propagate and old index bytes stay intact. No source file is modified by ingestion. Symlink-alias paths remain unsupported under the conservative path guards; callers should supply resolved physical paths.</p>
 </section>
 <section id="explicit-git-operations" class="level2">
 <h2 class="anchored" data-anchor-id="explicit-git-operations">Explicit Git operations</h2>
