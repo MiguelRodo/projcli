@@ -579,3 +579,14 @@ stale individual artifacts, cache purge during failed analysis, and unavailable
 recovery bytes without further deletion. These amendments require fresh remote
 CI and independent review. Project artifact scanning remains a conservative
 supported-document check, not a complete renderer manifest guarantee.
+
+
+Further review keeps project promotion conservative: require a freshly created
+tree containing a nonempty supported document, rather than guessing per-input
+filenames from incomplete document-only format metadata. Fake PDF rendering tests
+cover explicit and inherited project formats. Complete expected-output manifests
+remain unimplemented; individual document format inference is still a separate
+known limitation. Selected managed script/hook paths reject symlinks along the
+original path before canonical identity comparison. System recovery temp anchors
+are canonicalized, including cache-free operations, without weakening user-path
+symlink rejection.

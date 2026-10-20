@@ -13,9 +13,9 @@ impl BuildState {
         // Disposable project cache is not a safe location for recovery bytes.
         let system_temp = fs::canonicalize(std::env::temp_dir()).context("Cannot resolve system temporary directory")?;
         let backup = tempfile::Builder::new().prefix("proj-build-recovery-").tempdir_in(system_temp)?;
+        let recovery = fs::canonicalize(backup.path()).context("Cannot resolve private recovery storage")?;
         if let Some(cache) = cache {
             let cache = crate::path_safety::resolve_path(cache, true)?;
-            let recovery = crate::path_safety::resolve_path(backup.path(), true)?;
             if recovery.starts_with(&cache) || cache.starts_with(&recovery) {
                 anyhow::bail!("Private recovery storage overlaps disposable project cache");
             }
@@ -38,7 +38,7 @@ impl BuildState {
         for target in selected {
             if roots.iter().any(|parent| target.starts_with(parent)) { continue; }
             if cache.is_some_and(|cache| cache.starts_with(&target) || target.starts_with(cache))
-                || target.starts_with(state.backup.path()) || state.backup.path().starts_with(&target) {
+                || target.starts_with(&recovery) || recovery.starts_with(&target) {
                 anyhow::bail!("Managed build backup overlaps cache: {}", target.display());
             }
             roots.push(target.clone());

@@ -246,7 +246,8 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     }
     let root_identity = crate::path_safety::resolve_path(project_root.as_std_path(), false)?;
     for input in &validation_files {
-        let identity = crate::path_safety::resolve_path(input.as_std_path(), false)?;
+        // Reject links along the original path before canonicalizing its namespace.
+        let identity = crate::path_safety::resolve_path(input.as_std_path(), true)?;
         if identity.starts_with(&root_identity) { managed.push(identity); }
     }
     if has_document_analysis && !quarto_exists && !bookdown_exists {
@@ -334,24 +335,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
             crate::clear::clear_post(project_root, false, &config, Some("never"), !quarto_exists && !bookdown_exists)?;
             if quarto_exists || bookdown_exists {
                 let staging = cache_root.as_ref().context("Project rendering requires cache")?.join("projr").join(&current_version).join("docs");
-                if quarto_exists {
-                    // Explicit Quarto targets must each produce their expected document.
-                    for file in &resolved_files {
-                        if file.extension() == Some("qmd") {
-                            let paths = document_output_paths(file, &docs, project_root)?;
-                            let identity = crate::path_safety::resolve_path(file.as_std_path(), false)?;
-                            let relative_parent = identity.parent().context("Document has no parent")?.strip_prefix(&root_identity)
-                                .context("Project document lies outside its resolved root")?;
-                            let expected = staging.join(camino::Utf8Path::from_path(relative_parent).context("Non-UTF-8 document parent")?)
-                                .join(paths.target.file_name().context("Expected document has no filename")?);
-                            crate::path_safety::resolve_path(expected.as_std_path(), true)?;
-                            if !expected.is_file() || fs::metadata(&expected)?.len() == 0 {
-                                anyhow::bail!("Expected project document is missing or empty: {expected}");
-                            }
-                        }
-                    }
-                    copy_global_quarto_project(&staging, &docs)?;
-                }
+                if quarto_exists { copy_global_quarto_project(&staging, &docs)?; }
                 else { copy_global_bookdown(&staging, &docs, project_root)?; }
             } else {
                 for file in &resolved_files {

@@ -265,3 +265,56 @@ fn direct_project_promotion_rejects_empty_and_asset_only_trees_before_clearing_d
         else { assert_eq!(fs::read_to_string(docs.join("old.html")).unwrap(), "old document"); }
     }
 }
+
+
+#[cfg(unix)]
+#[test]
+fn selected_link_is_rejected_before_mutation_instead_of_backing_only_its_referent() {
+    let project = tempfile::tempdir().unwrap();
+    let root = project.path();
+    fs::create_dir(root.join("nested")).unwrap();
+    fs::write(root.join("nested/actual.py"), "from pathlib import Path\nPath(__file__).unlink()\nraise SystemExit(17)\n").unwrap();
+    std::os::unix::fs::symlink("actual.py", root.join("nested/runner.py")).unwrap();
+    fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
+    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [nested/runner.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+    let result = Command::new(env!("CARGO_BIN_EXE_proj"))
+        .args(["build", "--patch", "--non-interactive", "--project"]).arg(root).current_dir(root)
+        .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
+        .env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("symlink"));
+    assert!(root.join("nested/runner.py").symlink_metadata().unwrap().file_type().is_symlink());
+    assert!(root.join("nested/actual.py").is_file());
+    assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");
+    for absent in [".gitignore", ".Rbuildignore", "cache"] { assert!(!root.join(absent).exists()); }
+}
+
+#[cfg(unix)]
+#[test]
+fn project_pdf_artifacts_succeed_with_document_or_inherited_project_format() {
+    use std::os::unix::fs::PermissionsExt;
+    for inherited in [false, true] {
+        let project = tempfile::tempdir().unwrap();
+        let root = project.path().canonicalize().unwrap();
+        let project_yaml = if inherited { "# inherited format\nproject:\n  type: default\nformat: pdf\n" }
+            else { "# document format\nproject:\n  type: default\n" };
+        fs::write(root.join("_quarto.yml"), project_yaml).unwrap();
+        fs::write(root.join("report.qmd"), if inherited { "Report\n" } else { "---\nformat: pdf\n---\nReport\n" }).unwrap();
+        fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
+        fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\n  docs:\n    path: published\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [report.qmd]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+        fs::create_dir(root.join("bin")).unwrap();
+        fs::write(root.join("bin/Rscript"), "#!/bin/sh\nexit 0\n").unwrap();
+        fs::write(root.join("bin/quarto"), "#!/usr/bin/env python3\nimport os, sys\nfrom pathlib import Path\nif sys.argv[1:2] == ['render']:\n p = Path(os.environ['PROJ_PROJECT_ROOT']) / 'cache/projr/1.2.3/docs'\n p.mkdir(parents=True, exist_ok=True)\n (p / 'report.pdf').write_bytes(b'%PDF-fresh-document')\n").unwrap();
+        for name in ["quarto", "Rscript"] { fs::set_permissions(root.join("bin").join(name), fs::Permissions::from_mode(0o755)).unwrap(); }
+        let mut paths = vec![root.join("bin")];
+        paths.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()));
+        let result = Command::new(env!("CARGO_BIN_EXE_proj"))
+            .args(["build", "--patch", "--non-interactive", "--project"]).arg(&root).current_dir(&root)
+            .env("PATH", std::env::join_paths(paths).unwrap())
+            .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
+            .env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
+        assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+        assert_eq!(fs::read(root.join("published/report.pdf")).unwrap(), b"%PDF-fresh-document");
+        assert_eq!(fs::read_to_string(root.join("_quarto.yml")).unwrap(), project_yaml);
+    }
+}
