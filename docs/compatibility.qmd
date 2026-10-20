@@ -590,3 +590,11 @@ known limitation. Selected managed script/hook paths reject symlinks along the
 original path before canonical identity comparison. System recovery temp anchors
 are canonicalized, including cache-free operations, without weakening user-path
 symlink rejection.
+
+
+Bookdown's framework-controlled `<book_filename>_files` source/destination are
+resolved and guarded before writes, with default `_main` and portable custom stems.
+Their exact prior bytes/presence join the recovery set. A fake successful render
+followed by a failing post-hook checks both default/custom native asset trees and
+released docs are restored. Unsupported path-like stems fail instead of traversing
+outside the project. Remote verification and independent review remain required.

@@ -250,6 +250,17 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
         let identity = crate::path_safety::resolve_path(input.as_std_path(), true)?;
         if identity.starts_with(&root_identity) { managed.push(identity); }
     }
+    if bookdown_exists {
+        let (assets, destination) = bookdown_asset_paths(project_root, &config.get_path(project_root, "docs")?)?;
+        let asset_identity = crate::path_safety::resolve_path(assets.as_std_path(), true)?;
+        for input in &validation_files {
+            if crate::path_safety::resolve_path(input.as_std_path(), true)?.starts_with(&asset_identity) {
+                anyhow::bail!("Bookdown assets contain a selected input");
+            }
+        }
+        managed.push(assets.into_std_path_buf());
+        managed.push(destination.into_std_path_buf());
+    }
     if has_document_analysis && !quarto_exists && !bookdown_exists {
         let docs = config.get_path(project_root, "docs")?;
         for file in &resolved_files {
@@ -862,29 +873,31 @@ fn validate_project_artifacts(directory: &camino::Utf8Path) -> anyhow::Result<()
     Ok(())
 }
 
+fn bookdown_asset_paths(root: &camino::Utf8Path, docs: &camino::Utf8Path) -> anyhow::Result<(camino::Utf8PathBuf, camino::Utf8PathBuf)> {
+    let path = root.join("_bookdown.yml");
+    let content = fs::read_to_string(&path).context("Cannot read Bookdown configuration")?;
+    let yaml: serde_yaml::Value = serde_yaml::from_str(&content).context("Invalid Bookdown configuration")?;
+    let name = match yaml.get("book_filename") {
+        Some(value) => value.as_str().context("Bookdown book_filename must be a string")?,
+        None => "_main",
+    };
+    if name.is_empty() || name == "." || name == ".." || name.contains('/') || name.contains('\\') || name.contains(':') {
+        anyhow::bail!("Bookdown book_filename must be a nonempty portable filename stem");
+    }
+    let leaf = format!("{name}_files");
+    let source = root.join(&leaf);
+    let destination = docs.join(&leaf);
+    crate::path_safety::resolve_path(source.as_std_path(), true)?;
+    crate::path_safety::resolve_path(destination.as_std_path(), true)?;
+    if source.exists() { crate::path_safety::validate_directory_move(&source, &destination)?; }
+    Ok((source, destination))
+}
+
 pub fn copy_global_bookdown(cache_docs_dir: &camino::Utf8Path, final_docs_dir: &camino::Utf8Path, project_root: &camino::Utf8Path) -> anyhow::Result<()> {
     validate_project_artifacts(cache_docs_dir)?;
+    let (files_dir, dest_files_dir) = bookdown_asset_paths(project_root, final_docs_dir)?;
     crate::fs_utils::dir_move_exact(cache_docs_dir, final_docs_dir)?;
-
-    // We also need to locate <book_filename>_files and move to final target context.
-    // _bookdown.yml specifies book_filename, defaulting to _main
-    let mut book_filename = "_main".to_string();
-    let bookdown_yml = project_root.join("_bookdown.yml");
-    if bookdown_yml.exists() {
-        let content = fs::read_to_string(&bookdown_yml).unwrap_or_default();
-        if let Ok(yaml) = serde_yaml::from_str::<serde_yaml::Value>(&content) {
-            if let Some(map) = yaml.as_mapping() {
-                if let Some(bf) = map.get("book_filename").and_then(|v| v.as_str()) {
-                    book_filename = bf.to_string();
-                }
-            }
-        }
-    }
-
-    let files_dir_name = format!("{}_files", book_filename);
-    let files_dir = project_root.join(&files_dir_name);
     if files_dir.exists() {
-        let dest_files_dir = final_docs_dir.join(&files_dir_name);
         crate::fs_utils::dir_move_exact(&files_dir, &dest_files_dir)?;
     }
 

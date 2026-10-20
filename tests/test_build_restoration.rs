@@ -318,3 +318,41 @@ fn project_pdf_artifacts_succeed_with_document_or_inherited_project_format() {
         assert_eq!(fs::read_to_string(root.join("_quarto.yml")).unwrap(), project_yaml);
     }
 }
+
+
+#[cfg(unix)]
+#[test]
+fn bookdown_native_assets_restore_after_post_promotion_hook_failure() {
+    use std::os::unix::fs::PermissionsExt;
+    for name in ["_main", "custom-book"] {
+        let project = tempfile::tempdir().unwrap();
+        let root = project.path().canonicalize().unwrap();
+        let yaml = if name == "_main" { "# preserve default\n{}\n".to_string() }
+            else { format!("# preserve custom\nbook_filename: {name}\n") };
+        fs::write(root.join("_bookdown.yml"), &yaml).unwrap();
+        fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
+        fs::write(root.join("report.Rmd"), "Report\n").unwrap();
+        fs::write(root.join("post.py"), "raise SystemExit(17)\n").unwrap();
+        fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\n  docs:\n    path: published\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [report.Rmd]\n  hooks:\n    post: [post.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+        let assets = root.join(format!("{name}_files"));
+        fs::create_dir_all(assets.join("empty")).unwrap();
+        fs::write(assets.join("old.png"), b"old-native-asset").unwrap();
+        fs::create_dir(root.join("published")).unwrap();
+        fs::write(root.join("published/old.html"), "previous docs").unwrap();
+        fs::create_dir(root.join("bin")).unwrap();
+        let fake = format!("#!/usr/bin/env python3\nimport os, sys\nfrom pathlib import Path\nif any('render_site' in arg for arg in sys.argv):\n root = Path(os.environ['PROJ_PROJECT_ROOT'])\n staging = root / 'cache/projr/1.2.3/docs'\n staging.mkdir(parents=True, exist_ok=True)\n (staging / 'index.html').write_text('new document')\n (root / '{name}_files' / 'new.png').write_text('new asset')\n");
+        fs::write(root.join("bin/Rscript"), fake).unwrap();
+        fs::set_permissions(root.join("bin/Rscript"), fs::Permissions::from_mode(0o755)).unwrap();
+        let before = snapshot(&root);
+        let mut paths = vec![root.join("bin")];
+        paths.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()));
+        let result = Command::new(env!("CARGO_BIN_EXE_proj"))
+            .args(["build", "--patch", "--non-interactive", "--project"]).arg(&root).current_dir(&root)
+            .env("PATH", std::env::join_paths(paths).unwrap())
+            .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
+            .env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
+        assert!(!result.status.success());
+        assert!(String::from_utf8_lossy(&result.stderr).contains("17"), "{}", String::from_utf8_lossy(&result.stderr));
+        assert_eq!(snapshot(&root), before, "book_filename={name}");
+    }
+}
