@@ -257,7 +257,9 @@ pub fn root_from(start_path: &camino::Utf8Path) -> Option<camino::Utf8PathBuf> {
 
 /// Thin production wrapper: discovers the conceptual project root directory via heuristic path traversal.
 ///
-/// This uses the current directory as the starting search context.
+/// An inherited absolute `PROJ_PROJECT_ROOT` pins the root across cwd changes.
+/// Otherwise this uses the current directory as the starting search context.
+/// An invalid inherited root fails instead of silently rediscovering a different project.
 ///
 /// # Errors
 ///
@@ -268,6 +270,13 @@ pub fn root_from(start_path: &camino::Utf8Path) -> Option<camino::Utf8PathBuf> {
 /// let result = root();
 /// ```
 pub fn root() -> Option<camino::Utf8PathBuf> {
+    if let Some(inherited) = env::var_os(crate::project::PROJECT_ROOT_ENV) {
+        let path = std::path::PathBuf::from(inherited);
+        if !path.is_absolute() || !path.is_dir() {
+            return None;
+        }
+        return camino::Utf8PathBuf::from_path_buf(std::fs::canonicalize(path).ok()?).ok();
+    }
     let current_dir = env::current_dir().ok()?;
     root_from(camino::Utf8Path::from_path(&current_dir)?)
 }

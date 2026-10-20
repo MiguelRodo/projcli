@@ -17,6 +17,9 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[command(name = "proj", version)]
 pub struct Cli {
+    /// Select an exact existing project directory without requiring root markers.
+    #[arg(long, global = true, value_name = "PATH")]
+    project: Option<camino::Utf8PathBuf>,
     #[command(subcommand)]
     command: Commands,
 }
@@ -201,6 +204,15 @@ pub enum IgnoreCommands {
 
 fn main() {
     let cli = Cli::parse();
+    let root = match proj::resolve_project_root(cli.project.as_deref()) {
+        Ok(root) => root,
+        Err(error) => {
+            eprintln!("Project selection failed: {:#}", error);
+            std::process::exit(1);
+        }
+    };
+    let mut root_guard = proj::EnvGuard::new();
+    root_guard.track_and_set(proj::PROJECT_ROOT_ENV, root.as_str());
 
     match &cli.command {
         Commands::Yml { command } => match command {

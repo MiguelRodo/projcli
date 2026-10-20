@@ -3,7 +3,7 @@
 Get the resolved absolute path for a given label in the project.
 
 ```bash
-proj path get --label <LABEL>
+proj path get --label <LABEL> [--project <PATH>]
 ```
 
 ## Resolution Rules
@@ -17,3 +17,20 @@ The path resolution mapping dynamically takes the target label and computes an a
 ## Output Path Routing
 
 Output path labels securely route into versioned target sandboxes during an active project build. The tool guarantees the resolution produces verified absolute paths directly pointing to their intended source locations, enforcing standard separation across testing segregations and pure-function results.
+
+## Explicit and inherited project root
+
+`--project PATH` selects that exact existing directory, including a folder
+without configuration or VERSION. It overrides both ancestor discovery and an
+inherited run root. Invalid directories fail with a nonzero exit status.
+
+The CLI captures an absolute root as `PROJ_PROJECT_ROOT` for the invocation and
+its child processes. A nested `proj path get` uses that root even after a script
+changes cwd. An invalid inherited root fails rather than falling back silently.
+Direct Rust `build_project(root, ...)` calls also pass their supplied root to
+children. Discovery marker policy is unchanged by this slice.
+
+This establishes CLI child-query behavior, not direct Quarto/RStudio parity or
+changes to the existing R frontend. Renderer configuration, execution cwd,
+resource links and output placement remain separate concerns. Query ignore-file
+writes are a separate known gap.
