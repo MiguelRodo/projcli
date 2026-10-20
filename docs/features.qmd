@@ -41,19 +41,29 @@ Mixed-language scheduling is not a promise that every target runs in the exact
 order written in configuration. See the [build reference](cli/build.qmd) for
 the current implementation and the [behavior contract](behavior.qmd) for limits.
 
-## Still ahead
+## Known limits
 
-The broader project-root and build workflow milestones remain incomplete.
-Do not rely on the following as established behavior:
-
-- Matching results and paths across CLI runs, RStudio and GUI rendering.
-- Full compatibility with every `projr` workflow.
-- A released installer for every operating system and processor.
-- A filesystem sandbox or automatic redirection of every renderer's output.
-- Complete sequential ordering across mixed script and document targets.
+- A preview is not a filesystem sandbox. Scripts and hooks control their writes;
+  automatic redirection of every renderer's output is not provided.
+- Matching results and paths across CLI runs, RStudio and GUI rendering has not
+  been proved.
+- Complete compatibility with every `projr` workflow has not been established.
+- Mixed script and document targets do not have a complete sequential-order
+  guarantee.
+- Current-preview release installers have not been verified for every operating
+  system and processor.
+- Legacy production behavior is still under review. This guide uses preview
+  builds; it does not establish production cleanup or publication safety.
 
 The existing R package is unchanged. A Rust library is available in this
 repository, but new R, Python and Julia frontend integrations are separate work.
 
-For the detailed evidence and decisions, see the
+## Planned work
+
+The broader project-root and build workflow milestones remain incomplete.
+Current work includes clearer project configuration and verified release and
+installation routes. This is not a promise that all limitations above will
+become features.
+
+For the detailed evidence, scope and decisions, see the
 [behavior contract](behavior.qmd) and [compatibility log](compatibility.qmd).
