@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -257,6 +257,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#correctness-audit" id="toc-correctness-audit" class="nav-link" data-scroll-target="#correctness-audit">Correctness audit</a></li>
   <li><a href="#reference-material" id="toc-reference-material" class="nav-link" data-scroll-target="#reference-material">Reference material</a></li>
   <li><a href="#build-environment-context" id="toc-build-environment-context" class="nav-link" data-scroll-target="#build-environment-context">Build environment context</a></li>
+  <li><a href="#captured-execution-root-and-bounded-individual-render-layouts" id="toc-captured-execution-root-and-bounded-individual-render-layouts" class="nav-link" data-scroll-target="#captured-execution-root-and-bounded-individual-render-layouts">Captured execution root and bounded individual render layouts</a></li>
   <li><a href="#bounded-cas-integrity" id="toc-bounded-cas-integrity" class="nav-link" data-scroll-target="#bounded-cas-integrity">Bounded CAS integrity</a></li>
   <li><a href="#explicit-git-operations" id="toc-explicit-git-operations" class="nav-link" data-scroll-target="#explicit-git-operations">Explicit Git operations</a></li>
   </ul></li>
@@ -340,6 +341,12 @@ ul.task-list li input[type="checkbox"] {
 <section id="build-environment-context" class="level2">
 <h2 class="anchored" data-anchor-id="build-environment-context">Build environment context</h2>
 <p>Builds resolve one environment snapshot and pass it to their child commands and configuration-profile selection. Environment files do not mutate the parent process on this path. Inherited OS values win over local, earlier environment profiles and base assignments; explicit build profiles override inherited PROJR_PROFILE. The same values reach dependency probes, scripts/hooks/renderers and existing Git helpers. Direct public legacy EnvGuard APIs and CLI startup guards still mutate process state and are not concurrent environment APIs. This change does not approve credential injection policy or establish a sanitized/sandboxed environment.</p>
+</section>
+<section id="captured-execution-root-and-bounded-individual-render-layouts" class="level2">
+<h2 class="anchored" data-anchor-id="captured-execution-root-and-bounded-individual-render-layouts">Captured execution root and bounded individual render layouts</h2>
+<p>Script and hook subprocesses start in the captured project root, retaining explicit selected input paths. Quarto receives <code>--execute-dir</code> with that root; individual R Markdown uses <code>knit_root_dir</code> and passes the input/root as data arguments to fixed R code. This implements CLI defaults, not direct R/IDE parity or a changed resource link resolution policy. The existing R package remains untouched.</p>
+<p>Nested Quarto project metadata is rejected for selected documents and conservatively scanned implicit source trees. Individual rendering models one document-local format: HTML, PDF, Word, or supported native presentation/EPUB variants. Unknown/multiple formats, inherited individual metadata, custom R Markdown output filenames, dynamic R Markdown runtime and document-rendering hooks fail before controlled writes. Project-render validation remains conservative fresh-tree validation, not a complete renderer output manifest. Unsupported layout rejection does not assert renderer parity.</p>
+<p><code>clear_output</code> accepts only <code>pre</code>, <code>post</code>, or <code>never</code>; directory <code>ignore</code> accepts <code>all</code>, <code>git</code>, <code>rbuild</code> (case-insensitive), or an empty list. Invalid values fail before analysis, ignore synchronization or cleanup, including direct cleanup APIs.</p>
 </section>
 <section id="bounded-cas-integrity" class="level2">
 <h2 class="anchored" data-anchor-id="bounded-cas-integrity">Bounded CAS integrity</h2>
