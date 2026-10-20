@@ -4,6 +4,14 @@ subtitle: "Choose a version before you choose an installation method."
 ---
 
 ::: {.callout-warning}
+## Try it on a disposable project
+Use sample data or a disposable copy of your project. Production builds
+(`proj build`) can modify or remove files, and safety fixes are still pending.
+**Never run production builds on the only copy of important work.**
+Previews are not a security sandbox; code you run can still change files.
+:::
+
+::: {.callout-warning}
 ## Release transition
 The published v0.3.0 package predates the recent development changes.
 The repaired release and installer routes are still being verified.

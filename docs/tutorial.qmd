@@ -3,6 +3,14 @@ title: "Run your first analysis"
 subtitle: "Calculate a mean and save a preview, using only Python's standard library."
 ---
 
+::: {.callout-warning}
+## Try it on a disposable project
+Use sample data or a disposable copy of your project. Production builds
+(`proj build`) can modify or remove files, and safety fixes are still pending.
+**Never run production builds on the only copy of important work.**
+Previews are not a security sandbox; code you run can still change files.
+:::
+
 ::: {.callout-note}
 ## Use a current development build
 This example targets the development preview on `main`, not the historical

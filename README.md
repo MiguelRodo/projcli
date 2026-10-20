@@ -1,8 +1,13 @@
 # projcli
 
 Run a research analysis from a small project configuration. Keep the steps and
-paths together, preview changes while you work, and prepare versioned outputs
-when you are ready.
+paths together and explore the documented preview workflow.
+
+> [!WARNING]
+> Use sample data or a disposable copy of your project. Production builds
+> (`proj build`) can modify or remove files, and safety fixes are still pending.
+> **Never run production builds on the only copy of important work.**
+> Previews are not a security sandbox; code you run can still change files.
 
 **Status:** the `main` branch is a development preview. The published v0.3.0
 release predates recent preview-safety and project-root changes. Its version

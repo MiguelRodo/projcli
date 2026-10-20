@@ -4,9 +4,17 @@ subtitle: "Keep the steps, paths and outputs of a research project together."
 toc: false
 ---
 
+::: {.callout-warning}
+## Try it on a disposable project
+Use sample data or a disposable copy of your project. Production builds
+(`proj build`) can modify or remove files, and safety fixes are still pending.
+**Never run production builds on the only copy of important work.**
+Previews are not a security sandbox; code you run can still change files.
+:::
+
 ::: {.hero}
 projcli runs the analysis steps you choose from a small project configuration.
-Use a preview while you work, then make a versioned build when you are ready.
+Start with the preview example below; production build safety is still being improved.
 
 [Get started](tutorial.qmd){.btn .btn-primary}
 [Check installation options](install.qmd){.btn .btn-outline-primary}
