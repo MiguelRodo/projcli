@@ -28,9 +28,31 @@ The CLI captures an absolute root as `PROJ_PROJECT_ROOT` for the invocation and
 its child processes. A nested `proj path get` uses that root even after a script
 changes cwd. An invalid inherited root fails rather than falling back silently.
 Direct Rust `build_project(root, ...)` calls also pass their supplied root to
-children. Discovery marker policy is unchanged by this slice.
+children. See the discovery rules below for the recognized root markers.
 
 This establishes CLI child-query behavior, not direct Quarto/RStudio parity or
 changes to the existing R frontend. Renderer configuration, execution cwd,
 resource links and output placement remain separate concerns. Path queries do
 not write ignore files or create the resolved target directories.
+
+## Nearest-root discovery
+
+Without `--project` or an inherited run root, discovery walks upward from cwd and
+selects the first recognized directory. It does not search downward for projects.
+Recognized markers are VERSION, README.md, `_quarto.yml`, `_proj.yml`, legacy
+`_projr.yml`, Git/SVN metadata, a DESCRIPTION containing `Package: `, an RStudio
+`.Rproj` whose first line starts `Version: `, and a renv.lock with a Packages map.
+
+`pyproject.toml`, `Project.toml` and `JuliaProject.toml` deliberately extend the
+projr marker set for Python/Julia. `requirements.txt` and `Manifest.toml` alone
+are not root markers. Standalone VERSION and README markers are retained, so a
+nested directory with one is the nearer project; explicit selection overrides it.
+
+Marker recognition does not change shallow default script enumeration or prove
+that the corresponding language runner/frontend is implemented. Legacy config
+content handling is a separate compatibility change from recognizing its root.
+
+If no recognized marker exists, discovery selects cwd. Discovery success does not
+mean a build is configured: the current product contract requires active root
+configuration and explicit used-directory mappings. Validation changes enforcing
+that newer contract are separate from this root-discovery slice.
