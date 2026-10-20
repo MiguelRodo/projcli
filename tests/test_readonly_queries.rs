@@ -77,3 +77,58 @@ fn production_build_still_requests_ignore_synchronization() {
     assert!(root.join(".Rbuildignore").exists());
     assert_eq!(fs::read_to_string(root.join("_tmp/production.txt")).unwrap(), "done");
 }
+
+
+fn project_with_custom_ignores() -> tempfile::TempDir {
+    let project = tempfile::tempdir().unwrap();
+    let root = camino::Utf8Path::from_path(project.path()).unwrap();
+    fs::write(root.join("_proj.yml"), "directories:\n  raw-private:\n    path: private-data\n    ignore: all\n").unwrap();
+    fs::write(root.join(".gitignore"), "manual-rule\n").unwrap();
+    fs::write(root.join(".Rbuildignore"), "^manual-rule$\n").unwrap();
+    let config = proj::yml_read_from(root, false).unwrap();
+    proj::update_ignores(root, &config).unwrap();
+    project
+}
+
+fn init_directories(root: &Path) -> std::process::Output {
+    Command::new(env!("CARGO_BIN_EXE_proj"))
+        .args(["init", "directories", "--project"]).arg(root)
+        .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
+        .output().unwrap()
+}
+
+#[test]
+fn init_preserves_custom_ignore_rules_on_malformed_or_unreadable_config() {
+    for unreadable in [false, true] {
+        let project = project_with_custom_ignores();
+        let root = project.path();
+        let config = root.join("_proj.yml");
+        if unreadable {
+            fs::remove_file(&config).unwrap();
+            fs::create_dir(&config).unwrap(); // A directory cannot be read as a YAML file.
+        } else {
+            fs::write(&config, "directories: [malformed\n").unwrap();
+        }
+        let before = snapshot(root);
+        let output = init_directories(root);
+        assert!(!output.status.success());
+        assert!(!output.stderr.is_empty());
+        assert_eq!(snapshot(root), before, "failed init replaced custom ignores or created directories");
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn init_preserves_custom_ignores_when_config_permission_is_denied() {
+    use std::os::unix::fs::PermissionsExt;
+    let project = project_with_custom_ignores();
+    let root = project.path();
+    let before = snapshot(root);
+    let config = root.join("_proj.yml");
+    let original = fs::metadata(&config).unwrap().permissions();
+    fs::set_permissions(&config, fs::Permissions::from_mode(0)).unwrap();
+    let output = init_directories(root);
+    fs::set_permissions(&config, original).unwrap();
+    assert!(!output.status.success());
+    assert_eq!(snapshot(root), before);
+}

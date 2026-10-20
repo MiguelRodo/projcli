@@ -329,6 +329,7 @@ fn main() {
             Some(InitCommands::Directories) => {
                 if let Err(e) = proj::init_directories() {
                     eprintln!("Initialization failed: {:#}", e);
+                    std::process::exit(1);
                 }
             }
             Some(InitCommands::Readme { title, description }) => {

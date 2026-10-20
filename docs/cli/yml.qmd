@@ -1,12 +1,28 @@
-# `proj yml get`
+# `proj yml read`
 
-Read the `_proj.yml` content and trigger validation and initialization.
+Load and validate configuration without modifying the project:
 
-## Reading Parameters and Defaults
+```bash
+proj yml read [--project <PATH>]
+```
 
-When `proj yml get` is executed, the tool automatically resolves parameters and defaults from the file.
+The command prints a validation confirmation on success and reports configuration
+errors on stderr. It does not dump configuration values; use
+[`proj path get`](path.qmd) to query a resolved directory path.
 
-1. **Parameter Resolution:** It scans explicitly provided configurations. If you defined custom directory labels mapped to absolute or relative paths, it retrieves them directly. It also resolves arbitrary deeply nested variables configured under the `parameters` block. If missing, an empty `parameters` block is automatically injected into the file. The tool actively protects against alias conflicts (e.g., combining `parameters` and `params` blocks simultaneously).
-2. **Dynamic Injections:** Missing path parameters under valid foundational prefixes will automatically receive their default injection (e.g., an empty `cache` block resolves to the path `_tmp`).
-3. **Implicit Base Defaults:** Foundational prefixes that are not explicitly stated in the configuration will be seamlessly injected as default base targets during execution.
-4. **Read-only Queries:** Configuration validation and path queries do not write `.gitignore`, `.Rbuildignore`, configuration, or project directories. Production builds and directory initialization request ignore synchronization explicitly.
+## Configuration and defaults
+
+The current implementation merges `_proj.yml`, active `_projr-<profile>.yml`
+files, and `_projr-local.yml`. This page describes the current filenames;
+the command does not introduce new filename aliases.
+
+Missing configuration uses defaults in memory. Missing directory paths and base
+labels also receive in-memory defaults, and an absent `parameters` value becomes
+an empty mapping. No parameters block or other default is inserted into a file.
+Conflicting parameter aliases in the base configuration are rejected.
+
+Configuration validation and path queries do not change `.gitignore`,
+`.Rbuildignore`, configuration files, or project directories. Production builds
+and directory initialization request ignore synchronization explicitly.
+Directory initialization stops on configuration read/validation errors before
+changing ignore rules or creating directories.
