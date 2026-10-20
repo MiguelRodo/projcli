@@ -1,7 +1,7 @@
 use crate::run_environment::RunEnvironment;
 use std::io::{self, BufRead, IsTerminal};
 use anyhow::Context;
-use crate::git::{get_github_token_in, execute_authenticated_git_in, create_git_provider_in};
+use crate::git::{create_git_provider_in, tracking_target_in, fetch_remote_in, git_command_in};
 use crate::yml::GlobalConfig;
 
 pub fn pre_flight_git_check(config: &GlobalConfig, repo_dir: &camino::Utf8Path) -> anyhow::Result<()> {
@@ -17,9 +17,6 @@ fn pre_flight_git_check_in(config: &GlobalConfig, repo_dir: &camino::Utf8Path, e
 
     println!("Git context verified successfully for R workflow: {} <{}>", name, email);
 
-    if provider.is_behind_remote("origin", "main").unwrap_or(false) {
-        println!("⚠️ Warning: Current local HEAD is behind origin/main.");
-    }
 
     Ok(())
 }
@@ -184,74 +181,30 @@ pub(crate) fn run_pre_flight_checks_in(
     bookdown_exists: bool,
     environment: &RunEnvironment,
 ) -> anyhow::Result<(Option<String>, Option<String>)> {
-    let mut resolved_token = None;
-    let needs_remote = config.git.push || (is_prod_run && config.restrictions.not_behind == Some(true)) || (is_prod_run && config.restrictions.not_behind.is_none());
-
-    if needs_remote && config.config.git.use_proj_cred_helper {
-        let token = get_github_token_in(environment).context("Failed to retrieve GitHub token")?;
-        resolved_token = Some(token);
-    }
-
+    let resolved_token = None; // Authentication uses native Git or explicitly enabled environment data.
     if is_prod_run {
-        let is_git_repo = project_root.join(".git").exists();
-
-        // Run the new pre_flight_git_check if it's a git repo and git is configured
-        if is_git_repo {
-            pre_flight_git_check_in(&config.config, project_root, environment)?;
-        }
-
-        let mut current_branch = None;
-        if is_git_repo {
-            let mut cmd = environment.command("git");
-            cmd.args(["symbolic-ref", "--short", "HEAD"]);
-            cmd.current_dir(project_root);
-            if let Ok(output) = cmd.output() {
-                if output.status.success() {
-                    current_branch = Some(String::from_utf8_lossy(&output.stdout).trim().to_string());
-                }
+        let restrictions = &config.restrictions;
+        if restrictions.only_branches.is_some() || restrictions.not_branches.is_some() {
+            let output = git_command_in(Some(project_root), environment)?.current_dir(project_root)
+                .args(["symbolic-ref", "--quiet", "--short", "HEAD"]).output()
+                .context("Cannot inspect branch for configured Git restrictions")?;
+            if !output.status.success() { anyhow::bail!("Configured Git restrictions require a checked-out branch"); }
+            let branch = String::from_utf8(output.stdout)?.trim().to_owned();
+            if restrictions.only_branches.as_ref().is_some_and(|allowed| !allowed.contains(&branch)) {
+                anyhow::bail!("Current branch is not allowed by build.restrictions.only_branches");
+            }
+            if restrictions.not_branches.as_ref().is_some_and(|denied| denied.contains(&branch)) {
+                anyhow::bail!("Current branch is excluded by build.restrictions.not_branches");
             }
         }
-
-        // Branch constraints
-        if let Some(only_branches) = &config.restrictions.only_branches {
-            if !is_git_repo {
-                anyhow::bail!("Output builds are restricted to specific branches, but the project is not inside a Git repository");
-            }
-            if let Some(branch) = &current_branch {
-                if !only_branches.contains(branch) {
-                    anyhow::bail!("Output builds are restricted to branches {:?} as per build.restrictions.only_branches, but current branch is '{}'", only_branches, branch);
-                }
-            } else {
-                anyhow::bail!("Output builds are restricted to specific branches, but could not determine current branch");
-            }
-        }
-
-        if let Some(not_branches) = &config.restrictions.not_branches {
-            if let Some(branch) = &current_branch {
-                if not_branches.contains(branch) {
-                    anyhow::bail!("Output builds are restricted on branch '{}' as per build.restrictions.not_branches", branch);
-                }
-            }
-        }
-
-        // Upstream synchronicity
-        let not_behind = config.restrictions.not_behind;
-        if not_behind != Some(false) {
-            if not_behind == Some(true) && (!is_git_repo || !has_tracking_remote(project_root, environment)) {
-                anyhow::bail!("build.restrictions.not_behind is explicitly set to true, but no Git remote is configured");
-            }
-
-            if is_git_repo {
-                if !has_tracking_remote(project_root, environment) {
-                    if not_behind.is_none() {
-                        anyhow::bail!("Git repository detected but no upstream tracking remote is configured. Configure a remote or set build.restrictions.not_behind to false");
-                    }
-                } else {
-                    if is_behind_remote(project_root, resolved_token.as_deref(), environment)? {
-                        anyhow::bail!("The local branch is behind its tracking remote. Please pull or merge changes before building");
-                    }
-                }
-            }
+        if restrictions.not_behind == Some(true) {
+            let (remote, _) = tracking_target_in(project_root, environment)?;
+            fetch_remote_in(project_root, &remote, environment)?;
+            let output = git_command_in(Some(project_root), environment)?.current_dir(project_root)
+                .args(["rev-list", "--count", "HEAD..@{u}"]).output()?;
+            if !output.status.success() { anyhow::bail!("Cannot inspect configured upstream state"); }
+            let count: usize = String::from_utf8(output.stdout)?.trim().parse().context("Invalid upstream comparison result")?;
+            if count > 0 { anyhow::bail!("The local branch is behind its tracking remote"); }
         }
     }
 
@@ -390,48 +343,6 @@ pub(crate) fn run_pre_flight_checks_in(
     }
 
     Ok((resolved_token, resolved_python_cmd))
-}
-
-fn has_tracking_remote(project_root: &camino::Utf8Path, environment: &RunEnvironment) -> bool {
-    let mut cmd = environment.command("git");
-    cmd.args(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"]);
-    cmd.current_dir(project_root);
-    if let Ok(output) = cmd.output() {
-        output.status.success() && !String::from_utf8_lossy(&output.stdout).trim().is_empty()
-    } else {
-        false
-    }
-}
-
-fn is_behind_remote(project_root: &camino::Utf8Path, token: Option<&str>, environment: &RunEnvironment) -> anyhow::Result<bool> {
-    // Perform fetch
-    if let Some(t) = token {
-        execute_authenticated_git_in(&["fetch"], t, Some(project_root), environment).context("Failed to perform authenticated git fetch")?;
-    } else {
-        let mut fetch_cmd = environment.command("git");
-        fetch_cmd.args(["fetch"]);
-        fetch_cmd.current_dir(project_root);
-        let fetch_out = fetch_cmd.output().context("Failed to execute git fetch command")?;
-        if !fetch_out.status.success() {
-            anyhow::bail!("Failed to fetch from remote: {}", String::from_utf8_lossy(&fetch_out.stderr));
-        }
-    }
-
-    // Check rev-list --count HEAD..@{u}
-    let mut cmd = environment.command("git");
-    cmd.args(["rev-list", "--count", "HEAD..@{u}"]);
-    cmd.current_dir(project_root);
-    let output = cmd.output().context("Failed to execute git rev-list command")?;
-
-    if output.status.success() {
-        let count_str = String::from_utf8_lossy(&output.stdout);
-        if let Ok(count) = count_str.trim().parse::<u32>() {
-            return Ok(count > 0);
-        }
-    }
-
-    // If the above fails (e.g., no upstream configured, though we check it prior), assume not behind or return error
-    anyhow::bail!("Failed to determine if the local branch is behind the remote");
 }
 
 #[cfg(test)]
