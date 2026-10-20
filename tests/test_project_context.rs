@@ -78,3 +78,61 @@ fn direct_build_supplies_child_root_without_replacing_callers_root() {
     assert_eq!(std::env::var_os(proj::PROJECT_ROOT_ENV), before);
     assert_eq!(fs::read_to_string(root.join("_tmp/direct.txt")).unwrap(), "done");
 }
+
+
+#[test]
+fn simultaneous_direct_builds_keep_independent_roots() {
+    use std::{sync::{Arc, Barrier}, time::{Duration, Instant}};
+    let workspace = tempfile::tempdir().unwrap();
+    let roots = [workspace.path().join("first project"), workspace.path().join("second project")];
+    let release = workspace.path().join("release");
+    let binary = serde_json::to_string(env!("CARGO_BIN_EXE_proj")).unwrap();
+    let release_literal = serde_json::to_string(release.to_str().unwrap()).unwrap();
+    for (index, root) in roots.iter().enumerate() {
+        fs::create_dir(root).unwrap();
+        let own = serde_json::to_string(root.canonicalize().unwrap().to_str().unwrap()).unwrap();
+        let other = serde_json::to_string(roots[1 - index].to_str().unwrap()).unwrap();
+        fs::write(root.join("_proj.yml"), "build:\n  scripts: [analysis.py]\n").unwrap();
+        let script = format!(r#"import os, subprocess, time
+from pathlib import Path
+root = Path({own})
+(root / 'ready').write_text('ready')
+deadline = time.monotonic() + 15
+while not Path({release_literal}).exists():
+    if time.monotonic() > deadline:
+        raise RuntimeError('parent did not release simultaneous builds')
+    time.sleep(0.01)
+assert Path(os.environ['PROJ_PROJECT_ROOT']) == root
+os.chdir({other})
+result = subprocess.check_output([{binary}, 'path', 'get', '--label', 'output'], text=True).strip()
+assert Path(result) == root / '_output', (result, root)
+(root / '_tmp').mkdir(exist_ok=True)
+(root / '_tmp/independent.txt').write_text('done')
+"#);
+        fs::write(root.join("analysis.py"), script).unwrap();
+    }
+    let before = std::env::var_os(proj::PROJECT_ROOT_ENV);
+    let start = Arc::new(Barrier::new(2));
+    std::thread::scope(|scope| {
+        let handles: Vec<_> = roots.iter().map(|root| {
+            let start = start.clone();
+            scope.spawn(move || {
+                start.wait();
+                proj::build_project(camino::Utf8Path::from_path(root).unwrap(), proj::BuildMode::Dev, None, None)
+            })
+        }).collect();
+        let deadline = Instant::now() + Duration::from_secs(10);
+        while !roots.iter().all(|root| root.join("ready").exists()) && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        let both_running = roots.iter().all(|root| root.join("ready").exists());
+        let during = std::env::var_os(proj::PROJECT_ROOT_ENV);
+        fs::write(&release, "continue").unwrap();
+        for handle in handles { handle.join().unwrap().unwrap(); }
+        assert!(both_running, "both child processes must overlap for this regression");
+        assert_eq!(during, before, "a direct build must not replace the caller's root");
+    });
+    for root in roots {
+        assert_eq!(fs::read_to_string(root.join("_tmp/independent.txt")).unwrap(), "done");
+    }
+}
