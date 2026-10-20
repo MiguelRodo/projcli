@@ -260,3 +260,18 @@ Completed-chunk review of PR129's empty-selection change:
 - **Authorship boundary:** the existing R package is entirely off limits, including
   root-helper fixes. A later backend port/integration must establish R parity;
   no such work or runtime comparison is claimed here. Thesis text remains untouched.
+
+
+## Future R wrapper distribution boundary
+
+- **Relationship: new/unverified design.** The
+  [durable CRAN note](r-wrapper-cran.qmd) records the discussed future R-code wrapper
+  around a separately installed CLI, meaningful unconditional R-only/mocked tests,
+  conditional executable integration on CRAN, and mandatory pinned/checksummed CLI
+  integration in our own CI. It cites current policy and pinned Quarto precedent.
+- No existing R code or tests were changed; no CRAN submission, agreement,
+  preinstalled executable, automatic-download exemption or renderer parity is
+  claimed. Implementation and runtime validation remain future work.
+- **Ponytail full-mode design review:** kept one linked design note; reused the
+  repository's behavior/compatibility/AGENTS pointers. No installer, wrapper,
+  binding, mock framework or external contact was added speculatively.

@@ -29,6 +29,11 @@ the top-level Rust project.
   Do not claim a clean environment, filesystem sandbox, guaranteed CRAN acceptance
   or parallel execution merely because a subprocess or hashing crate is used.
 
+For future R frontend design, read `docs/r-wrapper-cran.qmd`. Separate CLI
+installation and conditional CRAN integration tests do not imply permission to
+download precompiled tools automatically or that a CRAN submission is accepted.
+The existing R package remains outside this effort's edit scope.
+
 ## 3. Rust Module Organization
 - Keep reusable Rust behavior in library modules and command-line parsing/routing in `src/main.rs`. This organization does not decide the binding or transport used by future language frontends.
 - **Module Separation (Anti-Bloat Rule):** You MUST NOT write the core implementation logic directly inside `src/lib.rs`. Keep `src/lib.rs` reserved as a clean, high-level traffic controller that merely declares and re-exports submodules.
