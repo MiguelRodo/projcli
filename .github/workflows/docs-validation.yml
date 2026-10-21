@@ -57,13 +57,6 @@ jobs:
           assert browser, "The runner must provide sandbox-capable Google Chrome"
           print(subprocess.check_output([browser, "--version"], text=True, timeout=10).strip(), flush=True)
 
-          # Open the existing folded sections in this CI-only copy, so all stages are visible.
-          helper = site / "__lifecycle_render_check.html"
-          assert not helper.exists(), helper
-          original = (site / "lifecycle.html").read_text()
-          opener = "<script>window.addEventListener('load',()=>document.querySelectorAll('.callout .collapse').forEach(el=>el.classList.add('show')));</script>"
-          assert "</body>" in original
-          helper.write_text(original.replace("</body>", opener + "</body>", 1))
           class QuietHandler(SimpleHTTPRequestHandler):
               def log_message(self, *_args):
                   pass
@@ -76,7 +69,7 @@ jobs:
                       "--virtual-time-budget=10000", "--timeout=20000",
                       "--window-size=1200,2200", "--user-data-dir=" + profile,
                       "--screenshot=" + str(evidence / "lifecycle-page.png"),
-                      f"http://127.0.0.1:{server.server_port}/{helper.name}",
+                      f"http://127.0.0.1:{server.server_port}/lifecycle.html",
                   ], capture_output=True, text=True, timeout=60)
               (evidence / "browser-stderr.txt").write_text(result.stderr)
               (evidence / "rendered-page.html").write_text(result.stdout)
@@ -84,7 +77,6 @@ jobs:
           finally:
               server.shutdown()
               server.server_close()
-              helper.unlink()
 
           # Extract the browser's exact SVG serialization, preserving SVG attribute casing.
           class SvgParser(HTMLParser):

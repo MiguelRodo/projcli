@@ -66,7 +66,7 @@ output build's transition to the next development version.
 
 ### 1. Pre-build details
 
-::: {.callout-note collapse="true"}
+::: {.callout-note collapse="false"}
 ## Open: resolution, validation, context and start hooks
 
 ```{mermaid}
@@ -117,7 +117,7 @@ flowchart TB
 
 ### 2. Build details
 
-::: {.callout-note collapse="true"}
+::: {.callout-note collapse="false"}
 ## Open: exact clearing position and selected execution
 
 ```{mermaid}
@@ -164,7 +164,7 @@ arbitrary mixed-renderer ordering or RStudio/Quarto R API parity from this figur
 
 ### 3. Post-build details
 
-::: {.callout-note collapse="true"}
+::: {.callout-note collapse="false"}
 ## Open: promotion, end hooks, version and optional publication
 
 ```{mermaid}
