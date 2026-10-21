@@ -42,7 +42,7 @@ jobs:
           from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
           from pathlib import Path
           import math
-          import os
+          import shutil
           import subprocess
           import tempfile
           import threading
@@ -51,10 +51,10 @@ jobs:
           site = Path("docs/_site").resolve()
           evidence = Path("validation-evidence/lifecycle-svg-review").resolve()
           evidence.mkdir(parents=True, exist_ok=True)
-          data_dir = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share")
-          browsers = [p for p in (data_dir / "quarto/chrome-headless-shell").rglob("chrome-headless-shell") if p.is_file() and os.access(p, os.X_OK)]
-          assert len(browsers) == 1, browsers
-          browser = str(browsers[0])
+          # Use the runner's packaged Chrome with its existing sandbox support.
+          # The separately downloaded shell cannot use this runner's sandbox profile.
+          browser = shutil.which("google-chrome")
+          assert browser, "The runner must provide sandbox-capable Google Chrome"
           print(subprocess.check_output([browser, "--version"], text=True, timeout=10).strip(), flush=True)
 
           # Open the existing folded sections in this CI-only copy, so all stages are visible.
