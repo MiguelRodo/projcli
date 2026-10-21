@@ -130,3 +130,30 @@ assets=document.parent/(document.stem+'_files');assets.mkdir(exist_ok=True)
         }
     }
 }
+
+
+#[cfg(unix)]
+#[test]
+fn hook_cannot_change_native_output_plan_and_overwrite_an_uncaptured_sibling() {
+    use std::os::unix::fs::PermissionsExt;
+    let temp=tempfile::tempdir().unwrap();let root=temp.path().canonicalize().unwrap();
+    for directory in ["analysis","cache","bin"] {fs::create_dir(root.join(directory)).unwrap();}
+    let document="---\nformat: html\n---\nOriginal document\n";
+    fs::write(root.join("analysis/report.qmd"),document).unwrap();
+    fs::write(root.join("analysis/other.html"),b"unrelated sibling bytes").unwrap();
+    fs::write(root.join("start.py"),"from pathlib import Path\nPath('analysis/report.qmd').write_text('---\\nformat: html\\noutput-file: other.html\\n---\\nChanged by hook\\n')\n").unwrap();
+    fs::write(root.join("_proj.yml"),"directories:\n  cache: {path: cache}\n  docs: {path: published}\nbuild:\n  scripts: [analysis/report.qmd]\n  hooks:\n    pre: [start.py]\n  git: false\n").unwrap();
+    let fake=r#"#!/usr/bin/env python3
+import os,sys
+from pathlib import Path
+if sys.argv[1:2]==['render']:
+ (Path(os.environ['PROJ_PROJECT_ROOT'])/'cache/renderer-called').touch()
+"#;
+    for name in ["quarto","Rscript"] {let file=root.join("bin").join(name);fs::write(&file,fake).unwrap();fs::set_permissions(file,fs::Permissions::from_mode(0o755)).unwrap();}
+    let mut paths=vec![root.join("bin")];paths.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()));
+    let output=Command::new(env!("CARGO_BIN_EXE_proj")).args(["build-dev","--non-interactive","--project"]).arg(&root).current_dir(&root)
+        .env("PATH",std::env::join_paths(paths).unwrap()).env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
+    assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains("layout changed after preflight"));
+    assert!(!root.join("cache/renderer-called").exists());assert_eq!(fs::read(root.join("analysis/other.html")).unwrap(),b"unrelated sibling bytes");
+    assert_eq!(fs::read_to_string(root.join("analysis/report.qmd")).unwrap(),document);
+}

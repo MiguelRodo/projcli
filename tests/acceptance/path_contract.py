@@ -154,6 +154,8 @@ def main() -> None:
         for executable, flags in [('Rscript', ['--version']), ('quarto', ['--version']), ('python3', ['--version'])]:
             probe = subprocess.run([executable, *flags], capture_output=True, text=True, check=True)
             evidence['versions'][executable] = (probe.stdout + probe.stderr).strip()
+        versions = subprocess.run(['Rscript', '--vanilla', '-e', 'cat(as.character(utils::packageVersion("rmarkdown")),as.character(utils::packageVersion("knitr")),sep="\\n")'], capture_output=True, text=True, check=True)
+        evidence['versions']['rmarkdown_knitr'] = versions.stdout.strip()
         with tempfile.TemporaryDirectory(prefix='projcli-actual-acceptance-') as directory:
             for name, mode, failure, nested in [('preview-root', 'build-dev', None, False), ('preview-nested', 'build-dev', None, True), ('release-nested', 'build', None, True), ('failing-r', 'build-dev', 'r', True), ('failing-python', 'build-dev', 'python', True)]:
                 evidence['cases'].append(run_case(binary, Path(directory), name, mode, failure, nested))

@@ -1288,3 +1288,18 @@ The real CLI acceptance driver now checks preexisting native artifacts too; its
 R/Python/embedded HTML execution is enabled remotely in the same pinned image.
 The digest-only image spelling matches the merged devcontainer spec; image content
 is unchanged. No local renderer execution, R package edits or linked portability claim.
+
+Actual acceptance found R Markdown's native shell-character filename normalization:
+render() copied the apostrophe/space basename into the launch cwd, then emitted a
+sanitzed output there instead of the expected source-local artifact. Confirmed
+against official rmarkdown R/render.R and R/util.R (retrieved2026-10-21), not inferred
+from fake tools. Pass supported output_file/output_dir/intermediates_dir as data
+so the temporary sanitized input remains beside the original document and the
+expected output leaf remains stable. Native knit_root_dir stays NULL unless project
+mode is explicit; literal resource meaning is preserved. R package is unchanged.
+The same actual regression retains both code/literal embedded image checks and
+preexisting native source artifact hashes. Quarto's quoted input already rendered
+the expected output. Reject pre-hook native-output layout changes before renderer
+launch so successful native restoration cannot use an outdated capture plan.
+Sources: https://github.com/rstudio/rmarkdown/blob/main/R/render.R and
+https://github.com/rstudio/rmarkdown/blob/main/R/util.R .

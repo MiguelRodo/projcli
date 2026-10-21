@@ -328,6 +328,7 @@ pub fn build_project_with_clear_stage(project_root: &camino::Utf8Path, mode: Bui
     // Capture exact local state before the first controlled project mutation.
     let mut managed = vec![];
     let mut native_artifacts = Vec::new();
+    let mut native_layouts = Vec::new();
     for name in ["VERSION", ".gitignore", ".Rbuildignore", "_proj.yml", "_projr.yml", "_projr-local.yml", "DESCRIPTION", "_quarto.yml", "_bookdown.yml"] {
         managed.push(project_root.join(name).into_std_path_buf());
     }
@@ -363,6 +364,7 @@ pub fn build_project_with_clear_stage(project_root: &camino::Utf8Path, mode: Bui
         for file in &resolved_files {
             if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) {
                 let paths = document_output_paths(file, &docs, project_root)?;
+                native_layouts.push((file.clone(), paths.target.clone(), paths.assets.clone()));
                 let artifacts = [paths.target.into_std_path_buf(), paths.assets.into_std_path_buf()];
                 native_artifacts.extend(artifacts.iter().cloned());
                 managed.extend(artifacts);
@@ -423,6 +425,11 @@ pub fn build_project_with_clear_stage(project_root: &camino::Utf8Path, mode: Bui
                     execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref(), &environment, execution)?;
                 }
             }
+        }
+        for (file, expected_target, expected_assets) in &native_layouts {
+            let current = document_output_paths(file, &config.get_path(project_root, "docs")?, project_root)?;
+            anyhow::ensure!(&current.target == expected_target && &current.assets == expected_assets,
+                "Renderer output layout changed after preflight: {file}");
         }
         if !is_dev {
             if project_root.join("_environment.local").exists() {
@@ -1167,9 +1174,17 @@ fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Pat
         },
         "Rmd" | "rmd" => {
             render_context = Some(crate::run_context::ContextFile::for_render(environment.value(crate::RUN_CONTEXT_ENV).context("Missing managed render context")?, crate::run_context::RenderEngine::RMarkdown, Some(script_path))?);
+            let content = fs::read_to_string(script_path)?;
+            let (format, _) = crate::build_pre::individual_output_options(&content, true)?;
+            let extension = crate::build_pre::map_format_to_extension(Some(&format))?;
+            let output_name = format!("{}.{}", script_path.file_stem().context("Document input has no filename stem")?, extension);
             let mut c = environment.command("Rscript");
-            c.arg("-e").arg("args <- commandArgs(trailingOnly = TRUE); rmarkdown::render(input = args[[1]], knit_root_dir = if (args[[2]] == 'project') args[[3]] else NULL)")
-                .arg(script_path.as_std_path()).arg(if execution == ExecutionDirectory::Project { "project" } else { "native" }).arg(project_root.as_std_path());
+            // rmarkdown sanitizes shell characters in input basenames by copying
+            // into its intermediates directory. Pin that directory to the source
+            // parent and the expected output leaf, retaining native document cwd
+            // even when the driver was launched elsewhere. All filenames are data.
+            c.arg("-e").arg("args <- commandArgs(trailingOnly = TRUE); rmarkdown::render(input = args[[1]], output_file = args[[4]], output_dir = dirname(args[[1]]), intermediates_dir = dirname(args[[1]]), knit_root_dir = if (args[[2]] == 'project') args[[3]] else NULL)")
+                .arg(script_path.as_std_path()).arg(if execution == ExecutionDirectory::Project { "project" } else { "native" }).arg(project_root.as_std_path()).arg(output_name);
             c
         },
         _ => {
