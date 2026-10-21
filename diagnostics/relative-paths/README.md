@@ -38,3 +38,10 @@ The first run stopped before execution because --vanilla bypassed R's configured
 package mirror. The diagnostic now names the public RSPM/CRAN mirror explicitly.
 Additional cases preserve inherited project/profile false and Rmd sidecar false;
 the unspecified->true proposal is recorded, never forced into current renderer runs.
+
+Per-role data/helper/image/output checks are independent: output failure cannot
+suppress valid input evidence. Separate rendered figures use unchanged-projr
+relative lookup and the explicitly labeled prototype. Missing images produce
+failed image-evidence records and visible failure markers, never an implicit pass.
+Portability requires actual sentinel bytes for all three figures (Markdown/current/
+prototype); individual image results remain visible when another resolver fails.

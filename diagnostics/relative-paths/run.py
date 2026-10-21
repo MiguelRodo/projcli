@@ -7,6 +7,7 @@ import yaml
 HERE = Path(__file__).resolve().parent
 OUT = Path('diagnostic-results').resolve(); OUT.mkdir(exist_ok=True)
 EVIDENCE = OUT / 'paths'; EVIDENCE.mkdir(exist_ok=True)
+IMAGE_EVIDENCE = OUT / 'image-paths'; IMAGE_EVIDENCE.mkdir(exist_ok=True)
 PROJECTS = OUT / 'projects with spaces'; PROJECTS.mkdir(exist_ok=True)
 BUNDLES = OUT / 'standalone-bundles'; BUNDLES.mkdir(exist_ok=True)
 PROJR_PIN = '90be50132d16aee33e39c0f7f35ef906c35f5397'
@@ -49,7 +50,7 @@ def fixture(name, project=False, absolute=False, profile=False):
     env=dict(BASE_ENV, DIAG_ROOT=str(root), DIAG_VERSION=VERSION, PROJ_PROJECT_ROOT=str(root),
              DIAG_PROFILES='analysis' if profile else '', PROJR_PROFILE='analysis' if profile else '',
              DIAG_SENTINEL='23' if profile else '17', DIAG_EVIDENCE=str(EVIDENCE), DIAG_CASE=name,
-             DIAG_EXERCISE_R=str(HERE/'exercise.R'), DIAG_PROJ_BIN=str(PROJ), DIAG_AUTO_EXERCISE='no')
+             DIAG_EXERCISE_R=str(HERE/'exercise.R'), DIAG_PROJ_BIN=str(PROJ), DIAG_AUTO_EXERCISE='no', DIAG_IMAGE_EVIDENCE=str(IMAGE_EVIDENCE))
     return root,env
 
 class Images(html.parser.HTMLParser):
@@ -92,7 +93,7 @@ def inspect_html(path, bundle=None):
                         image['http_matches_sentinel']=hashlib.sha256(data).hexdigest()==hashlib.sha256(png()).hexdigest()
                 except (urllib.error.URLError,ValueError) as error:
                     image['http_status']=getattr(error,'code',None);image['http_error']=type(error).__name__
-            result['sentinel_bundle_complete']=len(images)>=2 and all(image.get('matches_sentinel') or (image.get('within_bundle') and image.get('http_status')==200 and image.get('http_matches_sentinel')) for image in images)
+            result['sentinel_bundle_complete']=len(images)>=3 and all(image.get('matches_sentinel') or (image.get('within_bundle') and image.get('http_status')==200 and image.get('http_matches_sentinel')) for image in images)
         finally:
             server.shutdown();server.server_close();thread.join(timeout=5)
     return result
@@ -167,7 +168,9 @@ for renderer in ['rmarkdown','quarto-document','quarto-project']:
     else:
       setting='format: html\n' if embedded is None or isinstance(embedded,str) else 'format:\n  html:\n    embed-resources: '+str(embedded).lower()+'\n'
     body='---\ntitle: Relative path diagnostic\n'+setting+'---\n\n![native markdown sentinel](../_raw/images/sentinel.png)\n\n'
-    body+='```{r diagnostics, echo=FALSE, fig.alt="code helper sentinel"}\nsource(Sys.getenv("DIAG_EXERCISE_R"))\ndiag_exercise()\nimage <- tryCatch(projr::projr_path_get("raw-data", "images", "sentinel.png", format="relative", create=FALSE), error=function(e) "")\nif (file.exists(image)) knitr::include_graphics(image)\n```\n'
+    body+='```{r diagnostics, echo=FALSE}\nsource(Sys.getenv("DIAG_EXERCISE_R"))\ndiag_exercise()\n```\n\n'
+    for resolver,caption in [('unchanged_projr_relative','unchanged projr sentinel'),('test_only_prototype','test only prototype sentinel')]:
+      body+='```{r '+resolver+', echo=FALSE, fig.alt="'+caption+'"}\nimage <- diag_image_path("'+resolver+'")\nif (is.null(image)) cat("**DIAGNOSTIC IMAGE LOOKUP FAILED: '+resolver+'**") else knitr::include_graphics(image)\n```\n\n'
     document=root/'analysis'/('report.'+extension);document.write_text(body)
     if embedded=='inherited-false':
       if renderer=='rmarkdown': (root/'analysis/_output.yml').write_text('html_document:\n  self_contained: false\n')
@@ -211,9 +214,24 @@ if latex:
 else: results.append({'case':'PDF','tested':False,'reason':'No existing TeX engine; no large installation attempted'})
 
 paths={file.stem:json.loads(file.read_text()) for file in EVIDENCE.glob('*.json')}
-summary={'diagnostic_only':True,'prototype_is_not_current_behavior':True,'versions':versions,'runners':results,'paths':paths,
+image_paths={file.stem:json.loads(file.read_text()) for file in IMAGE_EVIDENCE.glob('*.json')}
+summary={'image_lookup_evidence':image_paths,'diagnostic_only':True,'prototype_is_not_current_behavior':True,'versions':versions,'runners':results,'paths':paths,
          'r_gui_tested':False,'os_tested':'Linux only','proposed_embedding_fallback':'unspecified -> true; explicit false/true preserved; not applied by this diagnostic','pdf_visual_or_embedded_image_validation':False}
 (OUT/'summary.json').write_text(json.dumps(summary,indent=2))
 print(json.dumps({'cases':len(results),'path_evidence':len(paths),'runner_failures':[entry['case'] for entry in results if entry.get('returncode',0)!=0],
+                  'image_lookup_failures':[case for case,value in image_paths.items() if not value.get('ok')],
                   'path_failures':{case:[item.get('resolver') for item in records if not item.get('ok')] for case,records in paths.items() if any(not item.get('ok') for item in records)}},indent=2))
-assert paths, 'No path diagnostics executed; inspect infrastructure logs'
+# Product failures remain evidence, but omitted probes are harness failures.
+required_paths = {entry['case'] for entry in results if entry.get('runner') != 'rmarkdown-pdf' and entry.get('tested') is not False and entry['case'] != 'rscript-cwd-switch'}
+required_paths.update('rscript-cwd-switch' + suffix for suffix in ['-before', '-deeper', '-other-project'])
+render_cases = [entry for entry in results if entry.get('runner') in ['rmarkdown', 'quarto-document', 'quarto-project']]
+missing_paths = sorted(required_paths - paths.keys())
+invalid_paths = [name for name, records in paths.items() if not isinstance(records, list) or not records or any('resolver' not in item or 'ok' not in item for item in records)]
+missing_images = [entry['case'] + '-' + resolver for entry in render_cases if entry['returncode'] == 0 for resolver in ['unchanged_projr_relative', 'test_only_prototype'] if entry['case'] + '-' + resolver not in image_paths]
+missing_html = [entry['case'] for entry in render_cases if entry['returncode'] == 0 and 'native' not in entry]
+counts = {'executed_cases': len(results), 'required_path_cases': len(required_paths), 'path_evidence_files': len(paths), 'render_cases': len(render_cases), 'render_process_failures': sum(entry['returncode'] != 0 for entry in render_cases), 'image_lookup_failures': sum(not value.get('ok') for value in image_paths.values()), 'relocated_incomplete_bundles': sum(not entry.get('html_plus_stem_assets_relocated', {}).get('sentinel_bundle_complete', False) for entry in render_cases), 'missing_path_evidence': missing_paths, 'invalid_path_evidence': invalid_paths, 'missing_image_evidence': missing_images, 'successful_render_missing_html': missing_html}
+summary['counts'] = counts
+summary['workflow_success_means'] = 'All required diagnostic cases and evidence captured; product path/resource failures are preserved, not asserted away.'
+(OUT/'summary.json').write_text(json.dumps(summary, indent=2))
+print(json.dumps(counts, indent=2))
+assert not (missing_paths or invalid_paths or missing_images or missing_html), 'Incomplete diagnostic evidence; see summary.json'

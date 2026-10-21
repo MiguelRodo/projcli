@@ -31,35 +31,38 @@ diag_exercise <- function(suffix = "") {
       test_only_prototype = diag_prototype)
     record <- list(resolver = resolver, cwd = getwd(), captured_root = root,
                    expected_version = Sys.getenv("DIAG_VERSION"), profiles = Sys.getenv("DIAG_PROFILES"))
-    record <- tryCatch({
-      data_path <- get_path("raw-data", "data.csv")
-      helper_path <- get_path("raw-data", "helper.R")
-      image_path <- get_path("raw-data", "images", "sentinel.png")
-      output_path <- get_path("output", paste0(Sys.getenv("DIAG_CASE"), suffix, "-", resolver, ".txt"))
-      record$data_path <- data_path
-      record$helper_path <- helper_path
-      record$image_path <- image_path
-      record$output_path <- output_path
-      record$output_absolute <- as.character(fs::path_norm(fs::path_abs(output_path)))
-      values <- utils::read.csv(data_path)
-      helper_environment <- new.env(parent = baseenv())
-      source(helper_path, local = helper_environment)
-      stopifnot(values$value[[1]] == expected, helper_environment$helper_marker() == "helper-sentinel", file.exists(image_path))
-      dir.create(dirname(output_path), recursive = TRUE, showWarnings = FALSE)
-      writeLines("cache output sentinel", output_path)
-      record$data_path <- data_path
-      record$helper_path <- helper_path
-      record$image_path <- image_path
-      record$output_path <- output_path
-      record$output_absolute <- as.character(fs::path_norm(fs::path_abs(output_path)))
-      record$relative <- !fs::is_absolute_path(data_path)
-      cache <- diag_config(root)$directories$cache$path
-      if (!fs::is_absolute_path(cache)) cache <- file.path(root, cache)
-      wanted <- fs::path_norm(file.path(cache, "projr", Sys.getenv("DIAG_VERSION"), "output"))
-      record$output_in_expected_cache <- fs::path_has_parent(fs::path_abs(output_path), wanted)
-      record$ok <- TRUE
-      record
-    }, error = function(error) { record$ok <- FALSE; record$error <- conditionMessage(error); record })
+    record$stages <- list()
+    for (stage in c("data", "helper", "image", "output")) {
+      phase <- tryCatch({
+        path <- switch(stage,
+          data = get_path("raw-data", "data.csv"),
+          helper = get_path("raw-data", "helper.R"),
+          image = get_path("raw-data", "images", "sentinel.png"),
+          output = get_path("output", paste0(Sys.getenv("DIAG_CASE"), suffix, "-", resolver, ".txt")))
+        absolute <- as.character(fs::path_norm(fs::path_abs(path)))
+        record[[paste0(stage, "_path")]] <- path
+        phase <- list(path = path, absolute = absolute, relative = !fs::is_absolute_path(path))
+        if (stage == "data") stopifnot(utils::read.csv(path)$value[[1]] == expected)
+        if (stage == "helper") {
+          helper_environment <- new.env(parent = baseenv())
+          source(path, local = helper_environment)
+          stopifnot(helper_environment$helper_marker() == "helper-sentinel")
+        }
+        if (stage == "image") stopifnot(file.exists(path))
+        if (stage == "output") {
+          dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+          writeLines("cache output sentinel", path)
+          cache <- diag_config(root)$directories$cache$path
+          if (!fs::is_absolute_path(cache)) cache <- file.path(root, cache)
+          wanted <- fs::path_norm(file.path(cache, "projr", Sys.getenv("DIAG_VERSION"), "output"))
+          phase$in_expected_cache <- fs::path_has_parent(absolute, wanted)
+        }
+        phase$ok <- TRUE
+        phase
+      }, error = function(error) list(ok = FALSE, error = conditionMessage(error)))
+      record$stages[[stage]] <- phase
+    }
+    record$ok <- all(vapply(record$stages, function(stage) isTRUE(stage$ok), logical(1)))
     records[[length(records) + 1L]] <- record
   }
   # Current released Rust CLI is contrasted, not treated as the proposed resolver.
@@ -72,5 +75,19 @@ diag_exercise <- function(suffix = "") {
   target <- file.path(Sys.getenv("DIAG_EVIDENCE"), paste0(Sys.getenv("DIAG_CASE"), suffix, ".json"))
   jsonlite::write_json(records, target, pretty = TRUE, auto_unbox = TRUE, null = "null")
   invisible(records)
+}
+diag_image_path <- function(resolver) {
+  result <- tryCatch({
+    path <- if (resolver == "unchanged_projr_relative") {
+      projr::projr_path_get("raw-data", "images", "sentinel.png", create = FALSE, format = "relative")
+    } else diag_prototype("raw-data", "images", "sentinel.png")
+    if (!file.exists(path)) stop("Returned image does not exist from effective execution cwd")
+    list(ok = TRUE, resolver = resolver, cwd = getwd(), path = path,
+         absolute = as.character(fs::path_norm(fs::path_abs(path))))
+  }, error = function(error) list(ok = FALSE, resolver = resolver, cwd = getwd(), error = conditionMessage(error)))
+  jsonlite::write_json(result,
+    file.path(Sys.getenv("DIAG_IMAGE_EVIDENCE"), paste0(Sys.getenv("DIAG_CASE"), "-", resolver, ".json")),
+    pretty = TRUE, auto_unbox = TRUE)
+  if (isTRUE(result$ok)) result$path else NULL
 }
 if (Sys.getenv("DIAG_AUTO_EXERCISE") == "yes") diag_exercise()
