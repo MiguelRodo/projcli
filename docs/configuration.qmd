@@ -153,3 +153,30 @@ in each active file before merging. Managed child queries retain the captured
 representation policy even if scripts change configuration, profiles or cwd.
 Safe is the default path target; final must be explicitly requested. Docs output
 handling and the R-data built-in remain separately modeled features.
+
+## R package data
+
+The built-in output-r-data lookup has fixed final destination project/data, even
+without YAML. Querying never activates build management or creates directories.
+Safe lookup needs the selected declared cache and active version.
+
+To opt into ordinary output clearing and success-only promotion:
+
+~~~yaml
+directories:
+  cache:
+    path: _tmp
+  output-r-data:
+    ignore: []
+~~~
+
+An empty output-r-data mapping also activates the role, with ordinary default ignore
+rules. Explicit ignore: [] includes package data in Git and R builds. The path may
+be omitted; if present it must resolve to project/data. Redirection is forbidden.
+settings.output-clear-stage applies normally: pre/post clears old package data;
+the default none preserves other final files. Preview never promotes final data.
+
+Legacy _projr.yml and active _projr-*.yml layers accept data as an alias and normalize
+it before merging, including legacy remote content labels. Defining both aliases
+in one layer is an error. Canonical _proj.yml requires output-r-data. Generic
+data-* labels are unsupported; use raw-* inputs or ordinary output-* mappings.

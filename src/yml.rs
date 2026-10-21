@@ -423,16 +423,25 @@ impl ProjConfig {
                 && !lower_label.starts_with("raw")
                 && !lower_label.starts_with("output")
                 && !lower_label.starts_with("docs")
-                && !lower_label.starts_with("data")
             {
                 anyhow::bail!(
                     "Invalid directory label '{}' found in _proj.yml. \
-                    All custom labels must begin with 'raw', 'output', 'data', 'docs', or 'cache'.",
+                    All custom labels must begin with 'raw', 'output', 'docs', or 'cache'.",
                     label
                 );
             }
 
-            let path = config.path.as_ref().with_context(|| format!("Directory '{label}' requires an explicit path"))?.clone();
+            let path = if lower_label == "output-r-data" {
+                let fixed = project_root.join("data");
+                if let Some(path) = &config.path {
+                    anyhow::ensure!(crate::path_safety::resolve_path(make_absolute(project_root, path).as_std_path(), true)?
+                        == crate::path_safety::resolve_path(fixed.as_std_path(), true)?,
+                        "output-r-data has the fixed final destination <project>/data; redirection is forbidden");
+                }
+                Utf8PathBuf::from("data")
+            } else {
+                config.path.as_ref().with_context(|| format!("Directory '{label}' requires an explicit path"))?.clone()
+            };
             if path.as_str().trim().is_empty() { anyhow::bail!("Directory '{label}' requires a nonempty explicit path"); }
 
             resolved.insert(
@@ -632,6 +641,7 @@ fn read_configuration_file(path: &Utf8Path) -> anyhow::Result<Value> {
         .with_context(|| format!("Failed to parse configuration {path}"))?;
     let mut value: Value = serde_json::to_value(yaml)
         .with_context(|| format!("Failed to convert configuration {path}"))?;
+    normalize_r_data_layer(&mut value, path)?;
     // Validate explicit markers before deep_merge's null-inheritance rule can hide them.
     if let Some(directories) = value.get("directories").and_then(Value::as_object) {
         for (label, directory) in directories {
@@ -884,4 +894,42 @@ params:
         let result = yml_read_from(camino::Utf8Path::from_path(root_path).unwrap(), false);
         assert!(result.is_err());
     }
+}
+
+
+fn normalize_r_data_layer(value: &mut Value, file: &Utf8Path) -> anyhow::Result<()> {
+    let legacy = file.file_name().is_some_and(|name| name == "_projr.yml" || (name.starts_with("_projr-") && name.ends_with(".yml")));
+    if let Some(directories) = value.get_mut("directories").and_then(Value::as_object_mut) {
+        let aliases: Vec<_> = directories.keys().filter(|label| label.eq_ignore_ascii_case("data") || label.eq_ignore_ascii_case("output-r-data")).cloned().collect();
+        anyhow::ensure!(aliases.len() <= 1, "Conflicting data/output-r-data declarations in {file}");
+        if let Some(label) = aliases.first() {
+            anyhow::ensure!(legacy || !label.eq_ignore_ascii_case("data"), "Use output-r-data in _proj.yml; data is an R-package alias only in legacy _projr files");
+            let mut directory = directories.get(label).unwrap().as_object().context("output-r-data declaration must be a mapping")?.clone();
+            if let Some(path) = directory.get("path") {
+                let path = path.as_str().context("output-r-data path must be a string when present")?;
+                let root = file.parent().context("Configuration has no project root")?;
+                anyhow::ensure!(crate::path_safety::resolve_path(make_absolute(root, Utf8Path::new(path)).as_std_path(), true)?
+                    == crate::path_safety::resolve_path(root.join("data").as_std_path(), true)?,
+                    "output-r-data has fixed final destination <project>/data in {file}");
+            }
+            directory.insert("path".to_owned(), Value::String("data".to_owned()));
+            let original = std::mem::take(directories);
+            for (key, entry) in original {
+                if &key == label { directories.insert("output-r-data".to_owned(), Value::Object(directory.clone())); }
+                else { directories.insert(key, entry); }
+            }
+        }
+    }
+    if legacy {
+        if let Some(remotes) = value.get_mut("remotes").and_then(|value| value.get_mut("local")).and_then(Value::as_object_mut) {
+            for remote in remotes.values_mut() {
+                if let Some(content) = remote.get_mut("content").and_then(Value::as_array_mut) {
+                    for label in content {
+                        if label.as_str().is_some_and(|label| label.eq_ignore_ascii_case("data")) { *label = Value::String("output-r-data".to_owned()); }
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
 }

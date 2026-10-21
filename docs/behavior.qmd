@@ -35,7 +35,8 @@ actual test evidence, Ponytail reviews and remaining gaps; update it with each P
   The agreed `_proj.yml` / legacy `_projr.yml` names apply; explicitly activated
   profile files may supply configuration, but inactive profile files alone do not.
   No-config build assumptions from the initial roadmap are superseded.
-- Every framework/resource directory used at runtime must be explicitly declared.
+- Ordinary framework/resource directories used at runtime must be explicitly declared.
+  Built-in project and R-package data lookup are bounded exceptions described below.
   Initialization may write familiar projr defaults into configuration; runtime
   must not synthesize missing directory mappings or unknown subpaths.
 - Unsupported behavior-affecting configuration fails before mutations.
@@ -288,8 +289,8 @@ Old-version renderer staging remains a known gap until the routing slice.
 
 Safe output/data/docs-class lookup uses the selected eligible cache-class mapping,
 the captured active version and exact configured label. Final lookup preserves
-the physical mapping, including external paths. No implicit data directory is
-invented: a data-class label must be declared. Directory insertion order is retained
+the physical mapping, including external paths. The later R-package data section defines the bounded output-r-data built-in;
+other generated labels must be declared. Directory insertion order is retained
 through configuration merging and the child snapshot. File fragments are relative
 and cannot replace/escape the role root. Queries never create directories.
 The CLI now defaults to safe lookup, integrated with captured-version consumers.
@@ -388,3 +389,25 @@ the framework-created unstaged next-development VERSION change at the same
 committed HEAD; other dirty state still fails. Added remote regressions and real
 notebook acceptance await the amended-head CI and independent re-review. These
 checks do not establish concurrent-writer or power-loss atomicity.
+
+## R-package data lookup and explicit activation
+
+This supersedes earlier blanket requirements for declared data-class labels:
+output-r-data is the canonical built-in R-package data lookup, with fixed final
+target project/data even without YAML. Safe lookup derives
+<selected-cache>/projr/<active-version>/output-r-data and requires an eligible
+declared cache and valid version. Lookup never creates or activates this role.
+
+Only an explicit directories.output-r-data: {} declaration or normalized legacy
+data declaration activates managed cleanup, recovery, promotion and explicitly
+configured publication. Use ordinary output rules: none preserves other final
+files, pre/post clears at the configured lifecycle stage, preview never promotes,
+and supported failure restores final bytes. No special preservation policy applies.
+Ordinary ignore rules apply; explicit ignore: [] includes data in Git/R builds.
+
+Normalize legacy _projr.yml and active _projr-*.yml aliases before profile/local
+merging; reject same-layer conflicts and any redirection in each original layer.
+Normalize legacy remote content labels too. Canonical _proj.yml rejects data;
+generic data-* labels are unsupported (use raw-* inputs or output-* outputs).
+Existing R helpers/packages remain untouched. Python/Julia outputs use ordinary
+mappings; inst is a project-relative fragment, not a special role.

@@ -90,7 +90,7 @@ pub fn clear_pre(
     let cache_base = config.get_path(project_root, "cache")?;
 
     for (label, _) in &config.directories {
-        if !crate::paths::is_output_or_data(label) {
+        if !crate::paths::is_generated_output(label) {
             continue;
         }
 
@@ -173,7 +173,7 @@ pub fn clear_post(
 
     if clear_output == Some("post") {
         for (label, _) in &config.directories {
-                if crate::paths::is_output_or_data(label) {
+            if crate::paths::is_generated_output(label) {
                 if let Ok(unsafe_path) = config.get_path(project_root, label) {
                     if unsafe_path.exists() {
                         for entry in fs::read_dir(unsafe_path.as_std_path()).context("Failed to read unsafe path directory")? {
