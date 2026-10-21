@@ -55,7 +55,7 @@ fn preview_and_release_queries_use_frozen_cache_mapping_and_active_version_with_
         fs::create_dir(root.join("released")).unwrap();
         fs::write(root.join("released/previous"),"old release bytes").unwrap();
         fs::write(root.join("VERSION"),"v1.2.3-4\n").unwrap();
-        fs::write(root.join("_proj.yml"),"directories:\n  cache:\n    path: cache\n  output:\n    path: released\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+        fs::write(root.join("_proj.yml"),"directories:\n  cache:\n    path: unused-cache\n  cache-selected:\n    path: cache\n    safe: true\n  output:\n    path: released\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
         let script=format!(r#"import json,os,subprocess
 from pathlib import Path
 root=Path(os.environ['PROJ_PROJECT_ROOT'])
@@ -162,7 +162,7 @@ target=Path(value['result']['path']);target.parent.mkdir(parents=True,exist_ok=T
             .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
         if existing_parent {
             assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
-            assert_eq!(fs::read_to_string(root.join("state/cache/projr/v0.0.1-1/output/result.txt")).unwrap(),"safe cache retained");
+            assert_eq!(fs::read_to_string(root.join(if literal { "other-cache/projr/v0.0.1-1/output/result.txt" } else { "state/cache/projr/v0.0.1-1/output/result.txt" })).unwrap(),"safe cache retained");
         } else {
             assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains("overlaps cache"));
             assert!(!root.join("state").exists(),"recovery overlap was not rejected before analysis");
@@ -240,4 +240,58 @@ for label in ['output-Ä','output-ä']:
     assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains("portable case comparison"));
     assert!(!root.join("analysis-ran").exists());assert!(!cache.exists());
     for folder in ["released-upper","released-lower"] {assert_eq!(fs::read_to_string(root.join(folder).join("result.txt")).unwrap(),folder);}
+}
+
+
+#[test]
+fn safe_cache_selection_honors_explicit_choice_exact_cache_exclusion_and_merged_order() {
+    for (flags, expected) in [
+        ("", "named"),
+        ("    safe: false\n", "first"),
+    ] {
+        let project=tempfile::tempdir().unwrap();let root=project.path();
+        fs::write(root.join("VERSION"),"v1.2.3-4").unwrap();
+        fs::write(root.join("_proj.yml"),format!("directories:\n  cache-z:\n    path: first\n  cache:\n    path: named\n{flags}  cache-selected:\n    path: selected\n  output:\n    path: released\n")).unwrap();
+        assert_eq!(path(query(root,"output","safe",&[])),root.canonicalize().unwrap().join(expected).join("projr/v1.2.3-4/output"));
+        // A profile's explicit choice outranks eligible literal cache and earlier entries.
+        fs::write(root.join("_projr-analysis.yml"),"directories:\n  cache-selected:\n    safe: true\n").unwrap();
+        let run=|| Command::new(env!("CARGO_BIN_EXE_proj")).args(["--machine","path","get","--label","output","--target","safe","--project"])
+            .arg(root).current_dir(root).env("PROJR_PROFILE","analysis").env_remove("QUARTO_PROFILE")
+            .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).output().unwrap();
+        assert_eq!(path(run()),root.canonicalize().unwrap().join("selected/projr/v1.2.3-4/output"));
+        // Local false removes that explicit selection without reordering the base.
+        fs::write(root.join("_projr-local.yml"),"directories:\n  cache-selected:\n    safe: false\n").unwrap();
+        assert_eq!(path(run()),root.canonicalize().unwrap().join(expected).join("projr/v1.2.3-4/output"));
+        assert!(!root.join("first").exists());assert!(!root.join("selected").exists());
+    }
+}
+
+#[test]
+fn contradictory_or_non_boolean_safe_cache_settings_fail_before_analysis_and_mutations() {
+    for directories in [
+        "  cache-a: {path: a, safe: true}\n  cache-b: {path: b, safe: true}\n",
+        "  cache-a: {path: a, safe: false}\n  cache-b: {path: b, safe: false}\n",
+        "  cache: {path: a, safe: null}\n",
+        "  cache: {path: a, safe: 'true'}\n",
+        "  cache: {path: a, safe: 1}\n",
+        "  output: {path: released, safe: true}\n",
+    ] {
+        let project=tempfile::tempdir().unwrap();let root=project.path();
+        let config=format!("directories:\n{directories}build:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n");
+        fs::write(root.join("_proj.yml"),&config).unwrap();fs::write(root.join("VERSION"),"v1.2.3-4\n").unwrap();
+        fs::write(root.join("analysis.py"),"from pathlib import Path\nPath('ran').write_text('unexpected')\n").unwrap();
+        let before:Vec<_>=fs::read_dir(root).unwrap().map(|e|e.unwrap().file_name()).collect();
+        let output=Command::new(env!("CARGO_BIN_EXE_proj")).args(["build-dev","--non-interactive","--project"]).arg(root).current_dir(root)
+            .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
+        assert!(!output.status.success(),"accepted invalid settings: {directories}");
+        assert!(!root.join("ran").exists());assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(),"v1.2.3-4\n");
+        assert_eq!(fs::read_to_string(root.join("_proj.yml")).unwrap(),config);
+        assert_eq!(fs::read_dir(root).unwrap().count(),before.len());
+    }
+    let project=tempfile::tempdir().unwrap();let root=project.path();
+    fs::write(root.join("_proj.yml"),"directories:\n  raw: {path: source}\nbuild:\n  scripts: []\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+    assert_eq!(path(query(root,"raw","final",&[])),root.canonicalize().unwrap().join("source"));
+    let output=Command::new(env!("CARGO_BIN_EXE_proj")).args(["build-dev","--non-interactive","--project"]).arg(root).current_dir(root)
+        .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
+    assert!(output.status.success(),"cache-free empty preview failed: {}",String::from_utf8_lossy(&output.stderr));
 }

@@ -2,7 +2,7 @@
 use camino::{Utf8Path, Utf8PathBuf};
 
 /// Resolves a declared resource label and optional file/subdirectory fragments.
-/// Safe output/data/docs targets use the first declared cache-class mapping and
+/// Safe output/data/docs targets use the selected eligible cache-class mapping and
 /// captured active run version (or standalone VERSION). Other roles and safe=false
 /// preserve configured paths, including absolute external mappings.
 ///
@@ -29,4 +29,23 @@ pub(crate) fn is_output_or_data(label: &str) -> bool {
 
 pub(crate) fn is_managed_output(label: &str) -> bool {
     is_output_or_data(label) || label.to_ascii_lowercase().starts_with("docs")
+}
+
+
+pub(crate) fn select_safe_cache<'a>(directories: impl IntoIterator<Item = (&'a str, Option<bool>)>, order: &[String]) -> anyhow::Result<Option<String>> {
+    let mut candidates = Vec::new();
+    for (label, safe) in directories {
+        if label.to_ascii_lowercase().starts_with("cache") { candidates.push((label, safe)); }
+        else { anyhow::ensure!(safe.is_none(), "Directory safe selection is only supported for cache-class mappings"); }
+    }
+    if candidates.is_empty() { return Ok(None); }
+    let selected: Vec<_> = candidates.iter().filter(|(_, safe)| *safe == Some(true)).collect();
+    anyhow::ensure!(selected.len() <= 1, "Multiple cache directories explicitly select safe: true");
+    if let Some((label, _)) = selected.first() { return Ok(Some((*label).to_string())); }
+    let eligible: Vec<_> = candidates.iter().filter(|(_, safe)| *safe != Some(false)).collect();
+    anyhow::ensure!(!eligible.is_empty(), "No eligible safe cache directory: every candidate has safe: false");
+    if let Some((label, _)) = eligible.iter().find(|(label, _)| label.eq_ignore_ascii_case("cache")) { return Ok(Some((*label).to_string())); }
+    if let Some(label) = order.iter().find(|label| eligible.iter().any(|(candidate, _)| *candidate == label.as_str())) { return Ok(Some(label.clone())); }
+    // Typed HashMaps have no declaration order; this fallback is used only for validation.
+    Ok(eligible.iter().map(|(label, _)| (*label).to_string()).min())
 }

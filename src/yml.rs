@@ -213,14 +213,22 @@ pub struct ResolvedGitConfig {
 ///
 /// ```rust
 /// use proj::yml::{DirConfig, IgnoreConfig};
-/// let dir = DirConfig { path: None, ignore: IgnoreConfig::Single("all".to_string()) };
+/// let dir = DirConfig { path: None, safe: None, ignore: IgnoreConfig::Single("all".to_string()) };
 /// ```
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct DirConfig {
     pub path: Option<Utf8PathBuf>,
+    /// Optional safe-cache selection marker; valid only on cache-class mappings.
+    #[serde(default, deserialize_with = "deserialize_safe_cache")]
+    pub safe: Option<bool>,
     #[serde(default = "default_ignore")]
     pub ignore: IgnoreConfig,
+}
+
+fn deserialize_safe_cache<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Option<bool>, D::Error> {
+    // Missing is unspecified; explicitly present null/string/number is not a boolean.
+    bool::deserialize(deserializer).map(Some)
 }
 
 /// Defines auto-generated ignore rules applied to tracked directories.
@@ -312,11 +320,13 @@ pub struct ValidatedConfig {
 /// ```rust
 /// use camino::{Utf8Path, Utf8PathBuf};
 /// use proj::yml::{ResolvedDir, IgnoreConfig};
-/// let resolved = ResolvedDir { path: Utf8PathBuf::from("_raw"), ignore: IgnoreConfig::Single("all".to_string()) };
+/// let resolved = ResolvedDir { path: Utf8PathBuf::from("_raw"), safe: None, ignore: IgnoreConfig::Single("all".to_string()) };
 /// ```
 #[derive(Debug)]
 pub struct ResolvedDir {
     pub path: Utf8PathBuf,
+    /// Validated optional safe-cache selection marker.
+    pub safe: Option<bool>,
     pub ignore: IgnoreConfig,
 }
 
@@ -346,6 +356,7 @@ impl ProjConfig {
         validate_clear_output(self.build.clear_output.as_deref())?;
         let mut resolved = HashMap::new();
         crate::path_safety::validate_directory_labels(self.directories.keys().map(String::as_str))?;
+        crate::paths::select_safe_cache(self.directories.iter().map(|(label, directory)| (label.as_str(), directory.safe)), &[])?;
 
         // 0. Validate Structural Constraints
         if let Some(dest) = &self.build.dest {
@@ -391,6 +402,7 @@ impl ProjConfig {
                 label.clone(),
                 ResolvedDir {
                     path,
+                    safe: config.safe,
                     ignore: config.ignore.clone(),
                 },
             );
@@ -474,6 +486,7 @@ impl ValidatedConfig {
     ///
     /// let mut dirs = HashMap::new();
     /// dirs.insert("raw-data".to_string(), ResolvedDir {
+    ///     safe: None,
     ///     path: Utf8PathBuf::from("_raw_data"),
     ///     ignore: IgnoreConfig::Single("all".to_string())
     /// });

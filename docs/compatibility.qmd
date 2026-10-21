@@ -1093,3 +1093,24 @@ captured snapshots. Single Unicode labels remain valid. Added a real Windows
 ordinary-absolute-cache regression with two roles targeting result.txt and preserved
 final sentinels, plus a pure shared-policy check. This is bounded case-alias
 rejection, not an exhaustive filesystem normalization model or Unicode ban.
+
+
+PR154 policy update (confirmed user decision, superseding first-cache-only text):
+**different/new** versus pinned projr90be50132d16aee33e39c0f7f35ef906c35f5397
+R/dir-get.R: explicit boolean `safe: true` cache selection wins, then eligible
+exact `cache`, then merged insertion order; false excludes. Contradictory/all-excluded
+cache declarations fail early; no cache is invented for cache-free work. Shared
+selection is used by standalone lookup and immutable child context. Tests cover
+profile/local precedence, absent/true/false and invalid flags, no mutation on error,
+cache-free preview, and frozen explicit selection despite YAML/profile changes.
+Remote execution and independent review of this amended head are pending.
+Ponytail full review reused the existing configuration merge, typed validation and
+private context; added no dependencies or alternate cache resolver. Existing
+recovery protects every cache-class mapping, not only the selected candidate.
+
+R-only legacy `data` names an R-package .rda output convention (projr R/dir-get.R
+and projr_use_data), not generic raw data. The approved separate migration is
+canonical `output-r-data`, fixed final project/data, legacy _projr-layer normalization
+before merging and no unused built-in writes. Python/Julia resource outputs remain
+ordinary explicit mappings; project/inst is a root-relative fragment, not a new role.
+No existing R package code is changed.
