@@ -296,6 +296,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#r-package-data-role-normalization-and-explicit-activation" id="toc-r-package-data-role-normalization-and-explicit-activation" class="nav-link" data-scroll-target="#r-package-data-role-normalization-and-explicit-activation">R-package data role normalization and explicit activation</a></li>
   <li><a href="#next-preview-releaseinstall-documentation-preparation" id="toc-next-preview-releaseinstall-documentation-preparation" class="nav-link" data-scroll-target="#next-preview-releaseinstall-documentation-preparation">Next-preview release/install documentation preparation</a></li>
   <li><a href="#m1-local-cli-acceptance-boundary" id="toc-m1-local-cli-acceptance-boundary" class="nav-link" data-scroll-target="#m1-local-cli-acceptance-boundary">M1 local CLI acceptance boundary</a></li>
+  <li><a href="#repository-root-artifact-cleanup" id="toc-repository-root-artifact-cleanup" class="nav-link" data-scroll-target="#repository-root-artifact-cleanup">Repository root artifact cleanup</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -763,6 +764,15 @@ ul.task-list li input[type="checkbox"] {
 <p>M1 is accepted as the delivered active-configuration local preview in preview.2, not a no-config build or an arbitrary command/sandbox product. The primary base file remains _proj.yml, with legacy _projr.yml accepted and conflicts rejected; directories are explicit and init supplies the familiar defaults. No parser, runner, path-safety, preflight or recovery behavior changes in this reconciliation.</p>
 <p>Reviewed source inspection reuses executed root/strict-config/profile/context, literal-space path/order, machine-error, preview-state and real combined fixtures from actual source768da1bf and gate39607431157. Ordered file-based analytical steps already deliver the useful M1 product; no second command schema or confinement mechanism is introduced. Original broader maintenance, command/argv and stronger write-boundary requirements remain open follow-up work. Existing R package, R/IDE parity, native Bookdown embedding and M2 records/provenance/retry are unchanged.</p>
 <p>Ponytail full: reuse shipped source, tests, public delivery evidence and the existing documentation validation/browser witness. This is a documentation-only scope clarification; no new binary release or local heavy testing is needed.</p>
+</section>
+<section id="repository-root-artifact-cleanup" class="level2">
+<h2 class="anchored" data-anchor-id="repository-root-artifact-cleanup">Repository root artifact cleanup</h2>
+<ul>
+<li><strong>Same runtime and release behavior:</strong> compared with Rust main <code>b1217da57098b6f2d78a10a0db5d76dc08eef59a</code>; source, tests, package/version, installers, workflows, release notes and acceptance/delivery evidence are unchanged. No new projr parity claim; the R reference and thesis remain untouched.</li>
+<li><strong>Decision/rationale:</strong> remove 21 obsolete one-off source-rewrite scripts, the dummy-token test wrapper, two superseded task notes and a tracked compiled scratch binary. Git history retains their exact bytes; no archive is introduced. The parameter note’s durable guidance already lives in configuration and YAML reference pages; migration history is recorded in the original Git commits.</li>
+<li><strong>Checks:</strong> before deletion, inspected all scripts as text and the binary via file metadata; searched all 540 tracked paths for artifact names and executable binary-path references, finding no consumers outside the removed artifacts. No patch script or scratch binary was executed. Remote CI/rendered-link checks and independent review are required before merge; no heavy local tests ran.</li>
+<li><strong>Ponytail full review:</strong> deletion only, plus this required log entry. Reuse existing documentation and CI; no cleanup framework, dependency or archive. Keep current behavior, divergence history, release evidence and active tooling.</li>
+</ul>
 
 
 </section>
