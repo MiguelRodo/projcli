@@ -1489,3 +1489,9 @@ output/archive preservation under none from successful document replacement.
 Require exact final/object bytes, expected manifest/index release and next-dev
 versions, corruption probes, immediate init directories and a failing Git-call
 witness. Record the project embedding preparation/input restrictions explicitly.
+
+PR164 review corrected delivery order: keep public installer/download expectations
+at preview.1 until tagging/draft verification/publication/public-byte verification
+complete. Then update README/install/source links and public-download checks in a
+separate post-publication documentation change, so their actual asset fetches can
+pass. No public pins or version metadata changed in this correction.

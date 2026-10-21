@@ -103,16 +103,22 @@ accepted scope, exact integrated source and remaining limits.
 1. Prepare a separate reviewed version change. Cargo.toml and the root package
    entry in Cargo.lock must agree. The CLI package version is distinct from an
    analysis project's VERSION; do not change users' project versions.
-2. Update the release notes, README, install guide and documentation-check
-   expectations together for the chosen version and exact installer source.
-   Keep the public instructions in plain language. Do not point users at
-   unpublished downloads or silently use GitHub's older stable Latest.
+2. Prepare release notes for the chosen version and exact source. Keep the
+   public README/install download commands and downloaded-binary documentation
+   checks pinned to the currently published preview.1 throughout tagging, draft
+   asset checks and publication. Their CI fetches public downloads and
+   source-commit.txt, so an unpublished pin cannot pass those checks.
 3. Only after the source/version gates pass, tag the exact reviewed commit and
    run the existing preview release workflow. It creates a draft prerelease.
    Inspect both actual platform assets, source-commit.txt, version.txt and the
    exact checksum entries. Run the remote binary and installer checks.
-4. Publish only the verified draft. Confirm public downloads match the checked
-   assets. Keep Linux/Windows platform limits and deferred features visible.
+4. Publish only the verified draft, then confirm public downloads match the
+   checked assets. Only after public-byte verification, make a separate
+   post-publication documentation change updating README/install pins, version
+   wording, source-commit links and downloaded-binary check expectations together.
+   Run those public-download checks before merging that documentation change.
+   Keep the instructions in plain language, with platform/deferred limits visible;
+   never silently substitute GitHub's older stable Latest.
 5. Inside WSL Ubuntu, preserve the previous user-local binary, download the
    explicit published version, verify its checksum and install into the existing
    user-writable directory. No local Rust compilation, administrator access or
