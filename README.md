@@ -13,6 +13,10 @@ paths together and explore the documented preview workflow.
 is a development prerelease, not completion of M1/M2. Stable Latest remains
 v0.3.0 and predates the current preview features.
 
+The next preview is still being checked. Its [release and installation checklist](docs/release-candidate.qmd)
+separates newer source changes from the binary available below. Installing this
+version does not install the pending R-data or HTML-default changes.
+
 [Website](https://miguelrodo.github.io/projcli/) ·
 [What works](https://miguelrodo.github.io/projcli/features.html) ·
 [Build reference](docs/cli/build.qmd)
