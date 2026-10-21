@@ -100,6 +100,26 @@ pub(crate) fn write_managed_file(path: impl AsRef<std::path::Path>, bytes: impl 
     fs::write(path, bytes).with_context(|| format!("Cannot write managed file {}", path.display()))
 }
 
+/// Replace a guarded source with a new inode in its own directory, preserving
+/// existing permissions. Hard-linked aliases keep their original bytes.
+/// Failed temporary writes/replacements are cleaned up by NamedTempFile.
+pub(crate) fn replace_managed_file(path: &Utf8Path, bytes: impl AsRef<[u8]>) -> anyhow::Result<()> {
+    use std::io::Write;
+    crate::path_safety::resolve_path(path.as_std_path(), true)?;
+    let metadata = fs::symlink_metadata(path)?;
+    anyhow::ensure!(metadata.is_file(), "Managed replacement requires a regular file: {path}");
+    let parent = path.parent().context("Managed replacement has no parent")?;
+    crate::path_safety::resolve_path(parent.as_std_path(), true)?;
+    let mut staged = tempfile::Builder::new().prefix(".proj-write-").tempfile_in(parent)?;
+    staged.write_all(bytes.as_ref())?;
+    fs::set_permissions(staged.path(), metadata.permissions())?;
+    staged.flush()?;
+    crate::path_safety::resolve_path(path.as_std_path(), true)?;
+    anyhow::ensure!(fs::symlink_metadata(path)?.is_file(), "Managed replacement target changed: {path}");
+    staged.persist(path).map_err(|error| error.error).context("Cannot replace prepared source file")?;
+    Ok(())
+}
+
 pub(crate) fn read_managed_text(path: impl AsRef<std::path::Path>) -> anyhow::Result<String> {
     let path = path.as_ref();
     crate::path_safety::resolve_path(path, true)?;

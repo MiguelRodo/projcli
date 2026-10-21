@@ -110,3 +110,10 @@ rendering retains its native resource policy and has no new fallback here.
 
 See [Quarto HTML embedding](https://quarto.org/docs/output-formats/html-basics.html)
 and [R Markdown render options](https://pkgs.rstudio.com/rmarkdown/reference/render.html).
+
+Project embedding preparation keeps native format choices and their order, even
+when a non-HTML format is the default. Original permissions and external hard-link
+bytes are preserved. Changing inherited profile/directory/included metadata after
+preparation is rejected; use literal metadata-files paths. External metadata is
+read for validation and is not rewritten. Arbitrary external script effects remain
+outside managed recovery.

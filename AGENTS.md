@@ -154,3 +154,8 @@ activates writes. Only explicit canonical or per-layer normalized legacy data
 declarations enter ordinary output clearing/recovery/promotion/publication.
 Reject redirection and alias conflicts before merge; no special preservation
 policy, new language roles or edits to the existing R package.
+
+Embedding header defaults must retain every effective format choice and native
+order. Use guarded same-directory source replacement, preserving permissions and
+external hard-link bytes. Freeze relevant profile/directory/included metadata and
+reject changes before rendering; never write external metadata dependencies.

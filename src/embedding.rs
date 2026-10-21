@@ -58,7 +58,7 @@ fn unspecified_html(inspection: &serde_json::Value) -> anyhow::Result<Vec<String
     Ok(selected)
 }
 
-fn with_defaults(content: &str, formats: &[String]) -> anyhow::Result<String> {
+fn with_defaults(content: &str, format_order: &[String], formats: &[String]) -> anyhow::Result<String> {
     let mut metadata: serde_yaml::Value = serde_yaml::from_str(
         &crate::build_pre::extract_frontmatter(content).unwrap_or_default())?;
     if metadata.is_null() { metadata = serde_yaml::Value::Mapping(Default::default()); }
@@ -70,6 +70,12 @@ fn with_defaults(content: &str, formats: &[String]) -> anyhow::Result<String> {
         None | Some(serde_yaml::Value::Null) => Default::default(),
         _ => anyhow::bail!("Unsupported Quarto format declaration for embedding fallback"),
     };
+    let mut ordered = serde_yaml::Mapping::new();
+    for format in format_order {
+        let key = serde_yaml::Value::from(format.as_str());
+        ordered.insert(key.clone(), configured.remove(&key).unwrap_or_else(|| serde_yaml::Value::Mapping(Default::default())));
+    }
+    let mut configured = ordered;
     for format in formats {
         let options = configured.entry(serde_yaml::Value::from(format.as_str())).or_insert(serde_yaml::Value::Null);
         if options.is_null() || options.as_str() == Some("default") { *options = serde_yaml::Value::Mapping(Default::default()); }
@@ -92,6 +98,72 @@ fn with_defaults(content: &str, formats: &[String]) -> anyhow::Result<String> {
     Ok(format!("---\n{}---\n{}", serde_yaml::to_string(&metadata)?, body))
 }
 
+fn profile_files(root: &Utf8Path) -> anyhow::Result<Vec<Utf8PathBuf>> {
+    let mut profiles = Vec::new();
+    for entry in std::fs::read_dir(root)? {
+        let path = Utf8PathBuf::try_from(entry?.path())?;
+        let name = path.file_name().unwrap_or_default().to_ascii_lowercase();
+        if (name == "_quarto.yml" || name == "_quarto.yaml" || name.starts_with("_quarto-"))
+            && (name.ends_with(".yml") || name.ends_with(".yaml")) { profiles.push(path); }
+    }
+    profiles.sort();
+    Ok(profiles)
+}
+
+fn metadata_bytes(path: &Utf8Path) -> anyhow::Result<Option<Vec<u8>>> {
+    crate::path_safety::resolve_path(path.as_std_path(), true)?;
+    match std::fs::symlink_metadata(path) {
+        Ok(metadata) => {
+            anyhow::ensure!(metadata.is_file(), "Quarto inherited metadata must be a regular file: {path}");
+            Ok(Some(std::fs::read(path)?))
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error.into()),
+    }
+}
+
+fn include_paths(owner: &Utf8Path, value: &serde_yaml::Value, queue: &mut Vec<Utf8PathBuf>) -> anyhow::Result<()> {
+    if let Some(includes) = value.get("metadata-files") {
+        if includes.is_null() { return Ok(()); }
+        let values = if let Some(values) = includes.as_sequence() { values.iter().collect::<Vec<_>>() }
+            else { vec![includes] };
+        for value in values {
+            let path = Utf8Path::new(value.as_str().context("Embedding preparation requires literal metadata-files paths")?);
+            queue.push(if path.is_absolute() { path.to_owned() } else { owner.parent().context("Metadata has no parent")?.join(path) });
+        }
+    }
+    Ok(())
+}
+
+fn inherited_metadata(root: &Utf8Path, edits: &[(Utf8PathBuf, String, String)]) -> anyhow::Result<(Vec<Utf8PathBuf>, std::collections::BTreeMap<Utf8PathBuf, Option<Vec<u8>>>)> {
+    if edits.is_empty() { return Ok((Vec::new(), Default::default())); }
+    let profiles = profile_files(root)?;
+    let mut queue = profiles.clone();
+    for (input, original, _) in edits {
+        let metadata: serde_yaml::Value = serde_yaml::from_str(&crate::build_pre::extract_frontmatter(original).unwrap_or_default())?;
+        include_paths(input, &metadata, &mut queue)?;
+        let mut parent = input.parent();
+        while let Some(directory) = parent {
+            queue.extend([directory.join("_metadata.yml"), directory.join("_metadata.yaml")]);
+            if directory == root { break; }
+            parent = directory.parent();
+        }
+    }
+    let mut snapshots = std::collections::BTreeMap::new();
+    while let Some(path) = queue.pop() {
+        let path = Utf8PathBuf::try_from(crate::path_safety::resolve_path(path.as_std_path(), true)?)?;
+        anyhow::ensure!(!path.components().any(|part| part.as_str().eq_ignore_ascii_case(".git")), "Quarto inherited metadata in VCS internals is unsupported");
+        if snapshots.contains_key(&path) { continue; }
+        let bytes = metadata_bytes(&path)?;
+        if let Some(bytes) = &bytes {
+            let metadata: serde_yaml::Value = serde_yaml::from_slice(bytes)?;
+            include_paths(&path, &metadata, &mut queue)?;
+        }
+        snapshots.insert(path, bytes);
+    }
+    Ok((profiles, snapshots))
+}
+
 /// Exact-byte temporary header preparation, using native effective metadata.
 /// No global default is injected: legacy and canonical false can coexist across
 /// documents, formats, profiles, directory metadata and included metadata files.
@@ -99,6 +171,8 @@ pub(crate) struct ProjectEmbedding {
     inputs: Vec<Utf8PathBuf>,
     edits: Vec<(Utf8PathBuf, String, String)>,
     backup: crate::build_state::BuildState,
+    inherited: std::collections::BTreeMap<Utf8PathBuf, Option<Vec<u8>>>,
+    profiles: Vec<Utf8PathBuf>,
 }
 
 impl ProjectEmbedding {
@@ -108,31 +182,41 @@ impl ProjectEmbedding {
         let inputs = project_inputs(root, environment)?;
         let mut edits = Vec::new();
         for input in &inputs {
-            let formats = unspecified_html(&inspect(root, input, environment)?)?;
+            let inspection = inspect(root, input, environment)?;
+            let formats = unspecified_html(&inspection)?;
+            let format_order = inspection["formats"].as_object().unwrap().keys().cloned().collect::<Vec<_>>();
             if formats.is_empty() { continue; }
             anyhow::ensure!(matches!(input.extension(), Some("qmd" | "md" | "Rmd" | "rmd")),
                 "Quarto HTML fallback requires a modeled text document; configure embedding explicitly for other input types");
             let original = crate::fs_utils::read_managed_text(input)?;
-            let prepared = with_defaults(&original, &formats)?;
+            let prepared = with_defaults(&original, &format_order, &formats)?;
             edits.push((input.clone(), original, prepared));
         }
-        let paths = edits.iter().map(|(path, _, _)| path.clone().into_std_path_buf()).collect::<Vec<_>>();
+        let (profiles, inherited) = inherited_metadata(root, &edits)?;
+        let mut paths = edits.iter().map(|(path, _, _)| path.clone().into_std_path_buf()).collect::<Vec<_>>();
+        paths.extend(inherited.keys().filter(|path| path.starts_with(root)).map(|path| path.clone().into_std_path_buf()));
         let backup = crate::build_state::BuildState::capture(caches, &paths)?;
-        Ok(Self { inputs, edits, backup })
+        Ok(Self { inputs, edits, backup, inherited, profiles })
     }
 
     /// Apply only captured edits; a changed or substituted source is rejected.
     pub(crate) fn apply(&self) -> anyhow::Result<()> {
         for (path, original, prepared) in &self.edits {
             anyhow::ensure!(crate::fs_utils::read_managed_text(path)? == *original, "Quarto source changed during embedding preparation");
-            crate::fs_utils::write_managed_file(path, prepared)?;
+            crate::fs_utils::replace_managed_file(path, prepared)?;
         }
         Ok(())
     }
 
-    /// Recheck the input set and prepared headers at the controlled launch.
+    /// Recheck inherited metadata bytes, input set and prepared headers at launch.
     /// Changing a prepared document after preparation is unsupported.
     pub(crate) fn verify(&self, root: &Utf8Path, environment: &crate::run_environment::RunEnvironment) -> anyhow::Result<()> {
+        if !self.edits.is_empty() {
+            anyhow::ensure!(profile_files(root)? == self.profiles, "Quarto inherited metadata inventory changed after embedding preparation");
+            for (path, expected) in &self.inherited {
+                anyhow::ensure!(metadata_bytes(path)? == *expected, "Quarto inherited metadata changed after embedding preparation: {path}");
+            }
+        }
         anyhow::ensure!(project_inputs(root, environment)? == self.inputs, "Quarto inputs changed after embedding preparation");
         for (path, _, prepared) in &self.edits {
             anyhow::ensure!(crate::fs_utils::read_managed_text(path)? == *prepared, "Quarto source changed after embedding preparation");
@@ -173,9 +257,19 @@ mod tests {
         assert_eq!(unspecified_html(&serde_json::json!({"formats":{"html":{"pandoc":{}},"pdf":{"pandoc":{}}}})).unwrap(),["html"]);
     }
     #[test]
+    fn inherited_format_choices_and_order_are_retained_when_only_html_needs_fallback() {
+        let prepared = with_defaults("---\ntitle: mixed formats\n---\nBody\n",
+            &["docx".into(),"html".into()], &["html".into()]).unwrap();
+        let metadata:serde_yaml::Value = serde_yaml::from_str(&crate::build_pre::extract_frontmatter(&prepared).unwrap()).unwrap();
+        let order = metadata["format"].as_mapping().unwrap().keys().map(|key| key.as_str().unwrap()).collect::<Vec<_>>();
+        assert_eq!(order,["docx","html"]);
+        assert_eq!(metadata["format"]["html"]["embed-resources"],true);
+        assert!(metadata["format"]["docx"].as_mapping().unwrap().is_empty());
+    }
+    #[test]
     fn temporary_headers_keep_body_and_other_format_options() {
         let content = "---\r\nformat:\r\n  html:\r\n    toc: true\r\n  pdf: default\r\n---\r\n![literal](../image.png)\r\n";
-        let prepared = with_defaults(content, &["html".into()]).unwrap();
+        let prepared = with_defaults(content, &["html".into(),"pdf".into()], &["html".into()]).unwrap();
         assert!(prepared.ends_with("![literal](../image.png)\r\n"));
         let metadata:serde_yaml::Value = serde_yaml::from_str(&crate::build_pre::extract_frontmatter(&prepared).unwrap()).unwrap();
         assert_eq!(metadata["format"]["html"]["toc"],true);
