@@ -150,6 +150,14 @@ fn ordinary_custom_drive_root_and_existing_target_share_a_relative_namespace() {
     let base=format!("{}:\\",drive as char);
     let output=Command::new(env!("CARGO_BIN_EXE_proj")).args(["--machine","path","get","--label","raw","--format","relative","--relative-to",&base,"--project"])
         .arg(root).env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
+    // Query a missing direct child without creating anything at the drive root.
+    let missing=std::path::Path::new(&base).join(format!("projcli-absent-{}",temp.path().file_name().unwrap().to_string_lossy()));
+    assert!(!missing.exists());
+    fs::write(root.join("_proj.yml"),format!("directories:\n  raw:\n    path: {}\n",serde_json::to_string(&missing.to_string_lossy()).unwrap())).unwrap();
+    let absent=Command::new(env!("CARGO_BIN_EXE_proj")).args(["--machine","path","get","--label","raw","--format","relative","--relative-to",&base,"--project"])
+        .arg(root).env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
+    let absent=path(absent);assert!(!absent.is_absolute());
+    assert_eq!(std::path::Path::new(&base).join(absent),missing);assert!(!missing.exists());
     let relative=path(output);assert!(!relative.is_absolute());
     assert_eq!(std::path::Path::new(&base).join(relative).canonicalize().unwrap(),root.join("raw").canonicalize().unwrap());
 }

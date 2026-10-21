@@ -12,7 +12,23 @@ pub(crate) fn resolve_path(path: &Path, reject_symlinks: bool) -> anyhow::Result
         match part {
             Component::CurDir => continue,
             Component::ParentDir => { resolved.pop(); }
-            Component::Prefix(_) | Component::RootDir => resolved.push(part.as_os_str()),
+            Component::Prefix(_) => resolved.push(part.as_os_str()),
+            Component::RootDir => {
+                resolved.push(part.as_os_str());
+                // Normalize the existing root even when every following component
+                // is absent (Disk/VerbatimDisk and UNC share root on Windows).
+                match fs::symlink_metadata(&resolved) {
+                    Ok(metadata) => {
+                        if reject_symlinks && metadata.file_type().is_symlink() {
+                            anyhow::bail!("Managed write path contains a symlink: {}", resolved.display());
+                        }
+                        resolved = fs::canonicalize(&resolved)
+                            .with_context(|| format!("Cannot resolve path {}", resolved.display()))?;
+                    }
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                    Err(error) => return Err(error).with_context(|| format!("Cannot inspect path {}", resolved.display())),
+                }
+            },
             Component::Normal(name) => {
                 resolved.push(name);
                 match fs::symlink_metadata(&resolved) {
