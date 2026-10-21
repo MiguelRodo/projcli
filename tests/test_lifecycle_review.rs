@@ -175,3 +175,23 @@ fn substituted_fifo_metadata_fails_within_a_bounded_child_wait() {
         assert!(!root.join("archive").exists());assert!(!root.join("cache/renderer-called").exists());
     }
 }
+
+
+#[cfg(unix)]
+#[test]
+fn newly_created_quarto_roots_are_rejected_at_the_actual_renderer_boundary() {
+    for metadata in ["_quarto.yml","analysis/_quarto.yml"] {
+      for hook in [false,true] {
+        let temp=tempfile::tempdir().unwrap();let root=temp.path().canonicalize().unwrap();
+        setup(&root,if hook {"[analysis/report.qmd]"} else {"[mutate.py, analysis/report.qmd]"},if hook {"  hooks:\n    pre: [mutate.py]\n"} else {""});
+        fs::create_dir(root.join("analysis")).unwrap();fs::write(root.join("analysis/report.qmd"),"Report\n").unwrap();
+        fs::write(root.join("mutate.py"),format!("from pathlib import Path\nPath({metadata:?}).write_text('project:\\n  type: default\\n  output-dir: ../external\\n')\n")).unwrap();
+        fs::write(root.join("external"),"external sentinel").unwrap();fake_renderer(&root);
+        let result=run(&root,"build");assert!(!result.status.success(),"accepted {metadata}/hook={hook}");
+        assert!(!root.join("cache/renderer-called").exists());
+        assert_eq!(fs::read_to_string(root.join("external")).unwrap(),"external sentinel");
+        assert_eq!(fs::read_to_string(root.join("published/old.html")).unwrap(),"old published");
+        assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(),"v1.2.3-4\n");
+      }
+    }
+}

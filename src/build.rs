@@ -465,6 +465,12 @@ pub fn build_project_with_clear_stage(project_root: &camino::Utf8Path, mode: Bui
             .collect::<anyhow::Result<Vec<_>>>()?;
         let before_render = |document: Option<&camino::Utf8Path>| -> anyhow::Result<()> {
             if let Some(file) = document {
+                if file.extension() == Some("qmd") {
+                    validate_quarto_input(project_root, file)?;
+                    anyhow::ensure!(!crate::yml::configuration_entry_exists(&project_root.join("_quarto.yml"))?
+                        && !crate::yml::configuration_entry_exists(&project_root.join("_quarto.yaml"))?,
+                        "Quarto project identity changed after individual-render preflight");
+                }
                 let (_, target, assets) = native_layouts.iter().find(|(input, _, _)| input == file)
                     .context("Missing frozen document layout")?;
                 let current = document_output_paths(file, &config.get_path(project_root, "docs")?, project_root)?;
@@ -472,6 +478,10 @@ pub fn build_project_with_clear_stage(project_root: &camino::Utf8Path, mode: Bui
                 remove_native_artifact(target)?;
                 remove_native_artifact(assets)?;
             } else {
+                if quarto_exists {
+                    if build_scripts.is_none() { validate_implicit_quarto_roots(project_root, &config)?; }
+                    for file in &selected_documents { validate_quarto_input(project_root, file)?; }
+                }
                 for (path, expected) in &prepared_engines {
                     anyhow::ensure!(crate::fs_utils::read_managed_text(path)? == *expected,
                         "Renderer project configuration changed after preparation: {path}");

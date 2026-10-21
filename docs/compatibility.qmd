@@ -1383,3 +1383,9 @@ blocking before recovery. A bounded child-process regression covers VERSION,
 both ignore files, Quarto and Bookdown metadata; it retains final-output and
 external sentinels and forbids renderer/publication execution. New-head remote
 evidence and independent re-review remain required.
+
+Quarto identity is also revalidated at each controlled launch: an individual
+render cannot silently become a project render after a hook/earlier script adds
+root metadata, nested project roots remain rejected, and project-selected inputs
+are rechecked immediately. New root/nested metadata regressions require the
+renderer to remain unlaunched while released and external sentinel bytes survive.
