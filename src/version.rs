@@ -172,7 +172,8 @@ pub fn version_get() -> Option<ProjVersion> {
 /// use proj::version::{ProjVersion, version_set_at};
 ///
 /// let temp = TempDir::new().unwrap();
-/// let temp_utf8 = Utf8Path::from_path(temp.path()).unwrap();
+/// let canonical_root = temp.path().canonicalize().unwrap();
+/// let temp_utf8 = Utf8Path::from_path(&canonical_root).unwrap();
 /// let version_path = temp_utf8.join("VERSION");
 /// fs::write(&version_path, "v1.0.0").unwrap();
 ///

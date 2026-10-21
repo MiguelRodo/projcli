@@ -83,7 +83,8 @@ fn production_build_still_requests_ignore_synchronization() {
 
 fn project_with_custom_ignores() -> tempfile::TempDir {
     let project = tempfile::tempdir().unwrap();
-    let root = camino::Utf8Path::from_path(project.path()).unwrap();
+    let canonical_root = project.path().canonicalize().unwrap();
+    let root = camino::Utf8Path::from_path(&canonical_root).unwrap();
     fs::write(root.join("_proj.yml"), "directories:\n  raw-private:\n    path: private-data\n    ignore: all\n").unwrap();
     fs::write(root.join(".gitignore"), "manual-rule\n").unwrap();
     fs::write(root.join(".Rbuildignore"), "^manual-rule$\n").unwrap();
