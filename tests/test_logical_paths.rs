@@ -135,7 +135,7 @@ raise SystemExit({exit_code})
         } else {assert!(!data.exists(),"previously absent data survived recovery");}
         assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(),"v1.2.3-4\n");
         let key=if mode=="build-dev" {"v1.2.3-4"} else {"v1.2.4"};
-        let artifact=root.join("cache/projr").join(key).join("data/artifact.txt");
+        let artifact=root.join("cache/projr").join(key).join("output-generated/artifact.txt");
         assert!(artifact.is_file(),"Missing retained artifact {artifact:?}: {mode}/{clear}/{phase}/external={external}/exists={exists}: {}",String::from_utf8_lossy(&output.stderr));
         assert_eq!(fs::read_to_string(artifact).unwrap(),"retained cache bytes");
        }

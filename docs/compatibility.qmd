@@ -1451,3 +1451,8 @@ unchanged. Final amended-head checks remain required.
   default; ordinary ignore rules apply and docs explicitly show ignore: [] for
   package inclusion. No dependencies, Python/Julia/inst roles, helper edits or
   R/IDE parity claims. Existing guards and lifecycle order are unchanged.
+
+Initial remote platform checks found a stale expected safe-cache leaf in the
+renamed generic output fixture. Corrected data/artifact.txt to
+output-generated/artifact.txt; the deliberate exit17 witness already passed.
+Exact amended-head remote checks and independent review remain required.
