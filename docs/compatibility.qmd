@@ -1628,3 +1628,24 @@ R/IDE parity, native Bookdown embedding and M2 records/provenance/retry are unch
 Ponytail full: reuse shipped source, tests, public delivery evidence and the
 existing documentation validation/browser witness. This is a documentation-only
 scope clarification; no new binary release or local heavy testing is needed.
+
+
+## Repository root artifact cleanup
+
+- **Same runtime and release behavior:** compared with Rust main
+  `b1217da57098b6f2d78a10a0db5d76dc08eef59a`; source, tests, package/version,
+  installers, workflows, release notes and acceptance/delivery evidence are unchanged.
+  No new projr parity claim; the R reference and thesis remain untouched.
+- **Decision/rationale:** remove 21 obsolete one-off source-rewrite scripts,
+  the dummy-token test wrapper, two superseded task notes and a tracked compiled
+  scratch binary. Git history retains their exact bytes; no archive is introduced.
+  The parameter note's durable guidance already lives in configuration and YAML
+  reference pages; migration history is recorded in the original Git commits.
+- **Checks:** before deletion, inspected all scripts as text and the binary via
+  file metadata; searched all 540 tracked paths for artifact names and executable
+  binary-path references, finding no consumers outside the removed artifacts.
+  No patch script or scratch binary was executed. Remote CI/rendered-link checks
+  and independent review are required before merge; no heavy local tests ran.
+- **Ponytail full review:** deletion only, plus this required log entry. Reuse
+  existing documentation and CI; no cleanup framework, dependency or archive.
+  Keep current behavior, divergence history, release evidence and active tooling.
