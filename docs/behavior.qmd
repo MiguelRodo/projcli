@@ -470,3 +470,14 @@ The intended release catalogue is a curated linear main-branch changelog.
 [Storage design constraints](storage-design.qmd) separate these decisions from
 the still-open configuration, identity, sealing, manifest and backend contracts.
 This records design only; current runtime behavior is unchanged.
+
+
+## Inventory transition groundwork
+
+Existing explicit CAS ingestion has a fixture for exact current path/hash sets
+and stored bytes across edits, additions, renames and deletions. The edit keeps
+file length and modified time unchanged, so verified content must still change.
+Past manifest bytes and their referenced objects remain valid across later
+ingestions in this sequence. These are full snapshots in the existing format,
+not newly defined rename events, tombstones, build records or retention rules.
+No lifecycle capture point or broader provenance completion is implied.

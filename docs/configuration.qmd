@@ -183,3 +183,18 @@ Legacy _projr.yml and active _projr-*.yml layers accept data as an alias and nor
 it before merging, including legacy remote content labels. Defining both aliases
 in one layer is an error. Canonical _proj.yml requires output-r-data. Generic
 data-* labels are unsupported; use raw-* inputs or ordinary output-* mappings.
+
+
+## Existing archive inventory coverage
+
+CAS ingestion records the current recursive file paths and content hashes for
+the explicitly selected directory. The transition fixture compares exact
+inventories and stored bytes after a same-size/same-modified-time edit, an
+addition, a rename and a deletion. Earlier snapshots remain inspectable across
+those later ingestions. A renamed file appears under its new path in the current
+snapshot; this does not create a rename-event format.
+
+This verifies existing archive machinery only. It does not automatically record
+all build inputs, code, configuration or dependencies, select a future build
+record format, or decide content-only identity and retention policy. Complete M2
+provenance remains unfinished.

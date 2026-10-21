@@ -225,3 +225,10 @@ integration constraint, not authorization to implement M2 persistence.
 Backend choice must preserve proj's logical directory labels/roles and path
 abstraction; analysis code must not require DVC-specific physical paths. DVC's
 physical tracking distinction does not imply an absence of named stages/config.
+
+
+Inventory groundwork must test existing explicit CAS snapshots against known
+path/content fixtures, including changed bytes, additions, renames and deletions.
+Preserve previous evidence across ordinary ingestions. Do not infer a future
+build-record schema, rename-event format, content-only identity, retention policy
+or lifecycle capture point from this existing-format acceptance coverage.

@@ -350,3 +350,8 @@ The [storage design constraints](storage-design.qmd) reserve optional future
 per-directory DVC delegation. Its restore/build/store integration points and
 error boundaries are still undecided; no DVC step is added to the current
 lifecycle diagrams. Ordinary native use remains independent of DVC.
+
+
+Inventory transition tests exercise explicit CAS calls independently of this
+lifecycle. They do not add automatic pre-analysis input or final-output provenance
+capture, choose sealing points or complete the unfinished build-record work.
