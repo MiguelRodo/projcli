@@ -2,6 +2,10 @@ name: Diagnostic relative paths (unmerged)
 on:
   workflow_dispatch:
     inputs:
+      literal_only:
+        description: Run only literal Markdown resource cases
+        type: boolean
+        default: false
       adapter_only:
         description: Run only six root-cwd renderer adapter probes
         type: boolean
@@ -46,6 +50,7 @@ jobs:
           chmod u+x diagnostic-proj
       - name: Exercise real runners, paths and relocated HTML resources
         env:
+          DIAG_LITERAL_ONLY: ${{ inputs.literal_only }}
           DIAG_ADAPTER_ONLY: ${{ inputs.adapter_only }}
         run: python diagnostics/relative-paths/run.py
       - name: Verify reference source unchanged

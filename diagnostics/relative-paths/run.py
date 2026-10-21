@@ -75,7 +75,8 @@ def inspect_html(path, bundle=None, expected_images=3):
             data=base64.b64decode(payload) if ';base64,' in src else urllib.parse.unquote_to_bytes(payload)
             images.append({'alt':attrs.get('alt'),'embedded':True,'matches_sentinel':hashlib.sha256(data).hexdigest()==hashlib.sha256(png()).hexdigest()})
         elif not split.scheme:
-            target=(path.parent/urllib.parse.unquote(split.path)).resolve()
+            resource=urllib.parse.unquote(split.path)
+            target=((bundle/resource.lstrip('/')) if bundle and resource.startswith('/') else (path.parent/resource)).resolve()
             images.append({'alt':attrs.get('alt'),'src':src,'target':str(target),'exists':target.is_file(), 'within_bundle':target.is_relative_to(bundle) if bundle else None})
         else: images.append({'alt':attrs.get('alt'),'src':src,'external':True})
     missing=[value for value in parser.local_assets if not (path.parent/urllib.parse.unquote(urllib.parse.urlsplit(value).path)).exists()]
@@ -111,6 +112,91 @@ versions['R_packages']=json.loads(package_versions.stdout)
 versions['projr_source_commit']=PROJR_PIN
 (OUT/'versions.json').write_text(json.dumps(versions,indent=2))
 
+
+
+# Literal author markup is independent of proj role lookups and R code cwd.
+if os.environ.get('DIAG_LITERAL_ONLY', '').lower() == 'true':
+    VERSION='v1.2.3'
+    scenarios=[]
+    for renderer in ['rmarkdown','quarto-document','quarto-project']:
+        scenarios.append((renderer,'root','relative','native'))
+    for renderer in ['quarto-document','quarto-project']:
+        for location,mode in [('root','native'),('nested','native'),('nested','root')]:
+            scenarios.append((renderer,location,'leading-slash',mode))
+    for renderer,location,url_kind,mode in scenarios:
+      for embedded in [True,False]:
+        name='literal-'+renderer+'-'+location+'-'+url_kind+'-'+mode+'-'+('embedded' if embedded else 'linked')
+        root,env=fixture(name,project=renderer=='quarto-project')
+        extension='Rmd' if renderer=='rmarkdown' else 'qmd'
+        folder=root if location=='root' else root/'analysis'
+        url='/_raw/images/sentinel.png' if url_kind=='leading-slash' else '_raw/images/sentinel.png'
+        setting='output:\n  html_document:\n    self_contained: '+str(embedded).lower()+'\n' if extension=='Rmd' else 'format:\n  html:\n    embed-resources: '+str(embedded).lower()+'\n'
+        document=folder/('report.'+extension)
+        document.write_text('---\ntitle: Literal markup\n'+setting+'---\n\n![literal markdown sentinel]('+url+')\n')
+        original=document.read_bytes()
+        if extension=='Rmd':
+            command=['Rscript','--vanilla','-e','args <- commandArgs(TRUE); rmarkdown::render(args[[1]], quiet=FALSE)',document]
+        else:
+            command=['quarto','render',document,'--to','html']
+            if mode=='root': command+=['--execute-dir',root]
+        entry=dict(case=name,runner=renderer,location=location,literal_url=url,execution_mode=mode,embedded=embedded,**execute(command,root,env,name,timeout=240))
+        entry['literal_source_unchanged']=document.read_bytes()==original
+        candidates=list(root.rglob('report.html'))
+        if candidates:
+            html=candidates[0];entry['native']=inspect_html(html,expected_images=1)
+            bundle=BUNDLES/name/'html-plus-stem';bundle.mkdir(parents=True)
+            target=bundle/'report.html';shutil.copy2(html,target)
+            if (html.parent/'report_files').exists(): shutil.copytree(html.parent/'report_files',bundle/'report_files')
+            whole_html=None
+            if renderer=='quarto-project' and html.is_relative_to(root/'rendered'):
+                whole=BUNDLES/name/'whole-project';shutil.copytree(root/'rendered',whole)
+                whole_html=whole/html.relative_to(root/'rendered')
+            root.rename(root.with_name(root.name+'-source-unavailable'))
+            entry['source_and_cache_unavailable']=not root.exists()
+            entry['relocated']=inspect_html(target,bundle,expected_images=1)
+            if whole_html: entry['whole_project_relocated']=inspect_html(whole_html,whole,expected_images=1)
+        results.append(entry)
+    # Four actual released-CLI builds on disposable fixtures; no Git or publication.
+    for extension in ['Rmd','qmd']:
+      for location in ['root','nested']:
+        name='literal-released-cli-'+extension+'-'+location+'-embedded'
+        root,env=fixture(name)
+        folder=root if location=='root' else root/'analysis'
+        url=('_raw/' if location=='root' else '../_raw/')+'images/sentinel.png'
+        setting='output:\n  html_document:\n    self_contained: true\n' if extension=='Rmd' else 'format:\n  html:\n    embed-resources: true\n'
+        document=folder/('report.'+extension)
+        document.write_text('---\ntitle: Literal CLI markup\n'+setting+'---\n\n![literal markdown sentinel]('+url+')\n')
+        original=document.read_bytes()
+        cfg=yaml.safe_load((root/'_projr.yml').read_text())
+        cfg['config']={'git':{'use_proj_cred_helper':False}}
+        cfg['build']={'scripts':[str(document.relative_to(root))],'git':False,'restrictions':{'not_behind':False}}
+        (root/'_projr.yml').write_text(yaml.safe_dump(cfg,sort_keys=False))
+        entry=dict(case=name,runner='released-projcli',location=location,literal_url=url,embedded=True,**execute([PROJ,'build','--patch','--non-interactive','--project',root],root,env,name,timeout=240))
+        entry['literal_source_unchanged']=document.read_bytes()==original
+        html=root/'_published/site/report.html'
+        if html.exists():
+            bundle=BUNDLES/name;shutil.copytree(html.parent,bundle)
+            root.rename(root.with_name(root.name+'-source-unavailable'))
+            entry['source_and_cache_unavailable']=not root.exists()
+            entry['relocated']=inspect_html(bundle/'report.html',bundle,expected_images=1)
+        results.append(entry)
+    latex=next((shutil.which(name) for name in ['pdflatex','xelatex','lualatex'] if shutil.which(name)),None)
+    pdf={'tested':False,'reason':'No preinstalled TeX engine; no large installation attempted','engine':latex}
+    if latex:
+        root,env=fixture('literal-raw-latex-pdf')
+        document=root/'analysis/report.Rmd'
+        document.write_text('---\ntitle: Literal LaTeX\n---\n\n\\includegraphics{../_raw/images/sentinel.png}\n')
+        code='args <- commandArgs(TRUE); options(tinytex.install_packages=FALSE); rmarkdown::render(args[[1]],output_format=rmarkdown::pdf_document(latex_engine=args[[2]]),quiet=FALSE)'
+        pdf=dict(tested=True,engine=latex,**execute(['Rscript','--vanilla','-e',code,document,Path(latex).name],root,env,'literal-raw-latex-pdf',timeout=180))
+        artifact=root/'analysis/report.pdf';pdf['valid_pdf_header']=artifact.exists() and artifact.read_bytes().startswith(b'%PDF-')
+        pdf['embedded_image_verified']=False
+    missing_html=[entry['case'] for entry in results if entry['returncode']==0 and 'relocated' not in entry]
+    changed_sources=[entry['case'] for entry in results if not entry['literal_source_unchanged']]
+    summary={'diagnostic_only':True,'literal_only':True,'versions':versions,'runners':results,'raw_latex_pdf':pdf,'counts':{'cases':len(results),'render_process_failures':sum(entry['returncode']!=0 for entry in results),'source_changed':changed_sources,'successful_render_missing_html':missing_html},'scope':'Literal Markdown resource behavior; linked results are observations, not a commitment to repair portability. No GUI or R frontend change.'}
+    (OUT/'literal-summary.json').write_text(json.dumps(summary,indent=2))
+    print(json.dumps(summary['counts'],indent=2))
+    assert len(results)==22 and not (missing_html or changed_sources), 'Literal probes incomplete or source changed'
+    sys.exit(0)
 
 # Narrow follow-up: six root-execution HTML cases, not the full diagnostic suite.
 if os.environ.get('DIAG_ADAPTER_ONLY', '').lower() == 'true':
