@@ -520,8 +520,12 @@ pub fn deep_merge(target: Value, source: Value) -> Value {
         (_, Value::Null) => target,
         (Value::Object(mut target_map), Value::Object(source_map)) => {
             for (k, v) in source_map {
-                let target_val = target_map.remove(&k).unwrap_or(Value::Null);
-                target_map.insert(k, deep_merge(target_val, v));
+                if let Some(existing) = target_map.get_mut(&k) {
+                    let previous = std::mem::replace(existing, Value::Null);
+                    *existing = deep_merge(previous, v);
+                } else {
+                    target_map.insert(k, v);
+                }
             }
             Value::Object(target_map)
         }

@@ -1054,3 +1054,11 @@ Invalid/stale inherited run-context files deliberately fail closed, including an
 explicit other-project query when the snapshot cannot first be validated. A valid
 snapshot is discarded for a different explicit root. This is a documented current
 boundary, not a promise that explicit selection repairs a corrupt descriptor.
+
+
+PR154 review found that the historical deep_merge remove/reinsert operation moved
+an overridden cache label after other declarations under preserve_order. Corrected
+the shared merge to replace existing values in place and append only new keys.
+Added actual CLI and merged-order regressions for profile/local overrides of
+cache-z before cache-a, including newly appended cache labels. Exact amended-head
+remote checks and independent re-review required; prior-head green is insufficient.

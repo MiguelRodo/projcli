@@ -80,3 +80,23 @@ target.write_text('inspectable cache artifact')
         if mode=="build-dev" {assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(),"v1.2.3-4\n");}
     }
 }
+
+
+#[test]
+fn profile_and_local_updates_preserve_first_cache_position_and_only_append_new_keys() {
+    for local in [false,true] {
+        let project=tempfile::tempdir().unwrap();let root=project.path();
+        fs::write(root.join("VERSION"),"v1.2.3-4").unwrap();
+        fs::write(root.join("_proj.yml"),"directories:\n  cache-z:\n    path: initial-first\n  cache-a:\n    path: second\n  output:\n    path: released\n").unwrap();
+        fs::write(root.join("_projr-analysis.yml"),"directories:\n  cache-z:\n    path: profile-first\n  cache-new:\n    path: appended\n").unwrap();
+        if local {fs::write(root.join("_projr-local.yml"),"directories:\n  cache-z:\n    path: local-first\n").unwrap();}
+        let output=Command::new(env!("CARGO_BIN_EXE_proj")).args(["--machine","path","get","--label","output","--target","safe","--project"])
+            .arg(root).current_dir(root).env("PROJR_PROFILE","analysis").env_remove("QUARTO_PROFILE")
+            .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).output().unwrap();
+        let expected=root.canonicalize().unwrap().join(if local {"local-first"} else {"profile-first"}).join("projr/v1.2.3-4/output");
+        assert_eq!(path(output),expected);
+        let merged=proj::get_combined_yml(Some("analysis"),camino::Utf8Path::from_path(root).unwrap()).unwrap();
+        let order:Vec<_>=merged["directories"].as_object().unwrap().keys().map(String::as_str).collect();
+        assert_eq!(order,["cache-z","cache-a","output","cache-new"]);
+    }
+}
