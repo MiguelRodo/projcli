@@ -1376,3 +1376,10 @@ direct guarded metadata-write API; the fixture and public examples now resolve
 their known temporary project root first. User-controlled metadata symlink guards
 are retained. Final exact-head platform checks and independent review remain
 required; no release or milestone completion is implied.
+
+Controlled managed-file helpers additionally require real regular files on reads
+and regular-or-absent targets on writes, preventing substituted FIFOs/devices from
+blocking before recovery. A bounded child-process regression covers VERSION,
+both ignore files, Quarto and Bookdown metadata; it retains final-output and
+external sentinels and forbids renderer/publication execution. New-head remote
+evidence and independent re-review remain required.

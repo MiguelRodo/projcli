@@ -141,3 +141,37 @@ fn project_selection_and_output_preparation_precede_final_output_pre_clear() {
     assert!(root.join("cache/analysis").exists());assert!(root.join("published/index.html").exists());
     assert_eq!(fs::read_to_string(root.join("_quarto.yml")).unwrap(),"project:\n  type: default\n");
 }
+
+
+#[cfg(unix)]
+#[test]
+fn substituted_fifo_metadata_fails_within_a_bounded_child_wait() {
+    use std::{process::Stdio,time::{Duration,Instant},thread};
+    for metadata in ["VERSION",".gitignore",".Rbuildignore","_quarto.yml","_bookdown.yml"] {
+        let temp=tempfile::tempdir().unwrap();let root=temp.path().canonicalize().unwrap();
+        let document=metadata.starts_with("_quarto")||metadata.starts_with("_bookdown");
+        setup(&root,if document {"[report.qmd]"} else {"[analysis.py]"},"  hooks:\n    pre: [start.py]\n  dest: [archive]\nremotes:\n  local:\n    archive:\n      path: archive\n      structure: cas\n      inspect: manifest\n      content: [output]\n");
+        fs::write(root.join("report.qmd"),"Report\n").unwrap();fs::write(root.join("analysis.py"),"pass\n").unwrap();
+        if metadata=="_quarto.yml" {fs::write(root.join(metadata),"project:\n  type: default\n").unwrap();}
+        if metadata=="_bookdown.yml" {fs::write(root.join(metadata),"book_filename: _main\n").unwrap();}
+        fs::write(root.join("external"),"untouched external sentinel").unwrap();
+        fs::write(root.join("start.py"),format!("import os\nfrom pathlib import Path\np=Path({metadata:?})\nif p.exists(): p.unlink()\nos.mkfifo(p)\n")).unwrap();
+        fake_renderer(&root);
+        let mut paths=vec![root.join("bin")];paths.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()));
+        let mut child=Command::new(env!("CARGO_BIN_EXE_proj")).args(["build","--non-interactive","--project"]).arg(&root).current_dir(&root)
+            .env("PATH",std::env::join_paths(paths).unwrap()).env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
+            .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").env_remove("PROJR_CLEAR_OUTPUT")
+            .stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();
+        let deadline=Instant::now()+Duration::from_secs(10);
+        let status=loop {
+            if let Some(status)=child.try_wait().unwrap() {break status;}
+            if Instant::now()>=deadline {child.kill().unwrap();child.wait().unwrap();panic!("Controlled metadata I/O blocked on FIFO {metadata}");}
+            thread::sleep(Duration::from_millis(20));
+        };
+        assert!(!status.success(),"Accepted FIFO {metadata}");
+        assert_eq!(fs::read_to_string(root.join("external")).unwrap(),"untouched external sentinel");
+        assert_eq!(fs::read_to_string(root.join("released/old")).unwrap(),"old output");
+        assert_eq!(fs::read_to_string(root.join("published/old.html")).unwrap(),"old published");
+        assert!(!root.join("archive").exists());assert!(!root.join("cache/renderer-called").exists());
+    }
+}
