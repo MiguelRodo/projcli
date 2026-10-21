@@ -1153,3 +1153,9 @@ with no single known document rejects document-relative base; individual rendere
 anchor. Project-wide commands retain no single anchor, even if a mutable native
 render-list currently contains one entry; profiles may affect native selection. Invalid/stale snapshots still
 fail closed as previously documented.
+
+Representation review caught a Windows root-only custom base retaining Disk(C)
+while an existing target canonicalized to VerbatimDisk(C). Canonicalize existing
+representation bases/targets including drive roots after shared identity resolution;
+retain strict cross-drive errors and unchanged managed-write symlink validation.
+Added an actual Windows same-drive-root round-trip regression.

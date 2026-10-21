@@ -133,3 +133,23 @@ fn explicit_render_descriptor_preserves_target_and_document_anchor_across_other_
     assert!(!request(&root,"relative",Some("document")).status.success());
     assert!(path(request(&root,"auto",None)).is_absolute());
 }
+
+
+#[cfg(windows)]
+#[test]
+fn ordinary_custom_drive_root_and_existing_target_share_a_relative_namespace() {
+    use std::path::{Component,Prefix};
+    let temp=tempfile::tempdir().unwrap();let root=temp.path();
+    fs::create_dir(root.join("raw")).unwrap();
+    fs::write(root.join("_proj.yml"),"directories:\n  raw:\n    path: raw\n").unwrap();
+    let canonical=root.canonicalize().unwrap();
+    let drive=match canonical.components().next().unwrap() {
+        Component::Prefix(prefix)=>match prefix.kind() {Prefix::Disk(d)|Prefix::VerbatimDisk(d)=>d,_=>panic!("test requires disk temp root")},
+        _=>panic!("test requires disk temp root"),
+    };
+    let base=format!("{}:\\",drive as char);
+    let output=Command::new(env!("CARGO_BIN_EXE_proj")).args(["--machine","path","get","--label","raw","--format","relative","--relative-to",&base,"--project"])
+        .arg(root).env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
+    let relative=path(output);assert!(!relative.is_absolute());
+    assert_eq!(std::path::Path::new(&base).join(relative).canonicalize().unwrap(),root.join("raw").canonicalize().unwrap());
+}
