@@ -1268,3 +1268,12 @@ rejection remains tested. Exact integrated CI/re-review required.
 
 Coordinate the site lifecycle Mermaid page before merge: this source sequence is
 now concrete, but remains unverified/unmerged until remote tests and review pass.
+
+First pinned-image run compiled and passed all new lifecycle/event tests. Full
+regressions caught root-user permission-oracle failures and stale mock staging
+assumptions. Run the suite as the image's configured rstudio user (no permission
+test skips), follow supplied renderer output-dir in fakes, produce real nonempty
+fake artifacts, preserve EOF/no-install assertions with explicit cache, and update
+the actual-byte archive fixture to write safe staging and verify promoted bytes.
+Publication-failure fixtures now assert the retained release version, not a next-dev
+bump that did not run; retain the established Local build succeeded diagnostic.

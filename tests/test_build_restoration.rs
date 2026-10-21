@@ -58,7 +58,7 @@ fn publication_failure_reports_local_success_and_keeps_the_new_release() {
     assert!(!result.status.success());
     assert!(String::from_utf8_lossy(&result.stderr).contains("Local build succeeded"));
     assert_eq!(fs::read_to_string(root.join("output/result")).unwrap(), "successful analysis");
-    assert_eq!(proj::version_get_from(camino::Utf8Path::from_path(root).unwrap()).unwrap().to_string(false), "1.2.4.1");
+    assert_eq!(proj::version_get_from(camino::Utf8Path::from_path(root).unwrap()).unwrap().to_string(false), "1.2.4");
 }
 
 
@@ -150,18 +150,22 @@ fn contains_bytes(directory: &Path, expected: &[u8]) -> bool {
 }
 
 #[test]
-fn actual_analysis_bytes_are_archived_before_post_output_cleanup() {
+fn post_clear_precedes_promotion_and_archive_contains_actual_analysis_bytes() {
     let project = tempfile::tempdir().unwrap();
     let root = project.path();
     fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\n  output:\n    path: output\nremotes:\n  local:\n    archive:\n      path: archives\n      structure: cas\n      inspect: manifest\n      content: [output]\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  clear_output: post\n  dest: [archive]\n  restrictions:\n    not_behind: false\n").unwrap();
-    fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('output').mkdir(exist_ok=True)\nPath('output/result.csv').write_text('actual-analysis-bytes')\n").unwrap();
+    fs::write(root.join("analysis.py"), format!(r#"from pathlib import Path
+import json,subprocess
+value=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label','output','--target','safe','result.csv'],text=True))
+target=Path(value['result']['path']);target.parent.mkdir(parents=True,exist_ok=True);target.write_text('actual-analysis-bytes')
+"#,binary=serde_json::to_string(env!("CARGO_BIN_EXE_proj")).unwrap())).unwrap();
     let result = Command::new(env!("CARGO_BIN_EXE_proj"))
         .args(["build", "--patch", "--non-interactive", "--project"]).arg(root).current_dir(root)
         .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
         .env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
     assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
     assert!(contains_bytes(&root.join("archives"), b"actual-analysis-bytes"));
-    assert!(!root.join("output/result.csv").exists());
+    assert_eq!(fs::read(root.join("output/result.csv")).unwrap(), b"actual-analysis-bytes");
 }
 
 
@@ -304,7 +308,7 @@ fn project_pdf_artifacts_succeed_with_document_or_inherited_project_format() {
         fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\n  docs:\n    path: published\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [report.qmd]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
         fs::create_dir(root.join("bin")).unwrap();
         fs::write(root.join("bin/Rscript"), "#!/bin/sh\nexit 0\n").unwrap();
-        fs::write(root.join("bin/quarto"), "#!/usr/bin/env python3\nimport os, sys\nfrom pathlib import Path\nif sys.argv[1:2] == ['render']:\n p = Path(os.environ['PROJ_PROJECT_ROOT']) / 'cache/projr/1.2.3/docs'\n p.mkdir(parents=True, exist_ok=True)\n (p / 'report.pdf').write_bytes(b'%PDF-fresh-document')\n").unwrap();
+        fs::write(root.join("bin/quarto"), "#!/usr/bin/env python3\nimport os, sys\nfrom pathlib import Path\nif sys.argv[1:2] == ['render']:\n root=Path(os.environ['PROJ_PROJECT_ROOT'])\n line=next(line for line in (root/'_quarto.yml').read_text().splitlines() if line.strip().startswith('output-dir:'))\n p=Path(line.split(':',1)[1].strip().strip(chr(34)).strip(chr(39)))\n p.mkdir(parents=True,exist_ok=True)\n (p/'report.pdf').write_bytes(b'%PDF-fresh-document')\n").unwrap();
         for name in ["quarto", "Rscript"] { fs::set_permissions(root.join("bin").join(name), fs::Permissions::from_mode(0o755)).unwrap(); }
         let mut paths = vec![root.join("bin")];
         paths.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()));
@@ -340,7 +344,7 @@ fn bookdown_native_assets_restore_after_post_promotion_hook_failure() {
         fs::create_dir(root.join("published")).unwrap();
         fs::write(root.join("published/old.html"), "previous docs").unwrap();
         fs::create_dir(root.join("bin")).unwrap();
-        let fake = format!("#!/usr/bin/env python3\nimport os, sys\nfrom pathlib import Path\nif any('render_site' in arg for arg in sys.argv):\n root = Path(os.environ['PROJ_PROJECT_ROOT'])\n staging = root / 'cache/projr/1.2.3/docs'\n staging.mkdir(parents=True, exist_ok=True)\n (staging / 'index.html').write_text('new document')\n (root / '{name}_files' / 'new.png').write_text('new asset')\n");
+        let fake = format!("#!/usr/bin/env python3\nimport os, sys\nfrom pathlib import Path\nif any('render_site' in arg for arg in sys.argv):\n root = Path(os.environ['PROJ_PROJECT_ROOT'])\n line=next(line for line in (root/'_bookdown.yml').read_text().splitlines() if line.strip().startswith('output_dir:'))\n staging=Path(line.split(':',1)[1].strip().strip(chr(34)).strip(chr(39)))\n staging.mkdir(parents=True, exist_ok=True)\n (staging / 'index.html').write_text('new document')\n (root / '{name}_files' / 'new.png').write_text('new asset')\n");
         fs::write(root.join("bin/Rscript"), fake).unwrap();
         fs::set_permissions(root.join("bin/Rscript"), fs::Permissions::from_mode(0o755)).unwrap();
         let before = snapshot(&root);

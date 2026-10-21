@@ -86,6 +86,7 @@ assert (root/'analysis'/document).samefile(root/'_raw')
 project=query('relative','project')
 assert (root/project).samefile(root/'_raw')
 (root/'cache/rendered').write_text(json.dumps([auto,relative,document,os.environ['PROJ_RUN_CONTEXT']]))
+Path(context['render']['document']).with_suffix('.html').write_text('fresh fake render artifact')
 "#,binary=serde_json::to_string(env!("CARGO_BIN_EXE_proj")).unwrap());
         for name in ["Rscript","quarto"] {
             let file=root.join("bin").join(name);fs::write(&file,&renderer).unwrap();fs::set_permissions(file,fs::Permissions::from_mode(0o755)).unwrap();

@@ -25,6 +25,11 @@ jobs:
           Rscript --version
           quarto --version
           python3 --version
+      - name: Prepare the configured unprivileged image user
+        shell: bash
+        run: |
+          chown -R rstudio:rstudio "$GITHUB_WORKSPACE"
+          install -d -o rstudio -g rstudio "$RUNNER_TEMP/projcli-cargo"
       - name: Complete Linux regressions in pinned environment
         shell: bash
-        run: cargo test --locked --workspace --verbose --no-fail-fast
+        run: runuser -u rstudio -- env CARGO_HOME="$RUNNER_TEMP/projcli-cargo" RUSTUP_AUTO_INSTALL=0 cargo test --locked --workspace --verbose --no-fail-fast

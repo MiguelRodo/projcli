@@ -547,7 +547,7 @@ pub fn build_project_with_clear_stage(project_root: &camino::Utf8Path, mode: Bui
         }
         end_hooks()
     })();
-    publication.context("Local release completed; publication or end-hook finalization failed (local outputs preserved)")
+    publication.context("Local build succeeded; publication or end-hook finalization failed (local release preserved)")
 
 }
 
