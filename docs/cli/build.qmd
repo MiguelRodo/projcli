@@ -91,3 +91,20 @@ Bookdown root override is currently rejected early because its render_site entry
 does not expose the individual knit-root argument. Captured project/profile/version
 and logical path identity do not change with execution cwd. No existing R helper
 bridge or literal Markdown resource rewriting is implied.
+
+## HTML resources
+
+Individual Quarto HTML and R Markdown HTML default to embedding resources when
+unspecified. An explicit format option of embed-resources: false (Quarto) or
+self_contained: false (R Markdown) is respected. Quarto project defaults are added
+at the project base so native profile, directory and document settings can override
+them. embed-sources controls source attachment and is unrelated to resource embedding.
+
+Source documents keep their original paths and bytes. Literal Markdown/LaTeX
+references retain native meaning. Linked output may still depend on its source
+tree; nonembedded relocation is not supported by this change. Existing restrictions
+on inherited metadata for individual rendering remain in force. Bookdown site
+rendering retains its native resource policy and has no new fallback here.
+
+See [Quarto HTML embedding](https://quarto.org/docs/output-formats/html-basics.html)
+and [R Markdown render options](https://pkgs.rstudio.com/rmarkdown/reference/render.html).

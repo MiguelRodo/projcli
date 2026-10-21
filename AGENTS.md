@@ -137,3 +137,10 @@ cache, ordinary auto is caller-relative and known-renderer auto is absolute.
 Runtime HOW belongs in `settings`; execution-directory and path-representation
 are merged policies with explicit CLI overrides. Keep child defaults frozen with
 root/profile/version/mappings; never rediscover them after scripts mutate YAML.
+
+HTML fallback uses embed-resources for individual Quarto documents and a temporary
+project-level default beneath native Quarto profile/directory/document metadata.
+Individual R Markdown uses self_contained only when unspecified. Preserve explicit
+false, native literal resource semantics and exact source/config restoration.
+Bookdown site rendering retains its native policy; do not claim that project
+driver has the new embedding fallback or that nonembedded relocation is supported.

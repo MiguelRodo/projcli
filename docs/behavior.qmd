@@ -388,3 +388,21 @@ the framework-created unstaged next-development VERSION change at the same
 committed HEAD; other dirty state still fails. Added remote regressions and real
 notebook acceptance await the amended-head CI and independent re-review. These
 checks do not establish concurrent-writer or power-loss atomicity.
+
+## Bounded HTML embedding fallback
+
+Individual Quarto HTML/revealjs and R Markdown html_document/html_notebook rendering
+defaults to resource embedding only when the document leaves the effective option
+unspecified. Explicit false remains respected; embed-sources is a separate option.
+External metadata for individual rendering remains unsupported under the existing
+layout restrictions.
+
+Quarto project preparation adds only a temporary top-level embed-resources default
+when absent. Quarto still owns profile, included-metadata, directory and document
+precedence; native format-specific declarations are retained. The original project
+configuration is restored exactly. No literal Markdown/LaTeX resource rewriting or
+R helper/IDE parity follows. Nonembedded portability remains deferred.
+
+The native Bookdown render_site driver is unchanged and has no new embedding
+fallback in this bounded slice; combined M1 acceptance must record that limitation.
+Remote exact-head evidence and independent review are required before shipment.

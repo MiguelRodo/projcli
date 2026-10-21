@@ -900,6 +900,7 @@ pub(crate) fn rewrite_engine_output_dir(project_root: &Path, engine: &str, out_d
             }
         }
 
+        crate::embedding::project_fallback(&mut yaml)?;
         let out_content = serde_yaml::to_string(&yaml).context("Failed to serialize _quarto.yml")?;
         crate::fs_utils::write_managed_file(&quarto_path, out_content).context("Failed to write _quarto.yml")?;
 
@@ -1224,6 +1225,8 @@ fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Pat
             render_context = Some(crate::run_context::ContextFile::for_render(environment.value(crate::RUN_CONTEXT_ENV).context("Missing managed render context")?, crate::run_context::RenderEngine::Quarto, Some(script_path))?);
             let mut c = environment.command("quarto");
             c.arg("render").arg(script_path.as_std_path());
+            let content = crate::fs_utils::read_managed_text(script_path)?;
+            if crate::embedding::individual_fallback(&content, false)? { c.arg("--embed-resources"); }
             if execution == ExecutionDirectory::Project { c.arg("--execute-dir").arg(project_root.as_std_path()); }
             c
         },
@@ -1238,8 +1241,8 @@ fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Pat
             // into its intermediates directory. Pin that directory to the source
             // parent and the expected output leaf, retaining native document cwd
             // even when the driver was launched elsewhere. All filenames are data.
-            c.arg("-e").arg("args <- commandArgs(trailingOnly = TRUE); rmarkdown::render(input = args[[1]], output_file = args[[4]], output_dir = dirname(args[[1]]), intermediates_dir = dirname(args[[1]]), knit_root_dir = if (args[[2]] == 'project') args[[3]] else NULL)")
-                .arg(script_path.as_std_path()).arg(if execution == ExecutionDirectory::Project { "project" } else { "native" }).arg(project_root.as_std_path()).arg(output_name);
+            c.arg("-e").arg("args <- commandArgs(trailingOnly = TRUE); rmarkdown::render(input = args[[1]], output_file = args[[4]], output_dir = dirname(args[[1]]), intermediates_dir = dirname(args[[1]]), knit_root_dir = if (args[[2]] == 'project') args[[3]] else NULL, output_options = if (args[[5]] == 'embed') list(self_contained = TRUE) else NULL)")
+                .arg(script_path.as_std_path()).arg(if execution == ExecutionDirectory::Project { "project" } else { "native" }).arg(project_root.as_std_path()).arg(output_name).arg(if crate::embedding::individual_fallback(&content, true)? { "embed" } else { "native" });
             c
         },
         _ => {

@@ -1,8 +1,8 @@
 """Actual CLI acceptance in the pinned remote image; never run on the user's PC.
 
 The small R fixture adapter invokes the Rust CLI. It is not an existing projr
-helper or a proposed production R frontend. HTML embedding is explicit here;
-embedding fallback/inheritance acceptance is added with that separately reviewed slice.
+helper or a proposed production R frontend. Individual HTML leaves embedding
+unspecified to exercise defaults; project/explicit-false cases below verify policy.
 Path target/representation flags are omitted to exercise safe/auto defaults.
 """
 from __future__ import annotations
@@ -83,8 +83,8 @@ image <- cli_path("raw-data", "images", "sentinel.png")
 stopifnot(grepl("^/", image)) # managed renderer auto is absolute on this Linux job.
 knitr::include_graphics(image)
 '''
-    (docs / "qreport's é.qmd").write_text('---\ntitle: CLI Quarto acceptance\nformat:\n  html:\n    embed-resources: true\nexecute:\n  echo: false\n---\n\n```{r}\n' + chunk + '\n```\n\n![literal sentinel](' + literal + ')\n')
-    (docs / "rreport's é.Rmd").write_text('---\ntitle: CLI R Markdown acceptance\noutput:\n  html_document:\n    self_contained: true\n---\n\n```{r, echo=FALSE}\n' + chunk + '\n```\n\n![literal sentinel](' + literal + ')\n')
+    (docs / "qreport's é.qmd").write_text('---\ntitle: CLI Quarto acceptance\nformat: html\nexecute:\n  echo: false\n---\n\n```{r}\n' + chunk + '\n```\n\n![literal sentinel](' + literal + ')\n')
+    (docs / "rreport's é.Rmd").write_text('---\ntitle: CLI R Markdown acceptance\noutput: html_document\n---\n\n```{r, echo=FALSE}\n' + chunk + '\n```\n\n![literal sentinel](' + literal + ')\n')
     prefix = 'analysis/' if nested else ''
     scripts = [prefix + 'run.py', prefix + 'run.R', prefix + "qreport's é.qmd", prefix + "rreport's é.Rmd"]
     if failure == 'r':
@@ -167,13 +167,80 @@ def notebook_preservation(binary: Path, container: Path) -> dict:
             'native_notebook_intermediate_and_ordinary_asset_sentinels_preserved': True, 'fresh_cached_notebook': True}
 
 
+def embedding_policy_cases(binary: Path, container: Path) -> list[dict]:
+    cases = []
+    for name in ['individual-qmd-false', 'individual-rmd-false', 'project-default',
+                 'project-format-false', 'project-document-false',
+                 'project-directory-false', 'project-profile-false', 'project-metadata-file-false',
+                 'project-docx']:
+        root = container / name
+        (root / 'analysis').mkdir(parents=True)
+        image = sentinel_png()
+        (root / 'analysis/sentinel.png').write_bytes(image)
+        (root / 'VERSION').write_bytes(b'v1.2.3-4\n')
+        is_rmd = name == 'individual-rmd-false'
+        extension = 'Rmd' if is_rmd else 'qmd'
+        document = root / f'analysis/report.{extension}'
+        metadata = 'output:\n  html_document:\n    self_contained: false\n' if is_rmd else 'format: html\n'
+        if name in ['individual-qmd-false', 'project-document-false']:
+            metadata = 'format:\n  html:\n    embed-resources: false\n'
+        if name == 'project-docx':
+            metadata = 'format: docx\n'
+        document.write_text('---\ntitle: Embedding policy\n' + metadata + '---\n\n![sentinel](sentinel.png)\n')
+        (root / '_proj.yml').write_text('directories:\n  cache: {path: cache}\n  docs: {path: published}\nbuild:\n  git: false\n  scripts: [analysis/report.' + extension + ']\n')
+        env = os.environ.copy()
+        for key in ['PROJ_PROJECT_ROOT', 'PROJ_RUN_CONTEXT', 'PROJR_PROFILE', 'QUARTO_PROFILE', 'PROJR_CLEAR_OUTPUT']:
+            env.pop(key, None)
+        if name.startswith('project-'):
+            project = 'project:\n  type: default\nformat: html\n'
+            if name == 'project-format-false':
+                project = 'project:\n  type: default\nformat:\n  html:\n    embed-resources: false\n'
+            if name == 'project-docx':
+                project = 'project:\n  type: default\nformat: docx\n'
+            if name == 'project-metadata-file-false':
+                project += 'metadata-files: [inherited.yml]\n'
+                (root / 'inherited.yml').write_text('embed-resources: false\n')
+            (root / '_quarto.yml').write_text(project)
+            if name == 'project-directory-false':
+                (root / 'analysis/_metadata.yml').write_text('embed-resources: false\n')
+            if name == 'project-profile-false':
+                (root / '_quarto-linked.yml').write_text('embed-resources: false\n')
+                env['QUARTO_PROFILE'] = 'linked'
+        originals = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
+        result = subprocess.run([str(binary), '--machine', '--non-interactive', 'build-dev', '--project', str(root)],
+                                cwd=root, env=env, capture_output=True, text=True)
+        assert result.returncode == 0, name + ': ' + result.stdout + result.stderr[-6000:]
+        for path, data in originals.items():
+            assert (root / path).read_bytes() == data, str(path)
+        if name == 'project-docx':
+            assert list((root / 'cache/projr/v1.2.3-4/docs').rglob('report.docx'))
+            cases.append({'case': name, 'native_nonhtml_success': True, 'source_bytes_preserved': True})
+            continue
+        files = list((root / 'cache/projr/v1.2.3-4/docs').rglob('report.html'))
+        assert len(files) == 1, (name, files)
+        content = files[0].read_text()
+        payloads = re.findall(r'data:image/png;base64,([^\s"\'<>]+)', content)
+        count = sum(base64.b64decode(payload) == image for payload in payloads)
+        embedded = name == 'project-default'
+        assert (count >= 1) == embedded, (name, count)
+        assert embedded or 'sentinel.png' in content, name
+        if embedded:
+            relocated = container / (name + '-relocated.html')
+            shutil.copyfile(files[0], relocated)
+            root.rename(container / (name + '-source-hidden'))
+            assert base64.b64encode(image).decode() in relocated.read_text()
+        cases.append({'case': name, 'expected_embedded': embedded, 'exact_sentinel_payloads': count,
+                      'source_bytes_preserved': True})
+    return cases
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('binary', type=Path)
     parser.add_argument('--evidence', type=Path, required=True)
     args = parser.parse_args()
     binary = args.binary.resolve(strict=True)
-    evidence: dict = {'cases': [], 'versions': {}, 'limitations': ['existing R package untouched; fixture adapter calls CLI', 'RStudio GUI and other OS renderers not exercised', 'HTML embedding explicitly configured; unspecified fallback separate', 'nonembedded portability and M2 provenance not claimed']}
+    evidence: dict = {'cases': [], 'versions': {}, 'limitations': ['existing R package untouched; fixture adapter calls CLI', 'RStudio GUI and other OS renderers not exercised', 'individual and Quarto project embedding defaults/false tested; native Bookdown site policy unchanged', 'nonembedded portability and M2 provenance not claimed']}
     try:
         for executable, flags in [('Rscript', ['--version']), ('quarto', ['--version']), ('python3', ['--version'])]:
             probe = subprocess.run([executable, *flags], capture_output=True, text=True, check=True)
@@ -184,6 +251,7 @@ def main() -> None:
             for name, mode, failure, nested in [('preview-root', 'build-dev', None, False), ('preview-nested', 'build-dev', None, True), ('release-nested', 'build', None, True), ('failing-r', 'build-dev', 'r', True), ('failing-python', 'build-dev', 'python', True)]:
                 evidence['cases'].append(run_case(binary, Path(directory), name, mode, failure, nested))
             evidence['cases'].append(notebook_preservation(binary, Path(directory)))
+            evidence['cases'].extend(embedding_policy_cases(binary, Path(directory)))
         evidence['complete'] = True
     except Exception as error:
         evidence['complete'] = False

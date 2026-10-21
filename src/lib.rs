@@ -40,3 +40,5 @@ pub mod paths;
 pub use paths::resource_path_from;
 
 pub use paths::{present_resource_path, PathFormat, RelativeBase};
+
+mod embedding;

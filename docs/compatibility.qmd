@@ -1428,3 +1428,25 @@ their original modes; the checker resolves returned paths against the actual
 query cwd and still verifies the exact cache identity. The published native-browser
 lifecycle witness, workflow triggers/permissions and installation checks are
 unchanged. Final amended-head checks remain required.
+
+## Bounded HTML embedding defaults
+
+- **Approved/new:** individual Quarto HTML/revealjs and R Markdown HTML use
+  embed-resources/self_contained only when unspecified; explicit false is retained.
+  Quarto project preparation inserts a base-level default, leaving native profile,
+  included-metadata, directory and document precedence to Quarto. Existing R package
+  and helpers remain unchanged; no R/IDE parity or nonembedded portability claim.
+- **Native sources:** Quarto HTML embedding documentation and native configuration
+  merge behavior (quarto-dev/quarto-cli render-contexts.ts); R Markdown render
+  output_options documentation. embed-sources is unrelated. Native Bookdown
+  render_site deliberately remains outside this bounded fallback implementation;
+  its documented external-dependency policy is a remaining limitation, not a pass.
+- **Evidence pending remote:** pure option-presence/non-HTML tests; existing real
+  R/Python/relocated six-HTML acceptance now omits embedding declarations; additional
+  real individual-false and Quarto project default/format/document/directory/profile/
+  included-metadata false cases; project docx preserves native non-HTML rendering.
+  Every case checks original document/config bytes.
+- **Ponytail full:** reuse existing frontmatter/layout parsing, fixed renderer
+  launchers, temporary project preparation and restoration. No custom renderer YAML
+  merge, dependencies, source rewriting or frontend shim. Exact remote checks and
+  independent review remain required; this is not M1 completion.
