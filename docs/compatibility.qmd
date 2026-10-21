@@ -1465,3 +1465,8 @@ temporary-directory symlink. Resolve their owned temporary roots first, matching
 the existing guarded-write fixture convention; do not weaken symlink validation.
 Linux/Windows R-data cases and pinned actual-render/API-doc checks passed before
 this fixture-only correction. Final exact-head checks remain required.
+
+Independent review cleared runtime and activation at 685bf8f. Corrected the
+configuration overview and DirConfig documentation to state canonical prefix rules
+and the fixed-role path exception consistently. The legacy remote test proves
+normalization/validation, not actual CAS publication. No runtime changes.

@@ -238,9 +238,10 @@ pub struct ResolvedGitConfig {
 
 /// Represents the configuration for a single directory entry within `_proj.yml`.
 ///
-/// Each layer may omit a path for inheritance; the merged configuration requires a
-/// nonempty explicit physical path and a set of
-/// ignore rules to be synced automatically with `.gitignore` and `.Rbuildignore`.
+/// Each layer may omit a path for inheritance. Ordinary merged entries require a
+/// nonempty explicit path; output-r-data may omit it because its final path is
+/// fixed to project/data. Ordinary ignore rules sync with `.gitignore` and
+/// `.Rbuildignore`.
 ///
 /// # Errors
 ///
