@@ -1680,3 +1680,41 @@ scope clarification; no new binary release or local heavy testing is needed.
   unchanged; its preflight node now names exclusion syntax. Human docs distinguish
   this source fix from unchanged published/installed preview.2. Broader discovery
   audit, source records and M2 design remain incomplete.
+
+
+## Contextual build root scans without silent discovery errors
+
+- **Different/new vs released Rust:** installed preview.2 source768da1bf failed
+  the writable/searchable-but-unreadable root fixture with only Permission denied.
+  Mainbcc85e3 still discarded fallback read_dir/entry/type errors and later used a
+  context-free root scan to collect managed state. The reproduction is a tiny
+  disposable Python/CLI fixture; it does not reproduce the unknown historical
+  blank-production-error cause and does not prove an old false successful release.
+- **Decision/scope:** report fallback directory, entry and type failures rather
+  than silently skipping them. Give the separate managed-state root scan its own
+  phase/path context. Retain the underlying OS cause and the existing nonzero
+  machine failure. No new traversal, recording, storage or backend policy.
+- **Same/unverified relative to projr:** existing R helpers/package are unchanged.
+  Rust follows its approved strict preflight/failure contract; exact R behavior
+  for these permission/entry failures is unverified, not a parity claim.
+- **Regressions:** unprivileged Unix fixtures keep known config files readable
+  while denying directory enumeration, across preview/production and fallback/
+  explicit-empty selection. Check phase plus permission cause and unchanged
+  cache/final/archive/version/config/ignore bytes before analysis/controlled writes.
+  Restore owned modes before assertions. A readable cross-platform witness keeps
+  hidden/Git-ignored Python files, alphabetical order and shallow sidecar exclusion;
+  Unix also verifies linked files and a directory-link cycle are not followed.
+  Remote host/pinned/API-doc/real acceptance gates remain required.
+- **Ponytail full:** reuse existing read_dir, file_type and anyhow contexts, with
+  the same four language groups and sort. Remove flatten/if-let-Ok error dropping;
+  do not introduce an iterator abstraction, fault-injection layer or public API.
+  Lifecycle ordering stays fixed; the diagram names enumeration within recovery
+  capture. No local Rust/R/Quarto tests; source fixes remain newer than installed
+  preview.2. Broader discovery and contextual-error audits remain open.
+
+
+Independent review refinement: both per-entry iterator error contexts now retain
+the known project root as well as phase and OS cause. The unprivileged opening-scan
+fixture asserts the phase/root pair explicitly; it does not claim deterministic
+mid-iteration I/O fault injection. No new helper or fault-injection framework.
+The amended exact head requires fresh remote gates and independent delta review.

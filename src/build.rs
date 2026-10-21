@@ -341,9 +341,13 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     for name in ["VERSION", ".gitignore", ".Rbuildignore", "_proj.yml", "_projr.yml", "_projr-local.yml", "DESCRIPTION", "_quarto.yml", "_bookdown.yml"] {
         managed.push(project_root.join(name).into_std_path_buf());
     }
-    for entry in fs::read_dir(project_root)? {
-        let entry = entry?;
-        if entry.file_type()?.is_file() { managed.push(entry.path()); }
+    for entry in fs::read_dir(project_root)
+        .with_context(|| format!("Cannot enumerate managed project state at {project_root}"))?
+    {
+        let entry = entry.with_context(|| format!("Cannot read managed project-state directory entry at {project_root}"))?;
+        if entry.file_type().with_context(|| format!("Cannot inspect managed project entry {}", entry.path().display()))?.is_file() {
+            managed.push(entry.path());
+        }
     }
     for (label, _) in &config.directories {
         if crate::paths::is_managed_output(label) {
@@ -953,49 +957,43 @@ fn rewrite_bookdown_yml(project_root: &Path, rmd_files: &[camino::Utf8PathBuf]) 
     Ok(())
 }
 
-/// Evaluates Path B: Fallback Automated Auto-Discovery
+/// Evaluates Path B: Fallback Automated Auto-Discovery.
 ///
-/// Sweeps for `.qmd`, `.Rmd`, `.R`, `.py` in that strict order.
+/// Sweeps for regular .qmd, .Rmd, .R, .py files in that strict order,
+/// alphabetically within each kind. The sweep is shallow and does not follow
+/// links. Directory/entry read errors and non-UTF-8 paths return errors rather
+/// than becoming an empty or incomplete successful selection.
 pub(crate) fn resolve_fallback_scripts(project_root: &camino::Utf8Path) -> anyhow::Result<Vec<camino::Utf8PathBuf>> {
-    let mut files = Vec::new();
+    let entries = fs::read_dir(project_root)
+        .with_context(|| format!("Cannot enumerate fallback scripts at {project_root}"))?;
+    let mut qmd = Vec::new();
+    let mut rmd = Vec::new();
+    let mut r = Vec::new();
+    let mut py = Vec::new();
 
-    // Shallow directory sweep
-    // TODO: migrate to camino
-    if let Ok(entries) = fs::read_dir(project_root.as_std_path()) {
-        let mut qmd = Vec::new();
-        let mut rmd = Vec::new();
-        let mut r = Vec::new();
-        let mut py = Vec::new();
-
-        for entry in entries.flatten() {
-            if let Ok(file_type) = entry.file_type() {
-                if file_type.is_file() {
-                    let path = camino::Utf8PathBuf::try_from(entry.path()).context("Non-UTF-8 path encountered")?;
-                    if let Some(ext) = path.extension() {
-                        match ext {
-                            "qmd" => qmd.push(path),
-                            "Rmd" => rmd.push(path),
-                            "R" => r.push(path),
-                            "py" => py.push(path),
-                            _ => {}
-                        }
-                    }
-                }
-            }
+    for entry in entries {
+        let entry = entry.with_context(|| format!("Cannot read fallback script directory entry at {project_root}"))?;
+        let file_type = entry.file_type()
+            .with_context(|| format!("Cannot inspect fallback script entry {}", entry.path().display()))?;
+        if !file_type.is_file() { continue; }
+        let path = camino::Utf8PathBuf::try_from(entry.path()).context("Non-UTF-8 path encountered")?;
+        match path.extension() {
+            Some("qmd") => qmd.push(path),
+            Some("Rmd") => rmd.push(path),
+            Some("R") => r.push(path),
+            Some("py") => py.push(path),
+            _ => {}
         }
-
-        // Sort alphabetically to be deterministic
-        qmd.sort();
-        rmd.sort();
-        r.sort();
-        py.sort();
-
-        files.extend(qmd);
-        files.extend(rmd);
-        files.extend(r);
-        files.extend(py);
     }
 
+    qmd.sort();
+    rmd.sort();
+    r.sort();
+    py.sort();
+    let mut files = qmd;
+    files.extend(rmd);
+    files.extend(r);
+    files.extend(py);
     Ok(files)
 }
 

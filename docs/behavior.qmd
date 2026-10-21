@@ -50,6 +50,9 @@ actual test evidence, Ponytail reviews and remaining gaps; update it with each P
   integration is later work; no existing helper changes or parity claims follow
   from these Rust changes.
 - Default script/document enumeration is shallow at the selected project root.
+  Directory and entry inspection failures must be reported; they must not silently
+  become an empty or incomplete selection. Only regular root files are enumerated;
+  links are not followed, and hidden/Git-ignored regular scripts remain eligible.
   Subdirectory targets require explicit selection or renderer project configuration.
 - Native runner working-directory behavior is the default; provide an explicit
   project-root execution override. Rscript/Python inherit launch cwd, source()
