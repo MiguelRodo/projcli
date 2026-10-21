@@ -43,6 +43,8 @@ deletion of project files or preparation of a fresh cache.
 %%| fig-alt: "Three stages: verify setup and run start hooks; clear immediately around analysis when selected; finish a preview or output build with the stated limits."
 %%{init: {"htmlLabels": false}}%%
 flowchart TB
+  classDef default fill:#f0f4f7,stroke:#637b89,color:#153b32
+  linkStyle default stroke:#26343f,color:#26343f
   subgraph PRE["1 · Pre-build"]
     A["Resolve and verify basic setup"]
     B["[T] Start hooks, then remaining<br/>preparation"]
@@ -60,9 +62,9 @@ flowchart TB
   C -->|"Output"| E
   classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
   class A,B,C,D,E target
-  style PRE fill:#f1f6f3,stroke:#a8bcb4
-  style BUILD fill:#f1f6f3,stroke:#a8bcb4
-  style POST fill:#f1f6f3,stroke:#a8bcb4
+  style PRE fill:#f1f6f3,stroke:#a8bcb4,color:#153b32
+  style BUILD fill:#f1f6f3,stroke:#a8bcb4,color:#153b32
+  style POST fill:#f1f6f3,stroke:#a8bcb4,color:#153b32
 ```
 
 The key adjacency rules are deliberate: **nothing runs between pre-clear and
@@ -81,6 +83,8 @@ output build's transition to the next development version.
 %%| fig-alt: "Select root and profiles, validate merged configuration, capture run inputs, preflight targets and dependencies, capture recovery state, run start hooks, then finish preparation."
 %%{init: {"htmlLabels": false}}%%
 flowchart TB
+  classDef default fill:#f0f4f7,stroke:#637b89,color:#153b32
+  linkStyle default stroke:#26343f,color:#26343f
   A["[R] Select explicit or discovered<br/>project root"]
   B["[M/T] Resolve profiles and<br/>environment; merge config;<br/>settings HOW / build WHAT"]
   C["[R/T] Validate typed configuration<br/>and explicit resource mappings"]
@@ -133,6 +137,8 @@ flowchart TB
 %%| fig-alt: "With no analysis, skip execution and clearing. Otherwise an output pre-clear goes directly into ordered execution; successful execution goes directly to output post-clear if selected. Errors use recovery."
 %%{init: {"htmlLabels": false}}%%
 flowchart TB
+  classDef default fill:#f0f4f7,stroke:#637b89,color:#153b32
+  linkStyle default stroke:#26343f,color:#26343f
   A{"Analysis selected?"}
   B{"Output build, promotion enabled<br/>and clear stage pre?"}
   C["[T] Pre-clear final outputs"]
@@ -180,6 +186,8 @@ arbitrary mixed-renderer ordering or RStudio/Quarto R API parity from this figur
 %%| fig-alt: "Restore renderer configuration, stage and validate cache artifacts, restore native artifacts, then conditionally promote output. Enabled publication keeps a local release boundary, exports CAS and commits or pushes Git before end hooks and the next-development bump. Previews skip promotion and publication."
 %%{init: {"htmlLabels": false}}%%
 flowchart TB
+  classDef default fill:#f0f4f7,stroke:#637b89,color:#153b32
+  linkStyle default stroke:#26343f,color:#26343f
   A["[T/D] Restore renderer config;<br/>stage and validate cache artifacts;<br/>restore native artifacts"]
   B{"Output build?"}
   C{"Analysis and promotion enabled?"}
@@ -255,6 +263,8 @@ or remote rollback guarantee.
 %%| fig-alt: "Before recovery capture, rejection stops controlled build writes. After capture, local failures attempt bounded restoration and report restoration errors separately."
 %%{init: {"htmlLabels": false}}%%
 flowchart TB
+  classDef default fill:#f0f4f7,stroke:#637b89,color:#153b32
+  linkStyle default stroke:#26343f,color:#26343f
   A["[R/D] Preflight or managed local<br/>step fails; draft also covers end<br/>hooks when publication is off"]
   B{"Recovery capture exists?"}
   N["Stop: controlled build writes have<br/>not started"]
@@ -277,6 +287,8 @@ flowchart TB
 %%| fig-alt: "After local success, establish the release boundary, then enabled CAS and Git publication, end hooks and next-development bump. A publication or end-hook failure preserves the release and skips the bump."
 %%{init: {"htmlLabels": false}}%%
 flowchart TB
+  classDef default fill:#f0f4f7,stroke:#637b89,color:#153b32
+  linkStyle default stroke:#26343f,color:#26343f
   G["[D] Local success; keep release<br/>version; close managed recovery"]
   H["[D] Enabled CAS export,<br/>then enabled Git commit / push"]
   J["[D] End hooks"]
