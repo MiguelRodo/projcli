@@ -1022,3 +1022,38 @@ installer and raw assets with standard hash/runtime checks; no new runtime frame
   Parent-process concurrency regression remains required; independent review is
   separate from self-review. Diagnostic evidence: branch488adaf FINDINGS.md and
   actual embedded-image runs39554636201/39555352442/39556599001.
+
+## Development and renderer diagnostic image
+
+- **Relationship: new environment metadata; runtime parity unverified.** The
+  devcontainer consumes the published `projcli` variant from MiguelRodo/devcontainers.
+  No CLI code, Cargo dependencies, renderer flags or path behavior changes here.
+  SATVILab/projr and `_reference` remain untouched; no projr source is copied,
+  installed or modified by the image. The preceding core path/version section
+  is retained unchanged when reconciling this focused environment addition.
+- **Decision/rationale:** reuse Bioconductor 3.23, Quarto/TinyTeX, the pinned
+  prebuild publication action and monthly Dependabot process. Add stable Rust,
+  Python, explicit knitr/rmarkdown, build tools and PDF payload inspection tools.
+  Avoid full TeX Live and the standard Rust feature's extra container permissions.
+- **Published evidence:** source `78bb081f077a974f3179b0a8a60c7efbc0f1e79a` passed
+  the [normal v1.0.0 publication](https://github.com/MiguelRodo/devcontainers/actions/runs/39564970855).
+  The consumer pins `ghcr.io/miguelrodo/devcontainers-projcli:v1.0.0` plus digest
+  `sha256:a58a8a4dd6f0be83879d08b3a43ab92e256425bbfb81372b257d77a7ff9077f9`.
+  [Remote registry-image verification](https://github.com/MiguelRodo/devcontainers/actions/runs/39565799754)
+  selected that digest without feature installation, reported image version v1.0.0
+  and passed Rust/Python sibling-input checks and R Markdown/Quarto HTML/PDF
+  renders. Exact embedded PNG bytes and decoded PDF image pixels survive output
+  relocation with sources unavailable; automatic TeX package installation is off.
+  A fresh nonempty witness is required after the container action.
+- **Comparison limits:** diagnostic source `488adaf727668bdd6c3f46c544e3801ce92de24b`
+  and its unchanged projr baseline `90be50132d16aee33e39c0f7f35ef906c35f5397`
+  informed test scope only. They are not dependencies or runtime parity claims.
+  The publisher's URL/comment-parser limitation and serialization-only fix are
+  documented in [devcontainers PR15](https://github.com/MiguelRodo/devcontainers/pull/15).
+- **Ponytail full-mode review:** one immutable prebuilt-image reference and existing
+  editor extensions; no duplicate image definition, project setup hooks, new
+  runtime dependencies, credential/auth state, host home/socket mounts, capability
+  overrides or path-policy changes. Existing core compatibility text is preserved.
+  Published-image smokes do not verify local editor usability, Codex login or
+  complete M1/M2 behavior. All heavy work ran remotely; no local Docker/R/render/
+  compilation was performed. Consumer CI and independent final review remain gates.
