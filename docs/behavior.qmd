@@ -178,11 +178,12 @@ credential injection policy or establish a sanitized/sandboxed environment.
 
 ## Captured execution root and bounded individual render layouts
 
-Script and hook subprocesses start in the captured project root, retaining explicit
-selected input paths. Quarto receives `--execute-dir` with that root; individual
-R Markdown uses `knit_root_dir` and passes the input/root as data arguments to fixed
-R code. This implements CLI defaults, not direct R/IDE parity or a changed resource
-link resolution policy. The existing R package remains untouched.
+Script and hook subprocesses inherit invocation cwd by default, retaining explicit
+selected input paths. Quarto and individual R Markdown retain native execution
+directory settings. Explicit `--execution-dir project` passes the captured root via
+supported renderer controls. Input/mode/root remain data arguments to fixed R code.
+This does not imply direct R/IDE parity or a changed resource URL policy. The existing
+R package remains untouched.
 
 Nested Quarto project metadata is rejected for selected documents and conservatively
 scanned implicit source trees. Individual rendering models one document-local format:

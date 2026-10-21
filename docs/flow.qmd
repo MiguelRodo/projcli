@@ -62,7 +62,7 @@ while cache output remains. Scripts still choose preview output locations; this 
 not automatic output redirection or an OS sandbox. Script/hook subprocesses start
 with the captured invocation cwd by default. Only an explicit project execution
 mode passes Quarto an execution-directory override; individual
-R Markdown receives knit_root_dir. Direct R/IDE parity remains unfinished and is not
+R Markdown receives a non-null knit_root_dir only in project mode. Direct R/IDE parity remains unfinished and is not
 established by these CLI controls. The existing R package remains untouched.
 
 

@@ -117,3 +117,9 @@ Bookdown root override is currently rejected early because its render_site entry
 does not expose the individual knit-root argument. Captured project/profile/version
 and logical path identity do not change with execution cwd. No existing R helper
 bridge or literal Markdown resource rewriting is implied.
+
+Whenever lifecycle ordering or conditions change, update the website lifecycle
+Mermaid diagram (the lifecycle page maintained alongside website navigation) in
+the same reviewed work, or coordinate its owner before merge. Keep pre/build/post
+groups, approved target versus shipped behavior, and event-order test evidence
+aligned with docs/behavior.qmd. Do not silently overwrite concurrent site edits.
