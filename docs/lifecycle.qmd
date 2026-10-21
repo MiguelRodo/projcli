@@ -8,10 +8,12 @@ format:
 
 ::: {.callout-warning}
 ## Target flow, not an installed-version guarantee
-The figures show the approved lifecycle direction, with open decisions marked
+The figures show the approved lifecycle direction, with implementation status marked
 explicitly. **The installed `0.4.0-preview.1` does not implement this complete
 flow.** In particular, the new settings layout and clear/hook ordering still need
-matching code and event-order tests. Use sample data or a disposable project copy.
+reviewed, merged code and event-order tests. PR159 implements a draft of this order;
+it is not a new release or completion of all defaults, R-data and embedding work.
+Use sample data or a disposable project copy.
 Previews are not a security sandbox.
 :::
 
@@ -21,6 +23,7 @@ Previews are not a security sandbox.
 |---|---|
 | **[R] Released** | Bounded behavior in [0.4.0-preview.1](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1), not a complete safety guarantee. |
 | **[M] Main only** | A merged capability after that release; it is not automatically present in an installed binary. |
+| **[D] Draft** | Implemented on the pinned PR159 review branch; not merged or released at this evidence point. |
 | **[T] Target** | An approved requirement or integration step awaiting matching implementation/tests. |
 | **[?] Open** | A proposal or placement decision still requiring confirmation. |
 
@@ -50,7 +53,7 @@ flowchart TB
   end
   subgraph POST["3 · Post-build"]
     D["[T] Preview: end hooks and<br/>captured-state restoration; no<br/>publication"]
-    E["[T/?] Output: promotion and<br/>enabled finalization; end hooks<br/>immediately before next-dev<br/>transition"]
+    E["[T/D] Output: promotion and<br/>enabled finalization; end hooks<br/>immediately before next-dev<br/>transition"]
   end
   B --> C
   C -->|"Preview"| D
@@ -97,7 +100,7 @@ flowchart TB
   `settings` and **WHAT** is selected/run to `build`; this is not permission
   to add unknown fields to the installed preview.
 - The captured context fixes resource identity and the active run version.
-  On current main, preview retains an existing dev version or uses dev1 of a
+  At the pinned main baseline, preview retains an existing dev version or uses dev1 of a
   release without writing VERSION; an output run uses its requested release
   version throughout the run and leaves the subsequent dev1 only on success.
 - Validate declared paths, selected script/hook inputs, supported renderer plans,
@@ -111,7 +114,8 @@ flowchart TB
   the final pre-clear gate. No new metadata/provenance record is implied here.
 - A script's working directory is separate from project identity. Native cwd with
   an explicit project override, safe resource targets and render-context path
-  presentation are tracked as pending integration in the evidence section.
+  presentation merged after the release in PR154–156; the evidence section
+  separates those merges from the later lifecycle integration draft.
 
 :::
 
@@ -127,10 +131,10 @@ flowchart TB
 %%{init: {"htmlLabels": false}}%%
 flowchart TB
   A{"Analysis selected?"}
-  B{"Output build and clear stage pre?"}
+  B{"Output build, promotion enabled<br/>and clear stage pre?"}
   C["[T] Pre-clear final outputs"]
   D["[T] Execute ordered scripts /<br/>supported renderer plan"]
-  E{"Output build and clear stage post?"}
+  E{"Output build, promotion enabled<br/>and clear stage post?"}
   F["[T] Post-clear final outputs"]
   G["Continue to post-build"]
   N["[R/T] No analysis: skip renderer<br/>setup, analysis cleanup and<br/>execution"]
@@ -169,38 +173,44 @@ arbitrary mixed-renderer ordering or RStudio/Quarto R API parity from this figur
 
 ```{mermaid}
 %%| label: fig-lifecycle-post
-%%| fig-cap: "Target constraints. The dotted finalization box is deliberately unpositioned pending core confirmation."
-%%| fig-alt: "After the immediate clear gate, check artifacts and restore renderer configuration. Only output builds promote results. End hooks immediately precede the next-development transition; previews instead restore captured state. Publication placement remains open."
+%%| fig-cap: "Approved post-build order implemented in the pinned PR159 draft; not released."
+%%| fig-alt: "Restore renderer configuration, stage and validate cache artifacts, restore native artifacts, then conditionally promote output. Enabled publication keeps a local release boundary, exports CAS and commits or pushes Git before end hooks and the next-development bump. Previews skip promotion and publication."
 %%{init: {"htmlLabels": false}}%%
 flowchart TB
-  A["[T] After the immediate post-clear<br/>gate: restore renderer config and<br/>check artifacts required by the<br/>selected plan"]
+  A["[T/D] Restore renderer config;<br/>stage and validate cache artifacts;<br/>restore native artifacts"]
   B{"Output build?"}
   C{"Analysis and promotion enabled?"}
-  P["[T] Promote safe output/docs to<br/>explicitly configured final roots"]
-  D["[T] Run configured end hooks"]
+  P["[T/D] Promote safe output/docs to<br/>explicitly configured final roots"]
+  J{"Publication enabled?"}
+  V["[D] Keep successful local release;<br/>close managed recovery boundary"]
+  S["[D] Export configured local CAS<br/>destinations, if selected"]
+  K["[D] Enabled Git commit / push"]
+  D["[T/D] Run configured end hooks"]
   E{"Output build?"}
-  F["[T] Transition to next development<br/>version"]
-  G["[R/T] Restore captured managed<br/>state; retain cache results; no<br/>VERSION publication"]
-  Q["[?] Output-only enabled metadata /<br/>local CAS export / Git: exact<br/>placement and boundary awaiting<br/>confirmation"]
+  F["[T/D] Transition to next<br/>development version"]
+  G["[R/D] Restore captured managed<br/>state; retain cache results;<br/>no VERSION publication"]
   A --> B
   B -->|"Yes"| C
-  C -->|"Yes"| P --> D
-  C -->|"No: including explicit empty analysis"| D
-  B -->|"Preview: no promotion/publication"| D
+  C -->|"Yes"| P --> J
+  C -->|"No: including empty analysis"| J
+  J -->|"Yes"| V --> S --> K --> D
+  J -->|"No"| D
+  B -->|"Preview: skip promotion/publication"| D
   D --> E
   E -->|"Yes: immediately after end hooks"| F
   E -->|"Preview: no version transition"| G
-  A -.- Q
   classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
-  classDef open fill:#edf0f2,stroke:#56626c,color:#26343f
-  class A,P,D,F,G target
-  class Q open
+  class A,P,V,S,K,D,F,G target
 ```
 
-The end-hook/next-dev adjacency is approved. **The relative placement and commit
-boundary of enabled metadata, storage and Git finalization still needs core
-confirmation.** The dotted box does not authorize an ordering change or a new
-all-or-nothing publication guarantee.
+The end-hook/next-dev adjacency is approved. The pinned PR159 draft places
+enabled CAS export and Git commit/push **before** end hooks and the next-dev
+bump. Before publication it records the successful local release and gives up
+the managed recovery snapshot. Publication or later end-hook failure preserves
+that local release and skips the bump; partial external effects are not undone.
+Without publication, end-hook failure still uses bounded managed recovery.
+Preview runs end hooks, then restores captured managed state without a version
+transition. These are draft implementation boundaries, not a released guarantee.
 
 Promotion is output-only and conditional on selected analysis and enabled
 promotion. Explicit empty analysis preserves existing upload inputs instead;
@@ -218,22 +228,23 @@ path. This page does not introduce an always/finally-hook policy.
 
 | Choice | Target meaning and status |
 |---|---|
-| `settings.output-clear-stage` | **[T]** `none`, `pre` or `post`; default `none`. This canonical field is not available in installed 0.4.0-preview.1. |
+| `settings.output-clear-stage` | **[T/D]** `none`, `pre` or `post`; default `none`. This canonical field is not available in installed 0.4.0-preview.1. |
 | `pre` | **[T]** Clear immediately before selected analysis, after hooks and all other preparation. Output builds only. |
 | `post` | **[T]** Clear immediately after successful analysis, before restoration, promotion, hooks or other finalization. Output builds only. |
-| Resolution precedence | **[?] Proposed:** explicit command choice → merged YAML → environment → default. Exact command syntax and conflict rules need implementation evidence. |
-| Legacy compatibility | **[T]** Retain a compatibility path for `PROJR_CLEAR_OUTPUT` and `never`; map the old no-clear intent to canonical `none`. Do not assume mixed old/new settings are already accepted. |
+| Resolution precedence | **[D] Pinned resolver:** explicit choice → merged `settings` YAML → legacy YAML → environment → default. This is PR159 source/test evidence; do not assume the installed preview exposes the new command/config choices. |
+| Legacy compatibility | **[T/D]** Retain a compatibility path for `PROJR_CLEAR_OUTPUT` and `never`; map the old no-clear intent to canonical `none`. Do not assume mixed old/new settings are already accepted. |
 
-Current main still reads the legacy environment ahead of the legacy YAML
+At the pinned main baseline, the implementation reads the legacy environment ahead of the legacy YAML
 `build.clear_output` value. It performs pre-cleanup before start hooks and
 requested post-clear after local completion/export. Those are evidence of the
-current implementation, **not** the newly approved ordering. See the pinned
+older implementation, **not** the newly approved ordering or the PR159 draft. See the pinned
 baseline below rather than copying the target setting into an older binary.
 
 ## Failure and recovery boundaries
 
-This smaller figure describes the **bounded existing boundary** at the pinned
-main baseline. It is not a decision about where future target publication belongs.
+The local recovery figure describes the bounded captured-state rule. The separate
+publication figure adds the **PR159 draft** boundary; it is not a whole-project
+or remote rollback guarantee.
 
 ```{mermaid}
 %%| label: fig-lifecycle-local-failure
@@ -241,7 +252,7 @@ main baseline. It is not a decision about where future target publication belong
 %%| fig-alt: "Before recovery capture, rejection stops controlled build writes. After capture, local failures attempt bounded restoration and report restoration errors separately."
 %%{init: {"htmlLabels": false}}%%
 flowchart TB
-  A["[R] Preflight or controlled local<br/>step fails"]
+  A["[R/D] Preflight or managed local<br/>step fails; draft also covers end<br/>hooks when publication is off"]
   B{"Recovery capture exists?"}
   N["Stop: controlled build writes have<br/>not started"]
   C["Restore captured managed set"]
@@ -259,17 +270,21 @@ flowchart TB
 
 ```{mermaid}
 %%| label: fig-lifecycle-publication-failure
-%%| fig-cap: "Existing publication boundary: external effects are not transactionally undone."
-%%| fig-alt: "Local success precedes enabled storage and Git publication in the pinned implementation. Publication failure reports local success and does not roll back external effects."
+%%| fig-cap: "PR159 draft publication boundary: preserve local release; do not undo external effects."
+%%| fig-alt: "After local success, establish the release boundary, then enabled CAS and Git publication, end hooks and next-development bump. A publication or end-hook failure preserves the release and skips the bump."
 %%{init: {"htmlLabels": false}}%%
 flowchart TB
-  G["[R/M] Local success boundary at<br/>the pinned baseline"]
-  H["[R] Enabled local storage and Git<br/>publication"]
-  I["Publication failure: local<br/>analysis succeeded; partial<br/>external effects are not rolled<br/>back"]
+  G["[D] Local success; keep release<br/>version; close managed recovery"]
+  H["[D] Enabled CAS export,<br/>then enabled Git commit / push"]
+  J["[D] End hooks"]
+  K["[D] Next-development bump"]
+  I["[D] Publication/end-hook failure:<br/>preserve local release; skip bump;<br/>partial external effects remain"]
   G --> H
+  H -->|"Success"| J -->|"Success"| K
   H -->|"Failure"| I
-  classDef existing fill:#e5f2ed,stroke:#146859,color:#153b32
-  class G,H,I existing
+  J -->|"Failure"| I
+  classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
+  class G,H,J,K,I target
 ```
 
 The captured managed set is not a whole-project or filesystem snapshot. Cache
@@ -290,10 +305,16 @@ rerun analysis or claim publication was undone after an external failure.
   [`c085632` build pipeline](https://github.com/MiguelRodo/projcli/blob/c085632bc31c0eac63e7b0ab03232be9b091ce84/src/build.rs).
   [PR153](https://github.com/MiguelRodo/projcli/pull/153) adds captured run inputs
   after the release; it does not settle the new settings/clearing/hook order.
-- **Pending at this baseline:** [safe logical targets, PR154](https://github.com/MiguelRodo/projcli/pull/154),
+- **Merged after the preview release:** [safe logical targets, PR154](https://github.com/MiguelRodo/projcli/pull/154),
   [path presentation, PR155](https://github.com/MiguelRodo/projcli/pull/155) and
   [native cwd/override, PR156](https://github.com/MiguelRodo/projcli/pull/156).
-  Their existence is not a released or integrated guarantee.
+  These merges do not establish a new released binary or complete integration.
+- **Implemented review draft:** [PR159 source `3459bad`](https://github.com/MiguelRodo/projcli/blob/3459badb7a1481ec81c5804ec51d87c23169fe4e/src/build.rs),
+  [settings resolver at the same revision](https://github.com/MiguelRodo/projcli/blob/3459badb7a1481ec81c5804ec51d87c23169fe4e/src/yml.rs)
+  and [executed remote renderer acceptance](https://github.com/MiguelRodo/projcli/actions/runs/39576119854).
+  This pins the clearing/hook/publication sequence and cache-consumer work under
+  review. Defaults, R-data and embedding acceptance remain separate unfinished
+  slices; this page does not mark them or M1/M2 complete.
 - The [behavior contract](behavior.qmd) and [versioned compatibility log](compatibility.qmd)
   distinguish decisions, implementation and executed evidence. The
   [current implementation notes](flow.qmd) remain a separate view.
