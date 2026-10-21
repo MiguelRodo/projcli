@@ -178,11 +178,12 @@ credential injection policy or establish a sanitized/sandboxed environment.
 
 ## Captured execution root and bounded individual render layouts
 
-Script and hook subprocesses start in the captured project root, retaining explicit
-selected input paths. Quarto receives `--execute-dir` with that root; individual
-R Markdown uses `knit_root_dir` and passes the input/root as data arguments to fixed
-R code. This implements CLI defaults, not direct R/IDE parity or a changed resource
-link resolution policy. The existing R package remains untouched.
+Script and hook subprocesses inherit invocation cwd by default, retaining explicit
+selected input paths. Quarto and individual R Markdown retain native execution
+directory settings. Explicit `--execution-dir project` passes the captured root via
+supported renderer controls. Input/mode/root remain data arguments to fixed R code.
+This does not imply direct R/IDE parity or a changed resource URL policy. The existing
+R package remains untouched.
 
 Nested Quarto project metadata is rejected for selected documents and conservatively
 scanned implicit source trees. Individual rendering models one document-local format:
@@ -321,3 +322,17 @@ directory. Explicit relative is strict across roots/drives; auto may fall back t
 absolute. Project renders without a single document reject document-relative base.
 The intermediate CLI retains absolute/final defaults until consumers switch.
 Existing R helper/direct IDE parity remains unimplemented and outside Rust M1.
+
+
+Native execution policy (supersedes earlier unconditional root-cwd wording):
+`build` and `build-dev` default to `--execution-dir native`. Plain scripts/hooks
+inherit the invocation cwd, not each source file's parent; R `source()` normally
+inherits its caller cwd. Individual Rmd rendering leaves `knit_root_dir` unset and
+Quarto receives no execution-dir override, preserving native document/project
+settings. `--execution-dir project` explicitly requests captured-root execution
+for scripts/hooks, Quarto and individual Rmd. Project render drivers run from the
+selected project root to select the project, independently of chunk cwd. Project-wide
+Bookdown root override is currently rejected early because its render_site entrypoint
+does not expose the individual knit-root argument. Captured project/profile/version
+and logical path identity do not change with execution cwd. No existing R helper
+bridge or literal Markdown resource rewriting is implied.

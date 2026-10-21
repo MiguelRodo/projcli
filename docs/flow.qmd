@@ -60,6 +60,21 @@ Previews skip production version changes, cleanup, commits and exports. They run
 selected hooks/analysis and restore captured managed state after success and failure,
 while cache output remains. Scripts still choose preview output locations; this is
 not automatic output redirection or an OS sandbox. Script/hook subprocesses start
-in the captured root. Quarto receives an explicit execution directory and individual
-R Markdown receives knit_root_dir. Direct R/IDE parity remains unfinished and is not
+with the captured invocation cwd by default. Only an explicit project execution
+mode passes Quarto an execution-directory override; individual
+R Markdown receives a non-null knit_root_dir only in project mode. Direct R/IDE parity remains unfinished and is not
 established by these CLI controls. The existing R package remains untouched.
+
+
+Native execution policy (supersedes earlier unconditional root-cwd wording):
+`build` and `build-dev` default to `--execution-dir native`. Plain scripts/hooks
+inherit the invocation cwd, not each source file's parent; R `source()` normally
+inherits its caller cwd. Individual Rmd rendering leaves `knit_root_dir` unset and
+Quarto receives no execution-dir override, preserving native document/project
+settings. `--execution-dir project` explicitly requests captured-root execution
+for scripts/hooks, Quarto and individual Rmd. Project render drivers run from the
+selected project root to select the project, independently of chunk cwd. Project-wide
+Bookdown root override is currently rejected early because its render_site entrypoint
+does not expose the individual knit-root argument. Captured project/profile/version
+and logical path identity do not change with execution cwd. No existing R helper
+bridge or literal Markdown resource rewriting is implied.

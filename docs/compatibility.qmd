@@ -1166,6 +1166,29 @@ root canonicalization also applies to existing UNC share roots; pure Windows UNC
 share identity/different-share checks supplement the real local drive-root test.
 No network share was mounted or accessed for tests. Integrated exact checks pending.
 
+
+Native-cwd slice: **different** from the superseded Rust root-forcing policy,
+**native-compatible** at runner dispatch; actual R/Quarto semantics were measured in
+diagnostic488adaf727668bdd6c3f46c544e3801ce92de24b. Rscript/Python inherit launch cwd,
+source() inherits caller cwd, Rmd knit_root_dir remains NULL and Quarto receives
+no execute-dir flag by default. Explicit project override is separate from path
+representation and captured root. No filename interpolation into R source is used.
+Project-wide Bookdown override is rejected before writes rather than passing an
+unsupported render_site argument (https://rmarkdown.rstudio.com/docs/reference/render_site.html).
+Tests exercise real Python hooks/scripts and child relative-path reads after cwd
+changes; fake renderers verify argument/context dispatch only, not actual rendering.
+Prior root-specific library fixtures explicitly request Project; all heavy checks
+remain remote and pending for this head. Ponytail full review reused RunEnvironment
+command construction and one policy enum; no process cwd mutation or new dependencies.
+
+New path/representation/execution flags described in source documentation are not
+in the previously installed v0.4.0-preview.1 binary. No new release is claimed.
+
+Initial native-cwd remote run exposed discovery/cache fixtures launching from the
+Cargo checkout while assuming forced project cwd. Set those fixture launch cwd
+explicitly to their temporary project; retain artifact/discovery assertions. The
+new outside-root fixture continues to test the actual native default separately.
+
 Follow-up same-drive missing-leaf case exposed the shared resolver's root-only
 normalization gap. Canonicalize an existing filesystem root before appending absent
 components, respecting the same symlink/error policy as other existing components.

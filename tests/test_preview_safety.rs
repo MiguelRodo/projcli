@@ -86,7 +86,7 @@ fn preview_without_version_does_not_create_one() {
     fs::write(project.path().join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\n").unwrap();
     fs::write(project.path().join("analysis.py"), "from pathlib import Path\nPath('_tmp').mkdir(exist_ok=True)\nPath('_tmp/result.txt').write_text('done')\n").unwrap();
     let root = camino::Utf8Path::from_path(project.path()).unwrap();
-    proj::build_project(root, proj::BuildMode::Dev, None, None).unwrap();
+    proj::build_project_with_execution(root, proj::BuildMode::Dev, None, None, proj::ExecutionDirectory::Project).unwrap();
     assert!(!root.join("VERSION").exists());
     assert!(!root.join(".gitignore").exists());
     assert!(!root.join(".Rbuildignore").exists());

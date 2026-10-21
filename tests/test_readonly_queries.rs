@@ -71,7 +71,7 @@ fn production_build_still_requests_ignore_synchronization() {
     fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
     fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('_tmp').mkdir(exist_ok=True)\nPath('_tmp/production.txt').write_text('done')\n").unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_proj"))
-        .args(["build", "--patch", "--description", "fixture", "--project"]).arg(root)
+        .args(["build", "--patch", "--description", "fixture", "--project"]).arg(root).current_dir(root)
         .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
         .output().unwrap();
     assert!(output.status.success(), "stdout={} stderr={}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));

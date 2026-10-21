@@ -16,6 +16,15 @@ pub enum BuildMode {
     ProdPatch,
 }
 
+/// Execution-directory policy, independent of captured project identity and paths.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExecutionDirectory {
+    /// Scripts inherit the invocation cwd; document renderers retain native defaults.
+    Native,
+    /// Explicit project-root cwd for supported script/Quarto/individual Rmd runners.
+    Project,
+}
+
 /// Runs the build pipeline for the project within the provided `project_root`.
 ///
 /// Ensures mutual exclusion rules are enforced regarding `_quarto.yml` and `_bookdown.yml`,
@@ -67,6 +76,16 @@ fn publish_git_in(root: &camino::Utf8Path, environment: &RunEnvironment, engine:
 }
 
 pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profile: Option<&str>, description: Option<&str>) -> anyhow::Result<()> {
+    build_project_with_execution(project_root, mode, cli_profile, description, ExecutionDirectory::Native)
+}
+
+/// Runs a build with an explicit execution-directory policy.
+/// Native captures invocation cwd once without mutating process cwd. Project
+/// overrides supported runners; project-wide Bookdown override is unsupported.
+/// Root/profile/version context remains independent. Errors preserve the same
+/// managed-state boundary as build_project; arbitrary external script effects are
+/// not a sandbox guarantee.
+pub fn build_project_with_execution(project_root: &camino::Utf8Path, mode: BuildMode, cli_profile: Option<&str>, description: Option<&str>, execution: ExecutionDirectory) -> anyhow::Result<()> {
     let resolved_root = crate::project::resolve_project_root(Some(project_root))?;
     let project_root = resolved_root.as_path();
     let is_dev = mode == BuildMode::Dev;
@@ -81,6 +100,11 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     let mut environment = RunEnvironment::resolve(Some(&profile_text), project_root)
         .context("Failed to resolve build environment")?;
     environment.set(crate::PROJECT_ROOT_ENV, project_root.as_str());
+    let launch_directory = match execution {
+        ExecutionDirectory::Native => std::env::current_dir().context("Cannot capture invocation working directory")?,
+        ExecutionDirectory::Project => project_root.as_std_path().to_owned(),
+    };
+    environment.set_working_directory(launch_directory);
     crate::yml::validate_clear_output(environment.text("PROJR_CLEAR_OUTPUT"))?;
 
     // ==========================================
@@ -185,6 +209,9 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     let selected_documents = build_scripts.is_none() || resolved_files.iter().any(|file| matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")));
     let quarto_exists = quarto_exists && run_analysis && selected_documents;
     let bookdown_exists = bookdown_exists && run_analysis && selected_documents;
+    if bookdown_exists && execution == ExecutionDirectory::Project {
+        anyhow::bail!("Project-root execution override is not supported for project-wide Bookdown; use native execution");
+    }
 
     let cache_root = if (!is_dev && run_analysis) || quarto_exists || bookdown_exists {
         Some(config.get_path(project_root, "cache").context("Selected cleanup or project rendering requires a declared cache directory")?)
@@ -382,7 +409,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
         for hooks in [&hooks_config.pre, &hooks_config.both] {
             if let Some(hooks) = hooks {
                 for hook in resolve_explicit_scripts(project_root, hooks)? {
-                    execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref(), &environment)?;
+                    execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref(), &environment, execution)?;
                 }
             }
         }
@@ -403,7 +430,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
                 }
             }
         }
-        execute_build_pipeline(project_root, build_scripts.clone(), profile.clone(), quarto_exists, bookdown_exists, resolved_python_cmd.as_deref(), &environment)?;
+        execute_build_pipeline(project_root, build_scripts.clone(), profile.clone(), quarto_exists, bookdown_exists, resolved_python_cmd.as_deref(), &environment, execution)?;
         restore_engines()?;
         if !is_dev && run_analysis && has_document_analysis && config.output_run.unwrap_or(true) {
             let docs = config.get_path(project_root, "docs")?;
@@ -425,7 +452,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
         for hooks in [&hooks_config.post, &hooks_config.both] {
             if let Some(hooks) = hooks {
                 for hook in resolve_explicit_scripts(project_root, hooks)? {
-                    execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref(), &environment)?;
+                    execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref(), &environment, execution)?;
                 }
             }
         }
@@ -486,6 +513,7 @@ fn execute_build_pipeline(
     bookdown_exists: bool,
     resolved_python_cmd: Option<&str>,
     environment: &RunEnvironment,
+    execution: ExecutionDirectory,
 ) -> anyhow::Result<()> {
     if let Some(scripts) = build_scripts {
         // Path A: Explicit Configuration via build.scripts
@@ -543,28 +571,28 @@ fn execute_build_pipeline(
             // Execute pre-scripts
             for script in pre_scripts {
                 let p = profile.clone();
-                execute_script(project_root, &script, p.as_deref(), resolved_python_cmd, environment)?;
+                execute_script(project_root, &script, p.as_deref(), resolved_python_cmd, environment, execution)?;
             }
 
             // Execute doc clusters
             if quarto_exists && !doc_files.is_empty() {
                 let p = profile.clone();
-                execute_project_render(project_root, true, p.as_deref(), environment)?;
+                execute_project_render(project_root, true, p.as_deref(), environment, execution)?;
             } else if bookdown_exists && !doc_files.is_empty() {
                 let p = profile.clone();
-                execute_project_render(project_root, false, p.as_deref(), environment)?;
+                execute_project_render(project_root, false, p.as_deref(), environment, execution)?;
             }
 
             // Execute post-scripts
             for script in post_scripts {
                 let p = profile.clone();
-                execute_script(project_root, &script, p.as_deref(), resolved_python_cmd, environment)?;
+                execute_script(project_root, &script, p.as_deref(), resolved_python_cmd, environment, execution)?;
             }
         } else {
             // No project files, just execute in exact relative order
             for file in resolved_files {
                 let p = profile.clone();
-                execute_script(project_root, &file, p.as_deref(), resolved_python_cmd, environment)?;
+                execute_script(project_root, &file, p.as_deref(), resolved_python_cmd, environment, execution)?;
             }
         }
 
@@ -576,13 +604,13 @@ fn execute_build_pipeline(
 
         // Path B: Fallback Automated Auto-Discovery
         if quarto_exists {
-            execute_project_render(project_root, true, profile.as_deref(), environment)?;
+            execute_project_render(project_root, true, profile.as_deref(), environment, execution)?;
         } else if bookdown_exists {
-            execute_project_render(project_root, false, profile.as_deref(), environment)?;
+            execute_project_render(project_root, false, profile.as_deref(), environment, execution)?;
         } else {
             let resolved_files = resolve_fallback_scripts(project_root)?;
             for file in resolved_files {
-                execute_script(project_root, &file, profile.as_deref(), resolved_python_cmd, environment)?;
+                execute_script(project_root, &file, profile.as_deref(), resolved_python_cmd, environment, execution)?;
             }
         }
     }
@@ -1048,7 +1076,7 @@ pub fn copy_global_quarto_project(cache_docs_dir: &camino::Utf8Path, final_docs_
 }
 
 /// Executes a single script in an isolated subprocess.
-fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Path, profile: Option<&str>, resolved_python_cmd: Option<&str>, environment: &RunEnvironment) -> anyhow::Result<()> {
+fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Path, profile: Option<&str>, resolved_python_cmd: Option<&str>, environment: &RunEnvironment, execution: ExecutionDirectory) -> anyhow::Result<()> {
     let ext = script_path.extension().unwrap_or("");
     let mut render_context = None;
     let mut cmd = match ext {
@@ -1066,14 +1094,15 @@ fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Pat
         "qmd" => {
             render_context = Some(crate::run_context::ContextFile::for_render(environment.value(crate::RUN_CONTEXT_ENV).context("Missing managed render context")?, crate::run_context::RenderEngine::Quarto, Some(script_path))?);
             let mut c = environment.command("quarto");
-            c.arg("render").arg(script_path.as_std_path()).arg("--execute-dir").arg(project_root.as_std_path());
+            c.arg("render").arg(script_path.as_std_path());
+            if execution == ExecutionDirectory::Project { c.arg("--execute-dir").arg(project_root.as_std_path()); }
             c
         },
         "Rmd" | "rmd" => {
             render_context = Some(crate::run_context::ContextFile::for_render(environment.value(crate::RUN_CONTEXT_ENV).context("Missing managed render context")?, crate::run_context::RenderEngine::RMarkdown, Some(script_path))?);
             let mut c = environment.command("Rscript");
-            c.arg("-e").arg("args <- commandArgs(trailingOnly = TRUE); rmarkdown::render(input = args[[1]], knit_root_dir = args[[2]])")
-                .arg(script_path.as_std_path()).arg(project_root.as_std_path());
+            c.arg("-e").arg("args <- commandArgs(trailingOnly = TRUE); rmarkdown::render(input = args[[1]], knit_root_dir = if (args[[2]] == 'project') args[[3]] else NULL)")
+                .arg(script_path.as_std_path()).arg(if execution == ExecutionDirectory::Project { "project" } else { "native" }).arg(project_root.as_std_path());
             c
         },
         _ => {
@@ -1081,8 +1110,6 @@ fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Pat
         }
     };
 
-    // TODO: migrate to camino
-    cmd.current_dir(project_root.as_std_path());
     if environment.non_interactive() {
         cmd.stdin(std::process::Stdio::null());
     }
@@ -1101,12 +1128,13 @@ fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Pat
 }
 
 /// Executes a quarto or bookdown project render.
-fn execute_project_render(project_root: &camino::Utf8Path, is_quarto: bool, profile: Option<&str>, environment: &RunEnvironment) -> anyhow::Result<()> {
+fn execute_project_render(project_root: &camino::Utf8Path, is_quarto: bool, profile: Option<&str>, environment: &RunEnvironment, execution: ExecutionDirectory) -> anyhow::Result<()> {
     let render_context = crate::run_context::ContextFile::for_render(environment.value(crate::RUN_CONTEXT_ENV).context("Missing managed render context")?,
         if is_quarto { crate::run_context::RenderEngine::Quarto } else { crate::run_context::RenderEngine::Bookdown }, None)?;
     let mut cmd = if is_quarto {
         let mut c = environment.command("quarto");
-        c.arg("render").arg("--execute-dir").arg(project_root.as_std_path());
+        c.arg("render");
+        if execution == ExecutionDirectory::Project { c.arg("--execute-dir").arg(project_root.as_std_path()); }
         c
     } else {
         let mut c = environment.command("Rscript");

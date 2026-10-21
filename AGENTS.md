@@ -103,3 +103,23 @@ Render context must be attached at the actual controlled renderer invocation,
 with an optional canonical document anchor; queries never infer it from suffixes
 or markers. Strict relative requests must error rather than silently change format.
 Keep execution cwd, filesystem representation and literal resource URLs separate.
+
+
+Native execution policy (supersedes earlier unconditional root-cwd wording):
+`build` and `build-dev` default to `--execution-dir native`. Plain scripts/hooks
+inherit the invocation cwd, not each source file's parent; R `source()` normally
+inherits its caller cwd. Individual Rmd rendering leaves `knit_root_dir` unset and
+Quarto receives no execution-dir override, preserving native document/project
+settings. `--execution-dir project` explicitly requests captured-root execution
+for scripts/hooks, Quarto and individual Rmd. Project render drivers run from the
+selected project root to select the project, independently of chunk cwd. Project-wide
+Bookdown root override is currently rejected early because its render_site entrypoint
+does not expose the individual knit-root argument. Captured project/profile/version
+and logical path identity do not change with execution cwd. No existing R helper
+bridge or literal Markdown resource rewriting is implied.
+
+Whenever lifecycle ordering or conditions change, update the website lifecycle
+Mermaid diagram (the lifecycle page maintained alongside website navigation) in
+the same reviewed work, or coordinate its owner before merge. Keep pre/build/post
+groups, approved target versus shipped behavior, and event-order test evidence
+aligned with docs/behavior.qmd. Do not silently overwrite concurrent site edits.

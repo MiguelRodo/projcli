@@ -98,6 +98,7 @@ fn absent_dev_scripts_still_fall_back_to_build_scripts() {
     fs::write(project.path().join("analysis.py"), "from pathlib import Path\nPath('_tmp').mkdir(exist_ok=True)\nPath('_tmp/result.txt').write_text('ran')\n").unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_proj"))
         .args(["build-dev", "--project"]).arg(project.path()).arg("--non-interactive")
+        .current_dir(project.path())
         .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
         .output().unwrap();
     assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));

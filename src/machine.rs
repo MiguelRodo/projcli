@@ -49,6 +49,7 @@ pub(crate) fn emit_capabilities() -> i32 {
         "non_interactive": true,
         "path_targets": ["safe", "final"],
         "path_fragments": true,
+        "execution_directories": ["native", "project"],
         "path_formats": ["auto", "absolute", "relative"],
         "logs": "stderr",
         "queries": {"path get": "path", "version get": "version", "yml read": "validated"},
