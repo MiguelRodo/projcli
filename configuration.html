@@ -80,7 +80,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -300,6 +300,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#build-configuration" id="toc-build-configuration" class="nav-link" data-scroll-target="#build-configuration">Build Configuration</a></li>
   <li><a href="#development-overrides" id="toc-development-overrides" class="nav-link" data-scroll-target="#development-overrides">Development Overrides</a></li>
   <li><a href="#environment-variables" id="toc-environment-variables" class="nav-link" data-scroll-target="#environment-variables">Environment Variables</a></li>
+  <li><a href="#runtime-settings-and-output-clearing" id="toc-runtime-settings-and-output-clearing" class="nav-link" data-scroll-target="#runtime-settings-and-output-clearing">Runtime settings and output clearing</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -411,6 +412,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><strong><code>PROJR_AUTO_INSTALL</code></strong>: During the <code>proj build</code> pre-flight checks, if required R packages (like <code>bookdown</code> or <code>rmarkdown</code>) are missing, this environment variable controls remediation. If set to <code>true</code>, packages are automatically installed. If absent or set to <code>false</code>, the tool defaults to an interactive terminal prompt (if available) or fails hard.</li>
 </ul>
+</section>
+<section id="runtime-settings-and-output-clearing" class="level2">
+<h2 class="anchored" data-anchor-id="runtime-settings-and-output-clearing">Runtime settings and output clearing</h2>
+<p><code>build</code> declares actions; <code>settings</code> controls how they run. Parameters are analysis inputs, not execution controls. This is an intentional extension beyond projr.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">settings</span><span class="kw">:</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">output-clear-stage</span><span class="kw">:</span><span class="at"> none</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Use none to preserve other existing final files, pre to clear immediately before analysis, or post to clear immediately after successful analysis and before output promotion/finalization. Preview never clears released outputs. Pre-hooks run before pre-clear; end hooks run after finalization immediately before the next-dev bump. The command’s explicit –output-clear-stage overrides merged settings; those override legacy build.clear_output, then PROJR_CLEAR_OUTPUT, then the new none default. Legacy never is accepted in the legacy field/environment. The canonical settings key accepts only none/pre/post, with invalid values/null rejected before merge or mutation. Docs output handling remains separate. Safe/auto CLI defaults and the R-data built-in are following focused slices, not delivered merely by adding settings here.</p>
 
 
 </section>
