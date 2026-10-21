@@ -1808,3 +1808,14 @@ exceptions and missing empty scratch; rerun exact-head remote gates for this del
   results and independent review are required. No local Rust/R/Quarto execution.
   Lifecycle order/diagram, future catalogue direction and installed preview.2 stay
   unchanged; the broader M2 source-integration milestone remains incomplete.
+
+Independent review refinement: every fixture command now clears inherited GIT_*
+repository/index/object/config/credential overrides before applying its controlled
+Git configuration and file-only transport. The no-op SystemGit witness runs in
+that same child environment through the Rust test harness, with no global env
+mutation or new production injection API. A fifth negative witness seeds hostile
+Git routing/config/askpass/token settings toward another owned temporary
+repository, runs both provider and CLI paths, and checks that entire project's,
+Git metadata's and bare upstream's bytes/presence remain unchanged. Two ignored
+helper entrypoints execute only through those parent witnesses. Fresh exact-head
+remote tests and focused independent review are required for this fixture delta.

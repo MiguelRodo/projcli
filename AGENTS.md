@@ -234,3 +234,9 @@ analysis-failure outcomes. Compare complete upstream branch refs and actual
 committed/final/cache bytes. Restrict fixture transports to local files and use
 per-command isolated Git configuration; never mutate parent environment. This
 does not settle sealing, persistence or remote hosting/provider contracts.
+
+The real-Git no-op provider must run in a fixture-controlled subprocess because
+SystemGit::new inherits the process environment. Clear inherited GIT_* overrides
+for every fixture command before setting its scoped config/file-only transport.
+Keep the hostile-inheritance victim-tree witness; do not call set_var/remove_var
+globally from parallel tests or introduce production APIs solely for test setup.
