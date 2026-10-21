@@ -74,7 +74,7 @@ fn r_version_probe_package_probe_and_render_share_the_resolved_values() {
     fs::write(root.join("report.Rmd"), "Report\n").unwrap();
     let before = std::env::var_os("PROJCLI_PROBE_CONTEXT");
     let result = Command::new(env!("CARGO_BIN_EXE_proj"))
-        .args(["build-dev", "--non-interactive", "--project"]).arg(root)
+        .args(["build-dev", "--non-interactive", "--project"]).arg(root).current_dir(root)
         .env("PATH", path).env_remove("PROJCLI_PROBE_CONTEXT").env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
         .env_remove(proj::PROJECT_ROOT_ENV).output().unwrap();
     assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
@@ -117,7 +117,7 @@ fn inherited_non_unicode_values_remain_present_and_override_file_values() {
     fs::write(root.join("_environment.required"), "PROJCLI_NATIVE_VALUE\n").unwrap();
     fs::write(root.join("analysis.py"), "import os\nfrom pathlib import Path\nPath('native-value').write_text(os.environb[b'PROJCLI_NATIVE_VALUE'].hex())\n").unwrap();
     let result = Command::new(env!("CARGO_BIN_EXE_proj"))
-        .args(["build-dev", "--non-interactive", "--project"]).arg(root)
+        .args(["build-dev", "--non-interactive", "--project"]).arg(root).current_dir(root)
         .env("PROJCLI_NATIVE_VALUE", std::ffi::OsString::from_vec(vec![255, 97, 128]))
         .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
         .output().unwrap();
@@ -134,7 +134,7 @@ fn inherited_ascii_key_case_remains_equivalent_on_windows() {
     fs::write(root.join("_environment"), "PROJCLI_CASE_TEST=from-file\n").unwrap();
     fs::write(root.join("analysis.py"), "import os\nfrom pathlib import Path\nPath('case-value').write_text(os.environ['PROJCLI_CASE_TEST'])\n").unwrap();
     let result = Command::new(env!("CARGO_BIN_EXE_proj"))
-        .args(["build-dev", "--non-interactive", "--project"]).arg(root)
+        .args(["build-dev", "--non-interactive", "--project"]).arg(root).current_dir(root)
         .env("projcli_case_test", "inherited")
         .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
         .output().unwrap();
@@ -153,7 +153,7 @@ fn unicode_case_aliases_cannot_override_inherited_windows_environment_keys() {
         fs::write(root.join(filename), "PROJCLI_é=file\n").unwrap();
         fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('analysis-ran').touch()\n").unwrap();
         let result = Command::new(env!("CARGO_BIN_EXE_proj"))
-            .args(["build-dev", "--non-interactive", "--project"]).arg(root)
+            .args(["build-dev", "--non-interactive", "--project"]).arg(root).current_dir(root)
             .env("PROJCLI_É", "parent")
             .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
             .output().unwrap();
