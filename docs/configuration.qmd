@@ -122,3 +122,25 @@ You can define a `dev` block to completely override specific configurations duri
 ## Environment Variables
 
 - **`PROJR_AUTO_INSTALL`**: During the `proj build` pre-flight checks, if required R packages (like `bookdown` or `rmarkdown`) are missing, this environment variable controls remediation. If set to `true`, packages are automatically installed. If absent or set to `false`, the tool defaults to an interactive terminal prompt (if available) or fails hard.
+
+
+## Runtime settings and output clearing
+
+`build` declares actions; `settings` controls how they run. Parameters are analysis
+inputs, not execution controls. This is an intentional extension beyond projr.
+
+```yaml
+settings:
+  output-clear-stage: none
+```
+
+Use none to preserve other existing final files, pre to clear immediately before
+analysis, or post to clear immediately after successful analysis and before output
+promotion/finalization. Preview never clears released outputs. Pre-hooks run before
+pre-clear; end hooks run after finalization immediately before the next-dev bump.
+The command's explicit --output-clear-stage overrides merged settings; those override
+legacy build.clear_output, then PROJR_CLEAR_OUTPUT, then the new none default. Legacy
+never is accepted in the legacy field/environment. The canonical settings key accepts
+only none/pre/post, with invalid values/null rejected before merge or mutation.
+Docs output handling remains separate. Safe/auto CLI defaults and the R-data built-in
+are following focused slices, not delivered merely by adding settings here.

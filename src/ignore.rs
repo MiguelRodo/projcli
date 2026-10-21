@@ -41,7 +41,8 @@ impl Default for IgnoreType {
 /// use proj::ignore::update_ignores_for;
 ///
 /// let temp = TempDir::new().unwrap();
-/// let root = camino::Utf8Path::from_path(temp.path()).unwrap();
+/// let canonical_root = temp.path().canonicalize().unwrap();
+/// let root = camino::Utf8Path::from_path(&canonical_root).unwrap();
 ///
 /// use proj::yml::{ResolvedGitConfig, RestrictionsConfig, GlobalConfig};
 /// let mut dirs = HashMap::new();
@@ -51,14 +52,15 @@ impl Default for IgnoreType {
 ///     ignore: IgnoreConfig::Single("all".to_string())
 /// });
 ///
-/// let validated = ValidatedConfig { 
-///     remotes: Default::default(), 
+/// let validated = ValidatedConfig {
+///     remotes: Default::default(),
 ///     dest: vec![],
-///     config: GlobalConfig::default(), 
-///     directories: dirs, 
-///     git: ResolvedGitConfig { commit: false, push: false }, 
-///     restrictions: RestrictionsConfig::default(), 
-///     clear_output: None, 
+///     config: GlobalConfig::default(),
+///     settings: Default::default(),
+///     directories: dirs,
+///     git: ResolvedGitConfig { commit: false, push: false },
+///     restrictions: RestrictionsConfig::default(),
+///     clear_output: None,
 ///     output_run: None,
 ///     old_dev_remove: None,
 ///     parameters: Default::default()
@@ -67,6 +69,8 @@ impl Default for IgnoreType {
 ///
 /// assert!(root.join(".gitignore").exists());
 /// ```
+/// The supplied project root must use its resolved identity; controlled writes
+/// reject symlinks in the root or metadata path rather than following them.
 pub fn update_ignores_for(project_root: &camino::Utf8Path, validated: &ValidatedConfig) -> anyhow::Result<()> {
     let mut git_ignores = Vec::new();
     let mut rbuild_ignores = Vec::new();
@@ -137,7 +141,7 @@ fn update_ignore_file(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Re
     let end_marker = "# --- END PROJ MANAGED ---";
 
     let content_lines: Vec<String> = if path.exists() {
-        fs::read_to_string(path)?
+        crate::fs_utils::read_managed_text(path)?
             .lines()
             .map(|s| s.to_string())
             .collect()
@@ -183,14 +187,14 @@ fn update_ignore_file(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Re
 
     // Only write if the content actually changed
     if path.exists() {
-        if let Ok(existing_content) = fs::read_to_string(path) {
+        if let Ok(existing_content) = crate::fs_utils::read_managed_text(path) {
             if existing_content == final_content {
                 return Ok(());
             }
         }
     }
 
-    fs::write(path, final_content)?;
+    crate::fs_utils::write_managed_file(path, final_content)?;
     Ok(())
 }
 
@@ -358,7 +362,7 @@ fn append_manual_ignores(path: &camino::Utf8Path, ignores: &[String]) -> anyhow:
     let start_marker = "# --- PROJ MANAGED ---";
 
     let content_lines: Vec<String> = if path.exists() {
-        fs::read_to_string(path)?
+        crate::fs_utils::read_managed_text(path)?
             .lines()
             .map(|s| s.to_string())
             .collect()
@@ -423,7 +427,7 @@ fn append_manual_ignores(path: &camino::Utf8Path, ignores: &[String]) -> anyhow:
         final_content.push('\n');
     }
 
-    fs::write(path, final_content)?;
+    crate::fs_utils::write_managed_file(path, final_content)?;
     Ok(())
 }
 
@@ -440,7 +444,7 @@ fn append_unignores(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Resu
     let end_marker = "# --- END PROJ MANAGED ---";
 
     let content_lines: Vec<String> = if path.exists() {
-        fs::read_to_string(path)?
+        crate::fs_utils::read_managed_text(path)?
             .lines()
             .map(|s| s.to_string())
             .collect()
@@ -512,7 +516,7 @@ fn append_unignores(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Resu
         final_content.push('\n');
     }
 
-    fs::write(path, final_content)?;
+    crate::fs_utils::write_managed_file(path, final_content)?;
     Ok(())
 }
 
@@ -536,7 +540,8 @@ fn append_unignores(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Resu
 /// use proj::ignore::{add_manual_ignores, IgnoreType};
 ///
 /// let temp = TempDir::new().unwrap();
-/// let root = camino::Utf8Path::from_path(temp.path()).unwrap();
+/// let canonical_root = temp.path().canonicalize().unwrap();
+/// let root = camino::Utf8Path::from_path(&canonical_root).unwrap();
 /// fs::write(root.join(".gitignore"), "# --- PROJ MANAGED ---\n").unwrap();
 ///
 /// add_manual_ignores(root, &["temp.log".to_string()], true, IgnoreType::Git).unwrap();
@@ -610,7 +615,8 @@ pub fn add_manual_ignores(
 /// use proj::ignore::{remove_manual_ignores, IgnoreType};
 ///
 /// let temp = TempDir::new().unwrap();
-/// let root = camino::Utf8Path::from_path(temp.path()).unwrap();
+/// let canonical_root = temp.path().canonicalize().unwrap();
+/// let root = camino::Utf8Path::from_path(&canonical_root).unwrap();
 /// fs::write(root.join(".gitignore"), "# --- PROJ MANAGED ---\n# --- END PROJ MANAGED ---\n").unwrap();
 ///
 /// remove_manual_ignores(root, &["!!temp.log".to_string()], IgnoreType::Git).unwrap();

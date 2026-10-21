@@ -100,7 +100,7 @@ fn invalid_mappings_and_storage_labels_fail_before_managed_writes() {
 }
 
 #[test]
-fn production_uses_declared_cache_without_touching_unconfigured_legacy_staging() {
+fn production_preserves_unselected_legacy_staging_and_uses_declared_cache() {
     let project = tempfile::tempdir().unwrap();
     let root = project.path();
     fs::create_dir_all(root.join("_tmp/projr/1.2.3")).unwrap();
@@ -108,13 +108,13 @@ fn production_uses_declared_cache_without_touching_unconfigured_legacy_staging()
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
     fs::create_dir_all(root.join("scratch/projr/1.2.3")).unwrap();
     fs::write(root.join("scratch/projr/1.2.3/remove"), "old staging").unwrap();
-    fs::write(root.join("analysis.py"), "from pathlib import Path\nassert not Path('scratch/projr/1.2.3/remove').exists()\nassert Path('_tmp/projr/1.2.3/keep').read_text() == 'unmanaged'\nPath('scratch/analysis-ran').write_text('custom cache')\n").unwrap();
+    fs::write(root.join("analysis.py"), "from pathlib import Path\nassert Path('scratch/projr/1.2.3/remove').read_text() == 'old staging'\nassert Path('_tmp/projr/1.2.3/keep').read_text() == 'unmanaged'\nPath('scratch/analysis-ran').write_text('custom cache')\n").unwrap();
     fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: scratch\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
     let result = cli(root, &["build", "--patch"]);
     assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
     assert_eq!(fs::read_to_string(root.join("_tmp/projr/1.2.3/keep")).unwrap(), "unmanaged");
     assert_eq!(fs::read_to_string(root.join("scratch/analysis-ran")).unwrap(), "custom cache");
-    assert!(!root.join("scratch/projr/1.2.3/remove").exists());
+    assert_eq!(fs::read_to_string(root.join("scratch/projr/1.2.3/remove")).unwrap(), "old staging");
 }
 
 

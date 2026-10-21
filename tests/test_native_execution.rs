@@ -57,6 +57,7 @@ if '--version' in sys.argv: print('fixture 1.0'); raise SystemExit(0)
 if sys.argv[1:2]==['-e'] and 'rmarkdown::render(' not in sys.argv[2]: raise SystemExit(0)
 context=json.loads(Path(os.environ['PROJ_RUN_CONTEXT']).read_text())
 (root/'cache/renderer.json').write_text(json.dumps({'args':sys.argv[1:],'cwd':str(Path.cwd()),'render':context['render']}))
+Path(context['render']['document']).with_suffix('.html').write_text('fresh fake render artifact')
 "#;
         for name in ["quarto","Rscript"] {let executable=root.join("bin").join(name);fs::write(&executable,fake).unwrap();fs::set_permissions(executable,fs::Permissions::from_mode(0o755)).unwrap();}
         let output=invoke(&root,&caller,project);assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));

@@ -1,0 +1,44 @@
+name: Pinned path contract acceptance
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'Cargo.*'
+      - '.github/workflows/path-contract-acceptance.yml'
+jobs:
+  pinned-linux:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    container:
+      image: ghcr.io/miguelrodo/devcontainers-projcli@sha256:a58a8a4dd6f0be83879d08b3a43ab92e256425bbfb81372b257d77a7ff9077f9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Tool versions
+        shell: bash
+        run: |
+          cargo --version
+          Rscript --version
+          quarto --version
+          python3 --version
+      - name: Prepare the configured unprivileged image user
+        shell: bash
+        run: |
+          chown -R rstudio:rstudio "$GITHUB_WORKSPACE"
+          install -d -o rstudio -g rstudio "$RUNNER_TEMP/projcli-cargo"
+      - name: Complete Linux regressions in pinned environment
+        shell: bash
+        run: runuser -u rstudio -- env CARGO_HOME="$RUNNER_TEMP/projcli-cargo" RUSTUP_AUTO_INSTALL=0 cargo test --locked --workspace --verbose --no-fail-fast
+      - name: Actual CLI R Python and embedded HTML acceptance
+        shell: bash
+        run: runuser -u rstudio -- python3 tests/acceptance/path_contract.py target/debug/proj --evidence path-contract-evidence.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: path-contract-evidence
+          path: path-contract-evidence.json
+          if-no-files-found: warn

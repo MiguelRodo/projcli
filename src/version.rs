@@ -172,7 +172,8 @@ pub fn version_get() -> Option<ProjVersion> {
 /// use proj::version::{ProjVersion, version_set_at};
 ///
 /// let temp = TempDir::new().unwrap();
-/// let temp_utf8 = Utf8Path::from_path(temp.path()).unwrap();
+/// let canonical_root = temp.path().canonicalize().unwrap();
+/// let temp_utf8 = Utf8Path::from_path(&canonical_root).unwrap();
 /// let version_path = temp_utf8.join("VERSION");
 /// fs::write(&version_path, "v1.0.0").unwrap();
 ///
@@ -185,9 +186,9 @@ pub fn version_set_at(root: &Utf8Path, version_str: &str) -> anyhow::Result<()> 
         .with_context(|| format!("Could not parse version: {}", version_str))?;
 
     let version_file_path = root.join("VERSION");
-    let content = format!("Version: {}", version.to_string(true));
+    let content = version_file_content(&version);
 
-    fs::write(version_file_path, content).context("Failed to write version to file")?;
+    crate::fs_utils::write_managed_file(version_file_path, content).context("Failed to write version to file")?;
     Ok(())
 }
 
@@ -247,4 +248,8 @@ mod tests {
         assert_eq!(v2.to_string(true), "v1.2.3");
         assert_eq!(v2.to_string(false), "1.2.3");
     }
+}
+
+pub(crate) fn version_file_content(version: &ProjVersion) -> String {
+    format!("Version: {}", version.to_string(true))
 }

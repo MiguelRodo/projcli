@@ -1260,3 +1260,138 @@ rejection remains tested. Exact integrated CI/re-review required.
   one native metadata-read regression. No image rebuild, generated Dockerfile
   edit, path behavior, R package/source, credential, broad setting or running
   container changes. User working files remain untouched; checks run remotely.
+
+
+## Cache-backed consumers and output lifecycle
+
+- **Same intended routing:** pinned projr90be501 R/dir-get.R68–84,247–253 and
+  R/version.R433–438 route safe generated output through cache/projr/v<version>.
+  Rust consumers now use the captured active version/selected cache rather than
+  old VERSION text/literal cache. Fresh render artifacts are retained in versioned
+  docs cache; final destinations remain separately configured.
+- **Same broad ordering, tightened by user:** start hooks, other preparation,
+  pre-clear immediately before analysis, post-clear immediately after successful
+  analysis, promotion/finalization, end hooks immediately before next-dev bump.
+  R's production clear_output=NULL falls back env then pre; development defaults
+  never. R has no general runtime options/settings YAML section and does not read
+  build.clear_output. Rust's settings.output-clear-stage default none and YAML over
+  environment are deliberate approved differences; legacy never remains compatible.
+- **Different/fixed:** final clearing never deletes preview outputs; renderer cache
+  targets use active v-prefixed version. No old-cache sweep is performed implicitly.
+  Production old_dev_remove:true is rejected rather than silently ignored.
+- **Boundaries:** path lookup defaults still final/absolute in this intermediate
+  consumer slice. R-data naming/normalization, default switching and embedding
+  fallback remain separately pending. Cache-free operations remain supported.
+  Fresh renderer-tree validation is conservative, not a complete manifest; cached
+  analysis residue from retries has no M2 attempt/provenance guarantee.
+- **Publication:** external storage/Git happen after a successful local release;
+  later publication/end-hook failure preserves it and is reported distinctly.
+  No remote rollback or all-files sandbox guarantee is claimed.
+- **Tests prepared:** real Python success/failure/preview clear-event fixtures,
+  exact version/order/cache/final-byte assertions, YAML/environment/CLI precedence,
+  and invalid-layer rejection. Remote pinned-image checks are pending; actual
+  real-render embedding acceptance follows, not inferred from fake renderers.
+- **Ponytail full self-review:** reused per-command context, shared destination guards,
+  temporary directories and existing guarded recursive copy. No new dependencies,
+  process cwd mutation, generalized transaction framework or R package edits.
+
+Coordinate the site lifecycle Mermaid page before merge: this source sequence is
+now concrete, but remains unverified/unmerged until remote tests and review pass.
+
+First pinned-image run compiled and passed all new lifecycle/event tests. Full
+regressions caught root-user permission-oracle failures and stale mock staging
+assumptions. Run the suite as the image's configured rstudio user (no permission
+test skips), follow supplied renderer output-dir in fakes, produce real nonempty
+fake artifacts, preserve EOF/no-install assertions with explicit cache, and update
+the actual-byte archive fixture to write safe staging and verify promoted bytes.
+Publication-failure fixtures now assert the retained release version, not a next-dev
+bump that did not run; retain the established Local build succeeded diagnostic.
+
+Successful staging also restores exact preexisting native compiled documents and
+asset trees before final promotion/Git, using the same reviewed scoped BuildState
+mechanism. This prevents beside-input scratch output being swept into add -A.
+Includes Bookdown native assets. Added successful production fake-render regression
+with old HTML/assets/empty directories preserved and only fresh bytes in published
+and versioned cache destinations. Preserve declared Docs label case in cache leaves.
+The real CLI acceptance driver now checks preexisting native artifacts too; its
+R/Python/embedded HTML execution is enabled remotely in the same pinned image.
+The digest-only image spelling matches the merged devcontainer spec; image content
+is unchanged. No local renderer execution, R package edits or linked portability claim.
+
+Actual acceptance found R Markdown's native shell-character filename normalization:
+render() copied the apostrophe/space basename into the launch cwd, then emitted a
+sanitized output there instead of the expected source-local artifact. Confirmed
+against official rmarkdown R/render.R and R/util.R (retrieved2026-10-21), not inferred
+from fake tools. Pass supported output_file/output_dir/intermediates_dir as data
+so the temporary sanitized input remains beside the original document and the
+expected output leaf remains stable. Native knit_root_dir stays NULL unless project
+mode is explicit; literal resource meaning is preserved. R package is unchanged.
+The same actual regression retains both code/literal embedded image checks and
+preexisting native source artifact hashes. Quarto's quoted input already rendered
+the expected output. Reject pre-hook native-output layout changes before renderer
+launch so successful native restoration cannot use an outdated capture plan.
+Sources: https://github.com/rstudio/rmarkdown/blob/main/R/render.R and
+https://github.com/rstudio/rmarkdown/blob/main/R/util.R .
+
+Real pinned-image acceptance passed at2f415724613278bf993c5c528de6dcf76167a59f
+(run39576119854): root and nested previews plus nested release, and deliberately
+failing R/Python previews. Six actual HTML artifacts each retained two exact
+sentinel PNG payloads after relocation with source unavailable (12 image checks).
+Original selected source/config/native-artifact hashes and released preview state
+were preserved; versioned R/Python output remained inspectable. R4.6.1, Quarto1.10.19,
+rmarkdown2.32, knitr1.52, Python3.12.3. Complete Linux regressions also passed.
+These use explicit embedding; default fallback, R/IDE parity, PDF/other-OS renders
+and nonembedded portability are not claimed by this run. Main-base integration
+keeps executable/test/Cargo blobs identical; final exact-head checks/review gate merge.
+
+
+PR159 review amendments freeze selected renderer paths and prepared project
+metadata, revalidate immediately before each renderer, isolate its native
+artifacts at that boundary, and collect only the frozen outputs. Controlled
+VERSION, ignore and renderer-metadata writes share immediate path revalidation;
+promotion rejects links and special files. Notebook invocation retains native
+rmarkdown intermediate naming. An exact per-worktree Git record permits only
+the framework-created unstaged next-development VERSION change at the same
+committed HEAD; other dirty state still fails. Added remote regressions and real
+notebook acceptance await the amended-head CI and independent re-review. These
+checks do not establish concurrent-writer or power-loss atomicity.
+
+The first amended pinned run [39579838424](https://github.com/MiguelRodo/projcli/actions/runs/39579838424)
+compiled successfully and passed the new metadata-link, FIFO/link promotion,
+frozen-layout and consecutive-real-Git regressions. One existing fake Bookdown
+renderer assumed the old native asset directory still existed; it now creates
+its fresh directory, preserving the original failing-post-hook and exact-byte
+restoration assertions. The complete amended-head suite and real notebook render
+still require their own passing evidence. Ponytail full review reused shared
+managed-file and copy helpers; no new dependencies, environment mutation or
+general transaction framework were added.
+
+Pinned-image run [39580256824](https://github.com/MiguelRodo/projcli/actions/runs/39580256824)
+at `70badedf8ed674c0b93488331d25b687561a4d5f` passed the complete Linux suite,
+all five review regression groups, actual R/Python and six embedded HTML renders
+(12 exact image payload checks), and real `html_notebook` preview preserving both
+preexisting `report_files` and `report.nb_files` sentinels. Windows and host Linux
+passed. macOS exposed a fixture passing the system's `/var` temporary alias to a
+direct guarded metadata-write API; the fixture and public examples now resolve
+their known temporary project root first. User-controlled metadata symlink guards
+are retained. Final exact-head platform checks and independent review remain
+required; no release or milestone completion is implied.
+
+Controlled managed-file helpers additionally require real regular files on reads
+and regular-or-absent targets on writes, preventing substituted FIFOs/devices from
+blocking before recovery. A bounded child-process regression covers VERSION,
+both ignore files, Quarto and Bookdown metadata; it retains final-output and
+external sentinels and forbids renderer/publication execution. New-head remote
+evidence and independent re-review remain required.
+
+Quarto identity is also revalidated at each controlled launch: an individual
+render cannot silently become a project render after a hook/earlier script adds
+root metadata, nested project roots remain rejected, and project-selected inputs
+are rechecked immediately. New root/nested metadata regressions require the
+renderer to remain unlaunched while released and external sentinel bytes survive.
+
+The notebook frozen plan includes its ordinary intermediate `report.html` as
+well as final `report.nb.html` and `report_files`; all native targets receive
+the same input/link guards, immediate freshness isolation and exact restoration.
+The real notebook acceptance additionally retains a preexisting nested ordinary
+HTML sentinel. This amended-head evidence is pending remote execution/review.

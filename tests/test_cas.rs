@@ -144,7 +144,7 @@ fn test_verify_remote_integrity() {
     let config = ValidatedConfig {
         remotes: RemotesConfig { local: Some(remotes.clone()) },
         dest: vec![],
-        config: Default::default(),
+        config: Default::default(), settings: Default::default(),
         directories: HashMap::new(),
         git: proj::yml::ResolvedGitConfig { commit: false, push: false },
         restrictions: Default::default(),

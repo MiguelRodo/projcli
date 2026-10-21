@@ -336,3 +336,55 @@ Bookdown root override is currently rejected early because its render_site entry
 does not expose the individual knit-root argument. Captured project/profile/version
 and logical path identity do not change with execution cwd. No existing R helper
 bridge or literal Markdown resource rewriting is implied.
+
+
+## Output lifecycle and runtime settings
+
+This source slice wires output consumers to the captured active version and
+selected eligible cache; the CLI lookup defaults remain transitional final/absolute
+until the following defaults slice. `settings` is runtime policy, `build` selects
+actions, and parameters remain analytical data. `settings.output-clear-stage` is
+`none` (default), `pre` or `post`. Explicit `--output-clear-stage` wins over merged
+settings, then legacy build.clear_output YAML, then PROJR_CLEAR_OUTPUT, then none.
+Legacy environment/build `never` means none. Canonical settings uses none only;
+invalid values, explicit null and unsupported settings fail in their source layer.
+This deliberately changes R's production fallback pre; R has no settings section.
+
+After read-only validation/recovery setup, start hooks run first. Other preparation
+(ignore metadata, renderer staging and fresh native artifact isolation) follows.
+Pre-clear is immediately before analysis; post-clear is immediately after successful
+analysis, before restoration/staging/promotion/hooks. These clear configured final
+output/data roots, never the versioned cache and never preview final destinations.
+Output actions disabled by output_run:false also skip final-output clearing.
+An empty analysis selection remains upload-only and skips analysis-related clearing.
+Docs finalization is a separate fresh-document operation, not ordinary output clearing.
+
+Fresh renderer artifacts are copied to selected-cache/projr/v<active-version>/docs
+in previews and releases. Individual render source location is preserved for native
+resource semantics. Versioned cache files remain inspectable; failed renderer scratch
+is retained there too. Generic safe output trees are copied to configured final
+destinations only on release, respecting final-output clearing policy. Unrelated
+existing final files remain under none. No cache is synthesized. Unused cache-free
+script operations remain valid; a safe path query without eligible cache fails.
+Automatic old-cache removal is rejected for production until it has a bounded policy.
+
+Local finalization completes before end hooks, which immediately precede the next
+development-version bump. With configured irreversible storage/Git publication,
+record the successful local release version first, then publish, then end hooks
+and next-dev bump. Publication/end-hook failure after this boundary preserves the
+local release and reports partial finalization; remote actions cannot be rolled back.
+Without publication, end-hook failure remains inside managed recovery. Preview never
+publishes or bumps VERSION. Arbitrary script effects/concurrent writers/power loss
+are outside the managed recovery guarantee; this is no sandbox or M2 provenance.
+
+
+PR159 review amendments freeze selected renderer paths and prepared project
+metadata, revalidate immediately before each renderer, isolate its native
+artifacts at that boundary, and collect only the frozen outputs. Controlled
+VERSION, ignore and renderer-metadata writes share immediate path revalidation;
+promotion rejects links and special files. Notebook invocation retains native
+rmarkdown intermediate naming. An exact per-worktree Git record permits only
+the framework-created unstaged next-development VERSION change at the same
+committed HEAD; other dirty state still fails. Added remote regressions and real
+notebook acceptance await the amended-head CI and independent re-review. These
+checks do not establish concurrent-writer or power-loss atomicity.
