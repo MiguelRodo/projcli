@@ -1455,6 +1455,32 @@ Initial remote embedding checks found an existing fake Rscript fixture with the
 old fixed argument count. Updated it to require the new embedding-policy argument
 and assert HTML receives embed while PDF/Word retain native policy.
 
+## Combined M1 acceptance preparation
+
+Remote-only driver covers manual configured/no-init and actual local directories
+init, preview/production, ordered Python/R/report steps, inspectable computed CSV
+and embedded HTML, deliberate structured R failures, optional Git, exact prior
+final-output/archive preservation and actual local CAS publication on success.
+Upload CSV/report witnesses alongside JSON evidence. Reuses the path acceptance
+PNG/R adapters and existing pinned image. No local tests or helper changes.
+
+This preparation is stacked on the embedding slice and must run again after both
+reviewed R-data/embedding source changes are integrated. Native Bookdown site
+embedding is still a recorded gap. No release, install or M1 completion claim.
+Ponytail full: one deterministic eight-case driver, existing workflow/artifact
+mechanism; no new dependency, harness or product configuration.
+
+PR163 independent review strengthened the actual gate: final CSV/report bytes
+must equal cache witnesses; successful VERSION must be next-dev1.2.4.1 while both
+expected-role manifests/index records identify release1.2.4. Retain actual CAS
+objects/index in the artifact and validate them with existing file-integrity and
+hash helpers. Negative probes reject empty/corrupt final CSV, wrong-role manifest,
+missing/corrupt object and wrong version/index. Init-created directories are
+checked before fixture setup. A failing Git shim/call witness and empty Git config
+prove no Git dependency without hiding renderer runtime paths. Evidence now
+distinguishes preserved ordinary output/archive bytes from replaced production
+docs; preview/failure docs stay preserved. No product/M2 provenance changes.
+
 PR162 independent review found that a global canonical true default defeats
 legacy self-contained:false because Quarto1.10.19 ORs the two distinct keys.
 Replace that approach with native project/document inspection of effective formats.
