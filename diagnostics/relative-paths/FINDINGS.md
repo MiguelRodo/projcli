@@ -156,3 +156,41 @@ framework, wrapper, dependency architecture or TeX installation. Fixed shared
 evidence capture so output failure cannot hide R input results, required explicit
 image records and recognized actual Quarto accessibility markup. Independent
 review/CI remain separate. Original checkout's four pre-existing dirty paths intact.
+
+
+## Six-case renderer-adapter follow-up
+
+[Completed remote run39555352442](https://github.com/MiguelRodo/projcli/actions/runs/39555352442),
+tested harness `032572c`, same exact tool/package versions as above. Download
+adapter-summary.json, six logs and source-hidden output bundles from its artifact.
+All six renders returned0; all six validated the execution-relative image target
+and actually read CSV value17 before calling include_graphics. Five of six
+relocated HTML files contained the exact embedded PNG payload. This run used
+canonical fixture VERSION v1.2.3-4; it did not reinterpret the earlier version
+spelling mismatch as a cache escape.
+
+Root execution, explicit embedded HTML, nested analysis/report document:
+
+| Adapter argument/control | Rmd sentinel embedded after relocation | Quarto sentinel embedded after relocation |
+|---|---|---|
+| Absolute target, default include_graphics options | yes | yes |
+| Absolute target, rel_path=FALSE | yes | **no: rewritten local URL, HTTP404** |
+| Document-relative resource URL, rel_path=FALSE,error=FALSE after validating absolute file | yes | yes |
+
+The ordinary helper still returned `_raw/images/sentinel.png` relative to root
+execution cwd; data reads were not changed to document-relative lookup. Only the
+renderer adapter converted that validated target. Normal include_graphics handling
+of an absolute image is the smallest common successful candidate in these two
+embedded-HTML tests. Do not disable relative conversion globally: Quarto1.10.19
+rewrote the raw absolute path in that variant into a missing `./home/runner/...`
+resource even though rendering returned0. Document-relative resource mapping was
+also successful, but disabling knitr's cwd-based existence check is justified here
+only because the exact absolute target was already validated.
+
+This is measured output behavior, not a claim about undocumented internal
+normalization. The [knitr manual](https://pkg.yihui.org/knitr/manual) documents
+rel_path and error; it does not guarantee raw absolute URLs work in every renderer.
+No linked adapter, Quarto project adapter, PDF, GUI/RStudio, quarto R API or final
+frontend integration was exercised in this follow-up. Preserve those limits before
+choosing a general adapter or changing production. No further implementation or
+release was performed.
