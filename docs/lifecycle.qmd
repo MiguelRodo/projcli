@@ -350,3 +350,10 @@ The [storage design constraints](storage-design.qmd) reserve optional future
 per-directory DVC delegation. Its restore/build/store integration points and
 error boundaries are still undecided; no DVC step is added to the current
 lifecycle diagrams. Ordinary native use remains independent of DVC.
+
+
+The real local-bare-upstream Git tests also check the existing publication-failure
+branch: a rejected push keeps the successful local release and skips the next-dev
+bump, while an analysis failure restores managed state without a release commit.
+This verifies the current boundary without changing lifecycle order, adding a
+seal or deciding durable attempt/publication records.

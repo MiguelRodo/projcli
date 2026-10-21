@@ -225,3 +225,12 @@ integration constraint, not authorization to implement M2 persistence.
 Backend choice must preserve proj's logical directory labels/roles and path
 abstraction; analysis code must not require DVC-specific physical paths. DVC's
 physical tracking distinction does not imply an absence of named stages/config.
+
+
+Keep optional-Git integration evidence in tests/test_real_git_publication.rs:
+actual local repository/bare upstream, non-main/differently named tracking ref,
+explicit push settings, real no-op provider commits and rejected-push versus
+analysis-failure outcomes. Compare complete upstream branch refs and actual
+committed/final/cache bytes. Restrict fixture transports to local files and use
+per-command isolated Git configuration; never mutate parent environment. This
+does not settle sealing, persistence or remote hosting/provider contracts.
