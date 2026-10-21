@@ -45,7 +45,7 @@ fn unreadable_root_scan_keeps_phase_and_cause_before_hooks_or_managed_writes() {
             assert_eq!(envelope["protocol_version"], 1);
             assert_eq!(envelope["error"]["code"], "command_failed");
             let phase = if explicit_empty { "Cannot enumerate managed project state at" } else { "Cannot enumerate fallback scripts at" };
-            assert!(diagnostic.contains(phase), "{diagnostic}");
+            assert!(diagnostic.contains(&format!("{phase} {}", root.display())), "{diagnostic}");
             assert!(diagnostic.to_lowercase().contains("permission denied"), "{diagnostic}");
             assert_eq!(fs::read(root.join("cache/previous")).unwrap(), b"prior cache");
             assert_eq!(fs::read_dir(root.join("cache")).unwrap().count(), 1);

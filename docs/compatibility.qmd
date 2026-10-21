@@ -1711,3 +1711,10 @@ scope clarification; no new binary release or local heavy testing is needed.
   Lifecycle ordering stays fixed; the diagram names enumeration within recovery
   capture. No local Rust/R/Quarto tests; source fixes remain newer than installed
   preview.2. Broader discovery and contextual-error audits remain open.
+
+
+Independent review refinement: both per-entry iterator error contexts now retain
+the known project root as well as phase and OS cause. The unprivileged opening-scan
+fixture asserts the phase/root pair explicitly; it does not claim deterministic
+mid-iteration I/O fault injection. No new helper or fault-injection framework.
+The amended exact head requires fresh remote gates and independent delta review.

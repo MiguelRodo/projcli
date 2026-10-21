@@ -344,7 +344,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     for entry in fs::read_dir(project_root)
         .with_context(|| format!("Cannot enumerate managed project state at {project_root}"))?
     {
-        let entry = entry.context("Cannot read managed project-state directory entry")?;
+        let entry = entry.with_context(|| format!("Cannot read managed project-state directory entry at {project_root}"))?;
         if entry.file_type().with_context(|| format!("Cannot inspect managed project entry {}", entry.path().display()))?.is_file() {
             managed.push(entry.path());
         }
@@ -972,7 +972,7 @@ pub(crate) fn resolve_fallback_scripts(project_root: &camino::Utf8Path) -> anyho
     let mut py = Vec::new();
 
     for entry in entries {
-        let entry = entry.context("Cannot read fallback script directory entry")?;
+        let entry = entry.with_context(|| format!("Cannot read fallback script directory entry at {project_root}"))?;
         let file_type = entry.file_type()
             .with_context(|| format!("Cannot inspect fallback script entry {}", entry.path().display()))?;
         if !file_type.is_file() { continue; }
