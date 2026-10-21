@@ -1483,3 +1483,9 @@ remain exact and matched; remote docs checks and native-browser witness are reta
 Ponytail full: reuse existing release/install pipeline and acceptance artifacts;
 one candidate page linked from existing docs, no new tool or installer mechanism.
 Remote rendered docs checks and independent review remain required.
+
+Candidate acceptance wording follows PR163 review: distinguish ordinary generated
+output/archive preservation under none from successful document replacement.
+Require exact final/object bytes, expected manifest/index release and next-dev
+versions, corruption probes, immediate init directories and a failing Git-call
+witness. Record the project embedding preparation/input restrictions explicitly.

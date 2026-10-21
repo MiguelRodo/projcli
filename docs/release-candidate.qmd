@@ -42,6 +42,10 @@ targets always execute one by one in the order written.
 - Individual rendering still rejects unsupported inherited/external metadata
   and unsupported layouts. Quarto project metadata remains a separate supported
   path; nested Quarto projects are rejected.
+- Project fallback requires modeled text inputs and temporarily prepares only
+  unspecified HTML options. It restores original source bytes. Changing a prepared
+  source or native input set before rendering is rejected; other input types need
+  explicit renderer embedding settings.
 - Explicitly nonembedded HTML may need its original resources. Literal Markdown
   and LaTeX references keep their native meaning; no resource URLs are rewritten.
 - Preview recovery covers recorded managed paths. It does not isolate arbitrary
@@ -76,9 +80,14 @@ proof that the installed preview or final candidate contains every change.
 3. Inspect the JSON and downloadable files from both acceptance drivers. Confirm
    configured/no-init and actual local directory initialization; ordered
    Python/R/report steps; computed CSV value 84; four relocated embedded reports;
-   structured deliberate failures; unchanged prior final-output/archive bytes;
-   and two new local archive manifests for each successful production case.
-   Preview/failure cases must create no archive manifests.
+   structured deliberate failures; unchanged prior ordinary generated-output/archive
+   bytes under none; prior docs preserved on preview/failure and replaced on
+   successful document finalization; and exactly two expected-role local archive
+   manifests for each successful production case, with object bytes matching the
+   CSV/report witnesses and index/manifests identifying release1.2.4. Require the
+   final project VERSION to be next-dev1.2.4.1.
+   Preview/failure cases must create no archive manifests. Require the corruption
+   probes, immediate init-directory checks and failing Git-call witness as well.
 4. Require the R-data undeclared/explicit/legacy activation matrix and embedding
    unspecified/explicit/inherited-false matrix on the same integrated source.
    A previous green branch is supporting evidence, not a substitute.

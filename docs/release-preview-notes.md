@@ -27,8 +27,11 @@ claimed.
 
 Prepared remote acceptance covers manual configuration and fresh local directory
 initialization, ordered real Python/R/report steps, a computed CSV and embedded
-report, deliberate structured failures, prior final/archive preservation and local
-archive publication without Git credentials. Final acceptance must rerun on the
+report, deliberate structured failures, ordinary generated-output/archive preservation
+under none and local archive publication without Git credentials. Prior document
+outputs are preserved on preview/failure and replaced by successful finalization.
+Final files and archived object bytes must match the computed witnesses; manifest/
+index release and next-development versions are checked, with corruption probes. Final acceptance must rerun on the
 reviewed integrated source; a stacked preparation pass does not complete M1.
 
 Delivery remains checked Linux/WSL and Windows x86-64 binaries. No Rust compiler or
