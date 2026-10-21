@@ -84,7 +84,7 @@ flowchart TB
   C["[R/T] Validate typed configuration<br/>and explicit resource mappings"]
   D["[R] Capture root, profiles,<br/>mappings, mode and active run<br/>version"]
   E["[R/T] Preflight inputs and exclusion<br/>syntax, targets, dependencies and<br/>enabled Git prerequisites"]
-  F["[R] Capture bounded managed<br/>recovery state before controlled<br/>writes"]
+  F["[R] Enumerate and capture managed<br/>recovery state before controlled<br/>writes"]
   G["[R] Run configured start hooks"]
   H["[R] Complete remaining safe<br/>staging, renderer and allowed<br/>metadata preparation"]
   A --> B --> C --> D --> E --> F --> G --> H
@@ -110,6 +110,9 @@ flowchart TB
   sanitization guarantee.
   The malformed-exclusion correction is current-source work newer than preview.2;
   it fails in this preflight stage, without changing stage order or recovery scope.
+  Current-source fallback directory/entry errors also stop here. The recovery
+  capture stage reports its own enumeration phase and OS cause before controlled
+  project writes. These diagnostics are newer than preview.2; ordering is unchanged.
 - Start/end refer to the existing pre/both and post/both hook sets, not new
   hook types. Their placement follows the controlled lifecycle shown here.
 - Recovery capture must precede hooks and managed mutations. Cache/staging setup,

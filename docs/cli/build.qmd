@@ -78,6 +78,14 @@ Explicit script/hook include patterns must match at least one file. Use an empty
 list (`scripts: []`) when intentionally selecting no analysis; unmatched configured
 includes return an error instead of a successful no-op.
 
+Current source reports directory-enumeration and entry-inspection errors instead
+of treating a failed fallback scan as an empty selection. Errors name whether
+fallback discovery or managed-state capture failed and retain the OS cause.
+The sweep stays shallow, alphabetically ordered within each language, and skips
+linked entries; hidden and Git-ignored regular scripts remain eligible. This
+diagnostic correction is newer than preview.2, whose permission failure may
+appear later as a bare OS error.
+
 Current source also validates every script/hook exclusion pattern before hooks,
 analysis, clearing or controlled build writes. A malformed pattern such as ![[
 fails with a nonzero structured error instead of silently running excluded code.

@@ -194,3 +194,11 @@ exclusion-only selections. Never turn malformed exclusions into silent no-ops or
 shell commands. Reuse the shared resolver and preserve valid first-match order,
 deduplication, explicit-empty semantics and literal root handling. Source fixes
 newer than preview.2 do not update the published/installed binary automatically.
+
+
+Fallback discovery must propagate root/entry/type-inspection failures instead of
+silently selecting no or fewer scripts. Keep its existing shallow regular-file,
+no-link, language/alphabetical ordering and hidden/Git-ignored behavior. Root
+enumeration during managed-state capture must retain phase and OS error context.
+Permission fixtures run unprivileged and restore owned directory modes before
+assertions; no new traversal, sandbox or persistence contract is implied.
