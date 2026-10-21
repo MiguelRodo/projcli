@@ -144,3 +144,8 @@ activates writes. Only explicit canonical or per-layer normalized legacy data
 declarations enter ordinary output clearing/recovery/promotion/publication.
 Reject redirection and alias conflicts before merge; no special preservation
 policy, new language roles or edits to the existing R package.
+
+Before the next preview release, follow docs/release-candidate.qmd. Keep the
+published/installed version distinct from source changes; rerun exact integrated
+acceptance before the reviewed version/tag/assets/publication/WSL sequence.
+Unchanged Bookdown site embedding and other deferred limits must stay explicit.

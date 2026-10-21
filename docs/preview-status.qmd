@@ -1,5 +1,9 @@
 # Preview feature status
 
+The published and installed development binary remains 0.4.0-preview.1. The
+[next-preview release checks](release-candidate.qmd) distinguish newer source
+slices and pending integrated delivery from that installed version.
+
 This is an early Rust CLI for disposable analysis projects. A development preview
 does not mean the complete roadmap is finished. Use independent backups and sample
 data while evaluating it. The existing projr R package and thesis remain unchanged.

@@ -15,6 +15,10 @@ Previews are not a security sandbox; code you run can still change files.
 
 The published [v0.4.0-preview.1](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1)
 is an early development release. These instructions pin that version.
+The next preview has not been published or installed yet. These commands
+intentionally keep the verified existing version. See the
+[next-preview checks](release-candidate.qmd) for pending changes and delivery steps.
+
 GitHub's stable **Latest** release is still v0.3.0; it does not contain the
 current preview features or the new binary-delivery metadata.
 
