@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -282,6 +282,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#explicit-safefinal-resource-lookup-and-fragments" id="toc-explicit-safefinal-resource-lookup-and-fragments" class="nav-link" data-scroll-target="#explicit-safefinal-resource-lookup-and-fragments">Explicit safe/final resource lookup and fragments</a></li>
   <li><a href="#path-representation-and-bounded-renderer-descriptor" id="toc-path-representation-and-bounded-renderer-descriptor" class="nav-link" data-scroll-target="#path-representation-and-bounded-renderer-descriptor">Path representation and bounded renderer descriptor</a></li>
   <li><a href="#development-and-renderer-diagnostic-image" id="toc-development-and-renderer-diagnostic-image" class="nav-link" data-scroll-target="#development-and-renderer-diagnostic-image">Development and renderer diagnostic image</a></li>
+  <li><a href="#digest-only-devcontainer-reference" id="toc-digest-only-devcontainer-reference" class="nav-link" data-scroll-target="#digest-only-devcontainer-reference">Digest-only devcontainer reference</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -652,6 +653,16 @@ ul.task-list li input[type="checkbox"] {
 <li><strong>Published evidence:</strong> source <code>78bb081f077a974f3179b0a8a60c7efbc0f1e79a</code> passed the <a href="https://github.com/MiguelRodo/devcontainers/actions/runs/39564970855">normal v1.0.0 publication</a>. The consumer pins <code>ghcr.io/miguelrodo/devcontainers-projcli:v1.0.0</code> plus digest <code>sha256:a58a8a4dd6f0be83879d08b3a43ab92e256425bbfb81372b257d77a7ff9077f9</code>. <a href="https://github.com/MiguelRodo/devcontainers/actions/runs/39565799754">Remote registry-image verification</a> selected that digest without feature installation, reported image version v1.0.0 and passed Rust/Python sibling-input checks and R Markdown/Quarto HTML/PDF renders. Exact embedded PNG bytes and decoded PDF image pixels survive output relocation with sources unavailable; automatic TeX package installation is off. A fresh nonempty witness is required after the container action.</li>
 <li><strong>Comparison limits:</strong> diagnostic source <code>488adaf727668bdd6c3f46c544e3801ce92de24b</code> and its unchanged projr baseline <code>90be50132d16aee33e39c0f7f35ef906c35f5397</code> informed test scope only. They are not dependencies or runtime parity claims. The publisher’s URL/comment-parser limitation and serialization-only fix are documented in <a href="https://github.com/MiguelRodo/devcontainers/pull/15">devcontainers PR15</a>.</li>
 <li><strong>Ponytail full-mode review:</strong> one immutable prebuilt-image reference and existing editor extensions; no duplicate image definition, project setup hooks, new runtime dependencies, credential/auth state, host home/socket mounts, capability overrides or path-policy changes. Existing core compatibility text is preserved. Published-image smokes do not verify local editor usability, Codex login or complete M1/M2 behavior. All heavy work ran remotely; no local Docker/R/render/ compilation was performed. Consumer CI and independent final review remain gates.</li>
+</ul>
+</section>
+<section id="digest-only-devcontainer-reference" class="level2">
+<h2 class="anchored" data-anchor-id="digest-only-devcontainer-reference">Digest-only devcontainer reference</h2>
+<ul>
+<li><strong>Same immutable image; different reference spelling.</strong> Keep digest <code>sha256:a58a8a4dd6f0be83879d08b3a43ab92e256425bbfb81372b257d77a7ff9077f9</code>, use <code>devcontainers-projcli@sha256:...</code> in the consumer, and retain published version v1.0.0 in the environment README. No rebuild or publication is required.</li>
+<li><strong>Actual user startup:</strong> the supplied CLI 0.87.0 log reports outcome success, remoteUser <code>rstudio</code> and workspace <code>/workspaces/projcli</code>. Its combined <code>:v1.0.0@sha256:...</code> form triggers the CLI registry-metadata parser warning, while Docker accepts the image and startup succeeds. This warning does not establish a failed container launch. Editor attachment and Codex login remain separate. The generated updateUID Dockerfile’s <code>InvalidDefaultArgInFrom</code> warning is distinct and its generated file is not edited here.</li>
+<li><strong>Source/decision:</strong> CLI <a href="https://github.com/devcontainers/cli/tree/65f98a518a1f62355a08e6f38e9d6bfb9a0d8ac9">v0.87.0</a> <code>spec-node/utils.ts</code> attempts registry metadata before a fallback Docker pull; <code>spec-configuration/containerCollectionsOCI.ts</code> parses digest references. Prefer the digest-only spelling that this path supports, retaining the exact published image and non-root user rather than changing parser/runtime settings.</li>
+<li><strong>Verification:</strong> a narrow remote CLI 0.87.0 <code>read-configuration</code> check starts without a cached image, reads and merges registry metadata, checks the exact digest and <code>rstudio</code> remote/container users, rejects metadata parser warnings, and rejects a fallback Docker pull. Only a safe summary is printed; no full merged environment/configuration or credential data is exposed. CI and final independent review remain gates at preparation.</li>
+<li><strong>Ponytail full review:</strong> one reference edit, version annotation retained and one native metadata-read regression. No image rebuild, generated Dockerfile edit, path behavior, R package/source, credential, broad setting or running container changes. User working files remain untouched; checks run remotely.</li>
 </ul>
 
 
