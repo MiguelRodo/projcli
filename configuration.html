@@ -80,7 +80,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -301,6 +301,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#development-overrides" id="toc-development-overrides" class="nav-link" data-scroll-target="#development-overrides">Development Overrides</a></li>
   <li><a href="#environment-variables" id="toc-environment-variables" class="nav-link" data-scroll-target="#environment-variables">Environment Variables</a></li>
   <li><a href="#runtime-settings-and-output-clearing" id="toc-runtime-settings-and-output-clearing" class="nav-link" data-scroll-target="#runtime-settings-and-output-clearing">Runtime settings and output clearing</a></li>
+  <li><a href="#r-package-data" id="toc-r-package-data" class="nav-link" data-scroll-target="#r-package-data">R package data</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -316,12 +317,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>The <code>_proj.yml</code> file dictates the structural map of your project. It configures the foundational paths and mapping logic used by the CLI.</p>
 <section id="schema-rules-and-foundational-prefixes" class="level2">
 <h2 class="anchored" data-anchor-id="schema-rules-and-foundational-prefixes">Schema Rules and Foundational Prefixes</h2>
-<p>Custom directory labels are strictly validated against a set of foundational prefixes: - <code>cache</code> - <code>raw</code> - <code>data</code> - <code>output</code> - <code>docs</code></p>
+<p>Custom directory labels are strictly validated against a set of foundational prefixes: - <code>cache</code> - <code>raw</code> - <code>output</code> - <code>docs</code></p>
 <p>These prefixes are <strong>case-insensitive</strong>. Any label defined in the configuration must begin with one of these approved identifiers.</p>
 </section>
 <section id="explicit-paths-and-local-initialization" class="level2">
 <h2 class="anchored" data-anchor-id="explicit-paths-and-local-initialization">Explicit paths and local initialization</h2>
-<p>Every declared directory needs a nonempty <code>path</code>. Runtime does not insert missing cache/raw/output/data/docs mappings or synthesize subpaths for undeclared labels. For example, declaring <code>raw-data: {path: _raw_data}</code> makes <code>raw-data</code> available; it does not create an undeclared <code>raw</code> or <code>raw-data-extra</code> resource. ASCII case is ignored and case-only duplicate labels are rejected.</p>
+<p>Ordinary declared directories need a nonempty <code>path</code>. The fixed R-package role <code>output-r-data: {}</code> is the exception: its final destination is project/data. Runtime does not insert other missing cache/raw/output/docs mappings or synthesize subpaths for undeclared labels. Canonical data/data-* labels are rejected; see the R-package data section for the legacy per-layer data alias. For example, declaring <code>raw-data: {path: _raw_data}</code> makes <code>raw-data</code> available; it does not create an undeclared <code>raw</code> or <code>raw-data-extra</code> resource. ASCII case is ignored and case-only duplicate labels are rejected.</p>
 <p><code>proj --project . --non-interactive init directories</code> creates a missing <code>_proj.yml</code> once with explicit <code>raw-data: _raw_data</code>, <code>cache: _tmp</code>, and <code>output: _output</code> paths. It preserves existing base/profile files, creates only declared resource directories, and does not invoke Git/GitHub or add an R code directory. The preset omits <code>build.scripts</code>, preserving shallow discovery; it never serializes an accidental empty analysis list. To render documents, declare a <code>docs</code> mapping too.</p>
 <p>Production state and project-render staging require a declared <code>cache</code> directory. Framework version/staging children are derived inside that declared cache; this is distinct from inventing undeclared resource labels. Storage <code>content</code> labels must be declared and relative storage paths use the captured project root.</p>
 </section>
@@ -421,6 +422,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">execution-directory</span><span class="kw">:</span><span class="at"> native</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">path-representation</span><span class="kw">:</span><span class="at"> auto</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Use none to preserve other existing final files, pre to clear immediately before analysis, or post to clear immediately after successful analysis and before output promotion/finalization. Preview never clears released outputs. Pre-hooks run before pre-clear; end hooks run after finalization immediately before the next-dev bump. The command’s explicit –output-clear-stage overrides merged settings; those override legacy build.clear_output, then PROJR_CLEAR_OUTPUT, then the new none default. Legacy never is accepted in the legacy field/environment. The canonical settings key accepts only none/pre/post, with invalid values/null rejected before merge or mutation. <code>execution-directory</code> accepts native/project; explicit <code>--execution-dir</code> wins over merged settings, then native is the fallback. Native scripts inherit launch cwd; native document execution remains renderer-defined. <code>path-representation</code> accepts auto/absolute/relative; explicit path-query <code>--format</code> wins over merged settings, then auto is the fallback. Auto is caller-relative ordinarily and absolute in a known managed renderer. Both settings reject null, booleans and unknown values in each active file before merging. Managed child queries retain the captured representation policy even if scripts change configuration, profiles or cwd. Safe is the default path target; final must be explicitly requested. Docs output handling and the R-data built-in remain separately modeled features.</p>
+</section>
+<section id="r-package-data" class="level2">
+<h2 class="anchored" data-anchor-id="r-package-data">R package data</h2>
+<p>The built-in output-r-data lookup has fixed final destination project/data, even without YAML. Querying never activates build management or creates directories. Safe lookup needs the selected declared cache and active version.</p>
+<p>To opt into ordinary output clearing and success-only promotion:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">directories</span><span class="kw">:</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">cache</span><span class="kw">:</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">path</span><span class="kw">:</span><span class="at"> _tmp</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">output-r-data</span><span class="kw">:</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ignore</span><span class="kw">:</span><span class="at"> </span><span class="kw">[]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>An empty output-r-data mapping also activates the role, with ordinary default ignore rules. Explicit ignore: [] includes package data in Git and R builds. The path may be omitted; if present it must resolve to project/data. Redirection is forbidden. settings.output-clear-stage applies normally: pre/post clears old package data; the default none preserves other final files. Preview never promotes final data.</p>
+<p>Legacy _projr.yml and active _projr-*.yml layers accept data as an alias and normalize it before merging, including legacy remote content labels. Defining both aliases in one layer is an error. Canonical _proj.yml requires output-r-data. Generic data-* labels are unsupported; use raw-* inputs or ordinary output-* mappings.</p>
 
 
 </section>

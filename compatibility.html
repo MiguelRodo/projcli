@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -291,6 +291,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#digest-only-devcontainer-reference" id="toc-digest-only-devcontainer-reference" class="nav-link" data-scroll-target="#digest-only-devcontainer-reference">Digest-only devcontainer reference</a></li>
   <li><a href="#cache-backed-consumers-and-output-lifecycle" id="toc-cache-backed-consumers-and-output-lifecycle" class="nav-link" data-scroll-target="#cache-backed-consumers-and-output-lifecycle">Cache-backed consumers and output lifecycle</a></li>
   <li><a href="#safeauto-defaults-and-merged-runtime-policies" id="toc-safeauto-defaults-and-merged-runtime-policies" class="nav-link" data-scroll-target="#safeauto-defaults-and-merged-runtime-policies">Safe/auto defaults and merged runtime policies</a></li>
+  <li><a href="#r-package-data-role-normalization-and-explicit-activation" id="toc-r-package-data-role-normalization-and-explicit-activation" class="nav-link" data-scroll-target="#r-package-data-role-normalization-and-explicit-activation">R-package data role normalization and explicit activation</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -709,6 +710,19 @@ ul.task-list li input[type="checkbox"] {
 <li><strong>Ponytail full:</strong> reuse the existing resolver, representation and run-context machinery; no duplicate schema, new dependency or wrapper implementation.</li>
 </ul>
 <p>Initial remote default checks passed the new settings/snapshot regressions but found two older queries still assuming final/absolute results, plus the site example checker’s absolute-only assertion. Those queries now explicitly request their original modes; the checker resolves returned paths against the actual query cwd and still verifies the exact cache identity. The published native-browser lifecycle witness, workflow triggers/permissions and installation checks are unchanged. Final amended-head checks remain required.</p>
+</section>
+<section id="r-package-data-role-normalization-and-explicit-activation" class="level2">
+<h2 class="anchored" data-anchor-id="r-package-data-role-normalization-and-explicit-activation">R-package data role normalization and explicit activation</h2>
+<ul>
+<li><strong>Same intended R convention:</strong> pinned projr 90be50132d16aee33e39c0f7f35ef906c35f5397 R/dir-get.R and projr_use_data identify package-generated .rda data, distinct from raw inputs.</li>
+<li><strong>Different/new, approved:</strong> canonical output-r-data has fixed final project/data; built-in lookup works without a declaration, but safe lookup still needs the selected declared cache and active version. Queries never activate writes. Only explicit output-r-data or normalized legacy data activates ordinary output cleanup/recovery/promotion/publication inventory. No special preserve policy. Legacy aliases and remote content normalize per original layer before merging; conflicts/redirection fail early. Generic data-* labels are rejected.</li>
+<li><strong>Tests added, remote execution pending:</strong> no-YAML final lookup; safe-cache identity and query nonmutation; profile/local alias precedence and invalid layers; legacy remote content; undeclared/canonical/legacy build matrix across none/pre/post, preview and deliberate failure with exact final/cache witnesses. Earlier generic data tests now use ordinary output-generated labels.</li>
+<li><strong>Ponytail full review:</strong> reused the resolver, merged configuration loader and existing output inventories. Removed the unpublished role-specific ignore default; ordinary ignore rules apply and docs explicitly show ignore: [] for package inclusion. No dependencies, Python/Julia/inst roles, helper edits or R/IDE parity claims. Existing guards and lifecycle order are unchanged.</li>
+</ul>
+<p>Initial remote platform checks found a stale expected safe-cache leaf in the renamed generic output fixture. Corrected data/artifact.txt to output-generated/artifact.txt; the deliberate exit17 witness already passed. Exact amended-head remote checks and independent review remain required.</p>
+<p>The pinned acceptance workflow also runs cargo doc –locked –no-deps to satisfy the repository API-documentation check remotely, using the same existing image.</p>
+<p>Remote macOS checks caught two direct-library fixtures using the system /var temporary-directory symlink. Resolve their owned temporary roots first, matching the existing guarded-write fixture convention; do not weaken symlink validation. Linux/Windows R-data cases and pinned actual-render/API-doc checks passed before this fixture-only correction. Final exact-head checks remain required.</p>
+<p>Independent review cleared runtime and activation at 685bf8f. Corrected the configuration overview and DirConfig documentation to state canonical prefix rules and the fixed-role path exception consistently. The legacy remote test proves normalization/validation, not actual CAS publication. No runtime changes.</p>
 
 
 </section>

@@ -80,7 +80,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -295,6 +295,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#nearest-root-discovery" id="toc-nearest-root-discovery" class="nav-link" data-scroll-target="#nearest-root-discovery">Nearest-root discovery</a></li>
   <li><a href="#explicit-safe-lookup-and-file-fragments" id="toc-explicit-safe-lookup-and-file-fragments" class="nav-link" data-scroll-target="#explicit-safe-lookup-and-file-fragments">Explicit safe lookup and file fragments</a></li>
   <li><a href="#representation-and-explicit-renderer-context" id="toc-representation-and-explicit-renderer-context" class="nav-link" data-scroll-target="#representation-and-explicit-renderer-context">Representation and explicit renderer context</a></li>
+  <li><a href="#r-package-data-lookup-versus-activation" id="toc-r-package-data-lookup-versus-activation" class="nav-link" data-scroll-target="#r-package-data-lookup-versus-activation">R package data lookup versus activation</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -311,7 +312,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> path get <span class="at">--label</span> <span class="op">&lt;</span>LABEL<span class="op">&gt;</span> [--target final<span class="kw">|</span><span class="ex">safe]</span> [--format auto<span class="kw">|</span><span class="ex">absolute</span><span class="kw">|</span><span class="ex">relative]</span> [--relative-to BASE] [--project <span class="op">&lt;</span>PATH<span class="op">&gt;</span>] [PART ...]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <section id="declared-directory-paths" class="level2">
 <h2 class="anchored" data-anchor-id="declared-directory-paths">Declared directory paths</h2>
-<p>A label must be declared in the active configuration with a nonempty <code>path</code>. ASCII case is ignored. Undeclared labels and suffixes are errors: declaring <code>raw-data</code> does not declare <code>raw</code> or <code>raw-data-extra</code>. Relative paths resolve against the captured project root; explicit external directories are allowed. Queries do not create directories. Safe lookup is the default and resolves generated output into the versioned cache. Use <code>--target final</code> for the configured released destination.</p>
+<p>Ordinary labels must be declared in the active configuration with a nonempty <code>path</code>. ASCII case is ignored. Undeclared labels and suffixes are errors: declaring <code>raw-data</code> does not declare <code>raw</code> or <code>raw-data-extra</code>. Relative paths resolve against the captured project root; explicit external directories are allowed. Queries do not create directories. Safe lookup is the default and resolves generated output into the versioned cache. Use <code>--target final</code> for the configured released destination.</p>
 </section>
 <section id="explicit-and-inherited-project-root" class="level2">
 <h2 class="anchored" data-anchor-id="explicit-and-inherited-project-root">Explicit and inherited project root</h2>
@@ -328,7 +329,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="explicit-safe-lookup-and-file-fragments" class="level2">
 <h2 class="anchored" data-anchor-id="explicit-safe-lookup-and-file-fragments">Explicit safe lookup and file fragments</h2>
-<p><code>--target safe</code> maps declared output/data/docs-class labels to <code>&lt;selected-cache&gt;/projr/v&lt;active-version&gt;/&lt;exact-declared-label&gt;</code>. One explicit <code>safe: true</code> cache wins; otherwise eligible exact label <code>cache</code> wins, then the first eligible cache in merged declaration order. <code>safe: false</code> excludes a candidate. The chosen label is captured for child queries. A release version has no dev suffix; dev cache keys use a hyphen, such as <code>v1.2.3-4</code>. Other roles retain their configured targets.</p>
+<p><code>--target safe</code> maps declared output/docs-class labels to <code>&lt;selected-cache&gt;/projr/v&lt;active-version&gt;/&lt;exact-declared-label&gt;</code>. One explicit <code>safe: true</code> cache wins; otherwise eligible exact label <code>cache</code> wins, then the first eligible cache in merged declaration order. <code>safe: false</code> excludes a candidate. The chosen label is captured for child queries. A release version has no dev suffix; dev cache keys use a hyphen, such as <code>v1.2.3-4</code>. Other roles retain their configured targets.</p>
 <p><code>--target final</code> addresses the explicitly configured destination, including an absolute external directory. The CLI defaults to <code>safe</code>; production promotion is a separate build step. Path queries do not promote anything.</p>
 <p>Optional parts extend the selected role, for example:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> path get <span class="at">--label</span> output <span class="at">--target</span> safe figures result.png</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -339,6 +340,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><code>--format auto</code> returns a caller-cwd-relative filesystem path in ordinary execution and an absolute target in an explicitly known managed render child. It never infers render context from a .qmd filename, project marker or cwd. <code>absolute</code> and <code>relative</code> override auto. Explicit <code>--relative-to cwd|project|document|/absolute/base</code> requires relative format; document requires an individually known render document. Project renders without a single document reject that base. A custom base must be absolute.</p>
 <p>Strict relative conversion fails across roots/drives. Auto ordinary execution falls back to absolute when no relative path exists; the absolute target stays identical. The CLI defaults to safe targets and auto representation. Merged <code>settings.path-representation</code> may select auto/absolute/relative; an explicit <code>--format</code> overrides it. The default is frozen with managed child context, while relative paths are expressed against each query caller’s current cwd. Getters create no directories.</p>
 <p>Renderer descriptors are private per-command snapshots created only when launching Quarto/rmarkdown/Bookdown, alongside unchanged root/profile/version/mapping inputs. Ordinary scripts and dependency probes keep ordinary context. Existing R helpers do not consume this descriptor; direct IDE rendering does not gain automatic parity. Absolute results are filesystem targets, not literal Markdown/LaTeX URL rewrites.</p>
+</section>
+<section id="r-package-data-lookup-versus-activation" class="level2">
+<h2 class="anchored" data-anchor-id="r-package-data-lookup-versus-activation">R package data lookup versus activation</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> path get <span class="at">--label</span> output-r-data <span class="at">--target</span> final</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> path get <span class="at">--label</span> output-r-data result.rda</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The first returns project/data even without YAML; the second derives a safe target from the selected declared cache and active version. Neither creates directories nor activates cleanup, recovery, promotion or publication of package data. Explicitly declare directories.output-r-data: {} to activate ordinary output management. Legacy _projr data declarations normalize before merging. Its final destination cannot be redirected. There is no special preservation policy: configured pre/post clearing applies normally; preview never promotes.</p>
+<p>Built-in project lookup returns the selected root. No Python, Julia or inst role is introduced; use ordinary output mappings or proj path get –label project inst for a root-relative fragment.</p>
 
 
 </section>
