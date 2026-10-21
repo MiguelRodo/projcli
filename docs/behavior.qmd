@@ -472,6 +472,17 @@ the still-open configuration, identity, sealing, manifest and backend contracts.
 This records design only; current runtime behavior is unchanged.
 
 
+## Real local Git publication acceptance
+
+Real temporary Git repositories and a bare upstream now exercise the existing
+optional-publication contract: configured non-main/differently named upstream,
+explicitly disabled push, no-op provider commits, non-fast-forward rejection and
+an analysis-failure comparison. Check actual branch refs, committed/final/cache
+bytes and release/development versions. This adds acceptance evidence; current
+branch and publication order stay unchanged. Durable publication records,
+sealing and the future release catalogue are not implemented by these tests.
+
+
 ## Inventory transition groundwork
 
 Existing explicit CAS ingestion has a fixture for exact current path/hash sets

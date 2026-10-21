@@ -227,6 +227,21 @@ abstraction; analysis code must not require DVC-specific physical paths. DVC's
 physical tracking distinction does not imply an absence of named stages/config.
 
 
+Keep optional-Git integration evidence in tests/test_real_git_publication.rs:
+actual local repository/bare upstream, non-main/differently named tracking ref,
+explicit push settings, real no-op provider commits and rejected-push versus
+analysis-failure outcomes. Compare complete upstream branch refs and actual
+committed/final/cache bytes. Restrict fixture transports to local files and use
+per-command isolated Git configuration; never mutate parent environment. This
+does not settle sealing, persistence or remote hosting/provider contracts.
+
+The real-Git no-op provider must run in a fixture-controlled subprocess because
+SystemGit::new inherits the process environment. Clear inherited GIT_* overrides
+for every fixture command before setting its scoped config/file-only transport.
+Keep the hostile-inheritance victim-tree witness; do not call set_var/remove_var
+globally from parallel tests or introduce production APIs solely for test setup.
+
+
 Inventory groundwork must test existing explicit CAS snapshots against known
 path/content fixtures, including changed bytes, additions, renames and deletions.
 Preserve previous evidence across ordinary ingestions. Do not infer a future
