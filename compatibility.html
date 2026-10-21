@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -298,6 +298,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#m1-local-cli-acceptance-boundary" id="toc-m1-local-cli-acceptance-boundary" class="nav-link" data-scroll-target="#m1-local-cli-acceptance-boundary">M1 local CLI acceptance boundary</a></li>
   <li><a href="#repository-root-artifact-cleanup" id="toc-repository-root-artifact-cleanup" class="nav-link" data-scroll-target="#repository-root-artifact-cleanup">Repository root artifact cleanup</a></li>
   <li><a href="#fail-closed-on-malformed-script-and-hook-exclusions" id="toc-fail-closed-on-malformed-script-and-hook-exclusions" class="nav-link" data-scroll-target="#fail-closed-on-malformed-script-and-hook-exclusions">Fail closed on malformed script and hook exclusions</a></li>
+  <li><a href="#contextual-build-root-scans-without-silent-discovery-errors" id="toc-contextual-build-root-scans-without-silent-discovery-errors" class="nav-link" data-scroll-target="#contextual-build-root-scans-without-silent-discovery-errors">Contextual build root scans without silent discovery errors</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -784,6 +785,17 @@ ul.task-list li input[type="checkbox"] {
 <li><strong>Verification:</strong> new CLI regressions cover production/preview invalid script, pre/post/both hook and exclusion-only selections. Require structured nonzero errors before hooks/analysis/cache/ignore/version writes or final/archive changes. Valid exclusions still retain order, deduplicate and select explicitly requested git-ignored files in a space/metacharacter root. Full remote host and pinned-image Rust/API-doc/real-renderer/combined acceptance remain required.</li>
 <li><strong>Ponytail full:</strong> fix the shared parser once for preflight and later hook dispatch; reuse glob::Pattern, existing filesystem namespace conversion and machine errors. Remove the repeated per-file parse and silent error branch; no dependency, helper framework or public API addition. Lifecycle ordering is unchanged; its preflight node now names exclusion syntax. Human docs distinguish this source fix from unchanged published/installed preview.2. Broader discovery audit, source records and M2 design remain incomplete.</li>
 </ul>
+</section>
+<section id="contextual-build-root-scans-without-silent-discovery-errors" class="level2">
+<h2 class="anchored" data-anchor-id="contextual-build-root-scans-without-silent-discovery-errors">Contextual build root scans without silent discovery errors</h2>
+<ul>
+<li><strong>Different/new vs released Rust:</strong> installed preview.2 source768da1bf failed the writable/searchable-but-unreadable root fixture with only Permission denied. Mainbcc85e3 still discarded fallback read_dir/entry/type errors and later used a context-free root scan to collect managed state. The reproduction is a tiny disposable Python/CLI fixture; it does not reproduce the unknown historical blank-production-error cause and does not prove an old false successful release.</li>
+<li><strong>Decision/scope:</strong> report fallback directory, entry and type failures rather than silently skipping them. Give the separate managed-state root scan its own phase/path context. Retain the underlying OS cause and the existing nonzero machine failure. No new traversal, recording, storage or backend policy.</li>
+<li><strong>Same/unverified relative to projr:</strong> existing R helpers/package are unchanged. Rust follows its approved strict preflight/failure contract; exact R behavior for these permission/entry failures is unverified, not a parity claim.</li>
+<li><strong>Regressions:</strong> unprivileged Unix fixtures keep known config files readable while denying directory enumeration, across preview/production and fallback/ explicit-empty selection. Check phase plus permission cause and unchanged cache/final/archive/version/config/ignore bytes before analysis/controlled writes. Restore owned modes before assertions. A readable cross-platform witness keeps hidden/Git-ignored Python files, alphabetical order and shallow sidecar exclusion; Unix also verifies linked files and a directory-link cycle are not followed. Remote host/pinned/API-doc/real acceptance gates remain required.</li>
+<li><strong>Ponytail full:</strong> reuse existing read_dir, file_type and anyhow contexts, with the same four language groups and sort. Remove flatten/if-let-Ok error dropping; do not introduce an iterator abstraction, fault-injection layer or public API. Lifecycle ordering stays fixed; the diagram names enumeration within recovery capture. No local Rust/R/Quarto tests; source fixes remain newer than installed preview.2. Broader discovery and contextual-error audits remain open.</li>
+</ul>
+<p>Independent review refinement: both per-entry iterator error contexts now retain the known project root as well as phase and OS cause. The unprivileged opening-scan fixture asserts the phase/root pair explicitly; it does not claim deterministic mid-iteration I/O fault injection. No new helper or fault-injection framework. The amended exact head requires fresh remote gates and independent delta review.</p>
 
 
 </section>

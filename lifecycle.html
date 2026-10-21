@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -401,7 +401,7 @@ flowchart TB
   C["[R/T] Validate typed configuration&lt;br/&gt;and explicit resource mappings"]
   D["[R] Capture root, profiles,&lt;br/&gt;mappings, mode and active run&lt;br/&gt;version"]
   E["[R/T] Preflight inputs and exclusion&lt;br/&gt;syntax, targets, dependencies and&lt;br/&gt;enabled Git prerequisites"]
-  F["[R] Capture bounded managed&lt;br/&gt;recovery state before controlled&lt;br/&gt;writes"]
+  F["[R] Enumerate and capture managed&lt;br/&gt;recovery state before controlled&lt;br/&gt;writes"]
   G["[R] Run configured start hooks"]
   H["[R] Complete remaining safe&lt;br/&gt;staging, renderer and allowed&lt;br/&gt;metadata preparation"]
   A --&gt; B --&gt; C --&gt; D --&gt; E --&gt; F --&gt; G --&gt; H
@@ -424,7 +424,7 @@ Figure&nbsp;2: Released pre-build order.
 <ul>
 <li>Root selection, effective profiles, merged configuration and environment must agree before analysis starts. The target assigns <strong>HOW</strong> choices to <code>settings</code> and <strong>WHAT</strong> is selected/run to <code>build</code>; this is not permission to add unknown fields to the installed preview.</li>
 <li>The captured context fixes resource identity and the active run version. In the released implementation, preview retains an existing dev version or uses dev1 of a release without writing VERSION; an output run uses its requested release version throughout the run and leaves the subsequent dev1 only on success.</li>
-<li>Validate declared paths, script/hook include and exclusion syntax, supported renderer plans, dependencies and explicitly enabled Git actions before controlled build writes. Probes can have their own effects: this is not a blanket read-only/environment sanitization guarantee. The malformed-exclusion correction is current-source work newer than preview.2; it fails in this preflight stage, without changing stage order or recovery scope.</li>
+<li>Validate declared paths, script/hook include and exclusion syntax, supported renderer plans, dependencies and explicitly enabled Git actions before controlled build writes. Probes can have their own effects: this is not a blanket read-only/environment sanitization guarantee. The malformed-exclusion correction is current-source work newer than preview.2; it fails in this preflight stage, without changing stage order or recovery scope. Current-source fallback directory/entry errors also stop here. The recovery capture stage reports its own enumeration phase and OS cause before controlled project writes. These diagnostics are newer than preview.2; ordering is unchanged.</li>
 <li>Start/end refer to the existing pre/both and post/both hook sets, not new hook types. Their placement follows the controlled lifecycle shown here.</li>
 <li>Recovery capture must precede hooks and managed mutations. Cache/staging setup, supported renderer preparation and permitted metadata/ignore work finish before the final pre-clear gate. No new metadata/provenance record is implied here.</li>
 <li>A script’s working directory is separate from project identity. Native cwd with an explicit project override, safe resource targets and render-context path presentation are included in preview.2.</li>
