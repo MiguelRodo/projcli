@@ -10,8 +10,8 @@ paths together and explore the documented preview workflow.
 > Previews are not a security sandbox; code you run can still change files.
 
 **Status:** [v0.4.0-preview.2](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.2)
-is a development prerelease, not completion of M1/M2. Stable Latest remains
-v0.3.0 and predates the current preview features.
+delivers M1: a useful local CLI preview with active project configuration.
+It remains a development prerelease. Stable Latest is v0.3.0 and predates these features.
 
 This release includes versioned temporary output paths, explicit R-package data
 management and HTML resource embedding when no embedding option was specified.
@@ -123,6 +123,6 @@ selects no analysis scripts.
 
 The existing R package is unchanged. Matching CLI, RStudio and GUI renderer
 behavior has not yet been proved; new frontend integrations are separate work.
-M1/M2, complete input/code/dependency provenance and analysis-free publication
+M2, complete input/code/dependency provenance and analysis-free publication
 retry remain unfinished. Preview recovery is bounded and does not isolate every
 write or undo arbitrary external effects.

@@ -90,8 +90,10 @@ candidates; a branch preparation pass alone is never delivery evidence.
    the actual supported CLI behavior and deferred limits. Record independent
    clearance before release work advances.
 
-These steps do not close M1 by themselves. The final report must identify the
-accepted scope, exact integrated source and remaining limits.
+Preview.2 delivery satisfies the accepted M1 local CLI scope documented in
+[feature status](preview-status.qmd). For future candidates, record the accepted
+scope, exact integrated source and remaining limits; a preparation-only pass is
+never a release or installation guarantee.
 
 ## Release and WSL installation sequence
 
