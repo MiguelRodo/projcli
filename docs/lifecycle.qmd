@@ -83,7 +83,7 @@ flowchart TB
   B["[R] Resolve profiles and<br/>environment; merge config;<br/>settings HOW / build WHAT"]
   C["[R/T] Validate typed configuration<br/>and explicit resource mappings"]
   D["[R] Capture root, profiles,<br/>mappings, mode and active run<br/>version"]
-  E["[R/T] Preflight selected inputs,<br/>targets, dependencies and enabled<br/>Git prerequisites"]
+  E["[R/T] Preflight inputs and exclusion<br/>syntax, targets, dependencies and<br/>enabled Git prerequisites"]
   F["[R] Capture bounded managed<br/>recovery state before controlled<br/>writes"]
   G["[R] Run configured start hooks"]
   H["[R] Complete remaining safe<br/>staging, renderer and allowed<br/>metadata preparation"]
@@ -104,10 +104,12 @@ flowchart TB
   In the released implementation, preview retains an existing dev version or uses dev1 of a
   release without writing VERSION; an output run uses its requested release
   version throughout the run and leaves the subsequent dev1 only on success.
-- Validate declared paths, selected script/hook inputs, supported renderer plans,
+- Validate declared paths, script/hook include and exclusion syntax, supported renderer plans,
   dependencies and explicitly enabled Git actions before controlled build writes.
   Probes can have their own effects: this is not a blanket read-only/environment
   sanitization guarantee.
+  The malformed-exclusion correction is current-source work newer than preview.2;
+  it fails in this preflight stage, without changing stage order or recovery scope.
 - Start/end refer to the existing pre/both and post/both hook sets, not new
   hook types. Their placement follows the controlled lifecycle shown here.
 - Recovery capture must precede hooks and managed mutations. Cache/staging setup,

@@ -78,6 +78,15 @@ Explicit script/hook include patterns must match at least one file. Use an empty
 list (`scripts: []`) when intentionally selecting no analysis; unmatched configured
 includes return an error instead of a successful no-op.
 
+Current source also validates every script/hook exclusion pattern before hooks,
+analysis, clearing or controlled build writes. A malformed pattern such as ![[
+fails with a nonzero structured error instead of silently running excluded code.
+This includes exclusion-only lists and post/both hook selections. Valid exclusions
+retain include order and first-match deduplication; an exclusion need not match a
+file. This correction is newer than the published preview.2 binary, which can
+silently ignore malformed exclusions. Check exclusion syntax before using that
+installed preview; the source fix does not update it automatically.
+
 
 Native execution policy (supersedes earlier unconditional root-cwd wording):
 `build` and `build-dev` default to `--execution-dir native`. Plain scripts/hooks

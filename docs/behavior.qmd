@@ -40,6 +40,7 @@ actual test evidence, Ponytail reviews and remaining gaps; update it with each P
   Initialization may write familiar projr defaults into configuration; runtime
   must not synthesize missing directory mappings or unknown subpaths.
 - Unsupported behavior-affecting configuration fails before mutations.
+- Explicit script and hook patterns, including exclusions, must have valid glob syntax. Invalid exclusions must fail preflight rather than silently select unintended code. Valid exclusion-only lists may select no files; an empty list still disables analysis.
 - Failed supported builds must restore pre-build state except permitted cache
   residue. This is required behavior, not an implemented transaction guarantee.
 - Storage/publication retries must have an upload-only route without rerunning

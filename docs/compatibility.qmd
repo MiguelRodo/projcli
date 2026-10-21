@@ -1649,3 +1649,34 @@ scope clarification; no new binary release or local heavy testing is needed.
 - **Ponytail full review:** deletion only, plus this required log entry. Reuse
   existing documentation and CI; no cleanup framework, dependency or archive.
   Keep current behavior, divergence history, release evidence and active tooling.
+
+
+## Fail closed on malformed script and hook exclusions
+
+- **Different/new vs released Rust:** installed preview.2, source
+  768da1bf1b83be83b657b36219f299f37130ba03, returned protocol1 success and ran a
+  selected Python script despite malformed ![[. Current main7c45f2a retained the
+  shared resolver's if-let-Ok exclusion parser, which silently dropped errors.
+  Reproduced with a tiny disposable installed-binary preview, not a local build.
+- **Decision and scope:** malformed inclusion/exclusion syntax is a preflight
+  error. Compile every exclusion once in the existing script/hook resolver before
+  enumeration, even when there are no includes. Preserve valid pattern matching,
+  first-match order/deduplication, literal root handling and explicit-empty lists.
+  No recursive walker, command representation, persistence or backend is added.
+- **Same/unverified relative to projr:** existing R package/helpers are unchanged.
+  The Rust correction enforces the approved strict preflight/failure contract;
+  malformed-exclusion parity with a pinned R implementation is unverified and
+  is not claimed. Existing R comparison evidence remains in earlier entries.
+- **Verification:** new CLI regressions cover production/preview invalid script,
+  pre/post/both hook and exclusion-only selections. Require structured nonzero
+  errors before hooks/analysis/cache/ignore/version writes or final/archive
+  changes. Valid exclusions still retain order, deduplicate and select explicitly
+  requested git-ignored files in a space/metacharacter root. Full remote host and
+  pinned-image Rust/API-doc/real-renderer/combined acceptance remain required.
+- **Ponytail full:** fix the shared parser once for preflight and later hook
+  dispatch; reuse glob::Pattern, existing filesystem namespace conversion and
+  machine errors. Remove the repeated per-file parse and silent error branch;
+  no dependency, helper framework or public API addition. Lifecycle ordering is
+  unchanged; its preflight node now names exclusion syntax. Human docs distinguish
+  this source fix from unchanged published/installed preview.2. Broader discovery
+  audit, source records and M2 design remain incomplete.
