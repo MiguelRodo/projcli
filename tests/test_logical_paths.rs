@@ -295,3 +295,25 @@ fn contradictory_or_non_boolean_safe_cache_settings_fail_before_analysis_and_mut
         .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
     assert!(output.status.success(),"cache-free empty preview failed: {}",String::from_utf8_lossy(&output.stderr));
 }
+
+
+#[test]
+fn explicit_null_safe_markers_in_profile_or_local_cannot_inherit_a_base_boolean() {
+    for selected in [true,false] {
+      for local in [false,true] {
+        let project=tempfile::tempdir().unwrap();let root=project.path();
+        fs::write(root.join("VERSION"),"v1.2.3\n").unwrap();
+        fs::write(root.join("_proj.yml"),format!("directories:\n  cache:\n    path: named\n    safe: {selected}\n  cache-other:\n    path: other\n  output:\n    path: released\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n")).unwrap();
+        let layer=if local {"_projr-local.yml"} else {"_projr-analysis.yml"};
+        fs::write(root.join(layer),"directories:\n  cache:\n    safe: null\n").unwrap();
+        fs::write(root.join("analysis.py"),"open('ran','w').write('unexpected')\n").unwrap();
+        let output=Command::new(env!("CARGO_BIN_EXE_proj")).args(["build-dev","--non-interactive","--project"]).arg(root).current_dir(root)
+            .env("PROJR_PROFILE","analysis").env_remove("QUARTO_PROFILE").env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).output().unwrap();
+        assert!(!output.status.success());
+        let diagnostic=String::from_utf8_lossy(&output.stderr);
+        assert!(diagnostic.contains("must be boolean") && diagnostic.contains(layer),"{diagnostic}");
+        assert!(!root.join("ran").exists());assert!(!root.join("named").exists());assert!(!root.join("other").exists());
+        assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(),"v1.2.3\n");
+      }
+    }
+}

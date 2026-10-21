@@ -1114,3 +1114,8 @@ canonical `output-r-data`, fixed final project/data, legacy _projr-layer normali
 before merging and no unused built-in writes. Python/Julia resource outputs remain
 ordinary explicit mappings; project/inst is a root-relative fragment, not a new role.
 No existing R package code is changed.
+
+Independent policy review caught null-inheriting merge hiding explicit `safe: null`
+under a profile/local override. Validate present markers in each original layer
+before merging as well as typed validation. Added null-over-true/false profile
+and local regressions requiring precise early errors and no analysis/mutation.
