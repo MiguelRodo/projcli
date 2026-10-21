@@ -16,13 +16,24 @@ def case(binary, workspace, artifacts, initialized, mode, failing):
     root=workspace/name;root.mkdir()
     env=os.environ.copy()
     for key in ['PROJ_PROJECT_ROOT','PROJ_RUN_CONTEXT','PROJR_PROFILE','QUARTO_PROFILE','PROJR_CLEAR_OUTPUT',
-                'GITHUB_PAT','GH_TOKEN','GITHUB_TOKEN','GIT_ASKPASS','SSH_ASKPASS']:
+                'GITHUB_PAT','GH_TOKEN','GITHUB_TOKEN','GIT_ASKPASS','SSH_ASKPASS','SSH_AUTH_SOCK','GIT_SSH','GIT_SSH_COMMAND']:
         env.pop(key,None)
-    env['PROJCLI_ACCEPT_BINARY']=str(binary)
+    guard=workspace/(name+'-git-guard');guard.mkdir()
+    witness=guard/'called'
+    shim=guard/'git'
+    shim.write_text('#!/bin/sh\nprintf called >> "$PROJCLI_GIT_CALL_WITNESS"\nexit 97\n')
+    shim.chmod(0o755)
+    (guard/'empty-config').write_text('')
+    env.update(PROJCLI_ACCEPT_BINARY=str(binary), PROJCLI_GIT_CALL_WITNESS=str(witness),
+               GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=str(guard/'empty-config'),
+               GIT_CONFIG_SYSTEM=str(guard/'empty-config'), GIT_TERMINAL_PROMPT='0')
+    env['PATH']=str(guard)+os.pathsep+env.get('PATH','')
     if initialized:
         result,_=invoke(binary,root,env,'init','directories')
         assert result.returncode==0,result.stderr
         assert not (root/'.git').exists() and not (root/'VERSION').exists()
+        assert all((root/directory).is_dir() for directory in ['_raw_data','_tmp','_output']), 'init must create its declared directories'
+        assert not witness.exists(), 'init unexpectedly invoked Git'
         config=(root/'_proj.yml').read_text().replace('directories:\n','directories:\n  docs: {path: _docs}\n',1)
         assert 'scripts:' not in config
     else:
@@ -72,8 +83,20 @@ with resource('cache','order.txt').open('a') as stream:stream.write('01-python\n
         if published and str(path) in ['VERSION','.gitignore','.Rbuildignore','_docs/previous.html']:continue
         assert (root/path).read_bytes()==data,(name,str(path))
     assert not (root/'.git').exists()
+    assert not witness.exists(), 'local workflow unexpectedly invoked Git'
     assert (root/'_output/results.csv').exists()==published and (root/'_docs/03-report.html').exists()==published
-    manifests=list((root/'archive/manifests').rglob('*.json'));assert bool(manifests)==published,name
+    manifests=list((root/'archive/manifests').rglob('*.json'))
+    assert len(manifests)==(2 if published else 0),name
+    if published:
+        assert (root/'_output/results.csv').read_bytes()==(cache/'output/results.csv').read_bytes()==b'result\n84\n'
+        assert (root/'VERSION').read_bytes()==b'Version: v1.2.4.1'
+        records=[json.loads(path.read_text()) for path in manifests]
+        assert sorted(record['label'] for record in records)==['docs','output']
+        assert all(record['version']=='1.2.4' for record in records)
+        index=list(csv.reader((root/'.projr/manifests.csv').open()))
+        assert len(index)==2 and sorted(row[1] for row in index)==['docs','output']
+        assert all(row[0]=='1.2.4' for row in index)
+    assert (root/'_docs/previous.html').exists()==(not published)
     if not published:
         assert sorted(str(p.relative_to(root/'archive')) for p in (root/'archive').rglob('*'))==['previous.bin']
         assert (root/'VERSION').read_bytes()==b'v1.2.3-4\n'
@@ -88,18 +111,25 @@ with resource('cache','order.txt').open('a') as stream:stream.write('01-python\n
         report_hash=hashlib.sha256(rendered.read_bytes()).hexdigest()
         if published:
             assert (root/'_docs/03-report.html').read_bytes()==rendered.read_bytes()
-            assert (root/'.projr/manifests.csv').is_file()
+            shutil.copyfile(root/'_output/results.csv',destination/'final-results.csv')
+            shutil.copyfile(root/'_docs/03-report.html',destination/'final-report.html')
+            shutil.copyfile(root/'VERSION',destination/'final-version.txt')
+            shutil.copyfile(root/'.projr/manifests.csv',destination/'manifests.csv')
+            shutil.copytree(root/'archive',destination/'archive')
         root.rename(workspace/(name+'-source-hidden'))
         assert base64.b64encode(image).decode() in (destination/'report.html').read_text()
     return {'case':name,'initialized_via_cli':initialized,'exit_code':result.returncode,'script_order':order,
             'cache_key':key,'computed_csv_result':84,'report_sha256':report_hash,'archive_manifest_count':len(manifests),
-            'previous_final_and_archive_bytes_preserved':True,'no_git_metadata_or_credentials_required':True}
+            'prior_generated_output_and_archive_bytes_preserved':True,
+            'prior_docs_preserved':not published,'prior_docs_replaced_by_successful_finalization':published,
+            'no_git_metadata_or_credentials_required':True,'failing_git_shim_call_count':0,
+            'next_development_version':'1.2.4.1' if published else None}
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('binary',type=Path)
     parser.add_argument('--evidence',type=Path,required=True);parser.add_argument('--artifacts',type=Path,required=True)
     args=parser.parse_args();binary=args.binary.resolve(strict=True)
-    evidence={'cases':[],'complete':False,'limitations':['rerun on reviewed combined source before release',
+    evidence={'cases':[],'complete':False,'archive_integrity_validation':'required subsequent Rust witness step','limitations':['rerun on reviewed combined source before release',
       'fixture CLI adapters; existing R package untouched','native Bookdown embedding not covered',
       'no R/IDE parity or nonembedded portability claim']}
     try:

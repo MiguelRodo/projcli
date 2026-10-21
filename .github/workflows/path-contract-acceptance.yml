@@ -42,6 +42,9 @@ jobs:
       - name: Combined M1 actual CLI acceptance
         shell: bash
         run: runuser -u rstudio -- python3 tests/acceptance/m1_contract.py target/debug/proj --evidence m1-contract-evidence.json --artifacts m1-acceptance-artifacts
+      - name: Validate actual final and archived M1 result bytes
+        shell: bash
+        run: runuser -u rstudio -- env CARGO_HOME="$RUNNER_TEMP/projcli-cargo" RUSTUP_AUTO_INSTALL=0 PROJCLI_M1_EVIDENCE="$GITHUB_WORKSPACE/m1-acceptance-artifacts" cargo test --locked --test test_m1_archive_witness -- --ignored
       - uses: actions/upload-artifact@v4
         if: always()
         with:

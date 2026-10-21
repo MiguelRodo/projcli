@@ -1469,3 +1469,14 @@ reviewed R-data/embedding source changes are integrated. Native Bookdown site
 embedding is still a recorded gap. No release, install or M1 completion claim.
 Ponytail full: one deterministic eight-case driver, existing workflow/artifact
 mechanism; no new dependency, harness or product configuration.
+
+PR163 independent review strengthened the actual gate: final CSV/report bytes
+must equal cache witnesses; successful VERSION must be next-dev1.2.4.1 while both
+expected-role manifests/index records identify release1.2.4. Retain actual CAS
+objects/index in the artifact and validate them with existing file-integrity and
+hash helpers. Negative probes reject empty/corrupt final CSV, wrong-role manifest,
+missing/corrupt object and wrong version/index. Init-created directories are
+checked before fixture setup. A failing Git shim/call witness and empty Git config
+prove no Git dependency without hiding renderer runtime paths. Evidence now
+distinguishes preserved ordinary output/archive bytes from replaced production
+docs; preview/failure docs stay preserved. No product/M2 provenance changes.
