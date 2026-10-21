@@ -194,3 +194,97 @@ No linked adapter, Quarto project adapter, PDF, GUI/RStudio, quarto R API or fin
 frontend integration was exercised in this follow-up. Preserve those limits before
 choosing a general adapter or changing production. No further implementation or
 release was performed.
+
+
+## Proposed auto representation API — contract review required
+
+Status: proposal only, not implemented or approved API spelling. User narrowed
+current image support to embedded output. Explicit embedding false must remain
+respected; linked-output portability/repair is deferred and may remain broken.
+No further bundle-repair diagnostics are proposed here.
+
+Keep three operations separate:
+
+1. Capture one run context: canonical project root, ordered effective profiles,
+   validated effective directory mappings, canonical effective run version and
+   preview/release mode. Resolve logical role targets from that snapshot, including
+   safe cache/projr/v<run-version>/<exact-label> mapping where applicable. Configured
+   final destinations remain distinct for guards/promotion/storage consumers.
+2. Choose execution directory independently: runner-native behavior by default,
+   explicit project-root execution toggle. This never changes role target identity.
+3. Present the resolved target according to the requested representation:
+
+| Representation | Result |
+|---|---|
+| auto, ordinary script/query | Relative to actual caller cwd at lookup time |
+| auto, explicitly known document-render context | Absolute filesystem target |
+| absolute | Absolute filesystem target in either context |
+| relative | Relative to explicit base; caller cwd if omitted |
+
+Possible CLI extension, not shipped:
+
+```text
+proj path get --label raw-data --format auto
+proj path get --label raw-data --format absolute
+proj path get --label raw-data --format relative --relative-to cwd
+proj path get --label raw-data --format relative --relative-to project
+proj path get --label raw-data --format relative --relative-to document
+proj path get --label raw-data --format relative --relative-to /absolute/base
+```
+
+`--relative-to` requires relative representation; reject contradictory options.
+The document base requires an explicit document descriptor; never infer it from
+cwd, a filename suffix or an unrelated Quarto installation. Custom bases are
+absolute directories, avoiding ambiguous resolution of the base itself. Explicit
+relative/absolute overrides win over auto. Same-volume relative conversion must
+resolve back to the same target; fail clearly when no relative path exists (for
+example different Windows drives), rather than silently returning absolute.
+
+Implementation boundary: add a logical-target resolver and a small presentation
+function taking `(target, format, base, caller_cwd, optional_render_context)`.
+Do not change the existing configured-final get_path semantics globally. Library
+callers pass context explicitly and never mutate process-global environment.
+
+Known rendering context is supplied by the controlled renderer invocation, not
+detected by path heuristics. Proposed transport: one versioned, private per-child
+context snapshot file, referenced by per-command `PROJ_RUN_CONTEXT`. It contains
+the shared captured root/profile/mapping/run-version/mode fields plus an optional
+`render { engine, absolute_document_path }` descriptor for that renderer child.
+Ordinary script/hook children receive no render descriptor. Reuse the existing
+per-command environment mechanism; do not serialize all environment/config values
+or credentials into the descriptor or machine stdout. Treat the snapshot as
+immutable for that invocation; this is context transport, not a security boundary.
+Nested path CLI calls consume it without re-reading changed YAML or VERSION;
+their actual cwd is still obtained at lookup time. An explicitly selected
+different project must reject the inherited run context instead of mixing roots.
+Outside a run, resolve standalone context once at that query's entry.
+
+Direct Quarto/Rmd/RStudio rendering does not gain this context automatically.
+Without an explicitly supplied descriptor, auto remains ordinary-script mode;
+the caller can request absolute representation. Future authorized frontends may
+pass native render context explicitly. Existing projr helpers do not consume
+PROJ_RUN_CONTEXT or PROJ_PROJECT_ROOT; no R wrapper/helper change is included.
+
+For embedded HTML, feed the absolute auto result to normal include_graphics
+handling, the smallest common successful candidate measured above. Do not force
+rel_path=FALSE. Explicit relative output stays a filesystem path relative to its
+chosen base; it is not promised to be a Markdown/resource URL. A separately
+document-relative adapter remains a tested alternative, not an ordinary lookup
+rule. Resolve effective embedding settings first: unspecified -> true, explicit
+true/false unchanged, HTML only. This does not repair linked output or establish
+PDF/GUI/direct-entry parity.
+
+Acceptance before implementation is called complete: same target after cwd
+changes into another project; profile/run version unchanged across nested child
+queries and temporary VERSION transitions; auto differs only in representation
+between script/render contexts; explicit bases/overrides round-trip correctly;
+ordinary files named .qmd do not manufacture render context; actual embedded
+sentinel survives relocation under both native and root execution. Existing
+defensive guards/recovery remain until controlled cache-backed execution and
+temporary VERSION/config/context restoration are separately verified.
+
+Ponytail full design review: reuse per-command environment and native knitr
+conversion; two pure concerns (target, presentation), one explicit context
+descriptor. Deferred linked-bundle repair, new R bindings, renderer auto-detection
+heuristics and additional diagnostics. Proposal requires design review before
+production changes or a new binary.
