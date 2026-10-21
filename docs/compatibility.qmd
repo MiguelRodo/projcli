@@ -1459,3 +1459,9 @@ Exact amended-head remote checks and independent review remain required.
 
 The pinned acceptance workflow also runs cargo doc --locked --no-deps to satisfy
 the repository API-documentation check remotely, using the same existing image.
+
+Remote macOS checks caught two direct-library fixtures using the system /var
+temporary-directory symlink. Resolve their owned temporary roots first, matching
+the existing guarded-write fixture convention; do not weaken symlink validation.
+Linux/Windows R-data cases and pinned actual-render/API-doc checks passed before
+this fixture-only correction. Final exact-head checks remain required.

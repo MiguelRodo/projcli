@@ -37,7 +37,8 @@ fn builtin_lookup_never_activates_or_creates_data() {
 #[test]
 fn normalize_each_legacy_layer_before_merge_and_reject_conflicts_or_redirection() {
     let project = tempfile::tempdir().unwrap();
-    let root = camino::Utf8Path::from_path(project.path()).unwrap();
+    let physical = project.path().canonicalize().unwrap();
+    let root = camino::Utf8Path::from_path(&physical).unwrap();
     fs::write(root.join("_proj.yml"),"directories:\n  output-r-data:\n    ignore: git\n").unwrap();
     fs::write(root.join("_projr-alpha.yml"),"directories:\n  data:\n    path: ./data\n    ignore: rbuild\n").unwrap();
     fs::write(root.join("_projr-local.yml"),"directories:\n  DATA:\n    ignore: []\n").unwrap();
@@ -66,7 +67,8 @@ fn normalize_each_legacy_layer_before_merge_and_reject_conflicts_or_redirection(
 #[test]
 fn legacy_remote_content_uses_the_canonical_role() {
     let project = tempfile::tempdir().unwrap();
-    let root = camino::Utf8Path::from_path(project.path()).unwrap();
+    let physical = project.path().canonicalize().unwrap();
+    let root = camino::Utf8Path::from_path(&physical).unwrap();
     fs::write(root.join("_projr.yml"),"directories:\n  data: {}\nremotes:\n  local:\n    archive:\n      path: archive\n      structure: cas\n      content: [data]\n      inspect: file\n").unwrap();
     let merged = proj::get_combined_yml(Some(""),root).unwrap();
     assert_eq!(merged["remotes"]["local"]["archive"]["content"],serde_json::json!(["output-r-data"]));
