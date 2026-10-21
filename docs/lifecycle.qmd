@@ -344,3 +344,9 @@ Retained failed scratch stays in cache; it must not enter the later commit.
 Earlier final docs are preserved on failure and replaced only on successful docs
 finalization. This is bounded recovery evidence, not a new M2 record or sealing
 boundary, and does not change the installed preview.2 binary.
+
+
+The [storage design constraints](storage-design.qmd) reserve optional future
+per-directory DVC delegation. Its restore/build/store integration points and
+error boundaries are still undecided; no DVC step is added to the current
+lifecycle diagrams. Ordinary native use remains independent of DVC.

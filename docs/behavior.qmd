@@ -459,3 +459,14 @@ document finalization still replaces the configured final docs tree with its new
 selection. No new attempt identity, sealing, cache namespace or storage policy is
 introduced. The remote mixed_render_retry.py acceptance exercises this sequence
 with real renderers and actual committed bytes; M2 record design remains open.
+
+
+## Confirmed storage and catalogue direction
+
+Ordinary proj use must remain standalone with a native backend and no DVC
+dependency. Future per-directory DVC backing is opt-in, with automatic delegation
+at agreed lifecycle points and DVC authoritative for its own tracking/cache.
+The intended release catalogue is a curated linear main-branch changelog.
+[Storage design constraints](storage-design.qmd) separate these decisions from
+the still-open configuration, identity, sealing, manifest and backend contracts.
+This records design only; current runtime behavior is unchanged.

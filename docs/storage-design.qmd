@@ -1,0 +1,47 @@
+---
+title: "Storage and release catalogue design"
+---
+
+Status: confirmed design constraints, recorded on 21 October 2026. The optional
+integration and future catalogue described here are not implemented by this note.
+
+## Standalone ordinary use
+
+proj must work with its own native backend without installing DVC. DVC must not
+become the mandatory manifest engine or a dependency of ordinary proj use.
+Existing interpreter and renderer requirements still apply to selected analyses.
+
+## Optional DVC-backed directories
+
+Future integration may let users opt individual directories into DVC backing.
+Only users selecting that integration need DVC. proj should automatically
+delegate the appropriate operations at the agreed lifecycle points.
+
+proj retains its logical directory labels/roles and path abstraction regardless
+of backend. Integration must preserve label resolution so analysis code does not
+depend on DVC-specific physical paths.
+
+DVC remains authoritative for its own tracking and cache state. proj references
+the corresponding versions rather than maintaining a second authoritative copy
+of DVC's data/cache inventory. Projects should be able to mix native and
+DVC-backed directories. Missing DVC, unavailable data and delegation failures
+need explicit handling; proj must not silently install DVC.
+
+The directory configuration, supported restore/build/store operations, exact
+hook timing and failure/recovery boundaries still need design. This note does
+not adopt old command recipes or decide a provider contract.
+
+## A curated release catalogue
+
+The intended release catalogue is a curated, linear history on the main branch,
+presented as a readable changelog. A general catalogue of every run on every
+branch is not the product goal. This direction does not change current build or
+Git branch policies, or remove the need to report failed attempts honestly.
+
+Attempt/release identity, allocation, sealing and how failures relate to this
+catalogue remain open. So do the manifest schema, durable storage, remote-only
+discovery, retention and Git-tracking policy. No M2 persistence implementation
+or milestone completion follows from these constraints.
+
+See the [behavior contract](behavior.qmd), [current lifecycle](lifecycle.qmd)
+and [compatibility log](compatibility.qmd) for implemented behavior and limits.

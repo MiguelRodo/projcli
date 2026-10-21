@@ -211,3 +211,17 @@ no failed artifacts. Assert prior final state after failure, preserved unselecte
 native documents and unchanged retained scratch after retry. Successful final
 docs replacement stays intentional. Run remotely in the pinned image; no new
 manifest identity, retry namespace, sealing or backend policy is implied.
+
+
+Read docs/storage-design.qmd before future storage/catalogue design. proj must
+remain standalone for ordinary use; DVC is optional per directory, never the
+mandatory manifest engine. Future opted-in operations delegate automatically,
+with DVC authoritative for its tracking/cache and proj referencing versions.
+Do not duplicate DVC's authoritative state or silently install it. Preserve the
+curated linear main-branch release-catalogue direction without deciding attempt
+identity, sealing, schema, persistence or provider contracts. This is a future
+integration constraint, not authorization to implement M2 persistence.
+
+Backend choice must preserve proj's logical directory labels/roles and path
+abstraction; analysis code must not require DVC-specific physical paths. DVC's
+physical tracking distinction does not imply an absence of named stages/config.
