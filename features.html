@@ -257,8 +257,9 @@ ul.task-list li input[type="checkbox"] {
   <ul class="collapse">
   <li><a href="#preview-has-a-boundary" id="toc-preview-has-a-boundary" class="nav-link" data-scroll-target="#preview-has-a-boundary">Preview has a boundary</a></li>
   </ul></li>
-  <li><a href="#known-limits" id="toc-known-limits" class="nav-link" data-scroll-target="#known-limits">Known limits</a></li>
+  <li><a href="#known-limits-of-the-published-preview" id="toc-known-limits-of-the-published-preview" class="nav-link" data-scroll-target="#known-limits-of-the-published-preview">Known limits of the published preview</a></li>
   <li><a href="#planned-work" id="toc-planned-work" class="nav-link" data-scroll-target="#planned-work">Planned work</a></li>
+  <li><a href="#next-preview-still-under-review" id="toc-next-preview-still-under-review" class="nav-link" data-scroll-target="#next-preview-still-under-review">Next preview, still under review</a></li>
   </ul>
 </nav>
     </div>
@@ -341,8 +342,8 @@ ul.task-list li input[type="checkbox"] {
 <p>Document renderers have their own working folders and output rules. Mixed-language scheduling is not a promise that every target runs in the exact order written in configuration. See the <a href="./cli/build.html">build reference</a> for the current implementation and the <a href="./behavior.html">behavior contract</a> for limits.</p>
 </section>
 </section>
-<section id="known-limits" class="level2">
-<h2 class="anchored" data-anchor-id="known-limits">Known limits</h2>
+<section id="known-limits-of-the-published-preview" class="level2">
+<h2 class="anchored" data-anchor-id="known-limits-of-the-published-preview">Known limits of the published preview</h2>
 <ul>
 <li>A preview is not a filesystem sandbox. Scripts and hooks control their writes; automatic redirection of every renderer’s output is not provided.</li>
 <li>Matching results and paths across CLI runs, RStudio and GUI rendering has not been proved.</li>
@@ -357,6 +358,11 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="planned-work">Planned work</h2>
 <p>The broader project-root and build workflow milestones remain incomplete. M1 and M2 remain open. Complete input/code/config/dependency provenance, durable attempt/release records and analysis-free publication retry are still unfinished. This is not a promise that all limitations above will become features.</p>
 <p>For the detailed evidence, scope and decisions, see the <a href="./behavior.html">behavior contract</a> and <a href="./compatibility.html">compatibility log</a>.</p>
+</section>
+<section id="next-preview-still-under-review" class="level2">
+<h2 class="anchored" data-anchor-id="next-preview-still-under-review">Next preview, still under review</h2>
+<p>Newer source slices add captured run context, safe versioned output paths, native working-folder defaults, explicit R-package data activation and bounded HTML resource embedding. They are not in the published preview installed above. See <a href="./release-candidate.html">the release checks</a> for the required integrated acceptance, release and installation steps.</p>
+<p>Bookdown site embedding is unchanged. Existing R helpers and R/IDE parity, linked HTML portability, complete provenance and publication retry remain outside this claim. The <a href="./behavior.html">behavior contract</a> remains the detailed source of scope.</p>
 
 
 </section>

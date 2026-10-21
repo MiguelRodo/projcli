@@ -256,6 +256,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#preview-release-delivery" id="toc-preview-release-delivery" class="nav-link active" data-scroll-target="#preview-release-delivery">Preview release delivery</a>
   <ul class="collapse">
   <li><a href="#verified-delivery" id="toc-verified-delivery" class="nav-link" data-scroll-target="#verified-delivery">Verified delivery</a></li>
+  <li><a href="#next-preview-preparation" id="toc-next-preview-preparation" class="nav-link" data-scroll-target="#next-preview-preparation">Next preview preparation</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -278,6 +279,11 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="verified-delivery">Verified delivery</h2>
 <p><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1">0.4.0-preview.1</a> is published as a prerelease; stable Latest remains v0.3.0. Its <a href="https://github.com/MiguelRodo/projcli/actions/runs/39515169842">tag workflow</a> passed, and both uploaded binaries were downloaded, hash-checked and executed for help/version/capabilities. Public downloads matched the verified asset bytes. Source identity is <code>bbd12edc8de9865a96b6145d0c7702f1300cb1a8</code>; package version is 0.4.0-preview.1, protocol version 1. The WSL user-local install and disposable Python success/failure smokes passed without local compilation. See <a href="./compatibility.html">compatibility evidence</a>.</p>
 <p>Pin <code>PROJ_RELEASE_VERSION=0.4.0-preview.1</code> when using the installer from that tag. Use an existing absolute user-local <code>PROJ_INSTALL_DIR</code>; installation changes no system/PATH settings. macOS/ARM artifacts remain unavailable. Keep the disposable- project limits and unfinished R/IDE/M2 scope from <a href="./preview-status.html">feature status</a>.</p>
+</section>
+<section id="next-preview-preparation" class="level2">
+<h2 class="anchored" data-anchor-id="next-preview-preparation">Next preview preparation</h2>
+<p>The <a href="./release-candidate.html">next-preview checklist</a> records source integration, actual acceptance, reviewed version changes, exact-tag assets and WSL replacement. The published/installed preview remains 0.4.0-preview.1 until those steps complete. No new tag, release or installation is announced here. Bookdown site embedding remains native; other deferred limits stay explicit.</p>
+<p>Public README/install pins and public-download check expectations stay at the existing preview through tagging, draft validation, publication and public-byte verification. Update them together in a separate post-publication docs change: those CI checks fetch the public version and source-commit assets and cannot validate an unpublished pin. Release notes/version metadata can be prepared earlier.</p>
 
 
 </section>

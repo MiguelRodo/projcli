@@ -292,6 +292,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#cache-backed-consumers-and-output-lifecycle" id="toc-cache-backed-consumers-and-output-lifecycle" class="nav-link" data-scroll-target="#cache-backed-consumers-and-output-lifecycle">Cache-backed consumers and output lifecycle</a></li>
   <li><a href="#safeauto-defaults-and-merged-runtime-policies" id="toc-safeauto-defaults-and-merged-runtime-policies" class="nav-link" data-scroll-target="#safeauto-defaults-and-merged-runtime-policies">Safe/auto defaults and merged runtime policies</a></li>
   <li><a href="#r-package-data-role-normalization-and-explicit-activation" id="toc-r-package-data-role-normalization-and-explicit-activation" class="nav-link" data-scroll-target="#r-package-data-role-normalization-and-explicit-activation">R-package data role normalization and explicit activation</a></li>
+  <li><a href="#next-preview-releaseinstall-documentation-preparation" id="toc-next-preview-releaseinstall-documentation-preparation" class="nav-link" data-scroll-target="#next-preview-releaseinstall-documentation-preparation">Next-preview release/install documentation preparation</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -723,6 +724,13 @@ ul.task-list li input[type="checkbox"] {
 <p>The pinned acceptance workflow also runs cargo doc –locked –no-deps to satisfy the repository API-documentation check remotely, using the same existing image.</p>
 <p>Remote macOS checks caught two direct-library fixtures using the system /var temporary-directory symlink. Resolve their owned temporary roots first, matching the existing guarded-write fixture convention; do not weaken symlink validation. Linux/Windows R-data cases and pinned actual-render/API-doc checks passed before this fixture-only correction. Final exact-head checks remain required.</p>
 <p>Independent review cleared runtime and activation at 685bf8f. Corrected the configuration overview and DirConfig documentation to state canonical prefix rules and the fixed-role path exception consistently. The legacy remote test proves normalization/validation, not actual CAS publication. No runtime changes.</p>
+</section>
+<section id="next-preview-releaseinstall-documentation-preparation" class="level2">
+<h2 class="anchored" data-anchor-id="next-preview-releaseinstall-documentation-preparation">Next-preview release/install documentation preparation</h2>
+<p>README/install/features/status now distinguish the verified published 0.4.0-preview.1 from newer source slices. Prepared unpublished release notes and an integrated-source acceptance/delivery checklist with user-local WSL replacement gates and explicit Bookdown/R/IDE/nonembedded/provenance/retry limits. No package version, installer pin, workflow, tag, release or installed binary is changed. Current install fences remain exact and matched; remote docs checks and native-browser witness are retained.</p>
+<p>Ponytail full: reuse existing release/install pipeline and acceptance artifacts; one candidate page linked from existing docs, no new tool or installer mechanism. Remote rendered docs checks and independent review remain required.</p>
+<p>Candidate acceptance wording follows PR163 review: distinguish ordinary generated output/archive preservation under none from successful document replacement. Require exact final/object bytes, expected manifest/index release and next-dev versions, corruption probes, immediate init directories and a failing Git-call witness. Record the project embedding preparation/input restrictions explicitly.</p>
+<p>PR164 review corrected delivery order: keep public installer/download expectations at preview.1 until tagging/draft verification/publication/public-byte verification complete. Then update README/install/source links and public-download checks in a separate post-publication documentation change, so their actual asset fetches can pass. No public pins or version metadata changed in this correction.</p>
 
 
 </section>

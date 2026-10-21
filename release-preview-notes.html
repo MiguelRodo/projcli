@@ -253,7 +253,7 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#projcli-0.4.0-preview.1-development-preview" id="toc-projcli-0.4.0-preview.1-development-preview" class="nav-link active" data-scroll-target="#projcli-0.4.0-preview.1-development-preview">projcli 0.4.0-preview.1 — development preview</a></li>
+  <li><a href="#next-projcli-development-preview-draft-release-notes" id="toc-next-projcli-development-preview-draft-release-notes" class="nav-link active" data-scroll-target="#next-projcli-development-preview-draft-release-notes">Next projcli development preview — draft release notes</a></li>
   </ul>
 </nav>
     </div>
@@ -263,16 +263,16 @@ ul.task-list li input[type="checkbox"] {
 
 
 
-<section id="projcli-0.4.0-preview.1-development-preview" class="level1">
-<h1>projcli 0.4.0-preview.1 — development preview</h1>
-<p>Preview/development build for disposable projects and sample data.</p>
-<p>This release is intended for testing the supported Rust CLI preview workflow. It is not a declaration that M1/M2 or the original roadmap is complete.</p>
-<p>Supported delivery: Linux x86-64 (built on Ubuntu 22.04; glibc 2.35 or newer) and Windows x86-64. Other platform binaries are not supplied by this preview pipeline. Each versioned binary has an exact SHA256 entry in checksums.txt; version.txt binds installer asset selection to this release. A checksum detects corrupted/mismatched downloads; it is not an independent signature or reproducible-build attestation.</p>
-<p>Included Rust pieces: explicit/nearest-root project selection, active YAML/profile validation, explicitly declared resource paths, local-only initialization, ordered scripts/hooks with a captured execution root, and protocol-v1 machine results. Real Python and mocked renderer tests cover the supported CLI boundaries; complete real R/renderer/IDE end-to-end parity is not established.</p>
-<p>Use explicit active configuration and declare every resource directory used. Machine capabilities report implemented protocol features. Preview recovery protects captured managed paths, not arbitrary external script side effects or concurrent writers. Keep independent backups and test on disposable copies. Direct R/IDE parity, automatic output redirection, durable attempt/release records and analysis-free publication retry remain unfinished. Existing R package is unchanged.</p>
-<p>The pipeline creates a draft prerelease only after exact-tag tests, binary smokes, installer verification and checksum collection pass. Publication and user-local WSL installation follow separate verification of the actual uploaded assets.</p>
-<p>This candidate includes captured managed-state recovery after successful and failed previews, retaining cache artifacts. Capture/recovery has no concurrent-writer or power-loss atomicity guarantee and does not undo arbitrary external script effects. M1/M2 remain incomplete; the package version is not a scientific release identity. Publication remains gated on the final reviewed main checks and verified draft assets. Current status: https://miguelrodo.github.io/projcli/preview-status.html</p>
-<p>Delivery verification completed: <a href="https://github.com/MiguelRodo/projcli/actions/runs/39515169842">exact-tag workflow</a>, complete uploaded and public asset checks, both native version/protocol smokes, and a user-local WSL installation with disposable successful/failing Python previews. Source commit: <code>bbd12edc8de9865a96b6145d0c7702f1300cb1a8</code>. Stable Latest v0.3.0 is unchanged.</p>
+<section id="next-projcli-development-preview-draft-release-notes" class="level1">
+<h1>Next projcli development preview — draft release notes</h1>
+<p>Unpublished preparation. The release version and exact source commit will be set in the reviewed version change. The published/installed preview remains 0.4.0-preview.1; these notes do not announce its replacement.</p>
+<p>Run selected R/Python analysis steps from one project configuration, inspect temporary results, and keep the project identity stable when code changes folders. Generated-output paths default to the selected versioned cache. Declared final outputs are promoted only after successful production analysis; previews do not promote or publish. Output cleanup defaults to keeping other final output files, with explicit pre/post cleanup options. Document-output replacement follows its separate documented rules.</p>
+<p>Scripts use the launch folder and document tools retain their native working-folder settings, unless a project-folder override is explicitly requested. The R-package output-r-data role has a fixed final project/data destination; querying it never opts that folder into cleanup or promotion. Declare it explicitly to activate ordinary output management. Supported legacy declarations normalize before merging.</p>
+<p>Individual Quarto/R Markdown HTML and modeled Quarto projects default to embedding resources only when unspecified. Explicit and inherited false values remain respected. Bookdown’s site renderer is unchanged and has no new embedding fallback. Linked-output portability and literal Markdown/LaTeX resource rewriting are not provided. Existing R helpers/packages are unchanged; direct R/IDE parity is not claimed.</p>
+<p>Prepared remote acceptance covers manual configuration and fresh local directory initialization, ordered real Python/R/report steps, a computed CSV and embedded report, deliberate structured failures, ordinary generated-output/archive preservation under none and local archive publication without Git credentials. Prior document outputs are preserved on preview/failure and replaced by successful finalization. Final files and archived object bytes must match the computed witnesses; manifest/ index release and next-development versions are checked, with corruption probes. Final acceptance must rerun on the reviewed integrated source; a stacked preparation pass does not complete M1.</p>
+<p>Delivery remains checked Linux/WSL and Windows x86-64 binaries. No Rust compiler or administrator access is needed to install. macOS/ARM binaries are not supplied. Exact public asset checks and the user-local WSL install still precede any delivery completion claim.</p>
+<p>Use sample data or an independently backed-up disposable project. Recovery is bounded and does not isolate arbitrary external script effects, concurrent writers or power loss. Complete provenance, durable attempt/release records, analysis-free publication retry and M2 remain unfinished.</p>
+<p>Release checks and remaining limits: https://miguelrodo.github.io/projcli/release-candidate.html</p>
 
 
 </section>
