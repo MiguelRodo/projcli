@@ -59,6 +59,8 @@ pub struct ProjConfig {
     #[serde(default)]
     pub config: GlobalConfig,
     #[serde(default)]
+    pub settings: SettingsConfig,
+    #[serde(default)]
     pub directories: HashMap<String, DirConfig>,
     #[serde(default)]
     pub build: BuildConfig,
@@ -75,6 +77,35 @@ pub struct ProjConfig {
     pub parameters: serde_yaml::Value,
     #[serde(default)]
     pub metadata: Option<Value>,
+}
+
+/// Runtime policy is separate from build actions and analytical parameters.
+#[derive(Deserialize, Debug, Default, Clone)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub struct SettingsConfig {
+    pub output_clear_stage: Option<OutputClearStage>,
+}
+
+#[derive(Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum OutputClearStage { None, Pre, Post }
+
+impl OutputClearStage {
+    pub fn parse(value: &str) -> anyhow::Result<Self> {
+        match value {
+            "none" | "never" => Ok(Self::None),
+            "pre" => Ok(Self::Pre),
+            "post" => Ok(Self::Post),
+            _ => anyhow::bail!("output-clear-stage must be none, pre or post (legacy never means none)"),
+        }
+    }
+}
+
+impl SettingsConfig {
+    pub(crate) fn clear_stage(&self, explicit: Option<OutputClearStage>, legacy_yaml: Option<&str>, environment: Option<&str>) -> anyhow::Result<OutputClearStage> {
+        if let Some(value) = explicit.or(self.output_clear_stage) { return Ok(value); }
+        legacy_yaml.or(environment).map(OutputClearStage::parse).transpose().map(|value| value.unwrap_or(OutputClearStage::None))
+    }
 }
 
 fn default_parameters() -> serde_yaml::Value {
@@ -290,6 +321,7 @@ fn default_ignore() -> IgnoreConfig {
 ///     remotes: Default::default(),
 ///     dest: vec![],
 ///     config: GlobalConfig::default(),
+///     settings: Default::default(),
 ///     directories: HashMap::new(),
 ///     git: ResolvedGitConfig { commit: false, push: false },
 ///     restrictions: RestrictionsConfig::default(),
@@ -304,6 +336,7 @@ pub struct ValidatedConfig {
     pub remotes: RemotesConfig,
     pub dest: Vec<String>,
     pub config: GlobalConfig,
+    pub settings: SettingsConfig,
     pub directories: HashMap<String, ResolvedDir>,
     pub git: ResolvedGitConfig,
     pub restrictions: RestrictionsConfig,
@@ -458,6 +491,7 @@ impl ProjConfig {
             remotes,
             dest: self.build.dest.clone().unwrap_or_default(),
             config: self.config.clone(),
+            settings: self.settings.clone(),
             directories: resolved,
             git: resolved_git,
             restrictions: self.build.restrictions.clone(),
@@ -495,6 +529,7 @@ impl ValidatedConfig {
     ///     remotes: Default::default(),
     ///     dest: vec![],
     ///     config: GlobalConfig::default(),
+///     settings: Default::default(),
     ///     directories: dirs,
     ///     git: ResolvedGitConfig { commit: false, push: false },
     ///     restrictions: RestrictionsConfig::default(),
@@ -599,6 +634,13 @@ fn read_configuration_file(path: &Utf8Path) -> anyhow::Result<Value> {
             if let Some(marker) = directory.get("safe") {
                 anyhow::ensure!(marker.is_boolean(), "Directory '{label}' safe selection must be boolean in {path}");
             }
+        }
+    }
+    if let Some(settings) = value.get("settings") {
+        let _: SettingsConfig = serde_json::from_value(settings.clone())
+            .with_context(|| format!("Invalid settings in {path}"))?;
+        if let Some(marker) = settings.get("output-clear-stage") {
+            anyhow::ensure!(marker.is_string(), "settings.output-clear-stage must be a string in {path}");
         }
     }
     let aliases = ["parameters", "parameter", "params", "param"];

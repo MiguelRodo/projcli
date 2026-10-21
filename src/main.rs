@@ -96,6 +96,9 @@ pub enum Commands {
         /// Native runner execution directories, or explicit project-root override.
         #[arg(long, default_value = "native", value_parser = ["native", "project"])]
         execution_dir: String,
+        /// Clear final output immediately before/after analysis; preview never clears it.
+        #[arg(long, value_parser = ["none", "pre", "post"])]
+        output_clear_stage: Option<String>,
     },
     /// Dev Build operations
     BuildDev {
@@ -105,6 +108,9 @@ pub enum Commands {
         /// Native runner execution directories, or explicit project-root override.
         #[arg(long, default_value = "native", value_parser = ["native", "project"])]
         execution_dir: String,
+        /// Clear final output immediately before/after analysis; preview never clears it.
+        #[arg(long, value_parser = ["none", "pre", "post"])]
+        output_clear_stage: Option<String>,
     },
 }
 
@@ -285,7 +291,7 @@ fn main() {
                 }
             }
         },
-        Commands::Build { major, minor, patch: _, profile, description, execution_dir } => {
+        Commands::Build { major, minor, patch: _, profile, description, execution_dir, output_clear_stage } => {
             if let Some(root) = proj::root() {
                 let mode = if *major {
                     proj::BuildMode::ProdMajor
@@ -316,7 +322,7 @@ fn main() {
                     }
                 }
 
-                if let Err(e) = proj::build_project_with_execution(&camino::Utf8PathBuf::try_from(root).unwrap(), mode, profile.as_deref(), desc.as_deref(), execution_mode(execution_dir)) {
+                if let Err(e) = proj::build_project_with_clear_stage(&camino::Utf8PathBuf::try_from(root).unwrap(), mode, profile.as_deref(), desc.as_deref(), execution_mode(execution_dir), output_clear_stage.as_deref().map(proj::OutputClearStage::parse).transpose().expect("clap validates clear stage")) {
                     fail(format_args!("Build failed: {:#}", e));
                 } else {
                     println!("Build completed successfully.");
@@ -325,9 +331,9 @@ fn main() {
                 fail(format_args!("Error finding project root"));
             }
         },
-        Commands::BuildDev { profile, execution_dir } => {
+        Commands::BuildDev { profile, execution_dir, output_clear_stage } => {
             if let Some(root) = proj::root() {
-                if let Err(e) = proj::build_project_with_execution(&camino::Utf8PathBuf::try_from(root).unwrap(), proj::BuildMode::Dev, profile.as_deref(), None, execution_mode(execution_dir)) {
+                if let Err(e) = proj::build_project_with_clear_stage(&camino::Utf8PathBuf::try_from(root).unwrap(), proj::BuildMode::Dev, profile.as_deref(), None, execution_mode(execution_dir), output_clear_stage.as_deref().map(proj::OutputClearStage::parse).transpose().expect("clap validates clear stage")) {
                     fail(format_args!("Build failed: {:#}", e));
                 } else {
                     println!("Build completed successfully.");

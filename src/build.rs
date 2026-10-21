@@ -86,6 +86,11 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
 /// managed-state boundary as build_project; arbitrary external script effects are
 /// not a sandbox guarantee.
 pub fn build_project_with_execution(project_root: &camino::Utf8Path, mode: BuildMode, cli_profile: Option<&str>, description: Option<&str>, execution: ExecutionDirectory) -> anyhow::Result<()> {
+    build_project_with_clear_stage(project_root, mode, cli_profile, description, execution, None)
+}
+
+/// Adds an explicit clear-stage override above merged settings and legacy environment.
+pub fn build_project_with_clear_stage(project_root: &camino::Utf8Path, mode: BuildMode, cli_profile: Option<&str>, description: Option<&str>, execution: ExecutionDirectory, clear_stage: Option<crate::yml::OutputClearStage>) -> anyhow::Result<()> {
     let resolved_root = crate::project::resolve_project_root(Some(project_root))?;
     let project_root = resolved_root.as_path();
     let is_dev = mode == BuildMode::Dev;
@@ -105,7 +110,7 @@ pub fn build_project_with_execution(project_root: &camino::Utf8Path, mode: Build
         ExecutionDirectory::Project => project_root.as_std_path().to_owned(),
     };
     environment.set_working_directory(launch_directory);
-    crate::yml::validate_clear_output(environment.text("PROJR_CLEAR_OUTPUT"))?;
+
 
     // ==========================================
     // STEP B: Pre-Build Validation & Execution
@@ -120,6 +125,8 @@ pub fn build_project_with_execution(project_root: &camino::Utf8Path, mode: Build
     let project_config: ProjConfig = serde_json::from_value(combined)
         .context("Failed to deserialize combined configuration")?;
     let config = project_config.validate_and_resolve(project_root, is_dev)?;
+    let clear_stage = config.settings.clear_stage(clear_stage, config.clear_output.as_deref(), environment.text("PROJR_CLEAR_OUTPUT"))?;
+    let selected_cache = crate::paths::select_safe_cache(config.directories.iter().map(|(label, directory)| (label.as_str(), directory.safe)), &directory_order)?;
     environment.set("PROJCLI_GIT_TOKEN_OVERRIDE", config.config.git.use_proj_cred_helper.to_string());
     let push_target = if config.git.push {
         Some(crate::git::push_target_in(project_root, &environment)?)
@@ -213,9 +220,7 @@ pub fn build_project_with_execution(project_root: &camino::Utf8Path, mode: Build
         anyhow::bail!("Project-root execution override is not supported for project-wide Bookdown; use native execution");
     }
 
-    let cache_root = if (!is_dev && run_analysis) || quarto_exists || bookdown_exists {
-        Some(config.get_path(project_root, "cache").context("Selected cleanup or project rendering requires a declared cache directory")?)
-    } else { None };
+    let cache_root = selected_cache.as_deref().map(|label| config.get_path(project_root, label)).transpose()?;
     let has_document_analysis = quarto_exists || bookdown_exists || resolved_files.iter().any(|file| matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")));
     if has_document_analysis { config.get_path(project_root, "docs").context("Document rendering requires a declared docs directory")?; }
     let mut validation_files = resolved_files.clone();
@@ -268,16 +273,25 @@ pub fn build_project_with_execution(project_root: &camino::Utf8Path, mode: Build
     if project_root.join("VERSION").exists() && version_get_from(project_root).is_none() {
         anyhow::bail!("VERSION exists but is invalid");
     }
-    let current_version = original_version.to_string(false);
+
     let (initial_version, next_version) = crate::run_context::version_plan(original_version, mode)?;
     let run_context = crate::run_context::ContextFile::capture(project_root, &config, profiles, directory_order, initial_version.clone(), is_dev)?;
     environment.set(crate::RUN_CONTEXT_ENV, run_context.path().as_os_str());
+    let mut staged_outputs = Vec::new();
+    if run_analysis {
+        for label in config.directories.keys().filter(|label| crate::paths::is_output_or_data(label)) {
+            let cache = cache_root.as_ref().context("Safe output routing requires an eligible declared cache directory")?;
+            let staged = cache.join("projr").join(initial_version.cache_key()).join(label);
+            crate::path_safety::resolve_path(staged.as_std_path(), true)?;
+            staged_outputs.push((staged, config.get_path(project_root, label)?));
+        }
+    }
+    if has_document_analysis { anyhow::ensure!(cache_root.is_some(), "Document rendering requires an eligible cache directory"); }
     // Recovery removes/replaces managed destinations too, so preview needs the
     // same root/overlap/link guards even though it never performs release cleanup.
     crate::path_safety::validate_build_paths(project_root, &config, &validation_files)?;
-    if !is_dev {
-        if run_analysis {
-            crate::path_safety::validate_cleanup_paths(project_root, &config, &current_version)?;
+    if run_analysis {
+        {
             if quarto_exists || bookdown_exists {
                 crate::path_safety::validate_project_source_overlap(project_root, &config)?;
             } else {
@@ -388,24 +402,9 @@ pub fn build_project_with_execution(project_root: &camino::Utf8Path, mode: Build
         for (path, bytes) in &engine_originals { crate::path_safety::resolve_path(path.as_std_path(), true)?; fs::write(path, bytes).with_context(|| format!("Cannot restore exact renderer configuration {path}"))?; }
         Ok(())
     };
+    let mut document_stage = None;
     let local_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| -> anyhow::Result<()> {
-        if !is_dev {
-            if project_root.join("_environment.local").exists() {
-                crate::ignore::add_manual_ignores(project_root, &["_environment.local".to_string()], true, crate::ignore::IgnoreType::All)?;
-            }
-            crate::ignore::update_ignores(project_root, &config)?;
-        }
-        let clear_output_env = environment.text("PROJR_CLEAR_OUTPUT");
-        let clear_output_val = clear_output_env.or(config.clear_output.as_deref());
-        if !is_dev && run_analysis {
-            crate::clear::clear_old(project_root, &config, &current_version, false, config.old_dev_remove)?;
-            crate::clear::clear_pre(project_root, &current_version, &config, clear_output_val)?;
-        }
-        if quarto_exists || bookdown_exists {
-            let staging = cache_root.as_ref().context("Project rendering requires cache")?.join("projr").join(&current_version).join("docs");
-            if quarto_exists { rewrite_engine_output_dir(project_root.as_std_path(), "quarto", staging.as_str())?; }
-            if bookdown_exists { rewrite_engine_output_dir(project_root.as_std_path(), "bookdown", staging.as_str())?; }
-        }
+        // Basic read-only validation and recovery are complete. Start hooks run first.
         for hooks in [&hooks_config.pre, &hooks_config.both] {
             if let Some(hooks) = hooks {
                 for hook in resolve_explicit_scripts(project_root, hooks)? {
@@ -413,14 +412,26 @@ pub fn build_project_with_execution(project_root: &camino::Utf8Path, mode: Build
                 }
             }
         }
-        // Artifacts from a previous run or pre-hook cannot prove renderer success.
-        if !is_dev && has_document_analysis {
-            if quarto_exists || bookdown_exists {
-                let staging = cache_root.as_ref().context("Project rendering requires cache")?.join("projr").join(&current_version).join("docs");
-                crate::path_safety::resolve_path(staging.as_std_path(), true)?;
-                if staging.exists() { fs::remove_dir_all(&staging)?; }
-            } else {
+        if !is_dev {
+            if project_root.join("_environment.local").exists() {
+                crate::ignore::add_manual_ignores(project_root, &["_environment.local".to_string()], true, crate::ignore::IgnoreType::All)?;
+            }
+            crate::ignore::update_ignores(project_root, &config)?;
+        }
+        if has_document_analysis {
+            let cache = cache_root.as_ref().context("Document rendering requires cache")?;
+            crate::path_safety::resolve_path(cache.as_std_path(), true)?;
+            let versioned_cache = cache.join("projr").join(initial_version.cache_key());
+            crate::path_safety::resolve_path(versioned_cache.as_std_path(), true)?;
+            fs::create_dir_all(&versioned_cache)?;
+            document_stage = Some(tempfile::Builder::new().prefix(".proj-render-").tempdir_in(&versioned_cache)?);
+            let staging = camino::Utf8Path::from_path(document_stage.as_ref().unwrap().path()).context("Render staging path must be UTF-8")?;
+            if quarto_exists { rewrite_engine_output_dir(project_root.as_std_path(), "quarto", staging.as_str())?; }
+            if bookdown_exists { rewrite_engine_output_dir(project_root.as_std_path(), "bookdown", staging.as_str())?; }
+            if !quarto_exists && !bookdown_exists {
                 let docs = config.get_path(project_root, "docs")?;
+                // A fresh native artifact is required, in preview too. Recovery retains
+                // exact original bytes/presence for preview and any controlled failure.
                 for file in &resolved_files {
                     if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) {
                         let paths = document_output_paths(file, &docs, project_root)?;
@@ -430,36 +441,39 @@ pub fn build_project_with_execution(project_root: &camino::Utf8Path, mode: Build
                 }
             }
         }
+        // No preparation, hooks or metadata work may intervene at these boundaries.
+        if !is_dev && run_analysis && clear_stage == crate::yml::OutputClearStage::Pre {
+            crate::clear::clear_post(project_root, false, &config, Some("post"), false)?;
+        }
         execute_build_pipeline(project_root, build_scripts.clone(), profile.clone(), quarto_exists, bookdown_exists, resolved_python_cmd.as_deref(), &environment, execution)?;
+        if !is_dev && run_analysis && clear_stage == crate::yml::OutputClearStage::Post {
+            crate::clear::clear_post(project_root, false, &config, Some("post"), false)?;
+        }
         restore_engines()?;
-        if !is_dev && run_analysis && has_document_analysis && config.output_run.unwrap_or(true) {
-            let docs = config.get_path(project_root, "docs")?;
-            crate::clear::clear_post(project_root, false, &config, Some("never"), !quarto_exists && !bookdown_exists)?;
-            if quarto_exists || bookdown_exists {
-                let staging = cache_root.as_ref().context("Project rendering requires cache")?.join("projr").join(&current_version).join("docs");
-                if quarto_exists { copy_global_quarto_project(&staging, &docs)?; }
-                else { copy_global_bookdown(&staging, &docs, project_root)?; }
-            } else {
+        if has_document_analysis {
+            let staging = camino::Utf8Path::from_path(document_stage.as_ref().unwrap().path()).context("Render staging path must be UTF-8")?;
+            if !quarto_exists && !bookdown_exists {
                 for file in &resolved_files {
-                    match file.extension() {
-                        Some("qmd") => copy_individual_quarto(file, &docs, project_root)?,
-                        Some("Rmd" | "rmd") => copy_individual_rmd(file, &docs, project_root)?,
-                        _ => {}
-                    }
+                    if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) { stage_individual_document(file, staging, project_root)?; }
                 }
+            } else if bookdown_exists {
+                let (assets, destination) = bookdown_asset_paths(project_root, staging)?;
+                if assets.exists() { crate::fs_utils::copy_dir_recursive(&assets, &destination)?; }
             }
+            validate_project_artifacts(staging)?;
+            let cached_docs = cache_root.as_ref().unwrap().join("projr").join(initial_version.cache_key()).join("docs");
+            crate::fs_utils::copy_dir_recursive(staging, &cached_docs)?;
         }
-        for hooks in [&hooks_config.post, &hooks_config.both] {
-            if let Some(hooks) = hooks {
-                for hook in resolve_explicit_scripts(project_root, hooks)? {
-                    execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref(), &environment, execution)?;
-                }
+        if !is_dev && config.output_run.unwrap_or(true) {
+            for (staged, final_path) in &staged_outputs {
+                if staged.exists() { crate::fs_utils::copy_dir_recursive(staged, final_path)?; }
             }
-        }
-        // VERSION is authoritative only after hooks, rendering and promotion succeeded.
-        if !is_dev {
-            crate::path_safety::resolve_path(project_root.join("VERSION").as_std_path(), true)?;
-            version_set_at(project_root, &next_version.to_string(false))?;
+            if has_document_analysis {
+                let staging = camino::Utf8Path::from_path(document_stage.as_ref().unwrap().path()).context("Render staging path must be UTF-8")?;
+                let docs = config.get_path(project_root, "docs")?;
+                crate::clear::clear_post(project_root, false, &config, Some("never"), true)?;
+                crate::fs_utils::copy_dir_recursive(staging, &docs)?;
+            }
         }
         Ok(())
     }));
@@ -473,9 +487,42 @@ pub fn build_project_with_execution(project_root: &camino::Utf8Path, mode: Build
             Ok(()) => restore_error,
         });
     }
-    if is_dev { return backup.restore_result(local_result); }
-    if let Err(error) = local_result { return Err(backup.restore(error)); }
-    drop(backup); // Local release is complete. Publication cannot undo that success.
+    if let Err(mut error) = local_result {
+        if let Some(stage) = document_stage.take() {
+            let retained = stage.keep();
+            error = error.context(format!("Renderer scratch retained for inspection: {}", retained.display()));
+        }
+        return Err(backup.restore(error));
+    }
+    let end_hooks = || -> anyhow::Result<()> {
+        for hooks in [&hooks_config.post, &hooks_config.both] {
+            if let Some(hooks) = hooks {
+                for hook in resolve_explicit_scripts(project_root, hooks)? {
+                    execute_script(project_root, &hook, profile.as_deref(), resolved_python_cmd.as_deref(), &environment, execution)?;
+                }
+            }
+        }
+        // End hooks are immediately before the next development-version bump.
+        if !is_dev {
+            crate::path_safety::resolve_path(project_root.join("VERSION").as_std_path(), true)?;
+            version_set_at(project_root, &next_version.to_string(false))?;
+        }
+        Ok(())
+    };
+    let publish = !is_dev && (config.git.commit || !config.dest.is_empty());
+    if !publish {
+        let finish = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(end_hooks)) {
+            Ok(result) => result,
+            Err(_) => Err(anyhow::anyhow!("End hook panicked unexpectedly")),
+        };
+        return if is_dev { backup.restore_result(finish) } else {
+            match finish { Ok(()) => Ok(()), Err(error) => Err(backup.restore(error)) }
+        };
+    }
+    // Publication is irreversible. Make the successful local release explicit;
+    // later publication/end-hook errors preserve it, never claim remote rollback.
+    if let Err(error) = version_set_at(project_root, &initial_version.to_string(false)) { return Err(backup.restore(error)); }
+    drop(backup);
     let publication = (|| -> anyhow::Result<()> {
         if let Some(remotes) = &config.remotes.local {
             for target in &config.dest {
@@ -487,11 +534,6 @@ pub fn build_project_with_execution(project_root: &camino::Utf8Path, mode: Build
                 }
             }
         }
-        // Export the built bytes before requested post-output cleanup.
-        if run_analysis {
-            let clear_output_env = environment.text("PROJR_CLEAR_OUTPUT");
-            crate::clear::clear_post(project_root, false, &config, clear_output_env.or(config.clear_output.as_deref()), false)?;
-        }
         if config.git.commit {
             let version = initial_version.to_string(false);
             let message = match description {
@@ -500,9 +542,10 @@ pub fn build_project_with_execution(project_root: &camino::Utf8Path, mode: Build
             };
             publish_git_in(project_root, &environment, config.config.git.engine, &message, push_target.as_ref())?;
         }
-        Ok(())
+        end_hooks()
     })();
-    publication.context("Local build succeeded; publication or post-publication cleanup failed")
+    publication.context("Local release completed; publication or end-hook finalization failed (local outputs preserved)")
+
 }
 
 fn execute_build_pipeline(
@@ -1005,6 +1048,15 @@ fn document_output_paths(file_path: &camino::Utf8Path, docs_path: &camino::Utf8P
     crate::path_safety::resolve_path(destination_assets.as_std_path(), true)?;
     if assets.exists() { crate::path_safety::validate_directory_move(&assets, &destination_assets)?; }
     Ok(DocumentOutputPaths { target, destination, assets, destination_assets })
+}
+
+fn stage_individual_document(file_path: &camino::Utf8Path, staging: &camino::Utf8Path, root: &camino::Utf8Path) -> anyhow::Result<()> {
+    let paths = document_output_paths(file_path, staging, root)?;
+    anyhow::ensure!(paths.target.is_file() && fs::metadata(&paths.target)?.len() > 0, "Expected rendered output is missing or empty: {}", paths.target);
+    crate::path_safety::resolve_path(paths.destination.as_std_path(), true)?;
+    fs::copy(&paths.target, &paths.destination)?;
+    if paths.assets.exists() { crate::fs_utils::copy_dir_recursive(&paths.assets, &paths.destination_assets)?; }
+    Ok(())
 }
 
 fn copy_individual_document(file_path: &camino::Utf8Path, docs_path: &camino::Utf8Path, project_root: &camino::Utf8Path) -> anyhow::Result<()> {

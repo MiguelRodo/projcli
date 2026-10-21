@@ -6,7 +6,7 @@ fn root(temp: &tempfile::TempDir) -> Utf8PathBuf { Utf8PathBuf::try_from(temp.pa
 fn configuration(remote: &Utf8Path, inspect: InspectStrategy) -> ValidatedConfig {
     ValidatedConfig {
         remotes: RemotesConfig { local: Some(HashMap::from([("archive".into(), LocalRemoteConfig { path: remote.to_owned(), structure: StorageStructure::Cas, content: vec!["output".into()], inspect })])) },
-        dest: vec![], config: Default::default(), directories: HashMap::new(), git: proj::ResolvedGitConfig { commit: false, push: false },
+        dest: vec![], config: Default::default(), settings: Default::default(), directories: HashMap::new(), git: proj::ResolvedGitConfig { commit: false, push: false },
         restrictions: Default::default(), clear_output: None, output_run: None, old_dev_remove: None,
         parameters: serde_yaml::Value::Mapping(serde_yaml::Mapping::new()),
     }
