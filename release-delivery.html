@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -255,8 +255,7 @@ ul.task-list li input[type="checkbox"] {
   <ul>
   <li><a href="#preview-release-delivery" id="toc-preview-release-delivery" class="nav-link active" data-scroll-target="#preview-release-delivery">Preview release delivery</a>
   <ul class="collapse">
-  <li><a href="#verified-delivery" id="toc-verified-delivery" class="nav-link" data-scroll-target="#verified-delivery">Verified delivery</a></li>
-  <li><a href="#next-preview-preparation" id="toc-next-preview-preparation" class="nav-link" data-scroll-target="#next-preview-preparation">Next preview preparation</a></li>
+  <li><a href="#verified-preview.2-delivery" id="toc-verified-preview.2-delivery" class="nav-link" data-scroll-target="#verified-preview.2-delivery">Verified preview.2 delivery</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -274,16 +273,36 @@ ul.task-list li input[type="checkbox"] {
 <p>Installers default to MiguelRodo/projcli, require version metadata and exactly one matching SHA256 entry, and verify downloaded bytes before replacement. They stage on the installation filesystem and need only an existing user-writable directory. <code>PROJ_RELEASE_VERSION</code> pins a release (with optional <code>v</code>); preview releases should always be pinned because GitHub’s latest URL normally selects stable releases. <code>PROJ_INSTALL_DIR</code> selects an existing absolute user directory without changing PATH or system settings. Existing older releases lacking the new metadata fail closed instead of installing an unverified fallback binary.</p>
 <p>Before publication: reconcile reviewed supported behavior and limits, update the Cargo/Cargo.lock preview version in a reviewed change, verify required checks, then create the exact reviewed tag. Inspect the resulting draft assets/version/ checksums and retain disposable-project warnings. Publish only after those checks. For WSL, download the pinned binary/manifest, verify SHA256, preserve any existing user-local binary, install into the chosen user-local directory and smoke help, version, capabilities and a disposable configured preview. No local compilation, sudo, persistent authentication change or R package modification is needed.</p>
 <p>Known limits include bounded captured-state recovery, arbitrary external script effects, incomplete direct R/IDE parity, incomplete attempt/release records and analysis-free publication retry. This is a development preview, not M2 completion.</p>
-<p>The prepared CLI package version is <code>0.4.0-preview.1</code>; its review and the final integrated main checks precede creating tag <code>v0.4.0-preview.1</code>. Cargo.toml and the root proj entry in Cargo.lock match. <code>proj --version</code> and machine <code>cli_version</code> report that package version. <code>proj version get</code> reads an analysis project VERSION and is deliberately a separate value; existing project VERSION files are not bumped by preparing the CLI release. The <a href="./preview-status.html">feature status</a> distinguishes implemented Rust behavior, pending recovery verification, R/IDE gaps and unfinished M2 records/provenance/retry. No broad milestone checkbox is closed merely to enable binary delivery.</p>
-<section id="verified-delivery" class="level2">
-<h2 class="anchored" data-anchor-id="verified-delivery">Verified delivery</h2>
-<p><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1">0.4.0-preview.1</a> is published as a prerelease; stable Latest remains v0.3.0. Its <a href="https://github.com/MiguelRodo/projcli/actions/runs/39515169842">tag workflow</a> passed, and both uploaded binaries were downloaded, hash-checked and executed for help/version/capabilities. Public downloads matched the verified asset bytes. Source identity is <code>bbd12edc8de9865a96b6145d0c7702f1300cb1a8</code>; package version is 0.4.0-preview.1, protocol version 1. The WSL user-local install and disposable Python success/failure smokes passed without local compilation. See <a href="./compatibility.html">compatibility evidence</a>.</p>
-<p>Pin <code>PROJ_RELEASE_VERSION=0.4.0-preview.1</code> when using the installer from that tag. Use an existing absolute user-local <code>PROJ_INSTALL_DIR</code>; installation changes no system/PATH settings. macOS/ARM artifacts remain unavailable. Keep the disposable- project limits and unfinished R/IDE/M2 scope from <a href="./preview-status.html">feature status</a>.</p>
-</section>
-<section id="next-preview-preparation" class="level2">
-<h2 class="anchored" data-anchor-id="next-preview-preparation">Next preview preparation</h2>
-<p>The <a href="./release-candidate.html">next-preview checklist</a> records source integration, actual acceptance, reviewed version changes, exact-tag assets and WSL replacement. The published/installed preview remains 0.4.0-preview.1 until those steps complete. No new tag, release or installation is announced here. Bookdown site embedding remains native; other deferred limits stay explicit.</p>
-<p>Public README/install pins and public-download check expectations stay at the existing preview through tagging, draft validation, publication and public-byte verification. Update them together in a separate post-publication docs change: those CI checks fetch the public version and source-commit assets and cannot validate an unpublished pin. Release notes/version metadata can be prepared earlier.</p>
+<section id="verified-preview.2-delivery" class="level2">
+<h2 class="anchored" data-anchor-id="verified-preview.2-delivery">Verified preview.2 delivery</h2>
+<p><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.2">0.4.0-preview.2</a> is published as a prerelease; stable Latest remains v0.3.0. The exact tag/source is 768da1bf1b83be83b657b36219f299f37130ba03. Cargo.toml and the root Cargo.lock package agree with the CLI’s reported version; protocol version is 1. An analysis project’s VERSION remains a separate value.</p>
+<p>The <a href="https://github.com/MiguelRodo/projcli/actions/runs/39607431157">actual-main pinned gate</a> passed full Rust regressions, API documentation, 26 real renderer-policy cases, eight combined workflows and two production archive witnesses with all seven corruption probes. Platform tests, installers and the website also passed. The <a href="https://github.com/MiguelRodo/projcli/actions/runs/39607988059">exact-tag workflow</a> passed both native binary version/protocol and installer checks.</p>
+<p>Both draft binaries matched their platform artifacts. All five public downloads matched the checked draft bytes, including the exact source/version metadata and four unique checksum entries. Binary SHA256 values:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Platform</th>
+<th>SHA256</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Linux x86-64</td>
+<td>15e160df722e79fb20af02d46f3858b810a0875a0e53bc0fc05ccf502b52c932</td>
+</tr>
+<tr class="even">
+<td>Windows x86-64</td>
+<td>3c4b7909c5c0669330aff3f1ff4343691da5b02ad962a6346d78330e0f7091ab</td>
+</tr>
+</tbody>
+</table>
+<p>The WSL user-local binary was backed up before replacement. Installed bytes match the public Linux asset; full-path help/version/capabilities passed. Tiny disposable Python preview success and deliberate structured failure preserved prior final, archive and project VERSION bytes while retaining the computed cached result. The shell resolves the checked user-local command. No local compilation, system binary replacement, container operation or R-package change was involved.</p>
+<p>Pin PROJ_RELEASE_VERSION=0.4.0-preview.2 and use the <a href="./install.html">install guide</a>. Linux/Windows x86-64 delivery is verified; macOS/ARM binaries remain unavailable. Bookdown site embedding, direct R/IDE parity, linked-output portability and M2 records/provenance/retry remain outside the accepted CLI workflow.</p>
+<p>The <a href="./release-candidate.html">release checklist</a> preserves the review and delivery sequence for future candidates. No broad private roadmap checkbox is closed by this delivery report.</p>
 
 
 </section>

@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -259,7 +259,7 @@ ul.task-list li input[type="checkbox"] {
   </ul></li>
   <li><a href="#known-limits-of-the-published-preview" id="toc-known-limits-of-the-published-preview" class="nav-link" data-scroll-target="#known-limits-of-the-published-preview">Known limits of the published preview</a></li>
   <li><a href="#planned-work" id="toc-planned-work" class="nav-link" data-scroll-target="#planned-work">Planned work</a></li>
-  <li><a href="#next-preview-still-under-review" id="toc-next-preview-still-under-review" class="nav-link" data-scroll-target="#next-preview-still-under-review">Next preview, still under review</a></li>
+  <li><a href="#included-in-preview.2" id="toc-included-in-preview.2" class="nav-link" data-scroll-target="#included-in-preview.2">Included in preview.2</a></li>
   </ul>
 </nav>
     </div>
@@ -288,7 +288,7 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="available-development-release" class="level2">
 <h2 class="anchored" data-anchor-id="available-development-release">Available development release</h2>
-<p><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1"><strong>v0.4.0-preview.1</strong></a> provides checked Linux x86-64 (glibc 2.35+) and Windows x86-64 binaries. No Rust compilation is needed. <a href="./install.html">Install that explicit version</a>; GitHub’s stable Latest remains the older v0.3.0.</p>
+<p><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.2"><strong>v0.4.0-preview.2</strong></a> provides checked Linux x86-64 (glibc 2.35+) and Windows x86-64 binaries. No Rust compilation is needed. <a href="./install.html">Install that explicit version</a>; GitHub’s stable Latest remains the older v0.3.0.</p>
 <p>This is a development prerelease. The table summarizes Rust CLI behavior, not completion of M1/M2 or proven R/IDE parity. See the <a href="./preview-status.html">detailed status</a> and <a href="./release-delivery.html">delivery evidence</a> for exact verification and limits. Newer changes on main need their own evidence.</p>
 <table class="caption-top table">
 <colgroup>
@@ -338,7 +338,7 @@ ul.task-list li input[type="checkbox"] {
 </table>
 <section id="preview-has-a-boundary" class="level3">
 <h3 class="anchored" data-anchor-id="preview-has-a-boundary">Preview has a boundary</h3>
-<p>The CLI skips its own release operations during a preview, including cleanup of released outputs and prior caches. <strong>This is not a filesystem sandbox.</strong> Scripts, hooks and renderers can still change files. Write preview results to an explicitly chosen temporary folder, as in the <a href="./tutorial.html">tutorial</a>.</p>
+<p>The CLI skips its own release operations during a preview, including cleanup of released outputs and prior caches. <strong>This is not a filesystem sandbox.</strong> Scripts, hooks and renderers can still change files. Generated-output path queries default to the selected versioned cache. Use those paths from your scripts, as in the <a href="./tutorial.html">tutorial</a>; arbitrary writes are still outside that rule.</p>
 <p>Document renderers have their own working folders and output rules. Mixed-language scheduling is not a promise that every target runs in the exact order written in configuration. See the <a href="./cli/build.html">build reference</a> for the current implementation and the <a href="./behavior.html">behavior contract</a> for limits.</p>
 </section>
 </section>
@@ -350,7 +350,7 @@ ul.task-list li input[type="checkbox"] {
 <li>Complete compatibility with every <code>projr</code> workflow has not been established.</li>
 <li>Mixed script and document targets do not have a complete sequential-order guarantee.</li>
 <li>This preview supplies only Linux and Windows x86-64 binaries; macOS and ARM delivery are unavailable.</li>
-<li>Legacy production behavior is still under review. This guide uses preview builds; it does not establish production cleanup or publication safety.</li>
+<li>Production recovery is bounded. It does not undo arbitrary script writes or partial external publication effects.</li>
 </ul>
 <p>The existing R package is unchanged. A Rust library is available in this repository, but new R, Python and Julia frontend integrations are separate work.</p>
 </section>
@@ -359,9 +359,10 @@ ul.task-list li input[type="checkbox"] {
 <p>The broader project-root and build workflow milestones remain incomplete. M1 and M2 remain open. Complete input/code/config/dependency provenance, durable attempt/release records and analysis-free publication retry are still unfinished. This is not a promise that all limitations above will become features.</p>
 <p>For the detailed evidence, scope and decisions, see the <a href="./behavior.html">behavior contract</a> and <a href="./compatibility.html">compatibility log</a>.</p>
 </section>
-<section id="next-preview-still-under-review" class="level2">
-<h2 class="anchored" data-anchor-id="next-preview-still-under-review">Next preview, still under review</h2>
-<p>Newer source slices add captured run context, safe versioned output paths, native working-folder defaults, explicit R-package data activation and bounded HTML resource embedding. They are not in the published preview installed above. See <a href="./release-candidate.html">the release checks</a> for the required integrated acceptance, release and installation steps.</p>
+<section id="included-in-preview.2" class="level2">
+<h2 class="anchored" data-anchor-id="included-in-preview.2">Included in preview.2</h2>
+<p>The released CLI keeps a captured project context, defaults generated-output queries to a safe versioned cache, and uses native working folders unless you choose the project-folder override. It supports explicit R-package data management, none/pre/post output cleanup, success-only output promotion and local archives. Supported HTML defaults to embedded resources only when no effective embedding option was supplied; explicit and inherited false remain respected.</p>
+<p>Real acceptance covers configured/no-init and fresh directory initialization, ordered Python/R/report steps, a computed CSV and embedded report, structured failures and verified final/archive bytes without Git credentials. See <a href="./release-delivery.html">the acceptance and delivery evidence</a>.</p>
 <p>Bookdown site embedding is unchanged. Existing R helpers and R/IDE parity, linked HTML portability, complete provenance and publication retry remain outside this claim. The <a href="./behavior.html">behavior contract</a> remains the detailed source of scope.</p>
 
 

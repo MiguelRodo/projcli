@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -755,6 +755,7 @@ ul.task-list li input[type="checkbox"] {
 <p>Candidate acceptance wording follows PR163 review: distinguish ordinary generated output/archive preservation under none from successful document replacement. Require exact final/object bytes, expected manifest/index release and next-dev versions, corruption probes, immediate init directories and a failing Git-call witness. Record the project embedding preparation/input restrictions explicitly.</p>
 <p>PR164 review corrected delivery order: keep public installer/download expectations at preview.1 until tagging/draft verification/publication/public-byte verification complete. Then update README/install/source links and public-download checks in a separate post-publication documentation change, so their actual asset fetches can pass. No public pins or version metadata changed in this correction.</p>
 <p>Preview.2 release preparation changes only the CLI package version/lock entry and release notes. Public README/install/check pins remain preview.1 until verified publication, followed by a separate checked documentation update. Do not tag, publish or install before reviewed source and exact remote gates are complete.</p>
+<p>Preview.2 is published from exact tag/source768da1bf1b83be83b657b36219f299f37130ba03. Actual-main39607431157 passed full Rust/API-doc/26renderer/8combined/CAS checks; tagged39607988059 passed both platform binaries and installers. Both draft assets equal platform artifacts; all five unauthenticated public bytes equal draft. Linux SHA25615e160df722e79fb20af02d46f3858b810a0875a0e53bc0fc05ccf502b52c932; Windows SHA2563c4b7909c5c0669330aff3f1ff4343691da5b02ad962a6346d78330e0f7091ab. WSL user-local install preserved old bytes first and matched checked public Linux bytes. Full-path version/help/protocol and tiny Python preview success/failure passed with cached84 and prior final/archive/VERSION preserved. No local heavy tests, containers, R-package/thesis changes or M2 implementation. Post-publication docs now update install/source pins and public-download CI expectations together, retaining native-browser lifecycle witness. Lifecycle marks reflect reviewed released order; arbitrary script/remote effects remain outside bounded recovery. Broad private roadmap items remain separate.</p>
 
 
 </section>
