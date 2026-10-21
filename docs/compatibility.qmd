@@ -1608,3 +1608,23 @@ Post-publication docs now update install/source pins and public-download CI
 expectations together, retaining native-browser lifecycle witness. Lifecycle marks
 reflect reviewed released order; arbitrary script/remote effects remain outside
 bounded recovery. Broad private roadmap items remain separate.
+
+
+## M1 local CLI acceptance boundary
+M1 is accepted as the delivered active-configuration local preview in preview.2,
+not a no-config build or an arbitrary command/sandbox product. The primary base
+file remains _proj.yml, with legacy _projr.yml accepted and conflicts rejected;
+directories are explicit and init supplies the familiar defaults. No parser,
+runner, path-safety, preflight or recovery behavior changes in this reconciliation.
+
+Reviewed source inspection reuses executed root/strict-config/profile/context,
+literal-space path/order, machine-error, preview-state and real combined fixtures
+from actual source768da1bf and gate39607431157. Ordered file-based analytical steps
+already deliver the useful M1 product; no second command schema or confinement
+mechanism is introduced. Original broader maintenance, command/argv and stronger
+write-boundary requirements remain open follow-up work. Existing R package,
+R/IDE parity, native Bookdown embedding and M2 records/provenance/retry are unchanged.
+
+Ponytail full: reuse shipped source, tests, public delivery evidence and the
+existing documentation validation/browser witness. This is a documentation-only
+scope clarification; no new binary release or local heavy testing is needed.

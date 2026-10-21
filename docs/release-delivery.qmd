@@ -72,5 +72,8 @@ Bookdown site embedding, direct R/IDE parity, linked-output portability and
 M2 records/provenance/retry remain outside the accepted CLI workflow.
 
 The [release checklist](release-candidate.qmd) preserves the review and delivery
-sequence for future candidates. No broad private roadmap checkbox is closed by
-this delivery report.
+sequence for future candidates. The delivered M1 boundary is the configured local
+CLI workflow above, including fresh init, ordered explicit file targets and
+bounded preservation. Stronger command schemas/process confinement and broader
+maintenance audits remain follow-ups. No new runtime or binary change was needed
+to reconcile this accepted scope; M2 remains unfinished.

@@ -25,7 +25,15 @@ multi-writer/crash atomicity and analysis-free publication retry. Capture/recove
 cannot undo arbitrary external script effects or guarantee concurrent readers never
 observe temporary changes. User/third-party logs are not automatically secret-redacted.
 
-M1 and M2 remain open as broad milestones. Individual implemented slices are evidence
-toward acceptance; this status does not close or rewrite private roadmap checkboxes.
+M1 is delivered as the useful local CLI preview in 0.4.0-preview.2. It requires
+active root configuration; initialization is optional. Explicit file-based
+R/Python/report steps, captured context, inspectable cached results and honest
+structured failures work without Git credentials. Supported previews preserve
+recorded final/archive/version state on success and failure. Runtime path guards
+and preflight remain essential; arbitrary child code is not sandboxed.
+
+General command/argv forms, stronger process confinement and broader maintenance
+audits remain follow-ups. M2 records/provenance/retry and later frontend work
+are not completed by M1.
 See [delivery boundaries](release-delivery.qmd), [behavior](behavior.qmd) and the
 [compatibility log](compatibility.qmd) for supported details and remaining gaps.

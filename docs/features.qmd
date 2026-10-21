@@ -10,8 +10,8 @@ provides checked Linux x86-64 (glibc 2.35+) and Windows x86-64 binaries.
 No Rust compilation is needed. [Install that explicit version](install.qmd);
 GitHub's stable Latest remains the older v0.3.0.
 
-This is a development prerelease. The table summarizes Rust CLI behavior,
-not completion of M1/M2 or proven R/IDE parity. See the
+This development prerelease delivers M1: a useful local CLI preview.
+The table summarizes supported Rust CLI behavior; it does not establish R/IDE parity. See the
 [detailed status](preview-status.qmd) and [delivery evidence](release-delivery.qmd)
 for exact verification and limits. Newer changes on main need their own evidence.
 
@@ -58,10 +58,10 @@ repository, but new R, Python and Julia frontend integrations are separate work.
 
 ## Planned work
 
-The broader project-root and build workflow milestones remain incomplete.
-M1 and M2 remain open. Complete input/code/config/dependency provenance, durable
-attempt/release records and analysis-free publication retry are still unfinished. This is not a promise that all limitations above will
-become features.
+M2 and later milestones remain unfinished. Complete input/code/config/dependency
+provenance, durable attempt/release records and analysis-free publication retry
+are separate work. General command/argv steps and stronger execution policies
+remain follow-ups; they are not silently interpreted from missing script paths.
 
 For the detailed evidence, scope and decisions, see the
 [behavior contract](behavior.qmd) and [compatibility log](compatibility.qmd).

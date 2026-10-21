@@ -181,3 +181,9 @@ expectations pinned to that source/version together. Retain the native-browser
 lifecycle witness and exact delivery evidence in docs/release-delivery.qmd.
 Future source edits do not update the release or installed binary automatically.
 Existing R/IDE, Bookdown, linked portability and M2 limits remain explicit.
+
+
+M1 completion means the released active-configuration local CLI preview, with
+explicit file targets and bounded managed recovery. Keep stronger command/argv
+schemas, OS-enforced confinement and broader maintenance separate; no sandbox or
+M2 completion claim follows. Reuse the verified preview.2 source/tests/evidence.
