@@ -1355,3 +1355,13 @@ the framework-created unstaged next-development VERSION change at the same
 committed HEAD; other dirty state still fails. Added remote regressions and real
 notebook acceptance await the amended-head CI and independent re-review. These
 checks do not establish concurrent-writer or power-loss atomicity.
+
+The first amended pinned run [39579838424](https://github.com/MiguelRodo/projcli/actions/runs/39579838424)
+compiled successfully and passed the new metadata-link, FIFO/link promotion,
+frozen-layout and consecutive-real-Git regressions. One existing fake Bookdown
+renderer assumed the old native asset directory still existed; it now creates
+its fresh directory, preserving the original failing-post-hook and exact-byte
+restoration assertions. The complete amended-head suite and real notebook render
+still require their own passing evidence. Ponytail full review reused shared
+managed-file and copy helpers; no new dependencies, environment mutation or
+general transaction framework were added.

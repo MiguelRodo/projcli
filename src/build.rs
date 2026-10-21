@@ -1070,7 +1070,7 @@ struct DocumentOutputPaths {
 
 fn document_output_paths(file_path: &camino::Utf8Path, docs_path: &camino::Utf8Path, project_root: &camino::Utf8Path) -> anyhow::Result<DocumentOutputPaths> {
     crate::path_safety::validate_document_destination(project_root, file_path, docs_path)?;
-    let content = fs::read_to_string(file_path).context("Failed to read document input")?;
+    let content = crate::fs_utils::read_managed_text(file_path).context("Failed to read document input")?;
     validate_individual_metadata(project_root, file_path)?;
     let (format, output_file) = crate::build_pre::individual_output_options(&content, matches!(file_path.extension(), Some("Rmd" | "rmd")))?;
     let ext = crate::build_pre::map_format_to_extension(Some(&format))?;
@@ -1197,7 +1197,7 @@ fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Pat
         },
         "Rmd" | "rmd" => {
             render_context = Some(crate::run_context::ContextFile::for_render(environment.value(crate::RUN_CONTEXT_ENV).context("Missing managed render context")?, crate::run_context::RenderEngine::RMarkdown, Some(script_path))?);
-            let content = fs::read_to_string(script_path)?;
+            let content = crate::fs_utils::read_managed_text(script_path)?;
             let (format, _) = crate::build_pre::individual_output_options(&content, true)?;
             let extension = crate::build_pre::map_format_to_extension(Some(&format))?;
             let output_name = format!("{}.{}", script_path.file_stem().context("Document input has no filename stem")?, if format == "html_notebook" { "html" } else { extension.as_str() });

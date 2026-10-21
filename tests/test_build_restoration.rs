@@ -344,7 +344,8 @@ fn bookdown_native_assets_restore_after_post_promotion_hook_failure() {
         fs::create_dir(root.join("published")).unwrap();
         fs::write(root.join("published/old.html"), "previous docs").unwrap();
         fs::create_dir(root.join("bin")).unwrap();
-        let fake = format!("#!/usr/bin/env python3\nimport os, sys\nfrom pathlib import Path\nif any('render_site' in arg for arg in sys.argv):\n root = Path(os.environ['PROJ_PROJECT_ROOT'])\n line=next(line for line in (root/'_bookdown.yml').read_text().splitlines() if line.strip().startswith('output_dir:'))\n staging=Path(line.split(':',1)[1].strip().strip(chr(34)).strip(chr(39)))\n staging.mkdir(parents=True, exist_ok=True)\n (staging / 'index.html').write_text('new document')\n (root / '{name}_files' / 'new.png').write_text('new asset')\n");
+        let fake = format!("#!/usr/bin/env python3\nimport os, sys\nfrom pathlib import Path\nif any('render_site' in arg for arg in sys.argv):\n root = Path(os.environ['PROJ_PROJECT_ROOT'])\n line=next(line for line in (root/'_bookdown.yml').read_text().splitlines() if line.strip().startswith('output_dir:'))\n staging=Path(line.split(':',1)[1].strip().strip(chr(34)).strip(chr(39)))\n staging.mkdir(parents=True, exist_ok=True)\n (staging / 'index.html').write_text('new document')\n (root / '{name}_files').mkdir(parents=True, exist_ok=True)
+ (root / '{name}_files' / 'new.png').write_text('new asset')\n");
         fs::write(root.join("bin/Rscript"), fake).unwrap();
         fs::set_permissions(root.join("bin/Rscript"), fs::Permissions::from_mode(0o755)).unwrap();
         let before = snapshot(&root);

@@ -82,10 +82,10 @@ fn promotion_rejects_symlink_and_fifo_sources_before_publication() {
 #[cfg(unix)]
 #[test]
 fn frozen_layout_and_immediate_native_freshness_survive_ordered_scripts() {
-    for case in ["before-layout","after-layout","planted-noop","book-name","book-noop"] {
+    for case in ["before-layout","after-layout","planted-noop","book-name","book-hook","book-noop"] {
         let temp=tempfile::tempdir().unwrap();let root=temp.path().canonicalize().unwrap();
         let scripts=if case=="after-layout" {"[report.qmd, mutate.py]"} else {"[mutate.py, report.qmd]"};
-        setup(&root,scripts,"");fake_renderer(&root);
+        setup(&root,if case=="book-hook" {"[report.qmd]"} else {scripts},if case=="book-hook" {"  hooks:\n    pre: [mutate.py]\n"} else {""});fake_renderer(&root);
         let original="---\nformat: html\n---\nReport\n";fs::write(root.join("report.qmd"),original).unwrap();
         fs::write(root.join("other.html"),"unrelated sibling").unwrap();
         fs::write(root.join("report.html"),"original native").unwrap();
@@ -95,7 +95,7 @@ fn frozen_layout_and_immediate_native_freshness_survive_ordered_scripts() {
         let mutation=match case {
             "before-layout"|"after-layout" => "Path('report.qmd').write_text('---\\nformat: html\\noutput-file: other.html\\n---\\nReport\\n')",
             "planted-noop" => "Path('report.html').write_text('planted stale artifact');Path('cache/noop').touch()",
-            "book-name" => "Path('_bookdown.yml').write_text('book_filename: custom\\n')",
+            "book-name"|"book-hook" => "Path('_bookdown.yml').write_text('book_filename: custom\\n')",
             _ => "Path('cache/noop').touch()",
         };
         fs::write(root.join("mutate.py"),format!("from pathlib import Path\n{mutation}\n")).unwrap();
@@ -125,4 +125,19 @@ fn two_managed_git_builds_accept_only_the_exact_recorded_dev_version_change() {
     }
     fs::write(root.join("VERSION"),"Version: v9.9.9.1").unwrap();assert!(!run(&root,"build").status.success());
     fs::write(root.join("VERSION"),"Version: v1.2.5.1").unwrap();fs::write(root.join("untracked-private"),"private").unwrap();assert!(!run(&root,"build").status.success());
+}
+
+
+#[cfg(unix)]
+#[test]
+fn project_selection_and_output_preparation_precede_final_output_pre_clear() {
+    let temp=tempfile::tempdir().unwrap();let root=temp.path().canonicalize().unwrap();
+    setup(&root,"[analysis.py, report.qmd]","  hooks:\n    pre: [start.py]\nsettings:\n  output-clear-stage: pre\n");fake_renderer(&root);
+    fs::write(root.join("_quarto.yml"),"project:\n  type: default\n").unwrap();
+    fs::write(root.join("report.qmd"),"Report\n").unwrap();
+    fs::write(root.join("start.py"),"from pathlib import Path\nassert 'render:' not in Path('_quarto.yml').read_text()\nassert Path('released/old').read_text()=='old output'\nPath('cache/start').touch()\n").unwrap();
+    fs::write(root.join("analysis.py"),"from pathlib import Path\ny=Path('_quarto.yml').read_text()\nassert 'render:' in y and 'report.qmd' in y and 'output-dir:' in y\nassert not Path('released/old').exists()\nassert Path('cache/start').exists()\nPath('cache/analysis').touch()\n").unwrap();
+    let result=run(&root,"build");assert!(result.status.success(),"{}",String::from_utf8_lossy(&result.stderr));
+    assert!(root.join("cache/analysis").exists());assert!(root.join("published/index.html").exists());
+    assert_eq!(fs::read_to_string(root.join("_quarto.yml")).unwrap(),"project:\n  type: default\n");
 }
