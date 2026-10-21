@@ -376,3 +376,15 @@ local release and reports partial finalization; remote actions cannot be rolled 
 Without publication, end-hook failure remains inside managed recovery. Preview never
 publishes or bumps VERSION. Arbitrary script effects/concurrent writers/power loss
 are outside the managed recovery guarantee; this is no sandbox or M2 provenance.
+
+
+PR159 review amendments freeze selected renderer paths and prepared project
+metadata, revalidate immediately before each renderer, isolate its native
+artifacts at that boundary, and collect only the frozen outputs. Controlled
+VERSION, ignore and renderer-metadata writes share immediate path revalidation;
+promotion rejects links and special files. Notebook invocation retains native
+rmarkdown intermediate naming. An exact per-worktree Git record permits only
+the framework-created unstaged next-development VERSION change at the same
+committed HEAD; other dirty state still fails. Added remote regressions and real
+notebook acceptance await the amended-head CI and independent re-review. These
+checks do not establish concurrent-writer or power-loss atomicity.

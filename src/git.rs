@@ -297,8 +297,13 @@ pub(crate) fn fetch_remote_in(root: &camino::Utf8Path, remote: &str, environment
 
 pub(crate) fn require_clean_git_in(root: &camino::Utf8Path, environment: &RunEnvironment) -> anyhow::Result<()> {
     let git = SystemGit { repo_path: root.to_owned(), environment: environment.clone() };
-    if !git.run_cmd(&["status", "--porcelain", "--untracked-files=all", "--ignore-submodules=none"])?.is_empty() {
-        anyhow::bail!("Git commit requested but the repository already contains changes; resolve them before building");
+    let output = git_command_in(Some(root), environment)?.current_dir(root)
+        .args(["status", "--porcelain", "--untracked-files=all", "--ignore-submodules=none"]).output()?;
+    anyhow::ensure!(output.status.success(), "Cannot inspect Git worktree state");
+    if !output.stdout.is_empty() {
+        let expected = output.stdout == b" M VERSION\n" || output.stdout == b" M VERSION\r\n";
+        anyhow::ensure!(expected && owned_dev_transition_matches(root, &git)?,
+            "Git commit requested but the repository already contains changes; resolve them before building");
     }
     Ok(())
 }
@@ -511,4 +516,68 @@ mod tests {
         assert_eq!(provider.get_user_name().unwrap(), "git-shim");
     }
 
+}
+
+// This is one exact framework-owned transition, not permission for arbitrary dirty
+// VERSION edits. The record lives in this worktree's Git metadata, never a commit.
+#[derive(serde::Serialize, serde::Deserialize)]
+pub(crate) struct DevTransition {
+    schema: u32,
+    root: String,
+    head: String,
+    release: String,
+    development: String,
+}
+
+fn transition_path(root: &camino::Utf8Path, git: &SystemGit) -> anyhow::Result<std::path::PathBuf> {
+    let directory = std::path::PathBuf::from(git.run_cmd(&["rev-parse", "--absolute-git-dir"])?);
+    anyhow::ensure!(directory.is_absolute() && directory.is_dir(), "Git metadata directory is invalid");
+    crate::path_safety::resolve_path(&directory, true)?;
+    let _ = root;
+    Ok(directory.join("projcli-dev-transition.json"))
+}
+
+fn git_file_bytes(git: &SystemGit) -> anyhow::Result<Vec<u8>> {
+    let output = git_command_in(Some(&git.repo_path), &git.environment)?.current_dir(&git.repo_path)
+        .args(["show", "HEAD:VERSION"]).output()?;
+    anyhow::ensure!(output.status.success(), "Cannot inspect committed VERSION");
+    Ok(output.stdout)
+}
+
+fn owned_dev_transition_matches(root: &camino::Utf8Path, git: &SystemGit) -> anyhow::Result<bool> {
+    let path = transition_path(root, git)?;
+    crate::path_safety::resolve_path(&path, true)?;
+    let metadata = match std::fs::metadata(&path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(error) => return Err(error.into()),
+    };
+    if !metadata.is_file() || metadata.len() > 4096 { return Ok(false); }
+    let record: DevTransition = match serde_json::from_str(&crate::fs_utils::read_managed_text(path)?) {
+        Ok(record) => record, Err(_) => return Ok(false),
+    };
+    crate::path_safety::resolve_path(root.join("VERSION").as_std_path(), true)?;
+    Ok(record.schema == 1 && record.root == root.as_str()
+        && record.head == git.run_cmd(&["rev-parse", "HEAD"])?
+        && record.release.as_bytes() == git_file_bytes(git)?
+        && record.development.as_bytes() == std::fs::read(root.join("VERSION"))?)
+}
+
+pub(crate) fn capture_dev_transition(root: &camino::Utf8Path, environment: &RunEnvironment,
+    release: &crate::version::ProjVersion, development: &crate::version::ProjVersion) -> anyhow::Result<Option<DevTransition>> {
+    let git = SystemGit { repo_path: root.to_owned(), environment: environment.clone() };
+    let tracked = git.run_cmd(&["ls-tree", "HEAD", "--", "VERSION"])?;
+    if tracked.is_empty() { return Ok(None); }
+    anyhow::ensure!(tracked.starts_with("100644 blob ") || tracked.starts_with("100755 blob "), "Committed VERSION must be a regular file");
+    let release = crate::version::version_file_content(release);
+    anyhow::ensure!(release.as_bytes() == git_file_bytes(&git)?, "Git commit did not retain the planned release VERSION");
+    Ok(Some(DevTransition { schema: 1, root: root.to_string(), head: git.run_cmd(&["rev-parse", "HEAD"])?,
+        release, development: crate::version::version_file_content(development) }))
+}
+
+pub(crate) fn record_dev_transition(root: &camino::Utf8Path, environment: &RunEnvironment, record: &DevTransition) -> anyhow::Result<()> {
+    let git = SystemGit { repo_path: root.to_owned(), environment: environment.clone() };
+    anyhow::ensure!(record.head == git.run_cmd(&["rev-parse", "HEAD"])? && record.release.as_bytes() == git_file_bytes(&git)?,
+        "Git state changed during end hooks; development transition was not applied");
+    crate::fs_utils::write_managed_file(transition_path(root, &git)?, serde_json::to_vec(record)?)
 }

@@ -1343,3 +1343,36 @@ rmarkdown2.32, knitr1.52, Python3.12.3. Complete Linux regressions also passed.
 These use explicit embedding; default fallback, R/IDE parity, PDF/other-OS renders
 and nonembedded portability are not claimed by this run. Main-base integration
 keeps executable/test/Cargo blobs identical; final exact-head checks/review gate merge.
+
+
+PR159 review amendments freeze selected renderer paths and prepared project
+metadata, revalidate immediately before each renderer, isolate its native
+artifacts at that boundary, and collect only the frozen outputs. Controlled
+VERSION, ignore and renderer-metadata writes share immediate path revalidation;
+promotion rejects links and special files. Notebook invocation retains native
+rmarkdown intermediate naming. An exact per-worktree Git record permits only
+the framework-created unstaged next-development VERSION change at the same
+committed HEAD; other dirty state still fails. Added remote regressions and real
+notebook acceptance await the amended-head CI and independent re-review. These
+checks do not establish concurrent-writer or power-loss atomicity.
+
+The first amended pinned run [39579838424](https://github.com/MiguelRodo/projcli/actions/runs/39579838424)
+compiled successfully and passed the new metadata-link, FIFO/link promotion,
+frozen-layout and consecutive-real-Git regressions. One existing fake Bookdown
+renderer assumed the old native asset directory still existed; it now creates
+its fresh directory, preserving the original failing-post-hook and exact-byte
+restoration assertions. The complete amended-head suite and real notebook render
+still require their own passing evidence. Ponytail full review reused shared
+managed-file and copy helpers; no new dependencies, environment mutation or
+general transaction framework were added.
+
+Pinned-image run [39580256824](https://github.com/MiguelRodo/projcli/actions/runs/39580256824)
+at `70badedf8ed674c0b93488331d25b687561a4d5f` passed the complete Linux suite,
+all five review regression groups, actual R/Python and six embedded HTML renders
+(12 exact image payload checks), and real `html_notebook` preview preserving both
+preexisting `report_files` and `report.nb_files` sentinels. Windows and host Linux
+passed. macOS exposed a fixture passing the system's `/var` temporary alias to a
+direct guarded metadata-write API; the fixture and public examples now resolve
+their known temporary project root first. User-controlled metadata symlink guards
+are retained. Final exact-head platform checks and independent review remain
+required; no release or milestone completion is implied.

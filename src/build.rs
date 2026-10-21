@@ -337,6 +337,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     let mut managed = vec![];
     let mut native_artifacts = Vec::new();
     let mut native_layouts = Vec::new();
+    let frozen_book_assets = if bookdown_exists { Some(bookdown_asset_paths(project_root, &config.get_path(project_root, "docs")?)?.0) } else { None };
     for name in ["VERSION", ".gitignore", ".Rbuildignore", "_proj.yml", "_projr.yml", "_projr-local.yml", "DESCRIPTION", "_quarto.yml", "_bookdown.yml"] {
         managed.push(project_root.join(name).into_std_path_buf());
     }
@@ -421,7 +422,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         }
     }
     let restore_engines = || -> anyhow::Result<()> {
-        for (path, bytes) in &engine_originals { crate::path_safety::resolve_path(path.as_std_path(), true)?; fs::write(path, bytes).with_context(|| format!("Cannot restore exact renderer configuration {path}"))?; }
+        for (path, bytes) in &engine_originals { crate::path_safety::resolve_path(path.as_std_path(), true)?; crate::fs_utils::write_managed_file(path, bytes).with_context(|| format!("Cannot restore exact renderer configuration {path}"))?; }
         Ok(())
     };
     let mut document_stage = None;
@@ -439,6 +440,10 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
             anyhow::ensure!(&current.target == expected_target && &current.assets == expected_assets,
                 "Renderer output layout changed after preflight: {file}");
         }
+        if let Some(expected) = &frozen_book_assets {
+            anyhow::ensure!(&bookdown_asset_paths(project_root, &config.get_path(project_root, "docs")?)?.0 == expected,
+                "Bookdown output layout changed after preflight");
+        }
         if !is_dev {
             if project_root.join("_environment.local").exists() {
                 crate::ignore::add_manual_ignores(project_root, &["_environment.local".to_string()], true, crate::ignore::IgnoreType::All)?;
@@ -455,24 +460,45 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
             let staging = camino::Utf8Path::from_path(document_stage.as_ref().unwrap().path()).context("Render staging path must be UTF-8")?;
             if quarto_exists { rewrite_engine_output_dir(project_root.as_std_path(), "quarto", staging.as_str())?; }
             if bookdown_exists { rewrite_engine_output_dir(project_root.as_std_path(), "bookdown", staging.as_str())?; }
-            if !quarto_exists && !bookdown_exists {
-                let docs = config.get_path(project_root, "docs")?;
-                // A fresh native artifact is required, in preview too. Recovery retains
-                // exact original bytes/presence for preview and any controlled failure.
-                for file in &resolved_files {
-                    if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) {
-                        let paths = document_output_paths(file, &docs, project_root)?;
-                        if paths.target.exists() { fs::remove_file(&paths.target)?; }
-                        if paths.assets.exists() { fs::remove_dir_all(&paths.assets)?; }
-                    }
+        }
+        let selected_documents: Vec<_> = resolved_files.iter().filter(|file| matches!(file.extension(), Some("qmd" | "Rmd" | "rmd"))).cloned().collect();
+        if build_scripts.is_some() && !selected_documents.is_empty() {
+            if quarto_exists { rewrite_quarto_yml(project_root.as_std_path(), &selected_documents)?; }
+            else if bookdown_exists { rewrite_bookdown_yml(project_root.as_std_path(), &selected_documents)?; }
+        }
+        // Freeze the prepared project metadata. A prior analysis script may not
+        // silently redirect a later renderer or change its native asset layout.
+        let prepared_engines = engine_originals.iter().map(|(path, _)|
+            Ok((path.clone(), crate::fs_utils::read_managed_text(path)?)))
+            .collect::<anyhow::Result<Vec<_>>>()?;
+        let before_render = |document: Option<&camino::Utf8Path>| -> anyhow::Result<()> {
+            if let Some(file) = document {
+                let (_, target, assets) = native_layouts.iter().find(|(input, _, _)| input == file)
+                    .context("Missing frozen document layout")?;
+                let current = document_output_paths(file, &config.get_path(project_root, "docs")?, project_root)?;
+                anyhow::ensure!(&current.target == target && &current.assets == assets, "Renderer output layout changed after preflight: {file}");
+                remove_native_artifact(target)?;
+                remove_native_artifact(assets)?;
+            } else {
+                for (path, expected) in &prepared_engines {
+                    anyhow::ensure!(crate::fs_utils::read_managed_text(path)? == *expected,
+                        "Renderer project configuration changed after preparation: {path}");
+                }
+                if let Some(assets) = &frozen_book_assets { remove_native_artifact(assets)?; }
+                let stage = document_stage.as_ref().context("Missing project render staging")?.path();
+                crate::path_safety::resolve_path(stage, true)?;
+                for entry in fs::read_dir(stage)? {
+                    let path = camino::Utf8PathBuf::try_from(entry?.path())?;
+                    remove_native_artifact(&path)?;
                 }
             }
-        }
+            Ok(())
+        };
         // No preparation, hooks or metadata work may intervene at these boundaries.
         if !is_dev && run_analysis && config.output_run.unwrap_or(true) && clear_stage == crate::yml::OutputClearStage::Pre {
             crate::clear::clear_post(project_root, false, &config, Some("post"), false)?;
         }
-        execute_build_pipeline(project_root, build_scripts.clone(), profile.clone(), quarto_exists, bookdown_exists, resolved_python_cmd.as_deref(), &environment, execution)?;
+        execute_build_pipeline(project_root, &resolved_files, build_scripts.is_some(), profile.clone(), quarto_exists, bookdown_exists, resolved_python_cmd.as_deref(), &environment, execution, &before_render)?;
         if !is_dev && run_analysis && config.output_run.unwrap_or(true) && clear_stage == crate::yml::OutputClearStage::Post {
             crate::clear::clear_post(project_root, false, &config, Some("post"), false)?;
         }
@@ -481,11 +507,13 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
             let staging = camino::Utf8Path::from_path(document_stage.as_ref().unwrap().path()).context("Render staging path must be UTF-8")?;
             if !quarto_exists && !bookdown_exists {
                 for file in &resolved_files {
-                    if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) { stage_individual_document(file, staging, project_root)?; }
+                    if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) { let (_, target, assets) = native_layouts.iter().find(|(input, _, _)| input == file).context("Missing frozen document collection layout")?;
+                        stage_frozen_document(target, assets, staging)?; }
                 }
             } else if bookdown_exists {
-                let (assets, destination) = bookdown_asset_paths(project_root, staging)?;
-                if assets.exists() { crate::fs_utils::copy_dir_recursive(&assets, &destination)?; }
+                let assets = frozen_book_assets.as_ref().context("Missing frozen Bookdown assets")?;
+                let destination = staging.join(assets.file_name().context("Missing Bookdown asset leaf")?);
+                if assets.exists() { crate::fs_utils::copy_dir_recursive(assets, &destination)?; }
             }
             validate_project_artifacts(staging)?;
             let docs_label = config.directories.keys().find(|label| label.eq_ignore_ascii_case("docs"))
@@ -524,7 +552,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         }
         return Err(backup.restore(error));
     }
-    let end_hooks = || -> anyhow::Result<()> {
+    let end_hooks = |transition: Option<&crate::git::DevTransition>| -> anyhow::Result<()> {
         for hooks in [&hooks_config.post, &hooks_config.both] {
             if let Some(hooks) = hooks {
                 for hook in resolve_explicit_scripts(project_root, hooks)? {
@@ -535,13 +563,14 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         // End hooks are immediately before the next development-version bump.
         if !is_dev {
             crate::path_safety::resolve_path(project_root.join("VERSION").as_std_path(), true)?;
+            if let Some(transition) = transition { crate::git::record_dev_transition(project_root, &environment, transition)?; }
             version_set_at(project_root, &next_version.to_string(false))?;
         }
         Ok(())
     };
     let publish = !is_dev && (config.git.commit || !config.dest.is_empty());
     if !publish {
-        let finish = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(end_hooks)) {
+        let finish = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| end_hooks(None))) {
             Ok(result) => result,
             Err(_) => Err(anyhow::anyhow!("End hook panicked unexpectedly")),
         };
@@ -564,15 +593,16 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
                 }
             }
         }
-        if config.git.commit {
+        let transition = if config.git.commit {
             let version = initial_version.to_string(false);
             let message = match description {
                 Some(description) if !description.trim().is_empty() => format!("Build v{version}: {}", description.trim()),
                 _ => format!("Build v{version}"),
             };
             publish_git_in(project_root, &environment, config.config.git.engine, &message, push_target.as_ref())?;
-        }
-        end_hooks()
+            crate::git::capture_dev_transition(project_root, &environment, &initial_version, &next_version)?
+        } else { None };
+        end_hooks(transition.as_ref())
     })();
     publication.context("Local build succeeded; publication or end-hook finalization failed (local release preserved)")
 
@@ -580,17 +610,19 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
 
 fn execute_build_pipeline(
     project_root: &camino::Utf8Path,
-    build_scripts: Option<Vec<String>>,
+    resolved_files: &[camino::Utf8PathBuf],
+    explicit: bool,
     profile: Option<String>,
     quarto_exists: bool,
     bookdown_exists: bool,
     resolved_python_cmd: Option<&str>,
     environment: &RunEnvironment,
     execution: ExecutionDirectory,
+    before_render: &impl Fn(Option<&camino::Utf8Path>) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    if let Some(scripts) = build_scripts {
+    if explicit {
         // Path A: Explicit Configuration via build.scripts
-        let resolved_files = resolve_explicit_scripts(project_root, &scripts)?;
+
 
         // Mutual Exclusion Error (Rule 1 & 2)
         if quarto_exists && bookdown_exists {
@@ -609,17 +641,11 @@ fn execute_build_pipeline(
         }
 
         let mut doc_files = Vec::new();
-        for file in &resolved_files {
+        for file in resolved_files {
             let ext = file.extension().unwrap_or("");
             if ext == "qmd" || ext == "Rmd" {
                 doc_files.push(file.clone());
             }
-        }
-
-        if quarto_exists && !doc_files.is_empty() {
-            rewrite_quarto_yml(project_root.as_std_path(), &doc_files)?;
-        } else if bookdown_exists && !doc_files.is_empty() {
-            rewrite_bookdown_yml(project_root.as_std_path(), &doc_files)?;
         }
 
         // Reordering constraint
@@ -650,9 +676,11 @@ fn execute_build_pipeline(
             // Execute doc clusters
             if quarto_exists && !doc_files.is_empty() {
                 let p = profile.clone();
+                before_render(None)?;
                 execute_project_render(project_root, true, p.as_deref(), environment, execution)?;
             } else if bookdown_exists && !doc_files.is_empty() {
                 let p = profile.clone();
+                before_render(None)?;
                 execute_project_render(project_root, false, p.as_deref(), environment, execution)?;
             }
 
@@ -665,6 +693,7 @@ fn execute_build_pipeline(
             // No project files, just execute in exact relative order
             for file in resolved_files {
                 let p = profile.clone();
+                if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) { before_render(Some(file))?; }
                 execute_script(project_root, &file, p.as_deref(), resolved_python_cmd, environment, execution)?;
             }
         }
@@ -677,12 +706,15 @@ fn execute_build_pipeline(
 
         // Path B: Fallback Automated Auto-Discovery
         if quarto_exists {
+            before_render(None)?;
             execute_project_render(project_root, true, profile.as_deref(), environment, execution)?;
         } else if bookdown_exists {
+            before_render(None)?;
             execute_project_render(project_root, false, profile.as_deref(), environment, execution)?;
         } else {
-            let resolved_files = resolve_fallback_scripts(project_root)?;
+
             for file in resolved_files {
+                if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) { before_render(Some(file))?; }
                 execute_script(project_root, &file, profile.as_deref(), resolved_python_cmd, environment, execution)?;
             }
         }
@@ -803,7 +835,7 @@ fn rewrite_quarto_yml(project_root: &Path, qmd_files: &[camino::Utf8PathBuf]) ->
         .collect();
 
     let quarto_path = project_root.join("_quarto.yml");
-    let content = fs::read_to_string(&quarto_path).context("Failed to read _quarto.yml")?;
+    let content = crate::fs_utils::read_managed_text(&quarto_path).context("Failed to read _quarto.yml")?;
 
     let mut yaml: serde_yaml::Value = serde_yaml::from_str(&content).context("Failed to parse _quarto.yml")?;
 
@@ -822,7 +854,7 @@ fn rewrite_quarto_yml(project_root: &Path, qmd_files: &[camino::Utf8PathBuf]) ->
     }
 
     let out_content = serde_yaml::to_string(&yaml).context("Failed to serialize _quarto.yml")?;
-    fs::write(&quarto_path, out_content).context("Failed to write _quarto.yml")?;
+    crate::fs_utils::write_managed_file(&quarto_path, out_content).context("Failed to write _quarto.yml")?;
     Ok(())
 }
 
@@ -833,12 +865,12 @@ pub(crate) fn rewrite_engine_output_dir(project_root: &Path, engine: &str, out_d
         if !quarto_path.exists() {
             return Ok(());
         }
-        let content = fs::read_to_string(&quarto_path).context("Failed to read _quarto.yml")?;
+        let content = crate::fs_utils::read_managed_text(&quarto_path).context("Failed to read _quarto.yml")?;
 
-        let mut yaml: serde_yaml::Value = serde_yaml::from_str(&content).unwrap_or(serde_yaml::Value::Mapping(serde_yaml::Mapping::new()));
+        let mut yaml: serde_yaml::Value = serde_yaml::from_str(&content).context("Invalid renderer configuration")?;
 
         if !yaml.is_mapping() {
-            yaml = serde_yaml::Value::Mapping(serde_yaml::Mapping::new());
+            anyhow::bail!("Renderer configuration must be a mapping");
         }
 
         if let serde_yaml::Value::Mapping(ref mut map) = yaml {
@@ -854,19 +886,19 @@ pub(crate) fn rewrite_engine_output_dir(project_root: &Path, engine: &str, out_d
         }
 
         let out_content = serde_yaml::to_string(&yaml).context("Failed to serialize _quarto.yml")?;
-        fs::write(&quarto_path, out_content).context("Failed to write _quarto.yml")?;
+        crate::fs_utils::write_managed_file(&quarto_path, out_content).context("Failed to write _quarto.yml")?;
 
     } else if engine == "bookdown" {
         let bookdown_path = project_root.join("_bookdown.yml");
         if !bookdown_path.exists() {
             return Ok(());
         }
-        let content = fs::read_to_string(&bookdown_path).context("Failed to read _bookdown.yml")?;
+        let content = crate::fs_utils::read_managed_text(&bookdown_path).context("Failed to read _bookdown.yml")?;
 
-        let mut yaml: serde_yaml::Value = serde_yaml::from_str(&content).unwrap_or(serde_yaml::Value::Mapping(serde_yaml::Mapping::new()));
+        let mut yaml: serde_yaml::Value = serde_yaml::from_str(&content).context("Invalid renderer configuration")?;
 
         if !yaml.is_mapping() {
-            yaml = serde_yaml::Value::Mapping(serde_yaml::Mapping::new());
+            anyhow::bail!("Renderer configuration must be a mapping");
         }
 
         if let serde_yaml::Value::Mapping(ref mut map) = yaml {
@@ -875,7 +907,7 @@ pub(crate) fn rewrite_engine_output_dir(project_root: &Path, engine: &str, out_d
         }
 
         let out_content = serde_yaml::to_string(&yaml).context("Failed to serialize _bookdown.yml")?;
-        fs::write(&bookdown_path, out_content).context("Failed to write _bookdown.yml")?;
+        crate::fs_utils::write_managed_file(&bookdown_path, out_content).context("Failed to write _bookdown.yml")?;
     }
 
     Ok(())
@@ -888,7 +920,7 @@ fn rewrite_bookdown_yml(project_root: &Path, rmd_files: &[camino::Utf8PathBuf]) 
         .collect();
 
     let bookdown_path = project_root.join("_bookdown.yml");
-    let content = fs::read_to_string(&bookdown_path).context("Failed to read _bookdown.yml")?;
+    let content = crate::fs_utils::read_managed_text(&bookdown_path).context("Failed to read _bookdown.yml")?;
 
     let mut yaml: serde_yaml::Value = serde_yaml::from_str(&content).context("Failed to parse _bookdown.yml")?;
 
@@ -899,7 +931,7 @@ fn rewrite_bookdown_yml(project_root: &Path, rmd_files: &[camino::Utf8PathBuf]) 
     }
 
     let out_content = serde_yaml::to_string(&yaml).context("Failed to serialize _bookdown.yml")?;
-    fs::write(&bookdown_path, out_content).context("Failed to write _bookdown.yml")?;
+    crate::fs_utils::write_managed_file(&bookdown_path, out_content).context("Failed to write _bookdown.yml")?;
     Ok(())
 }
 
@@ -1046,7 +1078,7 @@ struct DocumentOutputPaths {
 
 fn document_output_paths(file_path: &camino::Utf8Path, docs_path: &camino::Utf8Path, project_root: &camino::Utf8Path) -> anyhow::Result<DocumentOutputPaths> {
     crate::path_safety::validate_document_destination(project_root, file_path, docs_path)?;
-    let content = fs::read_to_string(file_path).context("Failed to read document input")?;
+    let content = crate::fs_utils::read_managed_text(file_path).context("Failed to read document input")?;
     validate_individual_metadata(project_root, file_path)?;
     let (format, output_file) = crate::build_pre::individual_output_options(&content, matches!(file_path.extension(), Some("Rmd" | "rmd")))?;
     let ext = crate::build_pre::map_format_to_extension(Some(&format))?;
@@ -1078,15 +1110,6 @@ fn document_output_paths(file_path: &camino::Utf8Path, docs_path: &camino::Utf8P
     crate::path_safety::resolve_path(destination_assets.as_std_path(), true)?;
     if assets.exists() { crate::path_safety::validate_directory_move(&assets, &destination_assets)?; }
     Ok(DocumentOutputPaths { target, destination, assets, destination_assets })
-}
-
-fn stage_individual_document(file_path: &camino::Utf8Path, staging: &camino::Utf8Path, root: &camino::Utf8Path) -> anyhow::Result<()> {
-    let paths = document_output_paths(file_path, staging, root)?;
-    anyhow::ensure!(paths.target.is_file() && fs::metadata(&paths.target)?.len() > 0, "Expected rendered output is missing or empty: {}", paths.target);
-    crate::path_safety::resolve_path(paths.destination.as_std_path(), true)?;
-    fs::copy(&paths.target, &paths.destination)?;
-    if paths.assets.exists() { crate::fs_utils::copy_dir_recursive(&paths.assets, &paths.destination_assets)?; }
-    Ok(())
 }
 
 fn copy_individual_document(file_path: &camino::Utf8Path, docs_path: &camino::Utf8Path, project_root: &camino::Utf8Path) -> anyhow::Result<()> {
@@ -1122,7 +1145,7 @@ fn validate_project_artifacts(directory: &camino::Utf8Path) -> anyhow::Result<()
 
 fn bookdown_asset_paths(root: &camino::Utf8Path, docs: &camino::Utf8Path) -> anyhow::Result<(camino::Utf8PathBuf, camino::Utf8PathBuf)> {
     let path = root.join("_bookdown.yml");
-    let content = fs::read_to_string(&path).context("Cannot read Bookdown configuration")?;
+    let content = crate::fs_utils::read_managed_text(&path).context("Cannot read Bookdown configuration")?;
     let yaml: serde_yaml::Value = serde_yaml::from_str(&content).context("Invalid Bookdown configuration")?;
     let name = match yaml.get("book_filename") {
         Some(value) => value.as_str().context("Bookdown book_filename must be a string")?,
@@ -1182,10 +1205,10 @@ fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Pat
         },
         "Rmd" | "rmd" => {
             render_context = Some(crate::run_context::ContextFile::for_render(environment.value(crate::RUN_CONTEXT_ENV).context("Missing managed render context")?, crate::run_context::RenderEngine::RMarkdown, Some(script_path))?);
-            let content = fs::read_to_string(script_path)?;
+            let content = crate::fs_utils::read_managed_text(script_path)?;
             let (format, _) = crate::build_pre::individual_output_options(&content, true)?;
             let extension = crate::build_pre::map_format_to_extension(Some(&format))?;
-            let output_name = format!("{}.{}", script_path.file_stem().context("Document input has no filename stem")?, extension);
+            let output_name = format!("{}.{}", script_path.file_stem().context("Document input has no filename stem")?, if format == "html_notebook" { "html" } else { extension.as_str() });
             let mut c = environment.command("Rscript");
             // rmarkdown sanitizes shell characters in input basenames by copying
             // into its intermediates directory. Pin that directory to the source
@@ -1309,4 +1332,26 @@ esac
         assert!(format!("{:#}", result.unwrap_err()).contains("changed"));
         assert_eq!(fs::read_to_string(root.join("events")).unwrap(), "add\ncommit\n");
     }
+}
+
+fn remove_native_artifact(path: &camino::Utf8Path) -> anyhow::Result<()> {
+    crate::path_safety::resolve_path(path.as_std_path(), true)?;
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.is_file() => fs::remove_file(path)?,
+        Ok(metadata) if metadata.is_dir() => fs::remove_dir_all(path)?,
+        Ok(_) => anyhow::bail!("Unsupported native render artifact: {path}"),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {},
+        Err(error) => return Err(error.into()),
+    }
+    Ok(())
+}
+
+fn stage_frozen_document(target: &camino::Utf8Path, assets: &camino::Utf8Path, staging: &camino::Utf8Path) -> anyhow::Result<()> {
+    crate::path_safety::resolve_path(target.as_std_path(), true)?;
+    anyhow::ensure!(target.is_file() && fs::metadata(target)?.len() > 0, "Expected rendered output is missing or empty: {target}");
+    let destination = staging.join(target.file_name().context("Missing document output leaf")?);
+    crate::path_safety::resolve_path(destination.as_std_path(), true)?;
+    fs::copy(target, destination)?;
+    if assets.exists() { crate::fs_utils::copy_dir_recursive(assets, &staging.join(assets.file_name().context("Missing document asset leaf")?))?; }
+    Ok(())
 }
