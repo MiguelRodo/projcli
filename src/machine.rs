@@ -49,6 +49,7 @@ pub(crate) fn emit_capabilities() -> i32 {
         "non_interactive": true,
         "path_targets": ["safe", "final"],
         "path_fragments": true,
+        "path_formats": ["auto", "absolute", "relative"],
         "logs": "stderr",
         "queries": {"path get": "path", "version get": "version", "yml read": "validated"},
         "preview_output_isolation": false,
@@ -64,8 +65,8 @@ pub(crate) fn run(cli: &Cli) -> i32 {
         Err(_) => return emit(Err(failure(ErrorCode::ProjectSelectionFailed, "Cannot select the project directory."))),
     };
     let result = match &cli.command {
-        Commands::Path { command: PathCommands::Get { label, target, parts } } => {
-            proj::resource_path_from(&root, label, parts, target == "safe")
+        Commands::Path { command: PathCommands::Get { label, target, parts, format, relative_to } } => {
+            crate::query_path(&root, label, target, parts, format, relative_to.as_deref())
                 .map(|path| json!({"path": path}))
                 .map_err(|_| failure(ErrorCode::QueryFailed, "Cannot resolve the requested configured path."))
         }

@@ -20,6 +20,18 @@ struct RunContext {
     safe_cache: Option<String>,
     active_version: ProjVersion,
     development: bool,
+    render: Option<RenderContext>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum RenderEngine { Quarto, RMarkdown, Bookdown }
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct RenderContext {
+    engine: RenderEngine,
+    pub(crate) document: Option<Utf8PathBuf>,
 }
 
 pub(crate) struct ContextFile(tempfile::NamedTempFile);
@@ -29,11 +41,15 @@ impl ContextFile {
         let directories = config.directories.keys().map(|label| Ok((label.clone(), config.get_path(root, label)?)))
             .collect::<anyhow::Result<_>>()?;
         let safe_cache = crate::paths::select_safe_cache(config.directories.iter().map(|(label, directory)| (label.as_str(), directory.safe)), &directory_order)?;
-        let context = RunContext { schema_version: 3, root: root.to_owned(), profiles, directories, directory_order, safe_cache, active_version, development };
+        let context = RunContext { schema_version: 4, root: root.to_owned(), profiles, directories, directory_order, safe_cache, active_version, development, render: None };
+        Self::save(context)
+    }
+
+    fn save(context: RunContext) -> anyhow::Result<Self> {
         let temporary = std::env::temp_dir().canonicalize().context("Cannot resolve run-context temporary directory")?;
         let mut file = tempfile::NamedTempFile::new_in(temporary).context("Cannot create private run context")?;
-        for label in config.directories.keys().filter(|label| label.to_ascii_lowercase().starts_with("cache")) {
-            let cache = config.get_path(root, label)?;
+        for (label, cache) in &context.directories {
+            if !label.to_ascii_lowercase().starts_with("cache") { continue; }
             let cache = crate::path_safety::resolve_path(cache.as_std_path(), true)?;
             anyhow::ensure!(!file.path().starts_with(cache), "Run context cannot be stored in disposable cache");
         }
@@ -42,12 +58,26 @@ impl ContextFile {
         Ok(Self(file))
     }
 
+    pub(crate) fn for_render(path: &std::ffi::OsStr, engine: RenderEngine, document: Option<&Utf8Path>) -> anyhow::Result<Self> {
+        let mut context = read_context(std::path::Path::new(path))?;
+        let document = document.map(|path| {
+            let path = crate::path_safety::resolve_path(path.as_std_path(), false)?;
+            anyhow::ensure!(path.is_file(), "Render document must be an existing file");
+            Utf8PathBuf::from_path_buf(path).map_err(|_| anyhow::anyhow!("Render document path must be UTF-8"))
+        }).transpose()?;
+        context.render = Some(RenderContext { engine, document });
+        Self::save(context)
+    }
+
     pub(crate) fn path(&self) -> &std::path::Path { self.0.path() }
 }
 
 fn inherited() -> anyhow::Result<Option<RunContext>> {
     let Some(path) = std::env::var_os(RUN_CONTEXT_ENV) else { return Ok(None); };
-    let path = std::path::PathBuf::from(path);
+    read_context(std::path::Path::new(&path)).map(Some)
+}
+
+fn read_context(path: &std::path::Path) -> anyhow::Result<RunContext> {
     anyhow::ensure!(path.is_absolute(), "Run context path must be absolute");
     let metadata = fs::symlink_metadata(&path).context("Cannot inspect inherited run context")?;
     anyhow::ensure!(metadata.is_file() && !metadata.file_type().is_symlink(), "Run context must be a regular file");
@@ -55,7 +85,7 @@ fn inherited() -> anyhow::Result<Option<RunContext>> {
     fs::File::open(path)?.take(1_048_577).read_to_end(&mut bytes)?;
     anyhow::ensure!(bytes.len() <= 1_048_576, "Run context exceeds the supported size");
     let context: RunContext = serde_json::from_slice(&bytes).context("Invalid inherited run context")?;
-    anyhow::ensure!(context.schema_version == 3, "Unsupported run-context schema");
+    anyhow::ensure!(context.schema_version == 4, "Unsupported run-context schema");
     anyhow::ensure!(context.root.is_absolute() && context.root.is_dir(), "Invalid captured project root");
     crate::path_safety::validate_directory_labels(context.directories.keys().map(String::as_str))?;
     for path in context.directories.values() {
@@ -72,7 +102,17 @@ fn inherited() -> anyhow::Result<Option<RunContext>> {
     for profile in &context.profiles {
         anyhow::ensure!(normalized_profiles(profile)? == vec![profile.clone()], "Invalid captured profile list");
     }
-    Ok(Some(context))
+    if let Some(render) = &context.render {
+        if let Some(document) = &render.document {
+            anyhow::ensure!(document.is_absolute() && document.is_file(), "Invalid captured render document");
+        }
+    }
+    Ok(context)
+}
+
+pub(crate) fn render_context() -> anyhow::Result<Option<RenderContext>> {
+    // Caller rendering remains known even when it explicitly queries another project.
+    Ok(inherited()?.and_then(|context| context.render))
 }
 
 pub(crate) fn inherited_root() -> anyhow::Result<Option<Utf8PathBuf>> {

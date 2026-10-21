@@ -3,7 +3,7 @@
 Get the resolved absolute path for a given label in the project.
 
 ```bash
-proj path get --label <LABEL> [--target final|safe] [--project <PATH>] [PART ...]
+proj path get --label <LABEL> [--target final|safe] [--format auto|absolute|relative] [--relative-to BASE] [--project <PATH>] [PART ...]
 ```
 
 ## Declared directory paths
@@ -79,3 +79,24 @@ Queries do not create directories. Unknown labels, missing cache/version for saf
 lookup, absolute/drive-qualified parts and parent traversal fail clearly. Explicit
 directory mappings stay mandatory; `output-model` does not imply an `output` alias.
 Native cwd/auto-relative presentation and renderer staging are separate slices.
+
+
+## Representation and explicit renderer context
+
+`--format auto` returns a caller-cwd-relative filesystem path in ordinary execution
+and an absolute target in an explicitly known managed render child. It never infers
+render context from a .qmd filename, project marker or cwd. `absolute` and `relative`
+override auto. Explicit `--relative-to cwd|project|document|/absolute/base` requires
+relative format; document requires an individually known render document. Project
+renders without a single document reject that base. A custom base must be absolute.
+
+Strict relative conversion fails across roots/drives. Auto ordinary execution falls
+back to absolute when no relative path exists; the absolute target stays identical.
+The intermediate CLI still defaults to absolute/final until integrated consumers
+switch to the approved auto/safe defaults. Getters create no directories.
+
+Renderer descriptors are private per-command snapshots created only when launching
+Quarto/rmarkdown/Bookdown, alongside unchanged root/profile/version/mapping inputs.
+Ordinary scripts and dependency probes keep ordinary context. Existing R helpers
+do not consume this descriptor; direct IDE rendering does not gain automatic parity.
+Absolute results are filesystem targets, not literal Markdown/LaTeX URL rewrites.

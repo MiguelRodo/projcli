@@ -1119,3 +1119,37 @@ Independent policy review caught null-inheriting merge hiding explicit `safe: nu
 under a profile/local override. Validate present markers in each original layer
 before merging as well as typed validation. Added null-over-true/false profile
 and local regressions requiring precise early errors and no analysis/mutation.
+
+
+## Path representation and bounded renderer descriptor
+
+- **Same/intended:** R helpers resolve target from config/root and then relativize
+  to effective caller cwd; source comparison pinned90be501 and diagnostics above.
+  New explicit relative bases and absolute representation preserve target identity.
+- **Different, approved:** auto returns absolute in an explicitly known renderer
+  child, supporting the measured embedded-HTML include_graphics behavior in runs
+  39554636201/39555352442. No rel_path=FALSE override or literal URL rewriting.
+- **New:** a private per-render descriptor augments captured run inputs at actual
+  Quarto/rmarkdown/Bookdown dispatch. Ordinary scripts/probes retain ordinary
+  context. No filename/cwd guessing, global mutation or R frontend bridge.
+- **Policy:** strict relative conversion errors across roots/drives; ordinary auto
+  falls back to absolute if necessary. Explicit relative base requires relative
+  format; known-document base fails for project-wide rendering without one document.
+- **Remote tests prepared:** actual relative target round trips from nested cwd,
+  explicit bases/override errors, no marker/suffix inference, fake actual-renderer
+  dispatch distinguishing probes/scripts, per-render file lifetime and Windows
+  cross-drive pure regression. Real embedded acceptance remains integrated follow-up.
+- **Ponytail full review:** reused snapshot transport, per-command environments,
+  Camino components and shared path normalization; no new dependency or detection
+  framework. Fixed preparse machine detection after -- while touching argv flow.
+  CI/independent review pending; native cwd/staging/default switch still separate.
+
+
+Caller rendering is independent of an explicit resource-project override: a valid
+descriptor retains the actual document anchor and absolute-auto behavior while
+discarding the old project's mappings/version for the explicitly selected root.
+Cross-platform transport fixtures exercise this boundary. Project-wide rendering
+with no single known document rejects document-relative base; individual renderer commands with an actual document argument supply that known
+anchor. Project-wide commands retain no single anchor, even if a mutable native
+render-list currently contains one entry; profiles may affect native selection. Invalid/stale snapshots still
+fail closed as previously documented.

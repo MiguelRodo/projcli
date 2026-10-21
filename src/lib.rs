@@ -38,3 +38,5 @@ pub use run_context::{configured_path_from, run_version_from, RUN_CONTEXT_ENV};
 
 pub mod paths;
 pub use paths::resource_path_from;
+
+pub use paths::{present_resource_path, PathFormat, RelativeBase};

@@ -144,6 +144,12 @@ pub enum PathCommands {
         /// Relative file/subdirectory fragments appended to the selected role.
         #[arg(value_name = "PART")]
         parts: Vec<camino::Utf8PathBuf>,
+        /// Path representation, independent of target and runner cwd.
+        #[arg(long, default_value = "absolute", value_parser = ["auto", "absolute", "relative"])]
+        format: String,
+        /// cwd, project, document, or an absolute directory; requires relative format.
+        #[arg(long, value_name = "BASE")]
+        relative_to: Option<String>,
     },
 }
 
@@ -223,7 +229,7 @@ fn fail(message: std::fmt::Arguments<'_>) -> ! {
 }
 
 fn main() {
-    let machine_requested = std::env::args_os().skip(1).any(|argument| argument == "--machine");
+    let machine_requested = std::env::args_os().skip(1).take_while(|argument| argument != "--").any(|argument| argument == "--machine");
     let cli = match Cli::try_parse() {
         Ok(cli) => cli,
         Err(error) if machine_requested => {
@@ -266,8 +272,8 @@ fn main() {
             }
         },
         Commands::Path { command } => match command {
-            PathCommands::Get { label, target, parts } => {
-                match proj::resource_path_from(&root, label, parts, target == "safe") {
+            PathCommands::Get { label, target, parts, format, relative_to } => {
+                match query_path(&root, label, target, parts, format, relative_to.as_deref()) {
                     Ok(path) => println!("{}", path),
                     Err(error) => fail(format_args!("Error getting path: {error:#}")),
                 }
@@ -459,4 +465,22 @@ pub enum InitCommands {
         #[arg(long)]
         public: Option<bool>,
     },
+}
+
+
+fn query_path(root: &camino::Utf8Path, label: &str, target: &str, parts: &[camino::Utf8PathBuf], format: &str, relative_to: Option<&str>) -> anyhow::Result<camino::Utf8PathBuf> {
+    let format = match format {
+        "auto" => proj::PathFormat::Auto,
+        "relative" => proj::PathFormat::Relative,
+        "absolute" => proj::PathFormat::Absolute,
+        _ => anyhow::bail!("Unsupported path representation"),
+    };
+    let base = relative_to.map(|value| match value {
+        "cwd" => proj::RelativeBase::Caller,
+        "project" => proj::RelativeBase::Project,
+        "document" => proj::RelativeBase::Document,
+        path => proj::RelativeBase::Directory(path.into()),
+    });
+    let path = proj::resource_path_from(root, label, parts, target == "safe")?;
+    proj::present_resource_path(root, &path, format, base.as_ref())
 }
