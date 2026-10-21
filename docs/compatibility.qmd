@@ -989,3 +989,36 @@ installer and raw assets with standard hash/runtime checks; no new runtime frame
   source compilation in docs CI with the actual binary install users follow;
   added no package manager, frontend dependency or installation abstraction.
   Disposable-copy warnings, bounded recovery, provenance and retry limits remain.
+
+
+## Captured path/version inputs — first approved path-contract slice
+
+- **Same/intended:** pinned projr90be501 R/version.R107–207 forces a dev component
+  for preview, and159–264 computes release run versions before execution. Rust now
+  plans active/next versions before hooks: preview retains dev (or uses1), release
+  runs incremented version and leaves dev1 after success. Failure/preview restores
+  authoritative bytes. Cache-key formatting is v<major>.<minor>.<patch>-<dev>;
+  existing dotted public/file formatting is retained as a documented representation
+  difference, not a cache escape. Current fixed Rust schema does not port projr's
+  configurable version-format schema.
+- **Different, deliberate:** R root rediscovery and bare VERSION I/O are confirmed
+  defects (diagnostic39554636201). A private per-run snapshot pins root, effective
+  profiles, final mappings and active version. Nested CLI queries no longer reload
+  changed YAML/VERSION. No existing R helper consumes it; R/thesis remain untouched.
+- **New selection rule:** CLI > PROJR_PROFILE > QUARTO_PROFILE fallback > base/local
+  build.profile default selects once for proj config/environment. Earlier profiles
+  and local precedence retained. Native renderer QUARTO_PROFILE remains separate.
+- **Tests:** new remote regressions cover changed cwd into another project,
+  changed YAML/VERSION, external mappings, human/machine queries, explicit other
+  project, profile priority, success/failure/preview and private snapshot lifetime.
+  Cross-platform CI and independent review pending at preparation; no local build.
+- **Remaining:** configured final paths are still returned; safe routing, fragments,
+  auto/relative presentation, explicit render context, native cwd and embedding
+  fallback follow. Renderer staging still uses the old version in this slice.
+  No complete M1/M2 claim or release/install follows from this PR alone.
+- **Ponytail full review:** reused NamedTempFile, per-command RunEnvironment and
+  existing version/config types. One small bounded snapshot, no full config/env/
+  credential serialization, globals, wrapper, crawler or transaction framework.
+  Parent-process concurrency regression remains required; independent review is
+  separate from self-review. Diagnostic evidence: branch488adaf FINDINGS.md and
+  actual embedded-image runs39554636201/39555352442/39556599001.

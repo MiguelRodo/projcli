@@ -76,7 +76,9 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     // STEP A: Resolve Per-Run Environment
     // ==========================================
     // Load inputs without writing ignores; configuration errors must stay read-only.
-    let mut environment = RunEnvironment::resolve(cli_profile, project_root)
+    let profiles = crate::run_context::select_profiles(cli_profile, project_root)?;
+    let profile_text = profiles.join(",");
+    let mut environment = RunEnvironment::resolve(Some(&profile_text), project_root)
         .context("Failed to resolve build environment")?;
     environment.set(crate::PROJECT_ROOT_ENV, project_root.as_str());
     crate::yml::validate_clear_output(environment.text("PROJR_CLEAR_OUTPUT"))?;
@@ -116,7 +118,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
 
     let build = project_config.build;
     let dev = project_config.dev;
-    let profile = cli_profile.map(str::to_string).or(build.profile);
+    let profile = Some(profile_text.clone());
     let (build_scripts, hooks_config) = if is_dev {
         (dev.scripts.or(build.scripts), dev.hooks.unwrap_or(build.hooks))
     } else {
@@ -211,7 +213,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     }
 
     // 4. VERSION Initialization Check
-    let mut initial_version = match version_get_from(project_root) {
+    let original_version = match version_get_from(project_root) {
         Some(v) => v,
         None => {
             let desc_path = project_root.join("DESCRIPTION");
@@ -235,7 +237,13 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
         }
     };
 
-    let current_version = initial_version.to_string(false);
+    if project_root.join("VERSION").exists() && version_get_from(project_root).is_none() {
+        anyhow::bail!("VERSION exists but is invalid");
+    }
+    let current_version = original_version.to_string(false);
+    let (initial_version, next_version) = crate::run_context::version_plan(original_version, mode)?;
+    let run_context = crate::run_context::ContextFile::capture(project_root, &config, profiles, initial_version.clone(), is_dev)?;
+    environment.set(crate::RUN_CONTEXT_ENV, run_context.path().as_os_str());
     // Recovery removes/replaces managed destinations too, so preview needs the
     // same root/overlap/link guards even though it never performs release cleanup.
     crate::path_safety::validate_build_paths(project_root, &config, &validation_files)?;
@@ -366,15 +374,6 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
             crate::clear::clear_old(project_root, &config, &current_version, false, config.old_dev_remove)?;
             crate::clear::clear_pre(project_root, &current_version, &config, clear_output_val)?;
         }
-        if !is_dev {
-            match mode {
-                BuildMode::ProdMajor => { initial_version.major += 1; initial_version.minor = 0; initial_version.patch = 0; }
-                BuildMode::ProdMinor => { initial_version.minor += 1; initial_version.patch = 0; }
-                BuildMode::ProdPatch => { initial_version.patch += 1; }
-                BuildMode::Dev => {}
-            }
-            initial_version.dev = 0;
-        }
         if quarto_exists || bookdown_exists {
             let staging = cache_root.as_ref().context("Project rendering requires cache")?.join("projr").join(&current_version).join("docs");
             if quarto_exists { rewrite_engine_output_dir(project_root.as_std_path(), "quarto", staging.as_str())?; }
@@ -433,7 +432,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
         // VERSION is authoritative only after hooks, rendering and promotion succeeded.
         if !is_dev {
             crate::path_safety::resolve_path(project_root.join("VERSION").as_std_path(), true)?;
-            version_set_at(project_root, &initial_version.to_string(false))?;
+            version_set_at(project_root, &next_version.to_string(false))?;
         }
         Ok(())
     }));

@@ -58,7 +58,7 @@ fn publication_failure_reports_local_success_and_keeps_the_new_release() {
     assert!(!result.status.success());
     assert!(String::from_utf8_lossy(&result.stderr).contains("Local build succeeded"));
     assert_eq!(fs::read_to_string(root.join("output/result")).unwrap(), "successful analysis");
-    assert_eq!(proj::version_get_from(camino::Utf8Path::from_path(root).unwrap()).unwrap().to_string(false), "1.2.4");
+    assert_eq!(proj::version_get_from(camino::Utf8Path::from_path(root).unwrap()).unwrap().to_string(false), "1.2.4.1");
 }
 
 

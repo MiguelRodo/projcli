@@ -201,7 +201,7 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
             assert!(diagnostic.contains("Local build succeeded"), "{diagnostic}");
             assert!(!diagnostic.contains("https://other.example"));
             assert!(root.join("analysis-marker").exists());
-            assert_eq!(proj::version_get_from(camino::Utf8Path::from_path(root).unwrap()).unwrap().to_string(false), "1.2.4");
+            assert_eq!(proj::version_get_from(camino::Utf8Path::from_path(root).unwrap()).unwrap().to_string(false), "1.2.4.1");
             assert!(!calls(root).iter().any(|call| ["add", "commit", "push", "fetch"].contains(&action(call))));
         }
     }
