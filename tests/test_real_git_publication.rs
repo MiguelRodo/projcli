@@ -89,8 +89,11 @@ if os.environ['PROJCLI_TEST_FAIL_ANALYSIS']=='1':
         let output = self.git_at(&self.upstream,
             &["for-each-ref", "--format=%(refname) %(objectname)", "refs/heads"]);
         let refs = String::from_utf8(output).unwrap();
-        assert_eq!(refs.lines().collect::<Vec<_>>(),
-                   [format!("{TARGET} {target}"), format!("refs/heads/main {main}")]);
+        let mut actual = refs.lines().map(str::to_owned).collect::<Vec<_>>();
+        let mut expected = vec![format!("{TARGET} {target}"), format!("refs/heads/main {main}")];
+        actual.sort();
+        expected.sort();
+        assert_eq!(actual, expected);
     }
 
     fn build(&self, fail_analysis: bool) -> Output {
