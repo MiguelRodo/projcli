@@ -77,3 +77,17 @@ remain under development; see the behavior contract and pinned legacy audit.
 Explicit script/hook include patterns must match at least one file. Use an empty
 list (`scripts: []`) when intentionally selecting no analysis; unmatched configured
 includes return an error instead of a successful no-op.
+
+
+Native execution policy (supersedes earlier unconditional root-cwd wording):
+`build` and `build-dev` default to `--execution-dir native`. Plain scripts/hooks
+inherit the invocation cwd, not each source file's parent; R `source()` normally
+inherits its caller cwd. Individual Rmd rendering leaves `knit_root_dir` unset and
+Quarto receives no execution-dir override, preserving native document/project
+settings. `--execution-dir project` explicitly requests captured-root execution
+for scripts/hooks, Quarto and individual Rmd. Project render drivers run from the
+selected project root to select the project, independently of chunk cwd. Project-wide
+Bookdown root override is currently rejected early because its render_site entrypoint
+does not expose the individual knit-root argument. Captured project/profile/version
+and logical path identity do not change with execution cwd. No existing R helper
+bridge or literal Markdown resource rewriting is implied.

@@ -124,7 +124,7 @@ assert Path(value['result']['path']).samefile(root/'raw')
 "#,binary=serde_json::to_string(env!("CARGO_BIN_EXE_proj")).unwrap());
         fs::write(root.join("analysis.py"),script).unwrap();
         let build_root = root.clone();
-        workers.push((root,std::thread::spawn(move || proj::build_project(camino::Utf8Path::from_path(&build_root).unwrap(),proj::BuildMode::Dev,Some(name),None))));
+        workers.push((root,std::thread::spawn(move || proj::build_project_with_execution(camino::Utf8Path::from_path(&build_root).unwrap(),proj::BuildMode::Dev,Some(name),None,proj::ExecutionDirectory::Project))));
     }
     let mut contexts = Vec::new();
     for (root,worker) in workers {

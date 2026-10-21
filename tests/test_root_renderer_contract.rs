@@ -9,7 +9,7 @@ fn invoke(root: &Path, production: bool) -> Output {
     let mut command = Command::new(env!("CARGO_BIN_EXE_proj"));
     command.arg(if production { "build" } else { "build-dev" });
     if production { command.arg("--patch"); }
-    command.args(["--non-interactive", "--project"]).arg(root)
+    command.args(["--non-interactive", "--execution-dir", "project", "--project"]).arg(root)
         .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE")
         .env_remove("QUARTO_PROFILE").env_remove("PROJR_CLEAR_OUTPUT");
     let mut paths = vec![root.join("bin")];
@@ -77,8 +77,9 @@ assert Path.cwd() == root
 if sys.argv[1:2] == ['render']:
     assert sys.argv[sys.argv.index('--execute-dir') + 1] == str(root)
 else:
-    assert len(sys.argv) == 5, sys.argv
-    assert sys.argv[4] == str(root)
+    assert len(sys.argv) == 6, sys.argv
+    assert sys.argv[4] == "project"
+    assert sys.argv[5] == str(root)
 name = (root / 'expected-output').read_text()
 target = root / name
 target.parent.mkdir(parents=True, exist_ok=True)
@@ -113,7 +114,8 @@ target.write_text('fresh artifact')
             if extension == "Rmd" {
                 assert!(!args[1].contains("report's"));
                 assert_eq!(args[2], root.join(&input).to_str().unwrap());
-                assert_eq!(args[3], root.to_str().unwrap());
+                assert_eq!(args[3], "project");
+                assert_eq!(args[4], root.to_str().unwrap());
             }
         }
     }

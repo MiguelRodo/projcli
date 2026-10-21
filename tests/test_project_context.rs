@@ -77,7 +77,7 @@ fn direct_build_supplies_child_root_without_replacing_callers_root() {
     let script = format!("import os\nfrom pathlib import Path\nassert Path(os.environ['PROJ_PROJECT_ROOT']) == Path({expected})\nPath('_tmp').mkdir(exist_ok=True)\nPath('_tmp/direct.txt').write_text('done')\n");
     fs::write(root.join("analysis.py"), script).unwrap();
     let before = std::env::var_os(proj::PROJECT_ROOT_ENV);
-    proj::build_project(root, proj::BuildMode::Dev, None, None).unwrap();
+    proj::build_project_with_execution(root, proj::BuildMode::Dev, None, None, proj::ExecutionDirectory::Project).unwrap();
     assert_eq!(std::env::var_os(proj::PROJECT_ROOT_ENV), before);
     assert_eq!(fs::read_to_string(root.join("_tmp/direct.txt")).unwrap(), "done");
 }
@@ -121,7 +121,7 @@ assert Path(result) == root / '_output', (result, root)
             let start = start.clone();
             scope.spawn(move || {
                 start.wait();
-                proj::build_project(camino::Utf8Path::from_path(root).unwrap(), proj::BuildMode::Dev, None, None)
+                proj::build_project_with_execution(camino::Utf8Path::from_path(root).unwrap(), proj::BuildMode::Dev, None, None, proj::ExecutionDirectory::Project)
             })
         }).collect();
         let deadline = Instant::now() + Duration::from_secs(10);

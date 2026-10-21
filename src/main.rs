@@ -93,12 +93,18 @@ pub enum Commands {
         /// Optional description for the build commit
         #[arg(long)]
         description: Option<String>,
+        /// Native runner execution directories, or explicit project-root override.
+        #[arg(long, default_value = "native", value_parser = ["native", "project"])]
+        execution_dir: String,
     },
     /// Dev Build operations
     BuildDev {
         /// Optional profile
         #[arg(long)]
         profile: Option<String>,
+        /// Native runner execution directories, or explicit project-root override.
+        #[arg(long, default_value = "native", value_parser = ["native", "project"])]
+        execution_dir: String,
     },
 }
 
@@ -279,7 +285,7 @@ fn main() {
                 }
             }
         },
-        Commands::Build { major, minor, patch: _, profile, description } => {
+        Commands::Build { major, minor, patch: _, profile, description, execution_dir } => {
             if let Some(root) = proj::root() {
                 let mode = if *major {
                     proj::BuildMode::ProdMajor
@@ -310,7 +316,7 @@ fn main() {
                     }
                 }
 
-                if let Err(e) = proj::build_project(&camino::Utf8PathBuf::try_from(root).unwrap(), mode, profile.as_deref(), desc.as_deref()) {
+                if let Err(e) = proj::build_project_with_execution(&camino::Utf8PathBuf::try_from(root).unwrap(), mode, profile.as_deref(), desc.as_deref(), execution_mode(execution_dir)) {
                     fail(format_args!("Build failed: {:#}", e));
                 } else {
                     println!("Build completed successfully.");
@@ -319,9 +325,9 @@ fn main() {
                 fail(format_args!("Error finding project root"));
             }
         },
-        Commands::BuildDev { profile } => {
+        Commands::BuildDev { profile, execution_dir } => {
             if let Some(root) = proj::root() {
-                if let Err(e) = proj::build_project(&camino::Utf8PathBuf::try_from(root).unwrap(), proj::BuildMode::Dev, profile.as_deref(), None) {
+                if let Err(e) = proj::build_project_with_execution(&camino::Utf8PathBuf::try_from(root).unwrap(), proj::BuildMode::Dev, profile.as_deref(), None, execution_mode(execution_dir)) {
                     fail(format_args!("Build failed: {:#}", e));
                 } else {
                     println!("Build completed successfully.");
@@ -483,4 +489,9 @@ fn query_path(root: &camino::Utf8Path, label: &str, target: &str, parts: &[camin
     });
     let path = proj::resource_path_from(root, label, parts, target == "safe")?;
     proj::present_resource_path(root, &path, format, base.as_ref())
+}
+
+
+fn execution_mode(value: &str) -> proj::ExecutionDirectory {
+    if value == "project" { proj::ExecutionDirectory::Project } else { proj::ExecutionDirectory::Native }
 }

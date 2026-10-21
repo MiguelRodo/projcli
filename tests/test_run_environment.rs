@@ -23,7 +23,7 @@ fn overlapping_library_builds_keep_profiles_values_and_parent_environment_indepe
         let root = root.clone(); let barrier = barrier.clone();
         std::thread::spawn(move || {
             barrier.wait();
-            proj::build_project(camino::Utf8Path::from_path(&root).unwrap(), proj::BuildMode::Dev, Some(name), None)
+            proj::build_project_with_execution(camino::Utf8Path::from_path(&root).unwrap(), proj::BuildMode::Dev, Some(name), None, proj::ExecutionDirectory::Project)
         })
     }).collect();
     barrier.wait();

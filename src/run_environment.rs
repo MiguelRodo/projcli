@@ -7,11 +7,12 @@ use camino::Utf8Path;
 #[derive(Clone)]
 pub(crate) struct RunEnvironment {
     values: BTreeMap<OsString, OsString>,
+    working_directory: Option<std::path::PathBuf>,
 }
 
 impl RunEnvironment {
     pub(crate) fn inherited() -> Self {
-        Self { values: std::env::vars_os().map(|(key, value)| (normalize_key(&key), value)).collect() }
+        Self { values: std::env::vars_os().map(|(key, value)| (normalize_key(&key), value)).collect(), working_directory: None }
     }
 
     pub(crate) fn resolve(explicit: Option<&str>, root: &Utf8Path) -> anyhow::Result<Self> {
@@ -49,9 +50,14 @@ impl RunEnvironment {
         self.values.insert(normalize_key(OsStr::new(key)), value.into());
     }
 
+    pub(crate) fn set_working_directory(&mut self, directory: std::path::PathBuf) {
+        self.working_directory = Some(directory);
+    }
+
     pub(crate) fn command(&self, program: impl AsRef<OsStr>) -> Command {
         let mut command = Command::new(program);
         command.env_clear().envs(&self.values);
+        if let Some(directory) = &self.working_directory { command.current_dir(directory); }
         if self.non_interactive() { command.stdin(std::process::Stdio::null()); }
         command
     }
