@@ -187,3 +187,10 @@ M1 completion means the released active-configuration local CLI preview, with
 explicit file targets and bounded managed recovery. Keep stronger command/argv
 schemas, OS-enforced confinement and broader maintenance separate; no sandbox or
 M2 completion claim follows. Reuse the verified preview.2 source/tests/evidence.
+
+
+Script/hook include and exclusion syntax must fail preflight on errors, including
+exclusion-only selections. Never turn malformed exclusions into silent no-ops or
+shell commands. Reuse the shared resolver and preserve valid first-match order,
+deduplication, explicit-empty semantics and literal root handling. Source fixes
+newer than preview.2 do not update the published/installed binary automatically.

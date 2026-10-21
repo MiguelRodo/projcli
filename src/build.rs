@@ -786,6 +786,8 @@ fn script_glob_pattern(root: &camino::Utf8Path, pattern: &str) -> anyhow::Result
 ///
 /// Supports exclusion globs starting with `!`, strictly matches root documents when no sub-directory
 /// prefix is provided, and captures valid formats under sub-directories.
+/// Malformed include or exclusion patterns return errors before execution; every
+/// exclusion is validated even if no include selects a file.
 pub(crate) fn resolve_explicit_scripts(project_root: &camino::Utf8Path, scripts: &[String]) -> anyhow::Result<Vec<camino::Utf8PathBuf>> {
     if scripts.is_empty() {
         return Ok(Vec::new()); // The Explicit Empty Exception ("Don't Run Anything")
@@ -801,6 +803,13 @@ pub(crate) fn resolve_explicit_scripts(project_root: &camino::Utf8Path, scripts:
             includes.push(script.clone());
         }
     }
+
+    // Validate every exclusion before enumeration, including exclusion-only lists.
+    let excludes = excludes.iter().map(|exclude| {
+        let pattern = script_glob_pattern(project_root, exclude)?;
+        glob::Pattern::new(&pattern)
+            .with_context(|| format!("Invalid script/hook exclusion pattern '!{exclude}'"))
+    }).collect::<anyhow::Result<Vec<_>>>()?;
 
     // Convert patterns to absolute globbing targets
     let mut matched_files = Vec::new();
@@ -822,27 +831,13 @@ pub(crate) fn resolve_explicit_scripts(project_root: &camino::Utf8Path, scripts:
         if !matched { anyhow::bail!("Explicit script/hook pattern matched no files: {pattern}"); }
     }
 
-    // Process excludes
+    // Preserve first-match order while excluding and deduplicating selected files.
     let mut final_files = Vec::new();
     for file in matched_files {
-        let mut is_excluded = false;
-
-        for exclude in &excludes {
-            let exclude_pattern = script_glob_pattern(project_root, exclude)?;
-
-            // TODO: migrate to camino
-            if let Ok(ex_pattern) = glob::Pattern::new(&exclude_pattern) {
-                if ex_pattern.matches_path(file.as_std_path()) {
-                    is_excluded = true;
-                    break;
-                }
-            }
-        }
-
-        if !is_excluded {
-            if !final_files.contains(&file) {
-                final_files.push(file);
-            }
+        if !excludes.iter().any(|pattern| pattern.matches_path(file.as_std_path()))
+            && !final_files.contains(&file)
+        {
+            final_files.push(file);
         }
     }
 
