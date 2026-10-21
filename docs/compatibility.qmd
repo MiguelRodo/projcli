@@ -1159,3 +1159,9 @@ while an existing target canonicalized to VerbatimDisk(C). Canonicalize existing
 representation bases/targets including drive roots after shared identity resolution;
 retain strict cross-drive errors and unchanged managed-write symlink validation.
 Added an actual Windows same-drive-root round-trip regression.
+
+Integrated representation with PR154's confirmed cache policy; snapshot schema4
+contains both frozen safe-cache selection and explicit renderer descriptor. Existing
+root canonicalization also applies to existing UNC share roots; pure Windows UNC
+share identity/different-share checks supplement the real local drive-root test.
+No network share was mounted or accessed for tests. Integrated exact checks pending.

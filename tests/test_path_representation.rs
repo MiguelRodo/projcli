@@ -111,7 +111,7 @@ fn explicit_render_descriptor_preserves_target_and_document_anchor_across_other_
     fs::write(other.join("_proj.yml"),"directories:\n  raw-data:\n    path: raw-b\n").unwrap();
     let document=root.join("analysis/report.qmd");fs::write(&document,"Report\n").unwrap();
     let context=project.path().join("context.json");
-    let mut snapshot=serde_json::json!({"schema_version":3,"root":root,"profiles":[],"directories":{"raw-data":root.join("_raw")},"directory_order":["raw-data"],"active_version":{"major":1,"minor":2,"patch":3,"dev":4},"development":true,"render":{"engine":"quarto","document":document}});
+    let mut snapshot=serde_json::json!({"schema_version":4,"root":root,"profiles":[],"directories":{"raw-data":root.join("_raw")},"directory_order":["raw-data"],"safe_cache":null,"active_version":{"major":1,"minor":2,"patch":3,"dev":4},"development":true,"render":{"engine":"quarto","document":document}});
     fs::write(&context,serde_json::to_vec(&snapshot).unwrap()).unwrap();
     let request=|selected:&Path,format:&str,base:Option<&str>| {
         let mut cmd=Command::new(env!("CARGO_BIN_EXE_proj"));

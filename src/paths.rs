@@ -140,6 +140,12 @@ mod representation_tests {
     fn different_windows_drives_have_no_strict_relative_path() {
         assert!(relative_path(Utf8Path::new("C:/target/file"),Utf8Path::new("D:/base")).is_none());
     }
+    #[cfg(windows)]
+    #[test]
+    fn normalized_unc_share_roots_keep_share_identity() {
+        assert_eq!(relative_path(Utf8Path::new(r"\\?\UNC\server\share\folder\file"),Utf8Path::new(r"\\?\UNC\server\share\")).unwrap(),Utf8PathBuf::from(r"folder\file"));
+        assert!(relative_path(Utf8Path::new(r"\\?\UNC\server\share\folder"),Utf8Path::new(r"\\?\UNC\server\other\")).is_none());
+    }
     #[cfg(unix)]
     #[test]
     fn ordinary_relative_paths_keep_parent_steps_and_identity() {
