@@ -292,9 +292,8 @@ the physical mapping, including external paths. No implicit data directory is
 invented: a data-class label must be declared. Directory insertion order is retained
 through configuration merging and the child snapshot. File fragments are relative
 and cannot replace/escape the role root. Queries never create directories.
-The initial explicit safe/final CLI slice keeps final as its transitional default;
-safe-by-default behavior must land together with production output consumers.
-Preview artifacts written through explicit safe lookup remain inspectable in cache.
+The CLI now defaults to safe lookup, integrated with captured-version consumers.
+Preview safe artifacts remain inspectable in cache and are not promoted.
 
 
 ### Confirmed safe-cache selection
@@ -320,12 +319,14 @@ or cwd-marker heuristics. Ordinary auto is caller-relative at query time; render
 auto is absolute. Relative bases are caller/project/known document/absolute custom
 directory. Explicit relative is strict across roots/drives; auto may fall back to
 absolute. Project renders without a single document reject document-relative base.
-The intermediate CLI retains absolute/final defaults until consumers switch.
+The CLI now defaults to auto/safe. Merged settings may change representation,
+and explicit query flags override those defaults.
 Existing R helper/direct IDE parity remains unimplemented and outside Rust M1.
 
 
 Native execution policy (supersedes earlier unconditional root-cwd wording):
-`build` and `build-dev` default to `--execution-dir native`. Plain scripts/hooks
+`build` and `build-dev` use merged `settings.execution-directory`, falling back to
+native; explicit `--execution-dir` overrides the configured policy. Plain scripts/hooks
 inherit the invocation cwd, not each source file's parent; R `source()` normally
 inherits its caller cwd. Individual Rmd rendering leaves `knit_root_dir` unset and
 Quarto receives no execution-dir override, preserving native document/project
@@ -341,8 +342,7 @@ bridge or literal Markdown resource rewriting is implied.
 ## Output lifecycle and runtime settings
 
 This source slice wires output consumers to the captured active version and
-selected eligible cache; the CLI lookup defaults remain transitional final/absolute
-until the following defaults slice. `settings` is runtime policy, `build` selects
+selected eligible cache; CLI lookup defaults are now safe/auto. `settings` is runtime policy, `build` selects
 actions, and parameters remain analytical data. `settings.output-clear-stage` is
 `none` (default), `pre` or `post`. Explicit `--output-clear-stage` wins over merged
 settings, then legacy build.clear_output YAML, then PROJR_CLEAR_OUTPUT, then none.

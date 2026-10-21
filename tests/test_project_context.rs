@@ -2,7 +2,7 @@ use std::{fs, process::{Command, Output}};
 
 fn query(project: &std::path::Path, inherited: Option<&std::path::Path>) -> Output {
     let mut command = Command::new(env!("CARGO_BIN_EXE_proj"));
-    command.args(["path", "get", "--label", "output", "--project","--target","final","--format","absolute"]).arg(project)
+    command.args(["path", "get", "--label", "output", "--target","final","--format","absolute","--project"]).arg(project)
         .env_remove(proj::PROJECT_ROOT_ENV);
     if let Some(root) = inherited { command.env(proj::PROJECT_ROOT_ENV, root); }
     command.output().unwrap()

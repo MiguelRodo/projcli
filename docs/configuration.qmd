@@ -54,9 +54,8 @@ true selections, non-boolean values (including null), selection flags on non-cac
 roles, and all declared cache candidates excluded are validation errors. Each
 layer's explicit values are checked before merging; null cannot inherit a previous
 boolean. Cache-free queries and operations that do not consume a cache remain
-valid. The chosen safe cache is frozen in child run context. Existing cleanup and
-project-render consumers still require literal `cache` in this transitional slice;
-their integration follows separately before the safe default is enabled.
+valid. The chosen safe cache is frozen in child run context. Cleanup, safe lookup and renderer staging consume that same selected mapping;
+no literal `cache` label is required when another eligible cache is selected.
 
 ## Strict Validation Error Behaviors
 
@@ -132,6 +131,8 @@ inputs, not execution controls. This is an intentional extension beyond projr.
 ```yaml
 settings:
   output-clear-stage: none
+  execution-directory: native
+  path-representation: auto
 ```
 
 Use none to preserve other existing final files, pre to clear immediately before
@@ -142,5 +143,13 @@ The command's explicit --output-clear-stage overrides merged settings; those ove
 legacy build.clear_output, then PROJR_CLEAR_OUTPUT, then the new none default. Legacy
 never is accepted in the legacy field/environment. The canonical settings key accepts
 only none/pre/post, with invalid values/null rejected before merge or mutation.
-Docs output handling remains separate. Safe/auto CLI defaults and the R-data built-in
-are following focused slices, not delivered merely by adding settings here.
+`execution-directory` accepts native/project; explicit `--execution-dir` wins over
+merged settings, then native is the fallback. Native scripts inherit launch cwd;
+native document execution remains renderer-defined. `path-representation` accepts
+auto/absolute/relative; explicit path-query `--format` wins over merged settings,
+then auto is the fallback. Auto is caller-relative ordinarily and absolute in a
+known managed renderer. Both settings reject null, booleans and unknown values
+in each active file before merging. Managed child queries retain the captured
+representation policy even if scripts change configuration, profiles or cwd.
+Safe is the default path target; final must be explicitly requested. Docs output
+handling and the R-data built-in remain separately modeled features.

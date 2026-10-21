@@ -84,7 +84,9 @@ pub struct ProjConfig {
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub struct SettingsConfig {
     pub output_clear_stage: Option<OutputClearStage>,
+    /// Native runner cwd by default; explicit command policy takes precedence.
     pub execution_directory: Option<crate::build::ExecutionDirectory>,
+    /// Auto path presentation by default, frozen into managed child contexts.
     pub path_representation: Option<crate::paths::PathFormat>,
 }
 

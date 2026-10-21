@@ -1,7 +1,7 @@
 use std::{fs, path::Path, process::Command};
 
 fn query(root: &Path, label: &str, target: &str, parts: &[&str]) -> std::process::Output {
-    Command::new(env!("CARGO_BIN_EXE_proj")).args(["--machine","path","get","--label",label,"--target",target,"--project","--format","absolute"])
+    Command::new(env!("CARGO_BIN_EXE_proj")).args(["--machine","path","get","--label",label,"--target",target,"--format","absolute","--project"])
         .arg(root).args(parts).current_dir(root).env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
         .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap()
 }
@@ -90,7 +90,7 @@ fn profile_and_local_updates_preserve_first_cache_position_and_only_append_new_k
         fs::write(root.join("_proj.yml"),"directories:\n  cache-z:\n    path: initial-first\n  cache-a:\n    path: second\n  output:\n    path: released\n").unwrap();
         fs::write(root.join("_projr-analysis.yml"),"directories:\n  cache-z:\n    path: profile-first\n  cache-new:\n    path: appended\n").unwrap();
         if local {fs::write(root.join("_projr-local.yml"),"directories:\n  cache-z:\n    path: local-first\n").unwrap();}
-        let output=Command::new(env!("CARGO_BIN_EXE_proj")).args(["--machine","path","get","--label","output","--target","safe","--project","--format","absolute"])
+        let output=Command::new(env!("CARGO_BIN_EXE_proj")).args(["--machine","path","get","--label","output","--target","safe","--format","absolute","--project"])
             .arg(root).current_dir(root).env("PROJR_PROFILE","analysis").env_remove("QUARTO_PROFILE")
             .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).output().unwrap();
         let expected=root.canonicalize().unwrap().join(if local {"local-first"} else {"profile-first"}).join("projr/v1.2.3-4/output");
@@ -255,7 +255,7 @@ fn safe_cache_selection_honors_explicit_choice_exact_cache_exclusion_and_merged_
         assert_eq!(path(query(root,"output","safe",&[])),root.canonicalize().unwrap().join(expected).join("projr/v1.2.3-4/output"));
         // A profile's explicit choice outranks eligible literal cache and earlier entries.
         fs::write(root.join("_projr-analysis.yml"),"directories:\n  cache-selected:\n    safe: true\n").unwrap();
-        let run=|| Command::new(env!("CARGO_BIN_EXE_proj")).args(["--machine","path","get","--label","output","--target","safe","--project","--format","absolute"])
+        let run=|| Command::new(env!("CARGO_BIN_EXE_proj")).args(["--machine","path","get","--label","output","--target","safe","--format","absolute","--project"])
             .arg(root).current_dir(root).env("PROJR_PROFILE","analysis").env_remove("QUARTO_PROFILE")
             .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).output().unwrap();
         assert_eq!(path(run()),root.canonicalize().unwrap().join("selected/projr/v1.2.3-4/output"));

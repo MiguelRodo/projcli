@@ -111,6 +111,9 @@ fn read_context(path: &std::path::Path) -> anyhow::Result<RunContext> {
     Ok(context)
 }
 
+/// Reads the captured representation policy, otherwise merged standalone settings.
+/// Inherited children never reread mutable YAML for this default.
+/// Invalid configuration/context is an error; no files are created.
 pub fn default_path_format_from(root: &Utf8Path) -> anyhow::Result<crate::paths::PathFormat> {
     if let Some(context) = inherited_for(root)? { return Ok(context.path_format); }
     let profiles = select_profiles(None, root)?;

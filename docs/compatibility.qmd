@@ -1395,3 +1395,28 @@ well as final `report.nb.html` and `report_files`; all native targets receive
 the same input/link guards, immediate freshness isolation and exact restoration.
 The real notebook acceptance additionally retains a preexisting nested ordinary
 HTML sentinel. This amended-head evidence is pending remote execution/review.
+
+
+## Safe/auto defaults and merged runtime policies
+
+- **Same intended projr target model:** ordinary generated-output lookup defaults
+  to versioned safe cache, with explicit final lookup; caller-relative ordinary
+  paths retain their physical project-root/config target. Reference unchanged
+  projr `90be50132d16aee33e39c0f7f35ef906c35f5397`, R/dir-get.R and R/dir.R.
+- **Deliberately different/new:** explicitly known renderer auto is absolute,
+  following diagnostic `488adaf727668bdd6c3f46c544e3801ce92de24b`; no existing R
+  helper bridge is claimed. `settings.execution-directory` and
+  `settings.path-representation` are Rust extensions, distinct from analytical
+  parameters. Explicit CLI overrides merged YAML, then native/auto fallback.
+- **Frozen context:** private schema5 adds effective presentation default to the
+  root/profile/mapping/cache/run-version snapshot. Relative representation still
+  observes actual caller cwd at each query. Unknown/incompatible inherited context
+  fails closed. No mutable process environment is introduced.
+- **Evidence:** focused standalone/merged-layer/explicit-override, child snapshot,
+  cwd-change and invalid-layer tests added. The actual R/Python/embedded-HTML driver
+  now omits safe/auto flags to exercise the defaults. Legacy tests that intentionally
+  examine final/absolute destinations request those explicitly. Remote checks and
+  independent review are pending; embedding fallback, R-data role normalization,
+  linked portability and R/IDE frontend parity are not claimed by this slice.
+- **Ponytail full:** reuse the existing resolver, representation and run-context
+  machinery; no duplicate schema, new dependency or wrapper implementation.

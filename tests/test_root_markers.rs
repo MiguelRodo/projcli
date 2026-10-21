@@ -59,7 +59,7 @@ fn discovery_walks_up_and_explicit_selection_still_overrides_a_nearer_marker() {
     assert_eq!(discovered(&project), parent.path().canonicalize().unwrap());
     fs::write(project.join("README.md"), "nearest root").unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_proj"))
-        .args(["path", "get", "--label", "output", "--project","--target","final","--format","absolute"]).arg(parent.path())
+        .args(["path", "get", "--label", "output", "--target","final","--format","absolute","--project"]).arg(parent.path())
         .current_dir(&project).env_remove(proj::PROJECT_ROOT_ENV)
         .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
     assert!(output.status.success());
