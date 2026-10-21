@@ -96,9 +96,11 @@ bridge or literal Markdown resource rewriting is implied.
 
 Individual Quarto HTML and R Markdown HTML default to embedding resources when
 unspecified. An explicit format option of embed-resources: false (Quarto) or
-self_contained: false (R Markdown) is respected. Quarto project defaults are added
-at the project base so native profile, directory and document settings can override
-them. embed-sources controls source attachment and is unrelated to resource embedding.
+self_contained: false (R Markdown) is respected. Quarto project defaults use native effective-format inspection, including profiles,
+directory and included metadata. Only formats leaving both embed-resources and
+legacy self-contained unspecified receive temporary header settings; original
+source bytes are restored exactly. Changing a prepared source/input set before
+rendering is rejected. Other project input types need explicit embedding settings. embed-sources controls source attachment and is unrelated to resource embedding.
 
 Source documents keep their original paths and bytes. Literal Markdown/LaTeX
 references retain native meaning. Linked output may still depend on its source

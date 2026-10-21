@@ -430,6 +430,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         Ok(())
     };
     let mut document_stage = None;
+    let mut project_embedding = None;
     let local_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| -> anyhow::Result<()> {
         // Basic read-only validation and recovery are complete. Start hooks run first.
         for hooks in [&hooks_config.pre, &hooks_config.both] {
@@ -470,6 +471,10 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
             if quarto_exists { rewrite_quarto_yml(project_root.as_std_path(), &selected_documents)?; }
             else if bookdown_exists { rewrite_bookdown_yml(project_root.as_std_path(), &selected_documents)?; }
         }
+        if quarto_exists && has_document_analysis {
+            project_embedding = Some(crate::embedding::ProjectEmbedding::capture(project_root, &environment, &recovery_caches)?);
+            project_embedding.as_ref().unwrap().apply()?;
+        }
         // Freeze the prepared project metadata. A prior analysis script may not
         // silently redirect a later renderer or change its native asset layout.
         let prepared_engines = engine_originals.iter().map(|(path, _)|
@@ -499,6 +504,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
                     anyhow::ensure!(crate::fs_utils::read_managed_text(path)? == *expected,
                         "Renderer project configuration changed after preparation: {path}");
                 }
+                if let Some(embedding) = &project_embedding { embedding.verify(project_root, &environment)?; }
                 if let Some(assets) = &frozen_book_assets { remove_native_artifact(assets)?; }
                 let stage = document_stage.as_ref().context("Missing project render staging")?.path();
                 crate::path_safety::resolve_path(stage, true)?;
@@ -517,6 +523,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         if !is_dev && run_analysis && config.output_run.unwrap_or(true) && clear_stage == crate::yml::OutputClearStage::Post {
             crate::clear::clear_post(project_root, false, &config, Some("post"), false)?;
         }
+        if let Some(embedding) = project_embedding.take() { embedding.restore_result(Ok(()))?; }
         restore_engines()?;
         if has_document_analysis {
             let staging = camino::Utf8Path::from_path(document_stage.as_ref().unwrap().path()).context("Render staging path must be UTF-8")?;
@@ -554,6 +561,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         Ok(result) => result,
         Err(_) => Err(anyhow::anyhow!("Build pipeline panicked unexpectedly")),
     };
+    if let Some(embedding) = project_embedding.take() { local_result = embedding.restore_result(local_result); }
     if let Err(restore_error) = restore_engines() {
         local_result = Err(match local_result {
             Err(primary) => primary.context(format!("Renderer configuration restoration also failed: {restore_error:#}")),
@@ -900,7 +908,6 @@ pub(crate) fn rewrite_engine_output_dir(project_root: &Path, engine: &str, out_d
             }
         }
 
-        crate::embedding::project_fallback(&mut yaml)?;
         let out_content = serde_yaml::to_string(&yaml).context("Failed to serialize _quarto.yml")?;
         crate::fs_utils::write_managed_file(&quarto_path, out_content).context("Failed to write _quarto.yml")?;
 

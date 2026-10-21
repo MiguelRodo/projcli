@@ -1454,3 +1454,19 @@ unchanged. Final amended-head checks remain required.
 Initial remote embedding checks found an existing fake Rscript fixture with the
 old fixed argument count. Updated it to require the new embedding-policy argument
 and assert HTML receives embed while PDF/Word retain native policy.
+
+PR162 independent review found that a global canonical true default defeats
+legacy self-contained:false because Quarto1.10.19 ORs the two distinct keys.
+Replace that approach with native project/document inspection of effective formats.
+Only HTML/revealjs formats with neither spelling present receive guarded temporary
+header defaults; no custom profile/metadata merge or external metadata edits.
+Capture before edits; retain backup across preparation; recheck input identity and
+prepared sources at launch; restore exact source bytes on success/error/panic
+before staging/promotion. Prepared-source/input-set mutation and unmodeled input
+types requiring fallback fail explicitly. These boundaries require independent review.
+
+Actual regressions add format/document/directory/profile/included legacy false
+and a mixed project containing both a legacy-false and unspecified document.
+Integration regressions cover exact CRLF source/config restoration after success,
+renderer exit17 and rejected prepared-source mutation. Existing project fakes now
+model native inspection. No literal resource rewriting or R package edits.

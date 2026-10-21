@@ -397,10 +397,15 @@ unspecified. Explicit false remains respected; embed-sources is a separate optio
 External metadata for individual rendering remains unsupported under the existing
 layout restrictions.
 
-Quarto project preparation adds only a temporary top-level embed-resources default
-when absent. Quarto still owns profile, included-metadata, directory and document
-precedence; native format-specific declarations are retained. The original project
-configuration is restored exactly. No literal Markdown/LaTeX resource rewriting or
+Quarto project preparation uses native quarto inspect results for each effective
+document format. Only an HTML/revealjs format with neither embed-resources nor
+legacy self-contained specified receives a temporary document-header default.
+Quarto owns profile, included-metadata, directory and document precedence. Both
+spellings of explicit false remain untouched, including mixed documents. Original
+source and project bytes are restored exactly on success/failure, before promotion.
+Prepared-source changes or a changed native input set fail at the launch boundary;
+automatic project fallback requires modeled text documents. Other input types
+need explicit renderer embedding settings. No literal Markdown/LaTeX resource rewriting or
 R helper/IDE parity follows. Nonembedded portability remains deferred.
 
 The native Bookdown render_site driver is unchanged and has no new embedding

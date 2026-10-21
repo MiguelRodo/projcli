@@ -172,7 +172,9 @@ def embedding_policy_cases(binary: Path, container: Path) -> list[dict]:
     for name in ['individual-qmd-false', 'individual-rmd-false', 'project-default',
                  'project-format-false', 'project-document-false',
                  'project-directory-false', 'project-profile-false', 'project-metadata-file-false',
-                 'project-docx']:
+                 'project-docx', 'project-format-alias-false', 'project-document-alias-false',
+                 'project-directory-alias-false', 'project-profile-alias-false',
+                 'project-metadata-file-alias-false', 'project-mixed-alias']:
         root = container / name
         (root / 'analysis').mkdir(parents=True)
         image = sentinel_png()
@@ -184,15 +186,23 @@ def embedding_policy_cases(binary: Path, container: Path) -> list[dict]:
         metadata = 'output:\n  html_document:\n    self_contained: false\n' if is_rmd else 'format: html\n'
         if name in ['individual-qmd-false', 'project-document-false']:
             metadata = 'format:\n  html:\n    embed-resources: false\n'
+        if name in ['project-document-alias-false', 'project-mixed-alias']:
+            metadata = 'format:\n  html:\n    self-contained: false\n'
         if name == 'project-docx':
             metadata = 'format: docx\n'
         document.write_text('---\ntitle: Embedding policy\n' + metadata + '---\n\n![sentinel](sentinel.png)\n')
         (root / '_proj.yml').write_text('directories:\n  cache: {path: cache}\n  docs: {path: published}\nbuild:\n  git: false\n  scripts: [analysis/report.' + extension + ']\n')
+        if name == 'project-mixed-alias':
+            (root / 'analysis/other.qmd').write_text('---\nformat: html\n---\n\n![sentinel](sentinel.png)\n')
+            configured = (root / '_proj.yml').read_text().replace('scripts: [analysis/report.qmd]', 'scripts: [analysis/report.qmd, analysis/other.qmd]')
+            (root / '_proj.yml').write_text(configured)
         env = os.environ.copy()
         for key in ['PROJ_PROJECT_ROOT', 'PROJ_RUN_CONTEXT', 'PROJR_PROFILE', 'QUARTO_PROFILE', 'PROJR_CLEAR_OUTPUT']:
             env.pop(key, None)
         if name.startswith('project-'):
             project = 'project:\n  type: default\nformat: html\n'
+            if name == 'project-format-alias-false':
+                project = 'project:\n  type: default\nformat:\n  html:\n    self-contained: false\n'
             if name == 'project-format-false':
                 project = 'project:\n  type: default\nformat:\n  html:\n    embed-resources: false\n'
             if name == 'project-docx':
@@ -200,7 +210,15 @@ def embedding_policy_cases(binary: Path, container: Path) -> list[dict]:
             if name == 'project-metadata-file-false':
                 project += 'metadata-files: [inherited.yml]\n'
                 (root / 'inherited.yml').write_text('embed-resources: false\n')
+            if name == 'project-metadata-file-alias-false':
+                project += 'metadata-files: [inherited.yml]\n'
+                (root / 'inherited.yml').write_text('self-contained: false\n')
             (root / '_quarto.yml').write_text(project)
+            if name == 'project-directory-alias-false':
+                (root / 'analysis/_metadata.yml').write_text('self-contained: false\n')
+            if name == 'project-profile-alias-false':
+                (root / '_quarto-linked.yml').write_text('self-contained: false\n')
+                env['QUARTO_PROFILE'] = 'linked'
             if name == 'project-directory-false':
                 (root / 'analysis/_metadata.yml').write_text('embed-resources: false\n')
             if name == 'project-profile-false':
@@ -216,6 +234,9 @@ def embedding_policy_cases(binary: Path, container: Path) -> list[dict]:
             assert list((root / 'cache/projr/v1.2.3-4/docs').rglob('report.docx'))
             cases.append({'case': name, 'native_nonhtml_success': True, 'source_bytes_preserved': True})
             continue
+        if name == 'project-mixed-alias':
+            other = list((root / 'cache/projr/v1.2.3-4/docs').rglob('other.html'))
+            assert len(other) == 1 and base64.b64encode(image).decode() in other[0].read_text()
         files = list((root / 'cache/projr/v1.2.3-4/docs').rglob('report.html'))
         assert len(files) == 1, (name, files)
         content = files[0].read_text()

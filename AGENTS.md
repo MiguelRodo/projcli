@@ -138,8 +138,11 @@ Runtime HOW belongs in `settings`; execution-directory and path-representation
 are merged policies with explicit CLI overrides. Keep child defaults frozen with
 root/profile/version/mappings; never rediscover them after scripts mutate YAML.
 
-HTML fallback uses embed-resources for individual Quarto documents and a temporary
-project-level default beneath native Quarto profile/directory/document metadata.
+HTML fallback uses embed-resources for individual Quarto documents and native
+Quarto effective-format inspection and guarded temporary document-header defaults.
+Respect both embed-resources and legacy self-contained presence. Restore original
+source bytes on success/error/panic before promotion; reject changed prepared sources
+or native input sets at launch. No global project default may override an alias.
 Individual R Markdown uses self_contained only when unspecified. Preserve explicit
 false, native literal resource semantics and exact source/config restoration.
 Bookdown site rendering retains its native policy; do not claim that project
