@@ -67,3 +67,9 @@ actual acceptance, reviewed version changes, exact-tag assets and WSL replacemen
 The published/installed preview remains 0.4.0-preview.1 until those steps complete.
 No new tag, release or installation is announced here. Bookdown site embedding
 remains native; other deferred limits stay explicit.
+
+Public README/install pins and public-download check expectations stay at the
+existing preview through tagging, draft validation, publication and public-byte
+verification. Update them together in a separate post-publication docs change:
+those CI checks fetch the public version and source-commit assets and cannot
+validate an unpublished pin. Release notes/version metadata can be prepared earlier.

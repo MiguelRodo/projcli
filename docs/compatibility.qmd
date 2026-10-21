@@ -1582,3 +1582,9 @@ and fixed _quarto.yml.local/_quarto.yaml.local paths, including absence. Leading
 scripts changing singular includes or changing/creating local overlays must fail
 before render and recover internal bytes/presence. Native actual regressions extend
 the existing matrix; no custom metadata merging or external writes introduced.
+
+PR164 review corrected delivery order: keep public installer/download expectations
+at preview.1 until tagging/draft verification/publication/public-byte verification
+complete. Then update README/install/source links and public-download checks in a
+separate post-publication documentation change, so their actual asset fetches can
+pass. No public pins or version metadata changed in this correction.
