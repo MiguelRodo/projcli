@@ -1718,3 +1718,26 @@ the known project root as well as phase and OS cause. The unprivileged opening-s
 fixture asserts the phase/root pair explicitly; it does not claim deterministic
 mid-iteration I/O fault injection. No new helper or fault-injection framework.
 The amended exact head requires fresh remote gates and independent delta review.
+
+
+## Standalone backend and curated release-catalogue direction
+
+- **New confirmed design; same runtime:** ordinary proj use must remain standalone
+  with its native backend and no DVC dependency. Future DVC integration is an
+  explicit per-directory option, with automatic lifecycle delegation, DVC owning
+  its tracking/cache authority and proj referencing versions. No silent install
+  or duplicate authoritative DVC state is approved.
+- **Decision/scope:** the intended release catalogue is a curated linear
+  main-branch changelog. This does not change current branch/build behavior or
+  decide attempt identity, failed-attempt recording, sealing, manifest format,
+  persistence, retention, remote discovery or provider contracts. The new design
+  note names these boundaries; no runtime or future integration is implemented.
+- **Same/unverified vs projr:** existing R package and thesis remain untouched.
+  Earlier pinned reference baselines remain applicable; DVC integration and
+  catalogue parity are unverified and are not claimed.
+- **Verification/Ponytail full:** static inspection of Rust main
+  91179e0546e91d5025ad68fbcebf9cfd4662072c found no DVC dependency in Cargo or
+  runtime source. Reuse the existing docs/navigation validation and native-browser
+  lifecycle witness remotely; no runtime abstractions, dependencies or local
+  heavy tests. Current lifecycle order/diagram and published preview.2 stay
+  unchanged. Independent docs review remains required before merge.

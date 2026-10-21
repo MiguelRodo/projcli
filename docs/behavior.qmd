@@ -447,3 +447,14 @@ profile/directory/included metadata is captured and rechecked at launch; changes
 are rejected rather than silently masked by a prepared default. Internal captured
 metadata is recovered; external metadata is observed only and is never rewritten.
 Literal metadata-files paths are required for this bounded dependency capture.
+
+
+## Confirmed storage and catalogue direction
+
+Ordinary proj use must remain standalone with a native backend and no DVC
+dependency. Future per-directory DVC backing is opt-in, with automatic delegation
+at agreed lifecycle points and DVC authoritative for its own tracking/cache.
+The intended release catalogue is a curated linear main-branch changelog.
+[Storage design constraints](storage-design.qmd) separate these decisions from
+the still-open configuration, identity, sealing, manifest and backend contracts.
+This records design only; current runtime behavior is unchanged.
