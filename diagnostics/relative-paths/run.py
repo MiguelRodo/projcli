@@ -65,7 +65,7 @@ class Images(html.parser.HTMLParser):
             value=attrs.get('src') or attrs.get('href')
             if value and not urllib.parse.urlsplit(value).scheme and not value.startswith('#'): self.local_assets.append(value)
 
-def inspect_html(path, bundle=None):
+def inspect_html(path, bundle=None, expected_images=3):
     parser=Images();parser.feed(path.read_text())
     images=[]
     for attrs in parser.images:
@@ -96,7 +96,7 @@ def inspect_html(path, bundle=None):
                         image['http_matches_sentinel']=hashlib.sha256(data).hexdigest()==hashlib.sha256(png()).hexdigest()
                 except (urllib.error.URLError,ValueError) as error:
                     image['http_status']=getattr(error,'code',None);image['http_error']=type(error).__name__
-            result['sentinel_bundle_complete']=len(images)>=3 and all(image.get('matches_sentinel') or (image.get('within_bundle') and image.get('http_status')==200 and image.get('http_matches_sentinel')) for image in images)
+            result['sentinel_bundle_complete']=len(images)>=expected_images and all(image.get('matches_sentinel') or (image.get('within_bundle') and image.get('http_status')==200 and image.get('http_matches_sentinel')) for image in images)
         finally:
             server.shutdown();server.server_close();thread.join(timeout=5)
     return result
@@ -110,6 +110,53 @@ package_versions=subprocess.run(['Rscript','--vanilla','-e','cat(jsonlite::toJSO
 versions['R_packages']=json.loads(package_versions.stdout)
 versions['projr_source_commit']=PROJR_PIN
 (OUT/'versions.json').write_text(json.dumps(versions,indent=2))
+
+
+# Narrow follow-up: six root-execution HTML cases, not the full diagnostic suite.
+if os.environ.get('DIAG_ADAPTER_ONLY', '').lower() == 'true':
+    VERSION = 'v1.2.3-4'  # Canonical R display spelling; no cache-escape claim from version aliases.
+    for renderer in ['rmarkdown', 'quarto-document']:
+      for variant in ['absolute-default', 'absolute-rel-path-false', 'document-relative-resource']:
+        name=renderer+'-adapter-'+variant
+        root,env=fixture(name)
+        extension='Rmd' if renderer=='rmarkdown' else 'qmd'
+        setting='output:\n  html_document:\n    self_contained: true\n' if extension=='Rmd' else 'format:\n  html:\n    embed-resources: true\n'
+        code='source(Sys.getenv("DIAG_EXERCISE_R"))\n'
+        code+='filesystem_relative <- diag_prototype("raw-data", "images", "sentinel.png")\n'
+        code+='absolute_target <- normalizePath(filesystem_relative, mustWork=TRUE)\n'
+        code+='stopifnot(file.exists(filesystem_relative), read.csv(diag_prototype("raw-data", "data.csv"))$value[[1]] == 17)\n'
+        if variant=='document-relative-resource':
+            code+='resource_path <- as.character(fs::path_rel(absolute_target, start=file.path(Sys.getenv("DIAG_ROOT"), "analysis")))\n'
+            invocation='knitr::include_graphics(resource_path, rel_path=FALSE, error=FALSE)'
+        else:
+            code+='resource_path <- absolute_target\n'
+            invocation='knitr::include_graphics(resource_path'+(', rel_path=FALSE' if variant=='absolute-rel-path-false' else '')+')'
+        code+='jsonlite::write_json(list(cwd=getwd(), filesystem_relative=filesystem_relative, absolute_target=absolute_target, renderer_argument=resource_path, variant="'+variant+'", filesystem_read_ok=TRUE), file.path(Sys.getenv("DIAG_IMAGE_EVIDENCE"), "'+name+'.json"), auto_unbox=TRUE, pretty=TRUE)\n'
+        code+=invocation+'\n'
+        document=root/'analysis'/('report.'+extension)
+        document.write_text('---\ntitle: Adapter diagnostic\n'+setting+'---\n\n```{r, echo=FALSE, fig.alt="adapter sentinel"}\n'+code+'```\n')
+        if extension=='Rmd':
+            command=['Rscript','--vanilla','-e','args <- commandArgs(TRUE); rmarkdown::render(args[[1]], knit_root_dir=args[[2]], quiet=FALSE)',document,root]
+        else: command=['quarto','render',document,'--to','html','--execute-dir',root]
+        entry=dict(case=name,variant=variant,runner=renderer,**execute(command,root,env,name,timeout=240))
+        html=root/'analysis/report.html'
+        if html.exists():
+            entry['native']=inspect_html(html,expected_images=1)
+            bundle=BUNDLES/name;bundle.mkdir(parents=True)
+            target=bundle/'report.html';shutil.copy2(html,target)
+            if (html.parent/'report_files').exists(): shutil.copytree(html.parent/'report_files',bundle/'report_files')
+            root.rename(root.with_name(root.name+'-source-unavailable'))
+            entry['source_and_cache_unavailable']=not root.exists()
+            entry['relocated']=inspect_html(target,bundle,expected_images=1)
+        results.append(entry)
+    evidence={path.stem:json.loads(path.read_text()) for path in IMAGE_EVIDENCE.glob('*.json')}
+    missing=[entry['case'] for entry in results if entry['case'] not in evidence]
+    missing_html=[entry['case'] for entry in results if entry['returncode']==0 and 'relocated' not in entry]
+    summary={'diagnostic_only':True,'adapter_only':True,'versions':versions,'runners':results,'lookup_evidence':evidence,'counts':{'cases':len(results),'render_process_failures':sum(entry['returncode']!=0 for entry in results),'portable_embedded_reports':sum(entry.get('relocated',{}).get('sentinel_bundle_complete',False) for entry in results),'missing_lookup_evidence':missing,'successful_render_missing_html':missing_html},'scope':'Root execution, explicit embedded HTML only; no PDF, GUI, linked adapter or frontend implementation claim.'}
+    (OUT/'adapter-summary.json').write_text(json.dumps(summary,indent=2))
+    print(json.dumps(summary['counts'],indent=2))
+    assert len(results)==6 and not (missing or missing_html), 'Adapter probes incomplete'
+    sys.exit(0)
 
 # Native Rscript does not auto-chdir to a script file; source(chdir=FALSE) inherits caller cwd.
 for name,cwd_mode,source_chdir,absolute,profile in [

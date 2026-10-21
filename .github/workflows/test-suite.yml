@@ -1,6 +1,11 @@
 name: Diagnostic relative paths (unmerged)
 on:
   workflow_dispatch:
+    inputs:
+      adapter_only:
+        description: Run only six root-cwd renderer adapter probes
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -40,6 +45,8 @@ jobs:
           echo '99c018f7dc676d8aad3d6f6f5aa0e3a8449fb1b92ea8489d1e3f0c0f2cb470b4  diagnostic-proj' | sha256sum --check
           chmod u+x diagnostic-proj
       - name: Exercise real runners, paths and relocated HTML resources
+        env:
+          DIAG_ADAPTER_ONLY: ${{ inputs.adapter_only }}
         run: python diagnostics/relative-paths/run.py
       - name: Verify reference source unchanged
         if: always()

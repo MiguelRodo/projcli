@@ -45,3 +45,14 @@ relative lookup and the explicitly labeled prototype. Missing images produce
 failed image-evidence records and visible failure markers, never an implicit pass.
 Portability requires actual sentinel bytes for all three figures (Markdown/current/
 prototype); individual image results remain visible when another resolver fails.
+
+
+Adapter-only follow-up (`workflow_dispatch adapter_only=true`) runs six explicit
+embedded HTML cases, root execution only: Rmd/Quarto x absolute default,
+absolute `rel_path=FALSE`, and a separately document-relative resource URL with
+`rel_path=FALSE,error=FALSE` after validating the absolute file. Ordinary prototype
+filesystem lookups stay relative to execution cwd and actually read the CSV.
+Uses canonical fixture version v1.2.3-4. The earlier v1.2.3.4-vs-v1.2.3-4 cache
+expectation mismatch is version spelling, not a cache escape. The adapter cases
+do not establish linked-bundle, PDF or GUI behavior.
+knitr documents rel_path/error at https://pkg.yihui.org/knitr/manual .
