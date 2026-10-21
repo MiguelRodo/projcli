@@ -33,7 +33,7 @@ with (root/'cache/order').open('a') as stream: stream.write('{stage}\n')
         }
         let output=invoke(&root,&caller,project);
         assert!(output.status.success(),"{} {}",String::from_utf8_lossy(&output.stdout),String::from_utf8_lossy(&output.stderr));
-        assert_eq!(fs::read_to_string(root.join("cache/order")).unwrap(),"pre\nfirst\nsecond\npost\n");
+        assert_eq!(fs::read_to_string(root.join("cache/order")).unwrap().lines().collect::<Vec<_>>(),["pre","first","second","post"]);
         assert!(!caller.join("order").exists());assert!(!root.join("analysis/order").exists());
     }
 }
