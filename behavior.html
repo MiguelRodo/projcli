@@ -268,6 +268,7 @@ ul.task-list li input[type="checkbox"] {
   <ul class="collapse">
   <li><a href="#confirmed-safe-cache-selection" id="toc-confirmed-safe-cache-selection" class="nav-link" data-scroll-target="#confirmed-safe-cache-selection">Confirmed safe-cache selection</a></li>
   </ul></li>
+  <li><a href="#explicit-path-representation" id="toc-explicit-path-representation" class="nav-link" data-scroll-target="#explicit-path-representation">Explicit path representation</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -392,9 +393,13 @@ ul.task-list li input[type="checkbox"] {
 <h3 class="anchored" data-anchor-id="confirmed-safe-cache-selection">Confirmed safe-cache selection</h3>
 <p>Within <code>directories</code>, one cache-class mapping with boolean <code>safe: true</code> selects the safe cache. Otherwise an eligible exact <code>cache</code> label wins, then the first eligible cache-class mapping in merged declaration order. <code>safe: false</code> excludes a candidate. Overrides retain existing key positions. Multiple explicit selections, non-boolean flags, flags on non-cache roles, or all declared caches excluded are validation errors before build mutations. A genuinely cache-free operation remains valid without any cache mapping. The effective selected label is frozen with the run context; children do not recompute it from subsequently changed YAML.</p>
 <p>Legacy R <code>data</code> is package-generated output, not a generic input role. Its replacement/legacy normalization belongs to the separate <code>output-r-data</code> slice; this cache-selection change does not silently rename existing mappings.</p>
-
-
 </section>
+</section>
+<section id="explicit-path-representation" class="level2">
+<h2 class="anchored" data-anchor-id="explicit-path-representation">Explicit path representation</h2>
+<p>Auto/absolute/relative are independent of safe/final target and execution cwd. Known managed renderer children receive an explicit bounded descriptor; no suffix or cwd-marker heuristics. Ordinary auto is caller-relative at query time; renderer auto is absolute. Relative bases are caller/project/known document/absolute custom directory. Explicit relative is strict across roots/drives; auto may fall back to absolute. Project renders without a single document reject document-relative base. The intermediate CLI retains absolute/final defaults until consumers switch. Existing R helper/direct IDE parity remains unimplemented and outside Rust M1.</p>
+
+
 </section>
 </section>
 
