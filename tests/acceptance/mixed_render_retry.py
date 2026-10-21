@@ -51,7 +51,7 @@ def run_case(binary, workspace, artifacts, project):
             ('04-kept.qmd', 'html', 'SUCCESSFUL-SMALLER-REPORT')]:
         (root / filename).write_text(f'---\ntitle: {text}\nformat: {format_name}\n---\n\n{text}\n')
     # Prove both earlier artifacts exist before the last renderer fails.
-    stage = 'yaml::read_yaml("_quarto.yml")$project[["output-dir"]]' if project else '"."'
+    stage = '"."'  # Quarto moves project outputs only after all renders succeed.
     fence = chr(96) * 3
     (root / '03-break.qmd').write_text(
         f'---\nformat: html\n---\n\n{fence}{{r}}\nstage <- {stage}\n'
@@ -85,7 +85,8 @@ def run_case(binary, workspace, artifacts, project):
     assert 'DELIBERATE-MIXED-DOCUMENT-FAILURE' in failed.stderr, failed.stderr[-8000:]
     assert (root / 'cache/rendered-before-failure').read_text().strip() == 'real HTML and PDF existed before failure'
     assert git('rev-parse', 'HEAD').decode().strip() == initial
-    assert git('status', '--porcelain') == b'', 'failed renderer left commit-eligible residue'
+    status = git('status', '--porcelain')
+    assert status == b'', 'failed renderer left commit-eligible residue: ' + status.decode()
     for path, data in preserved.items():
         assert (root / path).read_bytes() == data, path
     for filename in ['01-failed-html.html', '02-failed-pdf.pdf', '03-break.html']:
