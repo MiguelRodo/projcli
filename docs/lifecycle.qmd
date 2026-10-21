@@ -357,3 +357,8 @@ branch: a rejected push keeps the successful local release and skips the next-de
 bump, while an analysis failure restores managed state without a release commit.
 This verifies the current boundary without changing lifecycle order, adding a
 seal or deciding durable attempt/publication records.
+
+
+Inventory transition tests exercise explicit CAS calls independently of this
+lifecycle. They do not add automatic pre-analysis input or final-output provenance
+capture, choose sealing points or complete the unfinished build-record work.

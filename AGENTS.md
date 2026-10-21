@@ -240,3 +240,10 @@ SystemGit::new inherits the process environment. Clear inherited GIT_* overrides
 for every fixture command before setting its scoped config/file-only transport.
 Keep the hostile-inheritance victim-tree witness; do not call set_var/remove_var
 globally from parallel tests or introduce production APIs solely for test setup.
+
+
+Inventory groundwork must test existing explicit CAS snapshots against known
+path/content fixtures, including changed bytes, additions, renames and deletions.
+Preserve previous evidence across ordinary ingestions. Do not infer a future
+build-record schema, rename-event format, content-only identity, retention policy
+or lifecycle capture point from this existing-format acceptance coverage.

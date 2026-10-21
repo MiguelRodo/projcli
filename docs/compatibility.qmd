@@ -1819,3 +1819,33 @@ repository, runs both provider and CLI paths, and checks that entire project's,
 Git metadata's and bare upstream's bytes/presence remain unchanged. Two ignored
 helper entrypoints execute only through those parent witnesses. Fresh exact-head
 remote tests and focused independent review are required for this fixture delta.
+
+
+## Exact existing inventory transitions
+
+- **Same runtime; new acceptance:** baseline Rust main
+  400ed6380343e10a66b770cfef05b709f4b0d4b4 already hashes and stores explicit CAS
+  directory snapshots. Existing tests count deduplicated objects, modify a file
+  and reject corrupt/unsafe storage, but do not compare every current entry over
+  an addition/rename/deletion sequence.
+- **Scope:** one fixture checks exact sorted path/hash sets, literal stored object
+  bytes and unchanged current source bytes across five snapshots. A same-size
+  edit restores its original modified time but must change its content evidence.
+  Addition introduces nested binary data; rename changes the path while keeping
+  the content digest; deletion removes the old path from the current snapshot.
+  Later ingestions preserve earlier manifest bytes and file inspection still
+  verifies their objects after source rename/deletion.
+- **Boundary:** this uses current DirectoryManifest/FileEntry and BLAKE3 behavior,
+  with separate supplied version contexts. It introduces no schema, hash policy,
+  persistence layer, rename/tombstone events, content-only identity, retry or
+  retention decision. No automatic raw/cache/code/config/dependency capture,
+  secret redaction or human build history is implemented; M2 provenance stays open.
+- **Same/unverified vs projr:** existing R helpers/package and thesis are untouched.
+  Earlier pinned source baselines remain; no comparative R runtime or frontend
+  parity claim follows from this Rust inventory witness.
+- **Ponytail full/verification:** extend the existing integrity integration file
+  and reuse its configuration helper and file-inspection API. Standard library
+  timestamp controls and existing dependencies only; no production abstraction
+  or code change. Run existing three-platform and pinned acceptance remotely,
+  then obtain independent review. No local Rust/R/Quarto execution or installed
+  preview.2 change. Lifecycle diagrams retain their current order.

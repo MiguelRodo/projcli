@@ -179,3 +179,85 @@ fn special_manifest_and_index_files_are_rejected_without_blocking_reads() {
         assert!(result.unwrap_err().contains("regular file"));
     }
 }
+
+
+#[test]
+fn successive_inventories_match_changed_added_renamed_and_deleted_file_bytes() {
+    use std::collections::BTreeMap;
+    let directory = tempfile::tempdir().unwrap();
+    let project = root(&directory);
+    let source = project.join("source tree");
+    let remote = project.join("archive");
+    fs::create_dir(&source).unwrap();
+    let mut expected = BTreeMap::new();
+    expected.insert("edit.csv", &b"value\n10\n"[..]);
+    expected.insert("keep.bin", &b"\0unchanged\xff\n"[..]);
+    expected.insert("old-name.txt", &b"rename keeps these bytes\n"[..]);
+    expected.insert("delete.txt", &b"earlier deleted bytes\n"[..]);
+    // Creation order must not determine the serialized logical path order.
+    for (logical, bytes) in expected.iter().rev() {
+        fs::write(source.join(logical), bytes).unwrap();
+    }
+
+    let capture = |version: &str, expected: &BTreeMap<&str, &[u8]>| {
+        proj::ingest_directory(&project, &remote, "output", &source, version).unwrap();
+        let mut matching = Vec::new();
+        for entry in fs::read_dir(remote.join("manifests")).unwrap() {
+            let path = Utf8PathBuf::try_from(entry.unwrap().path()).unwrap();
+            let bytes = fs::read(&path).unwrap();
+            let manifest: DirectoryManifest = serde_json::from_slice(&bytes).unwrap();
+            if manifest.version == version { matching.push((path, bytes, manifest)); }
+        }
+        assert_eq!(matching.len(), 1);
+        let (path, bytes, manifest) = matching.pop().unwrap();
+        assert_eq!(manifest.label, "output");
+        let wanted = expected.iter().map(|(path, bytes)| FileEntry {
+            path: (*path).to_owned(), hash: blake3::hash(bytes).to_hex().to_string(),
+        }).collect::<Vec<_>>();
+        assert_eq!(manifest.files, wanted, "wrong current inventory at {version}");
+        for entry in &manifest.files {
+            let object = remote.join("objects").join(&entry.hash[..2]).join(&entry.hash[2..]);
+            let wanted = expected[entry.path.as_str()];
+            assert_eq!(fs::read(object).unwrap(), wanted, "wrong stored bytes at {version}");
+            assert_eq!(fs::read(source.join(&entry.path)).unwrap(), wanted, "ingestion changed source");
+        }
+        proj::verify_remote_integrity("archive", &configuration(&remote, InspectStrategy::File)).unwrap();
+        (path, bytes, manifest)
+    };
+
+    // Separate version contexts exercise the existing API, not a new identity rule.
+    let initial = capture("1.0.0", &expected);
+    let modified = fs::metadata(source.join("edit.csv")).unwrap().modified().unwrap();
+    let length = fs::metadata(source.join("edit.csv")).unwrap().len();
+    fs::write(source.join("edit.csv"), b"value\n20\n").unwrap();
+    fs::OpenOptions::new().write(true).open(source.join("edit.csv")).unwrap()
+        .set_times(fs::FileTimes::new().set_modified(modified)).unwrap();
+    assert_eq!(fs::metadata(source.join("edit.csv")).unwrap().len(), length);
+    assert_eq!(fs::metadata(source.join("edit.csv")).unwrap().modified().unwrap(), modified);
+    expected.insert("edit.csv", &b"value\n20\n"[..]);
+    let edited = capture("1.0.1", &expected);
+    let entry = |manifest: &DirectoryManifest, path: &str| {
+        manifest.files.iter().find(|entry| entry.path == path).unwrap().hash.clone()
+    };
+    assert_ne!(entry(&initial.2, "edit.csv"), entry(&edited.2, "edit.csv"));
+
+    fs::create_dir(source.join("nested")).unwrap();
+    fs::write(source.join("nested/added data.bin"), b"\0added\xfe\n").unwrap();
+    expected.insert("nested/added data.bin", &b"\0added\xfe\n"[..]);
+    let added = capture("1.0.2", &expected);
+
+    fs::rename(source.join("old-name.txt"), source.join("nested/renamed.txt")).unwrap();
+    let renamed_bytes = expected.remove("old-name.txt").unwrap();
+    expected.insert("nested/renamed.txt", renamed_bytes);
+    let renamed = capture("1.0.3", &expected);
+    assert_eq!(entry(&initial.2, "old-name.txt"), entry(&renamed.2, "nested/renamed.txt"));
+
+    fs::remove_file(source.join("delete.txt")).unwrap();
+    expected.remove("delete.txt");
+    let deleted = capture("1.0.4", &expected);
+    for (path, bytes, _) in [initial, edited, added, renamed, deleted] {
+        assert_eq!(fs::read(path).unwrap(), bytes, "later ingestion changed an earlier manifest");
+    }
+    // File inspection above covers all historical manifests, including old paths
+    // whose source files have since been removed or renamed.
+}
