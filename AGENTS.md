@@ -154,3 +154,7 @@ activates writes. Only explicit canonical or per-layer normalized legacy data
 declarations enter ordinary output clearing/recovery/promotion/publication.
 Reject redirection and alias conflicts before merge; no special preservation
 policy, new language roles or edits to the existing R package.
+
+The remote combined M1 driver is tests/acceptance/m1_contract.py. Inspect its
+JSON and downloadable CSV/HTML artifacts, and rerun on the final reviewed combined
+source tree before release; a passing stacked preparation is not M1 completion.
