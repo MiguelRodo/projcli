@@ -376,6 +376,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li>Globbing patterns are supported.</li>
 <li>Prefix a pattern with <code>!</code> to exclude matching files from execution.</li>
+<li>Current source rejects malformed inclusion or exclusion syntax before execution, including hook patterns. The exclusion correction is newer than preview.2; see the <a href="./cli/build.html">build reference</a>.</li>
 <li>When provided, this selects scripts instead of automatic discovery. Document targets may be grouped for rendering, so mixed script and document targets are not guaranteed to run in the exact listed order.</li>
 </ul></li>
 <li><strong><code>hooks</code></strong>: An optional map of lifecycle hook scripts to execute.

@@ -400,7 +400,7 @@ flowchart TB
   B["[R] Resolve profiles and&lt;br/&gt;environment; merge config;&lt;br/&gt;settings HOW / build WHAT"]
   C["[R/T] Validate typed configuration&lt;br/&gt;and explicit resource mappings"]
   D["[R] Capture root, profiles,&lt;br/&gt;mappings, mode and active run&lt;br/&gt;version"]
-  E["[R/T] Preflight selected inputs,&lt;br/&gt;targets, dependencies and enabled&lt;br/&gt;Git prerequisites"]
+  E["[R/T] Preflight inputs and exclusion&lt;br/&gt;syntax, targets, dependencies and&lt;br/&gt;enabled Git prerequisites"]
   F["[R] Capture bounded managed&lt;br/&gt;recovery state before controlled&lt;br/&gt;writes"]
   G["[R] Run configured start hooks"]
   H["[R] Complete remaining safe&lt;br/&gt;staging, renderer and allowed&lt;br/&gt;metadata preparation"]
@@ -424,7 +424,7 @@ Figure&nbsp;2: Released pre-build order.
 <ul>
 <li>Root selection, effective profiles, merged configuration and environment must agree before analysis starts. The target assigns <strong>HOW</strong> choices to <code>settings</code> and <strong>WHAT</strong> is selected/run to <code>build</code>; this is not permission to add unknown fields to the installed preview.</li>
 <li>The captured context fixes resource identity and the active run version. In the released implementation, preview retains an existing dev version or uses dev1 of a release without writing VERSION; an output run uses its requested release version throughout the run and leaves the subsequent dev1 only on success.</li>
-<li>Validate declared paths, selected script/hook inputs, supported renderer plans, dependencies and explicitly enabled Git actions before controlled build writes. Probes can have their own effects: this is not a blanket read-only/environment sanitization guarantee.</li>
+<li>Validate declared paths, script/hook include and exclusion syntax, supported renderer plans, dependencies and explicitly enabled Git actions before controlled build writes. Probes can have their own effects: this is not a blanket read-only/environment sanitization guarantee. The malformed-exclusion correction is current-source work newer than preview.2; it fails in this preflight stage, without changing stage order or recovery scope.</li>
 <li>Start/end refer to the existing pre/both and post/both hook sets, not new hook types. Their placement follows the controlled lifecycle shown here.</li>
 <li>Recovery capture must precede hooks and managed mutations. Cache/staging setup, supported renderer preparation and permitted metadata/ignore work finish before the final pre-clear gate. No new metadata/provenance record is implied here.</li>
 <li>A script’s working directory is separate from project identity. Native cwd with an explicit project override, safe resource targets and render-context path presentation are included in preview.2.</li>

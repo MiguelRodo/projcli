@@ -297,6 +297,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#next-preview-releaseinstall-documentation-preparation" id="toc-next-preview-releaseinstall-documentation-preparation" class="nav-link" data-scroll-target="#next-preview-releaseinstall-documentation-preparation">Next-preview release/install documentation preparation</a></li>
   <li><a href="#m1-local-cli-acceptance-boundary" id="toc-m1-local-cli-acceptance-boundary" class="nav-link" data-scroll-target="#m1-local-cli-acceptance-boundary">M1 local CLI acceptance boundary</a></li>
   <li><a href="#repository-root-artifact-cleanup" id="toc-repository-root-artifact-cleanup" class="nav-link" data-scroll-target="#repository-root-artifact-cleanup">Repository root artifact cleanup</a></li>
+  <li><a href="#fail-closed-on-malformed-script-and-hook-exclusions" id="toc-fail-closed-on-malformed-script-and-hook-exclusions" class="nav-link" data-scroll-target="#fail-closed-on-malformed-script-and-hook-exclusions">Fail closed on malformed script and hook exclusions</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -772,6 +773,16 @@ ul.task-list li input[type="checkbox"] {
 <li><strong>Decision/rationale:</strong> remove 21 obsolete one-off source-rewrite scripts, the dummy-token test wrapper, two superseded task notes and a tracked compiled scratch binary. Git history retains their exact bytes; no archive is introduced. The parameter note’s durable guidance already lives in configuration and YAML reference pages; migration history is recorded in the original Git commits.</li>
 <li><strong>Checks:</strong> before deletion, inspected all scripts as text and the binary via file metadata; searched all 540 tracked paths for artifact names and executable binary-path references, finding no consumers outside the removed artifacts. No patch script or scratch binary was executed. Remote CI/rendered-link checks and independent review are required before merge; no heavy local tests ran.</li>
 <li><strong>Ponytail full review:</strong> deletion only, plus this required log entry. Reuse existing documentation and CI; no cleanup framework, dependency or archive. Keep current behavior, divergence history, release evidence and active tooling.</li>
+</ul>
+</section>
+<section id="fail-closed-on-malformed-script-and-hook-exclusions" class="level2">
+<h2 class="anchored" data-anchor-id="fail-closed-on-malformed-script-and-hook-exclusions">Fail closed on malformed script and hook exclusions</h2>
+<ul>
+<li><strong>Different/new vs released Rust:</strong> installed preview.2, source 768da1bf1b83be83b657b36219f299f37130ba03, returned protocol1 success and ran a selected Python script despite malformed ![[. Current main7c45f2a retained the shared resolver’s if-let-Ok exclusion parser, which silently dropped errors. Reproduced with a tiny disposable installed-binary preview, not a local build.</li>
+<li><strong>Decision and scope:</strong> malformed inclusion/exclusion syntax is a preflight error. Compile every exclusion once in the existing script/hook resolver before enumeration, even when there are no includes. Preserve valid pattern matching, first-match order/deduplication, literal root handling and explicit-empty lists. No recursive walker, command representation, persistence or backend is added.</li>
+<li><strong>Same/unverified relative to projr:</strong> existing R package/helpers are unchanged. The Rust correction enforces the approved strict preflight/failure contract; malformed-exclusion parity with a pinned R implementation is unverified and is not claimed. Existing R comparison evidence remains in earlier entries.</li>
+<li><strong>Verification:</strong> new CLI regressions cover production/preview invalid script, pre/post/both hook and exclusion-only selections. Require structured nonzero errors before hooks/analysis/cache/ignore/version writes or final/archive changes. Valid exclusions still retain order, deduplicate and select explicitly requested git-ignored files in a space/metacharacter root. Full remote host and pinned-image Rust/API-doc/real-renderer/combined acceptance remain required.</li>
+<li><strong>Ponytail full:</strong> fix the shared parser once for preflight and later hook dispatch; reuse glob::Pattern, existing filesystem namespace conversion and machine errors. Remove the repeated per-file parse and silent error branch; no dependency, helper framework or public API addition. Lifecycle ordering is unchanged; its preflight node now names exclusion syntax. Human docs distinguish this source fix from unchanged published/installed preview.2. Broader discovery audit, source records and M2 design remain incomplete.</li>
 </ul>
 
 
