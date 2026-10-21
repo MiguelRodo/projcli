@@ -6,7 +6,7 @@ use std::{fs, path::PathBuf, process::Command, sync::{Arc, Barrier}, time::{Dura
 fn overlapping_library_builds_keep_profiles_values_and_parent_environment_independent() {
     let container = tempfile::tempdir().unwrap();
     let roots = [container.path().join("alpha"), container.path().join("beta")];
-    let keys = ["PROJCLI_CONTEXT_TEST", "PROJR_PROFILE", proj::PROJECT_ROOT_ENV];
+    let keys = ["PROJCLI_CONTEXT_TEST", "PROJR_PROFILE", proj::PROJECT_ROOT_ENV, proj::RUN_CONTEXT_ENV];
     let before: Vec<_> = keys.iter().map(std::env::var_os).collect();
     for (index, name) in ["alpha", "beta"].iter().enumerate() {
         let root = &roots[index];
@@ -34,7 +34,7 @@ fn overlapping_library_builds_keep_profiles_values_and_parent_environment_indepe
     }
     assert_eq!(keys.iter().map(std::env::var_os).collect::<Vec<_>>(), before);
     let python = proj::find_python_command().unwrap();
-    let unrelated = Command::new(python).args(["-c", "import os,json; print(json.dumps([os.environ.get(k) for k in ['PROJCLI_CONTEXT_TEST','PROJR_PROFILE','PROJ_PROJECT_ROOT']]))"]).output().unwrap();
+    let unrelated = Command::new(python).args(["-c", "import os,json; print(json.dumps([os.environ.get(k) for k in ['PROJCLI_CONTEXT_TEST','PROJR_PROFILE','PROJ_PROJECT_ROOT','PROJ_RUN_CONTEXT']]))"]).output().unwrap();
     assert!(unrelated.status.success());
     let inherited: Vec<Option<String>> = serde_json::from_slice(&unrelated.stdout).unwrap();
     let expected: Vec<_> = before.iter().map(|value| value.as_ref().map(|value| value.to_string_lossy().into_owned())).collect();

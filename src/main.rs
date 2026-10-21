@@ -261,18 +261,9 @@ fn main() {
         },
         Commands::Path { command } => match command {
             PathCommands::Get { label } => {
-                match proj::yml_read(false) {
-                    Ok(config) => {
-                        if let Some(root) = proj::root() {
-                            match config.get_path(root.as_path(), label) {
-                                Ok(path) => println!("{}", path),
-                                Err(e) => fail(format_args!("Error getting path: {}", e)),
-                            }
-                        } else {
-                            fail(format_args!("Error finding project root"));
-                        }
-                    }
-                    Err(e) => fail(format_args!("Error loading configuration: {}", e)),
+                match proj::configured_path_from(&root, label) {
+                    Ok(path) => println!("{}", path),
+                    Err(error) => fail(format_args!("Error getting path: {error:#}")),
                 }
             }
         },
@@ -390,7 +381,7 @@ fn main() {
         },
         Commands::Version { command } => match command {
             VersionCommands::Get { no_v, format } => {
-                if let Some(version) = proj::version_get() {
+                if let Ok(version) = proj::run_version_from(&root) {
                     if format.to_lowercase() == "json" {
                         if let Ok(json) = serde_json::to_string(&version) {
                             println!("{}", json);

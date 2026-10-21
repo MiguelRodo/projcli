@@ -55,6 +55,17 @@ impl ProjVersion {
         }
     }
 
+    /// Canonical versioned-cache key: leading v and a hyphenated dev component.
+    /// Existing version text APIs retain their accepted dotted spelling.
+    /// ```rust
+    /// let version = proj::ProjVersion { major: 1, minor: 2, patch: 3, dev: 4 };
+    /// assert_eq!(version.cache_key(), "v1.2.3-4");
+    /// ```
+    pub fn cache_key(&self) -> String {
+        let release = format!("v{}.{}.{}", self.major, self.minor, self.patch);
+        if self.dev > 0 { format!("{release}-{}", self.dev) } else { release }
+    }
+
     /// Parses a raw string into a structured `ProjVersion`.
     ///
     /// This handles multiple variations of string formatting, including JSON formatted

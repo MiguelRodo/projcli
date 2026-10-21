@@ -85,3 +85,11 @@ For issue and Project administration, use the canonical
 [MiguelRodo/github-projects-skill](https://github.com/MiguelRodo/github-projects-skill/tree/main/skills/github-projects)
 skill and read `.projects/project.md` for this repository's routing contract.
 The central issue store owns planning; this repository is its implementation mirror.
+
+
+The approved path contract separates logical safe targets, configured final roots,
+path representation and runner cwd. Preserve native literal Markdown/LaTeX meaning.
+Embedded HTML is the target; explicit false stays respected and linked portability,
+existing R/IDE parity and M2 provenance are not new Rust M1 completion gates.
+Use the behavior contract's captured root/profile/run-version rules; never infer
+render context from file suffix/cwd or mutate parent environment for library runs.

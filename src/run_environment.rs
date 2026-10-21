@@ -17,17 +17,8 @@ impl RunEnvironment {
     pub(crate) fn resolve(explicit: Option<&str>, root: &Utf8Path) -> anyhow::Result<Self> {
         let mut environment = Self::inherited();
         if let Some(profile) = explicit { environment.set("PROJR_PROFILE", profile); }
-        let mut profiles = Vec::new();
-        for key in ["QUARTO_PROFILE", "PROJR_PROFILE"] {
-            if let Some(value) = environment.text(key) {
-                for profile in value.split([',', ';']).map(str::trim).filter(|profile| !profile.is_empty() && *profile != "required") {
-                    if !profile.chars().all(|character| character.is_ascii_alphanumeric() || character == '-' || character == '_') {
-                        anyhow::bail!("Invalid environment profile name");
-                    }
-                    if !profiles.iter().any(|existing| existing == profile) { profiles.push(profile.to_owned()); }
-                }
-            }
-        }
+        // The caller has selected one effective proj profile list before any file reads.
+        let profiles = crate::profile::parse_active_profiles(environment.text("PROJR_PROFILE").unwrap_or_default());
         let mut files = vec![root.join("_environment.local")];
         files.extend(profiles.iter().map(|profile| root.join(format!("_environment-{profile}"))));
         files.push(root.join("_environment"));

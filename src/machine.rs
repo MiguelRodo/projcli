@@ -63,14 +63,14 @@ pub(crate) fn run(cli: &Cli) -> i32 {
     };
     let result = match &cli.command {
         Commands::Path { command: PathCommands::Get { label } } => {
-            proj::yml_read_from(&root, false).and_then(|config| config.get_path(&root, label))
+            proj::configured_path_from(&root, label)
                 .map(|path| json!({"path": path}))
                 .map_err(|_| failure(ErrorCode::QueryFailed, "Cannot resolve the requested configured path."))
         }
         Commands::Version { command: VersionCommands::Get { no_v, format } } => {
             if !format.eq_ignore_ascii_case("text") && !format.eq_ignore_ascii_case("json") { return emit_argument_error(); }
-            proj::version_get_from(&root).map(|version| json!({"version": version, "text": version.to_string(!no_v)}))
-                .ok_or_else(|| failure(ErrorCode::QueryFailed, "Cannot read a valid project version."))
+            proj::run_version_from(&root).map(|version| json!({"version": version, "text": version.to_string(!no_v)}))
+                .map_err(|_| failure(ErrorCode::QueryFailed, "Cannot read a valid project version."))
         }
         Commands::Yml { command: YmlCommands::Read } => {
             proj::yml_read_from(&root, false).map(|_| json!({"validated": true}))

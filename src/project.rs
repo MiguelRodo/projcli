@@ -28,7 +28,7 @@ pub const PROJECT_ROOT_ENV: &str = "PROJ_PROJECT_ROOT";
 pub fn resolve_project_root(explicit: Option<&Utf8Path>) -> anyhow::Result<Utf8PathBuf> {
     let candidate = match explicit {
         Some(path) => path.to_owned(),
-        None => crate::ignore::root().context("Could not find project root")?,
+        None => crate::run_context::inherited_root()?.or_else(crate::ignore::root).context("Could not find project root")?,
     };
     let absolute = std::fs::canonicalize(&candidate)
         .with_context(|| format!("Cannot select project directory '{}'", candidate))?;
