@@ -1,0 +1,301 @@
+---
+title: "Build lifecycle"
+subtitle: "What happens before, during and after a run—and which parts are still being built."
+format:
+  html:
+    mermaid-format: svg
+---
+
+::: {.callout-warning}
+## Target flow, not an installed-version guarantee
+The figures show the approved lifecycle direction, with open decisions marked
+explicitly. **The installed `0.4.0-preview.1` does not implement this complete
+flow.** In particular, the new settings layout and clear/hook ordering still need
+matching code and event-order tests. Use sample data or a disposable project copy.
+Previews are not a security sandbox.
+:::
+
+## Read the figures
+
+| Mark | Meaning |
+|---|---|
+| **[R] Released** | Bounded behavior in [0.4.0-preview.1](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1), not a complete safety guarantee. |
+| **[M] Main only** | A merged capability after that release; it is not automatically present in an installed binary. |
+| **[T] Target** | An approved requirement or integration step awaiting matching implementation/tests. |
+| **[?] Open** | A proposal or placement decision still requiring confirmation. |
+
+A capability marked **[R]** or **[M]** inside a target figure does **not** prove
+that all surrounding arrows are implemented. Solid arrows show the order being
+specified. Dotted connections mark an unresolved association, not an execution step.
+
+An **output build** means the production `proj build` path. A **preview** means
+`proj build-dev`. Clearing here means final-output clearing, not arbitrary
+deletion of project files or preparation of a fresh cache.
+
+## The three stages
+
+```{mermaid}
+%%| label: fig-lifecycle-overview
+%%| fig-cap: "Target overview. Open the stage details below for conditions and failure boundaries."
+%%| fig-alt: "Three stages: verify setup and run start hooks; clear immediately around analysis when selected; finish a preview or output build with the stated limits."
+flowchart TB
+  subgraph PRE["1 · Pre-build"]
+    A["Resolve and verify basic setup"]
+    B["[T] Start hooks, then remaining<br/>preparation"]
+    A --> B
+  end
+  subgraph BUILD["2 · Build"]
+    C["[T] Conditional pre-clear →<br/>ordered analysis → conditional<br/>post-clear"]
+  end
+  subgraph POST["3 · Post-build"]
+    D["[T] Preview: end hooks and<br/>captured-state restoration; no<br/>publication"]
+    E["[T/?] Output: promotion and<br/>enabled finalization; end hooks<br/>immediately before next-dev<br/>transition"]
+  end
+  B --> C
+  C -->|"Preview"| D
+  C -->|"Output"| E
+  classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
+  class A,B,C,D,E target
+```
+
+The key adjacency rules are deliberate: **nothing runs between pre-clear and
+analysis**, or between **successful analysis and post-clear**. Start hooks come
+after verified basic setup; end hooks come at the end, immediately before the
+output build's transition to the next development version.
+
+### 1. Pre-build details
+
+::: {.callout-note collapse="true"}
+## Open: resolution, validation, context and start hooks
+
+```{mermaid}
+%%| label: fig-lifecycle-pre
+%%| fig-cap: "Target pre-build order. Existing capabilities are identified separately from new ordering."
+%%| fig-alt: "Select root and profiles, validate merged configuration, capture run inputs, preflight targets and dependencies, capture recovery state, run start hooks, then finish preparation."
+flowchart TB
+  A["[R] Select explicit or discovered<br/>project root"]
+  B["[M/T] Resolve profiles and<br/>environment; merge config;<br/>settings HOW / build WHAT"]
+  C["[R/T] Validate typed configuration<br/>and explicit resource mappings"]
+  D["[M] Capture root, profiles,<br/>mappings, mode and active run<br/>version"]
+  E["[R/T] Preflight selected inputs,<br/>targets, dependencies and enabled<br/>Git prerequisites"]
+  F["[R] Capture bounded managed<br/>recovery state before controlled<br/>writes"]
+  G["[T] Run configured start hooks"]
+  H["[T] Complete remaining safe<br/>staging, renderer and allowed<br/>metadata preparation"]
+  A --> B --> C --> D --> E --> F --> G --> H
+  classDef existing fill:#e5f2ed,stroke:#146859,color:#153b32
+  classDef main fill:#e7effa,stroke:#315b89,color:#183954
+  classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
+  class A,F existing
+  class D main
+  class B,C,E,G,H target
+```
+
+- Root selection, effective profiles, merged configuration and environment must
+  agree before analysis starts. The target assigns **HOW** choices to
+  `settings` and **WHAT** is selected/run to `build`; this is not permission
+  to add unknown fields to the installed preview.
+- The captured context fixes resource identity and the active run version.
+  On current main, preview retains an existing dev version or uses dev1 of a
+  release without writing VERSION; an output run uses its requested release
+  version throughout the run and leaves the subsequent dev1 only on success.
+- Validate declared paths, selected script/hook inputs, supported renderer plans,
+  dependencies and explicitly enabled Git actions before controlled build writes.
+  Probes can have their own effects: this is not a blanket read-only/environment
+  sanitization guarantee.
+- Start/end refer to the existing pre/both and post/both hook sets, not new
+  hook types. The requested change is their position in the lifecycle.
+- Recovery capture must precede hooks and managed mutations. Cache/staging setup,
+  supported renderer preparation and permitted metadata/ignore work finish before
+  the final pre-clear gate. No new metadata/provenance record is implied here.
+- A script's working directory is separate from project identity. Native cwd with
+  an explicit project override, safe resource targets and render-context path
+  presentation are tracked as pending integration in the evidence section.
+
+:::
+
+### 2. Build details
+
+::: {.callout-note collapse="true"}
+## Open: exact clearing position and selected execution
+
+```{mermaid}
+%%| label: fig-lifecycle-build
+%%| fig-cap: "Target clearing adjacency. The diamond checks select a branch; they are not extra lifecycle work."
+%%| fig-alt: "With no analysis, skip execution and clearing. Otherwise an output pre-clear goes directly into ordered execution; successful execution goes directly to output post-clear if selected. Errors use recovery."
+flowchart TB
+  A{"Analysis selected?"}
+  B{"Output build and clear stage pre?"}
+  C["[T] Pre-clear final outputs"]
+  D["[T] Execute ordered scripts /<br/>supported renderer plan"]
+  E{"Output build and clear stage post?"}
+  F["[T] Post-clear final outputs"]
+  G["Continue to post-build"]
+  N["[R/T] No analysis: skip renderer<br/>setup, analysis cleanup and<br/>execution"]
+  X["Failure branch: stop success-only<br/>work and use bounded recovery"]
+  A -->|"Yes"| B
+  A -->|"Explicit empty list"| N --> G
+  B -->|"Yes"| C --> D
+  B -->|"No"| D
+  D -->|"Success"| E
+  D -->|"Failure"| X
+  E -->|"Yes"| F --> G
+  E -->|"No"| G
+  classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
+  class C,D,F,N target
+```
+
+Preview skips both final-output clear operations, even if an output setting asks
+for them. With `scripts: []`, hooks can still run and an output build may export
+existing artifacts; that is not proof of complete analysis-free retry identity.
+
+The target routes eligible safe output/data roles and rendered docs through an
+explicitly selected versioned cache, keeping configured final destinations
+separate. Inputs retain their declared meaning; no undeclared `docs` or cache
+mapping is invented. Ordinary scripts can still write elsewhere: path helpers and
+staging are **not automatic isolation of every write**.
+
+The selected execution order must follow the supported plan. Do not infer
+arbitrary mixed-renderer ordering or RStudio/Quarto R API parity from this figure.
+
+:::
+
+### 3. Post-build details
+
+::: {.callout-note collapse="true"}
+## Open: promotion, end hooks, version and optional publication
+
+```{mermaid}
+%%| label: fig-lifecycle-post
+%%| fig-cap: "Target constraints. The dotted finalization box is deliberately unpositioned pending core confirmation."
+%%| fig-alt: "After the immediate clear gate, check artifacts and restore renderer configuration. Only output builds promote results. End hooks immediately precede the next-development transition; previews instead restore captured state. Publication placement remains open."
+flowchart TB
+  A["[T] After the immediate post-clear<br/>gate: check produced artifacts and<br/>restore renderer config"]
+  B{"Output build?"}
+  C["[T] Promote safe output/docs to<br/>explicitly configured final roots"]
+  D["[T] Run configured end hooks"]
+  E{"Output build?"}
+  F["[T] Transition to next development<br/>version"]
+  G["[R/T] Restore captured managed<br/>state; retain cache results; no<br/>VERSION publication"]
+  P["[?] Enabled metadata / local CAS<br/>export / Git commit and push:<br/>exact placement and boundary<br/>awaiting confirmation"]
+  A --> B
+  B -->|"Yes"| C --> D
+  B -->|"Preview: no promotion/publication"| D
+  D --> E
+  E -->|"Yes: immediately after end hooks"| F
+  E -->|"Preview: no version transition"| G
+  C -.- P
+  classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
+  classDef open fill:#edf0f2,stroke:#56626c,color:#26343f
+  class A,C,D,F,G target
+  class P open
+```
+
+The end-hook/next-dev adjacency is approved. **The relative placement and commit
+boundary of enabled metadata, storage and Git finalization still needs core
+confirmation.** The dotted box does not authorize an ordering change or a new
+all-or-nothing publication guarantee.
+
+Promotion is output-only. Metadata means existing project/version operations,
+not finished attempt/release identifiers or complete provenance. The implemented
+storage path is configured local CAS export; Git commit/push and network checks
+are opt-in, not consequences of merely having a Git repository.
+
+An analysis failure does not enter the success-only post-clear/promotion/end-hook/version
+path. This page does not introduce an always/finally-hook policy.
+
+:::
+
+## Settings being specified
+
+| Choice | Target meaning and status |
+|---|---|
+| `settings.output-clear-stage` | **[T]** `none`, `pre` or `post`; default `none`. This canonical field is not available in installed 0.4.0-preview.1. |
+| `pre` | **[T]** Clear immediately before selected analysis, after hooks and all other preparation. Output builds only. |
+| `post` | **[T]** Clear immediately after successful analysis, before restoration, promotion, hooks or other finalization. Output builds only. |
+| Resolution precedence | **[?] Proposed:** explicit command choice → merged YAML → environment → default. Exact command syntax and conflict rules need implementation evidence. |
+| Legacy compatibility | **[T]** Retain a compatibility path for `PROJR_CLEAR_OUTPUT` and `never`; map the old no-clear intent to canonical `none`. Do not assume mixed old/new settings are already accepted. |
+
+Current main still reads the legacy environment ahead of the legacy YAML
+`build.clear_output` value. It performs pre-cleanup before start hooks and
+requested post-clear after local completion/export. Those are evidence of the
+current implementation, **not** the newly approved ordering. See the pinned
+baseline below rather than copying the target setting into an older binary.
+
+## Failure and recovery boundaries
+
+This smaller figure describes the **bounded existing boundary** at the pinned
+main baseline. It is not a decision about where future target publication belongs.
+
+```{mermaid}
+%%| label: fig-lifecycle-local-failure
+%%| fig-cap: "Existing local failure boundary: recovery covers only captured state."
+%%| fig-alt: "Before recovery capture, rejection stops controlled build writes. After capture, local failures attempt bounded restoration and report restoration errors separately."
+flowchart TB
+  A["[R] Preflight or controlled local<br/>step fails"]
+  B{"Recovery capture exists?"}
+  N["Stop: controlled build writes have<br/>not started"]
+  C["Restore captured managed set"]
+  D{"Restoration succeeds?"}
+  E["Report local failure; permitted<br/>cache residue may remain"]
+  F["Report primary and restoration<br/>errors; retain recovery data when<br/>available"]
+  A --> B
+  B -->|"No"| N
+  B -->|"Yes"| C --> D
+  D -->|"Yes"| E
+  D -->|"No"| F
+  classDef existing fill:#e5f2ed,stroke:#146859,color:#153b32
+  class A,B,N,C,D,E,F existing
+```
+
+```{mermaid}
+%%| label: fig-lifecycle-publication-failure
+%%| fig-cap: "Existing publication boundary: external effects are not transactionally undone."
+%%| fig-alt: "Local success precedes enabled storage and Git publication in the pinned implementation. Publication failure reports local success and does not roll back external effects."
+flowchart TB
+  G["[R/M] Local success boundary at<br/>the pinned baseline"]
+  H["[R] Enabled local storage and Git<br/>publication"]
+  I["Publication failure: local<br/>analysis succeeded; partial<br/>external effects are not rolled<br/>back"]
+  G --> H
+  H -->|"Failure"| I
+  classDef existing fill:#e5f2ed,stroke:#146859,color:#153b32
+  class G,H,I existing
+```
+
+The captured managed set is not a whole-project or filesystem snapshot. Cache
+results are deliberately retained. Arbitrary external script effects, concurrent
+writers, crashes and partial storage/Git effects are outside a transactional
+rollback guarantee. A preview restores its captured managed state on success
+and failure; this does not make it a security sandbox.
+
+Durable attempt/release records, complete input/code/config/dependency provenance
+and safe analysis-free publication retries remain unfinished. Do not automatically
+rerun analysis or claim publication was undone after an external failure.
+
+## Evidence and version boundary
+
+- **Installed preview:** [0.4.0-preview.1 source `bbd12ed`](https://github.com/MiguelRodo/projcli/tree/bbd12edc8de9865a96b6145d0c7702f1300cb1a8),
+  [delivery evidence](release-delivery.qmd) and [preview limits](preview-status.qmd).
+- **Main baseline for current-order statements:**
+  [`c085632` build pipeline](https://github.com/MiguelRodo/projcli/blob/c085632bc31c0eac63e7b0ab03232be9b091ce84/src/build.rs).
+  [PR153](https://github.com/MiguelRodo/projcli/pull/153) adds captured run inputs
+  after the release; it does not settle the new settings/clearing/hook order.
+- **Pending at this baseline:** [safe logical targets, PR154](https://github.com/MiguelRodo/projcli/pull/154),
+  [path presentation, PR155](https://github.com/MiguelRodo/projcli/pull/155) and
+  [native cwd/override, PR156](https://github.com/MiguelRodo/projcli/pull/156).
+  Their existence is not a released or integrated guarantee.
+- The [behavior contract](behavior.qmd) and [versioned compatibility log](compatibility.qmd)
+  distinguish decisions, implementation and executed evidence. The
+  [current implementation notes](flow.qmd) remain a separate view.
+
+## Maintaining this figure
+
+**Contributor requirement:** lifecycle changes must update this page's diagrams,
+status legend and evidence/version references in the same PR. This includes
+settings precedence, hook/clearing order, context/version capture, output
+promotion and publication/failure boundaries. Link actual event-order and
+recovery tests; do not turn a target marker into a released marker merely because
+a branch compiles.
+
+Keep the three-stage overview small. Put new detail in the relevant folded stage
+instead of expanding one unreadable graph. Render the SVG diagrams and verify
+their page links remotely; do not require local Quarto/R/Docker builds.
