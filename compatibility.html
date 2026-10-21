@@ -290,6 +290,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#development-and-renderer-diagnostic-image" id="toc-development-and-renderer-diagnostic-image" class="nav-link" data-scroll-target="#development-and-renderer-diagnostic-image">Development and renderer diagnostic image</a></li>
   <li><a href="#digest-only-devcontainer-reference" id="toc-digest-only-devcontainer-reference" class="nav-link" data-scroll-target="#digest-only-devcontainer-reference">Digest-only devcontainer reference</a></li>
   <li><a href="#cache-backed-consumers-and-output-lifecycle" id="toc-cache-backed-consumers-and-output-lifecycle" class="nav-link" data-scroll-target="#cache-backed-consumers-and-output-lifecycle">Cache-backed consumers and output lifecycle</a></li>
+  <li><a href="#safeauto-defaults-and-merged-runtime-policies" id="toc-safeauto-defaults-and-merged-runtime-policies" class="nav-link" data-scroll-target="#safeauto-defaults-and-merged-runtime-policies">Safe/auto defaults and merged runtime policies</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -697,6 +698,17 @@ ul.task-list li input[type="checkbox"] {
 <p>Controlled managed-file helpers additionally require real regular files on reads and regular-or-absent targets on writes, preventing substituted FIFOs/devices from blocking before recovery. A bounded child-process regression covers VERSION, both ignore files, Quarto and Bookdown metadata; it retains final-output and external sentinels and forbids renderer/publication execution. New-head remote evidence and independent re-review remain required.</p>
 <p>Quarto identity is also revalidated at each controlled launch: an individual render cannot silently become a project render after a hook/earlier script adds root metadata, nested project roots remain rejected, and project-selected inputs are rechecked immediately. New root/nested metadata regressions require the renderer to remain unlaunched while released and external sentinel bytes survive.</p>
 <p>The notebook frozen plan includes its ordinary intermediate <code>report.html</code> as well as final <code>report.nb.html</code> and <code>report_files</code>; all native targets receive the same input/link guards, immediate freshness isolation and exact restoration. The real notebook acceptance additionally retains a preexisting nested ordinary HTML sentinel. This amended-head evidence is pending remote execution/review.</p>
+</section>
+<section id="safeauto-defaults-and-merged-runtime-policies" class="level2">
+<h2 class="anchored" data-anchor-id="safeauto-defaults-and-merged-runtime-policies">Safe/auto defaults and merged runtime policies</h2>
+<ul>
+<li><strong>Same intended projr target model:</strong> ordinary generated-output lookup defaults to versioned safe cache, with explicit final lookup; caller-relative ordinary paths retain their physical project-root/config target. Reference unchanged projr <code>90be50132d16aee33e39c0f7f35ef906c35f5397</code>, R/dir-get.R and R/dir.R.</li>
+<li><strong>Deliberately different/new:</strong> explicitly known renderer auto is absolute, following diagnostic <code>488adaf727668bdd6c3f46c544e3801ce92de24b</code>; no existing R helper bridge is claimed. <code>settings.execution-directory</code> and <code>settings.path-representation</code> are Rust extensions, distinct from analytical parameters. Explicit CLI overrides merged YAML, then native/auto fallback.</li>
+<li><strong>Frozen context:</strong> private schema5 adds effective presentation default to the root/profile/mapping/cache/run-version snapshot. Relative representation still observes actual caller cwd at each query. Unknown/incompatible inherited context fails closed. No mutable process environment is introduced.</li>
+<li><strong>Evidence:</strong> focused standalone/merged-layer/explicit-override, child snapshot, cwd-change and invalid-layer tests added. The actual R/Python/embedded-HTML driver now omits safe/auto flags to exercise the defaults. Legacy tests that intentionally examine final/absolute destinations request those explicitly. Remote checks and independent review are pending; embedding fallback, R-data role normalization, linked portability and R/IDE frontend parity are not claimed by this slice.</li>
+<li><strong>Ponytail full:</strong> reuse the existing resolver, representation and run-context machinery; no duplicate schema, new dependency or wrapper implementation.</li>
+</ul>
+<p>Initial remote default checks passed the new settings/snapshot regressions but found two older queries still assuming final/absolute results, plus the site example checker’s absolute-only assertion. Those queries now explicitly request their original modes; the checker resolves returned paths against the actual query cwd and still verifies the exact cache identity. The published native-browser lifecycle witness, workflow triggers/permissions and installation checks are unchanged. Final amended-head checks remain required.</p>
 
 
 </section>
