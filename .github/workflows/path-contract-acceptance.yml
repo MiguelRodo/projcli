@@ -33,6 +33,9 @@ jobs:
       - name: Complete Linux regressions in pinned environment
         shell: bash
         run: runuser -u rstudio -- env CARGO_HOME="$RUNNER_TEMP/projcli-cargo" RUSTUP_AUTO_INSTALL=0 cargo test --locked --workspace --verbose --no-fail-fast
+      - name: Rust API documentation in pinned environment
+        shell: bash
+        run: runuser -u rstudio -- env CARGO_HOME="$RUNNER_TEMP/projcli-cargo" RUSTUP_AUTO_INSTALL=0 cargo doc --locked --no-deps
       - name: Actual CLI R Python and embedded HTML acceptance
         shell: bash
         run: runuser -u rstudio -- python3 tests/acceptance/path_contract.py target/debug/proj --evidence path-contract-evidence.json
