@@ -98,3 +98,8 @@ Explicit safe lookup retains declaration order for eligible cache selection and 
 not synthesize undeclared labels. Relative fragments cannot replace/escape the
 role root. Keep final lookup separate from future safe-output promotion; switching
 CLI defaults must accompany consumers, not silently strand staged production data.
+
+Render context must be attached at the actual controlled renderer invocation,
+with an optional canonical document anchor; queries never infer it from suffixes
+or markers. Strict relative requests must error rather than silently change format.
+Keep execution cwd, filesystem representation and literal resource URLs separate.

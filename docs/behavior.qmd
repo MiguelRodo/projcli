@@ -310,3 +310,14 @@ run context; children do not recompute it from subsequently changed YAML.
 Legacy R `data` is package-generated output, not a generic input role. Its
 replacement/legacy normalization belongs to the separate `output-r-data` slice;
 this cache-selection change does not silently rename existing mappings.
+
+## Explicit path representation
+
+Auto/absolute/relative are independent of safe/final target and execution cwd.
+Known managed renderer children receive an explicit bounded descriptor; no suffix
+or cwd-marker heuristics. Ordinary auto is caller-relative at query time; renderer
+auto is absolute. Relative bases are caller/project/known document/absolute custom
+directory. Explicit relative is strict across roots/drives; auto may fall back to
+absolute. Project renders without a single document reject document-relative base.
+The intermediate CLI retains absolute/final defaults until consumers switch.
+Existing R helper/direct IDE parity remains unimplemented and outside Rust M1.

@@ -1050,6 +1050,7 @@ pub fn copy_global_quarto_project(cache_docs_dir: &camino::Utf8Path, final_docs_
 /// Executes a single script in an isolated subprocess.
 fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Path, profile: Option<&str>, resolved_python_cmd: Option<&str>, environment: &RunEnvironment) -> anyhow::Result<()> {
     let ext = script_path.extension().unwrap_or("");
+    let mut render_context = None;
     let mut cmd = match ext {
         "R" | "r" => {
             let mut c = environment.command("Rscript");
@@ -1063,11 +1064,13 @@ fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Pat
             c
         },
         "qmd" => {
+            render_context = Some(crate::run_context::ContextFile::for_render(environment.value(crate::RUN_CONTEXT_ENV).context("Missing managed render context")?, crate::run_context::RenderEngine::Quarto, Some(script_path))?);
             let mut c = environment.command("quarto");
             c.arg("render").arg(script_path.as_std_path()).arg("--execute-dir").arg(project_root.as_std_path());
             c
         },
         "Rmd" | "rmd" => {
+            render_context = Some(crate::run_context::ContextFile::for_render(environment.value(crate::RUN_CONTEXT_ENV).context("Missing managed render context")?, crate::run_context::RenderEngine::RMarkdown, Some(script_path))?);
             let mut c = environment.command("Rscript");
             c.arg("-e").arg("args <- commandArgs(trailingOnly = TRUE); rmarkdown::render(input = args[[1]], knit_root_dir = args[[2]])")
                 .arg(script_path.as_std_path()).arg(project_root.as_std_path());
@@ -1088,6 +1091,7 @@ fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Pat
         cmd.env("PROJR_PROFILE", p);
     }
 
+    if let Some(context) = &render_context { cmd.env(crate::RUN_CONTEXT_ENV, context.path()); }
     let status = cmd.status().context(format!("Failed to execute script {}", script_path))?;
     if !status.success() {
         anyhow::bail!("Script {} failed with status: {}", script_path, status);
@@ -1098,6 +1102,8 @@ fn execute_script(project_root: &camino::Utf8Path, script_path: &camino::Utf8Pat
 
 /// Executes a quarto or bookdown project render.
 fn execute_project_render(project_root: &camino::Utf8Path, is_quarto: bool, profile: Option<&str>, environment: &RunEnvironment) -> anyhow::Result<()> {
+    let render_context = crate::run_context::ContextFile::for_render(environment.value(crate::RUN_CONTEXT_ENV).context("Missing managed render context")?,
+        if is_quarto { crate::run_context::RenderEngine::Quarto } else { crate::run_context::RenderEngine::Bookdown }, None)?;
     let mut cmd = if is_quarto {
         let mut c = environment.command("quarto");
         c.arg("render").arg("--execute-dir").arg(project_root.as_std_path());
@@ -1118,6 +1124,7 @@ fn execute_project_render(project_root: &camino::Utf8Path, is_quarto: bool, prof
         cmd.env("PROJR_PROFILE", p);
     }
 
+    cmd.env(crate::RUN_CONTEXT_ENV, render_context.path());
     let status = cmd.status().context("Failed to execute project render")?;
     if !status.success() {
         anyhow::bail!("Project render failed with status: {}", status);
