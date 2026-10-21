@@ -150,6 +150,7 @@ def notebook_preservation(binary: Path, container: Path) -> dict:
     (root / 'analysis/report.nb_files/sentinel').write_bytes(b'preexisting notebook assets')
     (root / 'analysis/report_files/sentinel').write_bytes(b'preexisting ordinary assets')
     (root / 'analysis/report.nb.html').write_bytes(b'preexisting notebook html')
+    (root / 'analysis/report.html').write_bytes(b'preexisting intermediate html')
     (root / 'VERSION').write_bytes(b'v1.2.3-4\n')
     (root / '_proj.yml').write_text('directories:\n  cache: {path: cache}\n  docs: {path: published}\nbuild:\n  scripts: [analysis/report.Rmd]\n  git: false\n')
     (root / 'analysis/report.Rmd').write_text('---\noutput: html_notebook\n---\n\n```{r}\n1 + 1\n```\n')
@@ -158,10 +159,11 @@ def notebook_preservation(binary: Path, container: Path) -> dict:
     assert (root / 'analysis/report.nb_files/sentinel').read_bytes() == b'preexisting notebook assets'
     assert (root / 'analysis/report_files/sentinel').read_bytes() == b'preexisting ordinary assets'
     assert (root / 'analysis/report.nb.html').read_bytes() == b'preexisting notebook html'
+    assert (root / 'analysis/report.html').read_bytes() == b'preexisting intermediate html'
     cached = root / 'cache/projr/v1.2.3-4/docs/report.nb.html'
     assert cached.is_file() and cached.stat().st_size > 0
     return {'case': 'real-html-notebook-preservation', 'exit_code': result.returncode,
-            'native_notebook_and_ordinary_asset_sentinels_preserved': True, 'fresh_cached_notebook': True}
+            'native_notebook_intermediate_and_ordinary_asset_sentinels_preserved': True, 'fresh_cached_notebook': True}
 
 
 def main() -> None:

@@ -1389,3 +1389,9 @@ render cannot silently become a project render after a hook/earlier script adds
 root metadata, nested project roots remain rejected, and project-selected inputs
 are rechecked immediately. New root/nested metadata regressions require the
 renderer to remain unlaunched while released and external sentinel bytes survive.
+
+The notebook frozen plan includes its ordinary intermediate `report.html` as
+well as final `report.nb.html` and `report_files`; all native targets receive
+the same input/link guards, immediate freshness isolation and exact restoration.
+The real notebook acceptance additionally retains a preexisting nested ordinary
+HTML sentinel. This amended-head evidence is pending remote execution/review.
