@@ -38,7 +38,7 @@ output = query('path','get','--label','output')['path']
 raw = query('path','get','--label','raw-data')['path']
 assert Path(output).samefile(root / 'released')
 assert Path(raw).samefile(Path({external}))
-human = subprocess.check_output([binary,'path','get','--label','output'],text=True).strip()
+human = subprocess.check_output([binary,'path','get','--label','output','--target','final','--format','absolute'],text=True).strip()
 assert Path(human).samefile(root / 'released')
 version = query('version','get')['version']
 explicit = query('--project',str(other),'version','get')['version']
@@ -118,7 +118,7 @@ fn concurrent_library_contexts_keep_child_queries_and_parent_environment_separat
 from pathlib import Path
 root = Path(os.environ['PROJ_PROJECT_ROOT'])
 time.sleep(0.25)
-value = json.loads(subprocess.check_output([{binary},'--machine','path','get','--label','raw-data'],text=True))
+value = json.loads(subprocess.check_output([{binary},'--machine','path','get','--label','raw-data','--target','final','--format','absolute'],text=True))
 assert Path(value['result']['path']).samefile(root/'raw')
 (root/'cache/context').write_text(os.environ['PROJ_RUN_CONTEXT'])
 "#,binary=serde_json::to_string(env!("CARGO_BIN_EXE_proj")).unwrap());

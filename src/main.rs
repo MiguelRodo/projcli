@@ -94,8 +94,8 @@ pub enum Commands {
         #[arg(long)]
         description: Option<String>,
         /// Native runner execution directories, or explicit project-root override.
-        #[arg(long, default_value = "native", value_parser = ["native", "project"])]
-        execution_dir: String,
+        #[arg(long, value_parser = ["native", "project"])]
+        execution_dir: Option<String>,
         /// Clear final output immediately before/after analysis; preview never clears it.
         #[arg(long, value_parser = ["none", "pre", "post"])]
         output_clear_stage: Option<String>,
@@ -106,8 +106,8 @@ pub enum Commands {
         #[arg(long)]
         profile: Option<String>,
         /// Native runner execution directories, or explicit project-root override.
-        #[arg(long, default_value = "native", value_parser = ["native", "project"])]
-        execution_dir: String,
+        #[arg(long, value_parser = ["native", "project"])]
+        execution_dir: Option<String>,
         /// Clear final output immediately before/after analysis; preview never clears it.
         #[arg(long, value_parser = ["none", "pre", "post"])]
         output_clear_stage: Option<String>,
@@ -151,14 +151,14 @@ pub enum PathCommands {
         #[arg(long)]
         label: String,
         /// Safe versioned cache target or configured final mapping.
-        #[arg(long, default_value = "final", value_parser = ["safe", "final"])]
+        #[arg(long, default_value = "safe", value_parser = ["safe", "final"])]
         target: String,
         /// Relative file/subdirectory fragments appended to the selected role.
         #[arg(value_name = "PART")]
         parts: Vec<camino::Utf8PathBuf>,
         /// Path representation, independent of target and runner cwd.
-        #[arg(long, default_value = "absolute", value_parser = ["auto", "absolute", "relative"])]
-        format: String,
+        #[arg(long, value_parser = ["auto", "absolute", "relative"])]
+        format: Option<String>,
         /// cwd, project, document, or an absolute directory; requires relative format.
         #[arg(long, value_name = "BASE")]
         relative_to: Option<String>,
@@ -285,7 +285,7 @@ fn main() {
         },
         Commands::Path { command } => match command {
             PathCommands::Get { label, target, parts, format, relative_to } => {
-                match query_path(&root, label, target, parts, format, relative_to.as_deref()) {
+                match query_path(&root, label, target, parts, format.as_deref(), relative_to.as_deref()) {
                     Ok(path) => println!("{}", path),
                     Err(error) => fail(format_args!("Error getting path: {error:#}")),
                 }
@@ -322,7 +322,7 @@ fn main() {
                     }
                 }
 
-                if let Err(e) = proj::build_project_with_clear_stage(&camino::Utf8PathBuf::try_from(root).unwrap(), mode, profile.as_deref(), desc.as_deref(), execution_mode(execution_dir), output_clear_stage.as_deref().map(proj::OutputClearStage::parse).transpose().expect("clap validates clear stage")) {
+                if let Err(e) = proj::build_project_with_policies(&camino::Utf8PathBuf::try_from(root).unwrap(), mode, profile.as_deref(), desc.as_deref(), execution_mode(execution_dir.as_deref()), output_clear_stage.as_deref().map(proj::OutputClearStage::parse).transpose().expect("clap validates clear stage")) {
                     fail(format_args!("Build failed: {:#}", e));
                 } else {
                     println!("Build completed successfully.");
@@ -333,7 +333,7 @@ fn main() {
         },
         Commands::BuildDev { profile, execution_dir, output_clear_stage } => {
             if let Some(root) = proj::root() {
-                if let Err(e) = proj::build_project_with_clear_stage(&camino::Utf8PathBuf::try_from(root).unwrap(), proj::BuildMode::Dev, profile.as_deref(), None, execution_mode(execution_dir), output_clear_stage.as_deref().map(proj::OutputClearStage::parse).transpose().expect("clap validates clear stage")) {
+                if let Err(e) = proj::build_project_with_policies(&camino::Utf8PathBuf::try_from(root).unwrap(), proj::BuildMode::Dev, profile.as_deref(), None, execution_mode(execution_dir.as_deref()), output_clear_stage.as_deref().map(proj::OutputClearStage::parse).transpose().expect("clap validates clear stage")) {
                     fail(format_args!("Build failed: {:#}", e));
                 } else {
                     println!("Build completed successfully.");
@@ -480,11 +480,12 @@ pub enum InitCommands {
 }
 
 
-fn query_path(root: &camino::Utf8Path, label: &str, target: &str, parts: &[camino::Utf8PathBuf], format: &str, relative_to: Option<&str>) -> anyhow::Result<camino::Utf8PathBuf> {
+fn query_path(root: &camino::Utf8Path, label: &str, target: &str, parts: &[camino::Utf8PathBuf], format: Option<&str>, relative_to: Option<&str>) -> anyhow::Result<camino::Utf8PathBuf> {
     let format = match format {
-        "auto" => proj::PathFormat::Auto,
-        "relative" => proj::PathFormat::Relative,
-        "absolute" => proj::PathFormat::Absolute,
+        None => proj::run_context::default_path_format_from(root)?,
+        Some("auto") => proj::PathFormat::Auto,
+        Some("relative") => proj::PathFormat::Relative,
+        Some("absolute") => proj::PathFormat::Absolute,
         _ => anyhow::bail!("Unsupported path representation"),
     };
     let base = relative_to.map(|value| match value {
@@ -498,6 +499,6 @@ fn query_path(root: &camino::Utf8Path, label: &str, target: &str, parts: &[camin
 }
 
 
-fn execution_mode(value: &str) -> proj::ExecutionDirectory {
-    if value == "project" { proj::ExecutionDirectory::Project } else { proj::ExecutionDirectory::Native }
+fn execution_mode(value: Option<&str>) -> Option<proj::ExecutionDirectory> {
+    value.map(|value| if value == "project" { proj::ExecutionDirectory::Project } else { proj::ExecutionDirectory::Native })
 }

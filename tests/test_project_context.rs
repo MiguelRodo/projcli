@@ -2,7 +2,7 @@ use std::{fs, process::{Command, Output}};
 
 fn query(project: &std::path::Path, inherited: Option<&std::path::Path>) -> Output {
     let mut command = Command::new(env!("CARGO_BIN_EXE_proj"));
-    command.args(["path", "get", "--label", "output", "--project"]).arg(project)
+    command.args(["path", "get", "--label", "output", "--project","--target","final","--format","absolute"]).arg(project)
         .env_remove(proj::PROJECT_ROOT_ENV);
     if let Some(root) = inherited { command.env(proj::PROJECT_ROOT_ENV, root); }
     command.output().unwrap()
@@ -34,7 +34,7 @@ fn missing_file_and_invalid_inherited_roots_fail_without_fallback() {
         assert!(!query(path, None).status.success());
     }
     let output = Command::new(env!("CARGO_BIN_EXE_proj"))
-        .args(["path", "get", "--label", "output"])
+        .args(["path", "get", "--label", "output","--target","final","--format","absolute"])
         .env(proj::PROJECT_ROOT_ENV, "invalid-relative-root")
         .current_dir(temp.path()).output().unwrap();
     assert!(!output.status.success());
@@ -107,7 +107,7 @@ while not Path({release_literal}).exists():
     time.sleep(0.01)
 assert Path(os.environ['PROJ_PROJECT_ROOT']) == root
 os.chdir({other})
-result = subprocess.check_output([{binary}, 'path', 'get', '--label', 'output'], text=True).strip()
+result = subprocess.check_output([{binary}, 'path', 'get', '--label', 'output','--target','final','--format','absolute'], text=True).strip()
 assert Path(result) == root / '_output', (result, root)
 (root / '_tmp').mkdir(exist_ok=True)
 (root / '_tmp/independent.txt').write_text('done')

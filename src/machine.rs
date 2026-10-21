@@ -51,6 +51,8 @@ pub(crate) fn emit_capabilities() -> i32 {
         "path_fragments": true,
         "execution_directories": ["native", "project"],
         "path_formats": ["auto", "absolute", "relative"],
+        "default_path_target": "safe",
+        "default_path_format": "auto",
         "logs": "stderr",
         "queries": {"path get": "path", "version get": "version", "yml read": "validated"},
         "preview_output_isolation": false,
@@ -67,7 +69,7 @@ pub(crate) fn run(cli: &Cli) -> i32 {
     };
     let result = match &cli.command {
         Commands::Path { command: PathCommands::Get { label, target, parts, format, relative_to } } => {
-            crate::query_path(&root, label, target, parts, format, relative_to.as_deref())
+            crate::query_path(&root, label, target, parts, format.as_deref(), relative_to.as_deref())
                 .map(|path| json!({"path": path}))
                 .map_err(|_| failure(ErrorCode::QueryFailed, "Cannot resolve the requested configured path."))
         }

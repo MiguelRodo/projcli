@@ -18,6 +18,7 @@ struct RunContext {
     directories: BTreeMap<String, Utf8PathBuf>,
     directory_order: Vec<String>,
     safe_cache: Option<String>,
+    path_format: crate::paths::PathFormat,
     active_version: ProjVersion,
     development: bool,
     render: Option<RenderContext>,
@@ -41,7 +42,7 @@ impl ContextFile {
         let directories = config.directories.keys().map(|label| Ok((label.clone(), config.get_path(root, label)?)))
             .collect::<anyhow::Result<_>>()?;
         let safe_cache = crate::paths::select_safe_cache(config.directories.iter().map(|(label, directory)| (label.as_str(), directory.safe)), &directory_order)?;
-        let context = RunContext { schema_version: 4, root: root.to_owned(), profiles, directories, directory_order, safe_cache, active_version, development, render: None };
+        let context = RunContext { schema_version: 5, root: root.to_owned(), profiles, directories, directory_order, safe_cache, path_format: config.settings.path_representation.unwrap_or(crate::paths::PathFormat::Auto), active_version, development, render: None };
         Self::save(context)
     }
 
@@ -85,7 +86,7 @@ fn read_context(path: &std::path::Path) -> anyhow::Result<RunContext> {
     fs::File::open(path)?.take(1_048_577).read_to_end(&mut bytes)?;
     anyhow::ensure!(bytes.len() <= 1_048_576, "Run context exceeds the supported size");
     let context: RunContext = serde_json::from_slice(&bytes).context("Invalid inherited run context")?;
-    anyhow::ensure!(context.schema_version == 4, "Unsupported run-context schema");
+    anyhow::ensure!(context.schema_version == 5, "Unsupported run-context schema");
     anyhow::ensure!(context.root.is_absolute() && context.root.is_dir(), "Invalid captured project root");
     crate::path_safety::validate_directory_labels(context.directories.keys().map(String::as_str))?;
     for path in context.directories.values() {
@@ -108,6 +109,15 @@ fn read_context(path: &std::path::Path) -> anyhow::Result<RunContext> {
         }
     }
     Ok(context)
+}
+
+pub fn default_path_format_from(root: &Utf8Path) -> anyhow::Result<crate::paths::PathFormat> {
+    if let Some(context) = inherited_for(root)? { return Ok(context.path_format); }
+    let profiles = select_profiles(None, root)?;
+    let combined = crate::yml::get_combined_yml(Some(&profiles.join(",")), root)?;
+    let config: crate::yml::ProjConfig = serde_json::from_value(combined)?;
+    let config = config.validate_and_resolve(root, false)?;
+    Ok(config.settings.path_representation.unwrap_or(crate::paths::PathFormat::Auto))
 }
 
 pub(crate) fn render_context() -> anyhow::Result<Option<RenderContext>> {

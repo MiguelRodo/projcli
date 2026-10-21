@@ -9,7 +9,7 @@ fn either_base_filename_supports_queries_and_local_profile_creation() {
         let root = camino::Utf8Path::from_path(temp.path()).unwrap();
         fs::write(root.join(name), "directories:\n  output:\n    path: _results\n").unwrap();
         let output = Command::new(env!("CARGO_BIN_EXE_proj"))
-            .args(["--project", root.as_str(), "path", "get", "--label", "output"])
+            .args(["--project", root.as_str(), "path", "get", "--label", "output","--target","final","--format","absolute"])
             .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
         assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
         assert_eq!(std::path::Path::new(String::from_utf8(output.stdout).unwrap().trim()), root.canonicalize_utf8().unwrap().join("_results").as_std_path());

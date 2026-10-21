@@ -32,7 +32,7 @@ fn cli_queries_preserve_files_and_directories_with_or_without_configuration() {
             }
             fs::create_dir(root.join("existing directory")).unwrap();
             let before = snapshot(root);
-            for args in [vec!["yml", "read"], vec!["path", "get", "--label", "output"], vec!["version", "get"]] {
+            for args in [vec!["yml", "read"], vec!["path", "get", "--label", "output","--target","final","--format","absolute"], vec!["version", "get"]] {
                 let output = Command::new(env!("CARGO_BIN_EXE_proj"))
                     .args(&args).arg("--project").arg(root)
                     .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")

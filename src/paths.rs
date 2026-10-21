@@ -51,7 +51,8 @@ pub(crate) fn select_safe_cache<'a>(directories: impl IntoIterator<Item = (&'a s
 }
 
 /// Representation is independent of the resource target and execution directory.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum PathFormat {
     /// Caller-relative ordinarily, absolute for a known renderer; cross-root fallback is absolute.
     Auto,
