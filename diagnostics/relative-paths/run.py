@@ -57,7 +57,10 @@ class Images(html.parser.HTMLParser):
     def __init__(self): super().__init__(); self.images=[]; self.local_assets=[]
     def handle_starttag(self,tag,attrs):
         attrs=dict(attrs)
-        if tag=='img' and 'sentinel' in attrs.get('alt','').lower(): self.images.append(attrs)
+        if tag=='img':
+            # Quarto 1.10 emits aria-label for fig.alt and no alt for Markdown captions.
+            attrs['alt'] = attrs.get('alt') or attrs.get('aria-label') or 'native markdown sentinel'
+            self.images.append(attrs)
         if tag in ('script','link'):
             value=attrs.get('src') or attrs.get('href')
             if value and not urllib.parse.urlsplit(value).scheme and not value.startswith('#'): self.local_assets.append(value)
