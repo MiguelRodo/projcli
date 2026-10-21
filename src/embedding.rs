@@ -99,7 +99,7 @@ fn with_defaults(content: &str, format_order: &[String], formats: &[String]) -> 
 }
 
 fn profile_files(root: &Utf8Path) -> anyhow::Result<Vec<Utf8PathBuf>> {
-    let mut profiles = Vec::new();
+    let mut profiles = vec![root.join("_quarto.yml.local"), root.join("_quarto.yaml.local")];
     for entry in std::fs::read_dir(root)? {
         let path = Utf8PathBuf::try_from(entry?.path())?;
         let name = path.file_name().unwrap_or_default().to_ascii_lowercase();
@@ -123,13 +123,15 @@ fn metadata_bytes(path: &Utf8Path) -> anyhow::Result<Option<Vec<u8>>> {
 }
 
 fn include_paths(owner: &Utf8Path, value: &serde_yaml::Value, queue: &mut Vec<Utf8PathBuf>) -> anyhow::Result<()> {
-    if let Some(includes) = value.get("metadata-files") {
-        if includes.is_null() { return Ok(()); }
-        let values = if let Some(values) = includes.as_sequence() { values.iter().collect::<Vec<_>>() }
-            else { vec![includes] };
-        for value in values {
-            let path = Utf8Path::new(value.as_str().context("Embedding preparation requires literal metadata-files paths")?);
-            queue.push(if path.is_absolute() { path.to_owned() } else { owner.parent().context("Metadata has no parent")?.join(path) });
+    for key in ["metadata-file", "metadata-files"] {
+        if let Some(includes) = value.get(key) {
+            if includes.is_null() { continue; }
+            let values = if let Some(values) = includes.as_sequence() { values.iter().collect::<Vec<_>>() }
+                else { vec![includes] };
+            for value in values {
+                let path = Utf8Path::new(value.as_str().context("Embedding preparation requires literal metadata-file/metadata-files paths")?);
+                queue.push(if path.is_absolute() { path.to_owned() } else { owner.parent().context("Metadata has no parent")?.join(path) });
+            }
         }
     }
     Ok(())

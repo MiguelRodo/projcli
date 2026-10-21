@@ -168,3 +168,9 @@ Embedding header defaults must retain every effective format choice and native
 order. Use guarded same-directory source replacement, preserving permissions and
 external hard-link bytes. Freeze relevant profile/directory/included metadata and
 reject changes before rendering; never write external metadata dependencies.
+
+Embedding inventory includes both native metadata-file/metadata-files spellings
+and fixed _quarto.yml.local/_quarto.yaml.local paths, including absence. Leading
+scripts changing singular includes or changing/creating local overlays must fail
+before render and recover internal bytes/presence. Native actual regressions extend
+the existing matrix; no custom metadata merging or external writes introduced.

@@ -174,7 +174,8 @@ def embedding_policy_cases(binary: Path, container: Path) -> list[dict]:
                  'project-directory-false', 'project-profile-false', 'project-metadata-file-false',
                  'project-docx', 'project-format-alias-false', 'project-document-alias-false',
                  'project-directory-alias-false', 'project-profile-alias-false',
-                 'project-metadata-file-alias-false', 'project-mixed-alias', 'project-inherited-docx-html', 'project-late-alias-false']:
+                 'project-metadata-file-alias-false', 'project-mixed-alias', 'project-inherited-docx-html', 'project-late-alias-false', 'project-late-singular-alias-false',
+                 'project-late-local-change', 'project-late-local-create']:
         root = container / name
         (root / 'analysis').mkdir(parents=True)
         image = sentinel_png()
@@ -228,9 +229,18 @@ def embedding_policy_cases(binary: Path, container: Path) -> list[dict]:
             if name == 'project-profile-false':
                 (root / '_quarto-linked.yml').write_text('embed-resources: false\n')
                 env['QUARTO_PROFILE'] = 'linked'
-        if name == 'project-late-alias-false':
-            (root / 'analysis/_metadata.yml').write_text('toc: false\n')
-            (root / 'change.py').write_text("from pathlib import Path\nPath('analysis/_metadata.yml').write_text('self-contained: false\\n')\n")
+        late_metadata = name.startswith('project-late-')
+        if late_metadata:
+            dependency = 'analysis/_metadata.yml'
+            if name == 'project-late-singular-alias-false':
+                dependency = 'inherited.yml'
+                with (root / '_quarto.yml').open('a') as stream:
+                    stream.write('metadata-file: inherited.yml\n')
+            if name in ['project-late-local-change', 'project-late-local-create']:
+                dependency = '_quarto.yml.local'
+            if name != 'project-late-local-create':
+                (root / dependency).write_text('toc: false\n')
+            (root / 'change.py').write_text("from pathlib import Path\nPath(" + repr(dependency) + ").write_text('self-contained: false\\n')\n")
             configured = (root / '_proj.yml').read_text().replace('scripts: [analysis/report.qmd]', 'scripts: [change.py, analysis/report.qmd]')
             (root / '_proj.yml').write_text(configured)
         if name == 'project-inherited-docx-html':
@@ -250,13 +260,15 @@ def embedding_policy_cases(binary: Path, container: Path) -> list[dict]:
         originals = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
         result = subprocess.run([str(binary), '--machine', '--non-interactive', 'build-dev', '--project', str(root)],
                                 cwd=root, env=env, capture_output=True, text=True)
-        assert (result.returncode == 0) == (name != 'project-late-alias-false'), name + ': ' + result.stdout + result.stderr[-6000:]
-        if name == 'project-late-alias-false':
+        assert (result.returncode == 0) == (not late_metadata), name + ': ' + result.stdout + result.stderr[-6000:]
+        if late_metadata:
             assert not json.loads(result.stdout)['ok']
             assert 'inherited metadata changed after embedding preparation' in result.stderr
         for path, data in originals.items():
             assert (root / path).read_bytes() == data, str(path)
-        if name == 'project-late-alias-false':
+        if late_metadata:
+            if name == 'project-late-local-create':
+                assert not (root / dependency).exists()
             assert not list((root / 'cache/projr/v1.2.3-4/docs').rglob('report.html'))
             cases.append({'case':name,'exit_code':result.returncode,'changed_inherited_false_rejected_before_render':True,
                           'source_and_internal_metadata_bytes_preserved':True})
