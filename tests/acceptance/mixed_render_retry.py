@@ -8,6 +8,22 @@ def files(root):
     return {str(p.relative_to(root)): p.read_bytes() for p in root.rglob('*') if p.is_file()}
 
 
+FAILED_STEMS = ('01-failed-html', '02-failed-pdf', '03-break')
+FAILED_SOURCES = {stem + '.qmd' for stem in FAILED_STEMS}
+
+
+def failed_artifact(path, allow_root_source=False):
+    """Detect failed report files or companion trees; only exact root inputs may pass."""
+    return not (allow_root_source and path in FAILED_SOURCES) and any(
+        part.startswith(FAILED_STEMS) for part in Path(path).parts)
+
+
+def assert_retained_scratch(path, expected):
+    """An empty retained directory must still exist; compare all retained bytes."""
+    assert path.is_dir(), 'retained failed scratch directory disappeared'
+    assert files(path) == expected, 'retry changed retained failed staging'
+
+
 def run_case(binary, workspace, artifacts, project):
     name = 'quarto-project' if project else 'individual-documents'
     root = workspace / name / 'project with spaces'
@@ -115,13 +131,12 @@ def run_case(binary, workspace, artifacts, project):
     assert committed != before_success
     assert git('rev-list', '--count', f'{before_success}..HEAD').strip() == b'1'
     paths = git('ls-tree', '-r', '-z', '--name-only', 'HEAD').decode().split('\0')[:-1]
-    forbidden = ('01-failed-html', '02-failed-pdf', '03-break')
     for path in paths:
-        assert not (Path(path).name.startswith(forbidden) and not path.endswith('.qmd')), path
+        assert not failed_artifact(path, allow_root_source=True), path
         assert not path.startswith('cache/'), path
     assert 'published/04-kept.html' in paths
     assert not (root / '04-kept.html').exists(), 'new native scratch entered working tree'
-    assert files(scratch[0]) == retained, 'retry changed retained failed staging'
+    assert_retained_scratch(scratch[0], retained)
     for path in ['previous.html', 'previous.pdf', 'cache/previous-scratch']:
         assert (root / path).read_bytes() == preserved[path], path
     for path in ['previous.html', 'previous.pdf']:
@@ -130,7 +145,7 @@ def run_case(binary, workspace, artifacts, project):
     cached = files(root / 'cache/projr/v1.2.4/docs')
     assert final == cached
     assert '04-kept.html' in final and b'SUCCESSFUL-SMALLER-REPORT' in final['04-kept.html']
-    assert not any(Path(path).name.startswith(forbidden) for path in final)
+    assert not any(failed_artifact(path) for path in final)
     assert not any(path in final for path in ['previous.html', 'previous.pdf'])
     tracked = {path.removeprefix('published/'): git('show', f'HEAD:{path}')
                for path in paths if path.startswith('published/')}

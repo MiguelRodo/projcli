@@ -1747,3 +1747,10 @@ The amended exact head requires fresh remote gates and independent delta review.
   ordering is unchanged, so its existing diagram is retained with a coverage note.
   Installed preview.2 stays unchanged; full M2 provenance/identity/sealing/storage
   decisions and broader recovery/concurrency guarantees remain open.
+
+Independent review tightens the witness, without runtime changes: reject failed
+report prefixes in every relative path component, including nested companion
+assets, with exceptions only for the exact intended root QMD source files.
+Require retained scratch to remain a directory before byte comparison, even when
+empty. Three standard-library negative tests cover companion paths, precise source
+exceptions and missing empty scratch; rerun exact-head remote gates for this delta.
