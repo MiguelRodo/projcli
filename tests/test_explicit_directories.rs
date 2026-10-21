@@ -5,6 +5,7 @@ const PRESET: &str = "directories:\n  raw-data:\n    path: _raw_data\n  cache:\n
 fn cli(root: &std::path::Path, args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_proj")).args(args)
         .arg("--project").arg(root).arg("--non-interactive")
+        .current_dir(root)
         .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
         .output().unwrap()
 }

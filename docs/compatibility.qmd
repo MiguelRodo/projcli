@@ -1183,3 +1183,8 @@ command construction and one policy enum; no process cwd mutation or new depende
 
 New path/representation/execution flags described in source documentation are not
 in the previously installed v0.4.0-preview.1 binary. No new release is claimed.
+
+Initial native-cwd remote run exposed discovery/cache fixtures launching from the
+Cargo checkout while assuming forced project cwd. Set those fixture launch cwd
+explicitly to their temporary project; retain artifact/discovery assertions. The
+new outside-root fixture continues to test the actual native default separately.
