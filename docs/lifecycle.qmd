@@ -60,6 +60,9 @@ flowchart TB
   C -->|"Output"| E
   classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
   class A,B,C,D,E target
+  style PRE fill:#f1f6f3,stroke:#a8bcb4
+  style BUILD fill:#f1f6f3,stroke:#a8bcb4
+  style POST fill:#f1f6f3,stroke:#a8bcb4
 ```
 
 The key adjacency rules are deliberate: **nothing runs between pre-clear and
