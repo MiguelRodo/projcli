@@ -153,7 +153,8 @@ pub(crate) fn directory_order(combined: &serde_json::Value) -> Vec<String> {
 
 pub(crate) fn role_target_from(root: &Utf8Path, label: &str, safe: bool) -> anyhow::Result<Utf8PathBuf> {
     crate::path_safety::validate_directory_label(label)?;
-    let (directories, safe_cache, version) = if let Some(context) = inherited_for(root)? {
+    if label.eq_ignore_ascii_case("project") { return Ok(root.to_owned()); }
+    let (mut directories, safe_cache, version) = if let Some(context) = inherited_for(root)? {
         (context.directories, context.safe_cache, Some(context.active_version))
     } else {
         let profiles = select_profiles(None, root)?;
@@ -166,6 +167,13 @@ pub(crate) fn role_target_from(root: &Utf8Path, label: &str, safe: bool) -> anyh
             .collect::<anyhow::Result<BTreeMap<_, _>>>()?;
         (directories, safe_cache, crate::version_get_from(root))
     };
+    if label.eq_ignore_ascii_case("output-r-data") && !directories.keys().any(|key| key.eq_ignore_ascii_case("output-r-data")) {
+        // Lookup availability is not activation: only explicitly declared roles
+        // enter build cleanup, recovery, promotion and publication inventories.
+        let fixed = root.join("data");
+        crate::path_safety::resolve_path(fixed.as_std_path(), true)?;
+        directories.insert("output-r-data".to_owned(), fixed);
+    }
     let (canonical_label, configured) = directories.iter().find(|(key, _)| key.eq_ignore_ascii_case(label))
         .with_context(|| format!("Directory label '{label}' is not declared"))?;
     if safe && crate::paths::is_managed_output(canonical_label) {

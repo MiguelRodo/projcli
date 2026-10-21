@@ -147,3 +147,10 @@ Individual R Markdown uses self_contained only when unspecified. Preserve explic
 false, native literal resource semantics and exact source/config restoration.
 Bookdown site rendering retains its native policy; do not claim that project
 driver has the new embedding fallback or that nonembedded relocation is supported.
+
+R-package data lookup is built in as output-r-data with fixed final project/data;
+safe lookup still requires a declared selected cache and version. Lookup never
+activates writes. Only explicit canonical or per-layer normalized legacy data
+declarations enter ordinary output clearing/recovery/promotion/publication.
+Reject redirection and alias conflicts before merge; no special preservation
+policy, new language roles or edits to the existing R package.

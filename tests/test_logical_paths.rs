@@ -16,9 +16,9 @@ fn path(output: std::process::Output) -> std::path::PathBuf {
 fn safe_roles_preserve_exact_labels_first_cache_order_and_external_final_paths_without_creating_directories() {
     let project = tempfile::tempdir().unwrap(); let root = project.path();
     let external = tempfile::tempdir().unwrap();
-    let config = format!("directories:\n  cache-z:\n    path: first-cache\n  cache-a:\n    path: other-cache\n  output-model:\n    path: {}\n  data:\n    path: final-data\n  docs:\n    path: final-docs\n  raw-data:\n    path: {}\n",serde_json::to_string(&external.path().to_string_lossy()).unwrap(),serde_json::to_string(&external.path().to_string_lossy()).unwrap());
+    let config = format!("directories:\n  cache-z:\n    path: first-cache\n  cache-a:\n    path: other-cache\n  output-model:\n    path: {}\n  output-generated:\n    path: final-data\n  docs:\n    path: final-docs\n  raw-data:\n    path: {}\n",serde_json::to_string(&external.path().to_string_lossy()).unwrap(),serde_json::to_string(&external.path().to_string_lossy()).unwrap());
     fs::write(root.join("_proj.yml"), config).unwrap(); fs::write(root.join("VERSION"), "v1.2.3.4").unwrap();
-    for label in ["output-model","data","docs"] {
+    for label in ["output-model","output-generated","docs"] {
         let result = path(query(root,label,"safe", &["figures","sentinel.png"]));
         let expected = root.canonicalize().unwrap().join("first-cache/projr/v1.2.3-4").join(label).join("figures/sentinel.png");
         assert_eq!(result,expected);
@@ -111,7 +111,7 @@ fn data_final_bytes_and_absence_are_restored_for_failures_and_all_preview_outcom
         let data=if external {outside.path().canonicalize().unwrap().join("data")} else {root.canonicalize().unwrap().join("data")};
         if exists {fs::create_dir_all(data.join("nested/empty")).unwrap();fs::write(data.join("previous"),b"old\0data bytes").unwrap();}
         fs::create_dir(root.join("cache")).unwrap();fs::write(root.join("VERSION"),"v1.2.3-4\n").unwrap();
-        let config=format!("directories:\n  cache:\n    path: cache\n  data:\n    path: {}\nbuild:\n  scripts: [analysis.py]\n  hooks:\n    pre: [before.py]\n    post: [after.py]\n  clear_output: {clear}\n  git: false\n  restrictions:\n    not_behind: false\n",serde_json::to_string(&data.to_string_lossy()).unwrap());
+        let config=format!("directories:\n  cache:\n    path: cache\n  output-generated:\n    path: {}\nbuild:\n  scripts: [analysis.py]\n  hooks:\n    pre: [before.py]\n    post: [after.py]\n  clear_output: {clear}\n  git: false\n  restrictions:\n    not_behind: false\n",serde_json::to_string(&data.to_string_lossy()).unwrap());
         fs::write(root.join("_proj.yml"),config).unwrap();
         for (file,stage) in [("before.py","pre"),("analysis.py","analysis"),("after.py","post")] {
             let code=format!(r#"import json,subprocess
@@ -120,7 +120,7 @@ data=Path({data})
 data.mkdir(parents=True,exist_ok=True)
 (data/'previous').write_text('changed')
 (data/'new').write_text('new')
-value=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label','data','--target','safe','artifact.txt','--format','absolute'],text=True))
+value=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label','output-generated','--target','safe','artifact.txt','--format','absolute'],text=True))
 target=Path(value['result']['path']);target.parent.mkdir(parents=True,exist_ok=True);target.write_text('retained cache bytes')
 raise SystemExit({exit_code})
 "#,data=serde_json::to_string(&data.to_string_lossy()).unwrap(),binary=serde_json::to_string(env!("CARGO_BIN_EXE_proj")).unwrap(),exit_code=if phase==stage {17} else {0});
@@ -135,7 +135,7 @@ raise SystemExit({exit_code})
         } else {assert!(!data.exists(),"previously absent data survived recovery");}
         assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(),"v1.2.3-4\n");
         let key=if mode=="build-dev" {"v1.2.3-4"} else {"v1.2.4"};
-        let artifact=root.join("cache/projr").join(key).join("data/artifact.txt");
+        let artifact=root.join("cache/projr").join(key).join("output-generated/artifact.txt");
         assert!(artifact.is_file(),"Missing retained artifact {artifact:?}: {mode}/{clear}/{phase}/external={external}/exists={exists}: {}",String::from_utf8_lossy(&output.stderr));
         assert_eq!(fs::read_to_string(artifact).unwrap(),"retained cache bytes");
        }
@@ -199,7 +199,7 @@ fn trailing_dot_or_space_role_labels_are_rejected_without_restricting_unicode() 
 #[cfg(unix)]
 #[test]
 fn implicit_project_sources_in_new_data_roles_fail_before_cleanup_and_renderer_launch() {
-    for label in ["data","data-derived"] {
+    for label in ["output-generated","output-derived"] {
         let project=tempfile::tempdir().unwrap();let root=project.path();let outside=tempfile::tempdir().unwrap();
         fs::write(outside.path().join("analysis.qmd"),"source sentinel").unwrap();
         fs::write(root.join("VERSION"),"v1.2.3").unwrap();

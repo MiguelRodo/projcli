@@ -290,7 +290,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     environment.set(crate::RUN_CONTEXT_ENV, run_context.path().as_os_str());
     let mut staged_outputs = Vec::new();
     if !is_dev && run_analysis && config.output_run.unwrap_or(true) && cache_root.is_some() {
-        for label in config.directories.keys().filter(|label| crate::paths::is_output_or_data(label)) {
+        for label in config.directories.keys().filter(|label| crate::paths::is_generated_output(label)) {
             let cache = cache_root.as_ref().unwrap();
             let staged = cache.join("projr").join(initial_version.cache_key()).join(label);
             crate::path_safety::resolve_path(staged.as_std_path(), true)?;
