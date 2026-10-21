@@ -304,6 +304,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#active-configuration-and-validation" id="toc-active-configuration-and-validation" class="nav-link" data-scroll-target="#active-configuration-and-validation">Active configuration and validation</a></li>
   <li><a href="#html-resources" id="toc-html-resources" class="nav-link" data-scroll-target="#html-resources">HTML resources</a></li>
   <li><a href="#failed-reports-and-a-smaller-retry" id="toc-failed-reports-and-a-smaller-retry" class="nav-link" data-scroll-target="#failed-reports-and-a-smaller-retry">Failed reports and a smaller retry</a></li>
+  <li><a href="#local-git-success-and-a-rejected-push" id="toc-local-git-success-and-a-rejected-push" class="nav-link" data-scroll-target="#local-git-success-and-a-rejected-push">Local Git success and a rejected push</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -383,6 +384,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="failed-reports-and-a-smaller-retry">Failed reports and a smaller retry</h2>
 <p>Managed renderer failure restores the previous released documents and original native artifacts before a later build can commit. A successful smaller document selection publishes that selection; it replaces the previous final docs tree. Unselected earlier native documents stay unchanged. Failed renderer scratch is retained under the declared versioned cache for inspection, separate from final documents. Cache is disposable and should remain ignored by Git.</p>
 <p>The remote acceptance driver tests real individual and project Quarto HTML/PDF renders, a deliberate later-document failure, then a smaller successful local Git build. It compares committed report bytes with both final and cached files, checks the entire commit for failed report artifacts, and preserves retained failed scratch. This adds acceptance coverage to the existing lifecycle, not a new retry identity or transaction guarantee. It does not update installed preview.2 or complete M2 provenance.</p>
+</section>
+<section id="local-git-success-and-a-rejected-push" class="level2">
+<h2 class="anchored" data-anchor-id="local-git-success-and-a-rejected-push">Local Git success and a rejected push</h2>
+<p>Git commits and pushes are separate opt-in actions. A push uses the current branch’s configured upstream, including a differently named remote branch; it must not silently target main. Disabling push still allows a local build commit. The real-repository tests verify both settings against a temporary bare upstream and compare the committed and published CSV bytes.</p>
+<p>If Git rejects a push after local analysis and commit succeed, the command fails and reports that the local release is preserved. Its files, local release commit and release VERSION remain available; the next-development bump is skipped. An analysis failure instead restores the previous managed state and creates no release commit. Neither outcome implies a remote transaction or a durable publication record. Do not automatically rerun analysis to retry a failed upload.</p>
+<p>No-op commit behavior is tested at the Git provider boundary: unchanged files produce no extra commit, while a real change does. A normal production CLI build advances VERSION and therefore need not be a no-op.</p>
 
 
 </section>

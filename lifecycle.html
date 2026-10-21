@@ -692,6 +692,7 @@ Figure&nbsp;6: Released publication boundary: preserve local release; do not und
 <h2 class="anchored" data-anchor-id="failure-followed-by-a-smaller-build">Failure followed by a smaller build</h2>
 <p>The controlled order above is unchanged. Remote acceptance now couples the failure branch to a subsequent successful Git build: real HTML and PDF are rendered before a later document fails, previous final/native state is recovered, then a smaller selection is published and its committed bytes are checked. Retained failed scratch stays in cache; it must not enter the later commit. Earlier final docs are preserved on failure and replaced only on successful docs finalization. This is bounded recovery evidence, not a new M2 record or sealing boundary, and does not change the installed preview.2 binary.</p>
 <p>The <a href="./storage-design.html">storage design constraints</a> reserve optional future per-directory DVC delegation. Its restore/build/store integration points and error boundaries are still undecided; no DVC step is added to the current lifecycle diagrams. Ordinary native use remains independent of DVC.</p>
+<p>The real local-bare-upstream Git tests also check the existing publication-failure branch: a rejected push keeps the successful local release and skips the next-dev bump, while an analysis failure restores managed state without a release commit. This verifies the current boundary without changing lifecycle order, adding a seal or deciding durable attempt/publication records.</p>
 
 
 </section>
