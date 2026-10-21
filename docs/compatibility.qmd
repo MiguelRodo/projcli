@@ -1593,3 +1593,18 @@ Preview.2 release preparation changes only the CLI package version/lock entry an
 release notes. Public README/install/check pins remain preview.1 until verified
 publication, followed by a separate checked documentation update. Do not tag,
 publish or install before reviewed source and exact remote gates are complete.
+
+Preview.2 is published from exact tag/source768da1bf1b83be83b657b36219f299f37130ba03.
+Actual-main39607431157 passed full Rust/API-doc/26renderer/8combined/CAS checks;
+tagged39607988059 passed both platform binaries and installers. Both draft assets
+equal platform artifacts; all five unauthenticated public bytes equal draft.
+Linux SHA25615e160df722e79fb20af02d46f3858b810a0875a0e53bc0fc05ccf502b52c932;
+Windows SHA2563c4b7909c5c0669330aff3f1ff4343691da5b02ad962a6346d78330e0f7091ab.
+WSL user-local install preserved old bytes first and matched checked public Linux
+bytes. Full-path version/help/protocol and tiny Python preview success/failure
+passed with cached84 and prior final/archive/VERSION preserved. No local heavy
+tests, containers, R-package/thesis changes or M2 implementation.
+Post-publication docs now update install/source pins and public-download CI
+expectations together, retaining native-browser lifecycle witness. Lifecycle marks
+reflect reviewed released order; arbitrary script/remote effects remain outside
+bounded recovery. Broad private roadmap items remain separate.

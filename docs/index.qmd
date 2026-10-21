@@ -7,7 +7,7 @@ toc: false
 ::: {.callout-warning}
 ## Try it on a disposable project
 Use sample data or a disposable copy of your project. Production builds
-(`proj build`) can modify or remove files, and safety fixes are still pending.
+(`proj build`) can modify or remove files. Recovery covers only recorded managed paths.
 **Never run production builds on the only copy of important work.**
 Previews are not a security sandbox; code you run can still change files.
 :::
@@ -22,7 +22,7 @@ Start with the preview example below; production build safety is still being imp
 
 ::: {.callout-note}
 ## Development preview
-[v0.4.0-preview.1 is available](install.qmd) for Linux and Windows x86-64,
+[v0.4.0-preview.2 is available](install.qmd) for Linux and Windows x86-64,
 without compiling Rust. It is a development prerelease; broad M1/M2 milestones
 remain incomplete. Stable Latest is still v0.3.0. Read
 [what works](features.qmd) before choosing a version.

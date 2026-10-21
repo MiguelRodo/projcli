@@ -6,14 +6,14 @@ subtitle: "Calculate a mean and save a preview, using only Python's standard lib
 ::: {.callout-warning}
 ## Try it on a disposable project
 Use sample data or a disposable copy of your project. Production builds
-(`proj build`) can modify or remove files, and safety fixes are still pending.
+(`proj build`) can modify or remove files. Recovery covers only recorded managed paths.
 **Never run production builds on the only copy of important work.**
 Previews are not a security sandbox; code you run can still change files.
 :::
 
 ::: {.callout-note}
 ## Use the pinned preview
-[Install `0.4.0-preview.1`](install.qmd) and check `proj --version` before
+[Install `0.4.0-preview.2`](install.qmd) and check `proj --version` before
 starting. Stable v0.3.0 predates this workflow. Remote docs checks run the
 complete example through the downloaded preview binary as well as the current
 PR code. You also need Python 3 available as `python3`.

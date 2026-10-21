@@ -1,8 +1,8 @@
 # Preview feature status
 
-The published and installed development binary remains 0.4.0-preview.1. The
-[next-preview release checks](release-candidate.qmd) distinguish newer source
-slices and pending integrated delivery from that installed version.
+The published development release is [0.4.0-preview.2](install.qmd). The verified
+WSL user-local command also reports that version. See
+[release evidence](release-delivery.qmd) for the exact source and checks.
 
 This is an early Rust CLI for disposable analysis projects. A development preview
 does not mean the complete roadmap is finished. Use independent backups and sample
@@ -12,14 +12,14 @@ data while evaluating it. The existing projr R package and thesis remain unchang
 |---|---|---|
 | Project selection | Explicit root; nearest recognized ancestor; markerless cwd fallback; shallow default script discovery. | Cross-platform fixtures cover markers, nested invocation and explicit override. Root recognition includes Python/Julia markers; that does not imply Julia execution or a wrapper. |
 | Configuration and init | Active root YAML required; legacy alias/ambiguity rule; profile precedence; explicitly declared resource directories; local-only directory initialization. | Cross-platform configuration/error-preservation fixtures. Old no-config roadmap assumptions were superseded. |
-| Execution context | Ordered explicit scripts/hooks; captured-root process cwd; supported Quarto/R Markdown root controls; unsafe/unknown layouts fail early. | Real Python execution and fake-renderer argument/artifact tests. Complete real R/renderer/IDE end-to-end parity has not been established. |
+| Execution context | Ordered explicit scripts/hooks; native cwd with explicit project-root override; supported Quarto/R Markdown root controls; unsafe/unknown layouts fail early. | Real Python/R/rendering acceptance and cross-platform fixtures passed. Direct R API/IDE parity remains unproved. |
 | Automation | Opt-in protocol-v1 JSON, capability version, typed queries, noninteractive command worker, nonzero failures; child logs on stderr. | Cross-platform machine tests. Static coarse error codes; no invented attempt/release record on success. |
-| Preview preservation | This candidate restores captured managed state after successful/failed previews. Cache results remain. | Included through the reviewed recovery dependency; final integrated tests and actual released-binary checks passed. Not automatic output redirection or an OS sandbox. |
+| Preview preservation | The released CLI restores captured managed state after successful/failed previews. Cache results remain. | Included through the reviewed recovery dependency; final integrated tests and actual released-binary checks passed. Generated-output path queries use the safe cache by default; arbitrary writes are not isolated. |
 | Production safety groundwork | Path guards, bounded local failure recovery, optional checked Git publication and verified CAS bytes. | Focused fixtures and reviews; incomplete release identity/provenance/retry model. This page is not an invitation to run on valuable production data. |
-| Binary delivery | [Development prerelease 0.4.0-preview.1](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1) supplies versioned Linux/Windows x86-64 assets with mandatory checksums. | Exact-tag workflow, uploaded/public asset hashes and both native binary smokes passed. WSL user-local installation and tiny success/failure Python previews passed. Other platforms are not supplied. |
+| Binary delivery | [Development prerelease 0.4.0-preview.2](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.2) supplies versioned Linux/Windows x86-64 assets with mandatory checksums. | Exact-tag workflow, uploaded/public asset hashes and both native binary smokes passed. WSL user-local installation and tiny success/failure Python previews passed. Other platforms are not supplied. |
 
 Still unfinished: direct projr/quarto R API/RStudio parity, existing R helper
-integration, full real R demo coverage, automatic isolation of every script write,
+integration, automatic isolation of every script write,
 durable attempt/release identifiers, complete input/code/config/dependency provenance,
 multi-writer/crash atomicity and analysis-free publication retry. Capture/recovery
 cannot undo arbitrary external script effects or guarantee concurrent readers never
