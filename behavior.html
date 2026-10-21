@@ -287,6 +287,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#failed-document-artifacts-across-a-smaller-retry" id="toc-failed-document-artifacts-across-a-smaller-retry" class="nav-link" data-scroll-target="#failed-document-artifacts-across-a-smaller-retry">Failed document artifacts across a smaller retry</a></li>
   <li><a href="#confirmed-storage-and-catalogue-direction" id="toc-confirmed-storage-and-catalogue-direction" class="nav-link" data-scroll-target="#confirmed-storage-and-catalogue-direction">Confirmed storage and catalogue direction</a></li>
   <li><a href="#real-local-git-publication-acceptance" id="toc-real-local-git-publication-acceptance" class="nav-link" data-scroll-target="#real-local-git-publication-acceptance">Real local Git publication acceptance</a></li>
+  <li><a href="#inventory-transition-groundwork" id="toc-inventory-transition-groundwork" class="nav-link" data-scroll-target="#inventory-transition-groundwork">Inventory transition groundwork</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -451,6 +452,10 @@ ul.task-list li input[type="checkbox"] {
 <section id="real-local-git-publication-acceptance" class="level2">
 <h2 class="anchored" data-anchor-id="real-local-git-publication-acceptance">Real local Git publication acceptance</h2>
 <p>Real temporary Git repositories and a bare upstream now exercise the existing optional-publication contract: configured non-main/differently named upstream, explicitly disabled push, no-op provider commits, non-fast-forward rejection and an analysis-failure comparison. Check actual branch refs, committed/final/cache bytes and release/development versions. This adds acceptance evidence; current branch and publication order stay unchanged. Durable publication records, sealing and the future release catalogue are not implemented by these tests.</p>
+</section>
+<section id="inventory-transition-groundwork" class="level2">
+<h2 class="anchored" data-anchor-id="inventory-transition-groundwork">Inventory transition groundwork</h2>
+<p>Existing explicit CAS ingestion has a fixture for exact current path/hash sets and stored bytes across edits, additions, renames and deletions. The edit keeps file length and modified time unchanged, so verified content must still change. Past manifest bytes and their referenced objects remain valid across later ingestions in this sequence. These are full snapshots in the existing format, not newly defined rename events, tombstones, build records or retention rules. No lifecycle capture point or broader provenance completion is implied.</p>
 
 
 </section>

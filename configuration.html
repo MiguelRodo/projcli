@@ -308,6 +308,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#environment-variables" id="toc-environment-variables" class="nav-link" data-scroll-target="#environment-variables">Environment Variables</a></li>
   <li><a href="#runtime-settings-and-output-clearing" id="toc-runtime-settings-and-output-clearing" class="nav-link" data-scroll-target="#runtime-settings-and-output-clearing">Runtime settings and output clearing</a></li>
   <li><a href="#r-package-data" id="toc-r-package-data" class="nav-link" data-scroll-target="#r-package-data">R package data</a></li>
+  <li><a href="#existing-archive-inventory-coverage" id="toc-existing-archive-inventory-coverage" class="nav-link" data-scroll-target="#existing-archive-inventory-coverage">Existing archive inventory coverage</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -441,6 +442,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ignore</span><span class="kw">:</span><span class="at"> </span><span class="kw">[]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>An empty output-r-data mapping also activates the role, with ordinary default ignore rules. Explicit ignore: [] includes package data in Git and R builds. The path may be omitted; if present it must resolve to project/data. Redirection is forbidden. settings.output-clear-stage applies normally: pre/post clears old package data; the default none preserves other final files. Preview never promotes final data.</p>
 <p>Legacy _projr.yml and active _projr-*.yml layers accept data as an alias and normalize it before merging, including legacy remote content labels. Defining both aliases in one layer is an error. Canonical _proj.yml requires output-r-data. Generic data-* labels are unsupported; use raw-* inputs or ordinary output-* mappings.</p>
+</section>
+<section id="existing-archive-inventory-coverage" class="level2">
+<h2 class="anchored" data-anchor-id="existing-archive-inventory-coverage">Existing archive inventory coverage</h2>
+<p>CAS ingestion records the current recursive file paths and content hashes for the explicitly selected directory. The transition fixture compares exact inventories and stored bytes after a same-size/same-modified-time edit, an addition, a rename and a deletion. Earlier snapshots remain inspectable across those later ingestions. A renamed file appears under its new path in the current snapshot; this does not create a rename-event format.</p>
+<p>This verifies existing archive machinery only. It does not automatically record all build inputs, code, configuration or dependencies, select a future build record format, or decide content-only identity and retention policy. Complete M2 provenance remains unfinished.</p>
 
 
 </section>
