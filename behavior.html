@@ -241,6 +241,12 @@ ul.task-list li input[type="checkbox"] {
  <span class="menu-text">Future R wrapper: CLI installation and CRAN checks</span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./storage-design.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Storage and release catalogue design</span></a>
+  </div>
+</li>
       </ul>
   </li>
     </ul>
@@ -279,6 +285,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#bounded-html-embedding-fallback" id="toc-bounded-html-embedding-fallback" class="nav-link" data-scroll-target="#bounded-html-embedding-fallback">Bounded HTML embedding fallback</a></li>
   <li><a href="#r-package-data-lookup-and-explicit-activation" id="toc-r-package-data-lookup-and-explicit-activation" class="nav-link" data-scroll-target="#r-package-data-lookup-and-explicit-activation">R-package data lookup and explicit activation</a></li>
   <li><a href="#failed-document-artifacts-across-a-smaller-retry" id="toc-failed-document-artifacts-across-a-smaller-retry" class="nav-link" data-scroll-target="#failed-document-artifacts-across-a-smaller-retry">Failed document artifacts across a smaller retry</a></li>
+  <li><a href="#confirmed-storage-and-catalogue-direction" id="toc-confirmed-storage-and-catalogue-direction" class="nav-link" data-scroll-target="#confirmed-storage-and-catalogue-direction">Confirmed storage and catalogue direction</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -435,6 +442,10 @@ ul.task-list li input[type="checkbox"] {
 <section id="failed-document-artifacts-across-a-smaller-retry" class="level2">
 <h2 class="anchored" data-anchor-id="failed-document-artifacts-across-a-smaller-retry">Failed document artifacts across a smaller retry</h2>
 <p>The existing managed-renderer contract must hold across successive builds: failed HTML/PDF artifacts cannot enter a later successful Git commit after selecting fewer documents. Restore prior final/native bytes on failure; preserve unselected native documents and retained failed cache scratch across the retry. Successful document finalization still replaces the configured final docs tree with its new selection. No new attempt identity, sealing, cache namespace or storage policy is introduced. The remote mixed_render_retry.py acceptance exercises this sequence with real renderers and actual committed bytes; M2 record design remains open.</p>
+</section>
+<section id="confirmed-storage-and-catalogue-direction" class="level2">
+<h2 class="anchored" data-anchor-id="confirmed-storage-and-catalogue-direction">Confirmed storage and catalogue direction</h2>
+<p>Ordinary proj use must remain standalone with a native backend and no DVC dependency. Future per-directory DVC backing is opt-in, with automatic delegation at agreed lifecycle points and DVC authoritative for its own tracking/cache. The intended release catalogue is a curated linear main-branch changelog. <a href="./storage-design.html">Storage design constraints</a> separate these decisions from the still-open configuration, identity, sealing, manifest and backend contracts. This records design only; current runtime behavior is unchanged.</p>
 
 
 </section>

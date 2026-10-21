@@ -244,6 +244,12 @@ ul.task-list li input[type="checkbox"] {
  <span class="menu-text">Future R wrapper: CLI installation and CRAN checks</span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./storage-design.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Storage and release catalogue design</span></a>
+  </div>
+</li>
       </ul>
   </li>
     </ul>
@@ -685,6 +691,7 @@ Figure&nbsp;6: Released publication boundary: preserve local release; do not und
 <section id="failure-followed-by-a-smaller-build" class="level2">
 <h2 class="anchored" data-anchor-id="failure-followed-by-a-smaller-build">Failure followed by a smaller build</h2>
 <p>The controlled order above is unchanged. Remote acceptance now couples the failure branch to a subsequent successful Git build: real HTML and PDF are rendered before a later document fails, previous final/native state is recovered, then a smaller selection is published and its committed bytes are checked. Retained failed scratch stays in cache; it must not enter the later commit. Earlier final docs are preserved on failure and replaced only on successful docs finalization. This is bounded recovery evidence, not a new M2 record or sealing boundary, and does not change the installed preview.2 binary.</p>
+<p>The <a href="./storage-design.html">storage design constraints</a> reserve optional future per-directory DVC delegation. Its restore/build/store integration points and error boundaries are still undecided; no DVC step is added to the current lifecycle diagrams. Ordinary native use remains independent of DVC.</p>
 
 
 </section>
