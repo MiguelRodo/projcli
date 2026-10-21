@@ -45,6 +45,9 @@ jobs:
       - name: Validate actual final and archived M1 result bytes
         shell: bash
         run: runuser -u rstudio -- env CARGO_HOME="$RUNNER_TEMP/projcli-cargo" RUSTUP_AUTO_INSTALL=0 PROJCLI_M1_EVIDENCE="$GITHUB_WORKSPACE/m1-acceptance-artifacts" cargo test --locked --test test_m1_archive_witness -- --ignored
+      - name: Mixed-document failure then smaller successful Git build
+        shell: bash
+        run: runuser -u rstudio -- python3 tests/acceptance/mixed_render_retry.py target/debug/proj --evidence mixed-render-retry-evidence.json --artifacts mixed-render-retry-artifacts
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -59,4 +62,13 @@ jobs:
           path: |
             m1-contract-evidence.json
             m1-acceptance-artifacts
+          if-no-files-found: warn
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mixed-render-retry-evidence
+          path: |
+            mixed-render-retry-evidence.json
+            mixed-render-retry-artifacts
           if-no-files-found: warn

@@ -134,3 +134,21 @@ bytes are preserved. Changing inherited profile/directory/included metadata afte
 preparation is rejected; use literal metadata-files paths. External metadata is
 read for validation and is not rewritten. Arbitrary external script effects remain
 outside managed recovery.
+
+
+## Failed reports and a smaller retry
+
+Managed renderer failure restores the previous released documents and original
+native artifacts before a later build can commit. A successful smaller document
+selection publishes that selection; it replaces the previous final docs tree.
+Unselected earlier native documents stay unchanged. Failed renderer scratch is
+retained under the declared versioned cache for inspection, separate from final
+documents. Cache is disposable and should remain ignored by Git.
+
+The remote acceptance driver tests real individual and project Quarto HTML/PDF
+renders, a deliberate later-document failure, then a smaller successful local Git
+build. It compares committed report bytes with both final and cached files, checks
+the entire commit for failed report artifacts, and preserves retained failed
+scratch. This adds acceptance coverage to the existing lifecycle, not a new retry
+identity or transaction guarantee. It does not update installed preview.2 or
+complete M2 provenance.
