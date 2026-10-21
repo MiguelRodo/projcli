@@ -718,15 +718,7 @@ pub fn add_empty_parameters_block(project_root: &Utf8Path) -> anyhow::Result<boo
         serde_yaml::from_str(&content).context("Failed to parse project configuration.")?;
 
     if let serde_yaml::Value::Mapping(mut map) = raw_value {
-        // Validate explicit markers before deep_merge's null-inheritance rule can hide them.
-    if let Some(directories) = value.get("directories").and_then(Value::as_object) {
-        for (label, directory) in directories {
-            if let Some(marker) = directory.get("safe") {
-                anyhow::ensure!(marker.is_boolean(), "Directory '{label}' safe selection must be boolean in {path}");
-            }
-        }
-    }
-    let aliases = ["parameters", "parameter", "params", "param"];
+        let aliases = ["parameters", "parameter", "params", "param"];
         let found = aliases
             .iter()
             .any(|&a| map.contains_key(&serde_yaml::Value::String(a.to_string())));
