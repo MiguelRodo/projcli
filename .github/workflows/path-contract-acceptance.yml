@@ -1,0 +1,24 @@
+name: Pinned path contract acceptance
+on:
+  workflow_dispatch:
+jobs:
+  pinned-linux:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    container:
+      image: ghcr.io/miguelrodo/devcontainers-projcli:v1.0.0@sha256:a58a8a4dd6f0be83879d08b3a43ab92e256425bbfb81372b257d77a7ff9077f9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Tool versions
+        shell: bash
+        run: |
+          cargo --version
+          Rscript --version
+          quarto --version
+          python3 --version
+      - name: Complete Linux regressions in pinned environment
+        shell: bash
+        run: cargo test --locked --workspace --verbose --no-fail-fast

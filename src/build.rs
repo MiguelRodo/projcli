@@ -126,6 +126,9 @@ pub fn build_project_with_clear_stage(project_root: &camino::Utf8Path, mode: Bui
         .context("Failed to deserialize combined configuration")?;
     let config = project_config.validate_and_resolve(project_root, is_dev)?;
     let clear_stage = config.settings.clear_stage(clear_stage, config.clear_output.as_deref(), environment.text("PROJR_CLEAR_OUTPUT"))?;
+    if !is_dev && config.old_dev_remove == Some(true) {
+        anyhow::bail!("Automatic old development-cache removal is unsupported with safe routing; disable dev.old_dev_remove");
+    }
     let selected_cache = crate::paths::select_safe_cache(config.directories.iter().map(|(label, directory)| (label.as_str(), directory.safe)), &directory_order)?;
     environment.set("PROJCLI_GIT_TOKEN_OVERRIDE", config.config.git.use_proj_cred_helper.to_string());
     let push_target = if config.git.push {
@@ -278,9 +281,9 @@ pub fn build_project_with_clear_stage(project_root: &camino::Utf8Path, mode: Bui
     let run_context = crate::run_context::ContextFile::capture(project_root, &config, profiles, directory_order, initial_version.clone(), is_dev)?;
     environment.set(crate::RUN_CONTEXT_ENV, run_context.path().as_os_str());
     let mut staged_outputs = Vec::new();
-    if run_analysis {
+    if !is_dev && run_analysis && config.output_run.unwrap_or(true) && cache_root.is_some() {
         for label in config.directories.keys().filter(|label| crate::paths::is_output_or_data(label)) {
-            let cache = cache_root.as_ref().context("Safe output routing requires an eligible declared cache directory")?;
+            let cache = cache_root.as_ref().unwrap();
             let staged = cache.join("projr").join(initial_version.cache_key()).join(label);
             crate::path_safety::resolve_path(staged.as_std_path(), true)?;
             staged_outputs.push((staged, config.get_path(project_root, label)?));
@@ -442,11 +445,11 @@ pub fn build_project_with_clear_stage(project_root: &camino::Utf8Path, mode: Bui
             }
         }
         // No preparation, hooks or metadata work may intervene at these boundaries.
-        if !is_dev && run_analysis && clear_stage == crate::yml::OutputClearStage::Pre {
+        if !is_dev && run_analysis && config.output_run.unwrap_or(true) && clear_stage == crate::yml::OutputClearStage::Pre {
             crate::clear::clear_post(project_root, false, &config, Some("post"), false)?;
         }
         execute_build_pipeline(project_root, build_scripts.clone(), profile.clone(), quarto_exists, bookdown_exists, resolved_python_cmd.as_deref(), &environment, execution)?;
-        if !is_dev && run_analysis && clear_stage == crate::yml::OutputClearStage::Post {
+        if !is_dev && run_analysis && config.output_run.unwrap_or(true) && clear_stage == crate::yml::OutputClearStage::Post {
             crate::clear::clear_post(project_root, false, &config, Some("post"), false)?;
         }
         restore_engines()?;

@@ -1231,3 +1231,40 @@ rejection remains tested. Exact integrated CI/re-review required.
   Published-image smokes do not verify local editor usability, Codex login or
   complete M1/M2 behavior. All heavy work ran remotely; no local Docker/R/render/
   compilation was performed. Consumer CI and independent final review remain gates.
+
+
+## Cache-backed consumers and output lifecycle
+
+- **Same intended routing:** pinned projr90be501 R/dir-get.R68–84,247–253 and
+  R/version.R433–438 route safe generated output through cache/projr/v<version>.
+  Rust consumers now use the captured active version/selected cache rather than
+  old VERSION text/literal cache. Fresh render artifacts are retained in versioned
+  docs cache; final destinations remain separately configured.
+- **Same broad ordering, tightened by user:** start hooks, other preparation,
+  pre-clear immediately before analysis, post-clear immediately after successful
+  analysis, promotion/finalization, end hooks immediately before next-dev bump.
+  R's production clear_output=NULL falls back env then pre; development defaults
+  never. R has no general runtime options/settings YAML section and does not read
+  build.clear_output. Rust's settings.output-clear-stage default none and YAML over
+  environment are deliberate approved differences; legacy never remains compatible.
+- **Different/fixed:** final clearing never deletes preview outputs; renderer cache
+  targets use active v-prefixed version. No old-cache sweep is performed implicitly.
+  Production old_dev_remove:true is rejected rather than silently ignored.
+- **Boundaries:** path lookup defaults still final/absolute in this intermediate
+  consumer slice. R-data naming/normalization, default switching and embedding
+  fallback remain separately pending. Cache-free operations remain supported.
+  Fresh renderer-tree validation is conservative, not a complete manifest; cached
+  analysis residue from retries has no M2 attempt/provenance guarantee.
+- **Publication:** external storage/Git happen after a successful local release;
+  later publication/end-hook failure preserves it and is reported distinctly.
+  No remote rollback or all-files sandbox guarantee is claimed.
+- **Tests prepared:** real Python success/failure/preview clear-event fixtures,
+  exact version/order/cache/final-byte assertions, YAML/environment/CLI precedence,
+  and invalid-layer rejection. Remote pinned-image checks are pending; actual
+  real-render embedding acceptance follows, not inferred from fake renderers.
+- **Ponytail full self-review:** reused per-command context, shared destination guards,
+  temporary directories and existing guarded recursive copy. No new dependencies,
+  process cwd mutation, generalized transaction framework or R package edits.
+
+Coordinate the site lifecycle Mermaid page before merge: this source sequence is
+now concrete, but remains unverified/unmerged until remote tests and review pass.
