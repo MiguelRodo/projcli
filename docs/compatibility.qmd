@@ -1450,3 +1450,7 @@ unchanged. Final amended-head checks remain required.
   launchers, temporary project preparation and restoration. No custom renderer YAML
   merge, dependencies, source rewriting or frontend shim. Exact remote checks and
   independent review remain required; this is not M1 completion.
+
+Initial remote embedding checks found an existing fake Rscript fixture with the
+old fixed argument count. Updated it to require the new embedding-policy argument
+and assert HTML receives embed while PDF/Word retain native policy.
