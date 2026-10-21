@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -263,6 +263,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#bounded-preview-managed-state-recovery" id="toc-bounded-preview-managed-state-recovery" class="nav-link" data-scroll-target="#bounded-preview-managed-state-recovery">Bounded preview managed-state recovery</a></li>
   <li><a href="#preview-binary-delivery" id="toc-preview-binary-delivery" class="nav-link" data-scroll-target="#preview-binary-delivery">Preview binary delivery</a></li>
   <li><a href="#versioned-machine-boundary" id="toc-versioned-machine-boundary" class="nav-link" data-scroll-target="#versioned-machine-boundary">Versioned machine boundary</a></li>
+  <li><a href="#captured-run-inputs-first-path-contract-slice" id="toc-captured-run-inputs-first-path-contract-slice" class="nav-link" data-scroll-target="#captured-run-inputs-first-path-contract-slice">Captured run inputs (first path-contract slice)</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -293,10 +294,12 @@ ul.task-list li input[type="checkbox"] {
 <li>Storage/publication retries must have an upload-only route without rerunning analysis or falsely recording a new analysis. Explicit-empty analysis supports hooks/publication, but full retry identity/transaction semantics are separate.</li>
 <li>The existing R package is entirely off limits in this effort. Direct R frontend integration is later work; no existing helper changes or parity claims follow from these Rust changes.</li>
 <li>Default script/document enumeration is shallow at the selected project root. Subdirectory targets require explicit selection or renderer project configuration.</li>
-<li>Scripts execute relative to the project root by default. Selecting a script in a subdirectory does not, by itself, select a different project or execution root.</li>
+<li>Native runner working-directory behavior is the default; provide an explicit project-root execution override. Rscript/Python inherit launch cwd, source() normally inherits caller cwd, and QMD/Rmd document execution has its own native defaults. Selecting a nested file does not redefine project identity.</li>
+<li>Resolve logical role targets from captured root/config/profiles/run version. Safe output/data roles use declared versioned cache; configured final destinations are separate. Auto path representation is caller-relative ordinarily and absolute in explicitly supplied render context; explicit absolute/relative bases override.</li>
+<li>Embedded HTML is the supported target. Default embedding only when effective settings are unspecified; preserve explicit/inherited false. Literal Markdown/ LaTeX retain native resource meaning. Linked portability is deferred.</li>
 <li>The resolved root is captured for the run. Path helpers, including a future frontend’s <code>projr_path_get()</code>, resolve against that root even if a renderer or user script changes its working directory.</li>
 <li>A supported Quarto project’s root must equal the proj root. Nested Quarto projects beneath that root are unsupported for now. Nested document files are distinct from nested Quarto projects.</li>
-<li>QMD rendering through projr, <code>quarto::quarto_render()</code>, and RStudio QMD Render must agree on evaluation directory and root-helper semantics. R Markdown Knit is a distinct entrypoint and must be verified separately. Shared project configuration and direct-entry root resolution are required; CLI-only flags or a parent process environment cannot establish this parity.</li>
+<li>QMD rendering through projr, <code>quarto::quarto_render()</code>, and RStudio QMD Render are a future frontend parity goal, outside the bounded Rust M1 completion gate. Evaluation-directory/root-helper parity is not currently established. R Markdown Knit is a distinct entrypoint and must be verified separately. Shared project configuration and direct-entry root resolution are required; CLI-only flags or a parent process environment cannot establish this parity.</li>
 <li>Direct rendering does not imply the build, version, commit or archive/export side effects of a proj-managed build.</li>
 <li>Renderer evaluation roots must use supported renderer controls. Setting only the parent process cwd is insufficient. Root identity and evaluation cwd remain separate concepts; document asset/reference resolution is not redefined here.</li>
 </ul>
@@ -305,14 +308,14 @@ ul.task-list li input[type="checkbox"] {
 <section id="proposals-and-open-decisions" class="level2">
 <h2 class="anchored" data-anchor-id="proposals-and-open-decisions">Proposals and open decisions</h2>
 <ul>
-<li>Apply the base filename compatibility rule consistently to profile/local files and define the effective profile-list source once for config and environment.</li>
+<li>Apply the base filename compatibility rule consistently to profile/local files. The effective proj profile-list source is now defined below; renderer-native profile settings are not silently rewritten.</li>
 <li>Evaluate Quarto <code>execute-dir</code> and R Markdown <code>knit_root_dir</code> / knitr <code>root.dir</code> for root-relative execution. Define the shared persistent configuration and direct-entry initialization before broad renderer changes; do not add nested Quarto project support or rely only on flags passed by proj.</li>
 <li>Frontend transport/bindings and remaining environment/YAML compatibility details must be explicit. Familiar projr directory defaults belong in init-generated configuration only; Rust’s <code>_raw</code> and synthesized <code>raw/data</code> runtime paths are not acceptable substitutes for undeclared directories.</li>
 </ul>
 </section>
 <section id="implementation-gaps-and-verification" class="level2">
 <h2 class="anchored" data-anchor-id="implementation-gaps-and-verification">Implementation gaps and verification</h2>
-<p>The core root finder implements nearest-recognized-ancestor discovery without a VERSION prerequisite. Its marker tests cover the retained projr patterns and deliberate Python/Julia/proj-config extensions and cwd fallback. Builds now require active configuration and typed validation rejects unsupported fields. Explicit directory mappings are enforced without runtime path defaults; full failure restoration remains open; historical passing fixtures do not demonstrate those new requirements. Individual scripts currently start in their parent directory. Captured-root stability is implemented for core CLI child queries after cwd changes, including independent simultaneous roots; direct R frontend/renderer parity remains unimplemented. Base-file aliases and first-wins profile merging use one merged typed configuration for validation and build script/hook selection. Profile/local filenames retain their existing <code>_projr-</code> form for now. Explicit empty script selection now skips analysis while preserving hooks and production publication; its tests cover production archive bytes and preview nonpublication without invoking real renderers.</p>
+<p>The core root finder implements nearest-recognized-ancestor discovery without a VERSION prerequisite. Its marker tests cover the retained projr patterns and deliberate Python/Julia/proj-config extensions and cwd fallback. Builds now require active configuration and typed validation rejects unsupported fields. Explicit directory mappings are enforced without runtime path defaults; full failure restoration remains open; historical passing fixtures do not demonstrate those new requirements. Individual scripts currently start at project root; changing to native runner defaults with an explicit override is pending. Captured-root stability is implemented for core CLI child queries after cwd changes, including independent simultaneous roots; direct R frontend/renderer parity remains unimplemented. Base-file aliases and first-wins profile merging use one merged typed configuration for validation and build script/hook selection. Profile/local filenames retain their existing <code>_projr-</code> form for now. Explicit empty script selection now skips analysis while preserving hooks and production publication; its tests cover production archive bytes and preview nonpublication without invoking real renderers.</p>
 <p>Verify nested projects, explicit selection, paths containing spaces, shallow default enumeration, explicit subdirectory scripts, changed cwd, and each supported renderer’s evaluation root. Compare the same nested QMD through projr, <code>quarto::quarto_render()</code>, and RStudio QMD Render; test R Markdown Knit separately. Reject a nested Quarto project clearly. Verify that direct rendering leaves proj-managed release/version/export state alone. Use tiny fixtures and remote CI where practical. Subprocess execution is not a security sandbox, and path hashes alone do not establish scientific correctness or a reproducible environment.</p>
 </section>
 <section id="future-r-distribution-and-tests" class="level2">
@@ -372,6 +375,11 @@ ul.task-list li input[type="checkbox"] {
 <section id="versioned-machine-boundary" class="level2">
 <h2 class="anchored" data-anchor-id="versioned-machine-boundary">Versioned machine boundary</h2>
 <p>Opt-in <code>--machine</code> emits protocol-v1 results/errors on stdout, with capability version negotiation independent of project discovery. Static error codes avoid reflecting credentials/config/argv. Queries return typed values; other existing commands reuse the CLI through a noninteractive worker whose logs use stderr. See <a href="./machine.html">machine interface</a> for supported shapes and limits. This is a transport boundary over existing anyhow errors, not a second domain-error overhaul.</p>
+</section>
+<section id="captured-run-inputs-first-path-contract-slice" class="level2">
+<h2 class="anchored" data-anchor-id="captured-run-inputs-first-path-contract-slice">Captured run inputs (first path-contract slice)</h2>
+<p>One effective profile list is selected before config/environment reads: CLI, nonempty PROJR_PROFILE, nonempty QUARTO_PROFILE fallback, then base/local build.profile default. Earlier profiles still win; local config is highest. A profile’s own build.profile does not redirect an already selected run. Native QUARTO_PROFILE rendering settings remain distinct; no R helper bridge follows. The private per-run PROJ_RUN_CONTEXT snapshot carries only root, effective profiles, validated final directory mappings, active version and mode. Child path/version queries consume it after cwd/YAML/VERSION changes; explicit other-project selection discards it. Missing/invalid context fails clearly rather than rediscovering a root.</p>
+<p>Preview retains an existing dev version, or uses dev1 from a release, without changing VERSION. Production uses the requested incremented release version from before hooks through rendering; success leaves dev1 of that release for subsequent development, and failure restores original bytes. Cache keys use v1.2.3-4 spelling; legacy version text APIs/files retain their accepted dotted representation. Final directory lookup remains unchanged in this slice; safe logical routing, render-context representation and native execution/embedding are subsequent work. Old-version renderer staging remains a known gap until the routing slice.</p>
 
 
 </section>

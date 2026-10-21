@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -278,6 +278,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#cli-package-preview-version" id="toc-cli-package-preview-version" class="nav-link" data-scroll-target="#cli-package-preview-version">CLI package preview version</a></li>
   <li><a href="#verified-preview-delivery-0.4.0-preview.1" id="toc-verified-preview-delivery-0.4.0-preview.1" class="nav-link" data-scroll-target="#verified-preview-delivery-0.4.0-preview.1">Verified preview delivery: 0.4.0-preview.1</a></li>
   <li><a href="#human-facing-pinned-preview-installation" id="toc-human-facing-pinned-preview-installation" class="nav-link" data-scroll-target="#human-facing-pinned-preview-installation">Human-facing pinned preview installation</a></li>
+  <li><a href="#captured-pathversion-inputs-first-approved-path-contract-slice" id="toc-captured-pathversion-inputs-first-approved-path-contract-slice" class="nav-link" data-scroll-target="#captured-pathversion-inputs-first-approved-path-contract-slice">Captured path/version inputs — first approved path-contract slice</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -593,6 +594,17 @@ ul.task-list li input[type="checkbox"] {
 <li><strong>Decision:</strong> pin both the release version and reviewed installer source; stable Latest remains <code>v0.3.0</code>. Linux x86-64 needs glibc 2.35+, Windows x86-64 instructions use PowerShell 7, and macOS/ARM assets are not supplied. Reuse mandatory installer SHA256 verification and a chosen user-local directory without administrator access or Rust compilation.</li>
 <li><strong>Verification boundary:</strong> inspected the actual Bash/PowerShell environment interfaces and reviewed source commit. This PR’s read-only docs CI extracts and executes the authored installer snippets on remote Linux/Windows, runs both complete Python examples through the downloaded Linux binary and PR code, and retains transcripts/generated pages. Its checks and independent review are merge gates; source wording alone is not execution evidence.</li>
 <li><strong>Ponytail full-mode review:</strong> reused the two existing installers, Quarto warning blocks and standard-library extraction/checks. Replaced redundant source compilation in docs CI with the actual binary install users follow; added no package manager, frontend dependency or installation abstraction. Disposable-copy warnings, bounded recovery, provenance and retry limits remain.</li>
+</ul>
+</section>
+<section id="captured-pathversion-inputs-first-approved-path-contract-slice" class="level2">
+<h2 class="anchored" data-anchor-id="captured-pathversion-inputs-first-approved-path-contract-slice">Captured path/version inputs — first approved path-contract slice</h2>
+<ul>
+<li><strong>Same/intended:</strong> pinned projr90be501 R/version.R107–207 forces a dev component for preview, and159–264 computes release run versions before execution. Rust now plans active/next versions before hooks: preview retains dev (or uses1), release runs incremented version and leaves dev1 after success. Failure/preview restores authoritative bytes. Cache-key formatting is v<major>.<minor>.<patch>-<dev>; existing dotted public/file formatting is retained as a documented representation difference, not a cache escape. Current fixed Rust schema does not port projr’s configurable version-format schema.</dev></patch></minor></major></li>
+<li><strong>Different, deliberate:</strong> R root rediscovery and bare VERSION I/O are confirmed defects (diagnostic39554636201). A private per-run snapshot pins root, effective profiles, final mappings and active version. Nested CLI queries no longer reload changed YAML/VERSION. No existing R helper consumes it; R/thesis remain untouched.</li>
+<li><strong>New selection rule:</strong> CLI &gt; PROJR_PROFILE &gt; QUARTO_PROFILE fallback &gt; base/local build.profile default selects once for proj config/environment. Earlier profiles and local precedence retained. Native renderer QUARTO_PROFILE remains separate.</li>
+<li><strong>Tests:</strong> new remote regressions cover changed cwd into another project, changed YAML/VERSION, external mappings, human/machine queries, explicit other project, profile priority, success/failure/preview and private snapshot lifetime. Cross-platform CI and independent review pending at preparation; no local build.</li>
+<li><strong>Remaining:</strong> configured final paths are still returned; safe routing, fragments, auto/relative presentation, explicit render context, native cwd and embedding fallback follow. Renderer staging still uses the old version in this slice. No complete M1/M2 claim or release/install follows from this PR alone.</li>
+<li><strong>Ponytail full review:</strong> reused NamedTempFile, per-command RunEnvironment and existing version/config types. One small bounded snapshot, no full config/env/ credential serialization, globals, wrapper, crawler or transaction framework. Parent-process concurrency regression remains required; independent review is separate from self-review. Diagnostic evidence: branch488adaf FINDINGS.md and actual embedded-image runs39554636201/39555352442/39556599001.</li>
 </ul>
 
 
