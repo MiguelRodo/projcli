@@ -109,13 +109,6 @@ pub fn present_resource_path(root: &Utf8Path, target: &Utf8Path, format: PathFor
 
 fn normalize(path: &Utf8Path) -> anyhow::Result<Utf8PathBuf> {
     let path = crate::path_safety::resolve_path(path.as_std_path(), false)?;
-    // resolve_path resolves normal existing components, but a drive root has none.
-    // Canonicalize existing roots too so Disk and VerbatimDisk use one namespace.
-    let path = match std::fs::symlink_metadata(&path) {
-        Ok(_) => std::fs::canonicalize(&path)?,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => path,
-        Err(error) => return Err(error.into()),
-    };
     Utf8PathBuf::from_path_buf(path).map_err(|_| anyhow::anyhow!("Resolved path must be UTF-8"))
 }
 

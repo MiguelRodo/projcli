@@ -1165,3 +1165,10 @@ contains both frozen safe-cache selection and explicit renderer descriptor. Exis
 root canonicalization also applies to existing UNC share roots; pure Windows UNC
 share identity/different-share checks supplement the real local drive-root test.
 No network share was mounted or accessed for tests. Integrated exact checks pending.
+
+Follow-up same-drive missing-leaf case exposed the shared resolver's root-only
+normalization gap. Canonicalize an existing filesystem root before appending absent
+components, respecting the same symlink/error policy as other existing components.
+Removed the representation-only redundant canonicalization. Windows fixture queries
+a nonexistent direct drive-root child without creating it; true cross-drive/share
+rejection remains tested. Exact integrated CI/re-review required.
