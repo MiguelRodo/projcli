@@ -55,8 +55,8 @@ fn inherited() -> anyhow::Result<Option<RunContext>> {
     let context: RunContext = serde_json::from_slice(&bytes).context("Invalid inherited run context")?;
     anyhow::ensure!(context.schema_version == 2, "Unsupported run-context schema");
     anyhow::ensure!(context.root.is_absolute() && context.root.is_dir(), "Invalid captured project root");
-    for (label, path) in &context.directories {
-        crate::path_safety::validate_directory_label(label)?;
+    crate::path_safety::validate_directory_labels(context.directories.keys().map(String::as_str))?;
+    for path in context.directories.values() {
         anyhow::ensure!(path.is_absolute(), "Captured directory paths must be absolute");
     }
     let order: std::collections::BTreeSet<_> = context.directory_order.iter().collect();

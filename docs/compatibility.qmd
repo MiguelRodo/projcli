@@ -1085,3 +1085,11 @@ the fixture's absolute /var system-temp alias before the intended hook. Canonica
 fixture-owned temp identities rather than weakening managed symlink guards, and
 required the expected exit17 witness so early validation cannot masquerade as a
 successful recovery test. Final exact-head CI remains the gate.
+
+Focused portability follow-up: label-set validation conservatively compares Unicode
+uppercase identities, rejecting output-Ä/output-ä pairs before queries or analysis
+can alias the same Windows safe leaf. Shared validation applies to config and
+captured snapshots. Single Unicode labels remain valid. Added a real Windows
+ordinary-absolute-cache regression with two roles targeting result.txt and preserved
+final sentinels, plus a pure shared-policy check. This is bounded case-alias
+rejection, not an exhaustive filesystem normalization model or Unicode ban.

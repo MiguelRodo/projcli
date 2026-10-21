@@ -4,7 +4,7 @@ use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs;
 
 /// Represents the complete structure of a `_proj.yml` configuration file.
@@ -345,7 +345,7 @@ impl ProjConfig {
     ) -> anyhow::Result<ValidatedConfig> {
         validate_clear_output(self.build.clear_output.as_deref())?;
         let mut resolved = HashMap::new();
-        let mut labels = HashSet::new();
+        crate::path_safety::validate_directory_labels(self.directories.keys().map(String::as_str))?;
 
         // 0. Validate Structural Constraints
         if let Some(dest) = &self.build.dest {
@@ -367,12 +367,8 @@ impl ProjConfig {
 
         // 1. Process explicit user configurations
         for (label, config) in &self.directories {
-            crate::path_safety::validate_directory_label(label)?;
             validate_ignore(&config.ignore)?;
             let lower_label = label.to_lowercase();
-            if !labels.insert(label.to_ascii_lowercase()) {
-                anyhow::bail!("Directory labels differ only by case: {label}");
-            }
 
             // Validate prefix rules
             if !lower_label.starts_with("cache")

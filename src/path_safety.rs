@@ -41,6 +41,16 @@ pub(crate) fn validate_directory_label(label: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Conservatively rejects portable case aliases without excluding Unicode labels.
+pub(crate) fn validate_directory_labels<'a>(labels: impl IntoIterator<Item = &'a str>) -> anyhow::Result<()> {
+    let mut identities = std::collections::HashSet::new();
+    for label in labels {
+        validate_directory_label(label)?;
+        anyhow::ensure!(identities.insert(label.to_uppercase()), "Directory labels collide under portable case comparison: {label}");
+    }
+    Ok(())
+}
+
 fn overlaps(left: &Path, right: &Path) -> bool {
     left.starts_with(right) || right.starts_with(left)
 }
@@ -168,4 +178,16 @@ pub(crate) fn validate_project_source_overlap(root: &Utf8Path, config: &crate::y
         }
     }
     Ok(())
+}
+
+
+#[cfg(test)]
+mod portable_label_tests {
+    use super::validate_directory_labels;
+    #[test]
+    fn unicode_case_pairs_are_rejected_but_single_unicode_labels_remain_valid() {
+        assert!(validate_directory_labels(["output-Ä", "output-ä"]).is_err());
+        assert!(validate_directory_labels(["output-Ä", "data-é"]).is_ok());
+        assert!(validate_directory_labels(["output-ä"]).is_ok());
+    }
 }

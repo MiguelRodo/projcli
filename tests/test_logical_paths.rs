@@ -213,3 +213,31 @@ fn implicit_project_sources_in_new_data_roles_fail_before_cleanup_and_renderer_l
         assert!(!root.join("cache").exists());assert!(!root.join(".gitignore").exists());
     }
 }
+
+
+#[cfg(windows)]
+#[test]
+fn unicode_case_alias_roles_cannot_write_the_same_file_under_an_ordinary_absolute_cache() {
+    let project=tempfile::tempdir().unwrap();let root=project.path();
+    let cache=root.join("cache");let cache_text=cache.to_string_lossy();
+    let ordinary=cache_text.strip_prefix(r"\\?\").unwrap_or(&cache_text);
+    fs::write(root.join("VERSION"),"v1.2.3").unwrap();
+    for folder in ["released-upper","released-lower"] {
+        fs::create_dir(root.join(folder)).unwrap();fs::write(root.join(folder).join("result.txt"),folder).unwrap();
+    }
+    fs::write(root.join("_proj.yml"),format!("directories:\n  cache:\n    path: {}\n  output-Ä:\n    path: released-upper\n  output-ä:\n    path: released-lower\ndev:\n  scripts: [analysis.py]\n",serde_json::to_string(ordinary).unwrap())).unwrap();
+    let script=format!(r#"import json,subprocess
+from pathlib import Path
+Path('analysis-ran').touch()
+for label in ['output-Ä','output-ä']:
+ value=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label',label,'--target','safe','result.txt'],text=True))
+ target=Path(value['result']['path']);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(label)
+"#,binary=serde_json::to_string(env!("CARGO_BIN_EXE_proj")).unwrap());
+    fs::write(root.join("analysis.py"),script).unwrap();
+    for label in ["output-Ä","output-ä"] {assert!(!query(root,label,"safe",&["result.txt"]).status.success());}
+    let output=Command::new(env!("CARGO_BIN_EXE_proj")).args(["build-dev","--non-interactive","--project"]).arg(root).current_dir(root)
+        .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
+    assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains("portable case comparison"));
+    assert!(!root.join("analysis-ran").exists());assert!(!cache.exists());
+    for folder in ["released-upper","released-lower"] {assert_eq!(fs::read_to_string(root.join(folder).join("result.txt")).unwrap(),folder);}
+}
