@@ -163,3 +163,8 @@ Before the next preview release, follow docs/release-candidate.qmd. Keep the
 published/installed version distinct from source changes; rerun exact integrated
 acceptance before the reviewed version/tag/assets/publication/WSL sequence.
 Unchanged Bookdown site embedding and other deferred limits must stay explicit.
+
+Embedding header defaults must retain every effective format choice and native
+order. Use guarded same-directory source replacement, preserving permissions and
+external hard-link bytes. Freeze relevant profile/directory/included metadata and
+reject changes before rendering; never write external metadata dependencies.

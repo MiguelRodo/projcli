@@ -1563,3 +1563,16 @@ output/archive preservation under none from successful document replacement.
 Require exact final/object bytes, expected manifest/index release and next-dev
 versions, corruption probes, immediate init directories and a failing Git-call
 witness. Record the project embedding preparation/input restrictions explicitly.
+
+Further PR162 review corrections: preserve all effective format choices/order,
+not only HTML candidates; retain inherited non-HTML options. Actual DOCX-first/
+HTML inheritance is compared with a native reference render and inspection.
+Use new-inode, same-directory managed replacement for temporary sources, with
+original permissions and immediate symlink/special-file checks; hard-linked
+external aliases stay byte-identical on success and renderer exit17. Capture
+renderer profile/directory/recursive literal metadata-files dependencies; reject
+post-preparation changes at launch. Recover captured internal metadata only;
+external files are observed, never rewritten. Added direct/included leading-script
+false regressions, actual late-alias rejection, and precise permissions/temp-cleanup
+witnesses. The prior 21-case matrix remains, now supplemented by two actual cases.
+No custom renderer metadata merge, dependency or R package change introduced.

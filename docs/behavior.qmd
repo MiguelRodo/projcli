@@ -434,3 +434,12 @@ Normalize legacy remote content labels too. Canonical _proj.yml rejects data;
 generic data-* labels are unsupported (use raw-* inputs or output-* outputs).
 Existing R helpers/packages remain untouched. Python/Julia outputs use ordinary
 mappings; inst is a project-relative fragment, not a special role.
+
+Embedding preparation preserves the complete native effective format list/order,
+including an inherited non-HTML default. Only eligible HTML options change.
+Prepared sources use guarded same-directory replacement with original permissions,
+so hard-linked external aliases retain their original bytes. Inherited renderer
+profile/directory/included metadata is captured and rechecked at launch; changes
+are rejected rather than silently masked by a prepared default. Internal captured
+metadata is recovered; external metadata is observed only and is never rewritten.
+Literal metadata-files paths are required for this bounded dependency capture.
