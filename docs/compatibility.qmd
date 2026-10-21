@@ -1588,3 +1588,8 @@ at preview.1 until tagging/draft verification/publication/public-byte verificati
 complete. Then update README/install/source links and public-download checks in a
 separate post-publication documentation change, so their actual asset fetches can
 pass. No public pins or version metadata changed in this correction.
+
+Preview.2 release preparation changes only the CLI package version/lock entry and
+release notes. Public README/install/check pins remain preview.1 until verified
+publication, followed by a separate checked documentation update. Do not tag,
+publish or install before reviewed source and exact remote gates are complete.
