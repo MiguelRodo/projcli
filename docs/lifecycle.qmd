@@ -332,3 +332,15 @@ a branch compiles.
 Keep the three-stage overview small. Put new detail in the relevant folded stage
 instead of expanding one unreadable graph. Render the site, exercise diagram export and verify
 the page links remotely; do not require local Quarto/R/Docker builds.
+
+
+## Failure followed by a smaller build
+
+The controlled order above is unchanged. Remote acceptance now couples the
+failure branch to a subsequent successful Git build: real HTML and PDF are
+rendered before a later document fails, previous final/native state is recovered,
+then a smaller selection is published and its committed bytes are checked.
+Retained failed scratch stays in cache; it must not enter the later commit.
+Earlier final docs are preserved on failure and replaced only on successful docs
+finalization. This is bounded recovery evidence, not a new M2 record or sealing
+boundary, and does not change the installed preview.2 binary.

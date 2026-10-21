@@ -1718,3 +1718,39 @@ the known project root as well as phase and OS cause. The unprivileged opening-s
 fixture asserts the phase/root pair explicitly; it does not claim deterministic
 mid-iteration I/O fault injection. No new helper or fault-injection framework.
 The amended exact head requires fresh remote gates and independent delta review.
+
+
+## Mixed-document failure followed by a smaller Git build
+
+- **Same runtime; new acceptance:** baseline Rust main
+  91179e0546e91d5025ad68fbcebf9cfd4662072c already stages/restores managed renderer
+  artifacts before publication. This slice adds the missing compound regression,
+  not a demonstrated production-code correction.
+- **Decision/scope:** run actual Quarto HTML and Typst PDF for individual documents
+  and project rendering; a later document verifies both artifacts then deliberately
+  fails. Check structured failure, unchanged HEAD/clean Git and exact prior managed
+  bytes. Select only one successful HTML document, commit that explicit config edit,
+  then let the CLI produce the release commit. Compare all committed docs bytes to
+  final/cache, reject failed report paths anywhere in the commit, preserve earlier
+  unselected native docs and retained failed scratch, and verify release/next-dev
+  versions. Prior final docs intentionally change only on successful finalization.
+- **Same/unverified vs projr:** existing R package is untouched. Earlier pinned
+  projr/thesis references remain the comparison baseline; no R runtime, Bookdown,
+  historical immediate-copy algorithm or frontend parity claim follows.
+- **Verification:** remote-only driver and downloadable JSON, committed-path list,
+  committed/final reports and failed scratch are added to the existing digest-pinned
+  unprivileged acceptance workflow. Exact-head execution and independent review
+  remain required; no local Rust/R/Quarto execution occurred.
+- **Ponytail full:** reuse the existing CLI, native renderers, local Git and pinned
+  acceptance job. Standard-library Python only; no production abstraction, mock
+  renderer, dependency, record DTO or speculative persistence added. Lifecycle
+  ordering is unchanged, so its existing diagram is retained with a coverage note.
+  Installed preview.2 stays unchanged; full M2 provenance/identity/sealing/storage
+  decisions and broader recovery/concurrency guarantees remain open.
+
+Independent review tightens the witness, without runtime changes: reject failed
+report prefixes in every relative path component, including nested companion
+assets, with exceptions only for the exact intended root QMD source files.
+Require retained scratch to remain a directory before byte comparison, even when
+empty. Three standard-library negative tests cover companion paths, precise source
+exceptions and missing empty scratch; rerun exact-head remote gates for this delta.
