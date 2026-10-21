@@ -144,3 +144,7 @@ Individual R Markdown uses self_contained only when unspecified. Preserve explic
 false, native literal resource semantics and exact source/config restoration.
 Bookdown site rendering retains its native policy; do not claim that project
 driver has the new embedding fallback or that nonembedded relocation is supported.
+
+The remote combined M1 driver is tests/acceptance/m1_contract.py. Inspect its
+JSON and downloadable CSV/HTML artifacts, and rerun on the final reviewed combined
+source tree before release; a passing stacked preparation is not M1 completion.

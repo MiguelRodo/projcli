@@ -1454,3 +1454,18 @@ unchanged. Final amended-head checks remain required.
 Initial remote embedding checks found an existing fake Rscript fixture with the
 old fixed argument count. Updated it to require the new embedding-policy argument
 and assert HTML receives embed while PDF/Word retain native policy.
+
+## Combined M1 acceptance preparation
+
+Remote-only driver covers manual configured/no-init and actual local directories
+init, preview/production, ordered Python/R/report steps, inspectable computed CSV
+and embedded HTML, deliberate structured R failures, optional Git, exact prior
+final-output/archive preservation and actual local CAS publication on success.
+Upload CSV/report witnesses alongside JSON evidence. Reuses the path acceptance
+PNG/R adapters and existing pinned image. No local tests or helper changes.
+
+This preparation is stacked on the embedding slice and must run again after both
+reviewed R-data/embedding source changes are integrated. Native Bookdown site
+embedding is still a recorded gap. No release, install or M1 completion claim.
+Ponytail full: one deterministic eight-case driver, existing workflow/artifact
+mechanism; no new dependency, harness or product configuration.
