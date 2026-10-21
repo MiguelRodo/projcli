@@ -818,6 +818,43 @@ pub fn yml_get() -> String {
     "projr yml content".to_string()
 }
 
+fn normalize_r_data_layer(value: &mut Value, file: &Utf8Path) -> anyhow::Result<()> {
+    let legacy = file.file_name().is_some_and(|name| name == "_projr.yml" || (name.starts_with("_projr-") && name.ends_with(".yml")));
+    if let Some(directories) = value.get_mut("directories").and_then(Value::as_object_mut) {
+        let aliases: Vec<_> = directories.keys().filter(|label| label.eq_ignore_ascii_case("data") || label.eq_ignore_ascii_case("output-r-data")).cloned().collect();
+        anyhow::ensure!(aliases.len() <= 1, "Conflicting data/output-r-data declarations in {file}");
+        if let Some(label) = aliases.first() {
+            anyhow::ensure!(legacy || !label.eq_ignore_ascii_case("data"), "Use output-r-data in _proj.yml; data is an R-package alias only in legacy _projr files");
+            let mut directory = directories.get(label).unwrap().as_object().context("output-r-data declaration must be a mapping")?.clone();
+            if let Some(path) = directory.get("path") {
+                let path = path.as_str().context("output-r-data path must be a string when present")?;
+                let root = file.parent().context("Configuration has no project root")?;
+                anyhow::ensure!(crate::path_safety::resolve_path(make_absolute(root, Utf8Path::new(path)).as_std_path(), true)?
+                    == crate::path_safety::resolve_path(root.join("data").as_std_path(), true)?,
+                    "output-r-data has fixed final destination <project>/data in {file}");
+            }
+            directory.insert("path".to_owned(), Value::String("data".to_owned()));
+            let original = std::mem::take(directories);
+            for (key, entry) in original {
+                if &key == label { directories.insert("output-r-data".to_owned(), Value::Object(directory.clone())); }
+                else { directories.insert(key, entry); }
+            }
+        }
+    }
+    if legacy {
+        if let Some(remotes) = value.get_mut("remotes").and_then(|value| value.get_mut("local")).and_then(Value::as_object_mut) {
+            for remote in remotes.values_mut() {
+                if let Some(content) = remote.get_mut("content").and_then(Value::as_array_mut) {
+                    for label in content {
+                        if label.as_str().is_some_and(|label| label.eq_ignore_ascii_case("data")) { *label = Value::String("output-r-data".to_owned()); }
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -894,42 +931,4 @@ params:
         let result = yml_read_from(camino::Utf8Path::from_path(root_path).unwrap(), false);
         assert!(result.is_err());
     }
-}
-
-
-fn normalize_r_data_layer(value: &mut Value, file: &Utf8Path) -> anyhow::Result<()> {
-    let legacy = file.file_name().is_some_and(|name| name == "_projr.yml" || (name.starts_with("_projr-") && name.ends_with(".yml")));
-    if let Some(directories) = value.get_mut("directories").and_then(Value::as_object_mut) {
-        let aliases: Vec<_> = directories.keys().filter(|label| label.eq_ignore_ascii_case("data") || label.eq_ignore_ascii_case("output-r-data")).cloned().collect();
-        anyhow::ensure!(aliases.len() <= 1, "Conflicting data/output-r-data declarations in {file}");
-        if let Some(label) = aliases.first() {
-            anyhow::ensure!(legacy || !label.eq_ignore_ascii_case("data"), "Use output-r-data in _proj.yml; data is an R-package alias only in legacy _projr files");
-            let mut directory = directories.get(label).unwrap().as_object().context("output-r-data declaration must be a mapping")?.clone();
-            if let Some(path) = directory.get("path") {
-                let path = path.as_str().context("output-r-data path must be a string when present")?;
-                let root = file.parent().context("Configuration has no project root")?;
-                anyhow::ensure!(crate::path_safety::resolve_path(make_absolute(root, Utf8Path::new(path)).as_std_path(), true)?
-                    == crate::path_safety::resolve_path(root.join("data").as_std_path(), true)?,
-                    "output-r-data has fixed final destination <project>/data in {file}");
-            }
-            directory.insert("path".to_owned(), Value::String("data".to_owned()));
-            let original = std::mem::take(directories);
-            for (key, entry) in original {
-                if &key == label { directories.insert("output-r-data".to_owned(), Value::Object(directory.clone())); }
-                else { directories.insert(key, entry); }
-            }
-        }
-    }
-    if legacy {
-        if let Some(remotes) = value.get_mut("remotes").and_then(|value| value.get_mut("local")).and_then(Value::as_object_mut) {
-            for remote in remotes.values_mut() {
-                if let Some(content) = remote.get_mut("content").and_then(Value::as_array_mut) {
-                    for label in content {
-                        if label.as_str().is_some_and(|label| label.eq_ignore_ascii_case("data")) { *label = Value::String("output-r-data".to_owned()); }
-                    }
-                }
-            }
-        }
-    }
-    Ok(())
 }
