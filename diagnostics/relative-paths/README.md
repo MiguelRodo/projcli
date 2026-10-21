@@ -56,3 +56,11 @@ Uses canonical fixture version v1.2.3-4. The earlier v1.2.3.4-vs-v1.2.3-4 cache
 expectation mismatch is version spelling, not a cache escape. The adapter cases
 do not establish linked-bundle, PDF or GUI behavior.
 knitr documents rel_path/error at https://pkg.yihui.org/knitr/manual .
+
+
+Literal-only follow-up (`literal_only=true`) reuses the completed nested-relative
+image evidence and adds root documents, leading-slash project/standalone comparisons
+and four actual released-CLI embedded builds. See FINDINGS.md and run39556599001.
+No source URL rewriting; source bytes checked unchanged. PDF only when an existing
+engine is available; no TeX installation. Linked observations do not expand the
+supported scope or authorize repair.

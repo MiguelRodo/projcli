@@ -288,3 +288,129 @@ conversion; two pure concerns (target, presentation), one explicit context
 descriptor. Deferred linked-bundle repair, new R bindings, renderer auto-detection
 heuristics and additional diagnostics. Proposal requires design review before
 production changes or a new binary.
+
+
+## Literal Markdown and raw LaTeX — native semantics, no source rewrite
+
+[Focused remote run39556599001](https://github.com/MiguelRodo/projcli/actions/runs/39556599001),
+tested harness `ca76dba`, tool versions recorded in literal-summary.json.
+This adds root documents, Quarto leading-slash comparisons and four actual
+released-CLI builds; prior nested document-relative cases are reused from run
+39554636201 rather than re-executed. All fixtures are disposable; no Git action
+or storage publication was configured. A successful workflow means evidence is
+complete, not that every author URL is valid or portable.
+
+For this fixture layout, ordinary Markdown should be authored relative to the
+document, independently of R/Python/Quarto code execution cwd:
+
+| Document | Literal Markdown |
+|---|---|
+| root/report.qmd or report.Rmd | `![image](_raw/images/sentinel.png)` |
+| root/analysis/report.qmd or report.Rmd | `![image](../_raw/images/sentinel.png)` |
+
+The reused nested cases measured the literal Markdown sentinel separately from
+code-generated figures: explicit embedded HTML retained exact image bytes under
+both native and root execution in Rmd, standalone Quarto and Quarto project.
+For linked HTML, copying only HTML+stem assets lost sibling raw-image references;
+moving the complete Quarto project output tree retained that literal image under
+both execution modes. These linked observations are not a new repair requirement.
+
+### Additional executed cases
+
+Counts: {"cases": 22, "render_process_failures": 0, "source_changed": [], "successful_render_missing_html": []}.
+
+| Case | Render exit | Source unchanged | HTML+stem/captured published bundle: sentinel portable | Whole Quarto output: sentinel portable |
+|---|---|---|---|---|
+| literal-rmarkdown-root-relative-native-embedded | 0 | True | yes | not produced |
+| literal-rmarkdown-root-relative-native-linked | 0 | True | no | not produced |
+| literal-quarto-document-root-relative-native-embedded | 0 | True | yes | not produced |
+| literal-quarto-document-root-relative-native-linked | 0 | True | no | not produced |
+| literal-quarto-project-root-relative-native-embedded | 0 | True | yes | yes |
+| literal-quarto-project-root-relative-native-linked | 0 | True | no | yes |
+| literal-quarto-document-root-leading-slash-native-embedded | 0 | True | yes | not produced |
+| literal-quarto-document-root-leading-slash-native-linked | 0 | True | no | not produced |
+| literal-quarto-document-nested-leading-slash-native-embedded | 0 | True | no | not produced |
+| literal-quarto-document-nested-leading-slash-native-linked | 0 | True | no | not produced |
+| literal-quarto-document-nested-leading-slash-root-embedded | 0 | True | no | not produced |
+| literal-quarto-document-nested-leading-slash-root-linked | 0 | True | no | not produced |
+| literal-quarto-project-root-leading-slash-native-embedded | 0 | True | yes | yes |
+| literal-quarto-project-root-leading-slash-native-linked | 0 | True | no | yes |
+| literal-quarto-project-nested-leading-slash-native-embedded | 0 | True | yes | yes |
+| literal-quarto-project-nested-leading-slash-native-linked | 0 | True | no | yes |
+| literal-quarto-project-nested-leading-slash-root-embedded | 0 | True | yes | yes |
+| literal-quarto-project-nested-leading-slash-root-linked | 0 | True | no | yes |
+| literal-released-cli-Rmd-root-embedded | 0 | True | yes | not produced |
+| literal-released-cli-Rmd-nested-embedded | 0 | True | yes | not produced |
+| literal-released-cli-qmd-root-embedded | 0 | True | yes | not produced |
+| literal-released-cli-qmd-nested-embedded | 0 | True | yes | not produced |
+
+PDF availability/execution: {"engine": null, "reason": "No preinstalled TeX engine; no large installation attempted", "tested": false}.
+
+
+Measured interpretation: all four released-CLI root/nested Rmd/QMD embedded
+builds succeeded, and their published artifacts retained the exact image bytes
+after source/cache became unavailable. All22 added renderer processes returned0
+and all source bytes were unchanged; some leading-slash references were still
+broken, so process success alone is insufficient.
+
+In Quarto1.10.19, project `/_raw/...` worked for root and nested documents under
+native/root execution. Standalone root `/_raw/...` also happened to work, but
+standalone nested documents emitted `./_raw/...` and failed under both cwd modes.
+It did not discover the surrounding proj root. Do not claim slash shorthand is
+universally rejected outside a project or universally resolves proj root; use
+the native project context explicitly and prefer document-relative markup for
+standalone portability. Native linked Quarto whole-tree copies retained the
+sentinel; minimal copies did not. Linked repair remains deferred.
+
+### Intended projcli rule
+
+Preserve native document-resource semantics for authored Markdown. Render at the
+original source anchor or preserve a faithful source/resource layout while using
+supported renderer controls to direct generated output into cache. Do not rebase
+literal URLs to proj root, rewrite user markup, crawl and repair arbitrary links,
+or silently retry a failed document-relative reference against root. A code
+execution-directory toggle changes code cwd, not the author's Markdown base.
+
+Quarto project `/...` shorthand is native project syntax only where the actual
+renderer supports it; the active Quarto project root must equal proj root. Do not
+invent that interpretation for standalone documents, Rmd, generic filesystem
+paths, HTML server-root URLs or raw TeX. The version-specific measurements above
+show actual behavior and must not be promoted into a cross-renderer guarantee.
+
+Generated proj paths are different: resolve the logical target from captured
+config/root/profile/run version, then choose filesystem representation as proposed
+above. A known rendering adapter can pass an absolute image to normal
+include_graphics. That does not modify literal source URLs elsewhere in the file.
+
+Embedded output consumes the image during the build, so validate actual payload
+after controlled promotion with source/cache unavailable. Explicit false remains
+respected; linked output can retain dependencies and may break after relocation
+in this early scope. No new linked-bundle repair or URL rewriting is authorized.
+The literal tests use explicit true/false; they do not implement the proposed
+unspecified->true fallback in production.
+
+### Raw LaTeX boundaries
+
+Raw `\includegraphics{...}` is a TeX/compiler instruction, with native compiler
+cwd, generated .tex location and graphics/search-path configuration. It is not
+an ordinary Pandoc Image node to which projcli should apply project-root lookup
+or Markdown URL rewriting. A leading slash is not automatically Quarto's Markdown
+project shorthand inside raw TeX. Preserve native behavior; verify the actual PDF
+toolchain before promising a relative-base rule for a particular entrypoint.
+
+The [Pandoc raw-TeX documentation](https://pandoc.org/MANUAL.html#extension-raw_tex)
+says TeX is passed through to applicable writers and inline LaTeX is ignored by
+most other output formats. Raw LaTeX graphics therefore are not a universal HTML
+image mechanism; use ordinary Markdown images for multi-format documents. A
+successful HTML render containing raw TeX alone would not establish image inclusion.
+No large TeX installation was attempted. PDF image payload verification, GUI,
+Windows/macOS real rendering and direct quarto R API parity remain untested unless
+the explicit execution record above states otherwise (a PDF header alone is not
+image-payload proof).
+
+Ponytail full review: reused completed nested evidence and the existing fixture,
+HTTP/hash inspector, native tools and released checksum-pinned binary. Added no
+production parser, crawler, renderer override, R wrapper or bundle-repair feature.
+Original source bytes are checked in every added case; prod Rust/R/thesis remain
+unchanged. The diagnostic workflow/branch is not intended to merge as a replacement
+for the production test suite.
