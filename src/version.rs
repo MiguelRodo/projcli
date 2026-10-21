@@ -185,9 +185,9 @@ pub fn version_set_at(root: &Utf8Path, version_str: &str) -> anyhow::Result<()> 
         .with_context(|| format!("Could not parse version: {}", version_str))?;
 
     let version_file_path = root.join("VERSION");
-    let content = format!("Version: {}", version.to_string(true));
+    let content = version_file_content(&version);
 
-    fs::write(version_file_path, content).context("Failed to write version to file")?;
+    crate::fs_utils::write_managed_file(version_file_path, content).context("Failed to write version to file")?;
     Ok(())
 }
 
@@ -247,4 +247,8 @@ mod tests {
         assert_eq!(v2.to_string(true), "v1.2.3");
         assert_eq!(v2.to_string(false), "1.2.3");
     }
+}
+
+pub(crate) fn version_file_content(version: &ProjVersion) -> String {
+    format!("Version: {}", version.to_string(true))
 }

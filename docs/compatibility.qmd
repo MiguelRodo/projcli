@@ -1343,3 +1343,15 @@ rmarkdown2.32, knitr1.52, Python3.12.3. Complete Linux regressions also passed.
 These use explicit embedding; default fallback, R/IDE parity, PDF/other-OS renders
 and nonembedded portability are not claimed by this run. Main-base integration
 keeps executable/test/Cargo blobs identical; final exact-head checks/review gate merge.
+
+
+PR159 review amendments freeze selected renderer paths and prepared project
+metadata, revalidate immediately before each renderer, isolate its native
+artifacts at that boundary, and collect only the frozen outputs. Controlled
+VERSION, ignore and renderer-metadata writes share immediate path revalidation;
+promotion rejects links and special files. Notebook invocation retains native
+rmarkdown intermediate naming. An exact per-worktree Git record permits only
+the framework-created unstaged next-development VERSION change at the same
+committed HEAD; other dirty state still fails. Added remote regressions and real
+notebook acceptance await the amended-head CI and independent re-review. These
+checks do not establish concurrent-writer or power-loss atomicity.

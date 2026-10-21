@@ -143,6 +143,27 @@ knitr::include_graphics(image)
             'original_source_hashes_preserved': True, 'html_checks': checks}
 
 
+def notebook_preservation(binary: Path, container: Path) -> dict:
+    root = container / 'notebook-preservation'
+    (root / 'analysis/report.nb_files').mkdir(parents=True)
+    (root / 'analysis/report_files').mkdir()
+    (root / 'analysis/report.nb_files/sentinel').write_bytes(b'preexisting notebook assets')
+    (root / 'analysis/report_files/sentinel').write_bytes(b'preexisting ordinary assets')
+    (root / 'analysis/report.nb.html').write_bytes(b'preexisting notebook html')
+    (root / 'VERSION').write_bytes(b'v1.2.3-4\n')
+    (root / '_proj.yml').write_text('directories:\n  cache: {path: cache}\n  docs: {path: published}\nbuild:\n  scripts: [analysis/report.Rmd]\n  git: false\n')
+    (root / 'analysis/report.Rmd').write_text('---\noutput: html_notebook\n---\n\n```{r}\n1 + 1\n```\n')
+    result = subprocess.run([str(binary), 'build-dev', '--non-interactive', '--project', str(root)], cwd=root, capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert (root / 'analysis/report.nb_files/sentinel').read_bytes() == b'preexisting notebook assets'
+    assert (root / 'analysis/report_files/sentinel').read_bytes() == b'preexisting ordinary assets'
+    assert (root / 'analysis/report.nb.html').read_bytes() == b'preexisting notebook html'
+    cached = root / 'cache/projr/v1.2.3-4/docs/report.nb.html'
+    assert cached.is_file() and cached.stat().st_size > 0
+    return {'case': 'real-html-notebook-preservation', 'exit_code': result.returncode,
+            'native_notebook_and_ordinary_asset_sentinels_preserved': True, 'fresh_cached_notebook': True}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('binary', type=Path)
@@ -159,6 +180,7 @@ def main() -> None:
         with tempfile.TemporaryDirectory(prefix='projcli-actual-acceptance-') as directory:
             for name, mode, failure, nested in [('preview-root', 'build-dev', None, False), ('preview-nested', 'build-dev', None, True), ('release-nested', 'build', None, True), ('failing-r', 'build-dev', 'r', True), ('failing-python', 'build-dev', 'python', True)]:
                 evidence['cases'].append(run_case(binary, Path(directory), name, mode, failure, nested))
+            evidence['cases'].append(notebook_preservation(binary, Path(directory)))
         evidence['complete'] = True
     except Exception as error:
         evidence['complete'] = False

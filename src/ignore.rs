@@ -138,7 +138,7 @@ fn update_ignore_file(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Re
     let end_marker = "# --- END PROJ MANAGED ---";
 
     let content_lines: Vec<String> = if path.exists() {
-        fs::read_to_string(path)?
+        crate::fs_utils::read_managed_text(path)?
             .lines()
             .map(|s| s.to_string())
             .collect()
@@ -184,14 +184,14 @@ fn update_ignore_file(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Re
 
     // Only write if the content actually changed
     if path.exists() {
-        if let Ok(existing_content) = fs::read_to_string(path) {
+        if let Ok(existing_content) = crate::fs_utils::read_managed_text(path) {
             if existing_content == final_content {
                 return Ok(());
             }
         }
     }
 
-    fs::write(path, final_content)?;
+    crate::fs_utils::write_managed_file(path, final_content)?;
     Ok(())
 }
 
@@ -359,7 +359,7 @@ fn append_manual_ignores(path: &camino::Utf8Path, ignores: &[String]) -> anyhow:
     let start_marker = "# --- PROJ MANAGED ---";
 
     let content_lines: Vec<String> = if path.exists() {
-        fs::read_to_string(path)?
+        crate::fs_utils::read_managed_text(path)?
             .lines()
             .map(|s| s.to_string())
             .collect()
@@ -424,7 +424,7 @@ fn append_manual_ignores(path: &camino::Utf8Path, ignores: &[String]) -> anyhow:
         final_content.push('\n');
     }
 
-    fs::write(path, final_content)?;
+    crate::fs_utils::write_managed_file(path, final_content)?;
     Ok(())
 }
 
@@ -441,7 +441,7 @@ fn append_unignores(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Resu
     let end_marker = "# --- END PROJ MANAGED ---";
 
     let content_lines: Vec<String> = if path.exists() {
-        fs::read_to_string(path)?
+        crate::fs_utils::read_managed_text(path)?
             .lines()
             .map(|s| s.to_string())
             .collect()
@@ -513,7 +513,7 @@ fn append_unignores(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Resu
         final_content.push('\n');
     }
 
-    fs::write(path, final_content)?;
+    crate::fs_utils::write_managed_file(path, final_content)?;
     Ok(())
 }
 
