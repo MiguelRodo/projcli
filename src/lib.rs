@@ -35,3 +35,6 @@ pub(crate) mod run_environment;
 
 pub mod run_context;
 pub use run_context::{configured_path_from, run_version_from, RUN_CONTEXT_ENV};
+
+pub mod paths;
+pub use paths::resource_path_from;

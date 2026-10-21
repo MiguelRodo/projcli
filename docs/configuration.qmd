@@ -7,6 +7,7 @@ The `_proj.yml` file dictates the structural map of your project. It configures 
 Custom directory labels are strictly validated against a set of foundational prefixes:
 - `cache`
 - `raw`
+- `data`
 - `output`
 - `docs`
 
@@ -15,7 +16,7 @@ These prefixes are **case-insensitive**. Any label defined in the configuration 
 ## Explicit paths and local initialization
 
 Every declared directory needs a nonempty `path`. Runtime does not insert missing
-cache/raw/output/docs mappings or synthesize subpaths for undeclared labels.
+cache/raw/output/data/docs mappings or synthesize subpaths for undeclared labels.
 For example, declaring `raw-data: {path: _raw_data}` makes `raw-data` available;
 it does not create an undeclared `raw` or `raw-data-extra` resource.
 ASCII case is ignored and case-only duplicate labels are rejected.
@@ -31,6 +32,31 @@ Production state and project-render staging require a declared `cache` directory
 Framework version/staging children are derived inside that declared cache; this
 is distinct from inventing undeclared resource labels. Storage `content` labels
 must be declared and relative storage paths use the captured project root.
+
+## Selecting the safe cache
+
+Each cache-class directory may include boolean `safe`. One explicit `safe: true`
+selects that cache; otherwise an eligible exact `cache` label wins, then the first
+eligible cache in merged declaration order. `safe: false` excludes a candidate.
+Profile/local overrides retain existing declaration positions. For example:
+
+```yaml
+directories:
+  cache:
+    path: _tmp
+  cache-analysis:
+    path: _analysis_cache
+    safe: true
+```
+
+This selects `_analysis_cache` for explicit safe logical output lookup. Multiple
+true selections, non-boolean values (including null), selection flags on non-cache
+roles, and all declared cache candidates excluded are validation errors. Each
+layer's explicit values are checked before merging; null cannot inherit a previous
+boolean. Cache-free queries and operations that do not consume a cache remain
+valid. The chosen safe cache is frozen in child run context. Existing cleanup and
+project-render consumers still require literal `cache` in this transitional slice;
+their integration follows separately before the safe default is enabled.
 
 ## Strict Validation Error Behaviors
 

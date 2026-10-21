@@ -92,6 +92,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     crate::yml::require_active_configuration_for_profiles(project_root, &crate::profile::parse_active_profiles(selected_profile))?;
     let combined = crate::yml::get_combined_yml(Some(selected_profile), project_root)
         .context("Failed to read project configuration")?;
+    let directory_order = crate::run_context::directory_order(&combined);
     let project_config: ProjConfig = serde_json::from_value(combined)
         .context("Failed to deserialize combined configuration")?;
     let config = project_config.validate_and_resolve(project_root, is_dev)?;
@@ -242,7 +243,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     }
     let current_version = original_version.to_string(false);
     let (initial_version, next_version) = crate::run_context::version_plan(original_version, mode)?;
-    let run_context = crate::run_context::ContextFile::capture(project_root, &config, profiles, initial_version.clone(), is_dev)?;
+    let run_context = crate::run_context::ContextFile::capture(project_root, &config, profiles, directory_order, initial_version.clone(), is_dev)?;
     environment.set(crate::RUN_CONTEXT_ENV, run_context.path().as_os_str());
     // Recovery removes/replaces managed destinations too, so preview needs the
     // same root/overlap/link guards even though it never performs release cleanup.
@@ -290,8 +291,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
         if entry.file_type()?.is_file() { managed.push(entry.path()); }
     }
     for (label, _) in &config.directories {
-        let lower = label.to_ascii_lowercase();
-        if lower.starts_with("output") || lower.starts_with("docs") {
+        if crate::paths::is_managed_output(label) {
             managed.push(config.get_path(project_root, label)?.into_std_path_buf());
         }
     }
@@ -342,10 +342,10 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
             }
         }
     }
-    let recovery_cache = if config.directories.keys().any(|label| label.eq_ignore_ascii_case("cache")) {
-        Some(config.get_path(project_root, "cache")?)
-    } else { None };
-    let backup = crate::build_state::BuildState::capture(recovery_cache.as_ref().map(|path| path.as_std_path()), &managed)?;
+    let recovery_caches = config.directories.keys().filter(|label| label.to_ascii_lowercase().starts_with("cache"))
+        .map(|label| config.get_path(project_root, label).map(|path| path.into_std_path_buf()))
+        .collect::<anyhow::Result<Vec<_>>>()?;
+    let backup = crate::build_state::BuildState::capture(&recovery_caches, &managed)?;
     let mut engine_originals = Vec::new();
     for (active, name) in [(quarto_exists, "_quarto.yml"), (bookdown_exists, "_bookdown.yml")] {
         if active {

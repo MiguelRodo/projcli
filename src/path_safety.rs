@@ -34,8 +34,19 @@ pub(crate) fn resolve_path(path: &Path, reject_symlinks: bool) -> anyhow::Result
 
 /// Rejects labels that could escape a derived cache directory.
 pub(crate) fn validate_directory_label(label: &str) -> anyhow::Result<()> {
-    if label.contains('/') || label.contains('\\') {
-        anyhow::bail!("Directory label must not contain path separators: {label}");
+    if label.is_empty() || label == "." || label == ".." || label.contains('/') || label.contains('\\')
+        || label.contains(':') || label.ends_with('.') || label.ends_with(' ') || label.chars().any(char::is_control) {
+        anyhow::bail!("Directory label must be a nonempty portable name without separators or traversal: {label}");
+    }
+    Ok(())
+}
+
+/// Conservatively rejects portable case aliases without excluding Unicode labels.
+pub(crate) fn validate_directory_labels<'a>(labels: impl IntoIterator<Item = &'a str>) -> anyhow::Result<()> {
+    let mut identities = std::collections::HashSet::new();
+    for label in labels {
+        validate_directory_label(label)?;
+        anyhow::ensure!(identities.insert(label.to_uppercase()), "Directory labels collide under portable case comparison: {label}");
     }
     Ok(())
 }
@@ -55,7 +66,7 @@ pub(crate) fn validate_build_paths(root: &Utf8Path, config: &crate::yml::Validat
     for (label, directory) in &config.directories {
         validate_directory_label(label)?;
         let lower = label.to_lowercase();
-        let writable = lower.starts_with("cache") || lower.starts_with("output") || lower.starts_with("docs");
+        let writable = lower.starts_with("cache") || crate::paths::is_managed_output(label);
         let path = if directory.path.is_absolute() { directory.path.clone() } else { root.join(&directory.path) };
         let identity = resolve_path(path.as_std_path(), writable)?;
         if writable {
@@ -120,7 +131,7 @@ pub(crate) fn validate_cleanup_paths(root: &Utf8Path, config: &crate::yml::Valid
     resolve_path(cache.join("projr").join(version).as_std_path(), true)?;
     resolve_path(cache.join("projr").join(version).join("docs").as_std_path(), true)?;
     for label in config.directories.keys() {
-        if label.to_lowercase().starts_with("output") || label == "data" {
+        if crate::paths::is_output_or_data(label) {
             resolve_path(cache.join("projr").join(version).join(label).as_std_path(), true)?;
         }
     }
@@ -149,7 +160,7 @@ pub(crate) fn validate_project_source_overlap(root: &Utf8Path, config: &crate::y
     let mut pending = Vec::new();
     for label in config.directories.keys() {
         let lower = label.to_lowercase();
-        if lower.starts_with("cache") || lower.starts_with("docs") || lower.starts_with("output") {
+        if lower.starts_with("cache") || crate::paths::is_managed_output(label) {
             let path = config.get_path(root, label)?;
             if path.is_dir() { pending.push(path.into_std_path_buf()); }
         }
@@ -167,4 +178,16 @@ pub(crate) fn validate_project_source_overlap(root: &Utf8Path, config: &crate::y
         }
     }
     Ok(())
+}
+
+
+#[cfg(test)]
+mod portable_label_tests {
+    use super::validate_directory_labels;
+    #[test]
+    fn unicode_case_pairs_are_rejected_but_single_unicode_labels_remain_valid() {
+        assert!(validate_directory_labels(["output-Ä", "output-ä"]).is_err());
+        assert!(validate_directory_labels(["output-Ä", "data-é"]).is_ok());
+        assert!(validate_directory_labels(["output-ä"]).is_ok());
+    }
 }

@@ -138,6 +138,12 @@ pub enum PathCommands {
         /// The label of the directory to get
         #[arg(long)]
         label: String,
+        /// Safe versioned cache target or configured final mapping.
+        #[arg(long, default_value = "final", value_parser = ["safe", "final"])]
+        target: String,
+        /// Relative file/subdirectory fragments appended to the selected role.
+        #[arg(value_name = "PART")]
+        parts: Vec<camino::Utf8PathBuf>,
     },
 }
 
@@ -260,8 +266,8 @@ fn main() {
             }
         },
         Commands::Path { command } => match command {
-            PathCommands::Get { label } => {
-                match proj::configured_path_from(&root, label) {
+            PathCommands::Get { label, target, parts } => {
+                match proj::resource_path_from(&root, label, parts, target == "safe") {
                     Ok(path) => println!("{}", path),
                     Err(error) => fail(format_args!("Error getting path: {error:#}")),
                 }

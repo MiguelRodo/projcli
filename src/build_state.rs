@@ -9,13 +9,13 @@ pub(crate) struct BuildState {
 }
 
 impl BuildState {
-    pub(crate) fn capture(cache: Option<&Path>, paths: &[PathBuf]) -> anyhow::Result<Self> {
+    pub(crate) fn capture(caches: &[PathBuf], paths: &[PathBuf]) -> anyhow::Result<Self> {
         // Disposable project cache is not a safe location for recovery bytes.
         let system_temp = fs::canonicalize(std::env::temp_dir()).context("Cannot resolve system temporary directory")?;
         let backup = tempfile::Builder::new().prefix("proj-build-recovery-").tempdir_in(system_temp)?;
         let recovery = fs::canonicalize(backup.path()).context("Cannot resolve private recovery storage")?;
-        let cache = cache.map(|path| crate::path_safety::resolve_path(path, true)).transpose()?;
-        if let Some(cache) = &cache {
+        let caches = caches.iter().map(|path| crate::path_safety::resolve_path(path, true)).collect::<anyhow::Result<Vec<_>>>()?;
+        for cache in &caches {
             if recovery_paths_overlap(cache, &recovery)? {
                 anyhow::bail!("Private recovery storage overlaps disposable project cache");
             }
@@ -43,8 +43,12 @@ impl BuildState {
                 debug_assert!(identity.starts_with(parent_identity));
                 continue;
             }
-            if cache.as_deref().map(|cache| recovery_paths_overlap(cache, &target)).transpose()?.unwrap_or(false)
-                || recovery_paths_overlap(&target, &recovery)? {
+            for cache in &caches {
+                if recovery_paths_overlap(cache, &target)? {
+                    anyhow::bail!("Managed build backup overlaps cache: {}", target.display());
+                }
+            }
+            if recovery_paths_overlap(&target, &recovery)? {
                 anyhow::bail!("Managed build backup overlaps cache: {}", target.display());
             }
             roots.push((identity, target.clone()));
@@ -185,7 +189,7 @@ mod tests {
         fs::write(root.join("_quarto.yml"), "# exact comments\nproject:\n  type: default\n").unwrap();
         let absent = root.join("new-parent/nested/result");
         let paths = vec![docs.clone(), root.join("VERSION"), root.join("_quarto.yml"), absent.clone()];
-        let state = BuildState::capture(Some(&root.join("cache")), &paths).unwrap();
+        let state = BuildState::capture(&[root.join("cache")], &paths).unwrap();
         fs::remove_dir_all(&docs).unwrap();
         fs::create_dir(&docs).unwrap();
         fs::write(docs.join("new.html"), "new").unwrap();
@@ -212,7 +216,7 @@ mod tests {
         let output = root.join("output");
         fs::create_dir(&output).unwrap();
         fs::write(output.join("previous"), "release").unwrap();
-        let state = BuildState::capture(Some(&root.join("cache")), &[output.clone()]).unwrap();
+        let state = BuildState::capture(&[root.join("cache")], &[output.clone()]).unwrap();
         let backup_path = state.backup.path().to_owned();
         fs::remove_dir_all(&output).unwrap();
         fs::write(external.path().join("keep"), "external").unwrap();
@@ -232,7 +236,7 @@ mod tests {
         let root = project.path().canonicalize().unwrap();
         let target = root.join("VERSION");
         fs::write(&target, "original version").unwrap();
-        let state = BuildState::capture(None, &[target.clone()]).unwrap();
+        let state = BuildState::capture(&[], &[target.clone()]).unwrap();
         fs::remove_dir_all(state.backup.path()).unwrap();
         let error = state.restore_result(Ok(())).unwrap_err();
         assert!(format!("{error:#}").contains("recovery backup is unavailable"));
@@ -245,7 +249,7 @@ mod tests {
         let root = project.path().canonicalize().unwrap();
         let target = root.join("VERSION");
         fs::write(&target, "v1.2.3\n").unwrap();
-        let state = BuildState::capture(None, &[target.clone()]).unwrap();
+        let state = BuildState::capture(&[], &[target.clone()]).unwrap();
         fs::remove_dir_all(state.backup.path()).unwrap();
         let error = state.restore(anyhow::anyhow!("analysis failed"));
         assert_eq!(fs::read_to_string(&target).unwrap(), "v1.2.3\n");

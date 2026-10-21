@@ -4,7 +4,7 @@ use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs;
 
 /// Represents the complete structure of a `_proj.yml` configuration file.
@@ -213,14 +213,22 @@ pub struct ResolvedGitConfig {
 ///
 /// ```rust
 /// use proj::yml::{DirConfig, IgnoreConfig};
-/// let dir = DirConfig { path: None, ignore: IgnoreConfig::Single("all".to_string()) };
+/// let dir = DirConfig { path: None, safe: None, ignore: IgnoreConfig::Single("all".to_string()) };
 /// ```
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct DirConfig {
     pub path: Option<Utf8PathBuf>,
+    /// Optional safe-cache selection marker; valid only on cache-class mappings.
+    #[serde(default, deserialize_with = "deserialize_safe_cache")]
+    pub safe: Option<bool>,
     #[serde(default = "default_ignore")]
     pub ignore: IgnoreConfig,
+}
+
+fn deserialize_safe_cache<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Option<bool>, D::Error> {
+    // Missing is unspecified; explicitly present null/string/number is not a boolean.
+    bool::deserialize(deserializer).map(Some)
 }
 
 /// Defines auto-generated ignore rules applied to tracked directories.
@@ -312,11 +320,13 @@ pub struct ValidatedConfig {
 /// ```rust
 /// use camino::{Utf8Path, Utf8PathBuf};
 /// use proj::yml::{ResolvedDir, IgnoreConfig};
-/// let resolved = ResolvedDir { path: Utf8PathBuf::from("_raw"), ignore: IgnoreConfig::Single("all".to_string()) };
+/// let resolved = ResolvedDir { path: Utf8PathBuf::from("_raw"), safe: None, ignore: IgnoreConfig::Single("all".to_string()) };
 /// ```
 #[derive(Debug)]
 pub struct ResolvedDir {
     pub path: Utf8PathBuf,
+    /// Validated optional safe-cache selection marker.
+    pub safe: Option<bool>,
     pub ignore: IgnoreConfig,
 }
 
@@ -345,7 +355,8 @@ impl ProjConfig {
     ) -> anyhow::Result<ValidatedConfig> {
         validate_clear_output(self.build.clear_output.as_deref())?;
         let mut resolved = HashMap::new();
-        let mut labels = HashSet::new();
+        crate::path_safety::validate_directory_labels(self.directories.keys().map(String::as_str))?;
+        crate::paths::select_safe_cache(self.directories.iter().map(|(label, directory)| (label.as_str(), directory.safe)), &[])?;
 
         // 0. Validate Structural Constraints
         if let Some(dest) = &self.build.dest {
@@ -367,22 +378,19 @@ impl ProjConfig {
 
         // 1. Process explicit user configurations
         for (label, config) in &self.directories {
-            crate::path_safety::validate_directory_label(label)?;
             validate_ignore(&config.ignore)?;
             let lower_label = label.to_lowercase();
-            if !labels.insert(label.to_ascii_lowercase()) {
-                anyhow::bail!("Directory labels differ only by case: {label}");
-            }
 
             // Validate prefix rules
             if !lower_label.starts_with("cache")
                 && !lower_label.starts_with("raw")
                 && !lower_label.starts_with("output")
                 && !lower_label.starts_with("docs")
+                && !lower_label.starts_with("data")
             {
                 anyhow::bail!(
                     "Invalid directory label '{}' found in _proj.yml. \
-                    All custom labels must begin with 'raw', 'output', 'docs', or 'cache'.",
+                    All custom labels must begin with 'raw', 'output', 'data', 'docs', or 'cache'.",
                     label
                 );
             }
@@ -394,6 +402,7 @@ impl ProjConfig {
                 label.clone(),
                 ResolvedDir {
                     path,
+                    safe: config.safe,
                     ignore: config.ignore.clone(),
                 },
             );
@@ -477,6 +486,7 @@ impl ValidatedConfig {
     ///
     /// let mut dirs = HashMap::new();
     /// dirs.insert("raw-data".to_string(), ResolvedDir {
+    ///     safe: None,
     ///     path: Utf8PathBuf::from("_raw_data"),
     ///     ignore: IgnoreConfig::Single("all".to_string())
     /// });
@@ -519,8 +529,12 @@ pub fn deep_merge(target: Value, source: Value) -> Value {
         (_, Value::Null) => target,
         (Value::Object(mut target_map), Value::Object(source_map)) => {
             for (k, v) in source_map {
-                let target_val = target_map.remove(&k).unwrap_or(Value::Null);
-                target_map.insert(k, deep_merge(target_val, v));
+                if let Some(existing) = target_map.get_mut(&k) {
+                    let previous = std::mem::replace(existing, Value::Null);
+                    *existing = deep_merge(previous, v);
+                } else {
+                    target_map.insert(k, v);
+                }
             }
             Value::Object(target_map)
         }
@@ -579,6 +593,14 @@ fn read_configuration_file(path: &Utf8Path) -> anyhow::Result<Value> {
         .with_context(|| format!("Failed to parse configuration {path}"))?;
     let mut value: Value = serde_json::to_value(yaml)
         .with_context(|| format!("Failed to convert configuration {path}"))?;
+    // Validate explicit markers before deep_merge's null-inheritance rule can hide them.
+    if let Some(directories) = value.get("directories").and_then(Value::as_object) {
+        for (label, directory) in directories {
+            if let Some(marker) = directory.get("safe") {
+                anyhow::ensure!(marker.is_boolean(), "Directory '{label}' safe selection must be boolean in {path}");
+            }
+        }
+    }
     let aliases = ["parameters", "parameter", "params", "param"];
     if aliases.iter().filter(|key| value.get(**key).is_some()).count() > 1 {
         anyhow::bail!("Configuration error: multiple 'parameters' aliases found in {path}.");
