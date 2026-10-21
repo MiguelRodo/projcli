@@ -390,6 +390,29 @@ committed HEAD; other dirty state still fails. Added remote regressions and real
 notebook acceptance await the amended-head CI and independent re-review. These
 checks do not establish concurrent-writer or power-loss atomicity.
 
+## Bounded HTML embedding fallback
+
+Individual Quarto HTML/revealjs and R Markdown html_document/html_notebook rendering
+defaults to resource embedding only when the document leaves the effective option
+unspecified. Explicit false remains respected; embed-sources is a separate option.
+External metadata for individual rendering remains unsupported under the existing
+layout restrictions.
+
+Quarto project preparation uses native quarto inspect results for each effective
+document format. Only an HTML/revealjs format with neither embed-resources nor
+legacy self-contained specified receives a temporary document-header default.
+Quarto owns profile, included-metadata, directory and document precedence. Both
+spellings of explicit false remain untouched, including mixed documents. Original
+source and project bytes are restored exactly on success/failure, before promotion.
+Prepared-source changes or a changed native input set fail at the launch boundary;
+automatic project fallback requires modeled text documents. Other input types
+need explicit renderer embedding settings. No literal Markdown/LaTeX resource rewriting or
+R helper/IDE parity follows. Nonembedded portability remains deferred.
+
+The native Bookdown render_site driver is unchanged and has no new embedding
+fallback in this bounded slice; combined M1 acceptance must record that limitation.
+Remote exact-head evidence and independent review are required before shipment.
+
 ## R-package data lookup and explicit activation
 
 This supersedes earlier blanket requirements for declared data-class labels:
@@ -411,3 +434,12 @@ Normalize legacy remote content labels too. Canonical _proj.yml rejects data;
 generic data-* labels are unsupported (use raw-* inputs or output-* outputs).
 Existing R helpers/packages remain untouched. Python/Julia outputs use ordinary
 mappings; inst is a project-relative fragment, not a special role.
+
+Embedding preparation preserves the complete native effective format list/order,
+including an inherited non-HTML default. Only eligible HTML options change.
+Prepared sources use guarded same-directory replacement with original permissions,
+so hard-linked external aliases retain their original bytes. Inherited renderer
+profile/directory/included metadata is captured and rechecked at launch; changes
+are rejected rather than silently masked by a prepared default. Internal captured
+metadata is recovered; external metadata is observed only and is never rewritten.
+Literal metadata-files paths are required for this bounded dependency capture.

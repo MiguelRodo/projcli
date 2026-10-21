@@ -29,6 +29,7 @@ fn fake_renderer(root: &Path) {
 import os,sys,json,re
 from pathlib import Path
 root=Path(os.environ.get('PROJ_PROJECT_ROOT','.'))
+if sys.argv[1:2]==['inspect']: print('{"files":{"input":[]}}'); raise SystemExit(0)
 if sys.argv[1:2]==['--version']: raise SystemExit(0)
 if sys.argv[1:2]==['-e'] and 'render' not in sys.argv[2]: raise SystemExit(0)
 if sys.argv[1:2]==['render'] or (sys.argv[1:2]==['-e'] and 'render' in sys.argv[2]):

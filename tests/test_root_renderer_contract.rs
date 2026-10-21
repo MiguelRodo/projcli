@@ -77,7 +77,7 @@ assert Path.cwd() == root
 if sys.argv[1:2] == ['render']:
     assert sys.argv[sys.argv.index('--execute-dir') + 1] == str(root)
 else:
-    assert len(sys.argv) == 7, sys.argv
+    assert len(sys.argv) == 8, sys.argv
     assert sys.argv[4] == "project"
     assert sys.argv[5] == str(root)
 name = (root / 'expected-output').read_text()
@@ -112,6 +112,7 @@ target.write_text('fresh artifact')
             assert_eq!(fs::read_to_string(root.join(format!("published/report's é.{suffix}"))).unwrap(), "fresh artifact");
             let args: Vec<String> = serde_json::from_slice(&fs::read(root.join("renderer-argv.json")).unwrap()).unwrap();
             if extension == "Rmd" {
+                assert_eq!(args[6], if format == "html_document" { "embed" } else { "native" });
                 assert!(!args[1].contains("report's"));
                 assert_eq!(args[2], root.join(&input).to_str().unwrap());
                 assert_eq!(args[3], "project");
