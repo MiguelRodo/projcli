@@ -16,6 +16,7 @@ struct RunContext {
     root: Utf8PathBuf,
     profiles: Vec<String>,
     directories: BTreeMap<String, Utf8PathBuf>,
+    directory_order: Vec<String>,
     active_version: ProjVersion,
     development: bool,
 }
@@ -23,13 +24,14 @@ struct RunContext {
 pub(crate) struct ContextFile(tempfile::NamedTempFile);
 
 impl ContextFile {
-    pub(crate) fn capture(root: &Utf8Path, config: &ValidatedConfig, profiles: Vec<String>, active_version: ProjVersion, development: bool) -> anyhow::Result<Self> {
+    pub(crate) fn capture(root: &Utf8Path, config: &ValidatedConfig, profiles: Vec<String>, directory_order: Vec<String>, active_version: ProjVersion, development: bool) -> anyhow::Result<Self> {
         let directories = config.directories.keys().map(|label| Ok((label.clone(), config.get_path(root, label)?)))
             .collect::<anyhow::Result<_>>()?;
-        let context = RunContext { schema_version: 1, root: root.to_owned(), profiles, directories, active_version, development };
+        let context = RunContext { schema_version: 2, root: root.to_owned(), profiles, directories, directory_order, active_version, development };
         let temporary = std::env::temp_dir().canonicalize().context("Cannot resolve run-context temporary directory")?;
         let mut file = tempfile::NamedTempFile::new_in(temporary).context("Cannot create private run context")?;
-        if let Ok(cache) = config.get_path(root, "cache") {
+        for label in config.directories.keys().filter(|label| label.to_ascii_lowercase().starts_with("cache")) {
+            let cache = config.get_path(root, label)?;
             let cache = crate::path_safety::resolve_path(cache.as_std_path(), true)?;
             anyhow::ensure!(!file.path().starts_with(cache), "Run context cannot be stored in disposable cache");
         }
@@ -51,12 +53,15 @@ fn inherited() -> anyhow::Result<Option<RunContext>> {
     fs::File::open(path)?.take(1_048_577).read_to_end(&mut bytes)?;
     anyhow::ensure!(bytes.len() <= 1_048_576, "Run context exceeds the supported size");
     let context: RunContext = serde_json::from_slice(&bytes).context("Invalid inherited run context")?;
-    anyhow::ensure!(context.schema_version == 1, "Unsupported run-context schema");
+    anyhow::ensure!(context.schema_version == 2, "Unsupported run-context schema");
     anyhow::ensure!(context.root.is_absolute() && context.root.is_dir(), "Invalid captured project root");
     for (label, path) in &context.directories {
         crate::path_safety::validate_directory_label(label)?;
         anyhow::ensure!(path.is_absolute(), "Captured directory paths must be absolute");
     }
+    let order: std::collections::BTreeSet<_> = context.directory_order.iter().collect();
+    anyhow::ensure!(order.len() == context.directories.len() && order.len() == context.directory_order.len()
+        && order.iter().all(|label| context.directories.contains_key(*label)), "Invalid captured directory order");
     for profile in &context.profiles {
         anyhow::ensure!(normalized_profiles(profile)? == vec![profile.clone()], "Invalid captured profile list");
     }
@@ -78,15 +83,39 @@ fn inherited_for(root: &Utf8Path) -> anyhow::Result<Option<RunContext>> {
 /// This is not the logical safe-output resolver or a directory-creation operation.
 /// Errors include invalid context, unknown labels and invalid configuration.
 pub fn configured_path_from(root: &Utf8Path, label: &str) -> anyhow::Result<Utf8PathBuf> {
+    role_target_from(root, label, false)
+}
+
+pub(crate) fn directory_order(combined: &serde_json::Value) -> Vec<String> {
+    combined.get("directories").and_then(serde_json::Value::as_object)
+        .map(|map| map.keys().cloned().collect()).unwrap_or_default()
+}
+
+pub(crate) fn role_target_from(root: &Utf8Path, label: &str, safe: bool) -> anyhow::Result<Utf8PathBuf> {
     crate::path_safety::validate_directory_label(label)?;
-    if let Some(context) = inherited_for(root)? {
-        return context.directories.into_iter().find(|(key, _)| key.eq_ignore_ascii_case(label))
-            .map(|(_, path)| path).with_context(|| format!("Directory label '{label}' is not captured"));
+    let (directories, order, version) = if let Some(context) = inherited_for(root)? {
+        (context.directories, context.directory_order, Some(context.active_version))
+    } else {
+        let profiles = select_profiles(None, root)?;
+        let combined = crate::yml::get_combined_yml(Some(&profiles.join(",")), root)?;
+        let order = directory_order(&combined);
+        let config: crate::yml::ProjConfig = serde_json::from_value(combined)?;
+        let config = config.validate_and_resolve(root, false)?;
+        let directories = config.directories.keys().map(|key| Ok((key.clone(), config.get_path(root, key)?)))
+            .collect::<anyhow::Result<BTreeMap<_, _>>>()?;
+        (directories, order, crate::version_get_from(root))
+    };
+    let (canonical_label, configured) = directories.iter().find(|(key, _)| key.eq_ignore_ascii_case(label))
+        .with_context(|| format!("Directory label '{label}' is not declared"))?;
+    let kind = canonical_label.to_ascii_lowercase();
+    if safe && (kind.starts_with("output") || kind.starts_with("docs") || kind.starts_with("data")) {
+        let cache_label = order.iter().find(|key| key.to_ascii_lowercase().starts_with("cache"))
+            .context("Safe output/data/docs lookup requires a declared cache-class directory")?;
+        let cache = directories.get(cache_label).context("Captured cache mapping is missing")?;
+        let version = version.context("Safe versioned lookup requires a valid VERSION or active run version")?;
+        return Ok(cache.join("projr").join(version.cache_key()).join(canonical_label));
     }
-    let profiles = select_profiles(None, root)?;
-    let combined = crate::yml::get_combined_yml(Some(&profiles.join(",")), root)?;
-    let config: crate::yml::ProjConfig = serde_json::from_value(combined)?;
-    config.validate_and_resolve(root, false)?.get_path(root, label)
+    Ok(configured.clone())
 }
 
 /// Reads the active managed-run version, otherwise the selected root's VERSION.

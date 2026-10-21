@@ -281,3 +281,16 @@ legacy version text APIs/files retain their accepted dotted representation.
 Final directory lookup remains unchanged in this slice; safe logical routing,
 render-context representation and native execution/embedding are subsequent work.
 Old-version renderer staging remains a known gap until the routing slice.
+
+
+## Explicit logical resource lookup
+
+Safe output/data/docs-class lookup uses the first declared cache-class mapping,
+the captured active version and exact configured label. Final lookup preserves
+the physical mapping, including external paths. No implicit data directory is
+invented: a data-class label must be declared. Directory insertion order is retained
+through configuration merging and the child snapshot. File fragments are relative
+and cannot replace/escape the role root. Queries never create directories.
+The initial explicit safe/final CLI slice keeps final as its transitional default;
+safe-by-default behavior must land together with production output consumers.
+Preview artifacts written through explicit safe lookup remain inspectable in cache.

@@ -1011,7 +1011,9 @@ installer and raw assets with standard hash/runtime checks; no new runtime frame
 - **Tests:** new remote regressions cover changed cwd into another project,
   changed YAML/VERSION, external mappings, human/machine queries, explicit other
   project, profile priority, success/failure/preview and private snapshot lifetime.
-  Cross-platform CI and independent review pending at preparation; no local build.
+  PR153 exact head3ccf10e independently cleared; all eleven checks passed in
+  tests39559553707, install39559553890 and docs39559553682. Merged1719694;
+  post-merge checks monitored separately. No local build.
 - **Remaining:** configured final paths are still returned; safe routing, fragments,
   auto/relative presentation, explicit render context, native cwd and embedding
   fallback follow. Renderer staging still uses the old version in this slice.
@@ -1022,3 +1024,33 @@ installer and raw assets with standard hash/runtime checks; no new runtime frame
   Parent-process concurrency regression remains required; independent review is
   separate from self-review. Diagnostic evidence: branch488adaf FINDINGS.md and
   actual embedded-image runs39554636201/39555352442/39556599001.
+
+
+## Explicit safe/final resource lookup and fragments
+
+- **Same/intended:** projr90be501 R/dir-get.R48–86,229–244,284–301 routes safe
+  output/data/docs into first cache-class/version context. Rust preserves merged
+  declaration order and uses v<release> or v<release>-<dev> from captured active
+  version, not mutable VERSION. Exact declared labels select stable role leaves;
+  absolute configured external paths remain available through final lookup.
+- **Different, deliberate:** docs uses a consistent cache/docs label leaf rather
+  than the historical physical-docs-path suffix/side-effecting getter. Data labels
+  must be explicitly declared; no implicit root/data fallback. Fragments cannot
+  replace/escape the role root. No YAML rewriting or directory creation on query.
+- **Bounded delivery:** --target safe is explicit; final remains the intermediate
+  CLI default until production promotion consumes safe outputs. This avoids changing
+  existing analysis behavior before the consumer is fixed. Auto representation,
+  renderer contexts/staging, default switch and native cwd follow separately.
+- **Tests prepared for remote CI:** declaration order opposed to alphabetical order,
+  dev/release cache keys, data/docs/exact labels, absolute external mappings,
+  missing config inputs, fragment escape rejection, changed cwd/YAML/VERSION/profile
+  and actual retained cache bytes with released output preserved. No local builds.
+- **Ponytail full review:** enabled serde_json's existing preserve_order feature,
+  reusing already-locked indexmap rather than adding a new map abstraction. One
+  small resource resolver reuses snapshot/config validation. No wrapper, crawler,
+  global mutation, new rendering engine or transaction framework. CI/review pending.
+
+Invalid/stale inherited run-context files deliberately fail closed, including an
+explicit other-project query when the snapshot cannot first be validated. A valid
+snapshot is discarded for a different explicit root. This is a documented current
+boundary, not a promise that explicit selection repairs a corrupt descriptor.

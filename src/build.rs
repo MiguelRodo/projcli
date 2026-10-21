@@ -92,6 +92,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     crate::yml::require_active_configuration_for_profiles(project_root, &crate::profile::parse_active_profiles(selected_profile))?;
     let combined = crate::yml::get_combined_yml(Some(selected_profile), project_root)
         .context("Failed to read project configuration")?;
+    let directory_order = crate::run_context::directory_order(&combined);
     let project_config: ProjConfig = serde_json::from_value(combined)
         .context("Failed to deserialize combined configuration")?;
     let config = project_config.validate_and_resolve(project_root, is_dev)?;
@@ -242,7 +243,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     }
     let current_version = original_version.to_string(false);
     let (initial_version, next_version) = crate::run_context::version_plan(original_version, mode)?;
-    let run_context = crate::run_context::ContextFile::capture(project_root, &config, profiles, initial_version.clone(), is_dev)?;
+    let run_context = crate::run_context::ContextFile::capture(project_root, &config, profiles, directory_order, initial_version.clone(), is_dev)?;
     environment.set(crate::RUN_CONTEXT_ENV, run_context.path().as_os_str());
     // Recovery removes/replaces managed destinations too, so preview needs the
     // same root/overlap/link guards even though it never performs release cleanup.

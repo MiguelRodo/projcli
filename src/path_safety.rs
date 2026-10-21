@@ -34,8 +34,9 @@ pub(crate) fn resolve_path(path: &Path, reject_symlinks: bool) -> anyhow::Result
 
 /// Rejects labels that could escape a derived cache directory.
 pub(crate) fn validate_directory_label(label: &str) -> anyhow::Result<()> {
-    if label.contains('/') || label.contains('\\') {
-        anyhow::bail!("Directory label must not contain path separators: {label}");
+    if label.is_empty() || label == "." || label == ".." || label.contains('/') || label.contains('\\')
+        || label.contains(':') || label.chars().any(char::is_control) {
+        anyhow::bail!("Directory label must be a nonempty portable name without separators or traversal: {label}");
     }
     Ok(())
 }
@@ -55,7 +56,7 @@ pub(crate) fn validate_build_paths(root: &Utf8Path, config: &crate::yml::Validat
     for (label, directory) in &config.directories {
         validate_directory_label(label)?;
         let lower = label.to_lowercase();
-        let writable = lower.starts_with("cache") || lower.starts_with("output") || lower.starts_with("docs");
+        let writable = lower.starts_with("cache") || lower.starts_with("output") || lower.starts_with("docs") || lower.starts_with("data");
         let path = if directory.path.is_absolute() { directory.path.clone() } else { root.join(&directory.path) };
         let identity = resolve_path(path.as_std_path(), writable)?;
         if writable {

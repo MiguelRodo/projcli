@@ -93,3 +93,8 @@ Embedded HTML is the target; explicit false stays respected and linked portabili
 existing R/IDE parity and M2 provenance are not new Rust M1 completion gates.
 Use the behavior contract's captured root/profile/run-version rules; never infer
 render context from file suffix/cwd or mutate parent environment for library runs.
+
+Explicit safe lookup retains declaration order for first-cache selection and must
+not synthesize undeclared labels. Relative fragments cannot replace/escape the
+role root. Keep final lookup separate from future safe-output promotion; switching
+CLI defaults must accompany consumers, not silently strand staged production data.

@@ -7,6 +7,7 @@ The `_proj.yml` file dictates the structural map of your project. It configures 
 Custom directory labels are strictly validated against a set of foundational prefixes:
 - `cache`
 - `raw`
+- `data`
 - `output`
 - `docs`
 
@@ -15,7 +16,7 @@ These prefixes are **case-insensitive**. Any label defined in the configuration 
 ## Explicit paths and local initialization
 
 Every declared directory needs a nonempty `path`. Runtime does not insert missing
-cache/raw/output/docs mappings or synthesize subpaths for undeclared labels.
+cache/raw/output/data/docs mappings or synthesize subpaths for undeclared labels.
 For example, declaring `raw-data: {path: _raw_data}` makes `raw-data` available;
 it does not create an undeclared `raw` or `raw-data-extra` resource.
 ASCII case is ignored and case-only duplicate labels are rejected.

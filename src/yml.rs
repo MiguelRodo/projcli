@@ -379,10 +379,11 @@ impl ProjConfig {
                 && !lower_label.starts_with("raw")
                 && !lower_label.starts_with("output")
                 && !lower_label.starts_with("docs")
+                && !lower_label.starts_with("data")
             {
                 anyhow::bail!(
                     "Invalid directory label '{}' found in _proj.yml. \
-                    All custom labels must begin with 'raw', 'output', 'docs', or 'cache'.",
+                    All custom labels must begin with 'raw', 'output', 'data', 'docs', or 'cache'.",
                     label
                 );
             }
