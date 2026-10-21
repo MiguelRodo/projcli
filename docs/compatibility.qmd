@@ -1072,3 +1072,10 @@ guards. Added pre/post hook production failures, successful/failed previews with
 exact data bytes/absence, and nonliteral/cache-only absent-parent rejection plus
 valid retained-artifact cases. Safe role lookup also rejects linked derived leaves
 before returning a writable cache target. No arbitrary script sandbox is claimed.
+
+Shared output/data/docs classification now governs logical lookup, managed capture
+and relevant project-source/cleanup guards; data-class source-like documents are
+rejected before project cleanup/rendering. Portable labels reject trailing dot/space
+aliases centrally (ordinary absolute Windows cache regression) while Unicode labels
+remain allowed. Data recovery tests retain the existing boundary: failures before
+local success and every preview restore; successful publication is not rolled back.

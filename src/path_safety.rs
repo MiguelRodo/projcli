@@ -35,7 +35,7 @@ pub(crate) fn resolve_path(path: &Path, reject_symlinks: bool) -> anyhow::Result
 /// Rejects labels that could escape a derived cache directory.
 pub(crate) fn validate_directory_label(label: &str) -> anyhow::Result<()> {
     if label.is_empty() || label == "." || label == ".." || label.contains('/') || label.contains('\\')
-        || label.contains(':') || label.chars().any(char::is_control) {
+        || label.contains(':') || label.ends_with('.') || label.ends_with(' ') || label.chars().any(char::is_control) {
         anyhow::bail!("Directory label must be a nonempty portable name without separators or traversal: {label}");
     }
     Ok(())
@@ -56,7 +56,7 @@ pub(crate) fn validate_build_paths(root: &Utf8Path, config: &crate::yml::Validat
     for (label, directory) in &config.directories {
         validate_directory_label(label)?;
         let lower = label.to_lowercase();
-        let writable = lower.starts_with("cache") || lower.starts_with("output") || lower.starts_with("docs") || lower.starts_with("data");
+        let writable = lower.starts_with("cache") || crate::paths::is_managed_output(label);
         let path = if directory.path.is_absolute() { directory.path.clone() } else { root.join(&directory.path) };
         let identity = resolve_path(path.as_std_path(), writable)?;
         if writable {
@@ -121,7 +121,7 @@ pub(crate) fn validate_cleanup_paths(root: &Utf8Path, config: &crate::yml::Valid
     resolve_path(cache.join("projr").join(version).as_std_path(), true)?;
     resolve_path(cache.join("projr").join(version).join("docs").as_std_path(), true)?;
     for label in config.directories.keys() {
-        if label.to_lowercase().starts_with("output") || label.eq_ignore_ascii_case("data") {
+        if crate::paths::is_output_or_data(label) {
             resolve_path(cache.join("projr").join(version).join(label).as_std_path(), true)?;
         }
     }
@@ -150,7 +150,7 @@ pub(crate) fn validate_project_source_overlap(root: &Utf8Path, config: &crate::y
     let mut pending = Vec::new();
     for label in config.directories.keys() {
         let lower = label.to_lowercase();
-        if lower.starts_with("cache") || lower.starts_with("docs") || lower.starts_with("output") || lower.starts_with("data") {
+        if lower.starts_with("cache") || crate::paths::is_managed_output(label) {
             let path = config.get_path(root, label)?;
             if path.is_dir() { pending.push(path.into_std_path_buf()); }
         }

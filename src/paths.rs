@@ -20,3 +20,13 @@ pub fn resource_path_from(root: &Utf8Path, label: &str, fragments: &[Utf8PathBuf
     for fragment in fragments { path.push(fragment); }
     Ok(path)
 }
+
+
+pub(crate) fn is_output_or_data(label: &str) -> bool {
+    let label = label.to_ascii_lowercase();
+    label.starts_with("output") || label.starts_with("data")
+}
+
+pub(crate) fn is_managed_output(label: &str) -> bool {
+    is_output_or_data(label) || label.to_ascii_lowercase().starts_with("docs")
+}

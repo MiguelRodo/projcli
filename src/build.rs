@@ -291,8 +291,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
         if entry.file_type()?.is_file() { managed.push(entry.path()); }
     }
     for (label, _) in &config.directories {
-        let lower = label.to_ascii_lowercase();
-        if lower.starts_with("output") || lower.starts_with("docs") || lower.starts_with("data") {
+        if crate::paths::is_managed_output(label) {
             managed.push(config.get_path(project_root, label)?.into_std_path_buf());
         }
     }

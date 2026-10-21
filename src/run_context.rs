@@ -107,8 +107,7 @@ pub(crate) fn role_target_from(root: &Utf8Path, label: &str, safe: bool) -> anyh
     };
     let (canonical_label, configured) = directories.iter().find(|(key, _)| key.eq_ignore_ascii_case(label))
         .with_context(|| format!("Directory label '{label}' is not declared"))?;
-    let kind = canonical_label.to_ascii_lowercase();
-    if safe && (kind.starts_with("output") || kind.starts_with("docs") || kind.starts_with("data")) {
+    if safe && crate::paths::is_managed_output(canonical_label) {
         let cache_label = order.iter().find(|key| key.to_ascii_lowercase().starts_with("cache"))
             .context("Safe output/data/docs lookup requires a declared cache-class directory")?;
         let cache = directories.get(cache_label).context("Captured cache mapping is missing")?;

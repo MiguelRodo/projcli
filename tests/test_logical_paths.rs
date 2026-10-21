@@ -129,12 +129,15 @@ raise SystemExit({exit_code})
         let output=Command::new(env!("CARGO_BIN_EXE_proj")).args([mode,"--non-interactive","--project"]).arg(root).current_dir(root)
             .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
         assert_eq!(output.status.success(),phase=="none","{mode}/{clear}/{phase}: {} {}",String::from_utf8_lossy(&output.stdout),String::from_utf8_lossy(&output.stderr));
+        if phase != "none" {assert!(String::from_utf8_lossy(&output.stderr).contains("17"),"Fixture did not reach intended hook failure: {mode}/{clear}/{phase}/external={external}/exists={exists}: {}",String::from_utf8_lossy(&output.stderr));}
         if exists {
             assert_eq!(fs::read(data.join("previous")).unwrap(),b"old\0data bytes");assert!(data.join("nested/empty").is_dir());assert!(!data.join("new").exists());
         } else {assert!(!data.exists(),"previously absent data survived recovery");}
         assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(),"v1.2.3-4\n");
         let key=if mode=="build-dev" {"v1.2.3-4"} else {"v1.2.4"};
-        assert_eq!(fs::read_to_string(root.join("cache/projr").join(key).join("data/artifact.txt")).unwrap(),"retained cache bytes");
+        let artifact=root.join("cache/projr").join(key).join("data/artifact.txt");
+        assert!(artifact.is_file(),"Missing retained artifact {artifact:?}: {mode}/{clear}/{phase}/external={external}/exists={exists}: {}",String::from_utf8_lossy(&output.stderr));
+        assert_eq!(fs::read_to_string(artifact).unwrap(),"retained cache bytes");
        }
       }
     }
@@ -176,4 +179,37 @@ fn safe_role_lookup_rejects_linked_version_leaves_without_touching_external_byte
     std::os::unix::fs::symlink(outside.path(),root.join("cache/projr/v1.2.3")).unwrap();
     fs::write(root.join("VERSION"),"v1.2.3").unwrap();fs::write(root.join("_proj.yml"),"directories:\n  cache:\n    path: cache\n  output:\n    path: released\n").unwrap();
     assert!(!query(root,"output","safe",&["sentinel"]).status.success());assert_eq!(fs::read_to_string(outside.path().join("sentinel")).unwrap(),"external");
+}
+
+
+#[test]
+fn trailing_dot_or_space_role_labels_are_rejected_without_restricting_unicode() {
+    let project=tempfile::tempdir().unwrap();let root=project.path();
+    // Keep an ordinary (non-verbatim) absolute Windows cache path in this regression.
+    let cache=root.join("cache");
+    fs::write(root.join("VERSION"),"v1.2.3").unwrap();
+    for alias in ["output.","output "] {
+        fs::write(root.join("_proj.yml"),format!("directories:\n  cache:\n    path: {}\n  output:\n    path: released\n  {}:\n    path: other-release\n",serde_json::to_string(&cache.to_string_lossy()).unwrap(),serde_json::to_string(alias).unwrap())).unwrap();
+        assert!(!query(root,"output","safe",&[]).status.success());assert!(!cache.exists());
+    }
+    fs::write(root.join("_proj.yml"),"directories:\n  cache:\n    path: cache\n  output-é:\n    path: released\n").unwrap();
+    assert!(query(root,"output-é","safe",&[]).status.success());
+}
+
+#[cfg(unix)]
+#[test]
+fn implicit_project_sources_in_new_data_roles_fail_before_cleanup_and_renderer_launch() {
+    for label in ["data","data-derived"] {
+        let project=tempfile::tempdir().unwrap();let root=project.path();let outside=tempfile::tempdir().unwrap();
+        fs::write(outside.path().join("analysis.qmd"),"source sentinel").unwrap();
+        fs::write(root.join("VERSION"),"v1.2.3").unwrap();
+        fs::write(root.join("_quarto.yml"),"project: {type: default}\n").unwrap();
+        fs::write(root.join("_proj.yml"),format!("directories:\n  cache:\n    path: cache\n  docs:\n    path: published\n  {label}:\n    path: {}\nbuild:\n  git: false\n  clear_output: pre\n  restrictions:\n    not_behind: false\n",serde_json::to_string(&outside.path().to_string_lossy()).unwrap())).unwrap();
+        let before=fs::read(root.join("VERSION")).unwrap();
+        let output=Command::new(env!("CARGO_BIN_EXE_proj")).args(["build","--non-interactive","--project"]).arg(root).current_dir(root)
+            .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
+        assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains("source-like document"));
+        assert_eq!(fs::read_to_string(outside.path().join("analysis.qmd")).unwrap(),"source sentinel");assert_eq!(fs::read(root.join("VERSION")).unwrap(),before);
+        assert!(!root.join("cache").exists());assert!(!root.join(".gitignore").exists());
+    }
 }
