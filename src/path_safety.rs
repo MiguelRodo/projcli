@@ -121,7 +121,7 @@ pub(crate) fn validate_cleanup_paths(root: &Utf8Path, config: &crate::yml::Valid
     resolve_path(cache.join("projr").join(version).as_std_path(), true)?;
     resolve_path(cache.join("projr").join(version).join("docs").as_std_path(), true)?;
     for label in config.directories.keys() {
-        if label.to_lowercase().starts_with("output") || label == "data" {
+        if label.to_lowercase().starts_with("output") || label.eq_ignore_ascii_case("data") {
             resolve_path(cache.join("projr").join(version).join(label).as_std_path(), true)?;
         }
     }
@@ -150,7 +150,7 @@ pub(crate) fn validate_project_source_overlap(root: &Utf8Path, config: &crate::y
     let mut pending = Vec::new();
     for label in config.directories.keys() {
         let lower = label.to_lowercase();
-        if lower.starts_with("cache") || lower.starts_with("docs") || lower.starts_with("output") {
+        if lower.starts_with("cache") || lower.starts_with("docs") || lower.starts_with("output") || lower.starts_with("data") {
             let path = config.get_path(root, label)?;
             if path.is_dir() { pending.push(path.into_std_path_buf()); }
         }

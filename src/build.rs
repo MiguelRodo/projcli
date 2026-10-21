@@ -292,7 +292,7 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
     }
     for (label, _) in &config.directories {
         let lower = label.to_ascii_lowercase();
-        if lower.starts_with("output") || lower.starts_with("docs") {
+        if lower.starts_with("output") || lower.starts_with("docs") || lower.starts_with("data") {
             managed.push(config.get_path(project_root, label)?.into_std_path_buf());
         }
     }
@@ -343,10 +343,10 @@ pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profi
             }
         }
     }
-    let recovery_cache = if config.directories.keys().any(|label| label.eq_ignore_ascii_case("cache")) {
-        Some(config.get_path(project_root, "cache")?)
-    } else { None };
-    let backup = crate::build_state::BuildState::capture(recovery_cache.as_ref().map(|path| path.as_std_path()), &managed)?;
+    let recovery_caches = config.directories.keys().filter(|label| label.to_ascii_lowercase().starts_with("cache"))
+        .map(|label| config.get_path(project_root, label).map(|path| path.into_std_path_buf()))
+        .collect::<anyhow::Result<Vec<_>>>()?;
+    let backup = crate::build_state::BuildState::capture(&recovery_caches, &managed)?;
     let mut engine_originals = Vec::new();
     for (active, name) in [(quarto_exists, "_quarto.yml"), (bookdown_exists, "_bookdown.yml")] {
         if active {

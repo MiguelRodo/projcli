@@ -100,3 +100,80 @@ fn profile_and_local_updates_preserve_first_cache_position_and_only_append_new_k
         assert_eq!(order,["cache-z","cache-a","output","cache-new"]);
     }
 }
+
+
+#[test]
+fn data_final_bytes_and_absence_are_restored_for_failures_and_all_preview_outcomes() {
+    for external in [false,true] {
+      for exists in [false,true] {
+       for (mode,clear,phase) in [("build","pre","pre"),("build","post","post"),("build-dev","pre","none"),("build-dev","pre","pre"),("build-dev","post","post")] {
+        let project=tempfile::tempdir().unwrap();let root=project.path();let outside=tempfile::tempdir().unwrap();
+        let data=if external {outside.path().join("data")} else {root.join("data")};
+        if exists {fs::create_dir_all(data.join("nested/empty")).unwrap();fs::write(data.join("previous"),b"old\0data bytes").unwrap();}
+        fs::create_dir(root.join("cache")).unwrap();fs::write(root.join("VERSION"),"v1.2.3-4\n").unwrap();
+        let config=format!("directories:\n  cache:\n    path: cache\n  data:\n    path: {}\nbuild:\n  scripts: [analysis.py]\n  hooks:\n    pre: [before.py]\n    post: [after.py]\n  clear_output: {clear}\n  git: false\n  restrictions:\n    not_behind: false\n",serde_json::to_string(&data.to_string_lossy()).unwrap());
+        fs::write(root.join("_proj.yml"),config).unwrap();
+        for (file,stage) in [("before.py","pre"),("analysis.py","analysis"),("after.py","post")] {
+            let code=format!(r#"import json,subprocess
+from pathlib import Path
+data=Path({data})
+data.mkdir(parents=True,exist_ok=True)
+(data/'previous').write_text('changed')
+(data/'new').write_text('new')
+value=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label','data','--target','safe','artifact.txt'],text=True))
+target=Path(value['result']['path']);target.parent.mkdir(parents=True,exist_ok=True);target.write_text('retained cache bytes')
+raise SystemExit({exit_code})
+"#,data=serde_json::to_string(&data.to_string_lossy()).unwrap(),binary=serde_json::to_string(env!("CARGO_BIN_EXE_proj")).unwrap(),exit_code=if phase==stage {17} else {0});
+            fs::write(root.join(file),code).unwrap();
+        }
+        let output=Command::new(env!("CARGO_BIN_EXE_proj")).args([mode,"--non-interactive","--project"]).arg(root).current_dir(root)
+            .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
+        assert_eq!(output.status.success(),phase=="none","{mode}/{clear}/{phase}: {} {}",String::from_utf8_lossy(&output.stdout),String::from_utf8_lossy(&output.stderr));
+        if exists {
+            assert_eq!(fs::read(data.join("previous")).unwrap(),b"old\0data bytes");assert!(data.join("nested/empty").is_dir());assert!(!data.join("new").exists());
+        } else {assert!(!data.exists(),"previously absent data survived recovery");}
+        assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(),"v1.2.3-4\n");
+        let key=if mode=="build-dev" {"v1.2.3-4"} else {"v1.2.4"};
+        assert_eq!(fs::read_to_string(root.join("cache/projr").join(key).join("data/artifact.txt")).unwrap(),"retained cache bytes");
+       }
+      }
+    }
+}
+
+#[test]
+fn every_cache_class_is_protected_from_absent_recovery_parent_expansion() {
+    for literal in [false,true] {
+      for existing_parent in [false,true] {
+        let project=tempfile::tempdir().unwrap();let root=project.path();
+        if existing_parent {fs::create_dir(root.join("state")).unwrap();}
+        let extra=if literal {"  cache:\n    path: other-cache\n"} else {""};
+        let config=format!("directories:\n  cache-z:\n    path: state/cache\n{extra}  output:\n    path: released\nremotes:\n  local:\n    archive:\n      path: state/archive\n      structure: cas\n      inspect: manifest\n      content: [output]\ndev:\n  scripts: [analysis.py]\n");
+        fs::write(root.join("_proj.yml"),config).unwrap();
+        let script=format!(r#"import json,subprocess
+from pathlib import Path
+value=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label','output','--target','safe','result.txt'],text=True))
+target=Path(value['result']['path']);target.parent.mkdir(parents=True,exist_ok=True);target.write_text('safe cache retained')
+"#,binary=serde_json::to_string(env!("CARGO_BIN_EXE_proj")).unwrap());
+        fs::write(root.join("analysis.py"),script).unwrap();
+        let output=Command::new(env!("CARGO_BIN_EXE_proj")).args(["build-dev","--non-interactive","--project"]).arg(root).current_dir(root)
+            .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
+        if existing_parent {
+            assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
+            assert_eq!(fs::read_to_string(root.join("state/cache/projr/v0.0.1-1/output/result.txt")).unwrap(),"safe cache retained");
+        } else {
+            assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains("overlaps cache"));
+            assert!(!root.join("state").exists(),"recovery overlap was not rejected before analysis");
+        }
+      }
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn safe_role_lookup_rejects_linked_version_leaves_without_touching_external_bytes() {
+    let project=tempfile::tempdir().unwrap();let root=project.path();let outside=tempfile::tempdir().unwrap();
+    fs::create_dir_all(root.join("cache/projr")).unwrap();fs::write(outside.path().join("sentinel"),"external").unwrap();
+    std::os::unix::fs::symlink(outside.path(),root.join("cache/projr/v1.2.3")).unwrap();
+    fs::write(root.join("VERSION"),"v1.2.3").unwrap();fs::write(root.join("_proj.yml"),"directories:\n  cache:\n    path: cache\n  output:\n    path: released\n").unwrap();
+    assert!(!query(root,"output","safe",&["sentinel"]).status.success());assert_eq!(fs::read_to_string(outside.path().join("sentinel")).unwrap(),"external");
+}

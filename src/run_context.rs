@@ -113,7 +113,9 @@ pub(crate) fn role_target_from(root: &Utf8Path, label: &str, safe: bool) -> anyh
             .context("Safe output/data/docs lookup requires a declared cache-class directory")?;
         let cache = directories.get(cache_label).context("Captured cache mapping is missing")?;
         let version = version.context("Safe versioned lookup requires a valid VERSION or active run version")?;
-        return Ok(cache.join("projr").join(version.cache_key()).join(canonical_label));
+        let target = cache.join("projr").join(version.cache_key()).join(canonical_label);
+        let target = crate::path_safety::resolve_path(target.as_std_path(), true)?;
+        return Utf8PathBuf::from_path_buf(target).map_err(|_| anyhow::anyhow!("Safe resource path must be UTF-8"));
     }
     Ok(configured.clone())
 }

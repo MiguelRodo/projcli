@@ -1062,3 +1062,13 @@ the shared merge to replace existing values in place and append only new keys.
 Added actual CLI and merged-order regressions for profile/local overrides of
 cache-z before cache-a, including newly appended cache labels. Exact amended-head
 remote checks and independent re-review required; prior-head green is insufficient.
+
+
+PR154 integration review also found that newly accepted data roots were not in
+managed recovery, and recovery protected only literal cache despite first-cache
+lookup. Capture all declared data final roots (including external) and protect all
+cache-class identities against backup/root expansion, preserving existing alias
+guards. Added pre/post hook production failures, successful/failed previews with
+exact data bytes/absence, and nonliteral/cache-only absent-parent rejection plus
+valid retained-artifact cases. Safe role lookup also rejects linked derived leaves
+before returning a writable cache target. No arbitrary script sandbox is claimed.
