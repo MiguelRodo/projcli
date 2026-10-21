@@ -1320,7 +1320,7 @@ is unchanged. No local renderer execution, R package edits or linked portability
 
 Actual acceptance found R Markdown's native shell-character filename normalization:
 render() copied the apostrophe/space basename into the launch cwd, then emitted a
-sanitzed output there instead of the expected source-local artifact. Confirmed
+sanitized output there instead of the expected source-local artifact. Confirmed
 against official rmarkdown R/render.R and R/util.R (retrieved2026-10-21), not inferred
 from fake tools. Pass supported output_file/output_dir/intermediates_dir as data
 so the temporary sanitized input remains beside the original document and the
@@ -1332,3 +1332,14 @@ the expected output. Reject pre-hook native-output layout changes before rendere
 launch so successful native restoration cannot use an outdated capture plan.
 Sources: https://github.com/rstudio/rmarkdown/blob/main/R/render.R and
 https://github.com/rstudio/rmarkdown/blob/main/R/util.R .
+
+Real pinned-image acceptance passed at2f415724613278bf993c5c528de6dcf76167a59f
+(run39576119854): root and nested previews plus nested release, and deliberately
+failing R/Python previews. Six actual HTML artifacts each retained two exact
+sentinel PNG payloads after relocation with source unavailable (12 image checks).
+Original selected source/config/native-artifact hashes and released preview state
+were preserved; versioned R/Python output remained inspectable. R4.6.1, Quarto1.10.19,
+rmarkdown2.32, knitr1.52, Python3.12.3. Complete Linux regressions also passed.
+These use explicit embedding; default fallback, R/IDE parity, PDF/other-OS renders
+and nonembedded portability are not claimed by this run. Main-base integration
+keeps executable/test/Cargo blobs identical; final exact-head checks/review gate merge.
