@@ -38,6 +38,7 @@ deletion of project files or preparation of a fresh cache.
 %%| label: fig-lifecycle-overview
 %%| fig-cap: "Target overview. Open the stage details below for conditions and failure boundaries."
 %%| fig-alt: "Three stages: verify setup and run start hooks; clear immediately around analysis when selected; finish a preview or output build with the stated limits."
+%%{init: {"htmlLabels": false}}%%
 flowchart TB
   subgraph PRE["1 · Pre-build"]
     A["Resolve and verify basic setup"]
@@ -72,6 +73,7 @@ output build's transition to the next development version.
 %%| label: fig-lifecycle-pre
 %%| fig-cap: "Target pre-build order. Existing capabilities are identified separately from new ordering."
 %%| fig-alt: "Select root and profiles, validate merged configuration, capture run inputs, preflight targets and dependencies, capture recovery state, run start hooks, then finish preparation."
+%%{init: {"htmlLabels": false}}%%
 flowchart TB
   A["[R] Select explicit or discovered<br/>project root"]
   B["[M/T] Resolve profiles and<br/>environment; merge config;<br/>settings HOW / build WHAT"]
@@ -122,6 +124,7 @@ flowchart TB
 %%| label: fig-lifecycle-build
 %%| fig-cap: "Target clearing adjacency. The diamond checks select a branch; they are not extra lifecycle work."
 %%| fig-alt: "With no analysis, skip execution and clearing. Otherwise an output pre-clear goes directly into ordered execution; successful execution goes directly to output post-clear if selected. Errors use recovery."
+%%{init: {"htmlLabels": false}}%%
 flowchart TB
   A{"Analysis selected?"}
   B{"Output build and clear stage pre?"}
@@ -168,6 +171,7 @@ arbitrary mixed-renderer ordering or RStudio/Quarto R API parity from this figur
 %%| label: fig-lifecycle-post
 %%| fig-cap: "Target constraints. The dotted finalization box is deliberately unpositioned pending core confirmation."
 %%| fig-alt: "After the immediate clear gate, check artifacts and restore renderer configuration. Only output builds promote results. End hooks immediately precede the next-development transition; previews instead restore captured state. Publication placement remains open."
+%%{init: {"htmlLabels": false}}%%
 flowchart TB
   A["[T] After the immediate post-clear<br/>gate: restore renderer config and<br/>check artifacts required by the<br/>selected plan"]
   B{"Output build?"}
@@ -235,6 +239,7 @@ main baseline. It is not a decision about where future target publication belong
 %%| label: fig-lifecycle-local-failure
 %%| fig-cap: "Existing local failure boundary: recovery covers only captured state."
 %%| fig-alt: "Before recovery capture, rejection stops controlled build writes. After capture, local failures attempt bounded restoration and report restoration errors separately."
+%%{init: {"htmlLabels": false}}%%
 flowchart TB
   A["[R] Preflight or controlled local<br/>step fails"]
   B{"Recovery capture exists?"}
@@ -256,6 +261,7 @@ flowchart TB
 %%| label: fig-lifecycle-publication-failure
 %%| fig-cap: "Existing publication boundary: external effects are not transactionally undone."
 %%| fig-alt: "Local success precedes enabled storage and Git publication in the pinned implementation. Publication failure reports local success and does not roll back external effects."
+%%{init: {"htmlLabels": false}}%%
 flowchart TB
   G["[R/M] Local success boundary at<br/>the pinned baseline"]
   H["[R] Enabled local storage and Git<br/>publication"]
