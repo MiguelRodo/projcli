@@ -59,3 +59,17 @@ Pin `PROJ_RELEASE_VERSION=0.4.0-preview.1` when using the installer from that ta
 Use an existing absolute user-local `PROJ_INSTALL_DIR`; installation changes no
 system/PATH settings. macOS/ARM artifacts remain unavailable. Keep the disposable-
 project limits and unfinished R/IDE/M2 scope from [feature status](preview-status.qmd).
+
+## Next preview preparation
+
+The [next-preview checklist](release-candidate.qmd) records source integration,
+actual acceptance, reviewed version changes, exact-tag assets and WSL replacement.
+The published/installed preview remains 0.4.0-preview.1 until those steps complete.
+No new tag, release or installation is announced here. Bookdown site embedding
+remains native; other deferred limits stay explicit.
+
+Public README/install pins and public-download check expectations stay at the
+existing preview through tagging, draft validation, publication and public-byte
+verification. Update them together in a separate post-publication docs change:
+those CI checks fetch the public version and source-commit assets and cannot
+validate an unpublished pin. Release notes/version metadata can be prepared earlier.

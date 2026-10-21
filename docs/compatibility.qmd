@@ -1537,3 +1537,28 @@ and fixed _quarto.yml.local/_quarto.yaml.local paths, including absence. Leading
 scripts changing singular includes or changing/creating local overlays must fail
 before render and recover internal bytes/presence. Native actual regressions extend
 the existing matrix; no custom metadata merging or external writes introduced.
+
+## Next-preview release/install documentation preparation
+
+README/install/features/status now distinguish the verified published 0.4.0-preview.1
+from newer source slices. Prepared unpublished release notes and an integrated-source
+acceptance/delivery checklist with user-local WSL replacement gates and explicit
+Bookdown/R/IDE/nonembedded/provenance/retry limits. No package version, installer
+pin, workflow, tag, release or installed binary is changed. Current install fences
+remain exact and matched; remote docs checks and native-browser witness are retained.
+
+Ponytail full: reuse existing release/install pipeline and acceptance artifacts;
+one candidate page linked from existing docs, no new tool or installer mechanism.
+Remote rendered docs checks and independent review remain required.
+
+Candidate acceptance wording follows PR163 review: distinguish ordinary generated
+output/archive preservation under none from successful document replacement.
+Require exact final/object bytes, expected manifest/index release and next-dev
+versions, corruption probes, immediate init directories and a failing Git-call
+witness. Record the project embedding preparation/input restrictions explicitly.
+
+PR164 review corrected delivery order: keep public installer/download expectations
+at preview.1 until tagging/draft verification/publication/public-byte verification
+complete. Then update README/install/source links and public-download checks in a
+separate post-publication documentation change, so their actual asset fetches can
+pass. No public pins or version metadata changed in this correction.

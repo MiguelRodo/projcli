@@ -165,3 +165,8 @@ and fixed _quarto.yml.local/_quarto.yaml.local paths, including absence. Leading
 scripts changing singular includes or changing/creating local overlays must fail
 before render and recover internal bytes/presence. Native actual regressions extend
 the existing matrix; no custom metadata merging or external writes introduced.
+
+Before the next preview release, follow docs/release-candidate.qmd. Keep the
+published/installed version distinct from source changes; rerun exact integrated
+acceptance before the reviewed version/tag/assets/publication/WSL sequence.
+Unchanged Bookdown site embedding and other deferred limits must stay explicit.

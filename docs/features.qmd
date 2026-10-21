@@ -38,7 +38,7 @@ Mixed-language scheduling is not a promise that every target runs in the exact
 order written in configuration. See the [build reference](cli/build.qmd) for
 the current implementation and the [behavior contract](behavior.qmd) for limits.
 
-## Known limits
+## Known limits of the published preview
 
 - A preview is not a filesystem sandbox. Scripts and hooks control their writes;
   automatic redirection of every renderer's output is not provided.
@@ -64,3 +64,15 @@ become features.
 
 For the detailed evidence, scope and decisions, see the
 [behavior contract](behavior.qmd) and [compatibility log](compatibility.qmd).
+
+## Next preview, still under review
+
+Newer source slices add captured run context, safe versioned output paths,
+native working-folder defaults, explicit R-package data activation and bounded
+HTML resource embedding. They are not in the published preview installed above.
+See [the release checks](release-candidate.qmd) for the required integrated
+acceptance, release and installation steps.
+
+Bookdown site embedding is unchanged. Existing R helpers and R/IDE parity, linked
+HTML portability, complete provenance and publication retry remain outside this
+claim. The [behavior contract](behavior.qmd) remains the detailed source of scope.
