@@ -1232,6 +1232,35 @@ rejection remains tested. Exact integrated CI/re-review required.
   complete M1/M2 behavior. All heavy work ran remotely; no local Docker/R/render/
   compilation was performed. Consumer CI and independent final review remain gates.
 
+## Digest-only devcontainer reference
+
+- **Same immutable image; different reference spelling.** Keep digest
+  `sha256:a58a8a4dd6f0be83879d08b3a43ab92e256425bbfb81372b257d77a7ff9077f9`,
+  use `devcontainers-projcli@sha256:...` in the consumer, and retain published
+  version v1.0.0 in the environment README. No rebuild or publication is required.
+- **Actual user startup:** the supplied CLI 0.87.0 log reports outcome success,
+  remoteUser `rstudio` and workspace `/workspaces/projcli`. Its combined
+  `:v1.0.0@sha256:...` form triggers the CLI registry-metadata parser warning,
+  while Docker accepts the image and startup succeeds. This warning does not
+  establish a failed container launch. Editor attachment and Codex login remain
+  separate. The generated updateUID Dockerfile's `InvalidDefaultArgInFrom`
+  warning is distinct and its generated file is not edited here.
+- **Source/decision:** CLI [v0.87.0](https://github.com/devcontainers/cli/tree/65f98a518a1f62355a08e6f38e9d6bfb9a0d8ac9)
+  `spec-node/utils.ts` attempts registry metadata before a fallback Docker pull;
+  `spec-configuration/containerCollectionsOCI.ts` parses digest references.
+  Prefer the digest-only spelling that this path supports, retaining the exact
+  published image and non-root user rather than changing parser/runtime settings.
+- **Verification:** a narrow remote CLI 0.87.0 `read-configuration` check starts
+  without a cached image, reads and merges registry metadata, checks the exact
+  digest and `rstudio` remote/container users, rejects metadata parser warnings,
+  and rejects a fallback Docker pull. Only a safe summary is printed; no full
+  merged environment/configuration or credential data is exposed. CI and final
+  independent review remain gates at preparation.
+- **Ponytail full review:** one reference edit, version annotation retained and
+  one native metadata-read regression. No image rebuild, generated Dockerfile
+  edit, path behavior, R package/source, credential, broad setting or running
+  container changes. User working files remain untouched; checks run remotely.
+
 
 ## Cache-backed consumers and output lifecycle
 

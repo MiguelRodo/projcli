@@ -1,0 +1,58 @@
+name: Devcontainer reference metadata
+
+on:
+  pull_request:
+    paths:
+      - .devcontainer/devcontainer.json
+      - .github/workflows/devcontainer-reference.yml
+
+permissions:
+  contents: read
+
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Read registry metadata with the user's CLI version
+        shell: bash
+        run: |
+          evidence=$(mktemp -d)
+          image=$(python3 -c 'import json; print(json.load(open(".devcontainer/devcontainer.json"))["image"])')
+          # Exercise registry metadata parsing, without a cached Docker image.
+          if docker image inspect "$image" >/dev/null 2>&1; then
+            echo "Unexpected cached image; registry metadata path was not exercised"
+            exit 1
+          fi
+          npx --yes @devcontainers/cli@0.87.0 read-configuration \
+            --workspace-folder "$GITHUB_WORKSPACE" --include-merged-configuration \
+            --log-format json --log-level debug \
+            > "$evidence/configuration.json" 2> "$evidence/cli.jsonl"
+          python3 - "$evidence" <<'PY'
+          import json
+          from pathlib import Path
+          import sys
+
+          evidence = Path(sys.argv[1])
+          result = json.loads((evidence / "configuration.json").read_text())
+          logs = (evidence / "cli.jsonl").read_text()
+          expected = "ghcr.io/miguelrodo/devcontainers-projcli@sha256:a58a8a4dd6f0be83879d08b3a43ab92e256425bbfb81372b257d77a7ff9077f9"
+          assert result["configuration"]["image"] == expected, "Immutable image reference changed"
+          assert result["configuration"]["remoteUser"] == "rstudio", "Configured user changed"
+          merged = result["mergedConfiguration"]
+          assert merged["remoteUser"] == "rstudio", "Merged remote user changed"
+          assert merged["containerUser"] == "rstudio", "Image metadata was not merged"
+          for warning in ("Error fetching image details", "Could not parse image name",
+                          "failed validation", "Error parsing image metadata", "Invalid image metadata"):
+              assert warning not in logs, f"Unexpected metadata warning: {warning}"
+          assert "@devcontainers/cli 0.87.0" in logs, "Unexpected CLI version"
+          print("PASS: CLI 0.87.0 read digest-only registry metadata without parser warnings; remote/container user rstudio")
+          PY
+          # A fallback pull could hide a parser failure behind successful inspect.
+          if docker image inspect "$image" >/dev/null 2>&1; then
+            echo "Unexpected fallback Docker pull during metadata-only verification"
+            exit 1
+          fi

@@ -1,10 +1,11 @@
 # Development and renderer diagnostics
 
-`.devcontainer/devcontainer.json` pins the published `v1.0.0` image and its
-immutable registry digest:
+`.devcontainer/devcontainer.json` pins the published `v1.0.0` image by its
+immutable registry digest. The configuration uses digest-only spelling for
+Dev Containers CLI 0.87.0 metadata parser compatibility:
 
 ```text
-ghcr.io/miguelrodo/devcontainers-projcli:v1.0.0@sha256:a58a8a4dd6f0be83879d08b3a43ab92e256425bbfb81372b257d77a7ff9077f9
+ghcr.io/miguelrodo/devcontainers-projcli@sha256:a58a8a4dd6f0be83879d08b3a43ab92e256425bbfb81372b257d77a7ff9077f9
 ```
 
 The [image definition](https://github.com/MiguelRodo/devcontainers/tree/78bb081f077a974f3179b0a8a60c7efbc0f1e79a/.devcontainer)
@@ -39,9 +40,10 @@ use a new SemVer image and verified digest rather than reusing a published versi
 No project build or dependency installation runs on container creation. No
 Docker socket, host home, extra capabilities, privileged mode or authentication
 state is configured. Codex installation and login are the user's later step.
-Local VS Code/Positron devcontainer usability has not been verified. While local
-memory is constrained, keep Docker builds, Rust compilation, dependency-heavy
-checks and R/Quarto/PDF renders in remote Actions.
+The user's CLI 0.87.0 startup succeeded as `rstudio` at `/workspaces/projcli`;
+local VS Code/Positron attachment and Codex login are separate, unverified steps.
+While local memory is constrained, keep Docker builds, Rust compilation,
+dependency-heavy checks and R/Quarto/PDF renders in remote Actions.
 
 Image updates use the existing prebuild workflow on the long-lived `projcli`
 branch, with monthly Dependabot maintenance configured in devcontainers `main`.

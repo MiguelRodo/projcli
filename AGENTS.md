@@ -124,6 +124,7 @@ the same reviewed work, or coordinate its owner before merge. Keep pre/build/pos
 groups, approved target versus shipped behavior, and event-order test evidence
 aligned with docs/behavior.qmd. Do not silently overwrite concurrent site edits.
 
+
 Settings are runtime policy; build selects actions, parameters are analysis data.
 For output lifecycle changes retain exact clear/script adjacency and end-hook/version
 adjacency. Keep the site lifecycle diagram synchronized through its owner before

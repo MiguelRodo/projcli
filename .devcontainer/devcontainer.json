@@ -1,6 +1,6 @@
 {
   "name": "projcli development and renderer diagnostics",
-  "image": "ghcr.io/miguelrodo/devcontainers-projcli:v1.0.0@sha256:a58a8a4dd6f0be83879d08b3a43ab92e256425bbfb81372b257d77a7ff9077f9",
+  "image": "ghcr.io/miguelrodo/devcontainers-projcli@sha256:a58a8a4dd6f0be83879d08b3a43ab92e256425bbfb81372b257d77a7ff9077f9",
   "remoteUser": "rstudio",
   "customizations": {
     "vscode": {
