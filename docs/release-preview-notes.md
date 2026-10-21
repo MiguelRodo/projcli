@@ -1,8 +1,8 @@
-# Next projcli development preview — draft release notes
+# projcli 0.4.0-preview.2
 
-Unpublished preparation. The release version and exact source commit will be set
-in the reviewed version change. The published/installed preview remains
-0.4.0-preview.1; these notes do not announce its replacement.
+This development preview adds the CLI analysis workflow described below. The exact
+tagged source commit is recorded in source-commit.txt; checksums.txt verifies both
+platform downloads. These notes are prepared before publication.
 
 Run selected R/Python analysis steps from one project configuration, inspect
 temporary results, and keep the project identity stable when code changes folders.
@@ -25,14 +25,15 @@ Linked-output portability and literal Markdown/LaTeX resource rewriting are not
 provided. Existing R helpers/packages are unchanged; direct R/IDE parity is not
 claimed.
 
-Prepared remote acceptance covers manual configuration and fresh local directory
+Remote acceptance covers manual configuration and fresh local directory
 initialization, ordered real Python/R/report steps, a computed CSV and embedded
 report, deliberate structured failures, ordinary generated-output/archive preservation
 under none and local archive publication without Git credentials. Prior document
 outputs are preserved on preview/failure and replaced by successful finalization.
 Final files and archived object bytes must match the computed witnesses; manifest/
-index release and next-development versions are checked, with corruption probes. Final acceptance must rerun on the
-reviewed integrated source; a stacked preparation pass does not complete M1.
+index release and next-development versions are checked, with corruption probes. The reviewed release source must pass the full integrated gate, including all
+26 renderer-policy cases, eight combined workflow cases and seven archive
+corruption probes per successful production case.
 
 Delivery remains checked Linux/WSL and Windows x86-64 binaries. No Rust compiler or
 administrator access is needed to install. macOS/ARM binaries are not supplied.
