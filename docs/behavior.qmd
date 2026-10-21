@@ -449,6 +449,18 @@ metadata is recovered; external metadata is observed only and is never rewritten
 Literal metadata-files paths are required for this bounded dependency capture.
 
 
+## Failed document artifacts across a smaller retry
+
+The existing managed-renderer contract must hold across successive builds: failed
+HTML/PDF artifacts cannot enter a later successful Git commit after selecting
+fewer documents. Restore prior final/native bytes on failure; preserve unselected
+native documents and retained failed cache scratch across the retry. Successful
+document finalization still replaces the configured final docs tree with its new
+selection. No new attempt identity, sealing, cache namespace or storage policy is
+introduced. The remote mixed_render_retry.py acceptance exercises this sequence
+with real renderers and actual committed bytes; M2 record design remains open.
+
+
 ## Confirmed storage and catalogue direction
 
 Ordinary proj use must remain standalone with a native backend and no DVC

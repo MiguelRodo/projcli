@@ -204,6 +204,15 @@ Permission fixtures run unprivileged and restore owned directory modes before
 assertions; no new traversal, sandbox or persistence contract is implied.
 
 
+For renderer recovery acceptance, retain the compound real-renderer sequence in
+tests/acceptance/mixed_render_retry.py: HTML/PDF before a later document failure,
+then a smaller successful Git build with exact committed/final/cache bytes and
+no failed artifacts. Assert prior final state after failure, preserved unselected
+native documents and unchanged retained scratch after retry. Successful final
+docs replacement stays intentional. Run remotely in the pinned image; no new
+manifest identity, retry namespace, sealing or backend policy is implied.
+
+
 Read docs/storage-design.qmd before future storage/catalogue design. proj must
 remain standalone for ordinary use; DVC is optional per directory, never the
 mandatory manifest engine. Future opted-in operations delegate automatically,
