@@ -1,23 +1,19 @@
 ---
-title: "Next preview: release checks"
-subtitle: "Prepared for review. No new release or installation is announced here."
+title: "Preview release checks"
+subtitle: "The review and delivery sequence, with verified preview.2 evidence."
 ---
 
-## What is available now
+## Verified preview.2
 
-The published development release is
-[0.4.0-preview.1](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1).
-The [install guide](install.qmd) deliberately still installs that version.
-The WSL preview already installed is also the older preview. A source-code change
-does not update an installed command.
+[0.4.0-preview.2](install.qmd) is now published and installed in the checked WSL
+user-local location. Its exact source is
+768da1bf1b83be83b657b36219f299f37130ba03. See
+[delivery evidence](release-delivery.qmd) for actual-main, exact-tag, public-byte
+and installed-binary checks. The sequence below remains the release checklist.
 
-The next development preview is being prepared. Its version, source commit and
-download commands must be filled in from the reviewed release before publication.
-This page does not create a tag, change the package version or replace a binary.
+## What preview.2 adds
 
-## What the next preview is intended to add
-
-| Change | What it means when the candidate is released |
+| Change | What it means for this release |
 |---|---|
 | Keep one project context | A child command keeps the selected project, configuration and run version when a script changes folder. |
 | Separate trial results from released files | Generated-output path queries default to a folder under the selected cache for that run's version. A successful production build can copy declared results to their final folders. |
@@ -61,11 +57,10 @@ this development preview. Read the [build reference](cli/build.qmd) and
 
 ## Review status and evidence
 
-The [source PRs](https://github.com/MiguelRodo/projcli/pulls) record exact heads,
-remote runs and downloadable evidence. R-data is merged. Embedding and combined
-acceptance corrections still require independent clearance and a final run on
-the integrated tree. Branch preparation artifacts are supporting evidence, not
-proof that the installed preview or final candidate contains every change.
+The source slices, version change and actual integrated gates are complete for
+preview.2. The [delivery evidence](release-delivery.qmd) links exact source,
+remote acceptance and tagged assets. The checklist is retained for subsequent
+candidates; a branch preparation pass alone is never delivery evidence.
 
 ## Final integrated acceptance
 
@@ -105,7 +100,7 @@ accepted scope, exact integrated source and remaining limits.
    analysis project's VERSION; do not change users' project versions.
 2. Prepare release notes for the chosen version and exact source. Keep the
    public README/install download commands and downloaded-binary documentation
-   checks pinned to the currently published preview.1 throughout tagging, draft
+   checks pinned to the previously published preview throughout tagging, draft
    asset checks and publication. Their CI fetches public downloads and
    source-commit.txt, so an unpublished pin cannot pass those checks.
 3. Only after the source/version gates pass, tag the exact reviewed commit and
@@ -129,4 +124,4 @@ accepted scope, exact integrated source and remaining limits.
    failure. Confirm the shell resolves the expected command. Record the actual
    installed version and verification evidence before saying installation is done.
 
-No release, tag or local binary replacement is made by this documentation preparation.
+This checklist does not perform release operations; completed preview.2 delivery is recorded above.

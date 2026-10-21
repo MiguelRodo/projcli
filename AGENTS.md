@@ -175,7 +175,9 @@ published/installed version distinct from source changes; rerun exact integrated
 acceptance before the reviewed version/tag/assets/publication/WSL sequence.
 Unchanged Bookdown site embedding and other deferred limits must stay explicit.
 
-Preview.2 release preparation changes only the CLI package version/lock entry and
-release notes. Public README/install/check pins remain preview.1 until verified
-publication, followed by a separate checked documentation update. Do not tag,
-publish or install before reviewed source and exact remote gates are complete.
+Preview.2 is published from 768da1bf1b83be83b657b36219f299f37130ba03 and
+verified in the WSL user-local installation. Keep README/install/public-download
+expectations pinned to that source/version together. Retain the native-browser
+lifecycle witness and exact delivery evidence in docs/release-delivery.qmd.
+Future source edits do not update the release or installed binary automatically.
+Existing R/IDE, Bookdown, linked portability and M2 limits remain explicit.

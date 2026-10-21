@@ -250,9 +250,9 @@ jobs:
           PY
           bash --noprofile --norc -e -o pipefail validation-evidence/install-linux.sh 2>&1 | tee validation-evidence/release-install.txt
           test -x "$HOME/.local/bin/proj"
-          test "$("$HOME/.local/bin/proj" --version)" = "proj 0.4.0-preview.1"
-          curl -fsSL https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.1/source-commit.txt | tee validation-evidence/release-source.txt
-          test "$(cat validation-evidence/release-source.txt)" = "bbd12edc8de9865a96b6145d0c7702f1300cb1a8"
+          test "$("$HOME/.local/bin/proj" --version)" = "proj 0.4.0-preview.2"
+          curl -fsSL https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.2/source-commit.txt | tee validation-evidence/release-source.txt
+          test "$(cat validation-evidence/release-source.txt)" = "768da1bf1b83be83b657b36219f299f37130ba03"
       - name: Run documented examples using the downloaded preview
         run: python3 validation-evidence/check-examples.py "$HOME/.local/bin/proj" 2>&1 | tee validation-evidence/release-examples.txt
       - name: Build the exact PR core revision
@@ -294,7 +294,7 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw 'Documented installation command failed' }
             $binary = Join-Path $env:USERPROFILE '.local\bin\proj.exe'
             $version = (& $binary --version).Trim()
-            if ($version -cne 'proj 0.4.0-preview.1') { throw "Unexpected installed version: $version" }
+            if ($version -cne 'proj 0.4.0-preview.2') { throw "Unexpected installed version: $version" }
             & $binary --help
             if ($LASTEXITCODE -ne 0) { throw 'Installed binary help failed' }
             Get-FileHash -Algorithm SHA256 -LiteralPath $binary | Format-List

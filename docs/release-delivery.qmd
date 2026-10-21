@@ -35,41 +35,42 @@ Known limits include bounded captured-state recovery, arbitrary external script
 effects, incomplete direct R/IDE parity, incomplete attempt/release records and
 analysis-free publication retry. This is a development preview, not M2 completion.
 
-The prepared CLI package version is `0.4.0-preview.1`; its review and the final
-integrated main checks precede creating tag `v0.4.0-preview.1`. Cargo.toml and the
-root proj entry in Cargo.lock match. `proj --version` and machine `cli_version`
-report that package version. `proj version get` reads an analysis project VERSION
-and is deliberately a separate value; existing project VERSION files are not bumped
-by preparing the CLI release.
-The [feature status](preview-status.qmd) distinguishes implemented Rust behavior,
-pending recovery verification, R/IDE gaps and unfinished M2 records/provenance/retry.
-No broad milestone checkbox is closed merely to enable binary delivery.
+## Verified preview.2 delivery
 
-## Verified delivery
+[0.4.0-preview.2](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.2)
+is published as a prerelease; stable Latest remains v0.3.0. The exact tag/source is
+768da1bf1b83be83b657b36219f299f37130ba03. Cargo.toml and the root Cargo.lock
+package agree with the CLI's reported version; protocol version is 1. An analysis
+project's VERSION remains a separate value.
 
-[0.4.0-preview.1](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1) is published as a prerelease; stable Latest remains
-v0.3.0. Its [tag workflow](https://github.com/MiguelRodo/projcli/actions/runs/39515169842) passed, and both uploaded binaries were
-downloaded, hash-checked and executed for help/version/capabilities. Public downloads
-matched the verified asset bytes. Source identity is
-`bbd12edc8de9865a96b6145d0c7702f1300cb1a8`; package version is 0.4.0-preview.1,
-protocol version 1. The WSL user-local install and disposable Python success/failure
-smokes passed without local compilation. See [compatibility evidence](compatibility.qmd).
+The [actual-main pinned gate](https://github.com/MiguelRodo/projcli/actions/runs/39607431157)
+passed full Rust regressions, API documentation, 26 real renderer-policy cases,
+eight combined workflows and two production archive witnesses with all seven
+corruption probes. Platform tests, installers and the website also passed.
+The [exact-tag workflow](https://github.com/MiguelRodo/projcli/actions/runs/39607988059)
+passed both native binary version/protocol and installer checks.
 
-Pin `PROJ_RELEASE_VERSION=0.4.0-preview.1` when using the installer from that tag.
-Use an existing absolute user-local `PROJ_INSTALL_DIR`; installation changes no
-system/PATH settings. macOS/ARM artifacts remain unavailable. Keep the disposable-
-project limits and unfinished R/IDE/M2 scope from [feature status](preview-status.qmd).
+Both draft binaries matched their platform artifacts. All five public downloads
+matched the checked draft bytes, including the exact source/version metadata and
+four unique checksum entries. Binary SHA256 values:
 
-## Next preview preparation
+| Platform | SHA256 |
+|---|---|
+| Linux x86-64 | 15e160df722e79fb20af02d46f3858b810a0875a0e53bc0fc05ccf502b52c932 |
+| Windows x86-64 | 3c4b7909c5c0669330aff3f1ff4343691da5b02ad962a6346d78330e0f7091ab |
 
-The [next-preview checklist](release-candidate.qmd) records source integration,
-actual acceptance, reviewed version changes, exact-tag assets and WSL replacement.
-The published/installed preview remains 0.4.0-preview.1 until those steps complete.
-No new tag, release or installation is announced here. Bookdown site embedding
-remains native; other deferred limits stay explicit.
+The WSL user-local binary was backed up before replacement. Installed bytes match
+the public Linux asset; full-path help/version/capabilities passed. Tiny disposable
+Python preview success and deliberate structured failure preserved prior final,
+archive and project VERSION bytes while retaining the computed cached result.
+The shell resolves the checked user-local command. No local compilation, system
+binary replacement, container operation or R-package change was involved.
 
-Public README/install pins and public-download check expectations stay at the
-existing preview through tagging, draft validation, publication and public-byte
-verification. Update them together in a separate post-publication docs change:
-those CI checks fetch the public version and source-commit assets and cannot
-validate an unpublished pin. Release notes/version metadata can be prepared earlier.
+Pin PROJ_RELEASE_VERSION=0.4.0-preview.2 and use the [install guide](install.qmd).
+Linux/Windows x86-64 delivery is verified; macOS/ARM binaries remain unavailable.
+Bookdown site embedding, direct R/IDE parity, linked-output portability and
+M2 records/provenance/retry remain outside the accepted CLI workflow.
+
+The [release checklist](release-candidate.qmd) preserves the review and delivery
+sequence for future candidates. No broad private roadmap checkbox is closed by
+this delivery report.
