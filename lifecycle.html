@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -267,6 +267,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#failure-and-recovery-boundaries" id="toc-failure-and-recovery-boundaries" class="nav-link" data-scroll-target="#failure-and-recovery-boundaries">Failure and recovery boundaries</a></li>
   <li><a href="#evidence-and-version-boundary" id="toc-evidence-and-version-boundary" class="nav-link" data-scroll-target="#evidence-and-version-boundary">Evidence and version boundary</a></li>
   <li><a href="#maintaining-this-figure" id="toc-maintaining-this-figure" class="nav-link" data-scroll-target="#maintaining-this-figure">Maintaining this figure</a></li>
+  <li><a href="#failure-followed-by-a-smaller-build" id="toc-failure-followed-by-a-smaller-build" class="nav-link" data-scroll-target="#failure-followed-by-a-smaller-build">Failure followed by a smaller build</a></li>
   </ul>
 </nav>
     </div>
@@ -680,6 +681,10 @@ Figure&nbsp;6: Released publication boundary: preserve local release; do not und
 <h2 class="anchored" data-anchor-id="maintaining-this-figure">Maintaining this figure</h2>
 <p><strong>Contributor requirement:</strong> lifecycle changes must update this page’s diagrams, status legend and evidence/version references in the same PR. This includes settings precedence, hook/clearing order, context/version capture, output promotion and publication/failure boundaries. Link actual event-order and recovery tests; do not turn a target marker into a released marker merely because a branch compiles.</p>
 <p>Keep the three-stage overview small. Put new detail in the relevant folded stage instead of expanding one unreadable graph. Render the site, exercise diagram export and verify the page links remotely; do not require local Quarto/R/Docker builds.</p>
+</section>
+<section id="failure-followed-by-a-smaller-build" class="level2">
+<h2 class="anchored" data-anchor-id="failure-followed-by-a-smaller-build">Failure followed by a smaller build</h2>
+<p>The controlled order above is unchanged. Remote acceptance now couples the failure branch to a subsequent successful Git build: real HTML and PDF are rendered before a later document fails, previous final/native state is recovered, then a smaller selection is published and its committed bytes are checked. Retained failed scratch stays in cache; it must not enter the later commit. Earlier final docs are preserved on failure and replaced only on successful docs finalization. This is bounded recovery evidence, not a new M2 record or sealing boundary, and does not change the installed preview.2 binary.</p>
 
 
 </section>

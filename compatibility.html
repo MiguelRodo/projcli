@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -299,6 +299,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#repository-root-artifact-cleanup" id="toc-repository-root-artifact-cleanup" class="nav-link" data-scroll-target="#repository-root-artifact-cleanup">Repository root artifact cleanup</a></li>
   <li><a href="#fail-closed-on-malformed-script-and-hook-exclusions" id="toc-fail-closed-on-malformed-script-and-hook-exclusions" class="nav-link" data-scroll-target="#fail-closed-on-malformed-script-and-hook-exclusions">Fail closed on malformed script and hook exclusions</a></li>
   <li><a href="#contextual-build-root-scans-without-silent-discovery-errors" id="toc-contextual-build-root-scans-without-silent-discovery-errors" class="nav-link" data-scroll-target="#contextual-build-root-scans-without-silent-discovery-errors">Contextual build root scans without silent discovery errors</a></li>
+  <li><a href="#mixed-document-failure-followed-by-a-smaller-git-build" id="toc-mixed-document-failure-followed-by-a-smaller-git-build" class="nav-link" data-scroll-target="#mixed-document-failure-followed-by-a-smaller-git-build">Mixed-document failure followed by a smaller Git build</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -796,6 +797,17 @@ ul.task-list li input[type="checkbox"] {
 <li><strong>Ponytail full:</strong> reuse existing read_dir, file_type and anyhow contexts, with the same four language groups and sort. Remove flatten/if-let-Ok error dropping; do not introduce an iterator abstraction, fault-injection layer or public API. Lifecycle ordering stays fixed; the diagram names enumeration within recovery capture. No local Rust/R/Quarto tests; source fixes remain newer than installed preview.2. Broader discovery and contextual-error audits remain open.</li>
 </ul>
 <p>Independent review refinement: both per-entry iterator error contexts now retain the known project root as well as phase and OS cause. The unprivileged opening-scan fixture asserts the phase/root pair explicitly; it does not claim deterministic mid-iteration I/O fault injection. No new helper or fault-injection framework. The amended exact head requires fresh remote gates and independent delta review.</p>
+</section>
+<section id="mixed-document-failure-followed-by-a-smaller-git-build" class="level2">
+<h2 class="anchored" data-anchor-id="mixed-document-failure-followed-by-a-smaller-git-build">Mixed-document failure followed by a smaller Git build</h2>
+<ul>
+<li><strong>Same runtime; new acceptance:</strong> baseline Rust main 91179e0546e91d5025ad68fbcebf9cfd4662072c already stages/restores managed renderer artifacts before publication. This slice adds the missing compound regression, not a demonstrated production-code correction.</li>
+<li><strong>Decision/scope:</strong> run actual Quarto HTML and Typst PDF for individual documents and project rendering; a later document verifies both artifacts then deliberately fails. Check structured failure, unchanged HEAD/clean Git and exact prior managed bytes. Select only one successful HTML document, commit that explicit config edit, then let the CLI produce the release commit. Compare all committed docs bytes to final/cache, reject failed report paths anywhere in the commit, preserve earlier unselected native docs and retained failed scratch, and verify release/next-dev versions. Prior final docs intentionally change only on successful finalization.</li>
+<li><strong>Same/unverified vs projr:</strong> existing R package is untouched. Earlier pinned projr/thesis references remain the comparison baseline; no R runtime, Bookdown, historical immediate-copy algorithm or frontend parity claim follows.</li>
+<li><strong>Verification:</strong> remote-only driver and downloadable JSON, committed-path list, committed/final reports and failed scratch are added to the existing digest-pinned unprivileged acceptance workflow. Exact-head execution and independent review remain required; no local Rust/R/Quarto execution occurred.</li>
+<li><strong>Ponytail full:</strong> reuse the existing CLI, native renderers, local Git and pinned acceptance job. Standard-library Python only; no production abstraction, mock renderer, dependency, record DTO or speculative persistence added. Lifecycle ordering is unchanged, so its existing diagram is retained with a coverage note. Installed preview.2 stays unchanged; full M2 provenance/identity/sealing/storage decisions and broader recovery/concurrency guarantees remain open.</li>
+</ul>
+<p>Independent review tightens the witness, without runtime changes: reject failed report prefixes in every relative path component, including nested companion assets, with exceptions only for the exact intended root QMD source files. Require retained scratch to remain a directory before byte comparison, even when empty. Three standard-library negative tests cover companion paths, precise source exceptions and missing empty scratch; rerun exact-head remote gates for this delta.</p>
 
 
 </section>

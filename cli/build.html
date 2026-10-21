@@ -80,7 +80,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -297,6 +297,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#explicit-empty-script-lists" id="toc-explicit-empty-script-lists" class="nav-link" data-scroll-target="#explicit-empty-script-lists">Explicit empty script lists</a></li>
   <li><a href="#active-configuration-and-validation" id="toc-active-configuration-and-validation" class="nav-link" data-scroll-target="#active-configuration-and-validation">Active configuration and validation</a></li>
   <li><a href="#html-resources" id="toc-html-resources" class="nav-link" data-scroll-target="#html-resources">HTML resources</a></li>
+  <li><a href="#failed-reports-and-a-smaller-retry" id="toc-failed-reports-and-a-smaller-retry" class="nav-link" data-scroll-target="#failed-reports-and-a-smaller-retry">Failed reports and a smaller retry</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -371,6 +372,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Source documents keep their original paths and bytes. Literal Markdown/LaTeX references retain native meaning. Linked output may still depend on its source tree; nonembedded relocation is not supported by this change. Existing restrictions on inherited metadata for individual rendering remain in force. Bookdown site rendering retains its native resource policy and has no new fallback here.</p>
 <p>See <a href="https://quarto.org/docs/output-formats/html-basics.html">Quarto HTML embedding</a> and <a href="https://pkgs.rstudio.com/rmarkdown/reference/render.html">R Markdown render options</a>.</p>
 <p>Project embedding preparation keeps native format choices and their order, even when a non-HTML format is the default. Original permissions and external hard-link bytes are preserved. Changing inherited profile/directory/included metadata after preparation is rejected; use literal metadata-files paths. External metadata is read for validation and is not rewritten. Arbitrary external script effects remain outside managed recovery.</p>
+</section>
+<section id="failed-reports-and-a-smaller-retry" class="level2">
+<h2 class="anchored" data-anchor-id="failed-reports-and-a-smaller-retry">Failed reports and a smaller retry</h2>
+<p>Managed renderer failure restores the previous released documents and original native artifacts before a later build can commit. A successful smaller document selection publishes that selection; it replaces the previous final docs tree. Unselected earlier native documents stay unchanged. Failed renderer scratch is retained under the declared versioned cache for inspection, separate from final documents. Cache is disposable and should remain ignored by Git.</p>
+<p>The remote acceptance driver tests real individual and project Quarto HTML/PDF renders, a deliberate later-document failure, then a smaller successful local Git build. It compares committed report bytes with both final and cached files, checks the entire commit for failed report artifacts, and preserves retained failed scratch. This adds acceptance coverage to the existing lifecycle, not a new retry identity or transaction guarantee. It does not update installed preview.2 or complete M2 provenance.</p>
 
 
 </section>
