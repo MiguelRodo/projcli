@@ -1777,3 +1777,45 @@ exceptions and missing empty scratch; rerun exact-head remote gates for this del
   lifecycle witness remotely; no runtime abstractions, dependencies or local
   heavy tests. Current lifecycle order/diagram and published preview.2 stay
   unchanged. Independent docs review remains required before merge.
+
+
+## Real local Git publication and failure witnesses
+
+- **Same runtime; new acceptance:** baseline Rust main
+  400ed6380343e10a66b770cfef05b709f4b0d4b4 already implements optional Git,
+  current-upstream routing and the local-success/publication-failure boundary.
+  Replace no behavior; add real repository evidence alongside existing mocks.
+- **Scope:** fresh temporary project and bare upstream, a non-main local branch
+  tracking a differently named remote branch, and an unchanged upstream main
+  sentinel. With push enabled/disabled, compare the complete upstream branch refs
+  and exact CSV bytes in the local commit/final/cache and pushed ref when enabled.
+  Test no-op commits at SystemGit's provider boundary, also proving real changes
+  still commit. A normal CLI build advances VERSION, so this is not a claim of
+  no-op CLI builds.
+- **Failure evidence:** advance the actual upstream ref so the build's later push
+  is rejected as non-fast-forward. Require nonzero structured failure with local
+  success context, preserved local files/commit/release VERSION, unchanged remote
+  refs and skipped next-dev bump. A deliberately failing Python analysis instead
+  preserves old refs/final/version and reports analysis failure; cache remains.
+- **Same/unverified vs projr:** the existing R package and thesis are untouched.
+  Earlier pinned baselines remain; R runtime parity, hosted Git authentication,
+  archives, durable publication records and post-seal behavior are not established.
+- **Verification/Ponytail full:** standard Git, existing Rust CLI/provider and tiny
+  Python analysis only. Fixture Git configuration is per-command, credentials
+  removed for CLI operations, and transports limited to local files. No external
+  repository/service, dependency, production abstraction, schema or policy added.
+  Existing three-platform and pinned remote suites run these four tests; exact-head
+  results and independent review are required. No local Rust/R/Quarto execution.
+  Lifecycle order/diagram, future catalogue direction and installed preview.2 stay
+  unchanged; the broader M2 source-integration milestone remains incomplete.
+
+Independent review refinement: every fixture command now clears inherited GIT_*
+repository/index/object/config/credential overrides before applying its controlled
+Git configuration and file-only transport. The no-op SystemGit witness runs in
+that same child environment through the Rust test harness, with no global env
+mutation or new production injection API. A fifth negative witness seeds hostile
+Git routing/config/askpass/token settings toward another owned temporary
+repository, runs both provider and CLI paths, and checks that entire project's,
+Git metadata's and bare upstream's bytes/presence remain unchanged. Two ignored
+helper entrypoints execute only through those parent witnesses. Fresh exact-head
+remote tests and focused independent review are required for this fixture delta.
