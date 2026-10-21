@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.19">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Build lifecycle – projcli</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-sidebar docked nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">projcli</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./install.html"> 
+<span class="menu-text">Install</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./tutorial.html"> 
+<span class="menu-text">Get started</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./features.html"> 
+<span class="menu-text">What works</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/MiguelRodo/projcli"> <i class="bi bi-github" role="img" aria-label="GitHub repository">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./configuration.html">Reference</a></li><li class="breadcrumb-item"><a href="./lifecycle.html">Build lifecycle</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Reference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./configuration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Configuration <code>_proj.yml</code></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cli/build.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><code>proj build</code></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./lifecycle.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Build lifecycle</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cli/version.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><code>proj version get</code></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cli/yml.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><code>proj yml read</code></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cli/path.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><code>proj path get</code></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cli/ignore.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><code>proj ignore</code></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cli/errors.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Command exit status</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Design and progress</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./behavior.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Project and execution behavior</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./compatibility.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">projr compatibility and change log</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./flow.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Build execution flow</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./r-wrapper-cran.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Future R wrapper: CLI installation and CRAN checks</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#read-the-figures" id="toc-read-the-figures" class="nav-link active" data-scroll-target="#read-the-figures">Read the figures</a></li>
+  <li><a href="#the-three-stages" id="toc-the-three-stages" class="nav-link" data-scroll-target="#the-three-stages">The three stages</a>
+  <ul class="collapse">
+  <li><a href="#pre-build-details" id="toc-pre-build-details" class="nav-link" data-scroll-target="#pre-build-details">1. Pre-build details</a></li>
+  <li><a href="#build-details" id="toc-build-details" class="nav-link" data-scroll-target="#build-details">2. Build details</a></li>
+  <li><a href="#post-build-details" id="toc-post-build-details" class="nav-link" data-scroll-target="#post-build-details">3. Post-build details</a></li>
+  </ul></li>
+  <li><a href="#settings-being-specified" id="toc-settings-being-specified" class="nav-link" data-scroll-target="#settings-being-specified">Settings being specified</a></li>
+  <li><a href="#failure-and-recovery-boundaries" id="toc-failure-and-recovery-boundaries" class="nav-link" data-scroll-target="#failure-and-recovery-boundaries">Failure and recovery boundaries</a></li>
+  <li><a href="#evidence-and-version-boundary" id="toc-evidence-and-version-boundary" class="nav-link" data-scroll-target="#evidence-and-version-boundary">Evidence and version boundary</a></li>
+  <li><a href="#maintaining-this-figure" id="toc-maintaining-this-figure" class="nav-link" data-scroll-target="#maintaining-this-figure">Maintaining this figure</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./configuration.html">Reference</a></li><li class="breadcrumb-item"><a href="./lifecycle.html">Build lifecycle</a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title">Build lifecycle</h1>
+<p class="subtitle lead">What happens before, during and after a run—and which parts are still being built.</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span>Target flow, not an installed-version guarantee
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The figures show the approved lifecycle direction, with implementation status marked explicitly. <strong>The installed <code>0.4.0-preview.1</code> does not implement this complete flow.</strong> In particular, the new settings layout and clear/hook ordering still need reviewed, merged code and event-order tests. PR159 implements a draft of this order; it is not a new release or completion of all defaults, R-data and embedding work. Use sample data or a disposable project copy. Previews are not a security sandbox.</p>
+</div>
+</div>
+<section id="read-the-figures" class="level2">
+<h2 class="anchored" data-anchor-id="read-the-figures">Read the figures</h2>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Mark</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>[R] Released</strong></td>
+<td>Bounded behavior in <a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1">0.4.0-preview.1</a>, not a complete safety guarantee.</td>
+</tr>
+<tr class="even">
+<td><strong>[M] Main only</strong></td>
+<td>A merged capability after that release; it is not automatically present in an installed binary.</td>
+</tr>
+<tr class="odd">
+<td><strong>[D] Draft</strong></td>
+<td>Implemented on the pinned PR159 review branch; not merged or released at this evidence point.</td>
+</tr>
+<tr class="even">
+<td><strong>[T] Target</strong></td>
+<td>An approved requirement or integration step awaiting matching implementation/tests.</td>
+</tr>
+<tr class="odd">
+<td><strong>[?] Open</strong></td>
+<td>A proposal or placement decision still requiring confirmation.</td>
+</tr>
+</tbody>
+</table>
+<p>A capability marked <strong>[R]</strong> or <strong>[M]</strong> inside a target figure does <strong>not</strong> prove that all surrounding arrows are implemented. Solid arrows show the order being specified. Dotted connections mark an unresolved association, not an execution step.</p>
+<p>An <strong>output build</strong> means the production <code>proj build</code> path. A <strong>preview</strong> means <code>proj build-dev</code>. Clearing here means final-output clearing, not arbitrary deletion of project files or preparation of a fresh cache.</p>
+</section>
+<section id="the-three-stages" class="level2">
+<h2 class="anchored" data-anchor-id="the-three-stages">The three stages</h2>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div id="fig-lifecycle-overview" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-lifecycle-overview-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<pre class="mermaid mermaid-js" data-label="fig-lifecycle-overview">%%{init: {"htmlLabels": false}}%%
+flowchart TB
+  classDef default fill:#f0f4f7,stroke:#637b89,color:#153b32
+  linkStyle default stroke:#26343f,color:#26343f
+  subgraph PRE["1 · Pre-build"]
+    A["Resolve and verify basic setup"]
+    B["[T] Start hooks, then remaining&lt;br/&gt;preparation"]
+    A --&gt; B
+  end
+  subgraph BUILD["2 · Build"]
+    C["[T] Conditional pre-clear →&lt;br/&gt;ordered analysis → conditional&lt;br/&gt;post-clear"]
+  end
+  subgraph POST["3 · Post-build"]
+    D["[T] Preview: end hooks and&lt;br/&gt;captured-state restoration; no&lt;br/&gt;publication"]
+    E["[T/D] Output: promotion and&lt;br/&gt;enabled finalization; end hooks&lt;br/&gt;immediately before next-dev&lt;br/&gt;transition"]
+  end
+  B --&gt; C
+  C --&gt;|"Preview"| D
+  C --&gt;|"Output"| E
+  classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
+  class A,B,C,D,E target
+  style PRE fill:#f1f6f3,stroke:#a8bcb4,color:#153b32
+  style BUILD fill:#f1f6f3,stroke:#a8bcb4,color:#153b32
+  style POST fill:#f1f6f3,stroke:#a8bcb4,color:#153b32
+</pre>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-lifecycle-overview-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Target overview. Open the stage details below for conditions and failure boundaries.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The key adjacency rules are deliberate: <strong>nothing runs between pre-clear and analysis</strong>, or between <strong>successful analysis and post-clear</strong>. Start hooks come after verified basic setup; end hooks come at the end, immediately before the output build’s transition to the next development version.</p>
+<section id="pre-build-details" class="level3">
+<h3 class="anchored" data-anchor-id="pre-build-details">1. Pre-build details</h3>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="true" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Open: resolution, validation, context and start hooks
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-2" class="callout-2-contents callout-collapse collapse show">
+<div class="callout-body-container callout-body">
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div id="fig-lifecycle-pre" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-lifecycle-pre-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<pre class="mermaid mermaid-js" data-label="fig-lifecycle-pre">%%{init: {"htmlLabels": false}}%%
+flowchart TB
+  classDef default fill:#f0f4f7,stroke:#637b89,color:#153b32
+  linkStyle default stroke:#26343f,color:#26343f
+  A["[R] Select explicit or discovered&lt;br/&gt;project root"]
+  B["[M/T] Resolve profiles and&lt;br/&gt;environment; merge config;&lt;br/&gt;settings HOW / build WHAT"]
+  C["[R/T] Validate typed configuration&lt;br/&gt;and explicit resource mappings"]
+  D["[M] Capture root, profiles,&lt;br/&gt;mappings, mode and active run&lt;br/&gt;version"]
+  E["[R/T] Preflight selected inputs,&lt;br/&gt;targets, dependencies and enabled&lt;br/&gt;Git prerequisites"]
+  F["[R] Capture bounded managed&lt;br/&gt;recovery state before controlled&lt;br/&gt;writes"]
+  G["[T] Run configured start hooks"]
+  H["[T] Complete remaining safe&lt;br/&gt;staging, renderer and allowed&lt;br/&gt;metadata preparation"]
+  A --&gt; B --&gt; C --&gt; D --&gt; E --&gt; F --&gt; G --&gt; H
+  classDef existing fill:#e5f2ed,stroke:#146859,color:#153b32
+  classDef main fill:#e7effa,stroke:#315b89,color:#183954
+  classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
+  class A,F existing
+  class D main
+  class B,C,E,G,H target
+</pre>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-lifecycle-pre-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Target pre-build order. Existing capabilities are identified separately from new ordering.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<ul>
+<li>Root selection, effective profiles, merged configuration and environment must agree before analysis starts. The target assigns <strong>HOW</strong> choices to <code>settings</code> and <strong>WHAT</strong> is selected/run to <code>build</code>; this is not permission to add unknown fields to the installed preview.</li>
+<li>The captured context fixes resource identity and the active run version. At the pinned main baseline, preview retains an existing dev version or uses dev1 of a release without writing VERSION; an output run uses its requested release version throughout the run and leaves the subsequent dev1 only on success.</li>
+<li>Validate declared paths, selected script/hook inputs, supported renderer plans, dependencies and explicitly enabled Git actions before controlled build writes. Probes can have their own effects: this is not a blanket read-only/environment sanitization guarantee.</li>
+<li>Start/end refer to the existing pre/both and post/both hook sets, not new hook types. The requested change is their position in the lifecycle.</li>
+<li>Recovery capture must precede hooks and managed mutations. Cache/staging setup, supported renderer preparation and permitted metadata/ignore work finish before the final pre-clear gate. No new metadata/provenance record is implied here.</li>
+<li>A script’s working directory is separate from project identity. Native cwd with an explicit project override, safe resource targets and render-context path presentation merged after the release in PR154–156; the evidence section separates those merges from the later lifecycle integration draft.</li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+<section id="build-details" class="level3">
+<h3 class="anchored" data-anchor-id="build-details">2. Build details</h3>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-3-contents" aria-controls="callout-3" aria-expanded="true" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Open: exact clearing position and selected execution
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-3" class="callout-3-contents callout-collapse collapse show">
+<div class="callout-body-container callout-body">
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div id="fig-lifecycle-build" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-lifecycle-build-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<pre class="mermaid mermaid-js" data-label="fig-lifecycle-build">%%{init: {"htmlLabels": false}}%%
+flowchart TB
+  classDef default fill:#f0f4f7,stroke:#637b89,color:#153b32
+  linkStyle default stroke:#26343f,color:#26343f
+  A{"Analysis selected?"}
+  B{"Output build, promotion enabled&lt;br/&gt;and clear stage pre?"}
+  C["[T] Pre-clear final outputs"]
+  D["[T] Execute ordered scripts /&lt;br/&gt;supported renderer plan"]
+  E{"Output build, promotion enabled&lt;br/&gt;and clear stage post?"}
+  F["[T] Post-clear final outputs"]
+  G["Continue to post-build"]
+  N["[R/T] No analysis: skip renderer&lt;br/&gt;setup, analysis cleanup and&lt;br/&gt;execution"]
+  X["Failure branch: stop success-only&lt;br/&gt;work and use bounded recovery"]
+  A --&gt;|"Yes"| B
+  A --&gt;|"Explicit empty list"| N --&gt; G
+  B --&gt;|"Yes"| C --&gt; D
+  B --&gt;|"No"| D
+  D --&gt;|"Success"| E
+  D --&gt;|"Failure"| X
+  E --&gt;|"Yes"| F --&gt; G
+  E --&gt;|"No"| G
+  classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
+  class C,D,F,N target
+</pre>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-lifecycle-build-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Target clearing adjacency. The diamond checks select a branch; they are not extra lifecycle work.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Preview skips both final-output clear operations, even if an output setting asks for them. With <code>scripts: []</code>, hooks can still run and an output build may export existing artifacts; that is not proof of complete analysis-free retry identity.</p>
+<p>The target routes eligible safe output/data roles and rendered docs through an explicitly selected versioned cache, keeping configured final destinations separate. Inputs retain their declared meaning; no undeclared <code>docs</code> or cache mapping is invented. Ordinary scripts can still write elsewhere: path helpers and staging are <strong>not automatic isolation of every write</strong>.</p>
+<p>The selected execution order must follow the supported plan. Do not infer arbitrary mixed-renderer ordering or RStudio/Quarto R API parity from this figure.</p>
+</div>
+</div>
+</div>
+</section>
+<section id="post-build-details" class="level3">
+<h3 class="anchored" data-anchor-id="post-build-details">3. Post-build details</h3>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-4-contents" aria-controls="callout-4" aria-expanded="true" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Open: promotion, end hooks, version and optional publication
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-4" class="callout-4-contents callout-collapse collapse show">
+<div class="callout-body-container callout-body">
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div id="fig-lifecycle-post" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-lifecycle-post-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<pre class="mermaid mermaid-js" data-label="fig-lifecycle-post">%%{init: {"htmlLabels": false}}%%
+flowchart TB
+  classDef default fill:#f0f4f7,stroke:#637b89,color:#153b32
+  linkStyle default stroke:#26343f,color:#26343f
+  A["[T/D] Restore renderer config;&lt;br/&gt;stage and validate cache artifacts;&lt;br/&gt;restore native artifacts"]
+  B{"Output build?"}
+  C{"Analysis and promotion enabled?"}
+  P["[T/D] Promote safe output/docs to&lt;br/&gt;explicitly configured final roots"]
+  J{"Publication enabled?"}
+  V["[D] Keep successful local release;&lt;br/&gt;close managed recovery boundary"]
+  S["[D] Export configured local CAS&lt;br/&gt;destinations, if selected"]
+  K["[D] Enabled Git commit / push"]
+  D["[T/D] Run configured end hooks"]
+  E{"Output build?"}
+  F["[T/D] Transition to next&lt;br/&gt;development version"]
+  G["[R/D] Restore captured managed&lt;br/&gt;state; retain cache results;&lt;br/&gt;no VERSION publication"]
+  A --&gt; B
+  B --&gt;|"Yes"| C
+  C --&gt;|"Yes"| P --&gt; J
+  C --&gt;|"No: including empty analysis"| J
+  J --&gt;|"Yes"| V --&gt; S --&gt; K --&gt; D
+  J --&gt;|"No"| D
+  B --&gt;|"Preview: skip promotion/publication"| D
+  D --&gt; E
+  E --&gt;|"Yes: immediately after end hooks"| F
+  E --&gt;|"Preview: no version transition"| G
+  classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
+  class A,P,V,S,K,D,F,G target
+</pre>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-lifecycle-post-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Approved post-build order implemented in the pinned PR159 draft; not released.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The end-hook/next-dev adjacency is approved. The pinned PR159 draft places enabled CAS export and Git commit/push <strong>before</strong> end hooks and the next-dev bump. Before publication it records the successful local release and gives up the managed recovery snapshot. Publication or later end-hook failure preserves that local release and skips the bump; partial external effects are not undone. Without publication, end-hook failure still uses bounded managed recovery. Preview runs end hooks, then restores captured managed state without a version transition. These are draft implementation boundaries, not a released guarantee.</p>
+<p>Promotion is output-only and conditional on selected analysis and enabled promotion. Explicit empty analysis preserves existing upload inputs instead; configured publication may still use them. Metadata means existing project/version operations, not finished attempt/release identifiers or complete provenance. The implemented storage path is configured local CAS export; Git commit/push and network checks are opt-in, not consequences of merely having a Git repository.</p>
+<p>An analysis failure does not enter the success-only post-clear/promotion/end-hook/version path. This page does not introduce an always/finally-hook policy.</p>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="settings-being-specified" class="level2">
+<h2 class="anchored" data-anchor-id="settings-being-specified">Settings being specified</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Choice</th>
+<th>Target meaning and status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>settings.output-clear-stage</code></td>
+<td><strong>[T/D]</strong> <code>none</code>, <code>pre</code> or <code>post</code>; default <code>none</code>. This canonical field is not available in installed 0.4.0-preview.1.</td>
+</tr>
+<tr class="even">
+<td><code>pre</code></td>
+<td><strong>[T]</strong> Clear immediately before selected analysis, after hooks and all other preparation. Output builds only.</td>
+</tr>
+<tr class="odd">
+<td><code>post</code></td>
+<td><strong>[T]</strong> Clear immediately after successful analysis, before restoration, promotion, hooks or other finalization. Output builds only.</td>
+</tr>
+<tr class="even">
+<td>Resolution precedence</td>
+<td><strong>[D] Pinned resolver:</strong> explicit choice → merged <code>settings</code> YAML → legacy YAML → environment → default. This is PR159 source/test evidence; do not assume the installed preview exposes the new command/config choices.</td>
+</tr>
+<tr class="odd">
+<td>Legacy compatibility</td>
+<td><strong>[T/D]</strong> Retain a compatibility path for <code>PROJR_CLEAR_OUTPUT</code> and <code>never</code>; map the old no-clear intent to canonical <code>none</code>. Do not assume mixed old/new settings are already accepted.</td>
+</tr>
+</tbody>
+</table>
+<p>At the pinned main baseline, the implementation reads the legacy environment ahead of the legacy YAML <code>build.clear_output</code> value. It performs pre-cleanup before start hooks and requested post-clear after local completion/export. Those are evidence of the older implementation, <strong>not</strong> the newly approved ordering or the PR159 draft. See the pinned baseline below rather than copying the target setting into an older binary.</p>
+</section>
+<section id="failure-and-recovery-boundaries" class="level2">
+<h2 class="anchored" data-anchor-id="failure-and-recovery-boundaries">Failure and recovery boundaries</h2>
+<p>The local recovery figure describes the bounded captured-state rule. The separate publication figure adds the <strong>PR159 draft</strong> boundary; it is not a whole-project or remote rollback guarantee.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div id="fig-lifecycle-local-failure" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-lifecycle-local-failure-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<pre class="mermaid mermaid-js" data-label="fig-lifecycle-local-failure">%%{init: {"htmlLabels": false}}%%
+flowchart TB
+  classDef default fill:#f0f4f7,stroke:#637b89,color:#153b32
+  linkStyle default stroke:#26343f,color:#26343f
+  A["[R/D] Preflight or managed local&lt;br/&gt;step fails; draft also covers end&lt;br/&gt;hooks when publication is off"]
+  B{"Recovery capture exists?"}
+  N["Stop: controlled build writes have&lt;br/&gt;not started"]
+  C["Restore captured managed set"]
+  D{"Restoration succeeds?"}
+  E["Report local failure; permitted&lt;br/&gt;cache residue may remain"]
+  F["Report primary and restoration&lt;br/&gt;errors; retain recovery data when&lt;br/&gt;available"]
+  A --&gt; B
+  B --&gt;|"No"| N
+  B --&gt;|"Yes"| C --&gt; D
+  D --&gt;|"Yes"| E
+  D --&gt;|"No"| F
+  classDef existing fill:#e5f2ed,stroke:#146859,color:#153b32
+  class A,B,N,C,D,E,F existing
+</pre>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-lifecycle-local-failure-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5: Existing local failure boundary: recovery covers only captured state.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div id="fig-lifecycle-publication-failure" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-lifecycle-publication-failure-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<pre class="mermaid mermaid-js" data-label="fig-lifecycle-publication-failure">%%{init: {"htmlLabels": false}}%%
+flowchart TB
+  classDef default fill:#f0f4f7,stroke:#637b89,color:#153b32
+  linkStyle default stroke:#26343f,color:#26343f
+  G["[D] Local success; keep release&lt;br/&gt;version; close managed recovery"]
+  H["[D] Enabled CAS export,&lt;br/&gt;then enabled Git commit / push"]
+  J["[D] End hooks"]
+  K["[D] Next-development bump"]
+  I["[D] Publication/end-hook failure:&lt;br/&gt;preserve local release; skip bump;&lt;br/&gt;partial external effects remain"]
+  G --&gt; H
+  H --&gt;|"Success"| J --&gt;|"Success"| K
+  H --&gt;|"Failure"| I
+  J --&gt;|"Failure"| I
+  classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
+  class G,H,J,K,I target
+</pre>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-lifecycle-publication-failure-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6: PR159 draft publication boundary: preserve local release; do not undo external effects.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The captured managed set is not a whole-project or filesystem snapshot. Cache results are deliberately retained. Arbitrary external script effects, concurrent writers, crashes and partial storage/Git effects are outside a transactional rollback guarantee. A preview restores its captured managed state on success and failure; this does not make it a security sandbox.</p>
+<p>Durable attempt/release records, complete input/code/config/dependency provenance and safe analysis-free publication retries remain unfinished. Do not automatically rerun analysis or claim publication was undone after an external failure.</p>
+</section>
+<section id="evidence-and-version-boundary" class="level2">
+<h2 class="anchored" data-anchor-id="evidence-and-version-boundary">Evidence and version boundary</h2>
+<ul>
+<li><strong>Installed preview:</strong> <a href="https://github.com/MiguelRodo/projcli/tree/bbd12edc8de9865a96b6145d0c7702f1300cb1a8">0.4.0-preview.1 source <code>bbd12ed</code></a>, <a href="./release-delivery.html">delivery evidence</a> and <a href="./preview-status.html">preview limits</a>.</li>
+<li><strong>Main baseline for current-order statements:</strong> <a href="https://github.com/MiguelRodo/projcli/blob/c085632bc31c0eac63e7b0ab03232be9b091ce84/src/build.rs"><code>c085632</code> build pipeline</a>. <a href="https://github.com/MiguelRodo/projcli/pull/153">PR153</a> adds captured run inputs after the release; it does not settle the new settings/clearing/hook order.</li>
+<li><strong>Merged after the preview release:</strong> <a href="https://github.com/MiguelRodo/projcli/pull/154">safe logical targets, PR154</a>, <a href="https://github.com/MiguelRodo/projcli/pull/155">path presentation, PR155</a> and <a href="https://github.com/MiguelRodo/projcli/pull/156">native cwd/override, PR156</a>. These merges do not establish a new released binary or complete integration.</li>
+<li><strong>Implemented review draft:</strong> <a href="https://github.com/MiguelRodo/projcli/blob/3459badb7a1481ec81c5804ec51d87c23169fe4e/src/build.rs">PR159 source <code>3459bad</code></a>, <a href="https://github.com/MiguelRodo/projcli/blob/3459badb7a1481ec81c5804ec51d87c23169fe4e/src/yml.rs">settings resolver at the same revision</a> and <a href="https://github.com/MiguelRodo/projcli/actions/runs/39576119854">executed remote renderer acceptance</a>. This pins the clearing/hook/publication sequence and cache-consumer work under review. Defaults, R-data and embedding acceptance remain separate unfinished slices; this page does not mark them or M1/M2 complete.</li>
+<li>The <a href="./behavior.html">behavior contract</a> and <a href="./compatibility.html">versioned compatibility log</a> distinguish decisions, implementation and executed evidence. The <a href="./flow.html">current implementation notes</a> remain a separate view.</li>
+</ul>
+</section>
+<section id="maintaining-this-figure" class="level2">
+<h2 class="anchored" data-anchor-id="maintaining-this-figure">Maintaining this figure</h2>
+<p><strong>Contributor requirement:</strong> lifecycle changes must update this page’s diagrams, status legend and evidence/version references in the same PR. This includes settings precedence, hook/clearing order, context/version capture, output promotion and publication/failure boundaries. Link actual event-order and recovery tests; do not turn a target marker into a released marker merely because a branch compiles.</p>
+<p>Keep the three-stage overview small. Put new detail in the relevant folded stage instead of expanding one unreadable graph. Render the site, exercise diagram export and verify the page links remotely; do not require local Quarto/R/Docker builds.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/miguelrodo\.github\.io\/projcli\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>projcli · research builds, one project at a time</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item">
+    <a class="nav-link" href="https://github.com/MiguelRodo/projcli">
+<p>Source and releases</p>
+</a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+
+</body></html>
