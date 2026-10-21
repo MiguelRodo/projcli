@@ -158,3 +158,8 @@ policy, new language roles or edits to the existing R package.
 The remote combined M1 driver is tests/acceptance/m1_contract.py. Inspect its
 JSON and downloadable CSV/HTML artifacts, and rerun on the final reviewed combined
 source tree before release; a passing stacked preparation is not M1 completion.
+
+Before the next preview release, follow docs/release-candidate.qmd. Keep the
+published/installed version distinct from source changes; rerun exact integrated
+acceptance before the reviewed version/tag/assets/publication/WSL sequence.
+Unchanged Bookdown site embedding and other deferred limits must stay explicit.

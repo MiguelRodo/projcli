@@ -1544,3 +1544,22 @@ checked before fixture setup. A failing Git shim/call witness and empty Git conf
 prove no Git dependency without hiding renderer runtime paths. Evidence now
 distinguishes preserved ordinary output/archive bytes from replaced production
 docs; preview/failure docs stay preserved. No product/M2 provenance changes.
+
+## Next-preview release/install documentation preparation
+
+README/install/features/status now distinguish the verified published 0.4.0-preview.1
+from newer source slices. Prepared unpublished release notes and an integrated-source
+acceptance/delivery checklist with user-local WSL replacement gates and explicit
+Bookdown/R/IDE/nonembedded/provenance/retry limits. No package version, installer
+pin, workflow, tag, release or installed binary is changed. Current install fences
+remain exact and matched; remote docs checks and native-browser witness are retained.
+
+Ponytail full: reuse existing release/install pipeline and acceptance artifacts;
+one candidate page linked from existing docs, no new tool or installer mechanism.
+Remote rendered docs checks and independent review remain required.
+
+Candidate acceptance wording follows PR163 review: distinguish ordinary generated
+output/archive preservation under none from successful document replacement.
+Require exact final/object bytes, expected manifest/index release and next-dev
+versions, corruption probes, immediate init directories and a failing Git-call
+witness. Record the project embedding preparation/input restrictions explicitly.

@@ -1,0 +1,126 @@
+---
+title: "Next preview: release checks"
+subtitle: "Prepared for review. No new release or installation is announced here."
+---
+
+## What is available now
+
+The published development release is
+[0.4.0-preview.1](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.1).
+The [install guide](install.qmd) deliberately still installs that version.
+The WSL preview already installed is also the older preview. A source-code change
+does not update an installed command.
+
+The next development preview is being prepared. Its version, source commit and
+download commands must be filled in from the reviewed release before publication.
+This page does not create a tag, change the package version or replace a binary.
+
+## What the next preview is intended to add
+
+| Change | What it means when the candidate is released |
+|---|---|
+| Keep one project context | A child command keeps the selected project, configuration and run version when a script changes folder. |
+| Separate trial results from released files | Generated-output path queries default to a folder under the selected cache for that run's version. A successful production build can copy declared results to their final folders. |
+| Use familiar working folders | Scripts inherit the folder from which the build was launched; document tools keep their native rules. An explicit project-folder option remains available. |
+| Control output cleanup | The default keeps other final output files. You can opt into clearing immediately before analysis or after successful analysis. Preview does not clear released outputs. Document-output replacement has its own documented rules. |
+| Handle R package data explicitly | output-r-data resolves to the project's data folder for final lookup. Only an explicit declaration, or a normalized legacy data declaration, opts that folder into ordinary build management. |
+| Share supported HTML reports | Individual Quarto/R Markdown HTML and modeled Quarto projects default to embedding resources when unspecified. Explicit and inherited false values remain respected. |
+| See useful results and failures | The acceptance fixtures produce a CSV and an HTML report, preserve prior final/archive bytes on preview or supported failure, and return structured success/failure results. Git credentials are not required for these local workflows. |
+
+The selected R/Python/report example has a verified order. A renderer can handle
+several documents as one project; this does not promise arbitrary mixed-language
+targets always execute one by one in the order written.
+
+## Limits that stay in place
+
+- The existing R package and its helpers are unchanged. The acceptance examples
+  call the CLI through small test adapters; they do not prove RStudio, Knit or
+  direct R API parity.
+- Bookdown's site renderer keeps its native resource policy. This slice does
+  not add its embedding fallback. Do not treat its linked site as a portable
+  single-file HTML report.
+- Individual rendering still rejects unsupported inherited/external metadata
+  and unsupported layouts. Quarto project metadata remains a separate supported
+  path; nested Quarto projects are rejected.
+- Project fallback requires modeled text inputs and temporarily prepares only
+  unspecified HTML options. It restores original source bytes. Changing a prepared
+  source or native input set before rendering is rejected; other input types need
+  explicit renderer embedding settings.
+- Explicitly nonembedded HTML may need its original resources. Literal Markdown
+  and LaTeX references keep their native meaning; no resource URLs are rewritten.
+- Preview recovery covers recorded managed paths. It does not isolate arbitrary
+  script effects, handle every concurrent change, or provide crash/power-loss
+  atomicity.
+- Complete provenance, durable attempt/release records, analysis-free publication
+  retry and M2 remain unfinished.
+- Delivery remains Linux/WSL and Windows x86-64. macOS/ARM binaries are not supplied.
+
+Use sample data or an independently backed-up disposable copy while evaluating
+this development preview. Read the [build reference](cli/build.qmd) and
+[lifecycle](lifecycle.qmd) before production use.
+
+## Review status and evidence
+
+The [source PRs](https://github.com/MiguelRodo/projcli/pulls) record exact heads,
+remote runs and downloadable evidence. R-data is merged. Embedding and combined
+acceptance corrections still require independent clearance and a final run on
+the integrated tree. Branch preparation artifacts are supporting evidence, not
+proof that the installed preview or final candidate contains every change.
+
+## Final integrated acceptance
+
+1. Finish independent review and integrate the source slices, then the acceptance
+   driver. Record the exact resulting source commit. Resolve documentation and
+   workflow overlaps without changing reviewed behavior; report any new head.
+2. Run the existing pinned-image workflow on that exact integrated tree. Require
+   complete locked Rust regressions, documentation examples, warning-free API
+   documentation, actual R/Python/rendering acceptance and the combined M1 driver.
+   Retain host-platform, installer and website checks and the existing native-browser
+   documentation witness.
+3. Inspect the JSON and downloadable files from both acceptance drivers. Confirm
+   configured/no-init and actual local directory initialization; ordered
+   Python/R/report steps; computed CSV value 84; four relocated embedded reports;
+   structured deliberate failures; unchanged prior ordinary generated-output/archive
+   bytes under none; prior docs preserved on preview/failure and replaced on
+   successful document finalization; and exactly two expected-role local archive
+   manifests for each successful production case, with object bytes matching the
+   CSV/report witnesses and index/manifests identifying release1.2.4. Require the
+   final project VERSION to be next-dev1.2.4.1.
+   Preview/failure cases must create no archive manifests. Require the corruption
+   probes, immediate init-directory checks and failing Git-call witness as well.
+4. Require the R-data undeclared/explicit/legacy activation matrix and embedding
+   unspecified/explicit/inherited-false matrix on the same integrated source.
+   A previous green branch is supporting evidence, not a substitute.
+5. Reconcile the website's behavior, feature and compatibility descriptions with
+   the actual supported CLI behavior and deferred limits. Record independent
+   clearance before release work advances.
+
+These steps do not close M1 by themselves. The final report must identify the
+accepted scope, exact integrated source and remaining limits.
+
+## Release and WSL installation sequence
+
+1. Prepare a separate reviewed version change. Cargo.toml and the root package
+   entry in Cargo.lock must agree. The CLI package version is distinct from an
+   analysis project's VERSION; do not change users' project versions.
+2. Update the release notes, README, install guide and documentation-check
+   expectations together for the chosen version and exact installer source.
+   Keep the public instructions in plain language. Do not point users at
+   unpublished downloads or silently use GitHub's older stable Latest.
+3. Only after the source/version gates pass, tag the exact reviewed commit and
+   run the existing preview release workflow. It creates a draft prerelease.
+   Inspect both actual platform assets, source-commit.txt, version.txt and the
+   exact checksum entries. Run the remote binary and installer checks.
+4. Publish only the verified draft. Confirm public downloads match the checked
+   assets. Keep Linux/Windows platform limits and deferred features visible.
+5. Inside WSL Ubuntu, preserve the previous user-local binary, download the
+   explicit published version, verify its checksum and install into the existing
+   user-writable directory. No local Rust compilation, administrator access or
+   persistent authentication changes are needed. Do not disturb thesis containers,
+   the existing R package or the Windows Codex process.
+6. Check the installed binary by its full path for version, help and machine
+   capabilities, then run a tiny disposable configured preview and deliberate
+   failure. Confirm the shell resolves the expected command. Record the actual
+   installed version and verification evidence before saying installation is done.
+
+No release, tag or local binary replacement is made by this documentation preparation.
