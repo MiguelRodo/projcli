@@ -34,7 +34,7 @@ other = Path({other})
 os.chdir(other)
 def query(*args):
  return json.loads(subprocess.check_output([binary, '--machine', *args], text=True))['result']
-output = query('path','get','--label','output')['path']
+output = query('path','get','--label','output','--target','final','--format','absolute')['path']
 raw = query('path','get','--label','raw-data')['path']
 assert Path(output).samefile(root / 'released')
 assert Path(raw).samefile(Path({external}))

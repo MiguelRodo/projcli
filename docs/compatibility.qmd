@@ -1420,3 +1420,11 @@ HTML sentinel. This amended-head evidence is pending remote execution/review.
   linked portability and R/IDE frontend parity are not claimed by this slice.
 - **Ponytail full:** reuse the existing resolver, representation and run-context
   machinery; no duplicate schema, new dependency or wrapper implementation.
+
+Initial remote default checks passed the new settings/snapshot regressions but
+found two older queries still assuming final/absolute results, plus the site
+example checker's absolute-only assertion. Those queries now explicitly request
+their original modes; the checker resolves returned paths against the actual
+query cwd and still verifies the exact cache identity. The published native-browser
+lifecycle witness, workflow triggers/permissions and installation checks are
+unchanged. Final amended-head checks remain required.

@@ -51,7 +51,7 @@ fn child_path_query_keeps_selected_root_after_cwd_changes() {
 from pathlib import Path
 root = Path(os.environ['PROJ_PROJECT_ROOT'])
 os.chdir(root / 'elsewhere')
-path = subprocess.check_output([os.environ['PROJCLI_FIXTURE_BINARY'], 'path', 'get', '--label', 'output'], text=True).strip()
+path = subprocess.check_output([os.environ['PROJCLI_FIXTURE_BINARY'], 'path', 'get', '--label', 'output', '--target', 'final', '--format', 'absolute'], text=True).strip()
 assert Path(path) == root / '_output', (path, root)
 (root / '_tmp').mkdir(exist_ok=True)
 (root / '_tmp/observed-root.txt').write_text(str(root))

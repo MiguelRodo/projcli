@@ -232,7 +232,7 @@ jobs:
                   assert before == {p.name: p.read_bytes() for p in project.iterdir() if p.is_file()}, "preview changed inputs"
                   path = run([binary, "--project", ".", "path", "get", "--label", "cache"],
                              cwd=project, env=env).strip()
-                  assert Path(path) == project / "_tmp", path
+                  assert (project / Path(path)).resolve() == (project / "_tmp").resolve(), path
                   print(f"PASS {page}: real configuration, CLI validation, preview and output")
           
           print(f"Validated using {binary}")
