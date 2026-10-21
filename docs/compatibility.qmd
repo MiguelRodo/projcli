@@ -1428,3 +1428,45 @@ their original modes; the checker resolves returned paths against the actual
 query cwd and still verifies the exact cache identity. The published native-browser
 lifecycle witness, workflow triggers/permissions and installation checks are
 unchanged. Final amended-head checks remain required.
+
+## R-package data role normalization and explicit activation
+
+- **Same intended R convention:** pinned projr
+  90be50132d16aee33e39c0f7f35ef906c35f5397 R/dir-get.R and projr_use_data
+  identify package-generated .rda data, distinct from raw inputs.
+- **Different/new, approved:** canonical output-r-data has fixed final project/data;
+  built-in lookup works without a declaration, but safe lookup still needs the
+  selected declared cache and active version. Queries never activate writes.
+  Only explicit output-r-data or normalized legacy data activates ordinary output
+  cleanup/recovery/promotion/publication inventory. No special preserve policy.
+  Legacy aliases and remote content normalize per original layer before merging;
+  conflicts/redirection fail early. Generic data-* labels are rejected.
+- **Tests added, remote execution pending:** no-YAML final lookup; safe-cache
+  identity and query nonmutation; profile/local alias precedence and invalid
+  layers; legacy remote content; undeclared/canonical/legacy build matrix across
+  none/pre/post, preview and deliberate failure with exact final/cache witnesses.
+  Earlier generic data tests now use ordinary output-generated labels.
+- **Ponytail full review:** reused the resolver, merged configuration loader and
+  existing output inventories. Removed the unpublished role-specific ignore
+  default; ordinary ignore rules apply and docs explicitly show ignore: [] for
+  package inclusion. No dependencies, Python/Julia/inst roles, helper edits or
+  R/IDE parity claims. Existing guards and lifecycle order are unchanged.
+
+Initial remote platform checks found a stale expected safe-cache leaf in the
+renamed generic output fixture. Corrected data/artifact.txt to
+output-generated/artifact.txt; the deliberate exit17 witness already passed.
+Exact amended-head remote checks and independent review remain required.
+
+The pinned acceptance workflow also runs cargo doc --locked --no-deps to satisfy
+the repository API-documentation check remotely, using the same existing image.
+
+Remote macOS checks caught two direct-library fixtures using the system /var
+temporary-directory symlink. Resolve their owned temporary roots first, matching
+the existing guarded-write fixture convention; do not weaken symlink validation.
+Linux/Windows R-data cases and pinned actual-render/API-doc checks passed before
+this fixture-only correction. Final exact-head checks remain required.
+
+Independent review cleared runtime and activation at 685bf8f. Corrected the
+configuration overview and DirConfig documentation to state canonical prefix rules
+and the fixed-role path exception consistently. The legacy remote test proves
+normalization/validation, not actual CAS publication. No runtime changes.

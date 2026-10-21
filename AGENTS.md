@@ -137,3 +137,10 @@ cache, ordinary auto is caller-relative and known-renderer auto is absolute.
 Runtime HOW belongs in `settings`; execution-directory and path-representation
 are merged policies with explicit CLI overrides. Keep child defaults frozen with
 root/profile/version/mappings; never rediscover them after scripts mutate YAML.
+
+R-package data lookup is built in as output-r-data with fixed final project/data;
+safe lookup still requires a declared selected cache and version. Lookup never
+activates writes. Only explicit canonical or per-layer normalized legacy data
+declarations enter ordinary output clearing/recovery/promotion/publication.
+Reject redirection and alias conflicts before merge; no special preservation
+policy, new language roles or edits to the existing R package.
