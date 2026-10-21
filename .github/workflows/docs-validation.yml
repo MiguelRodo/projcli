@@ -31,6 +31,31 @@ jobs:
           mkdir -p validation-evidence
           git rev-parse HEAD | tee validation-evidence/pr-checkout.txt
           quarto render docs --no-execute 2>&1 | tee validation-evidence/quarto-render.txt
+      - name: Install supported headless shell for lifecycle validation
+        run: |
+          timeout --kill-after=10s 180s quarto install chrome-headless-shell --no-prompt 2>&1 | tee validation-evidence/headless-shell-install.txt
+      - name: Verify all lifecycle diagrams export to SVG
+        run: |
+          diagram_dir="validation-evidence/lifecycle-svg-review"
+          mkdir -p "$diagram_dir"
+          cp docs/lifecycle.qmd "$diagram_dir/lifecycle.qmd"
+          cmp docs/lifecycle.qmd "$diagram_dir/lifecycle.qmd"
+          timeout --kill-after=10s 120s quarto render "$diagram_dir/lifecycle.qmd" --to gfm --no-execute -M mermaid-format:svg --output lifecycle.md 2>&1 | tee validation-evidence/lifecycle-svg-render.txt
+          python3 - <<'PY' 2>&1 | tee validation-evidence/lifecycle-svg-check.txt
+          from pathlib import Path
+          import math
+          import xml.etree.ElementTree as ET
+          root = Path("validation-evidence/lifecycle-svg-review")
+          figures = sorted(root.rglob("mermaid-figure-*.svg"))
+          assert len(figures) == 6, f"Expected six rendered diagrams, found {len(figures)}"
+          for path in figures:
+              svg = ET.parse(path).getroot()
+              assert svg.tag == "{http://www.w3.org/2000/svg}svg", path
+              viewbox = [float(value) for value in svg.attrib["viewBox"].split()]
+              assert len(viewbox) == 4 and all(math.isfinite(v) and v > 0 for v in viewbox[2:]), path
+              assert any("node" in el.attrib.get("class", "").split() for el in svg.iter()), path
+              print(f"PASS rendered SVG: {path.name}; viewBox={svg.attrib['viewBox']}")
+          PY
       - name: Check rendered navigation and local links
         run: |
           python3 - <<'PY' 2>&1 | tee validation-evidence/links.txt

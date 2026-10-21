@@ -3,7 +3,7 @@ title: "Build lifecycle"
 subtitle: "What happens before, during and after a run—and which parts are still being built."
 format:
   html:
-    mermaid-format: svg
+    mermaid-format: js
 ---
 
 ::: {.callout-warning}
@@ -169,25 +169,28 @@ arbitrary mixed-renderer ordering or RStudio/Quarto R API parity from this figur
 %%| fig-cap: "Target constraints. The dotted finalization box is deliberately unpositioned pending core confirmation."
 %%| fig-alt: "After the immediate clear gate, check artifacts and restore renderer configuration. Only output builds promote results. End hooks immediately precede the next-development transition; previews instead restore captured state. Publication placement remains open."
 flowchart TB
-  A["[T] After the immediate post-clear<br/>gate: check produced artifacts and<br/>restore renderer config"]
+  A["[T] After the immediate post-clear<br/>gate: restore renderer config and<br/>check artifacts required by the<br/>selected plan"]
   B{"Output build?"}
-  C["[T] Promote safe output/docs to<br/>explicitly configured final roots"]
+  C{"Analysis and promotion enabled?"}
+  P["[T] Promote safe output/docs to<br/>explicitly configured final roots"]
   D["[T] Run configured end hooks"]
   E{"Output build?"}
   F["[T] Transition to next development<br/>version"]
   G["[R/T] Restore captured managed<br/>state; retain cache results; no<br/>VERSION publication"]
-  P["[?] Enabled metadata / local CAS<br/>export / Git commit and push:<br/>exact placement and boundary<br/>awaiting confirmation"]
+  Q["[?] Output-only enabled metadata /<br/>local CAS export / Git: exact<br/>placement and boundary awaiting<br/>confirmation"]
   A --> B
-  B -->|"Yes"| C --> D
+  B -->|"Yes"| C
+  C -->|"Yes"| P --> D
+  C -->|"No: including explicit empty analysis"| D
   B -->|"Preview: no promotion/publication"| D
   D --> E
   E -->|"Yes: immediately after end hooks"| F
   E -->|"Preview: no version transition"| G
-  C -.- P
+  A -.- Q
   classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
   classDef open fill:#edf0f2,stroke:#56626c,color:#26343f
-  class A,C,D,F,G target
-  class P open
+  class A,P,D,F,G target
+  class Q open
 ```
 
 The end-hook/next-dev adjacency is approved. **The relative placement and commit
@@ -195,7 +198,9 @@ boundary of enabled metadata, storage and Git finalization still needs core
 confirmation.** The dotted box does not authorize an ordering change or a new
 all-or-nothing publication guarantee.
 
-Promotion is output-only. Metadata means existing project/version operations,
+Promotion is output-only and conditional on selected analysis and enabled
+promotion. Explicit empty analysis preserves existing upload inputs instead;
+configured publication may still use them. Metadata means existing project/version operations,
 not finished attempt/release identifiers or complete provenance. The implemented
 storage path is configured local CAS export; Git commit/push and network checks
 are opt-in, not consequences of merely having a Git repository.
@@ -297,5 +302,5 @@ recovery tests; do not turn a target marker into a released marker merely becaus
 a branch compiles.
 
 Keep the three-stage overview small. Put new detail in the relevant folded stage
-instead of expanding one unreadable graph. Render the SVG diagrams and verify
-their page links remotely; do not require local Quarto/R/Docker builds.
+instead of expanding one unreadable graph. Render the site, exercise diagram export and verify
+the page links remotely; do not require local Quarto/R/Docker builds.
