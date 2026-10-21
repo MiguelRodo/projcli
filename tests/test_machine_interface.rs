@@ -36,7 +36,7 @@ fn queries_produce_typed_results_without_progress_or_configuration_secrets() {
     let root = temp.path().canonicalize().unwrap();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
     fs::write(root.join("_proj.yml"), "directories:\n  output:\n    path: output data\nparameters:\n  private_token: machine-secret-sentinel\n").unwrap();
-    for args in [vec!["path", "get", "--label", "output"], vec!["version", "get"], vec!["version", "get", "--format", "json"], vec!["yml", "read"]] {
+    for args in [vec!["path", "get", "--label", "output","--target","final","--format","absolute"], vec!["version", "get"], vec!["version", "get", "--format", "json"], vec!["yml", "read"]] {
         let output = command(&root).args(&args).output().unwrap();
         let value = envelope(&output, true);
         assert!(!String::from_utf8_lossy(&output.stdout).contains("machine-secret-sentinel"));

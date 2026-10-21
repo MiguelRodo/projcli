@@ -156,7 +156,7 @@ fn post_clear_precedes_promotion_and_archive_contains_actual_analysis_bytes() {
     fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\n  output:\n    path: output\nremotes:\n  local:\n    archive:\n      path: archives\n      structure: cas\n      inspect: manifest\n      content: [output]\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  clear_output: post\n  dest: [archive]\n  restrictions:\n    not_behind: false\n").unwrap();
     fs::write(root.join("analysis.py"), format!(r#"from pathlib import Path
 import json,subprocess
-value=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label','output','--target','safe','result.csv'],text=True))
+value=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label','output','--target','safe','result.csv','--format','absolute'],text=True))
 target=Path(value['result']['path']);target.parent.mkdir(parents=True,exist_ok=True);target.write_text('actual-analysis-bytes')
 "#,binary=serde_json::to_string(env!("CARGO_BIN_EXE_proj")).unwrap())).unwrap();
     let result = Command::new(env!("CARGO_BIN_EXE_proj"))

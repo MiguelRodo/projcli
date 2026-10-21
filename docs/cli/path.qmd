@@ -1,6 +1,6 @@
 # `proj path get`
 
-Get the resolved absolute path for a given label in the project.
+Resolve a project resource independently of your current working directory.
 
 ```bash
 proj path get --label <LABEL> [--target final|safe] [--format auto|absolute|relative] [--relative-to BASE] [--project <PATH>] [PART ...]
@@ -12,8 +12,8 @@ A label must be declared in the active configuration with a nonempty `path`.
 ASCII case is ignored. Undeclared labels and suffixes are errors: declaring
 `raw-data` does not declare `raw` or `raw-data-extra`. Relative paths resolve
 against the captured project root; explicit external directories are allowed.
-Queries do not create directories. Final lookup returns the configured location;
-explicit safe lookup resolves the logical versioned-cache target.
+Queries do not create directories. Safe lookup is the default and resolves generated output into the versioned cache.
+Use `--target final` for the configured released destination.
 
 ## Explicit and inherited project root
 
@@ -65,9 +65,8 @@ a candidate. The chosen label is captured for child queries. A release version h
 keys use a hyphen, such as `v1.2.3-4`. Other roles retain their configured targets.
 
 `--target final` addresses the explicitly configured destination, including an
-absolute external directory. This intermediate slice retains `final` as the CLI
-default until build promotion is wired to safe logical output; that is a temporary
-compatibility boundary, not the final approved default path model.
+absolute external directory. The CLI defaults to `safe`; production promotion is
+a separate build step. Path queries do not promote anything.
 
 Optional parts extend the selected role, for example:
 
@@ -78,7 +77,7 @@ proj path get --label output --target safe figures result.png
 Queries do not create directories. Unknown labels, missing cache/version for safe
 lookup, absolute/drive-qualified parts and parent traversal fail clearly. Explicit
 directory mappings stay mandatory; `output-model` does not imply an `output` alias.
-Native cwd/auto-relative presentation and renderer staging are separate slices.
+Path representation and native execution cwd remain separate policies.
 
 
 ## Representation and explicit renderer context
@@ -92,8 +91,11 @@ renders without a single document reject that base. A custom base must be absolu
 
 Strict relative conversion fails across roots/drives. Auto ordinary execution falls
 back to absolute when no relative path exists; the absolute target stays identical.
-The intermediate CLI still defaults to absolute/final until integrated consumers
-switch to the approved auto/safe defaults. Getters create no directories.
+The CLI defaults to safe targets and auto representation. Merged
+`settings.path-representation` may select auto/absolute/relative; an explicit
+`--format` overrides it. The default is frozen with managed child context, while
+relative paths are expressed against each query caller’s current cwd. Getters
+create no directories.
 
 Renderer descriptors are private per-command snapshots created only when launching
 Quarto/rmarkdown/Bookdown, alongside unchanged root/profile/version/mapping inputs.

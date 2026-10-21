@@ -2,7 +2,8 @@
 
 The small R fixture adapter invokes the Rust CLI. It is not an existing projr
 helper or a proposed production R frontend. HTML embedding is explicit here;
-fallback/inheritance acceptance is added with that separately reviewed slice.
+embedding fallback/inheritance acceptance is added with that separately reviewed slice.
+Path target/representation flags are omitted to exercise safe/auto defaults.
 """
 from __future__ import annotations
 
@@ -30,7 +31,7 @@ def sentinel_png() -> bytes:
 
 R_ADAPTER = r'''cli_path <- function(label, ...) {
   args <- c("--non-interactive", "path", "get", "--label", label,
-            "--target", "safe", "--format", "auto", ...)
+            ...)
   result <- system2(Sys.getenv("PROJCLI_ACCEPT_BINARY"), vapply(args, shQuote, ""), stdout=TRUE)
   if (!is.null(attr(result, "status"))) stop("CLI path query failed")
   stopifnot(length(result) == 1L)
@@ -60,7 +61,7 @@ def run_case(binary: Path, container: Path, name: str, mode: str, failure: str |
     python_script = '''import json,os,subprocess
 from pathlib import Path
 def cli_path(label,*parts):
- args=[os.environ['PROJCLI_ACCEPT_BINARY'],'--machine','path','get','--label',label,'--target','safe','--format','auto',*parts]
+ args=[os.environ['PROJCLI_ACCEPT_BINARY'],'--machine','path','get','--label',label,*parts]
  result=json.loads(subprocess.check_output(args,text=True))
  return Path(result['result']['path'])
 assert cli_path('raw-data','data.csv').read_text()=='value\\n42\\n'

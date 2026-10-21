@@ -17,7 +17,8 @@ pub enum BuildMode {
 }
 
 /// Execution-directory policy, independent of captured project identity and paths.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum ExecutionDirectory {
     /// Scripts inherit the invocation cwd; document renderers retain native defaults.
     Native,
@@ -76,7 +77,7 @@ fn publish_git_in(root: &camino::Utf8Path, environment: &RunEnvironment, engine:
 }
 
 pub fn build_project(project_root: &camino::Utf8Path, mode: BuildMode, cli_profile: Option<&str>, description: Option<&str>) -> anyhow::Result<()> {
-    build_project_with_execution(project_root, mode, cli_profile, description, ExecutionDirectory::Native)
+    build_project_with_policies(project_root, mode, cli_profile, description, None, None)
 }
 
 /// Runs a build with an explicit execution-directory policy.
@@ -91,6 +92,12 @@ pub fn build_project_with_execution(project_root: &camino::Utf8Path, mode: Build
 
 /// Adds an explicit clear-stage override above merged settings and legacy environment.
 pub fn build_project_with_clear_stage(project_root: &camino::Utf8Path, mode: BuildMode, cli_profile: Option<&str>, description: Option<&str>, execution: ExecutionDirectory, clear_stage: Option<crate::yml::OutputClearStage>) -> anyhow::Result<()> {
+    build_project_with_policies(project_root, mode, cli_profile, description, Some(execution), clear_stage)
+}
+
+/// Applies explicit command overrides above merged runtime settings.
+pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildMode, cli_profile: Option<&str>, description: Option<&str>, execution_override: Option<ExecutionDirectory>, clear_stage: Option<crate::yml::OutputClearStage>) -> anyhow::Result<()> {
+    let caller_directory = std::env::current_dir().context("Cannot capture invocation working directory")?;
     let resolved_root = crate::project::resolve_project_root(Some(project_root))?;
     let project_root = resolved_root.as_path();
     let is_dev = mode == BuildMode::Dev;
@@ -105,11 +112,7 @@ pub fn build_project_with_clear_stage(project_root: &camino::Utf8Path, mode: Bui
     let mut environment = RunEnvironment::resolve(Some(&profile_text), project_root)
         .context("Failed to resolve build environment")?;
     environment.set(crate::PROJECT_ROOT_ENV, project_root.as_str());
-    let launch_directory = match execution {
-        ExecutionDirectory::Native => std::env::current_dir().context("Cannot capture invocation working directory")?,
-        ExecutionDirectory::Project => project_root.as_std_path().to_owned(),
-    };
-    environment.set_working_directory(launch_directory);
+
 
 
     // ==========================================
@@ -125,6 +128,11 @@ pub fn build_project_with_clear_stage(project_root: &camino::Utf8Path, mode: Bui
     let project_config: ProjConfig = serde_json::from_value(combined)
         .context("Failed to deserialize combined configuration")?;
     let config = project_config.validate_and_resolve(project_root, is_dev)?;
+    let execution = execution_override.or(config.settings.execution_directory).unwrap_or(ExecutionDirectory::Native);
+    environment.set_working_directory(match execution {
+        ExecutionDirectory::Native => caller_directory,
+        ExecutionDirectory::Project => project_root.as_std_path().to_owned(),
+    });
     let clear_stage = config.settings.clear_stage(clear_stage, config.clear_output.as_deref(), environment.text("PROJR_CLEAR_OUTPUT"))?;
     if !is_dev && config.old_dev_remove == Some(true) {
         anyhow::bail!("Automatic old development-cache removal is unsupported with safe routing; disable dev.old_dev_remove");

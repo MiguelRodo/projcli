@@ -84,6 +84,10 @@ pub struct ProjConfig {
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub struct SettingsConfig {
     pub output_clear_stage: Option<OutputClearStage>,
+    /// Native runner cwd by default; explicit command policy takes precedence.
+    pub execution_directory: Option<crate::build::ExecutionDirectory>,
+    /// Auto path presentation by default, frozen into managed child contexts.
+    pub path_representation: Option<crate::paths::PathFormat>,
 }
 
 #[derive(Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
@@ -639,8 +643,10 @@ fn read_configuration_file(path: &Utf8Path) -> anyhow::Result<Value> {
     if let Some(settings) = value.get("settings") {
         let _: SettingsConfig = serde_json::from_value(settings.clone())
             .with_context(|| format!("Invalid settings in {path}"))?;
-        if let Some(marker) = settings.get("output-clear-stage") {
-            anyhow::ensure!(marker.is_string(), "settings.output-clear-stage must be a string in {path}");
+        for key in ["output-clear-stage", "execution-directory", "path-representation"] {
+            if let Some(marker) = settings.get(key) {
+                anyhow::ensure!(marker.is_string(), "settings.{key} must be a string in {path}");
+            }
         }
     }
     let aliases = ["parameters", "parameter", "params", "param"];

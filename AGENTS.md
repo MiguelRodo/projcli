@@ -130,3 +130,10 @@ For output lifecycle changes retain exact clear/script adjacency and end-hook/ve
 adjacency. Keep the site lifecycle diagram synchronized through its owner before
 merge, including the irreversible-publication boundary and preview/failure branches.
 Source-only intermediate behavior is not a release or M1 completion claim.
+
+
+Path defaults are safe/auto: generated output resolves into captured versioned
+cache, ordinary auto is caller-relative and known-renderer auto is absolute.
+Runtime HOW belongs in `settings`; execution-directory and path-representation
+are merged policies with explicit CLI overrides. Keep child defaults frozen with
+root/profile/version/mappings; never rediscover them after scripts mutate YAML.

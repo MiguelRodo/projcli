@@ -1,7 +1,7 @@
 use std::{fs, path::Path, process::Command};
 
 fn query(root: &Path, label: &str, target: &str, parts: &[&str]) -> std::process::Output {
-    Command::new(env!("CARGO_BIN_EXE_proj")).args(["--machine","path","get","--label",label,"--target",target,"--project"])
+    Command::new(env!("CARGO_BIN_EXE_proj")).args(["--machine","path","get","--label",label,"--target",target,"--format","absolute","--project"])
         .arg(root).args(parts).current_dir(root).env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
         .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap()
 }
@@ -63,7 +63,7 @@ root=Path(os.environ['PROJ_PROJECT_ROOT'])
 (root/'_proj.yml').write_text('invalid: changed config')
 os.environ['PROJR_PROFILE']='changed-profile'
 os.chdir(root.parent)
-value=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label','output','--target','safe','figures','result.txt'],text=True))
+value=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label','output','--target','safe','figures','result.txt','--format','absolute'],text=True))
 target=Path(value['result']['path'])
 target.parent.mkdir(parents=True,exist_ok=True)
 target.write_text('inspectable cache artifact')
@@ -90,7 +90,7 @@ fn profile_and_local_updates_preserve_first_cache_position_and_only_append_new_k
         fs::write(root.join("_proj.yml"),"directories:\n  cache-z:\n    path: initial-first\n  cache-a:\n    path: second\n  output:\n    path: released\n").unwrap();
         fs::write(root.join("_projr-analysis.yml"),"directories:\n  cache-z:\n    path: profile-first\n  cache-new:\n    path: appended\n").unwrap();
         if local {fs::write(root.join("_projr-local.yml"),"directories:\n  cache-z:\n    path: local-first\n").unwrap();}
-        let output=Command::new(env!("CARGO_BIN_EXE_proj")).args(["--machine","path","get","--label","output","--target","safe","--project"])
+        let output=Command::new(env!("CARGO_BIN_EXE_proj")).args(["--machine","path","get","--label","output","--target","safe","--format","absolute","--project"])
             .arg(root).current_dir(root).env("PROJR_PROFILE","analysis").env_remove("QUARTO_PROFILE")
             .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).output().unwrap();
         let expected=root.canonicalize().unwrap().join(if local {"local-first"} else {"profile-first"}).join("projr/v1.2.3-4/output");
@@ -120,7 +120,7 @@ data=Path({data})
 data.mkdir(parents=True,exist_ok=True)
 (data/'previous').write_text('changed')
 (data/'new').write_text('new')
-value=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label','data','--target','safe','artifact.txt'],text=True))
+value=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label','data','--target','safe','artifact.txt','--format','absolute'],text=True))
 target=Path(value['result']['path']);target.parent.mkdir(parents=True,exist_ok=True);target.write_text('retained cache bytes')
 raise SystemExit({exit_code})
 "#,data=serde_json::to_string(&data.to_string_lossy()).unwrap(),binary=serde_json::to_string(env!("CARGO_BIN_EXE_proj")).unwrap(),exit_code=if phase==stage {17} else {0});
@@ -154,7 +154,7 @@ fn every_cache_class_is_protected_from_absent_recovery_parent_expansion() {
         fs::write(root.join("_proj.yml"),config).unwrap();
         let script=format!(r#"import json,subprocess
 from pathlib import Path
-value=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label','output','--target','safe','result.txt'],text=True))
+value=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label','output','--target','safe','result.txt','--format','absolute'],text=True))
 target=Path(value['result']['path']);target.parent.mkdir(parents=True,exist_ok=True);target.write_text('safe cache retained')
 "#,binary=serde_json::to_string(env!("CARGO_BIN_EXE_proj")).unwrap());
         fs::write(root.join("analysis.py"),script).unwrap();
@@ -230,7 +230,7 @@ fn unicode_case_alias_roles_cannot_write_the_same_file_under_an_ordinary_absolut
 from pathlib import Path
 Path('analysis-ran').touch()
 for label in ['output-Ä','output-ä']:
- value=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label',label,'--target','safe','result.txt'],text=True))
+ value=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label',label,'--target','safe','result.txt','--format','absolute'],text=True))
  target=Path(value['result']['path']);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(label)
 "#,binary=serde_json::to_string(env!("CARGO_BIN_EXE_proj")).unwrap());
     fs::write(root.join("analysis.py"),script).unwrap();
@@ -255,7 +255,7 @@ fn safe_cache_selection_honors_explicit_choice_exact_cache_exclusion_and_merged_
         assert_eq!(path(query(root,"output","safe",&[])),root.canonicalize().unwrap().join(expected).join("projr/v1.2.3-4/output"));
         // A profile's explicit choice outranks eligible literal cache and earlier entries.
         fs::write(root.join("_projr-analysis.yml"),"directories:\n  cache-selected:\n    safe: true\n").unwrap();
-        let run=|| Command::new(env!("CARGO_BIN_EXE_proj")).args(["--machine","path","get","--label","output","--target","safe","--project"])
+        let run=|| Command::new(env!("CARGO_BIN_EXE_proj")).args(["--machine","path","get","--label","output","--target","safe","--format","absolute","--project"])
             .arg(root).current_dir(root).env("PROJR_PROFILE","analysis").env_remove("QUARTO_PROFILE")
             .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).output().unwrap();
         assert_eq!(path(run()),root.canonicalize().unwrap().join("selected/projr/v1.2.3-4/output"));

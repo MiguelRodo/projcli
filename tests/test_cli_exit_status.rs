@@ -19,10 +19,10 @@ fn query_and_version_errors_are_nonzero() {
     assert_failure(invoke(root, &["version", "get"]));
     assert_failure(invoke(root, &["version", "set", "invalid-version"]));
     assert!(!root.join("VERSION").exists());
-    assert_failure(invoke(root, &["path", "get", "--label", "unsupported-label"]));
+    assert_failure(invoke(root, &["path", "get", "--label", "unsupported-label","--target","final","--format","absolute"]));
     fs::write(root.join("_proj.yml"), "directories: [malformed\n").unwrap();
     assert_failure(invoke(root, &["yml", "read"]));
-    assert_failure(invoke(root, &["path", "get", "--label", "output"]));
+    assert_failure(invoke(root, &["path", "get", "--label", "output","--target","final","--format","absolute"]));
 }
 
 #[test]
@@ -59,7 +59,7 @@ fn successful_queries_still_return_zero() {
     let project = tempfile::tempdir().unwrap();
     fs::write(project.path().join("_proj.yml"), "directories:\n  output:\n    path: _output\n").unwrap();
     fs::write(project.path().join("VERSION"), "v1.2.3\n").unwrap();
-    for args in [&["version", "get"][..], &["path", "get", "--label", "output"], &["yml", "read"]] {
+    for args in [&["version", "get"][..], &["path", "get", "--label", "output","--target","final","--format","absolute"], &["yml", "read"]] {
         let output = invoke(project.path(), args);
         assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
         assert!(!output.stdout.is_empty());
