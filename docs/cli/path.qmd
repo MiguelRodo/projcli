@@ -8,7 +8,7 @@ proj path get --label <LABEL> [--target final|safe] [--format auto|absolute|rela
 
 ## Declared directory paths
 
-A label must be declared in the active configuration with a nonempty `path`.
+Ordinary labels must be declared in the active configuration with a nonempty `path`.
 ASCII case is ignored. Undeclared labels and suffixes are errors: declaring
 `raw-data` does not declare `raw` or `raw-data-extra`. Relative paths resolve
 against the captured project root; explicit external directories are allowed.
@@ -57,7 +57,7 @@ that newer contract are separate from this root-discovery slice.
 
 ## Explicit safe lookup and file fragments
 
-`--target safe` maps declared output/data/docs-class labels to
+`--target safe` maps declared output/docs-class labels to
 `<selected-cache>/projr/v<active-version>/<exact-declared-label>`.
 One explicit `safe: true` cache wins; otherwise eligible exact label `cache` wins,
 then the first eligible cache in merged declaration order. `safe: false` excludes
@@ -102,3 +102,22 @@ Quarto/rmarkdown/Bookdown, alongside unchanged root/profile/version/mapping inpu
 Ordinary scripts and dependency probes keep ordinary context. Existing R helpers
 do not consume this descriptor; direct IDE rendering does not gain automatic parity.
 Absolute results are filesystem targets, not literal Markdown/LaTeX URL rewrites.
+
+## R package data lookup versus activation
+
+~~~bash
+proj path get --label output-r-data --target final
+proj path get --label output-r-data result.rda
+~~~
+
+The first returns project/data even without YAML; the second derives a safe target
+from the selected declared cache and active version. Neither creates directories
+nor activates cleanup, recovery, promotion or publication of package data.
+Explicitly declare directories.output-r-data: {} to activate ordinary output
+management. Legacy _projr data declarations normalize before merging.
+Its final destination cannot be redirected. There is no special preservation
+policy: configured pre/post clearing applies normally; preview never promotes.
+
+Built-in project lookup returns the selected root. No Python, Julia or inst role
+is introduced; use ordinary output mappings or proj path get --label project inst
+for a root-relative fragment.

@@ -147,7 +147,7 @@ pub(crate) fn validate_cleanup_paths(root: &Utf8Path, config: &crate::yml::Valid
     resolve_path(cache.join("projr").join(version).as_std_path(), true)?;
     resolve_path(cache.join("projr").join(version).join("docs").as_std_path(), true)?;
     for label in config.directories.keys() {
-        if crate::paths::is_output_or_data(label) {
+        if crate::paths::is_generated_output(label) {
             resolve_path(cache.join("projr").join(version).join(label).as_std_path(), true)?;
         }
     }

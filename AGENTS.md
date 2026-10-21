@@ -138,8 +138,11 @@ Runtime HOW belongs in `settings`; execution-directory and path-representation
 are merged policies with explicit CLI overrides. Keep child defaults frozen with
 root/profile/version/mappings; never rediscover them after scripts mutate YAML.
 
-HTML fallback uses embed-resources for individual Quarto documents and a temporary
-project-level default beneath native Quarto profile/directory/document metadata.
+HTML fallback uses embed-resources for individual Quarto documents and native
+Quarto effective-format inspection and guarded temporary document-header defaults.
+Respect both embed-resources and legacy self-contained presence. Restore original
+source bytes on success/error/panic before promotion; reject changed prepared sources
+or native input sets at launch. No global project default may override an alias.
 Individual R Markdown uses self_contained only when unspecified. Preserve explicit
 false, native literal resource semantics and exact source/config restoration.
 Bookdown site rendering retains its native policy; do not claim that project
@@ -148,3 +151,26 @@ driver has the new embedding fallback or that nonembedded relocation is supporte
 The remote combined M1 driver is tests/acceptance/m1_contract.py. Inspect its
 JSON and downloadable CSV/HTML artifacts, and rerun on the final reviewed combined
 source tree before release; a passing stacked preparation is not M1 completion.
+
+R-package data lookup is built in as output-r-data with fixed final project/data;
+safe lookup still requires a declared selected cache and version. Lookup never
+activates writes. Only explicit canonical or per-layer normalized legacy data
+declarations enter ordinary output clearing/recovery/promotion/publication.
+Reject redirection and alias conflicts before merge; no special preservation
+policy, new language roles or edits to the existing R package.
+
+Embedding header defaults must retain every effective format choice and native
+order. Use guarded same-directory source replacement, preserving permissions and
+external hard-link bytes. Freeze relevant profile/directory/included metadata and
+reject changes before rendering; never write external metadata dependencies.
+
+Embedding inventory includes both native metadata-file/metadata-files spellings
+and fixed _quarto.yml.local/_quarto.yaml.local paths, including absence. Leading
+scripts changing singular includes or changing/creating local overlays must fail
+before render and recover internal bytes/presence. Native actual regressions extend
+the existing matrix; no custom metadata merging or external writes introduced.
+
+Before the next preview release, follow docs/release-candidate.qmd. Keep the
+published/installed version distinct from source changes; rerun exact integrated
+acceptance before the reviewed version/tag/assets/publication/WSL sequence.
+Unchanged Bookdown site embedding and other deferred limits must stay explicit.

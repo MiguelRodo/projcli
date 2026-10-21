@@ -1433,8 +1433,8 @@ unchanged. Final amended-head checks remain required.
 
 - **Approved/new:** individual Quarto HTML/revealjs and R Markdown HTML use
   embed-resources/self_contained only when unspecified; explicit false is retained.
-  Quarto project preparation inserts a base-level default, leaving native profile,
-  included-metadata, directory and document precedence to Quarto. Existing R package
+  Quarto project preparation inspects native effective formats before guarded
+  temporary header defaults, preserving profile/included/directory/document options. Existing R package
   and helpers remain unchanged; no R/IDE parity or nonembedded portability claim.
 - **Native sources:** Quarto HTML embedding documentation and native configuration
   merge behavior (quarto-dev/quarto-cli render-contexts.ts); R Markdown render
@@ -1448,7 +1448,7 @@ unchanged. Final amended-head checks remain required.
   Every case checks original document/config bytes.
 - **Ponytail full:** reuse existing frontmatter/layout parsing, fixed renderer
   launchers, temporary project preparation and restoration. No custom renderer YAML
-  merge, dependencies, source rewriting or frontend shim. Exact remote checks and
+  merge, dependencies, literal resource rewriting or frontend shim. Exact remote checks and
   independent review remain required; this is not M1 completion.
 
 Initial remote embedding checks found an existing fake Rscript fixture with the
@@ -1480,3 +1480,111 @@ checked before fixture setup. A failing Git shim/call witness and empty Git conf
 prove no Git dependency without hiding renderer runtime paths. Evidence now
 distinguishes preserved ordinary output/archive bytes from replaced production
 docs; preview/failure docs stay preserved. No product/M2 provenance changes.
+
+PR162 independent review found that a global canonical true default defeats
+legacy self-contained:false because Quarto1.10.19 ORs the two distinct keys.
+Replace that approach with native project/document inspection of effective formats.
+Only HTML/revealjs formats with neither spelling present receive guarded temporary
+header defaults; no custom profile/metadata merge or external metadata edits.
+Capture before edits; retain backup across preparation; recheck input identity and
+prepared sources at launch; restore exact source bytes on success/error/panic
+before staging/promotion. Prepared-source/input-set mutation and unmodeled input
+types requiring fallback fail explicitly. These boundaries require independent review.
+
+Actual regressions add format/document/directory/profile/included legacy false
+and a mixed project containing both a legacy-false and unspecified document.
+Integration regressions cover exact CRLF source/config restoration after success,
+renderer exit17 and rejected prepared-source mutation. Existing project fakes now
+model native inspection. No literal resource rewriting or R package edits.
+
+## R-package data role normalization and explicit activation
+
+- **Same intended R convention:** pinned projr
+  90be50132d16aee33e39c0f7f35ef906c35f5397 R/dir-get.R and projr_use_data
+  identify package-generated .rda data, distinct from raw inputs.
+- **Different/new, approved:** canonical output-r-data has fixed final project/data;
+  built-in lookup works without a declaration, but safe lookup still needs the
+  selected declared cache and active version. Queries never activate writes.
+  Only explicit output-r-data or normalized legacy data activates ordinary output
+  cleanup/recovery/promotion/publication inventory. No special preserve policy.
+  Legacy aliases and remote content normalize per original layer before merging;
+  conflicts/redirection fail early. Generic data-* labels are rejected.
+- **Tests added, remote execution pending:** no-YAML final lookup; safe-cache
+  identity and query nonmutation; profile/local alias precedence and invalid
+  layers; legacy remote content; undeclared/canonical/legacy build matrix across
+  none/pre/post, preview and deliberate failure with exact final/cache witnesses.
+  Earlier generic data tests now use ordinary output-generated labels.
+- **Ponytail full review:** reused the resolver, merged configuration loader and
+  existing output inventories. Removed the unpublished role-specific ignore
+  default; ordinary ignore rules apply and docs explicitly show ignore: [] for
+  package inclusion. No dependencies, Python/Julia/inst roles, helper edits or
+  R/IDE parity claims. Existing guards and lifecycle order are unchanged.
+
+Initial remote platform checks found a stale expected safe-cache leaf in the
+renamed generic output fixture. Corrected data/artifact.txt to
+output-generated/artifact.txt; the deliberate exit17 witness already passed.
+Exact amended-head remote checks and independent review remain required.
+
+The pinned acceptance workflow also runs cargo doc --locked --no-deps to satisfy
+the repository API-documentation check remotely, using the same existing image.
+
+Remote macOS checks caught two direct-library fixtures using the system /var
+temporary-directory symlink. Resolve their owned temporary roots first, matching
+the existing guarded-write fixture convention; do not weaken symlink validation.
+Linux/Windows R-data cases and pinned actual-render/API-doc checks passed before
+this fixture-only correction. Final exact-head checks remain required.
+
+Independent review cleared runtime and activation at 685bf8f. Corrected the
+configuration overview and DirConfig documentation to state canonical prefix rules
+and the fixed-role path exception consistently. The legacy remote test proves
+normalization/validation, not actual CAS publication. No runtime changes.
+
+Integrated reviewed R-data main ba7e715 into the alias-fix branch because the
+three appended documentation sections otherwise conflicted and prevented PR CI.
+Retained both behavior/instruction/evidence sections, all R-data runtime changes,
+and the shared pinned API-doc step. No other runtime conflict resolution needed.
+Exact integrated head requires fresh platform/pinned/actual acceptance and review.
+
+Further PR162 review corrections: preserve all effective format choices/order,
+not only HTML candidates; retain inherited non-HTML options. Actual DOCX-first/
+HTML inheritance is compared with a native reference render and inspection.
+Use new-inode, same-directory managed replacement for temporary sources, with
+original permissions and immediate symlink/special-file checks; hard-linked
+external aliases stay byte-identical on success and renderer exit17. Capture
+renderer profile/directory/recursive literal metadata-files dependencies; reject
+post-preparation changes at launch. Recover captured internal metadata only;
+external files are observed, never rewritten. Added direct/included leading-script
+false regressions, actual late-alias rejection, and precise permissions/temp-cleanup
+witnesses. The prior 21-case matrix remains, now supplemented by two actual cases.
+No custom renderer metadata merge, dependency or R package change introduced.
+
+Embedding inventory includes both native metadata-file/metadata-files spellings
+and fixed _quarto.yml.local/_quarto.yaml.local paths, including absence. Leading
+scripts changing singular includes or changing/creating local overlays must fail
+before render and recover internal bytes/presence. Native actual regressions extend
+the existing matrix; no custom metadata merging or external writes introduced.
+
+## Next-preview release/install documentation preparation
+
+README/install/features/status now distinguish the verified published 0.4.0-preview.1
+from newer source slices. Prepared unpublished release notes and an integrated-source
+acceptance/delivery checklist with user-local WSL replacement gates and explicit
+Bookdown/R/IDE/nonembedded/provenance/retry limits. No package version, installer
+pin, workflow, tag, release or installed binary is changed. Current install fences
+remain exact and matched; remote docs checks and native-browser witness are retained.
+
+Ponytail full: reuse existing release/install pipeline and acceptance artifacts;
+one candidate page linked from existing docs, no new tool or installer mechanism.
+Remote rendered docs checks and independent review remain required.
+
+Candidate acceptance wording follows PR163 review: distinguish ordinary generated
+output/archive preservation under none from successful document replacement.
+Require exact final/object bytes, expected manifest/index release and next-dev
+versions, corruption probes, immediate init directories and a failing Git-call
+witness. Record the project embedding preparation/input restrictions explicitly.
+
+PR164 review corrected delivery order: keep public installer/download expectations
+at preview.1 until tagging/draft verification/publication/public-byte verification
+complete. Then update README/install/source links and public-download checks in a
+separate post-publication documentation change, so their actual asset fetches can
+pass. No public pins or version metadata changed in this correction.

@@ -172,7 +172,10 @@ def embedding_policy_cases(binary: Path, container: Path) -> list[dict]:
     for name in ['individual-qmd-false', 'individual-rmd-false', 'project-default',
                  'project-format-false', 'project-document-false',
                  'project-directory-false', 'project-profile-false', 'project-metadata-file-false',
-                 'project-docx']:
+                 'project-docx', 'project-format-alias-false', 'project-document-alias-false',
+                 'project-directory-alias-false', 'project-profile-alias-false',
+                 'project-metadata-file-alias-false', 'project-mixed-alias', 'project-inherited-docx-html', 'project-late-alias-false', 'project-late-singular-alias-false',
+                 'project-late-local-change', 'project-late-local-create']:
         root = container / name
         (root / 'analysis').mkdir(parents=True)
         image = sentinel_png()
@@ -184,38 +187,111 @@ def embedding_policy_cases(binary: Path, container: Path) -> list[dict]:
         metadata = 'output:\n  html_document:\n    self_contained: false\n' if is_rmd else 'format: html\n'
         if name in ['individual-qmd-false', 'project-document-false']:
             metadata = 'format:\n  html:\n    embed-resources: false\n'
+        if name in ['project-document-alias-false', 'project-mixed-alias']:
+            metadata = 'format:\n  html:\n    self-contained: false\n'
+        if name == 'project-inherited-docx-html':
+            metadata = ''
         if name == 'project-docx':
             metadata = 'format: docx\n'
         document.write_text('---\ntitle: Embedding policy\n' + metadata + '---\n\n![sentinel](sentinel.png)\n')
         (root / '_proj.yml').write_text('directories:\n  cache: {path: cache}\n  docs: {path: published}\nbuild:\n  git: false\n  scripts: [analysis/report.' + extension + ']\n')
+        if name == 'project-mixed-alias':
+            (root / 'analysis/other.qmd').write_text('---\nformat: html\n---\n\n![sentinel](sentinel.png)\n')
+            configured = (root / '_proj.yml').read_text().replace('scripts: [analysis/report.qmd]', 'scripts: [analysis/report.qmd, analysis/other.qmd]')
+            (root / '_proj.yml').write_text(configured)
         env = os.environ.copy()
         for key in ['PROJ_PROJECT_ROOT', 'PROJ_RUN_CONTEXT', 'PROJR_PROFILE', 'QUARTO_PROFILE', 'PROJR_CLEAR_OUTPUT']:
             env.pop(key, None)
         if name.startswith('project-'):
             project = 'project:\n  type: default\nformat: html\n'
+            if name == 'project-format-alias-false':
+                project = 'project:\n  type: default\nformat:\n  html:\n    self-contained: false\n'
             if name == 'project-format-false':
                 project = 'project:\n  type: default\nformat:\n  html:\n    embed-resources: false\n'
+            if name == 'project-inherited-docx-html':
+                project = 'project:\n  type: default\nformat:\n  docx:\n    toc: true\n  html:\n    toc: false\n'
             if name == 'project-docx':
                 project = 'project:\n  type: default\nformat: docx\n'
             if name == 'project-metadata-file-false':
                 project += 'metadata-files: [inherited.yml]\n'
                 (root / 'inherited.yml').write_text('embed-resources: false\n')
+            if name == 'project-metadata-file-alias-false':
+                project += 'metadata-files: [inherited.yml]\n'
+                (root / 'inherited.yml').write_text('self-contained: false\n')
             (root / '_quarto.yml').write_text(project)
+            if name == 'project-directory-alias-false':
+                (root / 'analysis/_metadata.yml').write_text('self-contained: false\n')
+            if name == 'project-profile-alias-false':
+                (root / '_quarto-linked.yml').write_text('self-contained: false\n')
+                env['QUARTO_PROFILE'] = 'linked'
             if name == 'project-directory-false':
                 (root / 'analysis/_metadata.yml').write_text('embed-resources: false\n')
             if name == 'project-profile-false':
                 (root / '_quarto-linked.yml').write_text('embed-resources: false\n')
                 env['QUARTO_PROFILE'] = 'linked'
+        late_metadata = name.startswith('project-late-')
+        if late_metadata:
+            dependency = 'analysis/_metadata.yml'
+            if name == 'project-late-singular-alias-false':
+                dependency = 'inherited.yml'
+                with (root / '_quarto.yml').open('a') as stream:
+                    stream.write('metadata-file: inherited.yml\n')
+            if name in ['project-late-local-change', 'project-late-local-create']:
+                dependency = '_quarto.yml.local'
+            if name != 'project-late-local-create':
+                (root / dependency).write_text('toc: false\n')
+            (root / 'change.py').write_text("from pathlib import Path\nPath(" + repr(dependency) + ").write_text('self-contained: false\\n')\n")
+            configured = (root / '_proj.yml').read_text().replace('scripts: [analysis/report.qmd]', 'scripts: [change.py, analysis/report.qmd]')
+            (root / '_proj.yml').write_text(configured)
+        if name == 'project-inherited-docx-html':
+            (root / 'inspect.py').write_text("import subprocess\nfrom pathlib import Path\nPath('cache').mkdir(exist_ok=True)\nPath('cache/prepared-formats.json').write_text(subprocess.check_output(['quarto','inspect','analysis/report.qmd'],text=True))\n")
+            configured = (root / '_proj.yml').read_text().replace('scripts: [analysis/report.qmd]', 'scripts: [inspect.py, analysis/report.qmd]')
+            (root / '_proj.yml').write_text(configured)
+            native = container / (name + '-native')
+            shutil.copytree(root, native)
+            reference = subprocess.run(['quarto','inspect','analysis/report.qmd'],cwd=native,env=env,capture_output=True,text=True)
+            assert reference.returncode == 0, reference.stderr
+            native_formats = json.loads(reference.stdout)['formats']
+            assert list(native_formats) == ['docx','html']
+            baseline = subprocess.run(['quarto','render'],cwd=native,env=env,capture_output=True,text=True)
+            assert baseline.returncode == 0, baseline.stderr
+            native_outputs = sorted(p.suffix for p in native.rglob('report.*') if p.suffix in ['.docx','.html'])
+            assert '.docx' in native_outputs
         originals = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
         result = subprocess.run([str(binary), '--machine', '--non-interactive', 'build-dev', '--project', str(root)],
                                 cwd=root, env=env, capture_output=True, text=True)
-        assert result.returncode == 0, name + ': ' + result.stdout + result.stderr[-6000:]
+        assert (result.returncode == 0) == (not late_metadata), name + ': ' + result.stdout + result.stderr[-6000:]
+        if late_metadata:
+            assert not json.loads(result.stdout)['ok']
+            assert 'inherited metadata changed after embedding preparation' in result.stderr
         for path, data in originals.items():
             assert (root / path).read_bytes() == data, str(path)
+        if late_metadata:
+            if name == 'project-late-local-create':
+                assert not (root / dependency).exists()
+            assert not list((root / 'cache/projr/v1.2.3-4/docs').rglob('report.html'))
+            cases.append({'case':name,'exit_code':result.returncode,'changed_inherited_false_rejected_before_render':True,
+                          'source_and_internal_metadata_bytes_preserved':True})
+            continue
+        if name == 'project-inherited-docx-html':
+            prepared_formats = json.loads((root / 'cache/prepared-formats.json').read_text())['formats']
+            assert list(prepared_formats) == list(native_formats), 'native format choices/default order changed'
+            assert all(prepared_formats[key]['pandoc'].get('toc') == native_formats[key]['pandoc'].get('toc') for key in native_formats)
+            produced = root / 'cache/projr/v1.2.3-4/docs'
+            assert sorted(p.suffix for p in produced.rglob('report.*') if p.suffix in ['.docx','.html']) == native_outputs
+            html = list(produced.rglob('report.html'))
+            if html:
+                assert base64.b64encode(image).decode() in html[0].read_text()
+            cases.append({'case':name,'native_formats':list(native_formats),'native_outputs':native_outputs,
+                          'format_choices_order_and_options_preserved':True,'source_bytes_preserved':True})
+            continue
         if name == 'project-docx':
             assert list((root / 'cache/projr/v1.2.3-4/docs').rglob('report.docx'))
             cases.append({'case': name, 'native_nonhtml_success': True, 'source_bytes_preserved': True})
             continue
+        if name == 'project-mixed-alias':
+            other = list((root / 'cache/projr/v1.2.3-4/docs').rglob('other.html'))
+            assert len(other) == 1 and base64.b64encode(image).decode() in other[0].read_text()
         files = list((root / 'cache/projr/v1.2.3-4/docs').rglob('report.html'))
         assert len(files) == 1, (name, files)
         content = files[0].read_text()
