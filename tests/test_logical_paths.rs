@@ -108,7 +108,7 @@ fn data_final_bytes_and_absence_are_restored_for_failures_and_all_preview_outcom
       for exists in [false,true] {
        for (mode,clear,phase) in [("build","pre","pre"),("build","post","post"),("build-dev","pre","none"),("build-dev","pre","pre"),("build-dev","post","post")] {
         let project=tempfile::tempdir().unwrap();let root=project.path();let outside=tempfile::tempdir().unwrap();
-        let data=if external {outside.path().join("data")} else {root.join("data")};
+        let data=if external {outside.path().canonicalize().unwrap().join("data")} else {root.canonicalize().unwrap().join("data")};
         if exists {fs::create_dir_all(data.join("nested/empty")).unwrap();fs::write(data.join("previous"),b"old\0data bytes").unwrap();}
         fs::create_dir(root.join("cache")).unwrap();fs::write(root.join("VERSION"),"v1.2.3-4\n").unwrap();
         let config=format!("directories:\n  cache:\n    path: cache\n  data:\n    path: {}\nbuild:\n  scripts: [analysis.py]\n  hooks:\n    pre: [before.py]\n    post: [after.py]\n  clear_output: {clear}\n  git: false\n  restrictions:\n    not_behind: false\n",serde_json::to_string(&data.to_string_lossy()).unwrap());
@@ -204,7 +204,7 @@ fn implicit_project_sources_in_new_data_roles_fail_before_cleanup_and_renderer_l
         fs::write(outside.path().join("analysis.qmd"),"source sentinel").unwrap();
         fs::write(root.join("VERSION"),"v1.2.3").unwrap();
         fs::write(root.join("_quarto.yml"),"project: {type: default}\n").unwrap();
-        fs::write(root.join("_proj.yml"),format!("directories:\n  cache:\n    path: cache\n  docs:\n    path: published\n  {label}:\n    path: {}\nbuild:\n  git: false\n  clear_output: pre\n  restrictions:\n    not_behind: false\n",serde_json::to_string(&outside.path().to_string_lossy()).unwrap())).unwrap();
+        fs::write(root.join("_proj.yml"),format!("directories:\n  cache:\n    path: cache\n  docs:\n    path: published\n  {label}:\n    path: {}\nbuild:\n  git: false\n  clear_output: pre\n  restrictions:\n    not_behind: false\n",serde_json::to_string(&outside.path().canonicalize().unwrap().to_string_lossy()).unwrap())).unwrap();
         let before=fs::read(root.join("VERSION")).unwrap();
         let output=Command::new(env!("CARGO_BIN_EXE_proj")).args(["build","--non-interactive","--project"]).arg(root).current_dir(root)
             .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();

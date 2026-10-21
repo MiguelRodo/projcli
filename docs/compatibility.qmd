@@ -1079,3 +1079,9 @@ rejected before project cleanup/rendering. Portable labels reject trailing dot/s
 aliases centrally (ordinary absolute Windows cache regression) while Unicode labels
 remain allowed. Data recovery tests retain the existing boundary: failures before
 local success and every preview restore; successful publication is not rolled back.
+
+Intermediate data recovery regression passed Linux/Windows but macOS stopped on
+the fixture's absolute /var system-temp alias before the intended hook. Canonicalized
+fixture-owned temp identities rather than weakening managed symlink guards, and
+required the expected exit17 witness so early validation cannot masquerade as a
+successful recovery test. Final exact-head CI remains the gate.
