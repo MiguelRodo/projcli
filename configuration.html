@@ -26,6 +26,41 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -251,6 +286,7 @@ ul.task-list li input[type="checkbox"] {
   <ul class="collapse">
   <li><a href="#schema-rules-and-foundational-prefixes" id="toc-schema-rules-and-foundational-prefixes" class="nav-link" data-scroll-target="#schema-rules-and-foundational-prefixes">Schema Rules and Foundational Prefixes</a></li>
   <li><a href="#explicit-paths-and-local-initialization" id="toc-explicit-paths-and-local-initialization" class="nav-link" data-scroll-target="#explicit-paths-and-local-initialization">Explicit paths and local initialization</a></li>
+  <li><a href="#selecting-the-safe-cache" id="toc-selecting-the-safe-cache" class="nav-link" data-scroll-target="#selecting-the-safe-cache">Selecting the safe cache</a></li>
   <li><a href="#strict-validation-error-behaviors" id="toc-strict-validation-error-behaviors" class="nav-link" data-scroll-target="#strict-validation-error-behaviors">Strict Validation Error Behaviors</a></li>
   <li><a href="#top-level-configuration" id="toc-top-level-configuration" class="nav-link" data-scroll-target="#top-level-configuration">Top-Level Configuration</a></li>
   <li><a href="#parameters-configuration" id="toc-parameters-configuration" class="nav-link" data-scroll-target="#parameters-configuration">Parameters Configuration</a></li>
@@ -273,14 +309,25 @@ ul.task-list li input[type="checkbox"] {
 <p>The <code>_proj.yml</code> file dictates the structural map of your project. It configures the foundational paths and mapping logic used by the CLI.</p>
 <section id="schema-rules-and-foundational-prefixes" class="level2">
 <h2 class="anchored" data-anchor-id="schema-rules-and-foundational-prefixes">Schema Rules and Foundational Prefixes</h2>
-<p>Custom directory labels are strictly validated against a set of foundational prefixes: - <code>cache</code> - <code>raw</code> - <code>output</code> - <code>docs</code></p>
+<p>Custom directory labels are strictly validated against a set of foundational prefixes: - <code>cache</code> - <code>raw</code> - <code>data</code> - <code>output</code> - <code>docs</code></p>
 <p>These prefixes are <strong>case-insensitive</strong>. Any label defined in the configuration must begin with one of these approved identifiers.</p>
 </section>
 <section id="explicit-paths-and-local-initialization" class="level2">
 <h2 class="anchored" data-anchor-id="explicit-paths-and-local-initialization">Explicit paths and local initialization</h2>
-<p>Every declared directory needs a nonempty <code>path</code>. Runtime does not insert missing cache/raw/output/docs mappings or synthesize subpaths for undeclared labels. For example, declaring <code>raw-data: {path: _raw_data}</code> makes <code>raw-data</code> available; it does not create an undeclared <code>raw</code> or <code>raw-data-extra</code> resource. ASCII case is ignored and case-only duplicate labels are rejected.</p>
+<p>Every declared directory needs a nonempty <code>path</code>. Runtime does not insert missing cache/raw/output/data/docs mappings or synthesize subpaths for undeclared labels. For example, declaring <code>raw-data: {path: _raw_data}</code> makes <code>raw-data</code> available; it does not create an undeclared <code>raw</code> or <code>raw-data-extra</code> resource. ASCII case is ignored and case-only duplicate labels are rejected.</p>
 <p><code>proj --project . --non-interactive init directories</code> creates a missing <code>_proj.yml</code> once with explicit <code>raw-data: _raw_data</code>, <code>cache: _tmp</code>, and <code>output: _output</code> paths. It preserves existing base/profile files, creates only declared resource directories, and does not invoke Git/GitHub or add an R code directory. The preset omits <code>build.scripts</code>, preserving shallow discovery; it never serializes an accidental empty analysis list. To render documents, declare a <code>docs</code> mapping too.</p>
 <p>Production state and project-render staging require a declared <code>cache</code> directory. Framework version/staging children are derived inside that declared cache; this is distinct from inventing undeclared resource labels. Storage <code>content</code> labels must be declared and relative storage paths use the captured project root.</p>
+</section>
+<section id="selecting-the-safe-cache" class="level2">
+<h2 class="anchored" data-anchor-id="selecting-the-safe-cache">Selecting the safe cache</h2>
+<p>Each cache-class directory may include boolean <code>safe</code>. One explicit <code>safe: true</code> selects that cache; otherwise an eligible exact <code>cache</code> label wins, then the first eligible cache in merged declaration order. <code>safe: false</code> excludes a candidate. Profile/local overrides retain existing declaration positions. For example:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">directories</span><span class="kw">:</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">cache</span><span class="kw">:</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">path</span><span class="kw">:</span><span class="at"> _tmp</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">cache-analysis</span><span class="kw">:</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">path</span><span class="kw">:</span><span class="at"> _analysis_cache</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">safe</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>This selects <code>_analysis_cache</code> for explicit safe logical output lookup. Multiple true selections, non-boolean values (including null), selection flags on non-cache roles, and all declared cache candidates excluded are validation errors. Each layer’s explicit values are checked before merging; null cannot inherit a previous boolean. Cache-free queries and operations that do not consume a cache remain valid. The chosen safe cache is frozen in child run context. Existing cleanup and project-render consumers still require literal <code>cache</code> in this transitional slice; their integration follows separately before the safe default is enabled.</p>
 </section>
 <section id="strict-validation-error-behaviors" class="level2">
 <h2 class="anchored" data-anchor-id="strict-validation-error-behaviors">Strict Validation Error Behaviors</h2>

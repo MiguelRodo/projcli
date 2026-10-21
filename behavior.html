@@ -264,6 +264,10 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#preview-binary-delivery" id="toc-preview-binary-delivery" class="nav-link" data-scroll-target="#preview-binary-delivery">Preview binary delivery</a></li>
   <li><a href="#versioned-machine-boundary" id="toc-versioned-machine-boundary" class="nav-link" data-scroll-target="#versioned-machine-boundary">Versioned machine boundary</a></li>
   <li><a href="#captured-run-inputs-first-path-contract-slice" id="toc-captured-run-inputs-first-path-contract-slice" class="nav-link" data-scroll-target="#captured-run-inputs-first-path-contract-slice">Captured run inputs (first path-contract slice)</a></li>
+  <li><a href="#explicit-logical-resource-lookup" id="toc-explicit-logical-resource-lookup" class="nav-link" data-scroll-target="#explicit-logical-resource-lookup">Explicit logical resource lookup</a>
+  <ul class="collapse">
+  <li><a href="#confirmed-safe-cache-selection" id="toc-confirmed-safe-cache-selection" class="nav-link" data-scroll-target="#confirmed-safe-cache-selection">Confirmed safe-cache selection</a></li>
+  </ul></li>
   </ul></li>
   </ul>
 </nav>
@@ -380,8 +384,17 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="captured-run-inputs-first-path-contract-slice">Captured run inputs (first path-contract slice)</h2>
 <p>One effective profile list is selected before config/environment reads: CLI, nonempty PROJR_PROFILE, nonempty QUARTO_PROFILE fallback, then base/local build.profile default. Earlier profiles still win; local config is highest. A profile’s own build.profile does not redirect an already selected run. Native QUARTO_PROFILE rendering settings remain distinct; no R helper bridge follows. The private per-run PROJ_RUN_CONTEXT snapshot carries only root, effective profiles, validated final directory mappings, active version and mode. Child path/version queries consume it after cwd/YAML/VERSION changes; explicit other-project selection discards it. Missing/invalid context fails clearly rather than rediscovering a root.</p>
 <p>Preview retains an existing dev version, or uses dev1 from a release, without changing VERSION. Production uses the requested incremented release version from before hooks through rendering; success leaves dev1 of that release for subsequent development, and failure restores original bytes. Cache keys use v1.2.3-4 spelling; legacy version text APIs/files retain their accepted dotted representation. Final directory lookup remains unchanged in this slice; safe logical routing, render-context representation and native execution/embedding are subsequent work. Old-version renderer staging remains a known gap until the routing slice.</p>
+</section>
+<section id="explicit-logical-resource-lookup" class="level2">
+<h2 class="anchored" data-anchor-id="explicit-logical-resource-lookup">Explicit logical resource lookup</h2>
+<p>Safe output/data/docs-class lookup uses the selected eligible cache-class mapping, the captured active version and exact configured label. Final lookup preserves the physical mapping, including external paths. No implicit data directory is invented: a data-class label must be declared. Directory insertion order is retained through configuration merging and the child snapshot. File fragments are relative and cannot replace/escape the role root. Queries never create directories. The initial explicit safe/final CLI slice keeps final as its transitional default; safe-by-default behavior must land together with production output consumers. Preview artifacts written through explicit safe lookup remain inspectable in cache.</p>
+<section id="confirmed-safe-cache-selection" class="level3">
+<h3 class="anchored" data-anchor-id="confirmed-safe-cache-selection">Confirmed safe-cache selection</h3>
+<p>Within <code>directories</code>, one cache-class mapping with boolean <code>safe: true</code> selects the safe cache. Otherwise an eligible exact <code>cache</code> label wins, then the first eligible cache-class mapping in merged declaration order. <code>safe: false</code> excludes a candidate. Overrides retain existing key positions. Multiple explicit selections, non-boolean flags, flags on non-cache roles, or all declared caches excluded are validation errors before build mutations. A genuinely cache-free operation remains valid without any cache mapping. The effective selected label is frozen with the run context; children do not recompute it from subsequently changed YAML.</p>
+<p>Legacy R <code>data</code> is package-generated output, not a generic input role. Its replacement/legacy normalization belongs to the separate <code>output-r-data</code> slice; this cache-selection change does not silently rename existing mappings.</p>
 
 
+</section>
 </section>
 </section>
 

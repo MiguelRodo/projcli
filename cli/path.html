@@ -287,6 +287,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#declared-directory-paths" id="toc-declared-directory-paths" class="nav-link" data-scroll-target="#declared-directory-paths">Declared directory paths</a></li>
   <li><a href="#explicit-and-inherited-project-root" id="toc-explicit-and-inherited-project-root" class="nav-link" data-scroll-target="#explicit-and-inherited-project-root">Explicit and inherited project root</a></li>
   <li><a href="#nearest-root-discovery" id="toc-nearest-root-discovery" class="nav-link" data-scroll-target="#nearest-root-discovery">Nearest-root discovery</a></li>
+  <li><a href="#explicit-safe-lookup-and-file-fragments" id="toc-explicit-safe-lookup-and-file-fragments" class="nav-link" data-scroll-target="#explicit-safe-lookup-and-file-fragments">Explicit safe lookup and file fragments</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -300,10 +301,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="proj-path-get" class="level1">
 <h1><code>proj path get</code></h1>
 <p>Get the resolved absolute path for a given label in the project.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> path get <span class="at">--label</span> <span class="op">&lt;</span>LABEL<span class="op">&gt;</span> [--project <span class="op">&lt;</span>PATH<span class="op">&gt;</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> path get <span class="at">--label</span> <span class="op">&lt;</span>LABEL<span class="op">&gt;</span> [--target final<span class="kw">|</span><span class="ex">safe]</span> [--project <span class="op">&lt;</span>PATH<span class="op">&gt;</span>] [PART ...]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <section id="declared-directory-paths" class="level2">
 <h2 class="anchored" data-anchor-id="declared-directory-paths">Declared directory paths</h2>
-<p>A label must be declared in the active configuration with a nonempty <code>path</code>. ASCII case is ignored. Undeclared labels and suffixes are errors: declaring <code>raw-data</code> does not declare <code>raw</code> or <code>raw-data-extra</code>. Relative paths resolve against the captured project root; explicit external directories are allowed. Queries do not create directories or route output into a versioned sandbox.</p>
+<p>A label must be declared in the active configuration with a nonempty <code>path</code>. ASCII case is ignored. Undeclared labels and suffixes are errors: declaring <code>raw-data</code> does not declare <code>raw</code> or <code>raw-data-extra</code>. Relative paths resolve against the captured project root; explicit external directories are allowed. Queries do not create directories. Final lookup returns the configured location; explicit safe lookup resolves the logical versioned-cache target.</p>
 </section>
 <section id="explicit-and-inherited-project-root" class="level2">
 <h2 class="anchored" data-anchor-id="explicit-and-inherited-project-root">Explicit and inherited project root</h2>
@@ -317,6 +318,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><code>pyproject.toml</code>, <code>Project.toml</code> and <code>JuliaProject.toml</code> deliberately extend the projr marker set for Python/Julia. <code>requirements.txt</code> and <code>Manifest.toml</code> alone are not root markers. Standalone VERSION and README markers are retained, so a nested directory with one is the nearer project; explicit selection overrides it.</p>
 <p>Marker recognition does not change shallow default script enumeration or prove that the corresponding language runner/frontend is implemented. Legacy config content handling is a separate compatibility change from recognizing its root.</p>
 <p>If no recognized marker exists, discovery selects cwd. Discovery success does not mean a build is configured: the current product contract requires active root configuration and explicit used-directory mappings. Validation changes enforcing that newer contract are separate from this root-discovery slice.</p>
+</section>
+<section id="explicit-safe-lookup-and-file-fragments" class="level2">
+<h2 class="anchored" data-anchor-id="explicit-safe-lookup-and-file-fragments">Explicit safe lookup and file fragments</h2>
+<p><code>--target safe</code> maps declared output/data/docs-class labels to <code>&lt;selected-cache&gt;/projr/v&lt;active-version&gt;/&lt;exact-declared-label&gt;</code>. One explicit <code>safe: true</code> cache wins; otherwise eligible exact label <code>cache</code> wins, then the first eligible cache in merged declaration order. <code>safe: false</code> excludes a candidate. The chosen label is captured for child queries. A release version has no dev suffix; dev cache keys use a hyphen, such as <code>v1.2.3-4</code>. Other roles retain their configured targets.</p>
+<p><code>--target final</code> addresses the explicitly configured destination, including an absolute external directory. This intermediate slice retains <code>final</code> as the CLI default until build promotion is wired to safe logical output; that is a temporary compatibility boundary, not the final approved default path model.</p>
+<p>Optional parts extend the selected role, for example:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> path get <span class="at">--label</span> output <span class="at">--target</span> safe figures result.png</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Queries do not create directories. Unknown labels, missing cache/version for safe lookup, absolute/drive-qualified parts and parent traversal fail clearly. Explicit directory mappings stay mandatory; <code>output-model</code> does not imply an <code>output</code> alias. Native cwd/auto-relative presentation and renderer staging are separate slices.</p>
 
 
 </section>
