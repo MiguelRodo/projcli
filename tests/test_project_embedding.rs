@@ -4,7 +4,7 @@ use std::{fs, process::Command, os::unix::fs::PermissionsExt};
 #[test]
 fn project_embedding_headers_restore_exact_bytes_on_success_failure_and_source_change() {
     for hard_linked in [false,true] {
-    for case in ["success","render-failure","source-change","metadata-change","included-change"] {
+    for case in ["success","render-failure","source-change","metadata-change","included-change","singular-change","local-change","local-create"] {
         let temporary=tempfile::tempdir().unwrap();
         let root=temporary.path().canonicalize().unwrap();
         for directory in ["analysis","cache","published","bin"] { fs::create_dir(root.join(directory)).unwrap(); }
@@ -14,18 +14,20 @@ fn project_embedding_headers_restore_exact_bytes_on_success_failure_and_source_c
         let external = tempfile::tempdir().unwrap();
         let alias = external.path().join("linked.qmd");
         if hard_linked { fs::hard_link(root.join("analysis/report.qmd"),&alias).unwrap(); }
-        let metadata = if case=="included-change" { "metadata-files: [shared.yml]\n" } else { "toc: false\n" };
+        let metadata = if case=="included-change" { "metadata-files: [shared.yml]\n" } else if case=="singular-change" { "metadata-file: shared.yml\n" } else { "toc: false\n" };
         fs::write(root.join("analysis/_metadata.yml"),metadata).unwrap();
         fs::write(root.join("analysis/shared.yml"),"toc: true\n").unwrap();
         fs::write(root.join("published/previous.html"),b"old final report").unwrap();
         fs::write(root.join("VERSION"),"v1.2.3-4\n").unwrap();
         let project=b"# retain exact bytes\nproject:\n  type: default\n";
         fs::write(root.join("_quarto.yml"),project).unwrap();
-        let scripts=if ["source-change","metadata-change","included-change"].contains(&case) {"[change.py, analysis/report.qmd]"} else {"[analysis/report.qmd]"};
+        if case=="local-change" { fs::write(root.join("_quarto.yml.local"),"toc: false\n").unwrap(); }
+        let scripts=if ["source-change","metadata-change","included-change","singular-change","local-change","local-create"].contains(&case) {"[change.py, analysis/report.qmd]"} else {"[analysis/report.qmd]"};
         fs::write(root.join("_proj.yml"),format!("directories:\n  cache: {{path: cache}}\n  docs: {{path: published}}\nbuild:\n  scripts: {scripts}\n  git: false\n")).unwrap();
         let change = match case {
             "metadata-change" => "from pathlib import Path\nPath('analysis/_metadata.yml').write_text('self-contained: false\\n')\n",
-            "included-change" => "from pathlib import Path\nPath('analysis/shared.yml').write_text('self-contained: false\\n')\n",
+            "local-change" | "local-create" => "from pathlib import Path\nPath(\x27_quarto.yml.local\x27).write_text(\x27self-contained: false\\n\x27)\n",
+            "included-change" | "singular-change" => "from pathlib import Path\nPath('analysis/shared.yml').write_text('self-contained: false\\n')\n",
             _ => "from pathlib import Path\nPath('analysis/report.qmd').write_text('---\\nformat: html\\n---\\nchanged after preparation\\n')\n",
         };
         fs::write(root.join("change.py"),change).unwrap();
@@ -58,7 +60,7 @@ if sys.argv[1:2]==['render']:
         assert_eq!(output.status.success(),case=="success","{case}: {log}");
         if case=="render-failure" {assert!(log.contains("17"),"{log}");}
         if case=="source-change" {assert!(log.contains("source changed after embedding preparation"),"{log}");}
-        if ["metadata-change","included-change"].contains(&case) {assert!(log.contains("inherited metadata changed after embedding preparation"),"{log}");}
+        if ["metadata-change","included-change","singular-change","local-change","local-create"].contains(&case) {assert!(log.contains("inherited metadata changed after embedding preparation"),"{log}");}
         assert_eq!(fs::read(root.join("analysis/report.qmd")).unwrap(),source);
         assert_eq!(fs::read_to_string(root.join("analysis/_metadata.yml")).unwrap(),metadata);
         assert_eq!(fs::read_to_string(root.join("analysis/shared.yml")).unwrap(),"toc: true\n");
@@ -66,8 +68,10 @@ if sys.argv[1:2]==['render']:
         if hard_linked {assert_eq!(fs::read(&alias).unwrap(),source);}
         assert!(!fs::read_dir(root.join("analysis")).unwrap().any(|entry|entry.unwrap().file_name().to_string_lossy().starts_with(".proj-write-")));
         assert_eq!(fs::read(root.join("_quarto.yml")).unwrap(),project);
+        if case=="local-change" {assert_eq!(fs::read_to_string(root.join("_quarto.yml.local")).unwrap(),"toc: false\n");}
+        if case=="local-create" {assert!(!root.join("_quarto.yml.local").exists());}
         assert_eq!(fs::read(root.join("published/previous.html")).unwrap(),b"old final report");
-        assert_eq!(root.join("cache/prepared-header-observed").exists(),!["source-change","metadata-change","included-change"].contains(&case));
+        assert_eq!(root.join("cache/prepared-header-observed").exists(),!["source-change","metadata-change","included-change","singular-change","local-change","local-create"].contains(&case));
     }
     }
 }

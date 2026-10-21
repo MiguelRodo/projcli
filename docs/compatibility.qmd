@@ -1531,3 +1531,9 @@ external files are observed, never rewritten. Added direct/included leading-scri
 false regressions, actual late-alias rejection, and precise permissions/temp-cleanup
 witnesses. The prior 21-case matrix remains, now supplemented by two actual cases.
 No custom renderer metadata merge, dependency or R package change introduced.
+
+Embedding inventory includes both native metadata-file/metadata-files spellings
+and fixed _quarto.yml.local/_quarto.yaml.local paths, including absence. Leading
+scripts changing singular includes or changing/creating local overlays must fail
+before render and recover internal bytes/presence. Native actual regressions extend
+the existing matrix; no custom metadata merging or external writes introduced.
