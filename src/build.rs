@@ -311,7 +311,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
                         let outputs = document_output_paths(file, &config.get_path(project_root, "docs")?, project_root)?;
                         for input in &validation_files {
                             let identity = crate::path_safety::resolve_path(input.as_std_path(), false)?;
-                            for target in [&outputs.target, &outputs.destination, &outputs.assets, &outputs.destination_assets] {
+                            for target in [&outputs.target, &outputs.destination, &outputs.assets, &outputs.destination_assets].into_iter().chain(outputs.intermediate.iter()) {
                                 if identity.starts_with(crate::path_safety::resolve_path(target.as_std_path(), true)?) {
                                     anyhow::bail!("Rendered output overwrites protected input script/hook: {input}");
                                 }
@@ -373,7 +373,11 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         for file in &resolved_files {
             if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) {
                 let paths = document_output_paths(file, &docs, project_root)?;
-                native_layouts.push((file.clone(), paths.target.clone(), paths.assets.clone()));
+                native_layouts.push((file.clone(), paths.target.clone(), paths.assets.clone(), paths.intermediate.clone()));
+                if let Some(intermediate) = &paths.intermediate {
+                    native_artifacts.push(intermediate.clone().into_std_path_buf());
+                    managed.push(intermediate.clone().into_std_path_buf());
+                }
                 let artifacts = [paths.target.into_std_path_buf(), paths.assets.into_std_path_buf()];
                 native_artifacts.extend(artifacts.iter().cloned());
                 managed.extend(artifacts);
@@ -435,9 +439,9 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
                 }
             }
         }
-        for (file, expected_target, expected_assets) in &native_layouts {
+        for (file, expected_target, expected_assets, expected_intermediate) in &native_layouts {
             let current = document_output_paths(file, &config.get_path(project_root, "docs")?, project_root)?;
-            anyhow::ensure!(&current.target == expected_target && &current.assets == expected_assets,
+            anyhow::ensure!(&current.target == expected_target && &current.assets == expected_assets && &current.intermediate == expected_intermediate,
                 "Renderer output layout changed after preflight: {file}");
         }
         if let Some(expected) = &frozen_book_assets {
@@ -473,13 +477,24 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
             .collect::<anyhow::Result<Vec<_>>>()?;
         let before_render = |document: Option<&camino::Utf8Path>| -> anyhow::Result<()> {
             if let Some(file) = document {
-                let (_, target, assets) = native_layouts.iter().find(|(input, _, _)| input == file)
+                if file.extension() == Some("qmd") {
+                    validate_quarto_input(project_root, file)?;
+                    anyhow::ensure!(!crate::yml::configuration_entry_exists(&project_root.join("_quarto.yml"))?
+                        && !crate::yml::configuration_entry_exists(&project_root.join("_quarto.yaml"))?,
+                        "Quarto project identity changed after individual-render preflight");
+                }
+                let (_, target, assets, intermediate) = native_layouts.iter().find(|(input, _, _, _)| input == file)
                     .context("Missing frozen document layout")?;
                 let current = document_output_paths(file, &config.get_path(project_root, "docs")?, project_root)?;
-                anyhow::ensure!(&current.target == target && &current.assets == assets, "Renderer output layout changed after preflight: {file}");
+                anyhow::ensure!(&current.target == target && &current.assets == assets && &current.intermediate == intermediate, "Renderer output layout changed after preflight: {file}");
                 remove_native_artifact(target)?;
                 remove_native_artifact(assets)?;
+                if let Some(intermediate) = intermediate { remove_native_artifact(intermediate)?; }
             } else {
+                if quarto_exists {
+                    if build_scripts.is_none() { validate_implicit_quarto_roots(project_root, &config)?; }
+                    for file in &selected_documents { validate_quarto_input(project_root, file)?; }
+                }
                 for (path, expected) in &prepared_engines {
                     anyhow::ensure!(crate::fs_utils::read_managed_text(path)? == *expected,
                         "Renderer project configuration changed after preparation: {path}");
@@ -507,7 +522,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
             let staging = camino::Utf8Path::from_path(document_stage.as_ref().unwrap().path()).context("Render staging path must be UTF-8")?;
             if !quarto_exists && !bookdown_exists {
                 for file in &resolved_files {
-                    if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) { let (_, target, assets) = native_layouts.iter().find(|(input, _, _)| input == file).context("Missing frozen document collection layout")?;
+                    if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) { let (_, target, assets, _) = native_layouts.iter().find(|(input, _, _, _)| input == file).context("Missing frozen document collection layout")?;
                         stage_frozen_document(target, assets, staging)?; }
                 }
             } else if bookdown_exists {
@@ -1070,6 +1085,7 @@ fn validate_individual_metadata(root: &camino::Utf8Path, input: &camino::Utf8Pat
 }
 
 struct DocumentOutputPaths {
+    intermediate: Option<camino::Utf8PathBuf>,
     target: camino::Utf8PathBuf,
     destination: camino::Utf8PathBuf,
     assets: camino::Utf8PathBuf,
@@ -1109,7 +1125,15 @@ fn document_output_paths(file_path: &camino::Utf8Path, docs_path: &camino::Utf8P
     crate::path_safety::resolve_path(assets.as_std_path(), true)?;
     crate::path_safety::resolve_path(destination_assets.as_std_path(), true)?;
     if assets.exists() { crate::path_safety::validate_directory_move(&assets, &destination_assets)?; }
-    Ok(DocumentOutputPaths { target, destination, assets, destination_assets })
+    // html_notebook first writes ordinary HTML, then renames it in its native
+    // postprocessor. That transient sibling is managed too, even on success.
+    let intermediate = if format == "html_notebook" {
+        let path = parent.join(format!("{stem}.html"));
+        crate::path_safety::resolve_path(path.as_std_path(), true)?;
+        anyhow::ensure!(!path.exists() || path.is_file(), "Notebook intermediate must be a regular file or absent");
+        Some(path)
+    } else { None };
+    Ok(DocumentOutputPaths { intermediate, target, destination, assets, destination_assets })
 }
 
 fn copy_individual_document(file_path: &camino::Utf8Path, docs_path: &camino::Utf8Path, project_root: &camino::Utf8Path) -> anyhow::Result<()> {

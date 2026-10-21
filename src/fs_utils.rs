@@ -92,12 +92,18 @@ fn copy_dir_contents(src: &Utf8Path, dst: &Utf8Path) -> anyhow::Result<()> {
 pub(crate) fn write_managed_file(path: impl AsRef<std::path::Path>, bytes: impl AsRef<[u8]>) -> anyhow::Result<()> {
     let path = path.as_ref();
     crate::path_safety::resolve_path(path, true)?;
+    match fs::symlink_metadata(path) {
+        Ok(metadata) => anyhow::ensure!(metadata.is_file(), "Managed write requires a regular file or absent target: {}", path.display()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {},
+        Err(error) => return Err(error.into()),
+    }
     fs::write(path, bytes).with_context(|| format!("Cannot write managed file {}", path.display()))
 }
 
 pub(crate) fn read_managed_text(path: impl AsRef<std::path::Path>) -> anyhow::Result<String> {
     let path = path.as_ref();
     crate::path_safety::resolve_path(path, true)?;
+    anyhow::ensure!(fs::symlink_metadata(path)?.is_file(), "Managed read requires a regular file: {}", path.display());
     fs::read_to_string(path).with_context(|| format!("Cannot read managed file {}", path.display()))
 }
 
