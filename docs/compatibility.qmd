@@ -1277,3 +1277,14 @@ fake artifacts, preserve EOF/no-install assertions with explicit cache, and upda
 the actual-byte archive fixture to write safe staging and verify promoted bytes.
 Publication-failure fixtures now assert the retained release version, not a next-dev
 bump that did not run; retain the established Local build succeeded diagnostic.
+
+Successful staging also restores exact preexisting native compiled documents and
+asset trees before final promotion/Git, using the same reviewed scoped BuildState
+mechanism. This prevents beside-input scratch output being swept into add -A.
+Includes Bookdown native assets. Added successful production fake-render regression
+with old HTML/assets/empty directories preserved and only fresh bytes in published
+and versioned cache destinations. Preserve declared Docs label case in cache leaves.
+The real CLI acceptance driver now checks preexisting native artifacts too; its
+R/Python/embedded HTML execution is enabled remotely in the same pinned image.
+The digest-only image spelling matches the merged devcontainer spec; image content
+is unchanged. No local renderer execution, R package edits or linked portability claim.

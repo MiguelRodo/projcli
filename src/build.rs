@@ -327,6 +327,7 @@ pub fn build_project_with_clear_stage(project_root: &camino::Utf8Path, mode: Bui
 
     // Capture exact local state before the first controlled project mutation.
     let mut managed = vec![];
+    let mut native_artifacts = Vec::new();
     for name in ["VERSION", ".gitignore", ".Rbuildignore", "_proj.yml", "_projr.yml", "_projr-local.yml", "DESCRIPTION", "_quarto.yml", "_bookdown.yml"] {
         managed.push(project_root.join(name).into_std_path_buf());
     }
@@ -353,6 +354,7 @@ pub fn build_project_with_clear_stage(project_root: &camino::Utf8Path, mode: Bui
                 anyhow::bail!("Bookdown assets contain a selected input");
             }
         }
+        native_artifacts.push(assets.clone().into_std_path_buf());
         managed.push(assets.into_std_path_buf());
         managed.push(destination.into_std_path_buf());
     }
@@ -361,7 +363,9 @@ pub fn build_project_with_clear_stage(project_root: &camino::Utf8Path, mode: Bui
         for file in &resolved_files {
             if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) {
                 let paths = document_output_paths(file, &docs, project_root)?;
-                managed.extend([paths.target.into_std_path_buf(), paths.assets.into_std_path_buf()]);
+                let artifacts = [paths.target.into_std_path_buf(), paths.assets.into_std_path_buf()];
+                native_artifacts.extend(artifacts.iter().cloned());
+                managed.extend(artifacts);
             }
         }
     }
@@ -390,6 +394,11 @@ pub fn build_project_with_clear_stage(project_root: &camino::Utf8Path, mode: Bui
         .map(|label| config.get_path(project_root, label).map(|path| path.into_std_path_buf()))
         .collect::<anyhow::Result<Vec<_>>>()?;
     let backup = crate::build_state::BuildState::capture(&recovery_caches, &managed)?;
+    // Native tools may emit beside their input. Restore those original compiled
+    // artifacts after staging on success too, so Git never sweeps up scratch output.
+    let mut native_backup = if native_artifacts.is_empty() { None } else {
+        Some(crate::build_state::BuildState::capture(&recovery_caches, &native_artifacts)?)
+    };
     let mut engine_originals = Vec::new();
     for (active, name) in [(quarto_exists, "_quarto.yml"), (bookdown_exists, "_bookdown.yml")] {
         if active {
@@ -464,9 +473,12 @@ pub fn build_project_with_clear_stage(project_root: &camino::Utf8Path, mode: Bui
                 if assets.exists() { crate::fs_utils::copy_dir_recursive(&assets, &destination)?; }
             }
             validate_project_artifacts(staging)?;
-            let cached_docs = cache_root.as_ref().unwrap().join("projr").join(initial_version.cache_key()).join("docs");
+            let docs_label = config.directories.keys().find(|label| label.eq_ignore_ascii_case("docs"))
+                .context("Document rendering requires the exact docs role")?;
+            let cached_docs = cache_root.as_ref().unwrap().join("projr").join(initial_version.cache_key()).join(docs_label);
             crate::fs_utils::copy_dir_recursive(staging, &cached_docs)?;
         }
+        if let Some(native) = native_backup.take() { native.restore_result(Ok(()))?; }
         if !is_dev && config.output_run.unwrap_or(true) {
             for (staged, final_path) in &staged_outputs {
                 if staged.exists() { crate::fs_utils::copy_dir_recursive(staged, final_path)?; }

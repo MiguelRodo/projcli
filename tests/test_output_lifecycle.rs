@@ -89,3 +89,44 @@ fn invalid_settings_in_active_layers_fail_before_start_hooks_or_state_writes() {
       }
     }
 }
+
+
+#[cfg(unix)]
+#[test]
+fn successful_render_preserves_native_artifacts_and_promotes_only_fresh_bytes() {
+    use std::os::unix::fs::PermissionsExt;
+    for extension in ["qmd","Rmd"] {
+        let temp=tempfile::tempdir().unwrap();let root=temp.path().canonicalize().unwrap();
+        for directory in ["analysis/report_files/empty","bin","published"] {fs::create_dir_all(root.join(directory)).unwrap();}
+        fs::write(root.join("analysis/report.html"),b"prior native html").unwrap();
+        fs::write(root.join("analysis/report_files/old.bin"),b"prior native asset").unwrap();
+        fs::write(root.join("published/old.html"),b"prior published html").unwrap();
+        fs::write(root.join("VERSION"),"v1.2.3-4\n").unwrap();
+        fs::write(root.join(format!("analysis/report.{extension}")),"Report\n").unwrap();
+        fs::write(root.join("_proj.yml"),format!("directories:\n  cache: {{path: cache}}\n  Docs: {{path: published}}\nbuild:\n  scripts: [analysis/report.{extension}]\n  git: false\n")).unwrap();
+        let fake=r#"#!/usr/bin/env python3
+import os,sys,json
+from pathlib import Path
+if '--version' in sys.argv: raise SystemExit(0)
+if sys.argv[1:2]==['-e'] and 'rmarkdown::render(' not in sys.argv[2]: raise SystemExit(0)
+context=json.loads(Path(os.environ['PROJ_RUN_CONTEXT']).read_text())
+document=Path(context['render']['document'])
+document.with_suffix('.html').write_bytes(b'fresh html')
+assets=document.parent/(document.stem+'_files');assets.mkdir(exist_ok=True)
+(assets/'new.bin').write_bytes(b'fresh asset')
+"#;
+        for name in ["quarto","Rscript"] {let executable=root.join("bin").join(name);fs::write(&executable,fake).unwrap();fs::set_permissions(executable,fs::Permissions::from_mode(0o755)).unwrap();}
+        let mut paths=vec![root.join("bin")];paths.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()));
+        let output=Command::new(env!("CARGO_BIN_EXE_proj")).args(["build","--non-interactive","--project"]).arg(&root).current_dir(&root)
+            .env("PATH",std::env::join_paths(paths).unwrap()).env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
+        assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
+        assert_eq!(fs::read(root.join("analysis/report.html")).unwrap(),b"prior native html");
+        assert_eq!(fs::read(root.join("analysis/report_files/old.bin")).unwrap(),b"prior native asset");
+        assert!(root.join("analysis/report_files/empty").is_dir());assert!(!root.join("analysis/report_files/new.bin").exists());
+        for directory in ["published","cache/projr/v1.2.4/Docs"] {
+            assert_eq!(fs::read(root.join(directory).join("report.html")).unwrap(),b"fresh html");
+            assert_eq!(fs::read(root.join(directory).join("report_files/new.bin")).unwrap(),b"fresh asset");
+            assert!(!root.join(directory).join("report_files/old.bin").exists());
+        }
+    }
+}

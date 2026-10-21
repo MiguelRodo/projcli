@@ -92,6 +92,11 @@ knitr::include_graphics(image)
               '  output: {path: released}\n  docs: {path: published}\n'
               'settings:\n  output-clear-stage: none\nbuild:\n  git: false\n  scripts: ' + json.dumps(scripts, ensure_ascii=False) + '\n')
     (root / '_proj.yml').write_text(config)
+    for stem in ["qreport's é", "rreport's é"]:
+        (docs / (stem + '.html')).write_bytes(b'preexisting native html')
+        assets = docs / (stem + '_files')
+        assets.mkdir()
+        (assets / 'old.bin').write_bytes(b'preexisting native asset')
     original = {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
                 for path in root.rglob('*') if path.is_file()}
     env = os.environ.copy()
