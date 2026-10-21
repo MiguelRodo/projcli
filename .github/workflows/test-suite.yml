@@ -30,7 +30,7 @@ jobs:
       - name: Install remote diagnostic dependencies and unchanged pinned projr
         run: |
           python -m pip install PyYAML
-          Rscript --vanilla -e 'options(Ncpus=2); install.packages(c("renv","jsonlite","yaml","rprojroot","desc","fs","digest","cli","glue","rmarkdown","knitr","png"))'
+          Rscript --vanilla -e 'options(Ncpus=2); install.packages(c("renv","jsonlite","yaml","rprojroot","desc","fs","digest","cli","glue","rmarkdown","knitr","png"), repos=Sys.getenv("RSPM", unset="https://cloud.r-project.org"))'
           test "$(git -C diagnostic-projr rev-parse HEAD)" = 90be50132d16aee33e39c0f7f35ef906c35f5397
           R CMD INSTALL --no-multiarch diagnostic-projr
           Rscript --vanilla -e 'library(projr); cat("Installed projr:", as.character(packageVersion("projr")), "\n"); cat("rmarkdown:", as.character(packageVersion("rmarkdown")), "knitr:", as.character(packageVersion("knitr")), "\n")'

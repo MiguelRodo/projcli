@@ -36,6 +36,11 @@ diag_exercise <- function(suffix = "") {
       helper_path <- get_path("raw-data", "helper.R")
       image_path <- get_path("raw-data", "images", "sentinel.png")
       output_path <- get_path("output", paste0(Sys.getenv("DIAG_CASE"), suffix, "-", resolver, ".txt"))
+      record$data_path <- data_path
+      record$helper_path <- helper_path
+      record$image_path <- image_path
+      record$output_path <- output_path
+      record$output_absolute <- as.character(fs::path_norm(fs::path_abs(output_path)))
       values <- utils::read.csv(data_path)
       helper_environment <- new.env(parent = baseenv())
       source(helper_path, local = helper_environment)

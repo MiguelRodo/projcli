@@ -33,3 +33,8 @@ embedded images must contain the actual sentinel PNG payload. Native-default,
 explicit true and explicit false settings are separate cases, with no prototype
 embedding fallback forced into renderer arguments. The proposed future fallback
 is unspecified -> true, preserving explicit false/true after inherited settings.
+
+The first run stopped before execution because --vanilla bypassed R's configured
+package mirror. The diagnostic now names the public RSPM/CRAN mirror explicitly.
+Additional cases preserve inherited project/profile false and Rmd sidecar false;
+the unspecified->true proposal is recorded, never forced into current renderer runs.

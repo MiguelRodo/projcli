@@ -155,23 +155,33 @@ pathlib.Path(os.environ['DIAG_EVIDENCE'],os.environ['DIAG_CASE']+'.json').write_
 
 for renderer in ['rmarkdown','quarto-document','quarto-project']:
  for root_mode in [False,True]:
-  for embedded in [None,False,True]:
-    name=renderer+'-'+('root' if root_mode else 'native')+'-'+('native-default' if embedded is None else ('embedded' if embedded else 'linked'))
+  scenarios=[None,False,True]
+  if renderer=='quarto-project': scenarios+=['inherited-false','profile-false']
+  elif renderer=='rmarkdown': scenarios+=['inherited-false']
+  for embedded in scenarios:
+    name=renderer+'-'+('root' if root_mode else 'native')+'-'+(embedded if isinstance(embedded,str) else ('native-default' if embedded is None else ('embedded' if embedded else 'linked')))
     root,env=fixture(name,project=renderer=='quarto-project')
     extension='Rmd' if renderer=='rmarkdown' else 'qmd'
     if extension=='Rmd':
-      setting='output: html_document\n' if embedded is None else 'output:\n  html_document:\n    self_contained: '+str(embedded).lower()+'\n'
+      setting='output: html_document\n' if embedded is None or isinstance(embedded,str) else 'output:\n  html_document:\n    self_contained: '+str(embedded).lower()+'\n'
     else:
-      setting='format: html\n' if embedded is None else 'format:\n  html:\n    embed-resources: '+str(embedded).lower()+'\n'
+      setting='format: html\n' if embedded is None or isinstance(embedded,str) else 'format:\n  html:\n    embed-resources: '+str(embedded).lower()+'\n'
     body='---\ntitle: Relative path diagnostic\n'+setting+'---\n\n![native markdown sentinel](../_raw/images/sentinel.png)\n\n'
     body+='```{r diagnostics, echo=FALSE, fig.alt="code helper sentinel"}\nsource(Sys.getenv("DIAG_EXERCISE_R"))\ndiag_exercise()\nimage <- tryCatch(projr::projr_path_get("raw-data", "images", "sentinel.png", format="relative", create=FALSE), error=function(e) "")\nif (file.exists(image)) knitr::include_graphics(image)\n```\n'
     document=root/'analysis'/('report.'+extension);document.write_text(body)
+    if embedded=='inherited-false':
+      if renderer=='rmarkdown': (root/'analysis/_output.yml').write_text('html_document:\n  self_contained: false\n')
+      else:
+        project_config=root/'_quarto.yml'
+        project_config.write_text(project_config.read_text()+'format:\n  html:\n    embed-resources: false\n')
+    if embedded=='profile-false': (root/'_quarto-linked.yml').write_text('format:\n  html:\n    embed-resources: false\n')
     if renderer=='rmarkdown':
       code='args <- commandArgs(TRUE); options(tinytex.install_packages=FALSE); rmarkdown::render(args[[1]], knit_root_dir=if(args[[2]] == "yes") args[[3]] else NULL, quiet=FALSE)'
       command=['Rscript','--vanilla','-e',code,document,'yes' if root_mode else 'no',root]
     else:
       command=['quarto','render',document,'--to','html']
       if root_mode: command.extend(['--execute-dir',root])
+      if embedded=='profile-false': command.extend(['--profile','linked'])
     entry=dict(case=name,runner=renderer,root_toggle=root_mode,embedded=embedded,**execute(command,root,env,name,timeout=240))
     candidates=list(root.rglob('report.html'))
     if candidates:
