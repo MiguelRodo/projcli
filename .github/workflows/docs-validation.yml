@@ -31,6 +31,93 @@ jobs:
           mkdir -p validation-evidence
           git rev-parse HEAD | tee validation-evidence/pr-checkout.txt
           quarto render docs --no-execute 2>&1 | tee validation-evidence/quarto-render.txt
+      - name: Install supported headless shell for lifecycle validation
+        run: |
+          timeout --kill-after=10s 180s quarto install chrome-headless-shell --no-prompt 2>&1 | tee validation-evidence/headless-shell-install.txt
+      - name: Verify native lifecycle rendering and export its SVGs
+        run: |
+          timeout --kill-after=10s 90s python3 - <<'PY' 2>&1 | tee validation-evidence/lifecycle-browser-check.txt
+          from functools import partial
+          from html.parser import HTMLParser
+          from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+          from pathlib import Path
+          import math
+          import shutil
+          import subprocess
+          import tempfile
+          import threading
+          import xml.etree.ElementTree as ET
+
+          site = Path("docs/_site").resolve()
+          evidence = Path("validation-evidence/lifecycle-svg-review").resolve()
+          evidence.mkdir(parents=True, exist_ok=True)
+          # Use the runner's packaged Chrome with its existing sandbox support.
+          # The separately downloaded shell cannot use this runner's sandbox profile.
+          browser = shutil.which("google-chrome")
+          assert browser, "The runner must provide sandbox-capable Google Chrome"
+          print(subprocess.check_output([browser, "--version"], text=True, timeout=10).strip(), flush=True)
+
+          class QuietHandler(SimpleHTTPRequestHandler):
+              def log_message(self, *_args):
+                  pass
+          server = ThreadingHTTPServer(("127.0.0.1", 0), partial(QuietHandler, directory=str(site)))
+          threading.Thread(target=server.serve_forever, daemon=True).start()
+          try:
+              with tempfile.TemporaryDirectory(prefix="lifecycle-browser-") as profile:
+                  result = subprocess.run([
+                      browser, "--headless", "--disable-gpu", "--dump-dom",
+                      "--virtual-time-budget=10000", "--timeout=20000",
+                      "--window-size=1200,2200", "--user-data-dir=" + profile,
+                      "--screenshot=" + str(evidence / "lifecycle-page.png"),
+                      f"http://127.0.0.1:{server.server_port}/lifecycle.html",
+                  ], capture_output=True, text=True, timeout=60)
+              (evidence / "browser-stderr.txt").write_text(result.stderr)
+              (evidence / "rendered-page.html").write_text(result.stdout)
+              result.check_returncode()
+          finally:
+              server.shutdown()
+              server.server_close()
+
+          # Extract the browser's exact SVG serialization, preserving SVG attribute casing.
+          class SvgParser(HTMLParser):
+              def __init__(self, text):
+                  super().__init__()
+                  self.text = text
+                  self.offsets = [0]
+                  for line in text.splitlines(keepends=True):
+                      self.offsets.append(self.offsets[-1] + len(line))
+                  self.start = None
+                  self.depth = 0
+                  self.figures = []
+                  self.feed(text)
+              def position(self):
+                  line, column = self.getpos()
+                  return self.offsets[line - 1] + column
+              def handle_starttag(self, tag, attrs):
+                  if tag == "svg":
+                      if self.start is not None:
+                          self.depth += 1
+                      elif "flowchart" in dict(attrs).get("class", "").split():
+                          self.start, self.depth = self.position(), 1
+              def handle_endtag(self, tag):
+                  if tag == "svg" and self.start is not None:
+                      self.depth -= 1
+                      if self.depth == 0:
+                          self.figures.append(self.text[self.start:self.position() + len("</svg>")])
+                          self.start = None
+          figures = SvgParser(result.stdout).figures
+          assert len(figures) == 6, f"Expected six browser-rendered diagrams, found {len(figures)}"
+          for index, text in enumerate(figures, 1):
+              svg = ET.fromstring(text)
+              assert svg.tag == "{http://www.w3.org/2000/svg}svg"
+              viewbox = [float(value) for value in svg.attrib["viewBox"].split()]
+              assert len(viewbox) == 4 and all(math.isfinite(v) and v > 0 for v in viewbox[2:])
+              nodes = sum("node" in el.attrib.get("class", "").split() for el in svg.iter())
+              assert nodes > 0
+              (evidence / f"diagram-{index}.svg").write_text(text)
+              print(f"PASS browser-rendered SVG {index}: {nodes} nodes; viewBox={svg.attrib['viewBox']}")
+          assert (evidence / "lifecycle-page.png").stat().st_size > 1000
+          PY
       - name: Check rendered navigation and local links
         run: |
           python3 - <<'PY' 2>&1 | tee validation-evidence/links.txt
