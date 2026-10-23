@@ -122,6 +122,11 @@ pub enum Commands {
 /// Ordinary local inspection/download; does not change the configured remote registry.
 #[derive(Subcommand)]
 pub enum RemoteCommands {
+    /// Explicit GitHub Release assets; does not change configured destinations.
+    Github {
+        #[command(subcommand)]
+        command: GithubCommands,
+    },
     /// Apply a file-inspected policy to a concrete local target; no metadata publication.
     Store {
         /// Explicit physical source directory.
@@ -178,6 +183,46 @@ pub enum RemoteCommands {
         /// Whether the storage layout appends the label to its base.
         #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
         path_append_label: bool,
+    },
+}
+
+/// Native GitHub Release API operations. Tokens are read from the existing environment.
+#[derive(Subcommand)]
+pub enum GithubCommands {
+    /// List all assets on an existing exact-tag Release.
+    Assets {
+        #[arg(long)]
+        repository: String,
+        #[arg(long)]
+        tag: String,
+    },
+    /// Upload a new asset without replacing or deleting an existing name.
+    Upload {
+        #[arg(long)]
+        repository: String,
+        #[arg(long)]
+        tag: String,
+        #[arg(long)]
+        name: String,
+        #[arg(long)]
+        source: camino::Utf8PathBuf,
+        /// Explicitly allow creating the Release if its tag is absent.
+        #[arg(long)]
+        create_release: bool,
+    },
+    /// Download one asset with staged regular-file replacement.
+    Download {
+        #[arg(long)]
+        repository: String,
+        #[arg(long)]
+        tag: String,
+        #[arg(long)]
+        name: String,
+        #[arg(long)]
+        destination: camino::Utf8PathBuf,
+        /// Maximum advertised and downloaded size in bytes.
+        #[arg(long)]
+        max_bytes: u64,
     },
 }
 
@@ -341,6 +386,12 @@ fn main() {
 
     match &cli.command {
         Commands::Capabilities => unreachable!("Capabilities handled before project selection"),
+        Commands::Remote { command: RemoteCommands::Github { command } } => {
+            match github_assets(&root, command) {
+                Ok(result) => println!("{}", serde_json::to_string_pretty(&result).expect("Asset metadata is serializable")),
+                Err(error) => fail(format_args!("GitHub Release operation failed: {error:#}")),
+            }
+        },
         Commands::Remote { command: RemoteCommands::Store { source, destination, strategy, inspect: _, dry_run } } => {
             match local_store_files(&root, source, destination, strategy, *dry_run) {
                 Ok(plan) => println!("{}", serde_json::to_string_pretty(&plan).expect("Store plan is serializable")),
@@ -628,4 +679,28 @@ fn local_store_files(root: &camino::Utf8Path, source: &camino::Utf8Path, destina
         _ => anyhow::bail!("Unsupported file transfer strategy"),
     };
     proj::local_store::store_files(root, &source, &destination, strategy, dry_run)
+}
+
+
+fn github_assets(root: &camino::Utf8Path, command: &GithubCommands) -> anyhow::Result<serde_json::Value> {
+    let repository = match command {
+        GithubCommands::Assets { repository, .. } | GithubCommands::Upload { repository, .. }
+            | GithubCommands::Download { repository, .. } => repository,
+    };
+    let token = ["GITHUB_PAT", "GH_TOKEN", "GITHUB_TOKEN"].iter()
+        .find_map(|name| std::env::var(name).ok().filter(|value| !value.trim().is_empty()));
+    let api = std::env::var("GITHUB_API_URL").unwrap_or_else(|_| "https://api.github.com".into());
+    let client = proj::github_release::GithubReleaseClient::new(repository, &api, token)?;
+    let result = match command {
+        GithubCommands::Assets { tag, .. } => serde_json::json!({"assets": client.assets(tag)?}),
+        GithubCommands::Upload { tag, name, source, create_release, .. } => {
+            let source = if source.is_absolute() { source.clone() } else { root.join(source) };
+            serde_json::json!({"asset": client.upload_asset(tag, name, &source, *create_release)?})
+        },
+        GithubCommands::Download { tag, name, destination, max_bytes, .. } => {
+            let destination = if destination.is_absolute() { destination.clone() } else { root.join(destination) };
+            serde_json::json!({"asset": client.download_asset(root, tag, name, &destination, *max_bytes)?})
+        },
+    };
+    Ok(result)
 }

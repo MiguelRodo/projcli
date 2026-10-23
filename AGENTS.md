@@ -289,3 +289,11 @@ dry-run no-mutation. Do not imply VERSION/CSV publication, configured cues,
 historical trust or future registry decisions. Share inventory/guarded install
 logic with existing build/download and retain their failure/permission tests.
 Mirror plans describe file actions, not private staging I/O counts.
+
+Native GitHub Release asset transport must omit tokens/signed URLs from its own errors and never
+forward Authorization on download redirects. Keep explicit new-upload duplicate
+rejection and staged bounded downloads; no deletion/overwrite, ZIP/configured
+restore or credential-helper parity claim follows from the initial transport.
+Use mocked HTTP fixtures and remote tests, never live user dataset uploads.
+Document that embedders must not enable unredacted ureq DEBUG/TRACE logging;
+no network endpoint confinement follows from stripping redirect credentials.

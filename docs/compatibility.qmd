@@ -2023,3 +2023,48 @@ existing alias before staging, including parent components, without writing prob
 files. Filesystem-sensitive CLI fixtures exercise all four policies and nested
 names; case-sensitive filesystems retain distinct-name behaviour. Exact-head
 remote verification and re-review remain required.
+
+
+## Explicit GitHub Release asset transport
+
+The source candidate adds native HTTPS REST asset listing, new uploads and
+staged downloads through remote github assets/upload/download. It preserves
+Enterprise API base paths and exact Release tags, lists paginated assets, and
+strips authentication from binary redirects. Uploads require an existing token;
+duplicate asset names fail without deleting the old asset. Release creation is
+explicit. Downloads require an explicit byte limit and protect project authority
+files, links and special entries, preserving old bytes on incomplete transfers.
+Network failures after upload may leave an uncertain remote result; inspect it
+before retrying. No credential installation or live-data test is authorised.
+
+Tokens use GITHUB_PAT, then GH_TOKEN, then GITHUB_TOKEN. GITHUB_API_URL selects
+the API base. Git credential helpers and gh-token fallback remain unported here.
+Listing/downloading public assets can be anonymous. Literal loopback HTTP is
+accepted for disposable fixtures; ordinary service URLs require HTTPS.
+
+This is the actual transport prerequisite for existing projr GitHub latest/archive
+support, not complete configured publication/restore. ZIPs are opaque in this
+slice; packaging, projr names, VERSION/manifest/CHANGELOG ZIP metadata, replacement
+policy and configured restore remain subsequent work. No registry/CAS redesign.
+Pinned comparison: remote-github-httr.R REST transport and remote-github.R ZIP
+transfer at 90be50132d16aee33e39c0f7f35ef906c35f5397.
+
+Ponytail full: one concrete HTTP client and an established synchronous HTTPS
+crate rather than a provider trait, GitHub CLI dependency or custom TLS. Reuse
+existing path guards and tempfile replacement. Mocked local HTTP fixture tests
+exercise real requests/bodies and CLI JSON without live GitHub writes. No local
+compilation/tests run; remote exact-head compilation, locked/API/docs/acceptance
+and independent review are still required. Source candidate is not installed.
+
+The CLI does not initialise HTTP wire logging and its own error messages omit
+tokens, response bodies and signed redirect URLs. Library embedders must avoid
+ureq DEBUG/TRACE logging for sensitive requests because dependency logging is
+not redacted. Redirects remove Authorization but do not confine network access
+to a provider host; this transport is not a network sandbox.
+
+Remote Windows regression exposed two real portability issues: accepted fixture
+sockets inherit nonblocking state and must explicitly become blocking before
+bounded reads; prefix canonicalisation changes Win32 trailing-dot/space lookup
+into verbatim lookup. Asset destinations now reject those aliases before prefix
+resolution and still inspect resolved authority names (including short aliases).
+No assertion is removed; the Windows witness requires the alias guard before HTTP.

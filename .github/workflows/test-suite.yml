@@ -31,3 +31,13 @@ jobs:
       # Runs unit, integration, binary, AND documentation tests in a single optimized pass
       - name: Run Complete Test Suite
         run: cargo test --workspace --verbose
+
+
+      - name: Retain resolved dependency lock for exact-head verification
+        if: always() && matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: resolved-dependency-lock
+          path: Cargo.lock
+          if-no-files-found: error
+          retention-days: 7
