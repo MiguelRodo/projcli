@@ -2122,3 +2122,11 @@ other writers have no directory privacy metadata to restore. Source root modes
 are not encoded as a new manifest field. No ACL/ownership/xattr claim follows.
 Temporary paths are created beneath the physical canonical system temp directory;
 macOS /var aliases are not an excuse to weaken external path guards.
+
+Extraction also checks actual directory spelling immediately after creation,
+rejecting filesystems that rewrite it rather than merging distinct Unicode
+members. The extracted-tree owner restores directory owner access for cleanup;
+explicit close reports a retained path on cleanup failure. The directory-transfer
+command checks extraction and transfer cleanup on success and failure and
+distinguishes installed output from failed transfer. Readonly/zero-mode owned
+directory cleanup is exercised unprivileged in the pinned gate.

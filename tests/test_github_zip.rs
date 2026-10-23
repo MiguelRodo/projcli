@@ -114,3 +114,31 @@ fn directory_payload_crc_and_understated_member_headers_are_rejected() {
     fs::write(zip.path(),bytes).unwrap();
     assert!(extract_zip(Utf8Path::from_path(zip.path()).unwrap(),2).is_err());
 }
+
+#[cfg(unix)]
+#[test]
+fn readonly_extraction_directories_cleanup_explicitly_and_on_drop() {
+    use std::os::unix::fs::PermissionsExt;
+    for mode in [0o555,0o000] {
+        let zip=tempfile::NamedTempFile::new_in(std::env::temp_dir().canonicalize().unwrap()).unwrap();
+        {let mut writer=zip::ZipWriter::new(zip.as_file());
+            writer.add_directory("restricted/",zip::write::SimpleFileOptions::default().unix_permissions(mode)).unwrap();
+            writer.start_file("restricted/data",zip::write::SimpleFileOptions::default()).unwrap();writer.write_all(b"bytes").unwrap();writer.finish().unwrap();}
+        let extracted=extract_zip(Utf8Path::from_path(zip.path()).unwrap(),100).unwrap();
+        let path=extracted.path().to_owned();
+        assert_eq!(fs::metadata(path.join("restricted")).unwrap().permissions().mode()&0o777,mode);
+        extracted.close().unwrap();assert!(!path.exists());
+        let extracted=extract_zip(Utf8Path::from_path(zip.path()).unwrap(),100).unwrap();let path=extracted.path().to_owned();
+        drop(extracted);assert!(!path.exists());
+    }
+}
+#[cfg(windows)]
+#[test]
+fn native_short_parent_alias_is_rejected_when_available() {
+    let temp=tempfile::tempdir().unwrap();let root=path(&temp);
+    fs::create_dir(root.join("LongDirectoryName")).unwrap();
+    if root.join("LONGDI~1").exists() {
+        let zip=archive(&[("LongDirectoryName/a",b"a"),("LONGDI~1/b",b"b")]);
+        assert!(extract_zip(Utf8Path::from_path(zip.path()).unwrap(),100).is_err());
+    }
+}

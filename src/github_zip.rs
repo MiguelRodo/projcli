@@ -157,19 +157,58 @@ pub fn metadata_zip(source:&Utf8Path,kind:MetadataKind)->anyhow::Result<tempfile
     write_members(source,&[(member.into(),format!("{:x}",digest.finalize()))],false)
 }
 
+/// Private extracted tree with explicit, permission-aware cleanup.
+/// Call close to observe cleanup failures. Drop restores owner access to owned
+/// directories before best-effort cleanup, without following links.
+pub struct ExtractedZip { directory: Option<tempfile::TempDir> }
+impl ExtractedZip {
+    /// Location of the owned private tree; contents are not installed yet.
+    pub fn path(&self)->&std::path::Path {self.directory.as_ref().unwrap().path()}
+    /// Restores directory owner access for cleanup, removes the private tree,
+    /// and reports any retained path instead of silently losing the outcome.
+    pub fn close(mut self)->anyhow::Result<()> {
+        let directory=self.directory.take().unwrap();let path=directory.path().to_owned();
+        if let Err(error)=writable_owned_directories(&path) {
+            let retained=directory.keep();
+            anyhow::bail!("Cannot prepare private extraction cleanup: {error:#}; retained at {}",retained.display());
+        }
+        directory.close().with_context(||format!("Private extraction cleanup failed at {}",path.display()))
+    }
+}
+impl Drop for ExtractedZip {
+    fn drop(&mut self) {
+        if let Some(directory)=&self.directory {let _=writable_owned_directories(directory.path());}
+    }
+}
+fn writable_owned_directories(path:&std::path::Path)->anyhow::Result<()> {
+    let metadata=fs::symlink_metadata(path)?;
+    if metadata.is_dir()&&!metadata.file_type().is_symlink() {
+        #[cfg(unix)] {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(path,fs::Permissions::from_mode(metadata.permissions().mode()|0o700))?;
+        }
+        for entry in fs::read_dir(path)? {
+            let entry=entry?;
+            if entry.file_type()?.is_dir() {writable_owned_directories(&entry.path())?;}
+        }
+    }
+    Ok(())
+}
+
 /// Extracts into a newly owned private temporary directory, never an existing tree.
 /// Enforces a total expanded-byte limit,100000member ceiling and CRC checks.
 /// Rejects traversal, absolute/backslash/native-alias paths, duplicates/case aliases,
 /// encrypted entries, links/special entries and parent/file collisions.
 /// It does not install into a project, interpret an empty marker or verify CSV.
 /// The caller must validate the expected contents before guarded installation.
-pub fn extract_zip(archive:&Utf8Path,max_bytes:u64)->anyhow::Result<tempfile::TempDir> {
+pub fn extract_zip(archive:&Utf8Path,max_bytes:u64)->anyhow::Result<ExtractedZip> {
     crate::path_safety::resolve_path(archive.as_std_path(),true)?;
     anyhow::ensure!(fs::symlink_metadata(archive)?.is_file(),"ZIP archive must be a regular file");
     let input=fs::File::open(archive)?;let mut zip=zip::ZipArchive::new(input)?;
     anyhow::ensure!(zip.len()<=100000,"ZIP exceeds member limit");
-    let output=tempfile::Builder::new().prefix("proj-unzip-").tempdir_in(fs::canonicalize(std::env::temp_dir())?)?;
+    let output=ExtractedZip {directory:Some(tempfile::Builder::new().prefix("proj-unzip-").tempdir_in(fs::canonicalize(std::env::temp_dir())?)?)};
     let root=Utf8Path::from_path(output.path()).context("ZIP temporary path must be UTF-8")?;
+    let result=(|| -> anyhow::Result<()> {
     let mut names=BTreeSet::new();let mut prefixes=BTreeMap::<String,(String,bool)>::new();let mut total=0u64;
     #[cfg(unix)]
     let mut directory_modes=Vec::new();
@@ -196,6 +235,7 @@ pub fn extract_zip(archive:&Utf8Path,max_bytes:u64)->anyhow::Result<tempfile::Te
             let mut probe=[0];
             anyhow::ensure!(member.read(&mut probe)?==0,"ZIP directory member has a payload");
             fs::create_dir_all(&destination)?;
+            crate::path_safety::validate_native_names(root,relative.as_str(),false)?;
             #[cfg(unix)]
             if mode!=0 {directory_modes.push((destination,mode&0o777));}
             continue;
@@ -203,6 +243,9 @@ pub fn extract_zip(archive:&Utf8Path,max_bytes:u64)->anyhow::Result<tempfile::Te
         total=total.checked_add(member.size()).context("ZIP expanded size overflow")?;
         anyhow::ensure!(total<=max_bytes,"ZIP exceeds expanded-byte limit");
         fs::create_dir_all(destination.parent().context("ZIP member has no parent")?)?;
+        // Filesystems may rewrite Unicode spelling during creation. Reject that
+        // immediately rather than accepting a later alias as a different parent.
+        crate::path_safety::validate_native_names(root,relative.as_str(),false)?;
         // create_new catches file/directory collisions even on native aliases.
         let mut file=fs::OpenOptions::new().write(true).create_new(true).open(&destination)?;
         let expected=member.size();
@@ -220,6 +263,14 @@ pub fn extract_zip(archive:&Utf8Path,max_bytes:u64)->anyhow::Result<tempfile::Te
         directory_modes.sort_by_key(|(path,_)|std::cmp::Reverse(path.components().count()));
         for (path,mode) in directory_modes {fs::set_permissions(path,fs::Permissions::from_mode(mode))?;}
     }
+    Ok(())
+    })();
+    if let Err(error)=result {
+        return match output.close() {
+            Ok(())=>Err(error),
+            Err(cleanup)=>Err(error.context(format!("Extraction failed; cleanup also failed: {cleanup:#}"))),
+        };
+    }
     Ok(output)
 }
 
@@ -232,21 +283,40 @@ pub fn download_directory(client:&crate::github_release::GithubReleaseClient,
     root:&Utf8Path,tag:&str,name:&str,destination:&Utf8Path,max_bytes:u64,
     max_expanded_bytes:u64,clear:bool,empty:bool)->anyhow::Result<crate::github_release::ReleaseAsset> {
     let transfer=tempfile::Builder::new().prefix("proj-github-transfer-").tempdir_in(fs::canonicalize(std::env::temp_dir())?)?;
-    let transfer_root=Utf8Path::from_path(transfer.path()).context("Transfer path must be UTF-8")?;
-    crate::local_remote::validate_download_destination(root,transfer_root,destination)?;
-    let archive=transfer_root.join("asset.zip");
-    let asset=client.download_asset(root,tag,name,&archive,max_bytes)?;
-    let extracted=extract_zip(&archive,max_expanded_bytes)?;
-    let extracted_root=Utf8Path::from_path(extracted.path()).context("Extraction path must be UTF-8")?;
-    if empty {
-        let entries:Vec<_>=fs::read_dir(extracted_root)?.collect::<Result<_,_>>()?;
-        let marker=extracted_root.join("projr-empty");
-        anyhow::ensure!(entries.len()==1 && marker.is_file() && fs::metadata(&marker)?.len()==0,
-            "Empty ZIP variant must contain only an empty projr-empty sentinel");
-        fs::remove_file(marker)?;
+    let result=(|| {
+        let transfer_root=Utf8Path::from_path(transfer.path()).context("Transfer path must be UTF-8")?;
+        crate::local_remote::validate_download_destination(root,transfer_root,destination)?;
+        let archive=transfer_root.join("asset.zip");
+        let asset=client.download_asset(root,tag,name,&archive,max_bytes)?;
+        let extracted=extract_zip(&archive,max_expanded_bytes)?;
+        let installed=(|| -> anyhow::Result<()> {
+            let extracted_root=Utf8Path::from_path(extracted.path()).context("Extraction path must be UTF-8")?;
+            if empty {
+                let entries:Vec<_>=fs::read_dir(extracted_root)?.collect::<Result<_,_>>()?;
+                let marker=extracted_root.join("projr-empty");
+                anyhow::ensure!(entries.len()==1 && marker.is_file() && fs::metadata(&marker)?.len()==0,
+                    "Empty ZIP variant must contain only an empty projr-empty sentinel");
+                fs::remove_file(marker)?;
+            }
+            crate::local_remote::install_directory(root,extracted_root,destination,clear)?;
+            Ok(())
+        })();
+        let cleanup=extracted.close();
+        match (installed,cleanup) {
+            (Ok(()),Ok(()))=>Ok(asset),
+            (Ok(()),Err(cleanup))=>Err(cleanup.context("Directory installed, but extraction cleanup failed")),
+            (Err(error),Ok(()))=>Err(error),
+            (Err(error),Err(cleanup))=>Err(error.context(format!("Transfer failed; extraction cleanup also failed: {cleanup:#}"))),
+        }
+    })();
+    let cleanup_path=transfer.path().to_owned();
+    let cleanup=transfer.close().with_context(||format!("Transfer staging cleanup failed at {}",cleanup_path.display()));
+    match (result,cleanup) {
+        (Ok(asset),Ok(()))=>Ok(asset),
+        (Ok(_),Err(cleanup))=>Err(cleanup.context("Directory installed, but transfer cleanup failed")),
+        (Err(error),Ok(()))=>Err(error),
+        (Err(error),Err(cleanup))=>Err(error.context(format!("Transfer failed; staging cleanup also failed: {cleanup:#}"))),
     }
-    crate::local_remote::install_directory(root,extracted_root,destination,clear)?;
-    Ok(asset)
 }
 
 #[cfg(test)]
