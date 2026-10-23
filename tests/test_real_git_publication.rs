@@ -128,6 +128,36 @@ if os.environ['PROJCLI_TEST_FAIL_ANALYSIS']=='1':
         output
     }
 
+    fn pending_receipt(&self) -> (String, serde_json::Value) {
+        let pending: Vec<_> = fs::read_dir(self.root.join(".proj/log")).unwrap()
+            .map(|entry|entry.unwrap().path())
+            .filter(|path|path.file_name().unwrap().to_string_lossy().ends_with(".git.json"))
+            .filter(|path|!self.command("git").args(["ls-files","--error-unmatch","--"])
+                .arg(path.strip_prefix(&self.root).unwrap()).output().unwrap().status.success()).collect();
+        assert_eq!(pending.len(),1);
+        let name=pending[0].file_name().unwrap().to_str().unwrap().to_owned();
+        let bytes=fs::read(&pending[0]).unwrap();
+        let receipt:serde_json::Value=serde_json::from_slice(&bytes).unwrap();
+        let id=receipt["attempt_id"].as_str().unwrap();
+        let snapshot=format!(".proj/log/{id}.json");
+        let committed=self.git(&["show",&format!("HEAD:./{snapshot}")]);
+        assert_eq!(fs::read(self.root.join(&snapshot)).unwrap(),committed);
+        assert_eq!(receipt["snapshot_hash"],blake3::hash(&committed).to_hex().as_str());
+        (name,receipt)
+    }
+
+    fn assert_pending_git_state(&self,version_dirty:bool) {
+        let (name,_)=self.pending_receipt();
+        let mut expected=vec![format!("?? .proj/log/{name}")];
+        if version_dirty {expected.push(" M VERSION".into());}
+        expected.sort();
+        // Preserve initial whitespace in exact porcelain records.
+        let mut actual:Vec<String>=String::from_utf8(self.git(&["status","--porcelain","--untracked-files=all"])).unwrap()
+            .lines().map(str::to_owned).collect();
+        actual.sort();
+        assert_eq!(actual,expected);
+    }
+
     fn assert_release_files(&self) {
         let expected = b"result\n84\n";
         assert_eq!(fs::read(self.root.join("released/results.csv")).unwrap(), expected);
@@ -165,8 +195,7 @@ fn actual_push_uses_only_the_configured_non_main_upstream_and_remains_optional()
         }
         fixture.assert_local_release();
         assert_eq!(fs::read(fixture.root.join("VERSION")).unwrap(), b"Version: v1.2.4.1");
-        let status = String::from_utf8(fixture.git(&["status", "--porcelain"])).unwrap();
-        assert_eq!(status.lines().collect::<Vec<_>>(), [" M VERSION"]);
+        fixture.assert_pending_git_state(true);
     }
 }
 
@@ -269,7 +298,7 @@ fn rejected_real_push_preserves_successful_local_release_and_skips_next_dev_bump
     fixture.assert_local_release();
     assert_eq!(fs::read(fixture.root.join("VERSION")).unwrap(), b"Version: v1.2.4");
     fixture.assert_upstream_refs(&initial, &divergent);
-    assert_eq!(fixture.text(&["status", "--porcelain"]), "");
+    fixture.assert_pending_git_state(false);
 }
 
 #[test]
@@ -434,4 +463,77 @@ fn tracked_sibling_claim_is_rejected_before_analysis() {
     assert_eq!(fs::read(fixture.root.join("sibling/.proj/build.lock")).unwrap(), b"tracked reserved claim");
     assert!(!fixture.root.join(".proj/build.lock").exists());
     assert!(!fixture.root.join("released/results.csv").exists());
+}
+
+#[test]
+fn attempt_snapshot_and_receipt_follow_two_normal_commits_without_recursion() {
+    let fixture=Fixture::new(false);
+    let initial=fixture.text(&["rev-parse","HEAD"]);
+    let first=fixture.build(false);
+    assert!(first.status.success(),"{}",String::from_utf8_lossy(&first.stderr));
+    assert_eq!(fixture.text(&["rev-list","--count",&format!("{initial}..HEAD")]),"1");
+    let (name,receipt)=fixture.pending_receipt();
+    assert_eq!(receipt["status"],"completed");
+    assert_eq!(receipt["git"]["commit"],"completed");
+    assert_eq!(receipt["git"]["push"],"not_requested");
+    assert_eq!(receipt["git"]["head"],fixture.text(&["rev-parse","HEAD"]));
+    assert_eq!(receipt["version_after"],"v1.2.4.1");
+    let bytes=fs::read(fixture.root.join(".proj/log").join(&name)).unwrap();
+    let second=fixture.build(false);
+    assert!(second.status.success(),"{}",String::from_utf8_lossy(&second.stderr));
+    assert_eq!(fixture.text(&["rev-list","--count",&format!("{initial}..HEAD")]),"2");
+    assert_eq!(fixture.git(&["show",&format!("HEAD:./.proj/log/{name}")]),bytes);
+    fixture.assert_pending_git_state(true);
+}
+
+#[test]
+fn edited_forged_and_unwitnessed_pending_receipts_fail_closed() {
+    for change in ["valid-field-edit","forged-name","missing-witness"] {
+        let fixture=Fixture::new(false);
+        assert!(fixture.build(false).status.success());
+        let initial=fixture.text(&["rev-parse","HEAD"]);
+        let (name,mut receipt)=fixture.pending_receipt();
+        let path=fixture.root.join(".proj/log").join(&name);
+        if change=="valid-field-edit" {
+            receipt["version_after"]=serde_json::json!("v8.8.8.8");
+            fs::write(&path,serde_json::to_vec(&receipt).unwrap()).unwrap();
+        }else if change=="forged-name" {
+            fs::write(fixture.root.join(".proj/log/attempt-AAAAAAAAAAAAAAAAAAAAAAAA.git.json"),
+                serde_json::to_vec(&receipt).unwrap()).unwrap();
+        }else{
+            let id=receipt["attempt_id"].as_str().unwrap();
+            fs::remove_file(fixture.root.join(".git/projcli-attempt-receipts").join(format!("{id}.json"))).unwrap();
+        }
+        let before=fs::read(fixture.root.join("VERSION")).unwrap();
+        let result=fixture.build(false);
+        assert!(!result.status.success(),"{change}");
+        assert!(String::from_utf8_lossy(&result.stderr).contains("already contains changes"),"{change}");
+        assert_eq!(fixture.text(&["rev-parse","HEAD"]),initial);
+        assert_eq!(fs::read(fixture.root.join("VERSION")).unwrap(),before);
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn failed_commit_and_failed_receipt_write_preserve_both_diagnostics_and_snapshot() {
+    use std::os::unix::fs::PermissionsExt;
+    let fixture=Fixture::new(false);
+    let initial=fixture.text(&["rev-parse","HEAD"]);
+    let hook=fixture.root.join(".git/hooks/pre-commit");
+    fs::write(&hook,"#!/bin/sh\nchmod 500 .proj/log\nexit 17\n").unwrap();
+    fs::set_permissions(&hook,fs::Permissions::from_mode(0o755)).unwrap();
+    let result=fixture.build(false);
+    fs::set_permissions(fixture.root.join(".proj/log"),fs::Permissions::from_mode(0o700)).unwrap();
+    assert!(!result.status.success());
+    let diagnostic=String::from_utf8_lossy(&result.stderr);
+    assert!(diagnostic.contains("Git operation failed"),"{diagnostic}");
+    assert!(diagnostic.contains("final attempt evidence could not be written"),"{diagnostic}");
+    assert!(diagnostic.to_lowercase().contains("permission denied"),"{diagnostic}");
+    assert_eq!(fixture.text(&["rev-parse","HEAD"]),initial);
+    assert_eq!(fs::read(fixture.root.join("VERSION")).unwrap(),b"Version: v1.2.4");
+    let logs:Vec<_>=fs::read_dir(fixture.root.join(".proj/log")).unwrap().map(|entry|entry.unwrap().path()).collect();
+    assert_eq!(logs.len(),1);
+    let snapshot:serde_json::Value=serde_json::from_slice(&fs::read(&logs[0]).unwrap()).unwrap();
+    assert_eq!(snapshot["status"],"pre_git_snapshot");
+    assert_eq!(snapshot["distribution_may_have_started"],true);
 }

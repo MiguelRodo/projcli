@@ -508,3 +508,17 @@ flowchart TB
   R["Release owned claim on normal exit"]
   W --> S --> R
 ```
+
+## Development source: snapshot and final Git receipt
+
+Publication-attempt evidence starts at the successful local-release boundary.
+The snapshot records possible distribution before provider calls and survives
+later failure. Immediately before optional Git, the framework freezes that
+snapshot. The normal commit includes it; a later local receipt records actual
+Git and end-hook/next-dev outcomes for the next ordinary commit. No bookkeeping
+commit loop is introduced. Missing receipts after a crash remain unresolved;
+failed requests never promise that remote state was unchanged.
+
+This overlay does not move end hooks, enforce output sealing or change the
+released lifecycle figures. Plain no-publication builds, previews and earlier
+failures remain outside this first durable-log slice.

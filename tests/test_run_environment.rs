@@ -89,7 +89,7 @@ fn r_version_probe_package_probe_and_render_share_the_resolved_values() {
 fn configured_git_children_share_the_run_environment_without_mutating_the_parent() {
     let project = tempfile::tempdir().unwrap();
     let root = project.path();
-    let path = fake_path(root, "git", "#!/bin/sh\nprintf '%s\\n' \"$PROJCLI_GIT_CONTEXT\" >> \"$PROJ_PROJECT_ROOT/git-seen\"\ncase \"$1\" in\nls-files) exit 1 ;;\nrev-parse) exit 0 ;;\nconfig) echo fixture ;;\nrev-list) echo 0 ;;\nsymbolic-ref) echo main ;;\nesac\nexit 0\n");
+    let path = fake_path(root, "git", "#!/bin/sh\nprintf '%s\\n' \"$PROJCLI_GIT_CONTEXT\" >> \"$PROJ_PROJECT_ROOT/git-seen\"\ncase \"$1\" in\nls-files) exit 1 ;;\nrev-parse) if [ \"$2\" = --absolute-git-dir ]; then printf \"%s/.git\\n\" \"$PROJ_PROJECT_ROOT\"; fi ;;\nconfig) echo fixture ;;\nrev-list) echo 0 ;;\nsymbolic-ref) echo main ;;\nesac\nexit 0\n");
     fs::write(root.join("_environment"), "PROJCLI_GIT_CONTEXT=git-fixture\n").unwrap();
     fs::write(root.join("_proj.yml"), "config:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: []\n  git: true\n  restrictions:\n    not_behind: false\n").unwrap();
     fs::create_dir(root.join(".git")).unwrap();

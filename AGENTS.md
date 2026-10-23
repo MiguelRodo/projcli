@@ -418,8 +418,8 @@ Never steal an existing claim or treat its timestamp as proof its owner died.
 Protect .proj from managed cleanup/publication destinations. The live claim is
 excluded from Git staging/status by an exact reserved-name pathspec at every repository depth without
 narrowing the existing whole-repository scope; retained logs must not be hidden.
-This does not implement durable attempt logs, log retention, crash recovery or
-post-Git receipt sequencing. Preserve existing hook semantics; mutation enforcement
+The ownership guard is separate from publication-attempt evidence below;
+crash recovery and pre-distribution failure retention remain separate work. Preserve existing hook semantics; mutation enforcement
 is deferred, not an M2 gate.
 
 
@@ -427,3 +427,22 @@ Pre-distribution failure recovery preserves exact prior VERSION/DESCRIPTION
 bytes and absence, including development counters above one and accepted original
 formatting. Never synthesize dev1 as rollback. Publication-boundary behavior and
 end-hook lifecycle remain unchanged; hook-mutation enforcement is deferred.
+
+
+Publication-enabled production builds retain allowlisted JSON evidence in
+.proj/log. Keep the pre-Git snapshot immutable once sealed; write the final Git
+and finalization outcome to a new receipt for the next ordinary commit. Never
+create recursive bookkeeping commits or infer remote rollback from a failed
+request. Mark possible activity durably before provider/Git entry. Preserve
+both primary-operation and evidence-writing errors; retain the earlier record.
+
+Only exact untracked receipts with an unchanged committed snapshot and a matching
+immutable worktree-local Git metadata witness may bypass the clean-state guard.
+The witness binds project identity, attempt and receipt bytes; it is control
+state, not a catalogue or authentication against users editing Git metadata.
+Do not hide modified/tracked receipts, arbitrary neighbouring files or unowned
+VERSION edits. Keep snapshots/receipts under normal Git staging; never stage the
+claim or ownership witness. Do not serialize raw environment, credentials,
+remote URLs, command arguments, descriptions or subprocess output.
+Plain no-publication builds, previews and failures before local release retain
+their existing behavior in this first slice; do not claim full M2 provenance.

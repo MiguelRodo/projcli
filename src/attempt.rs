@@ -5,6 +5,8 @@ use anyhow::Context;
 /// Owns the project claim until all build finalization and recovery have finished.
 /// A crash leaves a claim: fail closed rather than guessing whether its owner died.
 pub(crate) struct Attempt {
+    id: String,
+    started_at: String,
     directory: PathBuf,
     claim: PathBuf,
     bytes: Vec<u8>,
@@ -12,6 +14,11 @@ pub(crate) struct Attempt {
 }
 
 impl Attempt {
+    /// Opaque attempt identity with no user or host information.
+    pub(crate) fn id(&self) -> &str { &self.id }
+    /// UTC wall-clock time at ownership acquisition.
+    pub(crate) fn started_at(&self) -> &str { &self.started_at }
+
     /// Claims the writer exclusively; existing claims fail closed without mutation.
     pub(crate) fn acquire(root: &camino::Utf8Path) -> anyhow::Result<Self> {
         crate::path_safety::validate_native_names(root, ".proj/build.lock", false)?;
@@ -33,18 +40,18 @@ impl Attempt {
                 .with_context(|| format!("Cannot claim project build writer at {}. Another build may be active; after a crash, remove only a confirmed stale claim", claim.display()))?;
             // Establish ownership before allocating identity resources: rejected
             // competitors never expose temporary files to the owner's Git staging.
-            let mut owned = Self { directory: directory.clone(), claim, bytes: Vec::new(), created_directory };
+            let mut owned = Self { id: String::new(), started_at: chrono::Utc::now().to_rfc3339(), directory: directory.clone(), claim, bytes: Vec::new(), created_directory };
             let identity_file = tempfile::Builder::new().prefix("attempt-").rand_bytes(24)
                 .tempfile().context("Cannot allocate internal attempt identity")?;
             let identity = identity_file.path().file_name().and_then(|s| s.to_str())
                 .context("Invalid internal attempt identity")?.to_owned();
-            let bytes = serde_json::to_vec(&serde_json::json!({"attempt_id": identity}))?;
+            let bytes = serde_json::to_vec(&serde_json::json!({"attempt_id": &identity}))?;
             // Empty ownership is retained until write succeeds; on an I/O failure
             // close before cleanup on Windows and remove only the bytes we wrote.
             let write = file.write_all(&bytes).and_then(|_| file.flush());
             drop(file);
             match write {
-                Ok(()) => owned.bytes = bytes,
+                Ok(()) => { owned.bytes = bytes; owned.id = identity; },
                 Err(error) => {
                     if let Ok(bytes) = fs::read(&owned.claim) { owned.bytes = bytes; }
                     return Err(error).context("Cannot write build attempt identity");

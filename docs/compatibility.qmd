@@ -2719,3 +2719,47 @@ build checks release/dev transitions 1.2.4/1.2.4.1 then 1.2.5/1.2.5.1, including
 a leading-space/bracket directory name. No arbitrary dirty files are accepted.
 Browser validation now requires eight rendered lifecycle diagrams, retaining its
 existing native-browser SVG and layout checks.
+
+## Publication-attempt JSON snapshots and nonrecursive Git receipts
+
+**New structured companion, bounded first slice.** The user approved unique
+attempts, per-attempt JSON under .proj/log, retaining evidence after possible
+distribution, useful logs tracked by optional Git, and a pre-Git snapshot followed
+by a local final receipt included in the next ordinary commit. This implements
+that sequence without replacing CSV/MD5, introducing a central catalogue or
+changing provider decisions, release versions or existing hook order.
+
+The R reference remains
+[projr90be501 build logging](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/buildlog.R)
+and [human history](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/log.R).
+The JSON is not an R schema parity claim. Raw effective configuration is not copied:
+the reference serialises it, which is not a credential-redaction guarantee.
+The existing R package remains untouched.
+
+Ponytail full and early independent review reuse existing tempfile, serde, BLAKE3
+and Git control patterns, with no new dependencies or registry design. Review
+identified and corrected valid-field receipt tampering, masked primary errors
+when evidence writes also fail, and an inaccurate possible-Git-effect flag.
+A small immutable per-receipt witness under worktree Git metadata binds exact
+receipt bytes and opaque project identity. These are ownership control hashes,
+not new dataset/tree identities, a central catalogue or protection against a
+user editing Git metadata. Logs contain no raw environment, URLs, tokens, command
+arguments, descriptions or subprocess output.
+
+Regression targets include two ordinary real-Git commits with the previous
+receipt entering the second commit; valid-field edits, forged receipts and
+missing witnesses rejected before analysis; primary Git failure retained when
+receipt writing also fails; standalone publication without Git and secret
+sentinels absent from JSON; real mocked-GitHub partial publication retained;
+and atomic snapshot replacement preserving a hard-linked alias. The existing
+mixed-render acceptance now allows exactly the validated pending receipt plus
+the owned VERSION transition, retaining all failed-artifact/path/byte assertions.
+Remote compilation, platforms, native-browser documentation and pinned real
+renderer/combined/archive/mixed acceptance are required. No local heavy tests ran.
+
+Coverage starts only when a production local release is ready for publication.
+Plain no-publication builds, previews, pre-local failures, complete source/runner/
+dependency evidence, earlier stage records and pruning policy remain unfinished.
+A failed provider/push return can still have partial effects; pending snapshots
+without final receipts remain unresolved. No M2 completion or preview.3 update
+is claimed, and optional DVC/CAS/registry redesign is outside this slice.

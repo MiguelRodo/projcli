@@ -207,7 +207,7 @@ ID and is removed on normal completion. A crashed process may leave a stale clai
 confirm the project has no active build before removing that single file.
 Do not delete a claim merely because another build is taking longer than expected.
 Managed destinations cannot overlap .proj; reserved live claims at every repository depth are never committed
-by the build's optional Git integration. Durable attempt logs remain separate work.
+by the build's optional Git integration. Development-source publication attempt logs are described below.
 
 
 ## Exact development-version recovery
@@ -218,3 +218,24 @@ A project starting at dev7 or dev19 must not be reset to dev1. The regression
 matrix deliberately overwrites both authority files before hook/analysis failures
 and checks the complete recovered managed state. This does not change the existing
 rule that failure after publication begins preserves the successful local release.
+
+
+## Development source: retained publication logs
+
+After a successful local release is ready for publication, the build writes
+.proj/log/attempt-....json. It records what completed and which publication
+operations began, completed or returned errors. A failed request can already
+have changed a remote, so the log preserves that uncertainty.
+
+If Git is enabled, that normal build commit contains the pre-Git snapshot.
+The final outcome is saved as attempt-....git.json and enters the next ordinary
+commit. The build does not make an extra bookkeeping commit. Exact pending
+receipts are recognised using a private local witness in Git metadata; changing
+a receipt or losing that witness makes the normal dirty-work guard apply.
+Preserve the files and resolve the unexpected changes before another build.
+
+No tokens, environment dumps, remote URLs, command arguments or subprocess output
+are copied into these records. This first slice covers publication-enabled
+production builds, including ordinary local publication without Git.
+Previews, plain builds without publication and earlier failures are unchanged.
+These features are development-source behavior; preview.3 has not been updated.

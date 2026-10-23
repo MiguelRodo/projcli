@@ -63,3 +63,5 @@ pub mod publication;
 pub mod github_publication;
 
 mod attempt;
+
+mod attempt_log;
