@@ -304,6 +304,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#cooperative-build-ownership" id="toc-cooperative-build-ownership" class="nav-link" data-scroll-target="#cooperative-build-ownership">Cooperative build ownership</a></li>
   <li><a href="#development-source-publication-attempt-evidence" id="toc-development-source-publication-attempt-evidence" class="nav-link" data-scroll-target="#development-source-publication-attempt-evidence">Development source: publication-attempt evidence</a></li>
   <li><a href="#development-source-plain-production-records-and-inventory-witnesses" id="toc-development-source-plain-production-records-and-inventory-witnesses" class="nav-link" data-scroll-target="#development-source-plain-production-records-and-inventory-witnesses">Development source: plain production records and inventory witnesses</a></li>
+  <li><a href="#development-source-bounded-startup-provenance" id="toc-development-source-bounded-startup-provenance" class="nav-link" data-scroll-target="#development-source-bounded-startup-provenance">Development source: bounded startup provenance</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -498,6 +499,19 @@ ul.task-list li input[type="checkbox"] {
 <p>Attempt JSON references current inventory evidence from the existing manifest.csv: selected input rows captured before analysis, release-output rows after promotion, and an observation of outputs after finalization is attempted. Each fingerprint includes the release version, labels, row/file counts and BLAKE3 of the existing codec’s canonical CSV rows. File hashes remain MD5. These control fingerprints include paths, version and empty-directory markers; they are not a new content-only tree identity, authentication or a replacement manifest.</p>
 <p>Detailed pre-analysis/release rows remain in the ordinary historical CSV. The JSON does not duplicate that potentially large table. End hooks may change files: the final observation can differ from the release inventory without enforcement. With Git enabled the immutable snapshot retains the release inventory; the later receipt holds the final observation. No rewrite of previously published data or CSV history follows. Final observation failure is distinct from an empty inventory and preserves earlier evidence and the original operation error where present.</p>
 <p>Hash-disabled directories and output-disabled builds remain excluded; the latter record an explicit not_requested final observation. Additional output hashing is needed for the final observation. Fingerprints alone cannot reconstruct missing CSV rows or list changed post-hook paths; complete source/config/runner/dependency provenance, inspectable final-row retention and human-history generation remain unfinished M2 work. The installed preview.3 remains unchanged.</p>
+</section>
+<section id="development-source-bounded-startup-provenance" class="level2">
+<h2 class="anchored" data-anchor-id="development-source-bounded-startup-provenance">Development source: bounded startup provenance</h2>
+<p>Production attempt records now include a startup observation captured after preflight and before start hooks:</p>
+<ul>
+<li>Selected script/hook file names, observed byte lengths and BLAKE3 fingerprints. Names are relative to the physical project root; external, overlong or URL-like names are replaced with opaque ordinal names and explicitly marked redacted.</li>
+<li>A Git revision when Git integration is enabled, with a state saying that its preflight gate was accepted. With Git disabled, Git is not queried and the revision is unknown. Neither state proves an unchanged execution tree.</li>
+<li>A safe configuration projection of validated execution/path/clear flags, Git and output toggles, directory counts and whether a safe cache was selected. It deliberately excludes paths, arbitrary parameters, environment, credentials and remote definitions. Its fingerprint covers only this projection.</li>
+<li>Numeric Python/Rscript/Quarto versions recognised from existing preflight responses. No extra runner probe is launched; raw vendor output is not retained.</li>
+<li>Fingerprints of fixed root dependency declarations: renv.lock, DESCRIPTION, pyproject.toml, requirements.txt, requirements-dev.txt, poetry.lock, uv.lock, Pipfile.lock, Project.toml, Manifest.toml, Cargo.lock, environment.yml and environment.yaml. These are declarations, not proof of installed packages.</li>
+</ul>
+<p>File observation limits are 256 selected unique source entries, 8 MiB per file and a shared 64 MiB read budget, with at most one lookahead byte. Missing, unavailable, linked/special and over-limit declarations have explicit states; they do not make a previously supported build fail. Long source names are capped at 256 UTF-8 bytes before redaction. The 16 KiB runner-response cap controls what metadata is accepted; existing preflight subprocess output buffering is unchanged.</p>
+<p>These are startup observations, not frozen source bytes: a start hook can change a later script or dependency declaration. Implicit renderer-project source sets, imported code, effective renderer configuration, arbitrary parameters and installed dependency state are not fully captured. Unknown states must not be presented as complete provenance. Detailed final rows and generated human history remain separate M2 work. CSV/MD5 and failure-retention behavior are unchanged, as is the installed preview.3.</p>
 
 
 </section>

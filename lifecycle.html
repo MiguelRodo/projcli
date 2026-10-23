@@ -769,7 +769,7 @@ Figure&nbsp;7: Current source: production CSV capture within managed recovery.
 <pre class="mermaid mermaid-js" data-label="fig-lifecycle-writer-ownership">%%{init: {"htmlLabels": false}}%%
 flowchart TB
   W["Claim one project writer"]
-  S["Captured inputs; existing pre-build,&lt;br/&gt;analysis, promotion and recovery"]
+  S["Preflight; bounded startup observations;&lt;br/&gt;existing pre-build, analysis,&lt;br/&gt;promotion and recovery"]
   P{"Production local success?"}
   D{"Publication enabled?"}
   L["End hooks; next dev;&lt;br/&gt;observe outputs; install completed log"]
@@ -795,6 +795,7 @@ Figure&nbsp;8: Development-source ownership surrounds the existing lifecycle; pr
 <h2 class="anchored" data-anchor-id="development-source-snapshot-and-final-git-receipt">Development source: snapshot and final Git receipt</h2>
 <p>Publication-attempt evidence starts at the successful local-release boundary. The snapshot records possible distribution before provider calls and survives later failure. Immediately before optional Git, the framework freezes that snapshot. The normal commit includes it; a later local receipt records actual Git and end-hook/next-dev outcomes for the next ordinary commit. No bookkeeping commit loop is introduced. Missing receipts after a crash remain unresolved; failed requests never promise that remote state was unchanged.</p>
 <p>This overlay does not move end hooks, enforce output sealing or change the released lifecycle figures. Successful plain production builds now install a completed record after end hooks/next-dev succeed. Previews and earlier failures remain outside durable-log coverage. Final output observation fingerprints the post-finalization state; it never silently redefines the bytes already published.</p>
+<p>The development-source ownership overlay now observes selected sources, root dependency declarations and a safe policy summary after preflight, before start hooks. It reuses existing runner version responses. No hook or version adjacency moves; startup observations are not immutable executed-code evidence. Earlier failed-build retention and output-mutation enforcement remain unchanged.</p>
 
 
 </section>
