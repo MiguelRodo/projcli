@@ -304,3 +304,9 @@ bound compressed and expanded bytes independently, validate CRC/portable paths
 and reject links, aliases, duplicates and special entries before guarded install.
 Empty variants require only the zero-byte projr-empty sentinel. Explicit directory
 transfer is not configured restore, metadata history merge or overwrite parity.
+
+GitHub replacement is explicit --replace. Stage complete local bytes and validate
+the unique asset/upload endpoint before DELETE; preserve strict new-upload default.
+DELETE followed by upload is the pinned projr behavior, not atomic publication:
+report deleted/uncertain outcomes and never silently retry or imply rollback.
+Mock fixtures only; no existing user assets are test targets.
