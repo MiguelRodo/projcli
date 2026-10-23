@@ -594,7 +594,7 @@ ZIPs must contain exactly the native zero-byte sentinel, even when CSV agrees.
 | Trusted partial manifest / starred, mismatched or missing history | Preserve unselected drift / file fallback |
 | Archive reversion, physical drift, ineligible/future metadata | Correct reuse versus complete current snapshot |
 | Empty transitions and corrupt empty history | Stage/validate before upload/deletion |
-| Live GitHub round-trip | Not performed; requires a dedicated safe destination |
+| Live GitHub round-trip | Dedicated synthetic latest file/sync-diff and archive manifest/sync-diff, both if-change, passed below; full matrix remains mocked REST |
 
 Source implementation passed exact-head remote CI and independent review in
 [PR194](https://github.com/MiguelRodo/projcli/pull/194); installed preview remains unchanged. No new registry, defaults or CAS retention
