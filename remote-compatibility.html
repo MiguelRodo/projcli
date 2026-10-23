@@ -348,7 +348,7 @@ ul.task-list li input[type="checkbox"] {
 <tr class="even">
 <td>latest hierarchy</td>
 <td>Local path[/label]; label append defaults true. New sends update that location. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote.R#L463">Layout</a>.</td>
-<td>Explicit latest inspection/download/restore exists; configured store finalisation remains missing.</td>
+<td>Configured local latest publication, inspection/download/restore and finalisation execute; configured GitHub publication remains pending.</td>
 </tr>
 <tr class="odd">
 <td>archive hierarchy</td>
@@ -358,12 +358,12 @@ ul.task-list li input[type="checkbox"] {
 <tr class="even">
 <td>GitHub flat layout</td>
 <td>Latest assets use path/label-derived flat name; archive adds version; ordinary content is ZIP-packaged. Metadata uses its own ZIP assets. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote.R#L525">Flat naming</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github.R">GitHub</a>.</td>
-<td>Compatible flat names, prefix/append-label options and ZIP transfer exist. Configured restore uses them; automatic multi-label publication remains missing.</td>
+<td>Compatible flat names, prefix/append-label options and ZIP transfer exist. Configured restore uses them; configured GitHub publication remains missing.</td>
 </tr>
 <tr class="odd">
 <td>Empty content</td>
 <td>Local final name gets -empty; GitHub name gets -empty.zip and ZIP has projr-empty sentinel. Full/empty variants are reconciled. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-local.R#L78">Local</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send-label.R#L1792">store finalisation</a>.</td>
-<td>ZIP sentinel/names and local empty variants are supported. Configured restore skips advertised empty labels without clearing. Automatic store reconciliation remains missing.</td>
+<td>ZIP sentinel/names and local empty variants are supported. Configured restore skips advertised empty labels without clearing. Configured local latest publication reconciles full/empty variants; configured GitHub publication remains pending.</td>
 </tr>
 <tr class="even">
 <td>CAS addition</td>
@@ -403,7 +403,7 @@ ul.task-list li input[type="checkbox"] {
 <tr class="even">
 <td>structure</td>
 <td>archive by default; only archive/latest accepted. The wrapper prose saying version is not a supported alias.</td>
-<td>Explicit local/GitHub operations and restore support latest/archive. This does not enable ordinary publication fields in normal builds.</td>
+<td>Explicit local/GitHub operations and restore support latest/archive. Configured local latest publication executes; ordinary archive and GitHub publication remain pending.</td>
 </tr>
 <tr class="odd">
 <td>path</td>
@@ -428,17 +428,17 @@ ul.task-list li input[type="checkbox"] {
 <tr class="odd">
 <td>send.cue</td>
 <td>if-change by default; enum only if-change/always. never occurs in stale wrapper docs but is rejected by current enum. Title-level cue lookup/setter and nested send.cue differ; see defects.</td>
-<td>Missing.</td>
+<td>Both nested cues execute in configured local latest with all strategies and inspection modes; archive/GitHub combinations remain pending.</td>
 </tr>
 <tr class="even">
 <td>send.inspect</td>
 <td>manifest by default; file/manifest/none accepted.</td>
-<td>CAS manifest/file checks exist but have different JSON/BLAKE3 meaning; none and ordinary MD5 comparison missing.</td>
+<td>Configured local latest supports ordinary MD5 file, default manifest-history comparison/fallback, and none planning. CAS JSON/BLAKE3 checks remain distinct. Archive/GitHub publication pending.</td>
 </tr>
 <tr class="odd">
 <td>send.strategy</td>
 <td>sync-diff default, except inspect:none defaults upload-all. Explicit upload-missing/upload-all/sync-purge/sync-diff preserved.</td>
-<td>Explicit file-inspected physical-directory store supports all four strategies. Configured cues/metadata publication remain missing.</td>
+<td>Configured local latest supports all four strategies and both cues with CSV/VERSION/changelog updates; actual build/store/restore fixtures cover file, none and trusted manifest actions. Other provider/layout combinations pending.</td>
 </tr>
 <tr class="even">
 <td>send.conflict</td>
@@ -790,7 +790,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="configured-local-publication-candidate" class="level2">
 <h2 class="anchored" data-anchor-id="configured-local-publication-candidate">Configured local publication candidate</h2>
-<p>The next bounded slice integrates build.local latest/file with the build’s existing release boundary: current CSV-selected staging, all four file strategies, both cues, namespace preflight and shared CSV/VERSION/changelog updates. See the <a href="./cli/remote.html#configured-local-publication-candidate">control matrix</a>. <a href="https://github.com/MiguelRodo/projcli/pull/185">PR185</a> records exact-head independent review and remote verification. Manifest/none inspection, archive comparison selection and configured GitHub publication remain pending; the manifest default is not changed to file.</p>
+<p>The next bounded slice integrates build.local latest/file with the build’s existing release boundary: current CSV-selected staging, all four file strategies, both cues, namespace preflight and shared CSV/VERSION/changelog updates. See the <a href="./cli/remote.html#configured-local-publication-candidate">control matrix</a>. <a href="https://github.com/MiguelRodo/projcli/pull/185">PR185</a> records exact-head independent review and remote verification. File and none inspection are delivered in PR185/188; the current manifest slice adds the existing default comparison and fallback. Archive comparison selection and configured GitHub publication remain pending.</p>
 <p>Pinned R comparison: dest-send-label.R355,854-1560,1587-1788 and manifest.R67-75,192-225 in the source revision linked above. New empty labels and file-equal missing/starred metadata receive explicit discoverability corrections; these are documented differences rather than claims that the pinned R no-change path already repairs them. No registry or unresolved retention/default policy is adopted.</p>
 
 

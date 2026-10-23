@@ -315,6 +315,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#configured-local-publication-candidate" id="toc-configured-local-publication-candidate" class="nav-link" data-scroll-target="#configured-local-publication-candidate">Configured local publication candidate</a>
   <ul class="collapse">
   <li><a href="#no-comparison-during-configured-local-publication" id="toc-no-comparison-during-configured-local-publication" class="nav-link" data-scroll-target="#no-comparison-during-configured-local-publication">No comparison during configured local publication</a></li>
+  <li><a href="#manifest-comparison-for-local-latest-publication" id="toc-manifest-comparison-for-local-latest-publication" class="nav-link" data-scroll-target="#manifest-comparison-for-local-latest-publication">Manifest comparison for local latest publication</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -406,7 +407,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="configured-local-publication-candidate" class="level2">
 <h2 class="anchored" data-anchor-id="configured-local-publication-candidate">Configured local publication candidate</h2>
-<p>Current source adds build.local latest publication with explicit send.inspect: file. This is newer than installed preview.2 and is not complete projr remote parity. All selected namespace identities are checked before hooks; every current CSV-selected snapshot and existing remote metadata is staged/read before the first destination changes. Data precedes manifest.csv, VERSION and an existing project CHANGELOG.md. The build’s existing irreversible publication boundary preserves the successful local release on publication failure and skips its next-dev bump; remote effects may be partial.</p>
+<p>Current source supports build.local latest publication with manifest inspection by default, explicit file comparison, or explicit none comparison. This is newer than installed preview.2 and is not complete projr remote parity. All selected namespace identities are checked before hooks; every current CSV-selected snapshot and existing remote metadata is staged/read before the first destination changes. Data precedes manifest.csv, VERSION and an existing project CHANGELOG.md. The build’s existing irreversible publication boundary preserves the successful local release on publication failure and skips its next-dev bump; remote effects may be partial.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">build</span><span class="kw">:</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">scripts</span><span class="kw">:</span><span class="at"> </span><span class="kw">[]</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">git</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
@@ -451,8 +452,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 <tr class="even">
 <td>inspect manifest</td>
-<td>Selected definitions fail before hooks; no silent file-mode downgrade</td>
-<td>Trusted history comparison and fallback</td>
+<td>Default and explicit mode; matching project/remote history; physical fallback on missing/mismatched/starred history</td>
+<td>Archive comparison and GitHub publication</td>
 </tr>
 <tr class="odd">
 <td>inspect none</td>
@@ -481,7 +482,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 </tbody>
 </table>
-<p>if-change and sync-diff remain the existing defaults. The projr default inspection is manifest: until implemented, omitting inspect is an error rather than changing that default to file or none. Ordinary archive, nonempty get controls, send.conflict and title-level cue are not silently accepted as working policy. path-append-label:false is explicitly deferred here because its full destination contains the shared metadata namespace.</p>
+<p>if-change, sync-diff and manifest inspection remain the existing defaults. Ordinary archive, nonempty get controls, send.conflict and title-level cue are not silently accepted as working policy. path-append-label:false is explicitly deferred here because its full destination contains the shared metadata namespace.</p>
 <p>History retains prior label/version rows and replaces current label/version rows with the current project CSV rows. Upload modes can intentionally preserve extra or old bytes, so desired-source CSV history is not proof that those bytes equal the remote; the VERSION asterisk discloses untrusted existing state.</p>
 <p>Two source defects are corrected explicitly: newly empty latest labels receive an advertised VERSION entry, and file-equal sync-diff repairs missing/starred label metadata after inspection. Pinned R latest/file returns the project version without checking VERSION (.dsl_gr_gvc_latest_file); its no-change branch can otherwise leave the directory undiscoverable or stale-marked. This is a bounded metadata/discoverability correction, not a new default cue or trust policy.</p>
 <p>Ponytail full shares the existing definition/content parser, numeric version validation, CSV format and four-strategy actions/guarded installer. Snapshots preserve selected source directory modes and all staging trees get explicit cleanup on success/failure. Planned missing-path namespaces use conservative portable case/NFC comparison; actual native spelling is rechecked before installation. No ownership/ACL/xattr, crash atomicity or concurrent-writer isolation claim. No actual GitHub Release test mutation or local heavy testing. Remote exact-head checks and independent review are required before delivery.</p>
@@ -491,6 +492,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Set send.inspect to none to make planning ignore comparison hashes/history. The default strategy then becomes upload-all; both cues still upload nonempty sources. Explicit upload-missing and sync-diff also blindly overwrite selected filenames and retain remote-only files, matching projr rather than their file-inspected behavior. Existing destinations are marked untrusted with a star.</p>
 <p>Explicit sync-purge replaces the entire file set when the source is nonempty. With an empty source it retains unknown remote extras: without comparison, projr does not discover extras to trigger a purge. New empty destinations are still advertised. These combinations are covered by actual CLI build/store/restore fixtures, including repeated same-byte builds and both cues.</p>
 <p>None controls comparison decisions; guarded path/type checks, source CSV-byte validation, staging and physical installation safety still read files. It is not a promise of zero remote reads or hashing. The shared physical transfer remains guarded and may read destination bytes while installing. Archive and configured GitHub publication remain pending.</p>
+</section>
+<section id="manifest-comparison-for-local-latest-publication" class="level3">
+<h3 class="anchored" data-anchor-id="manifest-comparison-for-local-latest-publication">Manifest comparison for local latest publication</h3>
+<p>Manifest is the default inspection. The remote label VERSION must be unstarred, and the corresponding label/version CSV rows must exist and match project history exactly as filename/MD5 sets. Then current source rows are compared with those recorded rows. Otherwise comparison falls back to physical files. Missing, mismatched, duplicate or ambiguous rows cannot establish trust; malformed history still fails closed rather than being overwritten.</p>
+<p>A matching history is a performance/decision trust convention, not proof of actual remote bytes. If bytes drift independently while history still agrees, unselected files are retained. Use inspect: file to compare actual bytes. Sync-purge still replaces the whole file set when triggered. Shared guarded staging checks physical paths/types/bytes during installation; this mode does not promise zero remote reads. Explicit upload-all ignores comparison like projr.</p>
+<p>Projr strips the star before its latest-manifest helper checks history. Rust deliberately treats a starred label as untrusted and falls back to file comparison, consistent with the stated marker meaning. This is a source bug correction, not a new history/authenticity policy. Archive and configured GitHub publication are still pending.</p>
 
 
 </section>
