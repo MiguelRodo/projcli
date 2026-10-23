@@ -195,17 +195,24 @@ fn github_version(client:&crate::github_release::GithubReleaseClient,root:&Utf8P
     let definition=&source.definition;let prefix=definition.path.as_deref();let append=definition.path_append_label.unwrap_or(true);
     let assets=client.assets(tag)?;
     if matches!(definition.structure.unwrap_or(Layout::Archive),Layout::Archive) {
-        let stem=directory_asset_name(prefix,append,label,GithubStructure::Latest,None,false)?;
-        let stem=format!("{}-v",stem.strip_suffix(".zip").unwrap());
+        let mut stems=Vec::new();
+        for remote_label in if label=="output-r-data" {vec![label,"data"]} else {vec![label]} {
+            let stem=directory_asset_name(prefix,append,remote_label,GithubStructure::Latest,None,false)?;
+            let stem=format!("{}-v",stem.strip_suffix(".zip").unwrap());
+            if !stems.contains(&stem) {stems.push(stem);}
+        }
+        let mut namespaces=std::collections::BTreeSet::new();
         let mut found=Vec::new();
         for asset in assets {
-            let Some(version)=asset.name.strip_prefix(&stem).and_then(|v|v.strip_suffix(".zip")) else {continue;};
+            let Some((namespace,version))=stems.iter().find_map(|stem|asset.name.strip_prefix(stem).and_then(|v|v.strip_suffix(".zip")).map(|v|(stem,v))) else {continue;};
             let empty=version.ends_with("-empty");let version=version.strip_suffix("-empty").unwrap_or(version);
-            if request.remote_version.as_deref().is_some_and(|wanted|wanted.strip_prefix('v').unwrap_or(wanted)!=version) {continue;}
             if !version.as_bytes().first().is_some_and(u8::is_ascii_digit) {continue;}
             let numbers=version_numbers(version).context("Invalid numeric-looking GitHub archive asset version")?;
+            namespaces.insert(namespace.clone());
+            if request.remote_version.as_deref().is_some_and(|wanted|wanted.strip_prefix('v').unwrap_or(wanted)!=version) {continue;}
             found.push((numbers,format!("v{version}"),asset.name,empty));
         }
+        anyhow::ensure!(namespaces.len()<=1,"Canonical and legacy data remote namespaces conflict");
         found.sort_by(|a,b|compare_versions(&b.0,&a.0).then(a.3.cmp(&b.3)).then(a.2.cmp(&b.2)));
         let (_,version,name,empty)=found.into_iter().next().context("Requested GitHub archive version is unavailable")?;
         Ok((version,name,empty))
@@ -218,14 +225,16 @@ fn github_version(client:&crate::github_release::GithubReleaseClient,root:&Utf8P
             let directory=Utf8Path::from_path(extracted.path()).context("Metadata path must be UTF-8")?;
             anyhow::ensure!(fs::read_dir(directory)?.count()==1,"VERSION.zip must contain exactly VERSION");
             let text=crate::fs_utils::read_managed_text(&directory.join("VERSION"))?;
-            let matches:Vec<_>=text.lines().filter_map(|line|line.split_once(':')).filter(|(key,_)|key.trim()==label).collect();
+            let matches:Vec<_>=text.lines().filter_map(|line|line.split_once(':')).filter(|(key,_)|key.trim()==label||(label=="output-r-data"&&key.trim().eq_ignore_ascii_case("data"))).collect();
             anyhow::ensure!(matches.len()==1,"VERSION.zip label is missing or ambiguous");
-            let version=matches[0].1.trim().trim_end_matches('*');
+            let value=matches[0].1.trim();
+            let version=value.strip_suffix('*').unwrap_or(value);
             anyhow::ensure!(version_numbers(version).is_some(),"Invalid advertised GitHub version");
             let version=format!("v{}",version.strip_prefix('v').unwrap_or(version));
             if let Some(wanted)=&request.remote_version {anyhow::ensure!(wanted.trim_start_matches('v')==version.trim_start_matches('v'),"Requested version is not the advertised latest");}
-            let full=directory_asset_name(prefix,append,label,GithubStructure::Latest,None,false)?;
-            let empty=directory_asset_name(prefix,append,label,GithubStructure::Latest,None,true)?;
+            let remote_label=matches[0].0.trim();
+            let full=directory_asset_name(prefix,append,remote_label,GithubStructure::Latest,None,false)?;
+            let empty=directory_asset_name(prefix,append,remote_label,GithubStructure::Latest,None,true)?;
             if assets.iter().any(|asset|asset.name==full) {Ok((version,full,false))}
             else if assets.iter().any(|asset|asset.name==empty) {Ok((version,empty,true))}
             else {anyhow::bail!("Advertised GitHub latest asset is unavailable");}
@@ -251,10 +260,10 @@ fn github_version(client:&crate::github_release::GithubReleaseClient,root:&Utf8P
 pub fn restore_label(root:&Utf8Path,request:&RestoreRequest)->anyhow::Result<RestoreResult> {
     anyhow::ensure!(request.position.as_deref().is_none_or(|v|matches!(v,"source"|"dest")),"Restore position must be source or dest");
     anyhow::ensure!(request.provider.as_deref().is_none_or(|v|matches!(v,"local"|"github")),"Restore provider must be local or github");
-    let profiles=request.profile.as_deref().map(|profile|profile.split([',',';']).map(str::trim).filter(|v|!v.is_empty()&&*v!="default"&&*v!="local").map(str::to_owned).collect())
-        .unwrap_or_else(crate::profile::get_active_profiles);
+    let profiles=crate::run_context::select_profiles(request.profile.as_deref(),root)?;
     crate::yml::require_active_configuration_for_profiles(root,&profiles)?;
-    let raw=crate::yml::get_combined_yml(request.profile.as_deref(),root)?;
+    let selected_profiles=profiles.join(",");
+    let raw=crate::yml::get_combined_yml(Some(&selected_profiles),root)?;
     let config=projected_config(&raw,root)?;
     let label=config.directories.keys().find(|label|label.eq_ignore_ascii_case(&request.label)).context("Restore label is not declared")?.clone();
     let destination=config.get_path(root,&label)?;
@@ -262,7 +271,7 @@ pub fn restore_label(root:&Utf8Path,request:&RestoreRequest)->anyhow::Result<Res
     anyhow::ensure!(fs::symlink_metadata(&manifest_path)?.is_file(),"Restore requires a regular root manifest.csv");
     let rows=crate::manifest::read(&manifest_path)?;
     let mut result=RestoreResult {label:label.clone(),destination:destination.clone(),provider:None,title:None,version:None,restored:false,skipped:None};
-    if !rows.iter().any(|row|row.label==label&&!row.r#fn.is_empty()) {
+    if !rows.iter().any(|row|(row.label==label||(label=="output-r-data"&&row.label.eq_ignore_ascii_case("data")))&&!row.r#fn.is_empty()) {
         result.skipped=Some("no-recorded-files".into());return Ok(result);
     }
     let source=select_source(&raw,&label,request)?;
@@ -273,13 +282,34 @@ pub fn restore_label(root:&Utf8Path,request:&RestoreRequest)->anyhow::Result<Res
         let base=if Utf8Path::new(path).is_absolute(){Utf8PathBuf::from(path)}else{root.join(path)};
         let layout=match source.definition.structure.unwrap_or(Layout::Archive) {Layout::Latest=>LocalStructure::Latest,Layout::Archive=>LocalStructure::Archive};
         let append=source.definition.path_append_label.unwrap_or(true);
-        let selected=if matches!(layout,LocalStructure::Archive)&&request.remote_version.is_none() {
-            crate::local_remote::list_versions(&base,&label,layout,append)?.into_iter().next()
-                .context("Local archive has no available numeric version")?
-        } else {crate::local_remote::select_version(&base,&label,layout,request.remote_version.as_deref(),append)?};
+        let mut catalogs=Vec::new();
+        for remote_label in if label=="output-r-data" {vec![label.as_str(),"data"]} else {vec![label.as_str()]} {
+            let versions=crate::local_remote::list_versions(&base,remote_label,layout,append)?;
+            if !versions.is_empty() {
+                if !catalogs.iter().any(|(_,previous):&(&str,Vec<crate::local_remote::LocalVersion>)|
+                    previous.iter().map(|v|(&v.path,&v.version,v.empty,v.present,v.metadata_untrusted))
+                        .eq(versions.iter().map(|v|(&v.path,&v.version,v.empty,v.present,v.metadata_untrusted)))) {
+                    catalogs.push((remote_label,versions));
+                }
+            }
+        }
+        anyhow::ensure!(catalogs.len()<=1,"Canonical and legacy data remote namespaces conflict");
+        let (remote_label,versions)=catalogs.into_iter().next().context("Local source has no available version")?;
+        let selected=if matches!(layout,LocalStructure::Archive)&&request.remote_version.is_some() {
+            crate::local_remote::select_version(&base,remote_label,layout,request.remote_version.as_deref(),append)?
+        } else {
+            let selected=versions.into_iter().next().unwrap();
+            if let Some(wanted)=&request.remote_version {
+                anyhow::ensure!(version_numbers(wanted)==version_numbers(&selected.version),"Requested version is not the advertised latest");
+            }
+            selected
+        };
         anyhow::ensure!(selected.present,"Advertised local restore source is unavailable");
         result.version=Some(selected.version.clone());
-        if selected.empty {result.skipped=Some("empty-remote".into());return Ok(result);}
+        if selected.empty {
+            anyhow::ensure!(fs::read_dir(&selected.path)?.next().is_none(),"Empty local marker contains data");
+            result.skipped=Some("empty-remote".into());return Ok(result);
+        }
         crate::local_remote::download_version(root,&selected,&destination,request.clear)?;
     } else {
         let api=std::env::var("GITHUB_API_URL").unwrap_or_else(|_|"https://api.github.com".into());

@@ -293,3 +293,11 @@ cover source priority, references/inline/profiles, destination preference,
 numeric archives, VERSION ZIP latest, clear/merge/empty and corrupt failure
 preservation. No actual GitHub Release mutation or local heavy test is performed.
 Exact-head remote verification and independent review are pending.
+
+Configured restore uses the shared profile selection order: explicit profile,
+PROJR_PROFILE, QUARTO_PROFILE, then build.profile, with earlier profiles winning
+and local overrides last. Machine failures preserve installation/recovery details
+on stderr, including retained backup paths; stdout stays a structured failure.
+Legacy data CSV rows and remote data namespaces are read without rewriting
+history; ambiguous canonical/legacy namespaces fail before installation.
+One optional VERSION trust marker is accepted; it is not a byte-verification claim.

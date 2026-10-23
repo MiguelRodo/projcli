@@ -8,7 +8,7 @@ fn setup()->(tempfile::TempDir,Utf8PathBuf) {
     fs::write(root.join("manifest.csv"),"label,fn,version,hash\nraw,data.csv,v1.2.3,900150983cd24fb0d6963f7d28e17f72\n").unwrap();
     fs::write(root.join("VERSION"),"v1.2.3\n").unwrap();(temp,root)
 }
-fn request()->RestoreRequest {RestoreRequest {label:"raw".into(),max_bytes:1024*1024,max_expanded_bytes:1024*1024,..Default::default()}}
+fn request()->RestoreRequest {RestoreRequest {label:"raw".into(),profile:Some("".into()),max_bytes:1024*1024,max_expanded_bytes:1024*1024,..Default::default()}}
 fn remote(root:&camino::Utf8Path,base:&str,version:&str,bytes:&str) {
     fs::create_dir_all(root.join(base).join("raw").join(version)).unwrap();
     fs::write(root.join(base).join("raw").join(version).join("data.csv"),bytes).unwrap();
@@ -59,8 +59,69 @@ fn empty_latest_skips_without_clearing_and_cli_uses_project_root() {
     fs::create_dir(root.join("remote/raw-empty")).unwrap();fs::write(root.join("remote/VERSION"),"raw: v1.2.3*\n").unwrap();
     fs::write(root.join("_proj.yml"),"directories:\n  raw:\n    path: data\n    source:\n      local:\n        source:\n          path: remote\n          structure: latest\n").unwrap();
     let output=Command::new(env!("CARGO_BIN_EXE_proj")).current_dir(root.parent().unwrap())
+        .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
         .args(["--project",root.as_str(),"--machine","remote","restore","--label","raw","--clear","--max-bytes","10000","--max-expanded-bytes","10000"]).output().unwrap();
     assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
     let value:serde_json::Value=serde_json::from_slice(&output.stdout).unwrap();assert_eq!(value["result"]["restored"],false);assert_eq!(value["result"]["skipped"],"empty-remote");
     assert!(root.join("data/old.txt").exists());
+}
+
+#[test]
+fn child_profile_selection_matches_build_quarto_projr_and_explicit_precedence() {
+    for (projr,quarto,explicit,expected) in [
+        ("","",None,"analysis"),("","quarto",None,"quarto"),
+        ("analysis","quarto",None,"analysis"),("","quarto",Some("analysis"),"analysis"),
+        ("","",Some("first,second"),"first"),
+    ] {
+        let (_temp,root)=setup();
+        for name in ["base","analysis","quarto","first","second"] {
+            fs::create_dir(root.join(format!("{name}-target"))).unwrap();fs::write(root.join(format!("{name}-target/old")),"intact").unwrap();
+            remote(&root,name,"v1.0",name);
+        }
+        fs::write(root.join("_proj.yml"),"directories:\n  raw:\n    path: base-target\n    source:\n      local:\n        A:\n          path: base\nbuild:\n  profile: analysis\n").unwrap();
+        for name in ["analysis","quarto","first","second"] {
+            fs::write(root.join(format!("_projr-{name}.yml")),format!("directories:\n  raw:\n    path: {name}-target\n    source:\n      local:\n        A:\n          path: {name}\n")).unwrap();
+        }
+        let mut command=Command::new(env!("CARGO_BIN_EXE_proj"));
+        command.env("PROJR_PROFILE",projr).env("QUARTO_PROFILE",quarto)
+            .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
+            .args(["--project",root.as_str(),"--machine","remote","restore","--label","raw","--clear","--max-bytes","1000","--max-expanded-bytes","1000"]);
+        if let Some(profile)=explicit {command.args(["--profile",profile]);}
+        let output=command.output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
+        let value:serde_json::Value=serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(value["result"]["destination"],root.join(format!("{expected}-target")).as_str());
+        for name in ["base","analysis","quarto","first","second"] {
+            if name==expected {assert_eq!(fs::read(root.join(format!("{name}-target/data.csv"))).unwrap(),name.as_bytes());assert!(!root.join(format!("{name}-target/old")).exists());}
+            else {assert_eq!(fs::read(root.join(format!("{name}-target/old"))).unwrap(),b"intact");assert!(!root.join(format!("{name}-target/data.csv")).exists());}
+        }
+    }
+}
+#[test]
+fn undefined_reference_selected_source_failure_and_unsupported_get_do_not_fallback_or_clear() {
+    let (_temp,root)=setup();remote(&root,"valid","v1.0","fallback");
+    for sources in [
+        "    source:\n      local: undefined\n",
+        "    source:\n      local:\n        first:\n          path: missing\n        second:\n          path: valid\n",
+        "    source:\n      local:\n        first:\n          path: valid\n          get:\n            strategy: sync-purge\n",
+    ] {
+        fs::write(root.join("_proj.yml"),format!("directories:\n  raw:\n    path: data\n{sources}build:\n  local:\n    fallback:\n      path: valid\n      content: [raw]\n")).unwrap();
+        let mut req=request();req.profile=Some("".into());req.clear=true;
+        assert!(restore_label(&root,&req).is_err());assert_eq!(fs::read(root.join("data/old.txt")).unwrap(),b"previous");assert!(!root.join("data/data.csv").exists());
+    }
+}
+#[test]
+fn legacy_data_aliases_are_read_only_and_conflicting_namespaces_fail() {
+    let (_temp,root)=setup();
+    fs::write(root.join("_projr.yml"),"directories:\n  data: {}\nbuild:\n  local:\n    archive:\n      path: remote\n      content: [data]\n      source: [data]\n").unwrap();
+    let history=b"label,fn,version,hash\ndata,data.csv,v1.2.3,900150983cd24fb0d6963f7d28e17f72\n";
+    fs::write(root.join("manifest.csv"),history).unwrap();
+    fs::create_dir_all(root.join("remote/data/v1.2.3")).unwrap();fs::write(root.join("remote/data/v1.2.3/restored"),"legacy bytes").unwrap();
+    let config=fs::read(root.join("_projr.yml")).unwrap();
+    let mut req=request();req.label="output-r-data".into();req.profile=Some("".into());req.clear=true;
+    let result=restore_label(&root,&req).unwrap();assert!(result.restored);
+    assert_eq!(fs::read(root.join("data/restored")).unwrap(),b"legacy bytes");
+    assert_eq!(fs::read(root.join("manifest.csv")).unwrap(),history);assert_eq!(fs::read(root.join("_projr.yml")).unwrap(),config);
+    fs::create_dir_all(root.join("remote/output-r-data/v1.2.3")).unwrap();fs::write(root.join("remote/output-r-data/v1.2.3/new"),"conflict").unwrap();
+    assert!(restore_label(&root,&req).unwrap_err().to_string().contains("namespaces conflict"));
+    assert_eq!(fs::read(root.join("data/restored")).unwrap(),b"legacy bytes");
 }

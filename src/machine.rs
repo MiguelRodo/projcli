@@ -71,7 +71,10 @@ pub(crate) fn run(cli: &Cli) -> i32 {
         Commands::Remote {command:command @ RemoteCommands::Restore {..}} => {
             crate::configured_restore(&root,command)
                 .map(|result|serde_json::to_value(result).expect("Restore result is serializable"))
-                .map_err(|_|failure(ErrorCode::CommandFailed,"Configured restore failed; inspect destination state if installation or cleanup failed."))
+                .map_err(|error| {
+                    eprintln!("Configured restore failed: {error:#}");
+                    failure(ErrorCode::CommandFailed,"Configured restore failed; inspect stderr for installation/recovery details.")
+                })
         }
 
         Commands::Remote { command: RemoteCommands::Github { command: command @ crate::GithubCommands::Assets { .. } } } => {
