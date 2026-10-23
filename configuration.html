@@ -80,7 +80,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -309,6 +309,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#runtime-settings-and-output-clearing" id="toc-runtime-settings-and-output-clearing" class="nav-link" data-scroll-target="#runtime-settings-and-output-clearing">Runtime settings and output clearing</a></li>
   <li><a href="#r-package-data" id="toc-r-package-data" class="nav-link" data-scroll-target="#r-package-data">R package data</a></li>
   <li><a href="#existing-archive-inventory-coverage" id="toc-existing-archive-inventory-coverage" class="nav-link" data-scroll-target="#existing-archive-inventory-coverage">Existing archive inventory coverage</a></li>
+  <li><a href="#production-file-inventory" id="toc-production-file-inventory" class="nav-link" data-scroll-target="#production-file-inventory">Production file inventory</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -447,6 +448,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="existing-archive-inventory-coverage">Existing archive inventory coverage</h2>
 <p>CAS ingestion records the current recursive file paths and content hashes for the explicitly selected directory. The transition fixture compares exact inventories and stored bytes after a same-size/same-modified-time edit, an addition, a rename and a deletion. Earlier snapshots remain inspectable across those later ingestions. A renamed file appears under its new path in the current snapshot; this does not create a rename-event format.</p>
 <p>This verifies existing archive machinery only. It does not automatically record all build inputs, code, configuration or dependencies, select a future build record format, or decide content-only identity and retention policy. Complete M2 provenance remains unfinished.</p>
+</section>
+<section id="production-file-inventory" class="level2">
+<h2 class="anchored" data-anchor-id="production-file-inventory">Production file inventory</h2>
+<p>Current source adds directory boolean <strong>hash</strong>. It defaults to true for declared raw/output/docs labels and false for cache labels. Set hash: false to omit a directory, or hash: true to include a cache. Each active layer must use a boolean; null, numbers and strings fail validation before hooks.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">directories</span><span class="kw">:</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">raw-data</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">path</span><span class="kw">:</span><span class="at"> inputs</span><span class="kw">}</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">cache</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">path</span><span class="kw">:</span><span class="at"> _tmp</span><span class="kw">,</span><span class="at"> </span><span class="fu">hash</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span><span class="kw">}</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">output</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">path</span><span class="kw">:</span><span class="at"> results</span><span class="kw">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>A successful output-enabled production build writes root manifest.csv, without requiring Git or a remote. Preview and build.output_run: false leave that CSV alone. See <a href="./storage-design.html#compatible-csv-inventory">the inventory notes</a>. This is newer than installed preview.2. See the compatibility log and PR175 for verification evidence.</p>
 
 
 </section>

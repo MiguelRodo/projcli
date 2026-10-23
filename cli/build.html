@@ -80,7 +80,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -305,6 +305,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#html-resources" id="toc-html-resources" class="nav-link" data-scroll-target="#html-resources">HTML resources</a></li>
   <li><a href="#failed-reports-and-a-smaller-retry" id="toc-failed-reports-and-a-smaller-retry" class="nav-link" data-scroll-target="#failed-reports-and-a-smaller-retry">Failed reports and a smaller retry</a></li>
   <li><a href="#local-git-success-and-a-rejected-push" id="toc-local-git-success-and-a-rejected-push" class="nav-link" data-scroll-target="#local-git-success-and-a-rejected-push">Local Git success and a rejected push</a></li>
+  <li><a href="#inspect-the-production-inventory" id="toc-inspect-the-production-inventory" class="nav-link" data-scroll-target="#inspect-the-production-inventory">Inspect the production inventory</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -390,6 +391,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Git commits and pushes are separate opt-in actions. A push uses the current branch’s configured upstream, including a differently named remote branch; it must not silently target main. Disabling push still allows a local build commit. The real-repository tests verify both settings against a temporary bare upstream and compare the committed and published CSV bytes.</p>
 <p>If Git rejects a push after local analysis and commit succeed, the command fails and reports that the local release is preserved. Its files, local release commit and release VERSION remain available; the next-development bump is skipped. An analysis failure instead restores the previous managed state and creates no release commit. Neither outcome implies a remote transaction or a durable publication record. Do not automatically rerun analysis to retry a failed upload.</p>
 <p>No-op commit behavior is tested at the Git provider boundary: unchanged files produce no extra commit, while a real change does. A normal production CLI build advances VERSION and therefore need not be a no-op.</p>
+</section>
+<section id="inspect-the-production-inventory" class="level2">
+<h2 class="anchored" data-anchor-id="inspect-the-production-inventory">Inspect the production inventory</h2>
+<p>Current source adds root manifest.csv after successful output-enabled production builds. Open it in a text editor/spreadsheet to inspect directory labels, relative filenames, release versions and MD5 values, including earlier versions. Git/remotes are optional; preview leaves production history unchanged. See <a href="../configuration.html#production-file-inventory">configuration</a> and <a href="../storage-design.html#compatible-csv-inventory">limits</a>. This is newer than preview.2; verification evidence is recorded in the compatibility log and PR175.</p>
 
 
 </section>

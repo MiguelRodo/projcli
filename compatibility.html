@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-88a59aa259fe4448fb6d2f5f6f2eb11e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -309,6 +309,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#standalone-backend-and-curated-release-catalogue-direction" id="toc-standalone-backend-and-curated-release-catalogue-direction" class="nav-link" data-scroll-target="#standalone-backend-and-curated-release-catalogue-direction">Standalone backend and curated release-catalogue direction</a></li>
   <li><a href="#real-local-git-publication-and-failure-witnesses" id="toc-real-local-git-publication-and-failure-witnesses" class="nav-link" data-scroll-target="#real-local-git-publication-and-failure-witnesses">Real local Git publication and failure witnesses</a></li>
   <li><a href="#exact-existing-inventory-transitions" id="toc-exact-existing-inventory-transitions" class="nav-link" data-scroll-target="#exact-existing-inventory-transitions">Exact existing inventory transitions</a></li>
+  <li><a href="#temporary-projr-compatible-csv-inventories-local-candidate" id="toc-temporary-projr-compatible-csv-inventories-local-candidate" class="nav-link" data-scroll-target="#temporary-projr-compatible-csv-inventories-local-candidate">Temporary projr-compatible CSV inventories (local candidate)</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -847,6 +848,22 @@ ul.task-list li input[type="checkbox"] {
 <li><strong>Same/unverified vs projr:</strong> existing R helpers/package and thesis are untouched. Earlier pinned source baselines remain; no comparative R runtime or frontend parity claim follows from this Rust inventory witness.</li>
 <li><strong>Ponytail full/verification:</strong> extend the existing integrity integration file and reuse its configuration helper and file-inspection API. Standard library timestamp controls and existing dependencies only; no production abstraction or code change. Run existing three-platform and pinned acceptance remotely, then obtain independent review. No local Rust/R/Quarto execution or installed preview.2 change. Lifecycle diagrams retain their current order.</li>
 </ul>
+</section>
+<section id="temporary-projr-compatible-csv-inventories-local-candidate" class="level2">
+<h2 class="anchored" data-anchor-id="temporary-projr-compatible-csv-inventories-local-candidate">Temporary projr-compatible CSV inventories (local candidate)</h2>
+<ul>
+<li><strong>Pinned source:</strong> SATVILab/projr 90be50132d16aee33e39c0f7f35ef906c35f5397; <a href="./storage-design.html#compatible-csv-inventory">source findings</a>. R/thesis untouched.</li>
+<li><strong>Same:</strong> root manifest.csv label/fn/version/hash strings, MD5 file bytes, leading-v release version, empty marker, default raw/output/docs hashing and cache exclusion unless opted in, pre/post/history production snapshots. Preview does not write production CSV. CAS is not required.</li>
+<li><strong>Different:</strong> exact tuple deduplication fixes concatenated-key collisions in R’s Reduce(paste0, manifest). Guarded new-inode writes avoid destructive removal and hard-link alias mutation. Links, special files, unsafe/non-UTF-8 names and malformed history fail closed. Labels/paths sort deterministically; R runtime and cross-language ordering parity unverified. Cache-free builds keep pre-state in memory. Existing Rust lifecycle remains; end hooks can change inventoried files.</li>
+<li><strong>Separate:</strong> legacy CSV is not CAS JSON or plural .projr/manifests.csv. Full latest/archive store/restore remains a gap; CAS is a third remote-layout direction. No retention/discovery/identity/sealing policy introduced.</li>
+<li><strong>Ponytail full:</strong> reuse typed config, path guards, recovery and tempfile. Isolate CSV syntax, no backend trait/factory. Add csv 1.4.0 and md5 0.8.0 instead of hand-rolling quoting/digests. csv-core 0.1.13 is the only new transitive crate; existing dependencies reused.</li>
+<li><strong>Actual checks:</strong> source review, TOML/dependency graph/checksum inspection and whitespace only. No Rust/R/Quarto execution. Added codec and filesystem/CLI fixtures for quoting, literal MD5, pre/post timing, history, hash flags, missing/empty directories, cache exclusion, no-cache use, preview/disabled output, invalid history/layers, end-hook rollback, hard-link aliases, source links and FIFOs. Tests are <strong>not yet executed</strong>.</li>
+<li><strong>Required:</strong> independent diff review, then when external actions are authorized, locked three-platform tests, pinned full suite/API docs/26 renderer cases, combined and mixed-failure Git/CAS acceptance and docs native-browser validation. Review exact tested head before merge. No push, dispatch, release, deployment or installation this turn.</li>
+</ul>
+<p>Independent Ponytail source review found no blocking runtime issue. Two witness gaps were fixed and re-reviewed: deliberate end-hook failure must first read a current-release CSV row and leave a retained cache marker, and UTF-8 labels and filenames now have explicit codec/filesystem roundtrip fixtures. Schema, MD5, capture timing, history/deduplication, empty/excluded directories, guarded writes and managed rollback were reviewed. Compilation, test execution, comparative R execution and Windows behavior remain unverified; review is not executed acceptance.</p>
+<p>Remote first-head checks: Linux and Windows suites passed; pinned run 39909563384 completed Rust tests/API docs, real renderer, combined M1, archive object-byte and mixed-document failure/retry acceptance. macOS exposed fixture paths retaining its /var alias: direct inventory/read APIs correctly rejected that symlink, so fixture roots now use physical canonical paths. Docs browser validation found the new seventh lifecycle figure; its exact expected count is updated, retaining all SVG shape/size and screenshot assertions. These corrections require fresh exact-head remote checks; no path guard or assertion is weakened.</p>
+<p>The new CSV assertions also exposed the /var alias in the older real-Git publication fixture. Its owned temporary root, upstream and empty Git config now derive from one canonical physical temporary root. Source publication wording is updated to distinguish newer source from installed preview.2. Final exact-head gate evidence belongs on <a href="https://github.com/MiguelRodo/projcli/pull/175">PR175</a>; earlier source-only review notes above describe their historical checkpoint.</p>
+<p>Further platform evidence refined the fixture fix: Git for Windows does not accept a verbatim Windows path in GIT_CONFIG_GLOBAL. The real-Git fixture retains its original Git-facing paths and canonicalizes only the new direct CSV read. The captured-context fixture now supplies a physical external raw path, avoiding macOS /var aliases before the new pre-input capture. Production guards and Git credential/config behaviour are unchanged.</p>
 
 
 </section>
