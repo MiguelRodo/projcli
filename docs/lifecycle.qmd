@@ -501,6 +501,7 @@ regression evidence without moving hooks, publication or the next-dev transition
 %%| label: fig-lifecycle-writer-ownership
 %%| fig-cap: "Development-source ownership surrounds the existing lifecycle; preview.3 remains unchanged."
 %%| fig-alt: "Claim one project writer before captured inputs, retain ownership through existing stages and recovery, then release the claim on normal exit."
+%%{init: {"htmlLabels": false}}%%
 flowchart TB
   W["Claim one project writer"]
   S["Capture inputs; existing pre-build,<br/>build, post-build and recovery stages"]
