@@ -296,3 +296,22 @@ operational diagnostic chain, including paths and parser details; it is not a
 general configuration-redaction boundary. HTTP errors omit credentials and
 response bodies. Empty/unrecorded labels skip without clearing, and successful
 CSV/version selection is not a byte-integrity guarantee.
+
+
+
+## Configured local publication candidate
+
+The next bounded slice integrates build.local latest/file with the build's
+existing release boundary: current CSV-selected staging, all four file strategies,
+both cues, namespace preflight and shared CSV/VERSION/changelog updates.
+See the [control matrix](cli/remote.qmd#configured-local-publication-candidate).
+[PR185](https://github.com/MiguelRodo/projcli/pull/185) records exact-head
+independent review and remote verification. Manifest/none inspection,
+archive comparison selection and configured GitHub publication remain pending;
+the manifest default is not changed to file.
+
+Pinned R comparison: dest-send-label.R355,854-1560,1587-1788 and manifest.R67-75,192-225
+in the source revision linked above. New empty labels and file-equal missing/starred
+metadata receive explicit discoverability corrections; these are documented
+differences rather than claims that the pinned R no-change path already repairs
+them. No registry or unresolved retention/default policy is adopted.

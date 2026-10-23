@@ -191,34 +191,7 @@ fn download_preserves_private_and_readonly_permission_flags() {
 #[test]
 fn install_failure_restores_original_and_rollback_failure_retains_original_with_path() {
     let temp = tempfile::tempdir().unwrap(); let physical = temp.path().canonicalize().unwrap();
-    let shim_source = physical.join("rename-fault.c");
-    let shim = physical.join("rename-fault.so");
-    fs::write(&shim_source, r#"
-#define _GNU_SOURCE
-#include <dlfcn.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
-static int ends(const char *text, const char *suffix) {
-    size_t n = strlen(text), m = strlen(suffix);
-    return n >= m && strcmp(text + n - m, suffix) == 0;
-}
-int rename(const char *from, const char *to) {
-    const char *root = getenv("PROJ_TEST_RENAME_ROOT");
-    if (root && strncmp(from, root, strlen(root)) == 0 &&
-        from[strlen(root)] == '/' && strstr(from, "/.proj-download-") &&
-        (ends(from, "/next") ||
-         (getenv("PROJ_TEST_FAIL_ROLLBACK") && ends(from, "/previous")))) {
-        errno = EIO;
-        return -1;
-    }
-    int (*real_rename)(const char *, const char *) = dlsym(RTLD_NEXT, "rename");
-    return real_rename(from, to);
-}
-"#).unwrap();
-    let compiled = Command::new("cc").args(["-shared", "-fPIC"]).arg(&shim_source)
-        .args(["-ldl", "-o"]).arg(&shim).output().unwrap();
-    assert!(compiled.status.success(), "{}", String::from_utf8_lossy(&compiled.stderr));
+    let shim = rename_fault(&physical);
     for operation in ["download", "store", "restore"] {
     for fail_rollback in [false, true] {
         let root = physical.join(format!("{operation}-{}", if fail_rollback { "rollback-error" } else { "install-error" }));
@@ -270,5 +243,73 @@ int rename(const char *from, const char *to) {
             assert!(diagnostic.contains("Cannot install staged local download"), "{diagnostic}");
         }
     }
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn rename_fault(physical:&Path)->std::path::PathBuf {
+    let shim_source = physical.join("rename-fault.c");
+    let shim = physical.join("rename-fault.so");
+    fs::write(&shim_source, r#"
+#define _GNU_SOURCE
+#include <dlfcn.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+static int ends(const char *text, const char *suffix) {
+    size_t n = strlen(text), m = strlen(suffix);
+    return n >= m && strcmp(text + n - m, suffix) == 0;
+}
+int rename(const char *from, const char *to) {
+    const char *root = getenv("PROJ_TEST_RENAME_ROOT");
+    if (root && strncmp(from, root, strlen(root)) == 0 &&
+        from[strlen(root)] == '/' && strstr(from, "/.proj-download-") &&
+        (ends(from, "/next") ||
+         (getenv("PROJ_TEST_FAIL_ROLLBACK") && ends(from, "/previous")))) {
+        errno = EIO;
+        return -1;
+    }
+    int (*real_rename)(const char *, const char *) = dlsym(RTLD_NEXT, "rename");
+    return real_rename(from, to);
+}
+"#).unwrap();
+    let compiled = Command::new("cc").args(["-shared", "-fPIC"]).arg(&shim_source)
+        .args(["-ldl", "-o"]).arg(&shim).output().unwrap();
+    assert!(compiled.status.success(), "{}", String::from_utf8_lossy(&compiled.stderr));
+    shim
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn configured_publication_cleans_all_private_readonly_snapshots_on_prepare_or_apply_failure() {
+    use std::os::unix::fs::PermissionsExt;
+    let temp=tempfile::tempdir().unwrap();let physical=temp.path().canonicalize().unwrap();let shim=rename_fault(&physical);
+    for phase in ["prepare","apply"] {
+        let root=physical.join(phase);fs::create_dir(&root).unwrap();
+        for label in ["raw-a","raw-b"] {
+            fs::create_dir(root.join(label)).unwrap();fs::write(root.join(label).join("input"),"original").unwrap();
+        }
+        fs::write(root.join("VERSION"),"v1.2.3\n").unwrap();
+        fs::write(root.join("mutate.py"),"from pathlib import Path\nPath('raw-b/input').write_text('changed')\n").unwrap();
+        let scripts=if phase=="prepare" {"[mutate.py]"}else{"[]"};
+        fs::write(root.join("_proj.yml"),format!("directories:\n  raw-a: {{path: raw-a}}\n  raw-b: {{path: raw-b}}\n  cache: {{path: cache}}\nbuild:\n  scripts: {scripts}\n  git: false\n  local:\n    first:\n      path: delivered-a\n      structure: latest\n      content: [raw-a]\n      send: {{inspect: file}}\n    second:\n      path: delivered-b\n      structure: latest\n      content: [raw-b]\n      send: {{inspect: file}}\n")).unwrap();
+        fs::set_permissions(root.join("raw-a/input"),fs::Permissions::from_mode(0o400)).unwrap();
+        fs::set_permissions(root.join("raw-a"),fs::Permissions::from_mode(0o500)).unwrap();
+        fs::set_permissions(root.join("raw-b"),fs::Permissions::from_mode(0o500)).unwrap();
+        if phase=="apply" {fs::set_permissions(root.join("raw-b/input"),fs::Permissions::from_mode(0o400)).unwrap();}
+        let staging=root.join("private-staging");fs::create_dir(&staging).unwrap();
+        let mut command=Command::new(env!("CARGO_BIN_EXE_proj"));
+        command.current_dir(&root).args(["build","--non-interactive","--project"]).arg(&root)
+            .env("TMPDIR",&staging).env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
+            .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").env_remove("PROJR_CLEAR_OUTPUT");
+        if phase=="apply" {command.env("LD_PRELOAD",&shim).env("PROJ_TEST_RENAME_ROOT",&root).env_remove("PROJ_TEST_FAIL_ROLLBACK");}
+        let output=command.output().unwrap();assert!(!output.status.success());
+        let diagnostic=String::from_utf8_lossy(&output.stderr);
+        assert!(diagnostic.contains(if phase=="prepare" {"disagree with current CSV"}else{"Cannot install staged local download"}),"{diagnostic}");
+        assert!(diagnostic.contains("local release preserved"),"{diagnostic}");
+        assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(),"Version: v1.2.4");
+        assert_eq!(fs::read_dir(&staging).unwrap().count(),0,"{diagnostic}");
+        assert!(!root.join("delivered-b").exists());assert!(!root.join("delivered-a/raw-a").exists());
+        for label in ["raw-a","raw-b"] {fs::set_permissions(root.join(label),fs::Permissions::from_mode(0o700)).unwrap();}
     }
 }

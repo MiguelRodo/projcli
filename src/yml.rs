@@ -162,6 +162,8 @@ fn default_use_proj_cred_helper() -> bool {
 #[derive(Deserialize, Debug, Default, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct BuildConfig {
+    /// Existing inline ordinary local destinations; currently latest/file only.
+    pub local: Option<serde_json::Map<String, Value>>,
     pub dest: Option<Vec<String>>,
     pub scripts: Option<Vec<String>>,
     #[serde(default)]
@@ -507,7 +509,7 @@ impl ProjConfig {
             anyhow::bail!("Configuration error: 'push' cannot be true if 'commit' is false.");
         }
 
-        Ok(ValidatedConfig {
+        let validated = ValidatedConfig {
             remotes,
             dest: self.build.dest.clone().unwrap_or_default(),
             config: self.config.clone(),
@@ -519,7 +521,9 @@ impl ProjConfig {
             output_run: self.build.output_run,
             old_dev_remove: self.dev.old_dev_remove,
             parameters: self.parameters.clone(),
-        })
+        };
+        crate::publication::configured(project_root, self.build.local.as_ref(), &validated)?;
+        Ok(validated)
     }
 }
 

@@ -138,3 +138,26 @@ fn validate_copy_source_tree(source: &Utf8Path) -> anyhow::Result<()> {
     }
     Ok(())
 }
+
+/// Make a private copied tree removable, without following links. Never use on
+/// installed data or retained originals: Windows file flags may affect aliases.
+pub(crate) fn prepare_owned_cleanup(path:&std::path::Path)->anyhow::Result<()> {
+    let metadata=fs::symlink_metadata(path)?;
+    anyhow::ensure!(!metadata.file_type().is_symlink(),"Linked private staging cleanup entry");
+    if metadata.is_dir() {
+        #[cfg(unix)] {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(path,fs::Permissions::from_mode(metadata.permissions().mode()|0o700))?;
+        }
+        #[cfg(windows)] {
+            let mut mode=metadata.permissions();mode.set_readonly(false);fs::set_permissions(path,mode)?;
+        }
+        for entry in fs::read_dir(path)? {prepare_owned_cleanup(&entry?.path())?;}
+    } else {
+        anyhow::ensure!(metadata.is_file(),"Special private staging cleanup entry");
+        #[cfg(windows)] {
+            let mut mode=metadata.permissions();mode.set_readonly(false);fs::set_permissions(path,mode)?;
+        }
+    }
+    Ok(())
+}

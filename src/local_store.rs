@@ -43,7 +43,7 @@ pub struct FileStorePlan {
     pub applied: bool,
 }
 
-fn actions(source: &Inventory, destination: &Inventory, strategy: StoreStrategy) -> (Vec<String>, Vec<String>, Vec<String>, Vec<String>) {
+pub(crate) fn actions(source: &Inventory, destination: &Inventory, strategy: StoreStrategy) -> (Vec<String>, Vec<String>, Vec<String>, Vec<String>) {
     let uploads: Vec<_> = source.iter().filter(|(path, hash)| match strategy {
         StoreStrategy::UploadAll | StoreStrategy::SyncPurge => true,
         StoreStrategy::UploadMissing => !destination.contains_key(*path),
@@ -143,7 +143,13 @@ pub fn store_files(root: &Utf8Path, source: &Utf8Path, destination: &Utf8Path, s
         Ok(())
     })();
     let cleanup_path = staging.path().to_owned();
-    let cleanup = staging.close();
+    let cleanup = match crate::fs_utils::prepare_owned_cleanup(staging.path()) {
+        Ok(()) => staging.close().map_err(anyhow::Error::from),
+        Err(error) => {
+            let retained=staging.keep();
+            Err(error.context(format!("Private store-source cleanup retained at {}",retained.display())))
+        }
+    };
     match (execution, cleanup) {
         (Err(error), Ok(())) => return Err(error),
         (Err(error), Err(cleanup)) => return Err(error).context(format!("Store-source staging cleanup also failed at {}: {cleanup}", cleanup_path.display())),
