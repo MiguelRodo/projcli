@@ -2335,3 +2335,39 @@ are required before delivery. GitHub publication, manifest comparison and archiv
 history remain pending. Ponytail full reuses the existing action planner and
 guarded installer; one flag and explicit effective transfer selection avoid a
 second storage engine or speculative transport abstraction.
+
+
+### Default manifest inspection for configured local latest
+
+Same: pinned projr 90be50132d16aee33e39c0f7f35ef906c35f5397
+[R/remote-versions.R409](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-versions.R#L409)
+requires recorded label/version rows remotely and matching project history;
+[R/dest-send-label.R333](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send-label.R#L333)
+selects history comparison or physical fallback. Omitted inspection now executes
+that existing default. Explicit upload-all ignores comparison. Existing invalid
+CSV/VERSION history remains an error before any destination changes, rather than
+being discarded in a fallback.
+
+Different/bug correction: the source helper at
+[R/remote-versions.R608](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-versions.R#L608)
+strips the untrusted star before manifest eligibility. Rust preserves its meaning:
+a starred label falls back to file comparison. Duplicate/ambiguous selected rows
+also fall back. Matching history is not authentication or a guarantee that actual
+remote bytes have not independently drifted.
+
+Implementation/tests: reuse physical staging/rollback guards while applying
+history-selected actions; unselected actual bytes survive partial sync-diff,
+whereas sync-purge still replaces the entire set. Actual default/explicit-mode
+build fixtures exercise matching history, deliberate byte drift, partial updates,
+unchanged cue retention, starred/missing/mismatched/duplicate history fallback.
+Physical source/destination inspection still protects staging and concurrent
+changes during a transfer; no zero-read guarantee. Ponytail full adds one shared
+compared-transfer entry point rather than a second installer. All remote exact-head
+gates and independent review remain required. Archive, configured GitHub
+publication and full remote compatibility remain pending.
+
+
+Review-driven coverage extends trusted history to all four strategies and both
+cues with actual configured restore, including remote byte drift and unrecorded
+extras. An unrecorded file/directory shape conflict must fail before destination
+or metadata changes, preserving the successful local release for inspection.

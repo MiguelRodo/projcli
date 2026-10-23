@@ -262,5 +262,5 @@ selects blind source-file planning and defaults send.strategy to upload-all.
 Explicit upload-missing/sync-diff then overwrite source filenames while retaining
 remote extras; sync-purge only purges when the source is nonempty. See the
 [remote control matrix](cli/remote.qmd) before choosing these combinations.
-Omitted inspection retains the projr manifest default and remains rejected until
-that comparison mode is implemented.
+Omitted inspection retains the projr manifest default, using matching recorded
+history or falling back to physical file comparison.
