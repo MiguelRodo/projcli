@@ -138,11 +138,11 @@ fn empty_archives_use_native_sentinel_and_preview_makes_no_requests() {
 }
 #[test]
 fn unsupported_decisions_fail_before_hooks_and_catalog_aliases_never_upload() {
-    for state in ["manifest","strategy","layout","alias"] {
+    for state in ["inspection","strategy","layout","alias"] {
         let server=Server::start();let (_temporary,root)=setup(&server);
         let mut config=fs::read_to_string(root.join("_proj.yml")).unwrap();
         config=match state {
-            "manifest"=>config.replace("inspect: none","inspect: manifest"),
+            "inspection"=>config.replace("inspect: none","inspect: unknown"),
             "strategy"=>config.replace("inspect: none","inspect: none, strategy: unknown"),
             "layout"=>config.replace("      content:","      structure: unknown\n      content:"),
             _=>config,
@@ -417,4 +417,231 @@ fn none_empty_source_does_not_purge_remote_extras_and_diff_metadata_stays_untrus
         assert_eq!(members(&state.assets["VERSION.zip"].1)["VERSION"],format!("Project: v1.2.4\noutput: {version}\n").as_bytes(),"{strategy}/{cue}");
         drop(state);server.finish();
     }}
+}
+
+
+#[test]
+fn complete_inspection_strategy_cue_layout_matrix_uses_actual_cli() {
+    for layout in ["latest","archive"] {for inspect in ["none","file","manifest"] {
+        for strategy in ["upload-all","upload-missing","sync-diff","sync-purge"] {for cue in ["if-change","always"] {
+            let server=Server::start();let (_temporary,root)=setup(&server);
+            if layout=="latest" {latest(&root);}
+            let config=fs::read_to_string(root.join("_proj.yml")).unwrap()
+                .replace("inspect: none",&format!("inspect: {inspect}, strategy: {strategy}, cue: {cue}"));
+            fs::write(root.join("_proj.yml"),config).unwrap();
+            let asset=if layout=="latest" {"output.zip"}else{"output-v1.2.4.zip"};
+            seed(&server,asset,fixture_zip(&[("result.csv",b"old"),("extra.csv",b"extra")]));
+            success(invoke(&server,&root,&["build","--non-interactive"]));
+            let mut expected=BTreeMap::new();
+            let keep_old=inspect!="none"&&strategy=="upload-missing";
+            expected.insert("result.csv".into(),if keep_old {b"old".to_vec()}else{b"actual fixture bytes\n".to_vec()});
+            if strategy=="upload-all"||strategy=="upload-missing"||(inspect=="none"&&strategy=="sync-diff") {
+                expected.insert("extra.csv".into(),b"extra".to_vec());
+            }
+            {
+                let state=server.state.lock().unwrap();
+                assert_eq!(members(&state.assets[asset].1),expected,"{layout}/{inspect}/{strategy}/{cue}");
+                let changed=!(inspect!="none"&&strategy=="upload-missing");
+                assert_eq!(state.deleted.iter().filter(|name|name.as_str()==asset).count(),usize::from(changed),"{layout}/{inspect}/{strategy}/{cue}");
+                let untrusted=strategy=="upload-all"||strategy=="upload-missing"||(inspect=="none"&&strategy=="sync-diff");
+                let label_version=if !changed {"Project: v1.2.4\n".to_owned()}else{format!("Project: v1.2.4\noutput: v1.2.4{}\n",if untrusted {"*"}else{""})};
+                assert_eq!(members(&state.assets["VERSION.zip"].1)["VERSION"],label_version.as_bytes(),"{layout}/{inspect}/{strategy}/{cue}");
+                assert_eq!(members(&state.assets["manifest.zip"].1)["manifest.csv"],fs::read(root.join("manifest.csv")).unwrap());
+            }
+            // With upload-missing and no label advertisement, preserve the
+            // native lack of a restore selection instead of inventing one.
+            if !(inspect!="none"&&strategy=="upload-missing") {
+                success(invoke(&server,&root,&["remote","restore","--label","output","--clear","--repository","owner/repo","--max-bytes","1000000","--max-expanded-bytes","1000000"]));
+                for (name,bytes) in expected {assert_eq!(fs::read(root.join("results").join(name)).unwrap(),bytes);}
+            }
+            server.finish();
+        }}
+    }}
+}
+fn digest(bytes:&[u8])->md5::Digest {let mut context=md5::Context::new();context.consume(bytes);context.finalize()}
+fn row(name:&str,version:&str,bytes:&[u8])->String {
+    format!("output,{name},{version},{:x}\n",digest(bytes))
+}
+#[test]
+fn manifest_matching_history_preserves_unselected_actual_bytes_and_untrusted_evidence_falls_back() {
+    for evidence in ["matching","starred","mismatch","missing","malformed"] {
+        let server=Server::start();let (_temporary,root)=setup(&server);latest(&root);
+        let config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("send: {inspect: none}","send: {}");
+        fs::write(root.join("_proj.yml"),config).unwrap();
+        fs::write(root.join("results/kept.csv"),b"recorded kept").unwrap();
+        let history="label,fn,version,hash\n".to_owned()+&row("result.csv","v1.2.3",b"old")+&row("kept.csv","v1.2.3",b"recorded kept");
+        fs::write(root.join("manifest.csv"),&history).unwrap();
+        let remote=if evidence=="mismatch" {history.replace(&format!("{:x}",digest(b"recorded kept")),&format!("{:x}",digest(b"different")))}
+            else if evidence=="malformed" {"bad,csv\n".into()}else{history.clone()};
+        seed(&server,"manifest.zip",fixture_zip(&[("manifest.csv",remote.as_bytes())]));
+        if evidence!="missing" {
+            let version=if evidence=="starred" {b"Project: v1.2.3\noutput: v1.2.3*\n".as_slice()}else{b"Project: v1.2.3\noutput: v1.2.3\n".as_slice()};
+            seed(&server,"VERSION.zip",fixture_zip(&[("VERSION",version)]));
+        }
+        let prior=fixture_zip(&[("result.csv",b"old"),("kept.csv",b"actual drift")]);
+        seed(&server,"output.zip",prior.clone());
+        let output=invoke(&server,&root,&["build","--non-interactive"]);
+        let state=server.state.lock().unwrap();
+        if evidence=="malformed" {
+            assert!(!output.status.success());assert!(state.uploads.is_empty());assert!(state.deleted.is_empty());assert_eq!(state.assets["output.zip"].1,prior);
+        }else{
+            assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
+            let files=members(&state.assets["output.zip"].1);
+            assert_eq!(files["result.csv"],b"actual fixture bytes\n");
+            assert_eq!(files["kept.csv"],if evidence=="matching"{b"actual drift".as_slice()}else{b"recorded kept".as_slice()},"{evidence}");
+            assert_eq!(members(&state.assets["VERSION.zip"].1)["VERSION"],b"Project: v1.2.4\noutput: v1.2.4\n");
+        }
+        drop(state);server.finish();
+    }
+}
+#[test]
+fn inspected_empty_source_removes_extras_and_retires_full_only_after_empty_upload() {
+    for inspect in ["file","manifest"] {for strategy in ["sync-diff","sync-purge"] {for cue in ["if-change","always"] {
+        let server=Server::start();let (_temporary,root)=setup(&server);latest(&root);
+        let config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("inspect: none",&format!("inspect: {inspect}, strategy: {strategy}, cue: {cue}"));
+        fs::write(root.join("_proj.yml"),config).unwrap();
+        fs::remove_file(root.join("results/result.csv")).unwrap();
+        seed(&server,"output.zip",fixture_zip(&[("extra.csv",b"remove")]));
+        success(invoke(&server,&root,&["build","--non-interactive"]));
+        let state=server.state.lock().unwrap();
+        assert!(!state.assets.contains_key("output.zip"));
+        assert_eq!(members(&state.assets["output-empty.zip"].1),BTreeMap::from([("projr-empty".into(),Vec::new())]));
+        assert_eq!(state.deleted,["output.zip"]);
+        assert_eq!(members(&state.assets["VERSION.zip"].1)["VERSION"],b"Project: v1.2.4\noutput: v1.2.4\n");
+        drop(state);server.finish();
+    }}}
+}
+
+
+#[test]
+fn archive_history_matrix_reuses_only_eligible_unchanged_versions_and_new_snapshots_are_complete() {
+    for inspect in ["none","file","manifest"] {for strategy in ["upload-all","upload-missing","sync-diff","sync-purge"] {for cue in ["if-change","always"] {
+        let server=Server::start();let (_temporary,root)=setup(&server);
+        let config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("inspect: none",&format!("inspect: {inspect}, strategy: {strategy}, cue: {cue}"));
+        fs::write(root.join("_proj.yml"),config).unwrap();
+        fs::write(root.join("results/unchanged.csv"),b"keep unchanged").unwrap();
+        success(invoke(&server,&root,&["build","--non-interactive"]));
+        let first=server.state.lock().unwrap().assets["output-v1.2.4.zip"].1.clone();
+        success(invoke(&server,&root,&["build","--non-interactive"]));
+        let reuse=inspect!="none"&&cue=="if-change"&&matches!(strategy,"upload-missing"|"sync-diff");
+        {
+            let state=server.state.lock().unwrap();assert_eq!(state.assets["output-v1.2.4.zip"].1,first);
+            assert_eq!(state.assets.contains_key("output-v1.2.5.zip"),!reuse,"{inspect}/{strategy}/{cue}");
+            let label=if reuse {"v1.2.4"}else{"v1.2.5"};
+            assert_eq!(members(&state.assets["VERSION.zip"].1)["VERSION"],format!("Project: v1.2.5\noutput: {label}\n").as_bytes(),"{inspect}/{strategy}/{cue}");
+        }
+        fs::write(root.join("results/result.csv"),b"changed result").unwrap();
+        success(invoke(&server,&root,&["build","--non-interactive"]));
+        {
+            let state=server.state.lock().unwrap();assert_eq!(state.assets["output-v1.2.4.zip"].1,first);
+            assert_eq!(members(&state.assets["output-v1.2.6.zip"].1),BTreeMap::from([
+                ("result.csv".into(),b"changed result".to_vec()),("unchanged.csv".into(),b"keep unchanged".to_vec())]),"{inspect}/{strategy}/{cue}");
+        }
+        fs::write(root.join("results/result.csv"),b"damage").unwrap();
+        success(invoke(&server,&root,&["remote","restore","--label","output","--clear","--repository","owner/repo","--max-bytes","1000000","--max-expanded-bytes","1000000"]));
+        assert_eq!(fs::read(root.join("results/result.csv")).unwrap(),b"changed result");
+        assert_eq!(fs::read(root.join("results/unchanged.csv")).unwrap(),b"keep unchanged");
+        server.finish();
+    }}}
+}
+#[test]
+fn archive_ineligible_history_is_not_downloaded_or_reused() {
+    for inspect in ["file","manifest"] {for evidence in ["star","mismatch","missing","future"] {
+        let server=Server::start();let (_temporary,root)=setup(&server);
+        let config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("inspect: none",&format!("inspect: {inspect}"));
+        fs::write(root.join("_proj.yml"),config).unwrap();
+        success(invoke(&server,&root,&["build","--non-interactive"]));
+        {
+            let mut state=server.state.lock().unwrap();
+            // A deliberately invalid unselected ZIP must not block a complete
+            // new snapshot when historical evidence makes it ineligible.
+            state.assets.get_mut("output-v1.2.4.zip").unwrap().1=b"not a ZIP".to_vec();
+            match evidence {
+                "star"=>state.assets.get_mut("VERSION.zip").unwrap().1=fixture_zip(&[("VERSION",b"Project: v1.2.4\noutput: v1.2.4*\n")]),
+                "mismatch"=>{
+                    let csv="label,fn,version,hash\n".to_owned()+&row("result.csv","v1.2.4",b"mismatched history");
+                    state.assets.get_mut("manifest.zip").unwrap().1=fixture_zip(&[("manifest.csv",csv.as_bytes())]);
+                },
+                "missing"=>{state.assets.remove("VERSION.zip");},
+                _=>{state.next+=1;let id=state.next;state.assets.insert("output-v9.0.0.zip".into(),(id,b"future invalid ZIP".to_vec()));},
+            }
+        }
+        success(invoke(&server,&root,&["build","--non-interactive"]));
+        let state=server.state.lock().unwrap();
+        assert_eq!(state.assets["output-v1.2.4.zip"].1,b"not a ZIP");
+        assert_eq!(members(&state.assets["output-v1.2.5.zip"].1)["result.csv"],b"actual fixture bytes\n","{inspect}/{evidence}");
+        assert_eq!(members(&state.assets["VERSION.zip"].1)["VERSION"],b"Project: v1.2.5\noutput: v1.2.5\n");
+        drop(state);server.finish();
+    }}
+}
+#[test]
+fn archive_file_drift_and_changed_then_reverted_history_require_complete_current_snapshots() {
+    for inspect in ["file","manifest"] {for scenario in ["drift","revert"] {
+        let server=Server::start();let (_temporary,root)=setup(&server);
+        let config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("inspect: none",&format!("inspect: {inspect}"));
+        fs::write(root.join("_proj.yml"),config).unwrap();
+        fs::write(root.join("results/kept.csv"),b"keep").unwrap();
+        success(invoke(&server,&root,&["build","--non-interactive"]));
+        if scenario=="drift" {
+            server.state.lock().unwrap().assets.get_mut("output-v1.2.4.zip").unwrap().1=fixture_zip(&[("result.csv",b"actual fixture bytes\n"),("kept.csv",b"drift")]);
+            success(invoke(&server,&root,&["build","--non-interactive"]));
+            let state=server.state.lock().unwrap();
+            assert_eq!(members(&state.assets["output-v1.2.4.zip"].1)["kept.csv"],b"drift");
+            assert_eq!(state.assets.contains_key("output-v1.2.5.zip"),inspect=="file");
+            if inspect=="file" {
+                assert_eq!(members(&state.assets["output-v1.2.5.zip"].1),BTreeMap::from([
+                    ("result.csv".into(),b"actual fixture bytes\n".to_vec()),("kept.csv".into(),b"keep".to_vec())]));
+            }
+            drop(state);
+        }else{
+            let old=server.state.lock().unwrap().assets["output-v1.2.4.zip"].1.clone();
+            fs::write(root.join("results/result.csv"),b"intervening change").unwrap();
+            success(invoke(&server,&root,&["build","--non-interactive"]));
+            fs::write(root.join("results/result.csv"),b"actual fixture bytes\n").unwrap();
+            success(invoke(&server,&root,&["build","--non-interactive"]));
+            let state=server.state.lock().unwrap();
+            assert_eq!(state.assets["output-v1.2.4.zip"].1,old);
+            assert_eq!(members(&state.assets["output-v1.2.6.zip"].1),BTreeMap::from([
+                ("result.csv".into(),b"actual fixture bytes\n".to_vec()),("kept.csv".into(),b"keep".to_vec())]));
+            drop(state);
+        }
+        server.finish();
+    }}
+}
+#[test]
+fn historical_empty_archive_sentinel_is_validated_before_reuse_or_metadata_changes() {
+    for inspect in ["file","manifest"] {
+        let server=Server::start();let (_temporary,root)=setup(&server);
+        let config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("inspect: none",&format!("inspect: {inspect}"));
+        fs::write(root.join("_proj.yml"),config).unwrap();fs::remove_file(root.join("results/result.csv")).unwrap();
+        success(invoke(&server,&root,&["build","--non-interactive"]));
+        success(invoke(&server,&root,&["build","--non-interactive"]));
+        let (prior,uploads,deletes)={
+            let mut state=server.state.lock().unwrap();assert!(!state.assets.contains_key("output-v1.2.5-empty.zip"));
+            state.assets.get_mut("output-v1.2.4-empty.zip").unwrap().1=fixture_zip(&[("unexpected.csv",b"preserve")]);
+            (state.assets.clone(),state.uploads.clone(),state.deleted.clone())
+        };
+        let output=invoke(&server,&root,&["build","--non-interactive"]);assert!(!output.status.success());
+        let state=server.state.lock().unwrap();assert_eq!(state.assets,prior);assert_eq!(state.uploads,uploads);assert_eq!(state.deleted,deletes);
+        drop(state);server.finish();
+    }
+}
+
+
+#[cfg(target_os="linux")]
+#[test]
+fn final_zip_native_aliases_fail_before_remote_mutations() {
+    for case in ["source-alias","merged-alias"] {
+        let server=Server::start();let (_temporary,root)=setup(&server);latest(&root);
+        fs::write(root.join("results/A.csv"),b"uppercase").unwrap();
+        let old=if case=="source-alias" {
+            fs::write(root.join("results/a.csv"),b"lowercase").unwrap();
+            fixture_zip(&[("prior.csv",b"preserve")])
+        }else{fixture_zip(&[("a.csv",b"remote lowercase")])};
+        seed(&server,"output.zip",old.clone());
+        let output=invoke(&server,&root,&["build","--non-interactive"]);assert!(!output.status.success(),"{case}");
+        let state=server.state.lock().unwrap();assert!(state.uploads.is_empty());assert!(state.deleted.is_empty());
+        assert_eq!(state.assets["output.zip"].1,old);
+        drop(state);server.finish();
+    }
 }

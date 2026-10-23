@@ -356,7 +356,7 @@ Keep empty variants, shared metadata and exact-version alias preflight bounded;
 configured append-label:false is still rejected. Update tested/pending matrices.
 
 
-Configured GitHub publication supports latest/archive + explicit none inspection and all four strategies.
+Configured GitHub publication supports latest/archive + file/manifest/none inspection and all four strategies.
 Freeze Git/API/token/tag before hooks; stage all CSV-selected restorable ZIPs
 before uploads. Preserve history/data-before-metadata ordering. Merge canonical
 current data through guarded staging, retaining remote extras. Reject portable/
@@ -383,4 +383,13 @@ GitHub none inspection follows the existing local interaction: missing/diff uplo
 all selected files and retain extras; nonempty purge replaces the complete set.
 Empty sources preserve data; only diff advances untrusted label VERSION on that
 no-op. Purge nonempty is unstarred. Keep actual CLI mocked layout/strategy/cue
-matrix separate from pending file/manifest comparison and live provider evidence.
+matrix separate from live provider evidence.
+
+
+Configured GitHub comparisons reuse the ordinary local publisher on caller-owned
+private mirrors, with shared CSV trust/history eligibility and returned current
+data effects. Materialize only actual current data and the eligible newest archive;
+catalog-only placeholders must be rejected by the same history eligibility before
+their bytes could be inspected. Keep full new snapshots, metadata-only no-ops,
+empty variants, all-target preparation and truthful DELETE/POST failures intact.
+Defaults remain archive/manifest/sync-diff/if-change; registry706 stays design-only.

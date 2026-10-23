@@ -215,11 +215,17 @@ pub(crate) fn recorded_files(rows:&[ManifestRow],label:&str,version:&str)->Optio
 }
 fn trusted_comparison(target:&LocalPublication,versions:&[(String,String)],rows:&[ManifestRow],history:&[ManifestRow],label:&str,exists:bool)->Option<BTreeMap<String,String>> {
     if !target.inspect_manifest||!exists||matches!(target.strategy,StoreStrategy::UploadAll) {return None;}
+    matching_history(versions,rows,history,label)
+}
+/// Return matching unstarred project/remote CSV rows; this is eligibility,
+/// not an authentication or physical-byte guarantee.
+pub(crate) fn matching_history(versions:&[(String,String)],rows:&[ManifestRow],history:&[ManifestRow],label:&str)->Option<BTreeMap<String,String>> {
     let (_,version)=versions.iter().find(|(key,value)|key==label&&!value.ends_with('*'))?;
     let local=recorded_files(history,label,version)?;
     let remote=recorded_files(rows,label,version)?;
     (local==remote).then_some(remote)
 }
+
 fn archive_comparison(target:&LocalPublication,remote:&[ManifestRow],versions:&[(String,String)],history:&[ManifestRow],label:&str,current:&str)->anyhow::Result<Option<BTreeMap<String,String>>> {
     use crate::local_remote::{LocalStructure,list_versions,version_numbers,compare_versions};
     let catalog=list_versions(&target.base,label,LocalStructure::Archive,target.append)?;
@@ -235,12 +241,28 @@ fn archive_comparison(target:&LocalPublication,remote:&[ManifestRow],versions:&[
     if target.inspect_none||matches!(target.strategy,StoreStrategy::UploadAll)||(target.always&&!exists) {return Ok(None);}
     if !target.inspect_manifest&&exists {return Ok(Some(inventory(&current_path)?));}
     let latest=match catalog.first(){Some(value)=>value,None=>return Ok(None)};
-    let (_,advertised)=match versions.iter().find(|(key,value)|key==label&&!value.ends_with('*')) {Some(value)=>value,None=>return Ok(None)};
-    if version_numbers(advertised)!=version_numbers(&latest.version) {return Ok(None);}
-    let local=match recorded_files(history,label,advertised) {Some(value)=>value,None=>return Ok(None)};
-    let recorded=match recorded_files(remote,label,advertised) {Some(value)=>value,None=>return Ok(None)};
-    if local!=recorded {return Ok(None);}
-    let source=recorded_files(history,label,current).context("Current archive CSV rows missing or ambiguous")?;
+    let recorded=match archive_history(remote,versions,history,label,current,&latest.version) {
+        Some(value)=>value,None=>return Ok(None),
+    };
+    if latest.empty {
+        anyhow::ensure!(fs::read_dir(&latest.path)?.next().transpose()?.is_none(),"Archive empty marker contains files");
+    }
+    if target.inspect_manifest {Ok(Some(recorded))} else {
+        let files=inventory(&latest.path)?;
+        anyhow::ensure!(!latest.empty||files.is_empty(),"Archive empty marker contains files");
+        Ok(Some(files))
+    }
+}
+/// Select archive history only when newest catalog/VERSION/CSV agree and the
+/// advertised version belongs to the continuous unchanged project-history suffix.
+/// Physical ZIP/directory validation is separate and never establishes trust.
+pub(crate) fn archive_history(remote:&[ManifestRow],versions:&[(String,String)],history:&[ManifestRow],label:&str,current:&str,latest_version:&str)->Option<BTreeMap<String,String>> {
+    use crate::local_remote::{version_numbers,compare_versions};
+    let (_,advertised)=match versions.iter().find(|(key,value)|key==label&&!value.ends_with('*')) {Some(value)=>value,None=>return None};
+    if version_numbers(advertised)!=version_numbers(&latest_version) {return None;}
+    let recorded=matching_history(versions,remote,history,label)?;
+    let source=recorded_files(history,label,current)?;
+    let current_numbers=version_numbers(current)?;
     let mut candidates:Vec<_>=history.iter().filter(|row|row.label==label)
         .filter_map(|row|version_numbers(&row.version).map(|numbers|(numbers,row.version.clone()))).collect();
     candidates.sort_by(|a,b|compare_versions(&b.0,&a.0));candidates.dedup();
@@ -251,15 +273,15 @@ fn archive_comparison(target:&LocalPublication,remote:&[ManifestRow],versions:&[
         earliest=numbers;
     }
     let numbers=version_numbers(advertised).unwrap();
-    if compare_versions(&numbers,&earliest).is_lt()||compare_versions(&numbers,&current_numbers).is_gt() {return Ok(None);}
-    if latest.empty {
-        anyhow::ensure!(fs::read_dir(&latest.path)?.next().transpose()?.is_none(),"Archive empty marker contains files");
-    }
-    if target.inspect_manifest {Ok(Some(recorded))} else {
-        let files=inventory(&latest.path)?;
-        anyhow::ensure!(!latest.empty||files.is_empty(),"Archive empty marker contains files");
-        Ok(Some(files))
-    }
+    if compare_versions(&numbers,&earliest).is_lt()||compare_versions(&numbers,&current_numbers).is_gt() {return None;}
+    Some(recorded)
+}
+/// Construct a target over a caller-owned private remote mirror. The caller
+/// validates routing/labels and populates only the current and newest catalog
+/// entries before invoking the shared publisher; no external destination here.
+pub(crate) fn staging_target(base:Utf8PathBuf,labels:Vec<(String,Utf8PathBuf)>,archive:bool,strategy:StoreStrategy,always:bool,inspection:&str)->LocalPublication {
+    LocalPublication{title:"GitHub private staging".into(),base,labels,append:true,archive,strategy,always,
+        inspect_none:inspection=="none",inspect_manifest:inspection=="manifest"}
 }
 /// Replace one label value while retaining every other VERSION entry.
 pub(crate) fn set_version(entries:&mut Vec<(String,String)>,label:&str,version:String) {
@@ -276,11 +298,14 @@ struct Prepared {
 }
 /// Execute frozen local latest targets after the local release boundary.
 /// Stages only current CSV-selected bytes for every target before the first
-/// remote mutation. Data precedes shared CSV/VERSION/changelog, like projr.
+/// remote mutation. Returns labels whose current data needed file actions, a new
+/// target or empty-variant normalization. Metadata-only updates are excluded.
+/// Data precedes shared CSV/VERSION/changelog, like projr.
 /// This is not a remote transaction: failure preserves the local release and
 /// reports partial external effects; no automatic retry or remote rollback.
-pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&str)->anyhow::Result<()> {
-    if targets.is_empty(){return Ok(());}
+pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&str)->anyhow::Result<Vec<String>> {
+    if targets.is_empty(){return Ok(Vec::new());}
+    let mut data_effects=Vec::new();
     let history=crate::manifest::read(&root.join("manifest.csv"))?;
     let changelog=root.join("CHANGELOG.md");
     let changelog=if changelog.try_exists()? {
@@ -366,6 +391,7 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
                 let comparison=if target.archive {item.archive_comparisons.get(label).cloned().flatten()}
                     else {trusted_comparison(target,&item.versions,&item.rows,&history,label,existed)};
                 let actual=inventory(&full)?;
+                let full_before=full.try_exists()?;
                 let (uploads,_,removals,_)=crate::local_store::actions(&source_files,comparison.as_ref().unwrap_or(&actual),strategy);
                 let changed=!uploads.is_empty()||!removals.is_empty();
                 let metadata_missing_or_untrusted=!item.versions.iter().any(|(key,value)|key==label&&!value.ends_with('*'));
@@ -385,8 +411,10 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
                         crate::local_store::store_compared_files(root,&source,&full,strategy,comparison)?;
                     } else {crate::local_store::store_files(root,&source,&full,strategy,false)?;}
                 }
+                let mut normalized_empty=false;
                 if full.try_exists()? {
                     if inventory(&full)?.is_empty() {
+                        normalized_empty=full_before;
                         let mode=fs::symlink_metadata(&full)?.permissions();
                         fs::create_dir_all(&empty)?;fs::set_permissions(&empty,mode)?;
                         // Retire a verified file-empty tree through private staging;
@@ -402,6 +430,7 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
                         retired.close().with_context(||format!("Empty variant installed, but cleanup failed at {}",path.display()))?;
                     } else if empty.try_exists()? {fs::remove_dir(&empty)?;}
                 }
+                if (ensure&&(changed||!existed))||normalized_empty {data_effects.push(label.clone());}
                 let update=if target.archive&&!existed {ensure}else{match target.strategy {
                     StoreStrategy::SyncDiff=>changed||ensure,
                     _=>changed||!existed,
@@ -443,5 +472,5 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
             Err(error)=>Err(error.context(cleanup)),
         };
     }
-    result
+    result.map(|()|data_effects)
 }

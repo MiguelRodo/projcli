@@ -2511,3 +2511,46 @@ Ponytail full reuses StoreStrategy and the already guarded staged merge, without
 a new planner or persistence abstraction. Lifecycle ordering/failure boundaries
 remain the current-source overlay: prepare all, data, obsolete empty deletion,
 metadata, then later build stages.
+
+
+## GitHub file/manifest and archive-history comparison candidate
+
+Same: pinned projr dest-send-label.R257-475,854-1560, manifest.R253 and
+remote-versions.R409 define current/file comparison, continuous unchanged
+history and matching advertised remote history. The GitHub publisher now uses the
+existing ordinary local planner against private copies instead of duplicating
+the decision engine. Shared helpers select matching unstarred CSV/history and the
+eligible newest archive; physical validation remains transport-specific.
+
+Defaults remain archive/manifest/sync-diff/if-change. File compares actual bytes;
+manifest matching metadata is a decision trust convention, not authentication.
+Starred/missing/mismatched history falls back. New archives are complete snapshots;
+prior archive bytes remain unchanged. None interactions and trust stars remain
+the reviewed behavior from PR193. Actual data-effect results distinguish data
+uploads from shared metadata updates, including empty no-ops/normalization.
+
+New guards: newest GitHub numeric/full/empty ambiguity and case/Unicode aliases
+fail closed; historical empty sentinel validation occurs before mutation even
+with matching CSV. Ineligible old data is not downloaded; only current and the
+eligible newest entry need data bytes. Existing 128 MiB compressed/expanded
+transfer bounds, credentials, namespace preflight and all-target staging remain.
+
+Fixtures: full 3 inspection x4 strategy x2 cue x2 layout actual CLI mock REST
+matrix, archive unchanged/changed24 matrix, matching partial manifest preservation
+versus fallback, malformed history, reversion, drift, forward/untrusted/mismatched/
+missing catalog evidence and corrupt historical empties. Existing ordinary local
+matrix remains regression coverage for the shared helper extraction. Candidate
+remote compilation/tests and independent review required; no local heavy execution
+or live Release asset mutations. Installed preview and registry706 unchanged.
+
+Ponytail full: reuse guarded local publication, staging, MD5/action/CSV helpers
+and ZIP transport; no new dependency, alternate schema or second policy engine.
+
+
+Independent review caught a final-serialization gap: a valid native staged union
+can contain ZIP aliases or exceed the extractor's member ceiling. Final data now
+uses the existing recorded ZIP helper and its own extractor validation/explicit
+cleanup before enqueueing. Linux actual CLI source-alias and merged-alias fixtures
+assert failure with no POST/DELETE and unchanged old assets. Remote compilation
+also caught the temporarily unused helper; reuse closes that failure without
+warning suppression or weaker guards.

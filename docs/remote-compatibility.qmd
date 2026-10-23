@@ -323,11 +323,20 @@ Its PR records exact-head review/CI evidence. Configured GitHub publication and
 configured append-label:false remain pending; no full remote-completion claim.
 
 
-Configured GitHub latest/archive publication supports explicit none inspection and all four strategies,
+Configured GitHub latest/archive publication supports file/manifest/none inspection and all four strategies,
 including missing Release creation, CSV data ZIPs and shared metadata history.
 Canonical current-data replacement merges selected files while preserving remote
 extras. Empty sources preserve existing targets; validated empty-to-full transitions
 remove the obsolete sentinel asset after upload. Its PR records mocked REST CLI
-round-trip evidence. File/manifest comparison remains pending; the command reference records the
-source-backed blind missing/diff and bounded purge interactions.
+round-trip evidence. File/manifest and historical comparison use the same staged
+ordinary planner as local remotes; the command reference records the full control
+matrix and source-backed blind missing/diff and bounded purge interactions.
 No live GitHub Release round-trip has been performed.
+
+
+The comparison candidate preserves the existing archive/manifest/sync-diff/
+if-change defaults. Reuse requires newest catalog/VERSION/matching CSV agreement
+and continuous unchanged history. Physical file fallback, trusted partial manifest
+semantics, complete new snapshots and corrupt-empty rejection have actual CLI
+mock REST regression fixtures. Exact-head remote CI and independent review remain
+required; this does not complete all provider options or live GitHub validation.
