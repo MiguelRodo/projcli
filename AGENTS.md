@@ -338,7 +338,7 @@ No-inspection publication changes decisions, not safety guards. Preserve projr's
 none/default-upload-all interaction; explicit missing/diff blindly upload source
 files and keep extras, while empty-source purge does not infer remote extras.
 Do not advertise none as zero filesystem reads/hashing. Keep manifest default
-separate and pending; retain the actual build/store/restore and empty tests.
+separate; retain the actual build/store/restore and empty tests.
 
 
 Default local latest manifest inspection compares matching recorded project and

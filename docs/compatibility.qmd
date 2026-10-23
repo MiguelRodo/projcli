@@ -2365,3 +2365,9 @@ changes during a transfer; no zero-read guarantee. Ponytail full adds one shared
 compared-transfer entry point rather than a second installer. All remote exact-head
 gates and independent review remain required. Archive, configured GitHub
 publication and full remote compatibility remain pending.
+
+
+Review-driven coverage extends trusted history to all four strategies and both
+cues with actual configured restore, including remote byte drift and unrecorded
+extras. An unrecorded file/directory shape conflict must fail before destination
+or metadata changes, preserving the successful local release for inspection.

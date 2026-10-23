@@ -388,3 +388,54 @@ fn manifest_untrusted_missing_or_mismatched_history_falls_back_to_physical_bytes
         assert!(fs::read_to_string(root.join("remote/VERSION")).unwrap().contains("output: v1.2.5\n"),"{state}");
     }
 }
+
+#[test]
+fn trusted_manifest_all_strategies_and_cues_apply_only_their_selected_actions() {
+    for strategy in ["upload-all","upload-missing","sync-diff","sync-purge"] {
+        for cue in ["always","if-change"] {
+            let (_temporary,root)=setup(strategy,cue,"[output]");
+            let config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("inspect: file","inspect: manifest");
+            fs::write(root.join("_proj.yml"),config).unwrap();
+            success(invoke(&root,"build"));
+            fs::write(root.join("remote/output/same"),"drift").unwrap();
+            fs::write(root.join("remote/output/unknown"),"unrecorded").unwrap();
+            fs::write(root.join("results/changed"),"changed again").unwrap();
+            fs::write(root.join("results/additional"),"added").unwrap();
+            fs::remove_file(root.join("results/new")).unwrap();
+            success(invoke(&root,"build"));
+            let mut expected=BTreeMap::from([
+                ("additional".into(),b"added".to_vec()),
+                ("changed".into(),if strategy=="upload-missing" {b"new".to_vec()}else{b"changed again".to_vec()}),
+                ("same".into(),if strategy=="upload-missing"||strategy=="sync-diff" {b"drift".to_vec()}else{b"same".to_vec()}),
+            ]);
+            if strategy!="sync-purge" {expected.insert("unknown".into(),b"unrecorded".to_vec());}
+            if strategy.starts_with("upload-") {expected.insert("new".into(),b"new".to_vec());}
+            assert_eq!(files(&root.join("remote/output")),expected,"{strategy}/{cue}");
+            let star=if strategy.starts_with("upload-") {"*"}else{""};
+            assert!(fs::read_to_string(root.join("remote/VERSION")).unwrap().contains(&format!("output: v1.2.5{star}\n")));
+            let result=restore(&root);
+            assert_eq!(result["result"]["restored"],true);
+            assert_eq!(files(&root.join("results")),expected);
+        }
+    }
+}
+#[test]
+fn trusted_manifest_unknown_shape_conflict_preserves_remote_and_local_release() {
+    let (_temporary,root)=setup("sync-diff","if-change","[output]");
+    let config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("inspect: file","inspect: manifest");
+    fs::write(root.join("_proj.yml"),config).unwrap();
+    success(invoke(&root,"build"));
+    fs::create_dir(root.join("remote/output/folder")).unwrap();
+    fs::write(root.join("remote/output/folder/nested"),"unknown remote").unwrap();
+    fs::write(root.join("results/folder"),"incoming file").unwrap();
+    let history=fs::read(root.join("remote/manifest.csv")).unwrap();
+    let version=fs::read(root.join("remote/VERSION")).unwrap();
+    let output=invoke(&root,"build");
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("actual destination shape"),"{}",String::from_utf8_lossy(&output.stderr));
+    assert_eq!(fs::read(root.join("remote/output/folder/nested")).unwrap(),b"unknown remote");
+    assert_eq!(fs::read(root.join("remote/output/changed")).unwrap(),b"new");
+    assert_eq!(fs::read(root.join("remote/manifest.csv")).unwrap(),history);
+    assert_eq!(fs::read(root.join("remote/VERSION")).unwrap(),version);
+    assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap().trim(),"Version: v1.2.5");
+}
