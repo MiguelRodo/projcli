@@ -543,3 +543,9 @@ failed-build retention and output-mutation enforcement remain unchanged.
 Final observed rows are retained in a checksum-bound per-attempt CSV; the
 [history command](cli/history.qmd) reads these alongside terminal records or Git
 receipts. This adds evidence without moving hooks, promotion or Git commits.
+
+
+The existing pre-start-hook startup observation now also binds merged framework
+analysis configuration and effective policy using bounded, redacted fingerprints.
+This adds evidence at the existing startup node; no hook/version/distribution
+ordering changes. The integrated M2 fixture checks success/change/failure/retry.

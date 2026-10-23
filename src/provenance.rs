@@ -62,12 +62,14 @@ pub(crate) struct ConfigurationEvidence {
     scope:String,
     policy:serde_json::Value,
     policy_blake3:String,
+    #[serde(default,skip_serializing_if="Option::is_none")]
+    effective:Option<crate::config_evidence::Fingerprint>,
 }
 
 impl ConfigurationEvidence {
-    /// Hash only allowlisted validated flags/counts, never raw config, paths, parameters or remotes.
+    /// Retain safe flags/counts plus an opaque bounded merged-analysis fingerprint, never raw config.
     pub(crate) fn capture(config:&crate::yml::ValidatedConfig,execution:crate::build::ExecutionDirectory,
-        clear:crate::yml::OutputClearStage,cache_selected:bool)->Self {
+        clear:crate::yml::OutputClearStage,cache_selected:bool,analysis:Option<crate::config_evidence::Fingerprint>)->Self {
         let policy=serde_json::json!({
             "execution_directory":format!("{execution:?}").to_ascii_lowercase(),
             "output_clear_stage":format!("{clear:?}").to_ascii_lowercase(),
@@ -79,7 +81,7 @@ impl ConfigurationEvidence {
                 directory.hash.unwrap_or(!label.to_ascii_lowercase().starts_with("cache"))).count()
         });
         let policy_blake3=blake3::hash(&serde_json::to_vec(&policy).unwrap()).to_hex().to_string();
-        Self {scope:"validated_flags_and_counts_only".into(),policy,policy_blake3}
+        Self {scope:"validated_policy_and_merged_analysis".into(),effective:analysis.map(|value|value.bind_policy(&policy_blake3)),policy,policy_blake3}
     }
 }
 

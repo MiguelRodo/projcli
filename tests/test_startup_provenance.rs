@@ -71,7 +71,7 @@ fn actual_python_build_binds_startup_sources_dependencies_policy_and_sanitized_r
     assert_eq!(runner["status"],"reported");
     assert!(regex::Regex::new(r"^\d+\.\d+(?:\.\d+)?$").unwrap().is_match(runner["reported_version"].as_str().unwrap()));
     let configuration=&evidence["configuration"];
-    assert_eq!(configuration["scope"],"validated_flags_and_counts_only");
+    assert_eq!(configuration["scope"],"validated_policy_and_merged_analysis");
     assert_eq!(configuration["policy"]["git_commit"],false);
     assert_eq!(configuration["policy"]["declared_directories"],2);
     assert_eq!(configuration["policy"]["cache_selected"],true);

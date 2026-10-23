@@ -481,3 +481,15 @@ ownership witness; clone history reading does not require that private witness.
 Keep old fingerprint-only evidence unavailable unless exact historical rows match.
 Never turn missing terminal receipts into successful outcomes or overwrite the
 curated changelog. Preserve failure retention and snapshot/receipt ordering.
+
+
+## Effective configuration and M2 gate
+Fingerprint the already merged alias-normalized analysis subset before it is
+consumed or changed, then bind effective CLI/merged policy. Canonical maps sort
+keys; arrays and directory declaration order stay ordered. Use typed redactions
+before hashing and expose omissions/limits; never retain raw parameters/URLs.
+Keep bounded-out evidence nonfatal with no prefix digest. The recognizer is not
+universal secret detection. Preserve CSV, hooks, receipt timing and undecided
+failure retention. Run tests/acceptance/m2_contract.py plus its independent Rust
+byte witness remotely alongside the existing pinned matrix. Assess readiness
+against actual M2 criteria; do not add full environment/transitive freezing gates.

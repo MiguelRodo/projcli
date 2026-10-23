@@ -652,3 +652,38 @@ implicit source sets, executed source freezing or installed dependency state.
 Full environment reproduction is outside M2's local traceability gate. Relevant
 remaining M2 evidence must be checked against actual issue criteria, not an
 unbounded provenance wish list. The installed preview.3 is unchanged.
+
+
+## Development source: effective analysis-configuration fingerprint
+
+Startup evidence now includes a bounded, versioned BLAKE3 fingerprint over the
+alias-normalized merged framework analysis configuration: parameters, directory
+declarations, scripts and pre/both/post hook choices. Object keys are sorted;
+arrays and directory declaration order remain significant. The final digest
+also binds the existing effective runtime-policy fingerprint, including CLI
+overrides. It is an observation before start hooks, not frozen executed config.
+Missing versus explicit-empty script selection keeps its established meaning.
+
+No raw keys, parameters, paths or URLs are copied into this metadata. Sensitive
+parameter-key subtrees and credential-bearing or uncertain URL-like strings are
+replaced by a typed redaction token before hashing. The record exposes omission
+counts and observed_redacted status. Ordinary credential-free analysis URLs,
+including nonsecret query choices, remain distinguishable. Recognition covers
+token/password/secret/credential/signature suffixes and explicit auth/pass/bearer/
+key aliases, userinfo, encoded query/fragment keys and signed-cloud credentials.
+It cannot infer secrets hidden in innocent keys or arbitrary path segments.
+A digest is not encryption, authentication or universal secret detection.
+
+Traversal is bounded to 4 MiB of canonical tokens, 100,000 processed values and
+depth 64 before serialization/hashing. Limits produce explicit limit status
+with no partial digest, without failing an otherwise supported build.
+Publication/provider/auth configuration, dev-only choices and unrelated metadata
+are outside this analysis fingerprint. Native renderer metadata and installed
+environment state are not a merged framework configuration snapshot.
+
+The remote integrated M2 gate now computes real bytes, changes input and analysis
+parameters, inspects record/CSV/history, deliberately fails and checks exact
+last-good version/output/CSV preservation, then retries successfully. Git is
+blocked by a failing shim to prove standalone operation. An independent Rust
+witness checks source/declaration BLAKE3 and actual input/final CSV bytes.
+This does not select pre-distribution failed-log retention or claim M2 closure.

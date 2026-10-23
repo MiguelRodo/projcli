@@ -2874,3 +2874,40 @@ production path guards and exact row/history assertions remain unchanged.
 Final human-output review keeps validated IDs, timestamps and release versions
 literal and copyable in the terminal; untrusted file names remain escaped Markdown.
 A direct CLI assertion requires the raw attempt ID and release version.
+
+
+## Effective framework analysis configuration and integrated M2 gate
+
+**New bounded provenance; no R configuration/runtime change.** Fingerprint the
+already merged, normalized analysis subset rather than YAML spelling, with typed
+canonical tokens, ordered sequences/declarations and effective policy binding.
+Reuse serde_json and BLAKE3; retain only status/digest/omission counts. No new
+manifest architecture, package, configuration option or retention policy.
+
+Ponytail full review led to conservative URL recognition (including scheme-relative
+and uncertain URI forms) and cumulative accounting for redacted nodes. Typed
+redaction cannot collide with a user string sentinel. Known credential values
+are removed before hashing; raw values are never logged. Unknown secrets cannot
+be inferred universally. Limits are nonfatal and publish no prefix digest.
+Pure/actual CLI witnesses cover canonical map order, aliases, inherited profiles,
+CLI overrides, analysis parameter/URL changes, secret changes, typed omissions
+and traversal limits. Existing records decode the optional extension unchanged.
+
+The remote integrated M2 fixture covers three successful releases around an
+injected analysis failure, changed real CSV inputs/analysis parameters, exact
+records/history/final MD5 bytes, exact previous VERSION/DESCRIPTION/CSV/final output
+recovery, stable prior evidence and a successful retry. It requires no Git or
+credentials. A separate Rust witness validates observed source/declaration BLAKE3
+and phase/final CSV fingerprints against artifact bytes. Run exact-head remote
+platform/API/docs/pinned acceptance and independent review before merge.
+
+This addresses bounded local traceability. Full environment reproduction,
+frozen transitive imports and remote availability are outside the M2 local gate;
+pre-distribution failure-log retention remains undecided and unchanged. Existing
+R package, hook order, CSV and snapshot/receipt sequencing remain unchanged.
+
+Independent review strengthened the integrated failure witness: the selected
+analysis writes distinct failure-only cache bytes and an external fixture marker
+before exit17. The gate checks both, exact unchanged last-good managed bytes,
+and replacement with correct computed bytes on retry; command failure alone is
+not treated as proof of the intended fault.
