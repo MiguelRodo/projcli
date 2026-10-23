@@ -628,8 +628,8 @@ These are startup observations, not frozen source bytes: a start hook can change
 a later script or dependency declaration. Implicit renderer-project source sets,
 imported code, effective renderer configuration, arbitrary parameters and installed
 dependency state are not fully captured. Unknown states must not be presented as
-complete provenance. Detailed final rows and generated human history remain
-separate M2 work. CSV/MD5 and failure-retention behavior are unchanged, as is the
+complete provenance. That startup slice alone did not include detailed final rows or generated human
+history; the following section adds them. CSV/MD5 and failure-retention behavior are unchanged, as is the
 installed preview.3.
 
 

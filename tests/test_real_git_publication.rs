@@ -581,4 +581,13 @@ fn git_receipt_observes_post_hook_changes_without_rewriting_the_committed_snapsh
     let rows=proj::manifest::capture_directory("output",camino::Utf8Path::from_path(&released).unwrap(),"v1.2.4",false).unwrap();
     let expected=blake3::hash(&proj::manifest_csv::encode(&rows).unwrap()).to_hex().to_string();
     assert_eq!(receipt["final_outputs"]["inventory"]["canonical_csv_blake3"],expected);
+    let reference=&receipt["final_outputs"]["rows"];
+    let bytes=fs::read(fixture.root.join(".proj/log").join(reference["file"].as_str().unwrap())).unwrap();
+    assert_eq!(proj::manifest_csv::decode(&bytes).unwrap(),rows);
+    let history=proj::history::read(camino::Utf8Path::from_path(&fixture.root).unwrap(),Some(id),20).unwrap();
+    let detail=serde_json::to_value(&history).unwrap();
+    assert_eq!(detail["entries"][0]["status"],"completed");
+    assert_eq!(detail["entries"][0]["final_files"]["rows"],serde_json::to_value(&rows).unwrap());
+    assert!(history.markdown().contains("renamed&#46;csv"));
+    assert!(!history.markdown().contains("results&#46;csv"));
 }

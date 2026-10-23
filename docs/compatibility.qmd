@@ -2857,3 +2857,12 @@ linked evidence and traversal. Real Git fixtures require exact companion bytes
 in the next normal commit and reject altered/missing companions. Platform,
 rustdoc/API, native browser and pinned acceptance run remotely; no local builds
 or tests. This does not choose pre-distribution failure retention or finish M2.
+
+
+Independent source review found and fixed an Option-to-Result parse call,
+unvalidated Git-head text in the safe history projection, and a multi-entry
+Markdown table break. Focused regression assertions cover each. Existing real
+post-hook fixtures now compare exact retained CSV bytes/rows and generated history
+to the changed final filesystem, while release CSV/remote bytes stay unchanged.
+A deliberate plain JSON destination collision asserts removal only of the newly
+created owned CSV, preserved unrelated evidence, and exact version/output recovery.
