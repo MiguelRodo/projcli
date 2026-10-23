@@ -15,8 +15,9 @@ is not a complete remote/provenance milestone claim.
 
 ## Verified preview.2
 
-[0.4.0-preview.2](install.qmd) is now published and installed in the checked WSL
-user-local location. Its exact source is
+[0.4.0-preview.2](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.2)
+was published and verified in the WSL user-local location before preview.3.
+Its exact source is
 768da1bf1b83be83b657b36219f299f37130ba03. See
 [delivery evidence](release-delivery.qmd) for actual-main, exact-tag, public-byte
 and installed-binary checks. The sequence below remains the release checklist.

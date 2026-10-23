@@ -316,11 +316,11 @@ spelling, including on case-insensitive filesystems. Metadata transfer staging
 also closes explicitly and reports cleanup failure paths.
 
 
-## Configured local publication candidate
+## Configured local publication
 
 Current source supports build.local archive (the default) and latest publication with manifest inspection
-by default, explicit file comparison, or explicit none comparison. This is newer than installed preview.2 and is not complete projr remote
-parity. All selected namespace identities are checked before hooks; every current
+by default, explicit file comparison, or explicit none comparison. This is included
+in preview.3 and is not complete projr remote parity. All selected namespace identities are checked before hooks; every current
 CSV-selected snapshot and existing remote metadata is staged/read before the
 first destination changes. Data precedes manifest.csv, VERSION and an existing
 project CHANGELOG.md. The build's existing irreversible publication boundary

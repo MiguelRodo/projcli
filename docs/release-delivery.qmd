@@ -66,7 +66,8 @@ archive and project VERSION bytes while retaining the computed cached result.
 The shell resolves the checked user-local command. No local compilation, system
 binary replacement, container operation or R-package change was involved.
 
-Pin PROJ_RELEASE_VERSION=0.4.0-preview.2 and use the [install guide](install.qmd).
+This historical delivery pinned PROJ_RELEASE_VERSION=0.4.0-preview.2.
+The [current install guide](install.qmd) now pins preview.3.
 Linux/Windows x86-64 delivery is verified; macOS/ARM binaries remain unavailable.
 Bookdown site embedding, direct R/IDE parity, linked-output portability and
 M2 records/provenance/retry remain outside the accepted CLI workflow.

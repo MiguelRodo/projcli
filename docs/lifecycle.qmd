@@ -345,7 +345,7 @@ then a smaller selection is published and its committed bytes are checked.
 Retained failed scratch stays in cache; it must not enter the later commit.
 Earlier final docs are preserved on failure and replaced only on successful docs
 finalization. This is bounded recovery evidence, not a new M2 record or sealing
-boundary, and does not change the installed preview.2 binary.
+boundary. This recovery behavior is included in preview.3.
 
 
 The [storage design constraints](storage-design.qmd) reserve optional future
