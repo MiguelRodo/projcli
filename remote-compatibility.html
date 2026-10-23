@@ -172,6 +172,12 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./cli/remote.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Inspect local remote versions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./lifecycle.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Build lifecycle</span></a>
   </div>
@@ -577,7 +583,7 @@ ul.task-list li input[type="checkbox"] {
 <tr class="odd">
 <td>Latest version</td>
 <td>latest reads label VERSION entry; archive parses local version-directory/GitHub asset names and selects max semantic version, including empty variants.</td>
-<td>Ordinary selection missing; current CAS accepts caller-supplied versions.</td>
+<td>Read-only explicit local latest/archive listing is added in current source, with actual paths, empty variants and metadata markers. Automatic restore selection and GitHub discovery remain missing; current CAS accepts caller-supplied versions.</td>
 </tr>
 <tr class="even">
 <td>Trusted version</td>
@@ -768,7 +774,7 @@ ul.task-list li input[type="checkbox"] {
 </table>
 <p>Next slices should remain independently testable:</p>
 <ol type="1">
-<li>Pure ordinary local latest/archive path/layout and metadata/version fixtures, with explicit paths and empty variants; no new remote registry schema.</li>
+<li>Read-only ordinary local latest/archive inspection is the current bounded source slice: <a href="./cli/remote.html">command reference</a>, explicit paths and empty variants. It introduces no remote registry schema; exact-head remote checks and independent review are required before merge.</li>
 <li>Disposable local store plans for the four existing strategies and inspections, then guarded execution/metadata/failure fixtures.</li>
 <li>Explicit local list/download/restore with staged validation and honest outcomes.</li>
 <li>GitHub REST/ZIP transport behind mock fixtures, existing credential lookup, release/asset/version/metadata behaviour and failure reporting; no live dataset uploads.</li>

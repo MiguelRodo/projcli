@@ -207,6 +207,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./cli/remote.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Inspect local remote versions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./lifecycle.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Build lifecycle</span></a>
   </div>
@@ -300,7 +306,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#machine-interface" id="toc-machine-interface" class="nav-link active" data-scroll-target="#machine-interface">Machine interface</a></li>
+  <li><a href="#machine-interface" id="toc-machine-interface" class="nav-link active" data-scroll-target="#machine-interface">Machine interface</a>
+  <ul class="collapse">
+  <li><a href="#read-only-local-remote-versions" id="toc-read-only-local-remote-versions" class="nav-link" data-scroll-target="#read-only-local-remote-versions">Read-only local remote versions</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -323,8 +332,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Stable error codes are <code>invalid_arguments</code>, <code>project_selection_failed</code>, <code>query_failed</code>, <code>command_failed</code>, and <code>worker_unavailable</code>. Messages are static; raw config, environment values, command arguments and chained domain errors are not copied into protocol errors. This transport reuses existing <code>anyhow</code> domain handling tracked by issue87; it does not promise a finer domain-error taxonomy. With <code>--machine</code>, help/version display requests return capability negotiation.</p>
 <p>All command progress and child stdout/stderr go to stderr, streamed directly without accumulating logs in memory. Machine mode closes child stdin and enables noninteractive policy. Child logs are user/third-party output and are not a secret redaction service; avoid printing credentials in scripts. No environment/config dump is included in the machine result. Callers must keep stdout and stderr separate.</p>
 <p>A failed publication can follow successful local analysis. <code>command_failed</code> is not a rollback or retry instruction: inspect local state/diagnostics before retrying. No analysis-free publication retry or successful release record is invented here.</p>
+<section id="read-only-local-remote-versions" class="level2">
+<h2 class="anchored" data-anchor-id="read-only-local-remote-versions">Read-only local remote versions</h2>
+<p>Current source adds remote versions to capability negotiation, independently of the installed preview. Its successful result is an object containing versions, an array ordered newest-first for archive layouts. Each entry contains version (a leading-v numeric string), path (the actual physical directory), empty and present booleans, and metadata_untrusted (the latest VERSION asterisk boolean, or null for archives). An empty result is versions: [].</p>
+<p>Present means a real directory exists, not that its contents match metadata. Neither false nor null metadata_untrusted proves integrity. Failed queries use query_failed without returning the raw path or filesystem error. See the <a href="./cli/remote.html">command reference</a> for layout and missing-target semantics.</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

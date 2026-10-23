@@ -172,6 +172,12 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./cli/remote.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Inspect local remote versions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./lifecycle.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Build lifecycle</span></a>
   </div>
@@ -317,6 +323,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#exact-existing-inventory-transitions" id="toc-exact-existing-inventory-transitions" class="nav-link" data-scroll-target="#exact-existing-inventory-transitions">Exact existing inventory transitions</a></li>
   <li><a href="#temporary-projr-compatible-csv-inventories-local-candidate" id="toc-temporary-projr-compatible-csv-inventories-local-candidate" class="nav-link" data-scroll-target="#temporary-projr-compatible-csv-inventories-local-candidate">Temporary projr-compatible CSV inventories (local candidate)</a></li>
   <li><a href="#complete-remote-surface-source-inventory" id="toc-complete-remote-surface-source-inventory" class="nav-link" data-scroll-target="#complete-remote-surface-source-inventory">Complete remote surface source inventory</a></li>
+  <li><a href="#read-only-ordinary-local-remote-version-inspection" id="toc-read-only-ordinary-local-remote-version-inspection" class="nav-link" data-scroll-target="#read-only-ordinary-local-remote-version-inspection">Read-only ordinary local remote version inspection</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -875,6 +882,14 @@ ul.task-list li input[type="checkbox"] {
 <section id="complete-remote-surface-source-inventory" class="level2">
 <h2 class="anchored" data-anchor-id="complete-remote-surface-source-inventory">Complete remote surface source inventory</h2>
 <p>The <a href="./remote-compatibility.html">pinned remote inventory</a> records actual local and GitHub Release-asset behaviour, every parsed/defaulted remote setting, store and restore semantics, stale documentation/stubs, test coverage intent and Rust gaps. Its separate configuration assessment excludes the approved CSV choice and does not silently redesign policy. R and thesis stay read-only; no live remote upload, new credentials or local heavy execution. Independent source review and remote docs validation are required. Ordinary remote compatibility remains incomplete.</p>
+</section>
+<section id="read-only-ordinary-local-remote-version-inspection" class="level2">
+<h2 class="anchored" data-anchor-id="read-only-ordinary-local-remote-version-inspection">Read-only ordinary local remote version inspection</h2>
+<p>Pinned projr 90be50132d16aee33e39c0f7f35ef906c35f5397 remote-versions.R lines473-639 lists ordinary archive names and reads exact latest VERSION label entries, stripping a trailing untrusted marker. New source adds a library/CLI consumer for that read-only surface, including numeric version ordering, empty variants and explicit existing paths, independent of CAS and remote configuration.</p>
+<p>Differences are explicit: malformed numeric candidates, linked/special entries and duplicate latest labels fail closed; absent targets are disclosed, not called verified. Numeric components have no fixed count and missing trailing components compare as zero. Archive variants remain visible; no restore-selection or CAS discovery policy is inferred. The append-label=false argument inspects the supplied physical layout without copying R’s hard-coded label-discovery bug. No uploads, downloads, restore, registry redesign, credentials or live datasets.</p>
+<p>Ponytail full: one module, existing stdlib/serde/path guards, no backend trait or new dependency. Pure numeric and filesystem/CLI fixtures are added for sort, empty/missing state, labels, Unicode, read-only snapshots, trust-marker disclosure, duplicate/invalid metadata, links and FIFOs. Tests are not run locally. Required verification is remote locked/pinned and host suites, API/docs checks, followed by independent review. Broader ordinary remote compatibility remains incomplete.</p>
+<p>Source self-review removed an unnecessary reserved-suffix restriction: an explicit label ending in -empty is valid under the shared label contract. A regression distinguishes that label’s full directory from an empty variant. The read-only command does not invent a new configured-label policy. Pinned comparison: <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-versions.R#L473">local/archive and VERSION discovery</a>.</p>
+<p>Independent source review cleared fc2559c for the bounded read-only scope with no blockers. Its two follow-ups are included: the machine result fields are documented and a fixture demonstrates latest/no-label-appending reports the base’s presence rather than selecting a sibling empty marker. No runtime semantics changed in this review delta. Exact final-head CI/review remain gates.</p>
 
 
 </section>
