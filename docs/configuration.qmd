@@ -264,3 +264,9 @@ remote extras; sync-purge only purges when the source is nonempty. See the
 [remote control matrix](cli/remote.qmd) before choosing these combinations.
 Omitted inspection retains the projr manifest default, using matching recorded
 history or falling back to physical file comparison.
+
+
+Configured ordinary build.local publication now follows the archive default when
+structure is omitted; latest remains explicit. The existing manifest inspection
+and sync-diff/if-change defaults apply. See [archive publication](cli/remote.qmd)
+for historical reuse, complete snapshots and unsupported append-label:false.

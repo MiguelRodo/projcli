@@ -2371,3 +2371,38 @@ Review-driven coverage extends trusted history to all four strategies and both
 cues with actual configured restore, including remote byte drift and unrecorded
 extras. An unrecorded file/directory shape conflict must fail before destination
 or metadata changes, preserving the successful local release for inspection.
+
+
+### Ordinary local archive publication
+
+Same: pinned projr
+[R/dest-send-label.R390](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send-label.R#L390)
+uses cue/current-target existence, continuous unchanged project history, and
+newest catalog/VERSION/manifest agreement to select an eligible older comparison.
+[R/manifest.R253](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/manifest.R#L253)
+stops reuse across an intervening change, even when contents later revert.
+Archive is the existing default; complete version directories and empty variants
+coexist with shared CSV/VERSION/changelog at the pre-root. None/upload-all ignore
+historical comparison. Sync-purge reuploads nonempty unchanged content as before.
+
+Different/bug correction: every newly required archive is a full source snapshot,
+rather than applying an older comparison's partial changed-file plan to an absent
+version directory. This prevents incomplete archives after physical drift.
+Starred metadata stays untrusted, as documented for latest. Existing snapshots,
+including forward versions, remain untouched; ambiguous current numeric spellings
+fail before external publication. Configured append-label:false remains explicit
+unsupported behavior, not a claim of full local/remote parity.
+
+Tests cover all inspection/strategy/cue combinations with exact snapshot bytes and
+configured restore, default archive+manifest, unchanged and changed/empty/reverted
+histories, star/mismatch/forward/drift evidence and prior-snapshot preservation.
+Ponytail full reuses numeric catalog validation, recorded CSV comparison, transfer
+and finalisation rather than introducing a second archive engine. No dependencies,
+schema changes, local heavy tests or live user-data mutations. Exact-head remote
+CI and independent review are required; GitHub configured publication remains open.
+
+
+Independent review found that an older empty marker could be reused under
+manifest inspection without checking physical emptiness. The shared eligibility
+path now rejects nonempty historical empty markers for file and manifest modes;
+the regression preserves their unexpected bytes, remote metadata and local release.

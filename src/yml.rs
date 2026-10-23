@@ -162,7 +162,7 @@ fn default_use_proj_cred_helper() -> bool {
 #[derive(Deserialize, Debug, Default, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct BuildConfig {
-    /// Existing inline ordinary local destinations; currently latest/file only.
+    /// Existing inline ordinary local archive/latest publication destinations.
     pub local: Option<serde_json::Map<String, Value>>,
     pub dest: Option<Vec<String>>,
     pub scripts: Option<Vec<String>>,

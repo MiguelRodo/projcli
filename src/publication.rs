@@ -1,5 +1,5 @@
-//! Bounded configured local latest publication with file or no comparison.
-//! Archive remains an explicit error; no registry redesign is implied.
+//! Guarded ordinary local archive/latest publication with CSV or file comparison.
+//! Archive/latest share guarded staging; no registry redesign is implied.
 use std::{collections::BTreeMap,fs,io::Write};
 use anyhow::Context;
 use camino::{Utf8Path,Utf8PathBuf};
@@ -17,6 +17,7 @@ pub(crate) struct LocalPublication {
     pub(crate) base:Utf8PathBuf,
     labels:Vec<(String,Utf8PathBuf)>,
     append:bool,
+    archive:bool,
     strategy:StoreStrategy,
     always:bool,
     // No comparison changes planning, not filesystem safety validation.
@@ -46,12 +47,13 @@ fn native_name(path:&Utf8Path)->anyhow::Result<()> {
     let anchor=path.ancestors().last().context("Publication path has no root")?;
     crate::path_safety::validate_native_names(anchor,path.strip_prefix(anchor)?.as_str(),false)
 }
-fn destination(target:&LocalPublication,label:&str,empty:bool)->Utf8PathBuf {
+fn destination(target:&LocalPublication,label:&str,empty:bool,version:&str)->Utf8PathBuf {
     let path=if target.append {target.base.join(label)} else {target.base.clone()};
+    let path=if target.archive {path.join(version)}else{path};
     if empty {Utf8PathBuf::from(format!("{path}-empty"))}else{path}
 }
 /// Parse existing build.local definitions and preflight every selected namespace.
-/// Only explicit latest is executable. Null/false content
+/// Archive (default) and latest execute. Null/false content
 /// selects nothing; true uses declared non-cache labels. No directories are made.
 pub(crate) fn configured(root:&Utf8Path,raw:Option<&Map<String,Value>>,config:&crate::yml::ValidatedConfig)->anyhow::Result<Vec<LocalPublication>> {
     let mut targets=Vec::new();
@@ -76,8 +78,7 @@ pub(crate) fn configured(root:&Utf8Path,raw:Option<&Map<String,Value>>,config:&c
         crate::path_safety::validate_directory_labels(labels.iter().map(String::as_str))?;
         // Validate selected definitions; disabled definitions remain available to restore.
         if labels.is_empty() {continue;}
-        anyhow::ensure!(matches!(definition.structure,Some(crate::restore::Layout::Latest)),
-            "Configured local publication currently requires explicit structure: latest; archive remains pending");
+        let archive=!matches!(definition.structure,Some(crate::restore::Layout::Latest));
         let send:Send=serde_json::from_value(definition.send.clone().unwrap_or(serde_json::json!({})))?;
         let inspection=send.inspect.as_deref().unwrap_or("manifest");
         anyhow::ensure!(matches!(inspection,"file"|"none"|"manifest"),"send.inspect must be file, none or manifest");
@@ -99,7 +100,7 @@ pub(crate) fn configured(root:&Utf8Path,raw:Option<&Map<String,Value>>,config:&c
         for name in [".git",".hg",".svn",".projr"] {
             anyhow::ensure!(!overlaps(&base,&identity(&root.join(name))?),"Publication overlaps protected project state");
         }
-        anyhow::ensure!(definition.path_append_label.unwrap_or(true),"Configured latest publication requires path-append-label: true; false overlaps shared metadata");
+        anyhow::ensure!(definition.path_append_label.unwrap_or(true),"Configured local publication currently requires path-append-label: true");
         let mut selected=Vec::new();
         for label in labels {
             let directory=config.directories.get(&label).context("Publication label is undeclared")?;
@@ -107,7 +108,7 @@ pub(crate) fn configured(root:&Utf8Path,raw:Option<&Map<String,Value>>,config:&c
                 "Publication content requires CSV capture; enable hash for label {label}");
             selected.push((label.clone(),identity(&config.get_path(root,&label)?)?));
         }
-        targets.push(LocalPublication {title:title.clone(),base,labels:selected,append:definition.path_append_label.unwrap_or(true),strategy,always,inspect_none,inspect_manifest});
+        targets.push(LocalPublication {title:title.clone(),base,labels:selected,append:definition.path_append_label.unwrap_or(true),archive,strategy,always,inspect_none,inspect_manifest});
     }
     if targets.is_empty() {return Ok(targets);}
     validate_namespaces(root,&targets,config)?;
@@ -154,8 +155,10 @@ fn validate_namespaces(root:&Utf8Path,targets:&[LocalPublication],config:&crate:
         let mut reserved:Vec<Utf8PathBuf>=Vec::new();
         for name in ["manifest.csv","VERSION","CHANGELOG.md"] {reserved.push(identity(&target.base.join(name))?);}
         for (label,_) in &target.labels {
+            if target.archive {crate::local_remote::list_versions(&target.base,label,crate::local_remote::LocalStructure::Archive,target.append)?;}
             for empty in [false,true] {
-                let path=identity(&destination(target,label,empty))?;
+                if target.archive&&empty {continue;}
+                let path=identity(&if target.archive {target.base.join(label)}else{destination(target,label,empty,"")})?;
                 for previous in &reserved {
                     anyhow::ensure!(!overlaps(&path,previous),"Publication namespace collision: {path} and {previous}");
                 }
@@ -214,6 +217,47 @@ fn trusted_comparison(target:&LocalPublication,versions:&[(String,String)],rows:
     let remote=recorded_files(rows,label,version)?;
     (local==remote).then_some(remote)
 }
+fn archive_comparison(target:&LocalPublication,remote:&[ManifestRow],versions:&[(String,String)],history:&[ManifestRow],label:&str,current:&str)->anyhow::Result<Option<BTreeMap<String,String>>> {
+    use crate::local_remote::{LocalStructure,list_versions,version_numbers,compare_versions};
+    let catalog=list_versions(&target.base,label,LocalStructure::Archive,target.append)?;
+    let current_numbers=version_numbers(current).context("Invalid current archive version")?;
+    let current_path=destination(target,label,false,current);
+    for entry in &catalog {
+        if compare_versions(&version_numbers(&entry.version).unwrap(),&current_numbers).is_eq() {
+            let expected=destination(target,label,entry.empty,current);
+            anyhow::ensure!(entry.path==expected,"Archive target has another numeric version spelling: {}",entry.path);
+        }
+    }
+    let exists=current_path.try_exists()?||destination(target,label,true,current).try_exists()?;
+    if target.inspect_none||matches!(target.strategy,StoreStrategy::UploadAll)||(target.always&&!exists) {return Ok(None);}
+    if !target.inspect_manifest&&exists {return Ok(Some(inventory(&current_path)?));}
+    let latest=match catalog.first(){Some(value)=>value,None=>return Ok(None)};
+    let (_,advertised)=match versions.iter().find(|(key,value)|key==label&&!value.ends_with('*')) {Some(value)=>value,None=>return Ok(None)};
+    if version_numbers(advertised)!=version_numbers(&latest.version) {return Ok(None);}
+    let local=match recorded_files(history,label,advertised) {Some(value)=>value,None=>return Ok(None)};
+    let recorded=match recorded_files(remote,label,advertised) {Some(value)=>value,None=>return Ok(None)};
+    if local!=recorded {return Ok(None);}
+    let source=recorded_files(history,label,current).context("Current archive CSV rows missing or ambiguous")?;
+    let mut candidates:Vec<_>=history.iter().filter(|row|row.label==label)
+        .filter_map(|row|version_numbers(&row.version).map(|numbers|(numbers,row.version.clone()))).collect();
+    candidates.sort_by(|a,b|compare_versions(&b.0,&a.0));candidates.dedup();
+    let mut earliest=current_numbers.clone();
+    for (numbers,version) in candidates {
+        if compare_versions(&numbers,&current_numbers).is_gt() {continue;}
+        if recorded_files(history,label,&version).as_ref()!=Some(&source) {break;}
+        earliest=numbers;
+    }
+    let numbers=version_numbers(advertised).unwrap();
+    if compare_versions(&numbers,&earliest).is_lt()||compare_versions(&numbers,&current_numbers).is_gt() {return Ok(None);}
+    if latest.empty {
+        anyhow::ensure!(fs::read_dir(&latest.path)?.next().transpose()?.is_none(),"Archive empty marker contains files");
+    }
+    if target.inspect_manifest {Ok(Some(recorded))} else {
+        let files=inventory(&latest.path)?;
+        anyhow::ensure!(!latest.empty||files.is_empty(),"Archive empty marker contains files");
+        Ok(Some(files))
+    }
+}
 fn set_version(entries:&mut Vec<(String,String)>,label:&str,version:String) {
     if let Some((_,value))=entries.iter_mut().find(|(key,_)|key==label) {*value=version;}
     else {entries.push((label.into(),version));}
@@ -223,6 +267,8 @@ struct Prepared {
     rows:Vec<ManifestRow>,
     versions:Vec<(String,String)>,
     files:tempfile::TempDir,
+    // Frozen historical comparisons for every selected archive label.
+    archive_comparisons:BTreeMap<String,Option<BTreeMap<String,String>>>,
 }
 /// Execute frozen local latest targets after the local release boundary.
 /// Stages only current CSV-selected bytes for every target before the first
@@ -249,7 +295,13 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
             if let Ok(metadata)=fs::symlink_metadata(target.base.join(name)) {anyhow::ensure!(metadata.is_file(),"Remote metadata must be regular");}
         }
         let files=tempfile::Builder::new().prefix("proj-publication-").tempdir_in(fs::canonicalize(std::env::temp_dir())?)?;
-        prepared.push(Prepared {target:target.clone(),rows,versions,files});
+        let mut archive_comparisons=BTreeMap::new();
+        if target.archive {
+            for (label,_) in &target.labels {
+                archive_comparisons.insert(label.clone(),archive_comparison(target,&rows,&versions,&history,label,version)?);
+            }
+        }
+        prepared.push(Prepared {target:target.clone(),rows,versions,files,archive_comparisons});
         let item=prepared.last().unwrap();
         let staged=Utf8Path::from_path(item.files.path()).context("Publication staging path must be UTF-8")?;
         for (label,source) in &target.labels {
@@ -279,8 +331,8 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
             modes.sort_by_key(|(relative,_)|std::cmp::Reverse(relative.components().count()));
             for (relative,mode) in modes {fs::set_permissions(directory.join(relative),mode)?;}
             native_name(&target.base)?;
-            inventory(&destination(target,label,false))?;
-            let empty=destination(target,label,true);
+            inventory(&destination(target,label,false,version))?;
+            let empty=destination(target,label,true,version);
             crate::path_safety::resolve_path(empty.as_std_path(),true)?;
             if empty.try_exists()? {anyhow::ensure!(fs::read_dir(&empty)?.next().transpose()?.is_none(),"Empty remote marker contains entries");}
         }
@@ -295,7 +347,7 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
             set_version(&mut item.versions,"Project",version.into());
             for (label,_) in &target.labels {
                 let source=Utf8Path::from_path(item.files.path()).unwrap().join(label);
-                let full=destination(target,label,false);let empty=destination(target,label,true);
+                let full=destination(target,label,false,version);let empty=destination(target,label,true,version);
                 native_name(&full)?;native_name(&empty)?;
                 let existed=full.try_exists()?||empty.try_exists()?;
                 let source_files=inventory(&source)?;
@@ -307,16 +359,25 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
                     if matches!(target.strategy,StoreStrategy::SyncPurge)&&!source_files.is_empty() {StoreStrategy::SyncPurge}
                     else {StoreStrategy::UploadAll}
                 }else{target.strategy};
-                let comparison=trusted_comparison(target,&item.versions,&item.rows,&history,label,existed);
+                let comparison=if target.archive {item.archive_comparisons.get(label).cloned().flatten()}
+                    else {trusted_comparison(target,&item.versions,&item.rows,&history,label,existed)};
                 let actual=inventory(&full)?;
                 let (uploads,_,removals,_)=crate::local_store::actions(&source_files,comparison.as_ref().unwrap_or(&actual),strategy);
                 let changed=!uploads.is_empty()||!removals.is_empty();
                 let metadata_missing_or_untrusted=!item.versions.iter().any(|(key,value)|key==label&&!value.ends_with('*'));
-                let ensure=target.inspect_none||changed||!existed||target.always
+                let ensure=if target.archive {changed||target.always||comparison.is_none()}else{
+                    target.inspect_none||changed||!existed||target.always
                     || (matches!(target.strategy,StoreStrategy::SyncDiff)
-                        &&(metadata_missing_or_untrusted||(target.inspect_manifest&&comparison.is_none())));
+                        &&(metadata_missing_or_untrusted||(target.inspect_manifest&&comparison.is_none())))
+                };
                 if ensure {
-                    if let Some(comparison)=&comparison {
+                    fs::create_dir_all(full.parent().context("Publication destination has no parent")?)?;
+                    native_name(&full)?;
+                    if target.archive&&!existed {
+                        // A new archive is always complete, never just the
+                        // changed subset relative to an older comparison.
+                        crate::local_store::store_files(root,&source,&full,StoreStrategy::SyncPurge,false)?;
+                    } else if let Some(comparison)=&comparison {
                         crate::local_store::store_compared_files(root,&source,&full,strategy,comparison)?;
                     } else {crate::local_store::store_files(root,&source,&full,strategy,false)?;}
                 }
@@ -337,10 +398,10 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
                         retired.close().with_context(||format!("Empty variant installed, but cleanup failed at {}",path.display()))?;
                     } else if empty.try_exists()? {fs::remove_dir(&empty)?;}
                 }
-                let update=match target.strategy {
+                let update=if target.archive&&!existed {ensure}else{match target.strategy {
                     StoreStrategy::SyncDiff=>changed||ensure,
                     _=>changed||!existed,
-                };
+                }};
                 if update {
                     let untrusted=existed&&(matches!(target.strategy,StoreStrategy::UploadAll|StoreStrategy::UploadMissing)
                         ||(target.inspect_none&&matches!(target.strategy,StoreStrategy::SyncDiff)));
