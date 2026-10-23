@@ -315,8 +315,8 @@ also closes explicitly and reports cleanup failure paths.
 
 ## Configured local publication candidate
 
-Current source adds build.local latest publication with explicit send.inspect:
-file. This is newer than installed preview.2 and is not complete projr remote
+Current source supports build.local latest publication with manifest inspection
+by default, explicit file comparison, or explicit none comparison. This is newer than installed preview.2 and is not complete projr remote
 parity. All selected namespace identities are checked before hooks; every current
 CSV-selected snapshot and existing remote metadata is staged/read before the
 first destination changes. Data precedes manifest.csv, VERSION and an existing
