@@ -2485,3 +2485,9 @@ UploadAll directory merge; no new dependencies or policy engine.
 | Existing selected data replacement | Delivered | Candidate mocked REST, extras retained |
 | Configured restore | Delivered | Existing mocked REST, latest candidate exercised |
 | Live GitHub round trip | N/A | Pending dedicated destination/operations approval |
+
+
+Independent Ponytail review found no source blocker. Follow-up fixture coverage
+adds empty-source invalid-sentinel rejection, simultaneous full/empty rejection,
+and failed full upload preserving the old empty asset without DELETE. The command
+reference states the bounded data/selected-merge preparation sizes explicitly.

@@ -354,3 +354,22 @@ fn latest_data_replacement_failure_reports_deleted_asset_and_keeps_local_release
     let state=server.state.lock().unwrap();assert!(!state.assets.contains_key("output.zip"));assert!(state.uploads.is_empty());
     assert_eq!(state.deleted,["output.zip"]);drop(state);server.finish();
 }
+
+#[test]
+fn empty_transition_guards_preserve_old_assets_before_mutation() {
+    for case in ["invalid-empty-source","failed-full-upload","both-variants"] {
+        let server=Server::start();let (_temporary,root)=setup(&server);latest(&root);
+        let empty=fixture_zip(if case=="invalid-empty-source" {&[("surprise",b"keep")]}else{&[("projr-empty",b"")]});
+        seed(&server,"output-empty.zip",empty.clone());
+        if case=="invalid-empty-source" {fs::remove_file(root.join("results/result.csv")).unwrap();}
+        if case=="failed-full-upload" {server.state.lock().unwrap().fail_data=true;}
+        if case=="both-variants" {seed(&server,"output.zip",fixture_zip(&[("prior.csv",b"prior")]));}
+        let output=invoke(&server,&root,&["build","--non-interactive"]);assert!(!output.status.success(),"{case}");
+        let state=server.state.lock().unwrap();
+        assert_eq!(state.assets["output-empty.zip"].1,empty,"{case}");
+        assert!(state.uploads.is_empty(),"{case}");assert!(state.deleted.is_empty(),"{case}");
+        if case=="failed-full-upload" {assert!(String::from_utf8_lossy(&output.stderr).contains("partially published"));}
+        if case=="both-variants" {assert_eq!(members(&state.assets["output.zip"].1)["prior.csv"],b"prior");}
+        drop(state);server.finish();
+    }
+}

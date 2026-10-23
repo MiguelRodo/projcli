@@ -491,7 +491,9 @@ before hooks. No credentials are installed or changed. Current CSV-selected byte
 stream into restorable ZIPs; all targets stage before the first upload. Existing
 CSV/VERSION history is retained. Data precedes manifest.zip, VERSION.zip and an
 existing project CHANGELOG.zip. Metadata ZIPs require exactly the canonical member;
-shared metadata download/extraction is bounded at 128 MiB per archive.
+shared metadata and existing data download/extraction are bounded at 128 MiB
+compressed and expanded per archive; selected merge extraction has the same
+expanded limit. These caps fail during preparation before remote changes.
 
 Set structure: latest to replace label.zip (or label-empty.zip). Archive remains
 the default and may replace only the exact canonical current-version asset;
@@ -512,7 +514,8 @@ skipped. No remote rollback, automatic retry or concurrent-writer isolation clai
 
 Evidence uses actual CLI build/store/restore against loopback mocked REST,
 including Release creation, ZIP members, metadata replacement, old archive
-retention, latest replacement/restore with retained extras, both cues, empty-source\npreservation, validated empty transitions, partial failure and preflight rejection. This is not a live GitHub
+retention, latest replacement/restore with retained extras, both cues, empty-source
+preservation, validated empty transitions, partial failure and preflight rejection. This is not a live GitHub
 Release round trip. Installed preview unchanged; remote CI/review required.
 
 
