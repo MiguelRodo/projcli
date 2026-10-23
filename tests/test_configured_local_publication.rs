@@ -4,6 +4,16 @@ fn invoke(root:&Path,mode:&str)->std::process::Output {
         .current_dir(root).env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
         .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").env_remove("PROJR_CLEAR_OUTPUT").output().unwrap()
 }
+
+fn restore(root:&Path)->serde_json::Value {
+    let output=Command::new(env!("CARGO_BIN_EXE_proj")).current_dir(root)
+        .args(["--machine","--project"]).arg(root)
+        .args(["remote","restore","--label","output","--clear","--max-bytes","100000","--max-expanded-bytes","100000"])
+        .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
+        .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
+    assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
+    serde_json::from_slice(&output.stdout).unwrap()
+}
 fn setup(strategy:&str,cue:&str,content:&str)->(tempfile::TempDir,std::path::PathBuf) {
     let temporary=tempfile::tempdir().unwrap();let root=temporary.path().canonicalize().unwrap();
     fs::create_dir(root.join("input")).unwrap();fs::create_dir(root.join("results")).unwrap();
@@ -42,6 +52,18 @@ fn configured_build_four_strategies_and_both_cues_publish_exact_bytes_and_histor
             assert!(remote.iter().any(|row|row.label=="raw"&&row.version=="v0.1.0"));
             assert_eq!(remote.iter().filter(|row|row.label=="output"&&row.version=="v1.2.4").count(),3);
             assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap().trim(),"Version: v1.2.4.1");
+            let history=fs::read(root.join("manifest.csv")).unwrap();
+            let version=fs::read(root.join("VERSION")).unwrap();
+            fs::write(root.join("results/changed"),"damaged local").unwrap();
+            fs::write(root.join("results/local-only"),"discard by explicit clear").unwrap();
+            let restored=restore(&root);
+            assert_eq!(restored["result"]["restored"],true);
+            assert_eq!(restored["result"]["provider"],"local");
+            assert_eq!(restored["result"]["title"],"delivery");
+            assert_eq!(restored["result"]["version"],"v1.2.4");
+            assert_eq!(files(&root.join("results")),expected);
+            assert_eq!(fs::read(root.join("manifest.csv")).unwrap(),history);
+            assert_eq!(fs::read(root.join("VERSION")).unwrap(),version);
         }
     }
 }
@@ -82,6 +104,11 @@ fn empty_latest_round_trip_and_nonempty_transition_reconcile_variants() {
     assert_eq!(fs::read(root.join("remote/output/restored")).unwrap(),b"new release");assert!(!root.join("remote/output-empty").exists());
     fs::remove_file(root.join("results/restored")).unwrap();success(invoke(&root,"build"));
     assert!(root.join("remote/output-empty").is_dir());assert!(!root.join("remote/output").exists());
+    fs::write(root.join("results/local-only"),"must survive empty restore").unwrap();
+    let restored=restore(&root);
+    assert_eq!(restored["result"]["restored"],false);
+    assert_eq!(restored["result"]["skipped"],"empty-remote");
+    assert_eq!(fs::read(root.join("results/local-only")).unwrap(),b"must survive empty restore");
 }
 #[test]
 fn preview_and_output_disabled_do_not_publish() {

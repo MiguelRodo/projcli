@@ -2282,3 +2282,17 @@ after second-target preparation failure and first-target installation failure.
 Final coverage precision adds a declared hash-enabled cache to content selection
 (to prove true excludes it) and an all-platform later-destination preparation
 failure with read-only selected files and publication-staging residue inspection.
+
+## Local publication-to-restore acceptance
+
+The configured local latest/file matrix now follows each of the8strategy/cue
+builds with actual machine CLI restore, using configured destination fallback and
+VERSION discovery. It deliberately damages local bytes/adds a local-only file,
+then checks explicit clear restores exactly the strategy's remote bytes while
+project CSV/VERSION remain unchanged. An advertised empty snapshot preserves
+local-only bytes. This is a real local-filesystem round trip, not just upload
+success, mock transport, or an actual GitHub Release round trip.
+
+Runtime is unchanged from PR185. Ponytail full extends existing fixtures instead
+of adding a new driver/framework. Independent exact-head review and remote
+execution evidence belong to the linked acceptance PR; no local heavy tests.
