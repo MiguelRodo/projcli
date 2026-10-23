@@ -339,6 +339,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#ordinary-local-archive-publication" id="toc-ordinary-local-archive-publication" class="nav-link" data-scroll-target="#ordinary-local-archive-publication">Ordinary local archive publication</a></li>
   <li><a href="#configured-github-archive-upload-bounded-first-path" id="toc-configured-github-archive-upload-bounded-first-path" class="nav-link" data-scroll-target="#configured-github-archive-upload-bounded-first-path">Configured GitHub archive upload: bounded first path</a></li>
   </ul></li>
+  <li><a href="#configured-github-latest-and-current-data-replacement" id="toc-configured-github-latest-and-current-data-replacement" class="nav-link" data-scroll-target="#configured-github-latest-and-current-data-replacement">Configured GitHub latest and current-data replacement</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -1004,9 +1005,52 @@ ul.task-list li input[type="checkbox"] {
 <p>Non-public API origins require an explicit environment token. Default github.com Git/gh credential helpers are only used for the standard HTTPS api.github.com origin (port443), never forwarded to Enterprise/custom hosts. A regression uses a fake public helper and verifies it is not invoked for a loopback API.</p>
 <p>Independent review corrections: reject numeric-equivalent full/empty current assets (including leading-zero/padded spellings) before mutation; compare distinct legacy/canonical stems before treating prior prefixed append-label:false R-data archives as legacy; reject all-space Release titles before hooks. Fixtures preserve alias bytes/no-POST/no-DELETE and complete two such R-data builds. Cleanup failures include the private retained path. Public helper credentials never cross API origins.</p>
 <p>Public gh credential fallback explicitly requests –hostname github.com, so an inherited GH_HOST cannot select Enterprise credentials for the public API. Numeric archive alias checks remove exactly one generated .zip suffix, preserving valid prefixes/labels that themselves end in .zip. Regression fixtures cover both.</p>
-
-
 </section>
+</section>
+<section id="configured-github-latest-and-current-data-replacement" class="level2">
+<h2 class="anchored" data-anchor-id="configured-github-latest-and-current-data-replacement">Configured GitHub latest and current-data replacement</h2>
+<p>Same: pinned projr remote-github.R740-811 downloads an existing ZIP, overwrites selected files and uploads the merged tree. This slice implements that behavior for explicit none/upload-all, both cues, latest and exact current archive names. Remote-only bytes survive; empty source makes no data change. Shared CSV history and Project VERSION advance, while an updated existing label receives the native untrusted star. Older archives remain unchanged.</p>
+<p>New safety guards: validate all existing ZIPs during preparation, including empty sentinels; reject simultaneous full/empty assets and portable/numeric aliases. Upload full data before deleting its obsolete empty variant. Delete/upload is non-atomic: failures preserve the local release and skip bump; no rollback or retry claim. Existing endpoint/credential guards remain intact.</p>
+<p>Tests added: actual CLI mocked REST latest two-build/restore under both cues and content:true, current archive merge with older history, empty-source preservation, empty sentinel validation/transition, corrupt ZIP rejection and replacement upload failure after DELETE. These are runnable regression candidates pending exact-head remote execution and independent review. No live provider mutations. Ponytail full: reuse ZIP extraction, recorded-byte ZIP creation and guarded UploadAll directory merge; no new dependencies or policy engine.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Controls</th>
+<th>Local latest/archive</th>
+<th>GitHub latest/archive</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>file/manifest/none x four strategies x both cues</td>
+<td>Delivered remote fixture matrix</td>
+<td>none/upload-all candidate fixtures; others pending</td>
+</tr>
+<tr class="even">
+<td>Existing selected data replacement</td>
+<td>Delivered</td>
+<td>Candidate mocked REST, extras retained</td>
+</tr>
+<tr class="odd">
+<td>Configured restore</td>
+<td>Delivered</td>
+<td>Existing mocked REST, latest candidate exercised</td>
+</tr>
+<tr class="even">
+<td>Live GitHub round trip</td>
+<td>N/A</td>
+<td>Pending dedicated destination/operations approval</td>
+</tr>
+</tbody>
+</table>
+<p>Independent Ponytail review found no source blocker. Follow-up fixture coverage adds empty-source invalid-sentinel rejection, simultaneous full/empty rejection, and failed full upload preserving the old empty asset without DELETE. The command reference states the bounded data/selected-merge preparation sizes explicitly.</p>
+
+
 </section>
 </section>
 
