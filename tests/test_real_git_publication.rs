@@ -387,7 +387,7 @@ fn nested_project_claim_exclusion_is_literal_and_keeps_whole_repository_scope() 
     for path in entries { fs::rename(&path, nested.join(path.file_name().unwrap())).unwrap(); }
     fixture.root = nested;
     let analysis = fs::read_to_string(fixture.root.join("analysis.py")).unwrap();
-    fs::write(fixture.root.join("analysis.py"), analysis + "\nPath('../outside-generated').write_bytes(b'outside')\nPath('.proj/log').mkdir()\nPath('.proj/log/retained.json').write_text('{}')\n").unwrap();
+    fs::write(fixture.root.join("analysis.py"), analysis + "\nPath('../outside-generated').write_bytes(b'outside')\nPath('.proj/log').mkdir(exist_ok=True)\nPath('.proj/log/retained.json').write_text('{}')\n").unwrap();
     fixture.git(&["add", "-A"]);
     fixture.git(&["commit", "-m", "nested fixture"]);
     let result = fixture.build(false);
@@ -396,6 +396,12 @@ fn nested_project_claim_exclusion_is_literal_and_keeps_whole_repository_scope() 
     assert!(paths.lines().any(|path| path == "outside-generated"), "{paths}");
     assert!(paths.lines().any(|path| path == " child[1]/.proj/log/retained.json"), "{paths}");
     assert!(!paths.lines().any(|path| path.ends_with(".proj/build.lock")), "{paths}");
+    assert_eq!(fixture.git(&["show", "HEAD:./VERSION"]), b"Version: v1.2.4");
+    assert_eq!(fs::read(fixture.root.join("VERSION")).unwrap(), b"Version: v1.2.4.1");
+    let repeated = fixture.build(false);
+    assert!(repeated.status.success(), "{}", String::from_utf8_lossy(&repeated.stderr));
+    assert_eq!(fixture.git(&["show", "HEAD:./VERSION"]), b"Version: v1.2.5");
+    assert_eq!(fs::read(fixture.root.join("VERSION")).unwrap(), b"Version: v1.2.5.1");
 }
 
 #[test]

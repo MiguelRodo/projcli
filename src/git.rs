@@ -310,10 +310,18 @@ pub(crate) fn require_clean_git_in(root: &camino::Utf8Path, environment: &RunEnv
     let git = SystemGit { repo_path: root.to_owned(), environment: environment.clone() };
     let exclusion = git.writer_exclusion()?;
     let output = git_command_in(Some(root), environment)?.current_dir(root)
-        .args(["status", "--porcelain", "--untracked-files=all", "--ignore-submodules=none", "--", ":/", &exclusion]).output()?;
+        .args(["status", "--porcelain", "-z", "--untracked-files=all", "--ignore-submodules=none", "--", ":/", &exclusion]).output()?;
     anyhow::ensure!(output.status.success(), "Cannot inspect Git worktree state");
     if !output.stdout.is_empty() {
-        let expected = output.stdout == b" M VERSION\n" || output.stdout == b" M VERSION\r\n";
+        let prefix = git_command_in(Some(root), environment)?.current_dir(root)
+            .args(["rev-parse", "--show-prefix"]).output()?;
+        anyhow::ensure!(prefix.status.success(), "Cannot resolve project path within Git repository");
+        let prefix = prefix.stdout.strip_suffix(b"\n").unwrap_or(&prefix.stdout);
+        let prefix = prefix.strip_suffix(b"\r").unwrap_or(prefix);
+        let mut expected_path = b" M ".to_vec();
+        expected_path.extend_from_slice(prefix);
+        expected_path.extend_from_slice(b"VERSION\0");
+        let expected = output.stdout == expected_path;
         anyhow::ensure!(expected && owned_dev_transition_matches(root, &git)?,
             "Git commit requested but the repository already contains changes; resolve them before building");
     }
@@ -551,7 +559,7 @@ fn transition_path(root: &camino::Utf8Path, git: &SystemGit) -> anyhow::Result<s
 
 fn git_file_bytes(git: &SystemGit) -> anyhow::Result<Vec<u8>> {
     let output = git_command_in(Some(&git.repo_path), &git.environment)?.current_dir(&git.repo_path)
-        .args(["show", "HEAD:VERSION"]).output()?;
+        .args(["show", "HEAD:./VERSION"]).output()?;
     anyhow::ensure!(output.status.success(), "Cannot inspect committed VERSION");
     Ok(output.stdout)
 }

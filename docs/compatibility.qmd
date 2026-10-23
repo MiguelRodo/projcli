@@ -2709,3 +2709,13 @@ claim created during analysis while excluding it from the commit, retain ordinar
 sibling outputs, and reject a previously tracked sibling claim before analysis.
 This avoids a repository lock service or changes to existing whole-repository
 staging semantics; it does not promise isolation of unrelated Git writers.
+
+The nested-project real Git witness exposed an existing finalization defect:
+committed VERSION inspection assumed the repository root, and clean-state
+recognition assumed a root-level VERSION path. Shared committed-byte inspection
+now uses Git's cwd-relative HEAD:./VERSION reference, and status uses NUL-separated
+paths with the exact repository-relative project prefix. The repeated nested
+build checks release/dev transitions 1.2.4/1.2.4.1 then 1.2.5/1.2.5.1, including
+a leading-space/bracket directory name. No arbitrary dirty files are accepted.
+Browser validation now requires eight rendered lifecycle diagrams, retaining its
+existing native-browser SVG and layout checks.
