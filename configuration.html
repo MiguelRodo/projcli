@@ -398,7 +398,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li>Globbing patterns are supported.</li>
 <li>Prefix a pattern with <code>!</code> to exclude matching files from execution.</li>
-<li>Current source rejects malformed inclusion or exclusion syntax before execution, including hook patterns. The exclusion correction is newer than preview.2; see the <a href="./cli/build.html">build reference</a>.</li>
+<li>Current source rejects malformed inclusion or exclusion syntax before execution, including hook patterns. The exclusion correction is included in preview.3; see the <a href="./cli/build.html">build reference</a>.</li>
 <li>When provided, this selects scripts instead of automatic discovery. Document targets may be grouped for rendering, so mixed script and document targets are not guaranteed to run in the exact listed order.</li>
 </ul></li>
 <li><strong><code>hooks</code></strong>: An optional map of lifecycle hook scripts to execute.
@@ -470,7 +470,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">raw-data</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">path</span><span class="kw">:</span><span class="at"> inputs</span><span class="kw">}</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">cache</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">path</span><span class="kw">:</span><span class="at"> _tmp</span><span class="kw">,</span><span class="at"> </span><span class="fu">hash</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span><span class="kw">}</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">output</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">path</span><span class="kw">:</span><span class="at"> results</span><span class="kw">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>A successful output-enabled production build writes root manifest.csv, without requiring Git or a remote. Preview and build.output_run: false leave that CSV alone. See <a href="./storage-design.html#compatible-csv-inventory">the inventory notes</a>. This is newer than installed preview.2. See the compatibility log and PR175 for verification evidence.</p>
+<p>A successful output-enabled production build writes root manifest.csv, without requiring Git or a remote. Preview and build.output_run: false leave that CSV alone. See <a href="./storage-design.html#compatible-csv-inventory">the inventory notes</a>. This CSV capture is included in preview.3. See the compatibility log and PR175 for verification evidence.</p>
 </section>
 <section id="configured-restore-source-fields" class="level2">
 <h2 class="anchored" data-anchor-id="configured-restore-source-fields">Configured restore source fields</h2>

@@ -278,7 +278,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#known-limits-of-the-published-preview" id="toc-known-limits-of-the-published-preview" class="nav-link" data-scroll-target="#known-limits-of-the-published-preview">Known limits of the published preview</a></li>
   <li><a href="#planned-work" id="toc-planned-work" class="nav-link" data-scroll-target="#planned-work">Planned work</a></li>
   <li><a href="#included-in-preview.2" id="toc-included-in-preview.2" class="nav-link" data-scroll-target="#included-in-preview.2">Included in preview.2</a></li>
-  <li><a href="#newer-remote-work-on-main" id="toc-newer-remote-work-on-main" class="nav-link" data-scroll-target="#newer-remote-work-on-main">Newer remote work on main</a></li>
+  <li><a href="#remote-work-in-preview.3" id="toc-remote-work-in-preview.3" class="nav-link" data-scroll-target="#remote-work-in-preview.3">Remote work in preview.3</a></li>
   </ul>
 </nav>
     </div>
@@ -307,8 +307,8 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="available-development-release" class="level2">
 <h2 class="anchored" data-anchor-id="available-development-release">Available development release</h2>
-<p><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.2"><strong>v0.4.0-preview.2</strong></a> provides checked Linux x86-64 (glibc 2.35+) and Windows x86-64 binaries. No Rust compilation is needed. <a href="./install.html">Install that explicit version</a>; GitHub’s stable Latest remains the older v0.3.0.</p>
-<p>This development prerelease delivers M1: a useful local CLI preview. The table summarizes supported Rust CLI behavior; it does not establish R/IDE parity. See the <a href="./preview-status.html">detailed status</a> and <a href="./release-delivery.html">delivery evidence</a> for exact verification and limits. Newer changes on main need their own evidence.</p>
+<p><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.3"><strong>v0.4.0-preview.3</strong></a> provides checked Linux x86-64 (glibc 2.35+) and Windows x86-64 binaries. No Rust compilation is needed. <a href="./install.html">Install that explicit version</a>; GitHub’s stable Latest remains the older v0.3.0.</p>
+<p>This development prerelease retains M1’s useful local CLI preview and adds the ordinary remote workflow described below. The table summarizes supported Rust CLI behavior; it does not establish R/IDE parity. See the <a href="./preview-status.html">detailed status</a> and <a href="./release-delivery.html">delivery evidence</a> for exact verification and limits. Newer changes on main need their own evidence.</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 50%">
@@ -383,13 +383,13 @@ ul.task-list li input[type="checkbox"] {
 <p>The released CLI keeps a captured project context, defaults generated-output queries to a safe versioned cache, and uses native working folders unless you choose the project-folder override. It supports explicit R-package data management, none/pre/post output cleanup, success-only output promotion and local archives. Supported HTML defaults to embedded resources only when no effective embedding option was supplied; explicit and inherited false remain respected.</p>
 <p>Real acceptance covers configured/no-init and fresh directory initialization, ordered Python/R/report steps, a computed CSV and embedded report, structured failures and verified final/archive bytes without Git credentials. See <a href="./release-delivery.html">the acceptance and delivery evidence</a>.</p>
 <p>Bookdown site embedding is unchanged. Existing R helpers and R/IDE parity, linked HTML portability, complete provenance and publication retry remain outside this claim. The <a href="./behavior.html">behavior contract</a> remains the detailed source of scope.</p>
-<p>Current source: <a href="./storage-design.html#compatible-csv-inventory">projr-compatible production CSV inventories</a> are independent of CAS and newer than installed preview.2.</p>
+<p>Preview.3 includes <a href="./storage-design.html#compatible-csv-inventory">projr-compatible production CSV inventories</a>, independent of CAS.</p>
 </section>
-<section id="newer-remote-work-on-main" class="level2">
-<h2 class="anchored" data-anchor-id="newer-remote-work-on-main">Newer remote work on main</h2>
-<p>Newer source code can upload selected outputs to ordinary local folders or GitHub Releases, keep versioned snapshots and restore files. It supports comparison by files or recorded history, with explicit controls for what gets uploaded.</p>
+<section id="remote-work-in-preview.3" class="level2">
+<h2 class="anchored" data-anchor-id="remote-work-in-preview.3">Remote work in preview.3</h2>
+<p>Preview.3 can upload selected outputs to ordinary local folders or GitHub Releases, keep versioned snapshots and restore files. It supports comparison by files or recorded history, with explicit controls for what gets uploaded.</p>
 <p>A small synthetic project has completed a real GitHub upload, replacement and restore sequence, including reuse of an unchanged archive and preservation of older snapshots. See the <a href="./remote-compatibility.html#live-github-fixture-verification">remote verification</a> and <a href="./cli/remote.html">command reference</a> for the tested scope and limits.</p>
-<p>These additions are newer than the published preview.2 installation described above. The test prerelease holds sample data, not an installer. Complete projr compatibility, the future remote registry and broader M2 work remain unfinished.</p>
+<p>These additions are included in the published preview.3 installation described above. The separate test prerelease holds sample data, not an installer. Complete projr compatibility, the future remote registry and broader M2 work remain unfinished.</p>
 
 
 </section>

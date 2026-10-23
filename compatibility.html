@@ -344,6 +344,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#github-filemanifest-and-archive-history-comparison-candidate" id="toc-github-filemanifest-and-archive-history-comparison-candidate" class="nav-link" data-scroll-target="#github-filemanifest-and-archive-history-comparison-candidate">GitHub file/manifest and archive-history comparison candidate</a></li>
   <li><a href="#live-github-configured-publication-witness" id="toc-live-github-configured-publication-witness" class="nav-link" data-scroll-target="#live-github-configured-publication-witness">Live GitHub configured-publication witness</a></li>
   <li><a href="#preview.3-release-preparation" id="toc-preview.3-release-preparation" class="nav-link" data-scroll-target="#preview.3-release-preparation">Preview.3 release preparation</a></li>
+  <li><a href="#preview.3-public-delivery-and-installation-pins" id="toc-preview.3-public-delivery-and-installation-pins" class="nav-link" data-scroll-target="#preview.3-public-delivery-and-installation-pins">Preview.3 public delivery and installation pins</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -1083,6 +1084,15 @@ ul.task-list li input[type="checkbox"] {
 <li><strong>Decision/rationale:</strong> deliver the tested local/GitHub build/store/restore checkpoint while retaining explicit remaining parity, registry and CAS limits. Cargo.toml and the root lock entry agree; an analysis project’s VERSION is unrelated. Public download pins and the installed preview are unchanged.</li>
 <li><strong>Ponytail full:</strong> reused the existing exact-tag draft workflow and release checklist; no workflow, dependency, transport or runtime abstraction added.</li>
 <li><strong>Verification status:</strong> candidate gates and independent release review are required before tagging. Existing runtime evidence includes all48 mocked GitHub control combinations,24 archive history combinations and the bounded five-build/two-restore real GitHub witness. Those do not replace final-source pinned acceptance or exact-tag binary/installer checks.</li>
+</ul>
+</section>
+<section id="preview.3-public-delivery-and-installation-pins" class="level2">
+<h2 class="anchored" data-anchor-id="preview.3-public-delivery-and-installation-pins">Preview.3 public delivery and installation pins</h2>
+<ul>
+<li><strong>Relationship: packaging/documentation delivery; no new runtime semantics.</strong> Released source95441429fe0ba6779b831ffdf9ad952136a946d0 retains the pinned R comparisons and deliberately bounded parity documented in the remote inventory.</li>
+<li><strong>Executed evidence:</strong> final-main and exact-tag gates, independent asset review, five public byte comparisons and backed-up user-local WSL success/failure smoke are recorded in <a href="./release-delivery.html#verified-preview3-delivery">delivery evidence</a>. Installed version/protocol and exact Linux bytes match the release; old binary bytes remain in the user-local backup.</li>
+<li><strong>Ponytail full:</strong> update existing README/install pins and downloaded-binary checks together after publication, reuse existing installers, retain historical preview.2 evidence and avoid a new release mechanism.</li>
+<li><strong>Limits:</strong> full control coverage is mocked REST; real provider evidence is bounded. No completed M2, registry, CAS retention policy or R/IDE parity claim.</li>
 </ul>
 
 
