@@ -562,7 +562,8 @@ fn git_receipt_observes_post_hook_changes_without_rewriting_the_committed_snapsh
     assert_eq!(fixture.git(&["show","HEAD:released/results.csv"]),b"result\n84\n");
     assert_eq!(fs::read(fixture.root.join("released/renamed.csv")).unwrap(),b"result\n84\n");
     assert!(!fixture.root.join("released/results.csv").exists());
-    let rows=proj::manifest::capture_directory("output",camino::Utf8Path::from_path(&fixture.root.join("released")).unwrap(),"v1.2.4",false).unwrap();
+    let released=fixture.root.join("released").canonicalize().unwrap();
+    let rows=proj::manifest::capture_directory("output",camino::Utf8Path::from_path(&released).unwrap(),"v1.2.4",false).unwrap();
     let expected=blake3::hash(&proj::manifest_csv::encode(&rows).unwrap()).to_hex().to_string();
     assert_eq!(receipt["final_outputs"]["inventory"]["canonical_csv_blake3"],expected);
 }

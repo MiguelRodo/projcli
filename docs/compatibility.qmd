@@ -2796,3 +2796,7 @@ CSV inventories. Fingerprints cannot reconstruct missing rows or enumerate the
 exact changed post-hook file set. Full source/dirty/config/runner/dependency
 evidence, final-row retention/inspection, human history and earlier failure
 retention remain follow-up work; installed preview.3 remains unchanged.
+
+Remote macOS found a fixture-only /var alias in the direct post-hook inventory
+assertion. The fixture now passes its owned canonical released-directory path;
+production link guards and the exact final digest assertion remain unchanged.
