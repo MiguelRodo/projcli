@@ -24,13 +24,14 @@ pub(crate) struct LocalPublication {
     inspect_none:bool,
     inspect_manifest:bool,
 }
+/// Shared typed send controls; each transport validates its executable subset.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Send {
-    cue:Option<String>,
-    inspect:Option<String>,
-    strategy:Option<String>,
-    conflict:Option<Value>,
+pub(crate) struct Send {
+    pub(crate) cue:Option<String>,
+    pub(crate) inspect:Option<String>,
+    pub(crate) strategy:Option<String>,
+    pub(crate) conflict:Option<Value>,
 }
 fn identity(path:&Utf8Path)->anyhow::Result<Utf8PathBuf> {
     Ok(Utf8PathBuf::try_from(crate::path_safety::resolve_path(path.as_std_path(),true)?)?)
@@ -186,7 +187,8 @@ fn write_bytes(path:&Utf8Path,bytes:&[u8])->anyhow::Result<()> {
     temporary.persist(path).map_err(|error|error.error).with_context(||format!("Cannot replace remote metadata {path}"))?;
     Ok(())
 }
-fn version_entries(path:&Utf8Path)->anyhow::Result<Vec<(String,String)>> {
+/// Read guarded ordinary remote VERSION entries without dropping history.
+pub(crate) fn version_entries(path:&Utf8Path)->anyhow::Result<Vec<(String,String)>> {
     if !path.try_exists()? {return Ok(Vec::new());}
     let text=crate::fs_utils::read_managed_text(path)?;
     let mut result=Vec::new();
@@ -200,7 +202,8 @@ fn version_entries(path:&Utf8Path)->anyhow::Result<Vec<(String,String)>> {
     }
     Ok(result)
 }
-fn recorded_files(rows:&[ManifestRow],label:&str,version:&str)->Option<BTreeMap<String,String>> {
+/// Select one unambiguous label/version filename-to-MD5 inventory.
+pub(crate) fn recorded_files(rows:&[ManifestRow],label:&str,version:&str)->Option<BTreeMap<String,String>> {
     let rows:Vec<_>=rows.iter().filter(|row|row.label==label&&row.version==version).collect();
     if rows.is_empty() {return None;}
     let mut files=BTreeMap::new();
@@ -258,7 +261,8 @@ fn archive_comparison(target:&LocalPublication,remote:&[ManifestRow],versions:&[
         Ok(Some(files))
     }
 }
-fn set_version(entries:&mut Vec<(String,String)>,label:&str,version:String) {
+/// Replace one label value while retaining every other VERSION entry.
+pub(crate) fn set_version(entries:&mut Vec<(String,String)>,label:&str,version:String) {
     if let Some((_,value))=entries.iter_mut().find(|(key,_)|key==label) {*value=version;}
     else {entries.push((label.into(),version));}
 }

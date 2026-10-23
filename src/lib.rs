@@ -58,3 +58,6 @@ pub mod restore;
 
 /// Configured ordinary publication, separate from CAS storage.
 pub mod publication;
+
+/// Configured ordinary GitHub Release publication through guarded ZIP staging.
+pub mod github_publication;

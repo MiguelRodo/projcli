@@ -175,8 +175,12 @@ fn projected_config(raw:&Value,root:&Utf8Path)->anyhow::Result<crate::yml::Valid
 }
 fn repository(root:&Utf8Path,explicit:Option<&str>,api:&str)->anyhow::Result<String> {
     if let Some(repository)=explicit {return Ok(repository.into());}
-    let environment=crate::run_environment::RunEnvironment::inherited();
-    let mut command=crate::git::git_command_in(Some(root),&environment)?;
+    repository_in(root,explicit,api,&crate::run_environment::RunEnvironment::inherited())
+}
+/// Resolve Git origin using an already captured environment and API host.
+pub(crate) fn repository_in(root:&Utf8Path,explicit:Option<&str>,api:&str,environment:&crate::run_environment::RunEnvironment)->anyhow::Result<String> {
+    if let Some(repository)=explicit {return Ok(repository.into());}
+    let mut command=crate::git::git_command_in(Some(root),environment)?;
     let output=command.current_dir(root).args(["remote","get-url","origin"]).output()?;
     anyhow::ensure!(output.status.success(),"Cannot resolve Git origin; supply --repository owner/repo");
     let url=std::str::from_utf8(&output.stdout).context("Git origin is not UTF-8")?.trim();

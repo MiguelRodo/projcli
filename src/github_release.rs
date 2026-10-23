@@ -131,6 +131,18 @@ impl GithubReleaseClient {
         }
         anyhow::bail!("GitHub asset listing exceeds page limit")
     }
+    /// Read-only catalog lookup for configured publication. A missing exact-tag
+    /// Release returns None; other HTTP/identity failures remain errors.
+    pub(crate) fn assets_if_exists(&self,tag:&str)->anyhow::Result<Option<Vec<ReleaseAsset>>> {
+        anyhow::ensure!(!tag.is_empty()&&!tag.chars().any(char::is_control),"Invalid GitHub Release tag");
+        let response=self.get(&format!("/repos/{}/releases/tags/{}",self.repository,encode(tag)),"application/vnd.github+json")?;
+        let status=response.status().as_u16();
+        if status==404 {return Ok(None);}
+        anyhow::ensure!(status==200,"GitHub Release lookup failed (HTTP {status})");
+        let release:Release=json(response)?;
+        anyhow::ensure!(release.id!=0&&release.tag_name==tag,"GitHub Release identity does not match request");
+        Ok(Some(self.assets_for_release(release.id)?))
+    }
     /// Lists every page of assets on an existing exact-tag Release.
     pub fn assets(&self, tag: &str) -> anyhow::Result<Vec<ReleaseAsset>> {
         self.assets_for_release(self.release(tag, false)?.id)

@@ -164,6 +164,8 @@ fn default_use_proj_cred_helper() -> bool {
 pub struct BuildConfig {
     /// Existing inline ordinary local archive/latest publication destinations.
     pub local: Option<serde_json::Map<String, Value>>,
+    /// Existing inline GitHub Release destinations; bounded archive publication.
+    pub github: Option<serde_json::Map<String, Value>>,
     pub dest: Option<Vec<String>>,
     pub scripts: Option<Vec<String>>,
     #[serde(default)]
@@ -523,6 +525,7 @@ impl ProjConfig {
             parameters: self.parameters.clone(),
         };
         crate::publication::configured(project_root, self.build.local.as_ref(), &validated)?;
+        crate::github_publication::validate(project_root,self.build.github.as_ref(),&validated)?;
         Ok(validated)
     }
 }
