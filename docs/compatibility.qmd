@@ -2870,3 +2870,7 @@ created owned CSV, preserved unrelated evidence, and exact version/output recove
 Remote macOS identified the direct library fixture passing its /var temporary
 alias to guarded history reads. The witness now uses its canonical owned root;
 production path guards and exact row/history assertions remain unchanged.
+
+Final human-output review keeps validated IDs, timestamps and release versions
+literal and copyable in the terminal; untrusted file names remain escaped Markdown.
+A direct CLI assertion requires the raw attempt ID and release version.

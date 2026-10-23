@@ -52,6 +52,7 @@ fn history_lists_exact_final_rows_after_rename_delete_and_rebuild_without_git_or
     assert_eq!(history(&root,Some(&first)),detail);
     let human=command(&root,&["history","--attempt",&first]);assert!(human.status.success());
     let human=String::from_utf8(human.stdout).unwrap();
+    assert!(human.contains(&first)&&human.contains("v1.2.4"));
     assert!(human.contains("é")&&human.contains("&#38;"));assert!(!human.contains("[x]"));
     assert_eq!(fs::read(record_path(&root,&first)).unwrap(),first_bytes);
     assert!(!root.join(".proj/build.lock").exists());

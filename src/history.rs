@@ -117,11 +117,11 @@ impl History {
     pub fn markdown(&self)->String {
         let mut text=String::from("# Build history\n\n| Attempt | Started | Release | Outcome |\n| --- | --- | --- | --- |\n");
         for entry in &self.entries {
-            text.push_str(&format!("| {} | {} | {} | {} |\n",literal(&entry.attempt_id),
-                literal(&entry.started_at),literal(&entry.release_version),literal(&entry.status)));
+            text.push_str(&format!("| {} | {} | {} | {} |\n",entry.attempt_id,
+                entry.started_at,entry.release_version,entry.status));
         }
         for entry in &self.entries {
-            text.push_str(&format!("\n## {}\n\n",literal(&entry.attempt_id)));
+            text.push_str(&format!("\n## {}\n\n",entry.attempt_id));
             if let Some(files)=&entry.final_files {
                 text.push_str(&format!("Final observation ({}):\n\n| Label | File | MD5 |\n| --- | --- | --- |\n",literal(files.source)));
                 for row in &files.rows {text.push_str(&format!("| {} | {} | {} |\n",
