@@ -2296,3 +2296,13 @@ success, mock transport, or an actual GitHub Release round trip.
 Runtime is unchanged from PR185. Ponytail full extends existing fixtures instead
 of adding a new driver/framework. Independent exact-head review and remote
 execution evidence belong to the linked acceptance PR; no local heavy tests.
+
+
+Local publication rejects an existing legacy data or data-empty namespace, or a
+data entry in remote VERSION, when output-r-data is selected. This guard runs
+before hooks and again while preparing all destinations, before any publication.
+Legacy restore remains supported; publication does not migrate or delete legacy
+remote data. Regression fixtures cover directory-only, empty, advertisement-only
+and combined legacy states. Remote verification is required before delivery.
+Ponytail full review reuses the existing publication preflight and preparation
+boundaries; no migration framework or new configuration policy is introduced.

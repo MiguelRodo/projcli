@@ -235,3 +235,52 @@ fn later_preparation_failure_cleans_readonly_snapshots_on_every_platform() {
     }).collect();
     assert!(staging.is_empty(),"retained publication snapshots: {staging:?}");
 }
+
+#[test]
+fn legacy_data_remote_namespaces_fail_before_hooks_and_preserve_history() {
+    for state in ["directory","empty","advertisement","combined"] {
+        let (_temporary,root)=setup("sync-diff","always","[output-r-data]");
+        let config=fs::read_to_string(root.join("_proj.yml")).unwrap()
+            .replace("directories:\n","directories:\n  output-r-data: {}\n")
+            .replace("build:\n","build:\n  hooks: {pre: [start.py]}\n");
+        fs::write(root.join("_proj.yml"),config).unwrap();
+        fs::write(root.join("start.py"),"from pathlib import Path\nPath('hook-ran').write_text('bad')\n").unwrap();
+        fs::create_dir(root.join("remote")).unwrap();
+        if state=="directory"||state=="combined" {
+            fs::create_dir(root.join("remote/data")).unwrap();
+            fs::write(root.join("remote/data/old"),"historical bytes").unwrap();
+        }
+        if state=="empty" {fs::create_dir(root.join("remote/data-empty")).unwrap();}
+        let version=if state=="advertisement"||state=="combined" {"Project: v0.1.0\ndata: v0.1.0\n"}else{"Project: v0.1.0\n"};
+        fs::write(root.join("remote/VERSION"),version).unwrap();
+        let before=fs::read(root.join("VERSION")).unwrap();
+        let output=invoke(&root,"build");
+        assert!(!output.status.success(),"{state}");
+        assert!(String::from_utf8_lossy(&output.stderr).contains("Legacy data"),"{}",String::from_utf8_lossy(&output.stderr));
+        assert!(!root.join("hook-ran").exists());
+        assert_eq!(fs::read(root.join("VERSION")).unwrap(),before);
+        assert_eq!(fs::read_to_string(root.join("remote/VERSION")).unwrap(),version);
+        assert!(!root.join("manifest.csv").exists());
+        assert!(!root.join("remote/output-r-data").exists());
+        if state=="directory"||state=="combined" {assert_eq!(fs::read(root.join("remote/data/old")).unwrap(),b"historical bytes");}
+    }
+}
+
+#[test]
+fn late_legacy_advertisement_aborts_all_targets_before_publication() {
+    let (_temporary,root)=setup("sync-diff","always","[output]");
+    let config=fs::read_to_string(root.join("_proj.yml")).unwrap()
+        .replace("directories:\n","directories:\n  output-r-data: {}\n")
+        .replace("build:\n","build:\n  hooks: {pre: [start.py]}\n")
+        + "    later:\n      path: later-remote\n      structure: latest\n      content: [output-r-data]\n      send: {inspect: file}\n";
+    fs::write(root.join("_proj.yml"),config).unwrap();
+    fs::write(root.join("start.py"),"from pathlib import Path\np=Path('later-remote')\np.mkdir()\n(p/'VERSION').write_bytes(b'Project: v0.1.0\\ndata: v0.1.0\\n')\n").unwrap();
+    let output=invoke(&root,"build");
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("Legacy data"),"{}",String::from_utf8_lossy(&output.stderr));
+    assert!(!root.join("remote").exists(),"first destination must not publish");
+    assert!(!root.join("later-remote/output-r-data").exists());
+    assert_eq!(fs::read_to_string(root.join("later-remote/VERSION")).unwrap(),"Project: v0.1.0\ndata: v0.1.0\n");
+    assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap().trim(),"Version: v1.2.4");
+    assert!(root.join("manifest.csv").is_file(),"successful local release is preserved");
+}

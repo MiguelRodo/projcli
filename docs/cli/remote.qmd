@@ -384,3 +384,9 @@ portable case/NFC comparison; actual native spelling is rechecked before install
 No ownership/ACL/xattr, crash atomicity or concurrent-writer isolation claim.
 No actual GitHub Release test mutation or local heavy testing. Remote exact-head
 checks and independent review are required before delivery.
+
+
+When publishing output-r-data, an existing legacy data/data-empty namespace or
+data entry in remote VERSION is rejected. Restore can still read legacy data;
+publication does not rename, delete or migrate it. Choose a separate destination
+until an explicit migration is supported.

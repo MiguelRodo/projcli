@@ -108,10 +108,35 @@ pub(crate) fn configured(root:&Utf8Path,raw:Option<&Map<String,Value>>,config:&c
     validate_namespaces(root,&targets,config)?;
     Ok(targets)
 }
+// Legacy reads remain supported, but publication must not silently create a
+// second namespace or migrate/delete an existing remote's historical data.
+fn reject_legacy_data(target:&LocalPublication)->anyhow::Result<()> {
+    if !target.labels.iter().any(|(label,_)|label=="output-r-data") {return Ok(());}
+    match fs::read_dir(&target.base) {
+        Ok(entries)=>for entry in entries {
+            let entry=entry.with_context(||format!("Cannot inspect publication base {}",target.base))?;
+            let name=entry.file_name();
+            if let Some(name)=name.to_str() {
+                anyhow::ensure!(!name.eq_ignore_ascii_case("data")&&!name.eq_ignore_ascii_case("data-empty"),
+                    "Legacy data namespace in {}; publication migration to output-r-data is unsupported",target.base);
+            }
+        },
+        Err(error) if error.kind()==std::io::ErrorKind::NotFound=>return Ok(()),
+        Err(error)=>return Err(error).with_context(||format!("Cannot inspect publication base {}",target.base)),
+    }
+    let path=target.base.join("VERSION");
+    if path.try_exists()? {
+        let text=crate::fs_utils::read_managed_text(&path)?;
+        anyhow::ensure!(!text.lines().filter_map(|line|line.split_once(':')).any(|(label,_)|label.trim().eq_ignore_ascii_case("data")),
+            "Legacy data VERSION advertisement in {}; publication migration to output-r-data is unsupported",target.base);
+    }
+    Ok(())
+}
 fn validate_namespaces(root:&Utf8Path,targets:&[LocalPublication],config:&crate::yml::ValidatedConfig)->anyhow::Result<()> {
     let sources=config.directories.keys().map(|label|identity(&config.get_path(root,label)?)).collect::<anyhow::Result<Vec<_>>>()?;
     let mut bases:Vec<&Utf8Path>=Vec::new();
     for target in targets {
+        reject_legacy_data(target)?;
         for base in &bases {anyhow::ensure!(!overlaps(base,&target.base),"Configured publication bases overlap");}
         bases.push(&target.base);
         for source in &sources {anyhow::ensure!(!overlaps(source,&target.base),"Publication base overlaps a declared resource");}
@@ -194,6 +219,7 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
     let mut prepared=Vec::new();
     let result=(|| -> anyhow::Result<()> {
     for target in targets {
+        reject_legacy_data(target)?;
         let rows=crate::manifest::read(&target.base.join("manifest.csv"))?;
         let versions=version_entries(&target.base.join("VERSION"))?;
         for name in ["manifest.csv","VERSION","CHANGELOG.md"] {

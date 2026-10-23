@@ -327,3 +327,8 @@ Freeze plans before hooks, stage current CSV-selected files for every target
 before applying any target, preserve directory modes and explicitly clean all
 private staging on every ordinary Result path. Retain the release on publication
 failure and report partial effects. Keep the tested/pending control matrix honest.
+
+
+Canonical output-r-data publication must reject legacy data/data-empty entries
+and data VERSION advertisements before hooks and again during all-target
+preparation. Preserve legacy restore; do not silently migrate or delete history.
