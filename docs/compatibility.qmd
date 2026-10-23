@@ -2268,8 +2268,8 @@ Ponytail full shares the restore definition/content parser, CSV, strategy action
 and guarded installer; no new packages or backend trait/registry schema.
 Actual CLI fixtures cover8strategy/cue combinations plus repeated no-change,
 content/empty variants, metadata repair/privacy/namespace/failure boundaries.
-These fixtures have not yet been remotely run; exact-head remote gates and
-independent review are required. No live Release mutation, local heavy tests or
+Exact-head remote gates and independent review evidence are recorded on
+[PR185](https://github.com/MiguelRodo/projcli/pull/185). No live Release mutation, local heavy tests or
 installed-preview update.
 
 Review amendment: reuse already-locked ICU normalizer2.4 directly for planned

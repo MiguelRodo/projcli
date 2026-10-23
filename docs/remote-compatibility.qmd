@@ -305,7 +305,8 @@ The next bounded slice integrates build.local latest/file with the build's
 existing release boundary: current CSV-selected staging, all four file strategies,
 both cues, namespace preflight and shared CSV/VERSION/changelog updates.
 See the [control matrix](cli/remote.qmd#configured-local-publication-candidate).
-This is not yet independently verified delivery. Manifest/none inspection,
+[PR185](https://github.com/MiguelRodo/projcli/pull/185) records exact-head
+independent review and remote verification. Manifest/none inspection,
 archive comparison selection and configured GitHub publication remain pending;
 the manifest default is not changed to file.
 
