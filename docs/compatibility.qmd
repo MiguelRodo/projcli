@@ -2237,3 +2237,7 @@ restore from still-missing automatic publication, cue/history and credential-hel
 parity. Earlier source-audit missing-feature rows are updated rather than relying
 on appended candidate sections. No runtime change. Ponytail full: reuse the
 existing source inventory and exact PR evidence; no new feature or design schema.
+
+The follow-up Ponytail review removed obsolete duplicated candidate narratives
+from the inventory and linked the maintained command reference instead. This
+avoids conflicting pending/delivered and stdout/stderr redaction descriptions.
