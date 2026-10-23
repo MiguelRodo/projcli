@@ -4,7 +4,9 @@ use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Serialize};
 
-const LIMIT: u64 = 1_048_576;
+pub(crate) const LIMIT: u64 = 1_048_576;
+pub(crate) const FINAL_CSV_LIMIT:u64=16*1024*1024;
+pub(crate) const FINAL_ROW_LIMIT:usize=100_000;
 
 /// Operation results describe returned status, never proof that a failed remote write had no effects.
 #[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -28,67 +30,70 @@ impl GitOutcome {
     }
 }
 
+/// One provider operation and its returned outcome.
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Operation {
-    provider: String,
-    configured_targets: usize,
-    status: Status,
-    known_data_effects: Option<usize>,
+pub(crate) struct Operation {
+    pub(crate) provider: String,
+    pub(crate) configured_targets: usize,
+    pub(crate) status: Status,
+    pub(crate) known_data_effects: Option<usize>,
 }
 
+/// Primary local-release evidence; immutable once offered to Git.
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Record {
-    schema_version: u32,
-    attempt_id: String,
-    started_at: String,
-    recorded_at: String,
-    profiles: Vec<String>,
-    build_mode: String,
-    version_after: Option<String>,
-    version_before: String,
-    release_version: String,
-    local_build: String,
-    stage: String,
-    status: String,
-    distribution_may_have_started: bool,
-    operations: Vec<Operation>,
-    git: GitOutcome,
-    source_head: Option<String>,
+pub(crate) struct Record {
+    pub(crate) schema_version: u32,
+    pub(crate) attempt_id: String,
+    pub(crate) started_at: String,
+    pub(crate) recorded_at: String,
+    pub(crate) profiles: Vec<String>,
+    pub(crate) build_mode: String,
+    pub(crate) version_after: Option<String>,
+    pub(crate) version_before: String,
+    pub(crate) release_version: String,
+    pub(crate) local_build: String,
+    pub(crate) stage: String,
+    pub(crate) status: String,
+    pub(crate) distribution_may_have_started: bool,
+    pub(crate) operations: Vec<Operation>,
+    pub(crate) git: GitOutcome,
+    pub(crate) source_head: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    startup_provenance: Option<crate::provenance::Snapshot>,
+    pub(crate) startup_provenance: Option<crate::provenance::Snapshot>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    inventory: Option<InventoryEvidence>,
+    pub(crate) inventory: Option<InventoryEvidence>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    final_outputs: Option<FinalOutputs>,
+    pub(crate) final_outputs: Option<FinalOutputs>,
 }
 
+/// Later Git/finalization evidence bound to exact primary bytes.
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Receipt {
-    schema_version: u32,
-    attempt_id: String,
-    snapshot_hash: String,
-    recorded_at: String,
-    status: String,
-    stage: String,
-    version_after: Option<String>,
-    git: GitOutcome,
+pub(crate) struct Receipt {
+    pub(crate) schema_version: u32,
+    pub(crate) attempt_id: String,
+    pub(crate) snapshot_hash: String,
+    pub(crate) recorded_at: String,
+    pub(crate) status: String,
+    pub(crate) stage: String,
+    pub(crate) version_after: Option<String>,
+    pub(crate) git: GitOutcome,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    final_outputs: Option<FinalOutputs>,
+    pub(crate) final_outputs: Option<FinalOutputs>,
 }
 
 /// Fingerprints a phase's canonical CSV rows without copying large inventories into JSON.
 /// The current release rows remain in manifest.csv; MD5 retains its existing semantics.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct InventoryFingerprint {
-    csv_version: String,
-    rows: usize,
-    files: usize,
-    labels: Vec<String>,
-    canonical_csv_blake3: String,
+    pub(crate) csv_version: String,
+    pub(crate) rows: usize,
+    pub(crate) files: usize,
+    pub(crate) labels: Vec<String>,
+    pub(crate) canonical_csv_blake3: String,
 }
 
 impl InventoryFingerprint {
@@ -110,12 +115,41 @@ pub(crate) struct InventoryEvidence {
     pub(crate) release_outputs: InventoryFingerprint,
 }
 
+/// Reference to one immutable four-column CSV of actually observed final rows.
+#[derive(Serialize,Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct FinalRowsRef {
+    pub(crate) file:String,
+    pub(crate) bytes:u64,
+    pub(crate) blake3:String,
+}
+
 /// Final observed outputs after finalization was attempted; failure is not an empty inventory.
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct FinalOutputs {
     pub(crate) status: Status,
     pub(crate) inventory: Option<InventoryFingerprint>,
+    #[serde(default,skip_serializing_if="Option::is_none")]
+    pub(crate) rows:Option<FinalRowsRef>,
+    #[serde(skip)]
+    captured_rows:Option<Vec<crate::manifest::ManifestRow>>,
+}
+
+impl FinalOutputs {
+    /// Observed rows use the existing codec; they are persisted beside the terminal record.
+    pub(crate) fn observed(rows:Vec<crate::manifest::ManifestRow>,version:&str)->anyhow::Result<Self> {
+        let inventory=Some(InventoryFingerprint::capture(&rows,version)?);
+        Ok(Self {status:Status::Completed,inventory,rows:None,captured_rows:Some(rows)})
+    }
+    /// Disabled observation is not an empty-directory observation.
+    pub(crate) fn not_requested()->Self {
+        Self {status:Status::NotRequested,inventory:None,rows:None,captured_rows:None}
+    }
+    /// Failed observation leaves earlier inventory evidence intact.
+    pub(crate) fn failed()->Self {
+        Self {status:Status::Failed,inventory:None,rows:None,captured_rows:None}
+    }
 }
 
 /// The snapshot is mutable until Git starts, then immutable; the outcome is a new file.
@@ -128,13 +162,19 @@ pub(crate) struct AttemptLog {
 
 fn timestamp() -> String { chrono::Utc::now().to_rfc3339() }
 
-fn read(path: &Utf8Path) -> anyhow::Result<Vec<u8>> {
+/// Read one bounded guarded JSON evidence file.
+pub(crate) fn read(path: &Utf8Path) -> anyhow::Result<Vec<u8>> {
+    read_bounded(path,LIMIT)
+}
+
+/// Read regular evidence with an explicit byte budget and no linked path components.
+pub(crate) fn read_bounded(path:&Utf8Path,limit:u64)->anyhow::Result<Vec<u8>> {
     crate::path_safety::resolve_path(path.as_std_path(), true)?;
     let metadata = fs::symlink_metadata(path)?;
-    anyhow::ensure!(metadata.is_file() && metadata.len() <= LIMIT, "Attempt evidence must be a bounded regular file");
+    anyhow::ensure!(metadata.is_file() && metadata.len() <= limit, "Attempt evidence must be a bounded regular file");
     let mut bytes=Vec::new();
-    fs::File::open(path).with_context(||format!("Cannot read attempt evidence at {path}"))?.take(LIMIT+1).read_to_end(&mut bytes)?;
-    anyhow::ensure!(bytes.len() as u64 <= LIMIT, "Attempt evidence is too large");
+    fs::File::open(path).with_context(||format!("Cannot read attempt evidence at {path}"))?.take(limit+1).read_to_end(&mut bytes)?;
+    anyhow::ensure!(bytes.len() as u64 <= limit, "Attempt evidence is too large");
     Ok(bytes)
 }
 
@@ -180,14 +220,42 @@ impl AttemptLog {
         Ok(self)
     }
 
+    fn retain_rows(&self,outputs:&mut FinalOutputs)->anyhow::Result<Option<(Utf8PathBuf,String)>> {
+        let Some(rows)=outputs.captured_rows.take() else{return Ok(None)};
+        anyhow::ensure!(rows.len()<=FINAL_ROW_LIMIT,"Final inventory exceeds retained row limit");
+        let bytes=crate::manifest_csv::encode(&rows)?;
+        anyhow::ensure!(bytes.len() as u64<=FINAL_CSV_LIMIT,"Final inventory exceeds retained byte limit");
+        let file=format!("{}.final.csv",self.record.attempt_id);
+        let path=self.path.with_file_name(&file);
+        let hash=blake3::hash(&bytes).to_hex().to_string();
+        create(&path,&bytes)?;
+        outputs.rows=Some(FinalRowsRef {file,bytes:bytes.len() as u64,blake3:hash.clone()});
+        Ok(Some((path,hash)))
+    }
+
     /// Install one completed plain-build record only after all recoverable work succeeds.
     /// Stage complete bytes before exclusive installation; do not truncate an existing record.
-    pub(crate) fn completed_local(mut self,version_after:Option<String>,outputs:FinalOutputs)->anyhow::Result<()> {
+    pub(crate) fn completed_local(mut self,version_after:Option<String>,mut outputs:FinalOutputs)->anyhow::Result<()> {
+        let retained=self.retain_rows(&mut outputs)?;
         self.record.status="completed".into();
         self.record.stage="end_hooks_and_next_dev".into();
         self.record.version_after=version_after;
         self.record.final_outputs=Some(outputs);
-        create(&self.path,&serde_json::to_vec_pretty(&self.record)?)
+        let result=serde_json::to_vec_pretty(&self.record).map_err(anyhow::Error::from)
+            .and_then(|bytes|create(&self.path,&bytes));
+        if result.is_err() {
+            if let Some((path,hash))=retained {
+                let cleanup=(||->anyhow::Result<()> {
+                    anyhow::ensure!(blake3::hash(&read_bounded(&path,FINAL_CSV_LIMIT)?).to_hex().as_str()==hash,
+                        "Unpublished final CSV changed; preserved for inspection");
+                    crate::path_safety::resolve_path(path.as_std_path(),true)?;
+                    fs::remove_file(&path)?;
+                    Ok(())
+                })();
+                return retain_result(result,cleanup.context("Cannot remove unpublished final CSV; preserved for inspection"));
+            }
+        }
+        result
     }
 
     fn save(&mut self) -> anyhow::Result<()> {
@@ -241,9 +309,12 @@ impl AttemptLog {
     }
 
     /// Write a terminal local record or unique Git receipt, then register its local ownership witness.
-    pub(crate) fn finish(&mut self,success:bool,git:GitOutcome,version_after:Option<String>,outputs:FinalOutputs,
+    pub(crate) fn finish(&mut self,success:bool,git:GitOutcome,version_after:Option<String>,mut outputs:FinalOutputs,
         witness:impl FnOnce(&str,&str,&str)->anyhow::Result<()>) -> anyhow::Result<()> {
-        let status=if success {"completed"}else{"failed"};
+        let rows=self.retain_rows(&mut outputs).map(|_|());
+        if rows.is_err(){outputs.status=Status::Failed;}
+        let status=if success&&rows.is_ok() {"completed"}else{"failed"};
+        let written=(||->anyhow::Result<()> {
         if let Some(hash)=&self.sealed_hash {
             let receipt=Receipt {schema_version:1,attempt_id:self.record.attempt_id.clone(),
                 snapshot_hash:hash.clone(),recorded_at:timestamp(),
@@ -260,6 +331,8 @@ impl AttemptLog {
             self.save()?;
         }
         Ok(())
+        })();
+        retain_result(rows,written)
     }
 }
 
@@ -272,25 +345,54 @@ impl Drop for AttemptLog {
     }
 }
 
-/// Recognise only a new outcome receipt tied to an identical snapshot in HEAD.
-/// A changed/tracked receipt or arbitrary neighbouring file is never exempted.
+/// Recognise an exact pending receipt/CSV bundle tied to an identical snapshot in HEAD.
+/// An edited/missing companion, tracked receipt or arbitrary neighbouring file is never exempted.
 pub(crate) fn owned_receipt(root:&Utf8Path,relative:&str,committed:impl FnOnce(&str)->anyhow::Result<Vec<u8>>,
     witness:impl FnOnce(&str,&str,&str)->anyhow::Result<bool>) -> anyhow::Result<bool> {
-    let Some(id)=relative.strip_prefix(".proj/log/").and_then(|s|s.strip_suffix(".git.json")) else{return Ok(false)};
+    let Some(file)=relative.strip_prefix(".proj/log/") else{return Ok(false)};
+    let final_csv=file.ends_with(".final.csv");
+    let Some(id)=file.strip_suffix(".git.json").or_else(||file.strip_suffix(".final.csv")) else{return Ok(false)};
     if !id.starts_with("attempt-") || id.len()!=32 || !id.bytes().all(|b|b.is_ascii_alphanumeric()||b==b'-') {return Ok(false);}
-    let receipt_bytes=read(&root.join(relative))?;
+    let receipt_path=root.join(format!(".proj/log/{id}.git.json"));
+    if !crate::yml::configuration_entry_exists(&receipt_path)? {return Ok(false);}
+    let receipt_bytes=read(&receipt_path)?;
     let receipt:Receipt=match serde_json::from_slice(&receipt_bytes) {Ok(value)=>value,Err(_)=>return Ok(false)};
     if receipt.schema_version!=1||receipt.attempt_id!=id
         ||!matches!(receipt.status.as_str(),"completed"|"failed")
         ||receipt.stage!="git_and_finalization" {return Ok(false);}
     let snapshot=format!(".proj/log/{id}.json");
     let bytes=match committed(&format!("HEAD:./{snapshot}")) {Ok(bytes)=>bytes,Err(_)=>return Ok(false)};
+    if !crate::yml::configuration_entry_exists(&root.join(&snapshot))? {return Ok(false);}
     if read(&root.join(&snapshot))?!=bytes || receipt.snapshot_hash!=blake3::hash(&bytes).to_hex().as_str() {return Ok(false);}
     let record:Record=match serde_json::from_slice(&bytes) {Ok(value)=>value,Err(_)=>return Ok(false)};
+    let reference=receipt.final_outputs.as_ref().and_then(|outputs|outputs.rows.as_ref());
+    if final_csv&&reference.is_none(){return Ok(false);}
+    if let Some(reference)=reference {
+        let Some(outputs)=receipt.final_outputs.as_ref() else{return Ok(false)};
+        if final_rows(root,id,outputs,&record.release_version).is_err(){return Ok(false);}
+        if final_csv&&reference.file!=file{return Ok(false);}
+    }
     Ok(record.schema_version==1&&record.attempt_id==id&&record.git.commit==Status::Pending&&record.status=="pre_git_snapshot"
         &&witness(id,&receipt.snapshot_hash,&blake3::hash(&receipt_bytes).to_hex().to_string())?)
 }
 
+
+/// Validate a retained final CSV against its exact bytes and canonical phase fingerprint.
+pub(crate) fn final_rows(root:&Utf8Path,id:&str,outputs:&FinalOutputs,version:&str)
+    ->anyhow::Result<Vec<crate::manifest::ManifestRow>> {
+    let reference=outputs.rows.as_ref().context("No retained final CSV reference")?;
+    anyhow::ensure!(reference.file==format!("{id}.final.csv"),"Invalid final CSV reference");
+    let bytes=read_bounded(&root.join(".proj/log").join(&reference.file),FINAL_CSV_LIMIT)?;
+    anyhow::ensure!(bytes.len() as u64==reference.bytes
+        && blake3::hash(&bytes).to_hex().as_str()==reference.blake3,"Final CSV byte checksum mismatch");
+    let rows=crate::manifest_csv::decode_bounded(&bytes,FINAL_ROW_LIMIT)?;
+    let mut seen=std::collections::HashSet::new();
+    anyhow::ensure!(rows.iter().all(|row|row.version==version&&seen.insert((&row.label,&row.r#fn))),
+        "Final CSV contains duplicate or mismatched rows");
+    let actual=InventoryFingerprint::capture(&rows,version)?;
+    anyhow::ensure!(outputs.inventory.as_ref()==Some(&actual),"Final CSV inventory fingerprint mismatch");
+    Ok(rows)
+}
 
 /// Retain both the operation failure and a subsequent evidence-writing failure.
 pub(crate) fn retain_result<T>(result:anyhow::Result<T>,evidence:anyhow::Result<()>)->anyhow::Result<T> {

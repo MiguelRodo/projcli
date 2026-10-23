@@ -470,3 +470,14 @@ Fingerprint only guarded regular files within the source/count/byte limits, with
 explicit unknown/limit states. Root dependency declarations are not installed
 package fingerprints. Do not infer full environment reproducibility or select
 failure-retention policy from this bounded companion evidence.
+
+
+## Final rows and derived history
+proj history is read-only and independent of Git/active configuration. Reuse
+attempt records and existing four-column CSV; final observations have bounded
+checksum-bound per-attempt CSV companions, not a new catalogue or manifest.
+Git pending-evidence exceptions require the intact receipt/CSV bundle and existing
+ownership witness; clone history reading does not require that private witness.
+Keep old fingerprint-only evidence unavailable unless exact historical rows match.
+Never turn missing terminal receipts into successful outcomes or overwrite the
+curated changelog. Preserve failure retention and snapshot/receipt ordering.

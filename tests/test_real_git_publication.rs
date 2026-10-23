@@ -147,8 +147,14 @@ if os.environ['PROJCLI_TEST_FAIL_ANALYSIS']=='1':
     }
 
     fn assert_pending_git_state(&self,version_dirty:bool) {
-        let (name,_)=self.pending_receipt();
-        let mut expected=vec![format!("?? .proj/log/{name}")];
+        let (name,receipt)=self.pending_receipt();
+        let reference=&receipt["final_outputs"]["rows"];
+        let csv=reference["file"].as_str().unwrap();
+        let bytes=fs::read(self.root.join(".proj/log").join(csv)).unwrap();
+        assert_eq!(reference["bytes"],bytes.len());
+        assert_eq!(reference["blake3"],blake3::hash(&bytes).to_hex().as_str());
+        assert!(!proj::manifest_csv::decode(&bytes).unwrap().is_empty());
+        let mut expected=vec![format!("?? .proj/log/{name}"),format!("?? .proj/log/{csv}")];
         if version_dirty {expected.push(" M VERSION".into());}
         expected.sort();
         // Preserve initial whitespace in exact porcelain records.
@@ -489,16 +495,19 @@ fn attempt_snapshot_and_receipt_follow_two_normal_commits_without_recursion() {
     let expected=blake3::hash(&proj::manifest_csv::encode(&rows).unwrap()).to_hex().to_string();
     assert_eq!(snapshot["inventory"]["release_outputs"]["canonical_csv_blake3"],expected);
     let bytes=fs::read(fixture.root.join(".proj/log").join(&name)).unwrap();
+    let csv=receipt["final_outputs"]["rows"]["file"].as_str().unwrap();
+    let csv_bytes=fs::read(fixture.root.join(".proj/log").join(csv)).unwrap();
     let second=fixture.build(false);
     assert!(second.status.success(),"{}",String::from_utf8_lossy(&second.stderr));
     assert_eq!(fixture.text(&["rev-list","--count",&format!("{initial}..HEAD")]),"2");
     assert_eq!(fixture.git(&["show",&format!("HEAD:./.proj/log/{name}")]),bytes);
+    assert_eq!(fixture.git(&["show",&format!("HEAD:./.proj/log/{csv}")]),csv_bytes);
     fixture.assert_pending_git_state(true);
 }
 
 #[test]
 fn edited_forged_and_unwitnessed_pending_receipts_fail_closed() {
-    for change in ["valid-field-edit","forged-name","missing-witness"] {
+    for change in ["valid-field-edit","forged-name","missing-witness","edited-csv","missing-csv"] {
         let fixture=Fixture::new(false);
         assert!(fixture.build(false).status.success());
         let initial=fixture.text(&["rev-parse","HEAD"]);
@@ -510,6 +519,9 @@ fn edited_forged_and_unwitnessed_pending_receipts_fail_closed() {
         }else if change=="forged-name" {
             fs::write(fixture.root.join(".proj/log/attempt-AAAAAAAAAAAAAAAAAAAAAAAA.git.json"),
                 serde_json::to_vec(&receipt).unwrap()).unwrap();
+        }else if change=="edited-csv"||change=="missing-csv" {
+            let csv=fixture.root.join(".proj/log").join(receipt["final_outputs"]["rows"]["file"].as_str().unwrap());
+            if change=="missing-csv"{fs::remove_file(csv).unwrap()}else{fs::write(csv,b"edited").unwrap()}
         }else{
             let id=receipt["attempt_id"].as_str().unwrap();
             fs::remove_file(fixture.root.join(".git/projcli-attempt-receipts").join(format!("{id}.json"))).unwrap();

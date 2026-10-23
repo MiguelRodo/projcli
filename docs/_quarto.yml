@@ -29,6 +29,7 @@ website:
         contents:
           - configuration.qmd
           - cli/build.qmd
+          - cli/history.qmd
           - cli/remote.qmd
           - lifecycle.qmd
           - cli/version.qmd

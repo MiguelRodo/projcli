@@ -2835,3 +2835,25 @@ are required; no local compilation or tests ran. Implicit renderer sources,
 complete configuration/parameters, installed package state, final-row inspection
 and generated human history remain unfinished. Preview.3 and the existing R
 package remain unchanged.
+
+
+## Inspectable final rows and generated human history
+
+**New Rust companion evidence; existing projr CSV unchanged.** Reuse the
+four-column codec and optional JSON reference fields, preserve old record
+readability, pre-Git snapshot/next-commit receipt timing and all hook behavior.
+The R package remains unchanged. Per-attempt final rows preserve post-hook names
+that a release fingerprint alone cannot reconstruct. History never invents rows
+or marks a pending snapshot successful, and does not replace the curated catalogue.
+
+Ponytail full reuses existing records, guarded reads, tempfile, checksums and CSV,
+without dependencies, an index or a storage abstraction. Review targets include
+exclusive companion creation, cleanup only of a newly owned unpublished CSV,
+retained post-distribution evidence on subsequent failure, bounded parsing,
+receipt/CSV ownership as one bundle, literal Markdown filenames, and old-record
+exact-match fallback. Actual no-Git CLI fixtures cover changed/renamed/deleted
+Unicode paths, empty/excluded directories, no-config readback, corrupted/missing/
+linked evidence and traversal. Real Git fixtures require exact companion bytes
+in the next normal commit and reject altered/missing companions. Platform,
+rustdoc/API, native browser and pinned acceptance run remotely; no local builds
+or tests. This does not choose pre-distribution failure retention or finish M2.

@@ -24,7 +24,8 @@ fn success(output: std::process::Output) {
 
 fn record(root:&Path,version:&str)->serde_json::Value {
     let records:Vec<serde_json::Value>=fs::read_dir(root.join(".proj/log")).unwrap()
-        .map(|entry|serde_json::from_slice(&fs::read(entry.unwrap().path()).unwrap()).unwrap())
+        .map(|entry|entry.unwrap().path()).filter(|path|path.extension().is_some_and(|value|value=="json"))
+        .map(|path|serde_json::from_slice(&fs::read(path).unwrap()).unwrap())
         .filter(|record:&serde_json::Value|record["release_version"]==version).collect();
     assert_eq!(records.len(),1);
     records.into_iter().next().unwrap()
@@ -76,7 +77,7 @@ fn production_records_md5_pre_inputs_final_outputs_and_exact_history_without_git
     assert_eq!(record(root,"v1.2.4"),first_record,"previous attempt evidence changed");
     assert_fingerprint(&record(root,"v1.2.5")["inventory"]["inputs"],
         &history.iter().filter(|row|row.label=="raw"&&row.version=="v1.2.5").cloned().collect::<Vec<_>>(),"v1.2.5");
-    assert_eq!(fs::read_dir(root.join(".proj/log")).unwrap().count(),2);
+    assert_eq!(fs::read_dir(root.join(".proj/log")).unwrap().count(),4);
 }
 
 #[test]

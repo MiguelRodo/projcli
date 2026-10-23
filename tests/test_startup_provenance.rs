@@ -21,7 +21,8 @@ fn success(output:std::process::Output) {
 }
 fn record(root:&Path,version:&str)->serde_json::Value {
     let records:Vec<serde_json::Value>=fs::read_dir(root.join(".proj/log")).unwrap()
-        .map(|entry|serde_json::from_slice(&fs::read(entry.unwrap().path()).unwrap()).unwrap())
+        .map(|entry|entry.unwrap().path()).filter(|path|path.extension().is_some_and(|value|value=="json"))
+        .map(|path|serde_json::from_slice(&fs::read(path).unwrap()).unwrap())
         .filter(|record:&serde_json::Value|record["release_version"]==version).collect();
     assert_eq!(records.len(),1);
     records.into_iter().next().unwrap()
