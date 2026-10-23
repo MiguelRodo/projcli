@@ -54,7 +54,7 @@ pub(crate) fn emit_capabilities() -> i32 {
         "default_path_target": "safe",
         "default_path_format": "auto",
         "logs": "stderr",
-        "queries": {"remote store --dry-run": "plan", "remote versions": "versions", "path get": "path", "version get": "version", "yml read": "validated"},
+        "queries": {"remote github assets": "assets", "remote store --dry-run": "plan", "remote versions": "versions", "path get": "path", "version get": "version", "yml read": "validated"},
         "preview_output_isolation": false,
         "attempt_release_records": false,
         "direct_r_ide_parity": false

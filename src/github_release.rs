@@ -102,10 +102,10 @@ impl GithubReleaseClient {
                 .header("Accept", "application/vnd.github+json").header("Authorization", format!("Bearer {token}"))
                 .header("X-GitHub-Api-Version", "2022-11-28")
                 .send_json(serde_json::json!({"tag_name":tag,"name":tag,"draft":false,"prerelease":false}))
-                .map_err(|_| anyhow::anyhow!("GitHub Release creation request failed"))?;
+                .map_err(|_| anyhow::anyhow!("GitHub Release creation request failed; publication outcome may be uncertain, inspect remote state before retrying"))?;
             let status = response.status().as_u16();
-            anyhow::ensure!(status == 201, "GitHub Release creation failed (HTTP {status})");
-            json(response)?
+            anyhow::ensure!(status == 201, "GitHub Release creation failed (HTTP {status}); inspect remote state before retrying");
+            json(response).context("Release creation may have completed; cannot validate response")?
         };
         anyhow::ensure!(release.id != 0 && release.tag_name == tag, "GitHub Release identity does not match request");
         Ok(release)
@@ -231,7 +231,7 @@ fn validate_destination(root: &Utf8Path, destination: &Utf8Path) -> anyhow::Resu
     }
     let parent = destination.parent().context("Asset destination has no parent")?;
     let at_root = crate::path_safety::resolve_path(parent.as_std_path(), false)? == root_identity;
-    let protected = at_root && destination.file_name().is_some_and(|name| {
+    let protected = at_root && [destination.file_name(), identity.file_name().and_then(|name| name.to_str())].into_iter().flatten().any(|name| {
         let name = name.to_ascii_lowercase();
         matches!(name.as_str(), "version"|"manifest.csv"|"_proj.yml"|"_projr.yml")
             || (name.starts_with("_projr-") && name.ends_with(".yml"))
