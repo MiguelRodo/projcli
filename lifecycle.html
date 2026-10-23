@@ -748,6 +748,7 @@ Figure&nbsp;7: Current source: production CSV capture within managed recovery.
 <p>The ordinary-local publication stage now finalises archive or latest targets. Archive comparison eligibility is frozen during all-target preparation; old versions remain untouched and new versions are complete snapshots. Publication ordering and the release-preserving failure branch are unchanged.</p>
 <p>The ordinary-publication overlay now stages configured GitHub latest/archive ZIPs after ordinary local finalisation and before CAS/Git. Routing freezes before hooks; all GitHub ZIPs prepare before uploads, data before metadata. External failure retains the local release and skips bump; there is no transaction across providers.</p>
 <p>Existing canonical GitHub data is downloaded and merged during preparation. Full uploads precede removal of obsolete empty variants and shared metadata. Replacement DELETE/POST failures report partial or uncertain state; they do not roll back remote assets or the successful local release.</p>
+<p>No-inspection GitHub strategies select their merge/purge actions during that same preparation phase. Nonempty purge changes the prepared replacement ZIP; it does not add an early remote deletion phase or change the release-preserving boundary.</p>
 
 
 </section>
