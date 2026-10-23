@@ -323,10 +323,11 @@ Its PR records exact-head review/CI evidence. Configured GitHub publication and
 configured append-label:false remain pending; no full remote-completion claim.
 
 
-Configured GitHub latest/archive publication supports explicit none/upload-all,
+Configured GitHub latest/archive publication supports explicit none inspection and all four strategies,
 including missing Release creation, CSV data ZIPs and shared metadata history.
 Canonical current-data replacement merges selected files while preserving remote
 extras. Empty sources preserve existing targets; validated empty-to-full transitions
 remove the obsolete sentinel asset after upload. Its PR records mocked REST CLI
-round-trip evidence. Other strategies and file/manifest comparison remain pending.
+round-trip evidence. File/manifest comparison remains pending; the command reference records the
+source-backed blind missing/diff and bounded purge interactions.
 No live GitHub Release round-trip has been performed.

@@ -143,7 +143,7 @@ fn unsupported_decisions_fail_before_hooks_and_catalog_aliases_never_upload() {
         let mut config=fs::read_to_string(root.join("_proj.yml")).unwrap();
         config=match state {
             "manifest"=>config.replace("inspect: none","inspect: manifest"),
-            "strategy"=>config.replace("inspect: none","inspect: none, strategy: sync-diff"),
+            "strategy"=>config.replace("inspect: none","inspect: none, strategy: unknown"),
             "layout"=>config.replace("      content:","      structure: unknown\n      content:"),
             _=>config,
         };
@@ -372,4 +372,49 @@ fn empty_transition_guards_preserve_old_assets_before_mutation() {
         if case=="both-variants" {assert_eq!(members(&state.assets["output.zip"].1)["prior.csv"],b"prior");}
         drop(state);server.finish();
     }
+}
+
+
+#[test]
+fn no_inspection_strategy_cue_layout_matrix_uses_real_cli_and_exact_zip_bytes() {
+    for layout in ["latest","archive"] {for strategy in ["upload-all","upload-missing","sync-diff","sync-purge"] {for cue in ["if-change","always"] {
+        let server=Server::start();let (_temporary,root)=setup(&server);
+        if layout=="latest" {latest(&root);}
+        let config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("inspect: none",&format!("inspect: none, strategy: {strategy}, cue: {cue}"));
+        fs::write(root.join("_proj.yml"),config).unwrap();
+        let asset=if layout=="latest" {"output.zip"}else{"output-v1.2.4.zip"};
+        seed(&server,asset,fixture_zip(&[("result.csv",b"old"),("extra.csv",b"retained unless purge")]));
+        success(invoke(&server,&root,&["build","--non-interactive"]));
+        {
+            let state=server.state.lock().unwrap();
+            let mut expected=BTreeMap::from([("result.csv".into(),b"actual fixture bytes\n".to_vec())]);
+            if strategy!="sync-purge" {expected.insert("extra.csv".into(),b"retained unless purge".to_vec());}
+            assert_eq!(members(&state.assets[asset].1),expected,"{layout}/{strategy}/{cue}");
+            assert_eq!(state.deleted,[asset],"{layout}/{strategy}/{cue}");
+            let version=format!("Project: v1.2.4\noutput: v1.2.4{}\n",if strategy=="sync-purge"{""}else{"*"});
+            assert_eq!(members(&state.assets["VERSION.zip"].1)["VERSION"],version.as_bytes(),"{layout}/{strategy}/{cue}");
+            assert_eq!(members(&state.assets["manifest.zip"].1)["manifest.csv"],fs::read(root.join("manifest.csv")).unwrap());
+        }
+        success(invoke(&server,&root,&["remote","restore","--label","output","--clear","--repository","owner/repo","--max-bytes","1000000","--max-expanded-bytes","1000000"]));
+        assert_eq!(fs::read(root.join("results/result.csv")).unwrap(),b"actual fixture bytes\n");
+        assert_eq!(root.join("results/extra.csv").exists(),strategy!="sync-purge");
+        server.finish();
+    }}}
+}
+#[test]
+fn none_empty_source_does_not_purge_remote_extras_and_diff_metadata_stays_untrusted() {
+    for strategy in ["upload-all","upload-missing","sync-diff","sync-purge"] {for cue in ["if-change","always"] {
+        let server=Server::start();let (_temporary,root)=setup(&server);latest(&root);
+        let config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("inspect: none",&format!("inspect: none, strategy: {strategy}, cue: {cue}"));
+        fs::write(root.join("_proj.yml"),config).unwrap();
+        fs::remove_file(root.join("results/result.csv")).unwrap();
+        let prior=fixture_zip(&[("extra.csv",b"preserve")]);seed(&server,"output.zip",prior.clone());
+        seed(&server,"VERSION.zip",fixture_zip(&[("VERSION",b"Project: v1.2.3\noutput: v1.2.3\n")]));
+        success(invoke(&server,&root,&["build","--non-interactive"]));
+        let state=server.state.lock().unwrap();assert_eq!(state.assets["output.zip"].1,prior);
+        assert!(!state.deleted.iter().any(|name|name.starts_with("output")));assert!(!state.uploads.iter().any(|name|name.starts_with("output")));
+        let version=if strategy=="sync-diff" {"v1.2.4*"}else{"v1.2.3"};
+        assert_eq!(members(&state.assets["VERSION.zip"].1)["VERSION"],format!("Project: v1.2.4\noutput: {version}\n").as_bytes(),"{strategy}/{cue}");
+        drop(state);server.finish();
+    }}
 }
