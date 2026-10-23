@@ -75,6 +75,14 @@ fn overlaps(left: &Path, right: &Path) -> bool {
 /// External resource paths are allowed when disjoint from protected inputs/state.
 pub(crate) fn validate_build_paths(root: &Utf8Path, config: &crate::yml::ValidatedConfig, inputs: &[camino::Utf8PathBuf]) -> anyhow::Result<()> {
     let root_identity = resolve_path(root.as_std_path(), false)?;
+    let coordination = resolve_path(root.join(".proj").as_std_path(), true)?;
+    if let Some(remotes) = &config.remotes.local {
+        for remote in remotes.values() {
+            let destination = resolve_path(remote.path.as_std_path(), true)?;
+            anyhow::ensure!(!overlaps(&destination, &coordination),
+                "CAS publication/recovery destination overlaps build coordination state");
+        }
+    }
     let staging = if config.directories.keys().any(|label| label.eq_ignore_ascii_case("cache")) {
         Some(resolve_path(config.get_path(root, "cache")?.join("projr").as_std_path(), true)?)
     } else { None };

@@ -14,6 +14,7 @@ pub(crate) struct Attempt {
 impl Attempt {
     /// Claims the writer exclusively; existing claims fail closed without mutation.
     pub(crate) fn acquire(root: &camino::Utf8Path) -> anyhow::Result<Self> {
+        crate::path_safety::validate_native_names(root, ".proj/build.lock", false)?;
         let directory = root.join(".proj").into_std_path_buf();
         crate::path_safety::resolve_path(&directory, true)?;
         let created_directory = match fs::create_dir(&directory) {
@@ -25,20 +26,31 @@ impl Attempt {
             Err(error) => return Err(error).context("Cannot create build coordination directory"),
         };
         let result = (|| {
+            crate::path_safety::validate_native_names(root, ".proj/build.lock", false)?;
             let claim = directory.join("build.lock");
             crate::path_safety::resolve_path(&claim, true)?;
-            // Reuse tempfile's random, exclusive names; no hostname, username or PID.
-            let mut candidate = tempfile::Builder::new().prefix("attempt-").rand_bytes(24)
-                .tempfile_in(&directory).context("Cannot allocate internal attempt identity")?;
-            let identity = candidate.path().file_name().and_then(|s| s.to_str())
+            let mut file = fs::OpenOptions::new().write(true).create_new(true).open(&claim)
+                .with_context(|| format!("Cannot claim project build writer at {}. Another build may be active; after a crash, remove only a confirmed stale claim", claim.display()))?;
+            // Establish ownership before allocating identity resources: rejected
+            // competitors never expose temporary files to the owner's Git staging.
+            let mut owned = Self { directory: directory.clone(), claim, bytes: Vec::new(), created_directory };
+            let identity_file = tempfile::Builder::new().prefix("attempt-").rand_bytes(24)
+                .tempfile().context("Cannot allocate internal attempt identity")?;
+            let identity = identity_file.path().file_name().and_then(|s| s.to_str())
                 .context("Invalid internal attempt identity")?.to_owned();
             let bytes = serde_json::to_vec(&serde_json::json!({"attempt_id": identity}))?;
-            candidate.write_all(&bytes)?;
-            candidate.flush()?;
-            candidate.persist_noclobber(&claim).map_err(|error| anyhow::anyhow!(
-                "Cannot claim project build writer at {}: {}. Another build may be active; after a crash, remove only a confirmed stale claim.",
-                claim.display(), error.error))?;
-            Ok(Self { directory: directory.clone(), claim, bytes, created_directory })
+            // Empty ownership is retained until write succeeds; on an I/O failure
+            // close before cleanup on Windows and remove only the bytes we wrote.
+            let write = file.write_all(&bytes).and_then(|_| file.flush());
+            drop(file);
+            match write {
+                Ok(()) => owned.bytes = bytes,
+                Err(error) => {
+                    if let Ok(bytes) = fs::read(&owned.claim) { owned.bytes = bytes; }
+                    return Err(error).context("Cannot write build attempt identity");
+                }
+            }
+            Ok(owned)
         })();
         if result.is_err() && created_directory { let _ = fs::remove_dir(&directory); }
         result

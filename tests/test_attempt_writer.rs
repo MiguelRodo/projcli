@@ -44,6 +44,7 @@ while not Path('continue').exists():
     assert!(!second.status.success());
     assert!(String::from_utf8_lossy(&second.stderr).contains("project build writer"));
     assert_eq!(fs::read(root.join(".proj/build.lock")).unwrap(), claim);
+    assert_eq!(fs::read_dir(root.join(".proj")).unwrap().count(), 1);
     assert_eq!(fs::read(root.join("VERSION")).unwrap(), during);
     fs::write(root.join("continue"), b"release").unwrap();
     assert!(first.wait().unwrap().success());
@@ -110,4 +111,47 @@ fn linked_coordination_directory_is_rejected_without_touching_external_state() {
     assert!(!command(&root).output().unwrap().status.success());
     assert_eq!(fs::read(external.join("sentinel")).unwrap(), b"preserve");
     assert_eq!(fs::read_dir(&external).unwrap().count(), 1);
+}
+
+#[test]
+fn preview_cas_recovery_cannot_replace_coordination_state() {
+    let temporary = tempfile::tempdir().unwrap();
+    let root = temporary.path().canonicalize().unwrap();
+    fixture(&root, "[]");
+    let config = fs::read_to_string(root.join("_proj.yml")).unwrap()
+        .replace("  cache:", "  output: {path: output}\n  cache:");
+    fs::write(root.join("_proj.yml"), config + "\nremotes:\n  local:\n    archive:\n      path: .proj\n      structure: cas\n      inspect: manifest\n      content: [output]\n").unwrap();
+    fs::create_dir(root.join(".proj")).unwrap();
+    fs::write(root.join(".proj/keep"), b"preserve coordination").unwrap();
+    let result = Command::new(env!("CARGO_BIN_EXE_proj"))
+        .current_dir(&root).args(["build-dev", "--non-interactive", "--project"]).arg(&root)
+        .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
+        .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
+        .output().unwrap();
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("coordination"), "{}", String::from_utf8_lossy(&result.stderr));
+    assert_eq!(fs::read(root.join(".proj/keep")).unwrap(), b"preserve coordination");
+    assert!(!root.join(".proj/build.lock").exists());
+    assert_eq!(fs::read(root.join("VERSION")).unwrap(), b"v1.2.3-7\n");
+}
+
+#[test]
+fn casefolded_coordination_names_fail_without_modifying_the_alias() {
+    for (directory, claim) in [(".PROJ", "keep"), (".proj", "BUILD.LOCK")] {
+        let temporary = tempfile::tempdir().unwrap();
+        let root = temporary.path().canonicalize().unwrap();
+        fixture(&root, "[]");
+        fs::create_dir(root.join(directory)).unwrap();
+        fs::write(root.join(directory).join(claim), b"preserve alias").unwrap();
+        if !root.join(".proj").exists() || (claim == "BUILD.LOCK" && !root.join(".proj/build.lock").exists()) {
+            continue; // Native case-sensitive filesystem: these are distinct names.
+        }
+        let before = fs::read(root.join(directory).join(claim)).unwrap();
+        let result = command(&root).output().unwrap();
+        assert!(!result.status.success());
+        assert!(String::from_utf8_lossy(&result.stderr).contains("native filesystem alias"));
+        assert_eq!(fs::read(root.join(directory).join(claim)).unwrap(), before);
+        assert_eq!(fs::read_dir(root.join(directory)).unwrap().count(), 1);
+        assert_eq!(fs::read(root.join("VERSION")).unwrap(), b"v1.2.3-7\n");
+    }
 }

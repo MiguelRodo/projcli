@@ -2652,7 +2652,7 @@ The pinned R reference remains
 Its build/version code is source context, not evidence of equivalent writer
 exclusion or exact byte recovery. Existing R package files remain untouched.
 
-Ponytail full review reuses tempfile's exclusive random names and existing path
+Ponytail full review reuses atomic create-new ownership, tempfile random identities and existing path
 guards rather than adding a lock service, database or dependency. Git exclusion
 is limited to the ephemeral claim; it does not decide durable log receipts.
 Crash-stale claims require confirmed manual removal, without automatic stealing.
@@ -2684,3 +2684,12 @@ receipt sequencing remain pending; end-hook mutation enforcement is deferred.
   rollback algorithm, record schema, dependency or hook enforcement.
 - **Verification:** remote exact-head tests and independent review required; no
   local Rust/R/Quarto execution and no complete M2 claim.
+
+
+Independent review caught and corrected three ownership gaps before merge:
+all configured CAS recovery/publication destinations now reject coordination
+overlap; existing native case aliases are rejected using the shared name guard;
+and the fixed claim is created exclusively before identity allocation, so
+rejected competitors create no project-visible candidate files. Regression
+fixtures exercise preview CAS overlap, native case-folded names and clean
+competing acquisition in addition to the original concurrency/Git checks.
