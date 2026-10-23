@@ -207,11 +207,11 @@ fn recorded_files(rows:&[ManifestRow],label:&str,version:&str)->Option<BTreeMap<
     }
     Some(files)
 }
-fn trusted_comparison(item:&Prepared,history:&[ManifestRow],label:&str,exists:bool)->Option<BTreeMap<String,String>> {
-    if !item.target.inspect_manifest||!exists||matches!(item.target.strategy,StoreStrategy::UploadAll) {return None;}
-    let (_,version)=item.versions.iter().find(|(key,value)|key==label&&!value.ends_with('*'))?;
+fn trusted_comparison(target:&LocalPublication,versions:&[(String,String)],rows:&[ManifestRow],history:&[ManifestRow],label:&str,exists:bool)->Option<BTreeMap<String,String>> {
+    if !target.inspect_manifest||!exists||matches!(target.strategy,StoreStrategy::UploadAll) {return None;}
+    let (_,version)=versions.iter().find(|(key,value)|key==label&&!value.ends_with('*'))?;
     let local=recorded_files(history,label,version)?;
-    let remote=recorded_files(&item.rows,label,version)?;
+    let remote=recorded_files(rows,label,version)?;
     (local==remote).then_some(remote)
 }
 fn set_version(entries:&mut Vec<(String,String)>,label:&str,version:String) {
@@ -307,7 +307,7 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
                     if matches!(target.strategy,StoreStrategy::SyncPurge)&&!source_files.is_empty() {StoreStrategy::SyncPurge}
                     else {StoreStrategy::UploadAll}
                 }else{target.strategy};
-                let comparison=trusted_comparison(item,&history,label,existed);
+                let comparison=trusted_comparison(target,&item.versions,&item.rows,&history,label,existed);
                 let actual=inventory(&full)?;
                 let (uploads,_,removals,_)=crate::local_store::actions(&source_files,comparison.as_ref().unwrap_or(&actual),strategy);
                 let changed=!uploads.is_empty()||!removals.is_empty();
