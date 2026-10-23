@@ -79,7 +79,7 @@ maintenance audits remain follow-ups. No new runtime or binary change was needed
 to reconcile this accepted scope; M2 remains unfinished.
 
 
-## Verified preview.3 delivery
+## Verified preview.3 delivery {#verified-preview3-delivery}
 
 [0.4.0-preview.3](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.3)
 is published and installed as the checked WSL user-local command. Its exact
