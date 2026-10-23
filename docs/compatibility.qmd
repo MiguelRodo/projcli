@@ -2241,3 +2241,33 @@ existing source inventory and exact PR evidence; no new feature or design schema
 The follow-up Ponytail review removed obsolete duplicated candidate narratives
 from the inventory and linked the maintained command reference instead. This
 avoids conflicting pending/delivered and stdout/stderr redaction descriptions.
+
+
+
+## Configured local publication candidate
+
+Same: existing build.local definition style; explicit latest/file, content
+selection, if-change/always, four transfer strategies, Project/label VERSION,
+current-label CSV history and existing changelog copy after data. Sync-purge
+reuploads same-byte files, matching pinned dest-send-label.R1330+.
+
+Different: all namespace aliases/overlaps fail before hooks; every selected source
+is staged before the first destination changes; hard-linked metadata aliases keep
+their old inode bytes; source directory privacy survives staging. All private
+staging owners close explicitly on ordinary error/success paths. Missing/starred
+file-equal sync-diff metadata and newly empty labels become advertised correctly.
+The pinned latest/file comparison helper355 ignores VERSION, so those are bounded
+discoverability corrections, not byte-for-byte reproduction of its no-change bug.
+
+Pending: archive comparison/history, manifest/none inspection (including the
+existing manifest default), configured GitHub publication and full policy matrix.
+Unsupported selected modes fail before hooks, rather than silently downgrading.
+See the [execution/fixture matrix](cli/remote.qmd#configured-local-publication-candidate).
+
+Ponytail full shares the restore definition/content parser, CSV, strategy actions
+and guarded installer; no new dependencies, backend trait or registry schema.
+Actual CLI fixtures cover8strategy/cue combinations plus repeated no-change,
+content/empty variants, metadata repair/privacy/namespace/failure boundaries.
+These fixtures have not yet been remotely run; exact-head remote gates and
+independent review are required. No live Release mutation, local heavy tests or
+installed-preview update.

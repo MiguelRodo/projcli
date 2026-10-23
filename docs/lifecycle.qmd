@@ -390,3 +390,28 @@ changes are outside inventory, so these records are not sealing.
 Configured remote restore is a separate explicit operation, not an automatic
 stage in the build lifecycle above. It selects a source, stages a complete
 download and then invokes guarded merge/clear installation.
+
+## Configured ordinary publication candidate
+
+Current source (newer than installed preview.2) places configured local latest/file
+publication after successful CSV capture and the existing local-release boundary,
+before selected CAS export, Git publication, end hooks and next-dev bump.
+Namespace/configuration validation happens before hooks. It stages every selected
+CSV snapshot before the first remote mutation, then writes data and shared
+CSV/VERSION/changelog. Failure preserves the local release and skips later stages;
+it does not roll back already published destinations. Preview skips this path.
+The released diagrams above retain their installed-version meaning.
+
+~~~{mermaid}
+%%| label: fig-lifecycle-ordinary-publication
+%%| fig-cap: "Current-source candidate: bounded ordinary local publication."
+%%| fig-alt: "Before hooks validate all publication namespaces. After local success and CSV capture, establish the release boundary, stage all selected CSV files, publish local data then metadata, then continue CAS, Git, end hooks and next development version. Failure preserves the release and reports partial effects."
+flowchart TB
+  A["Preflight all namespaces before hooks"] --> B["Existing analysis / promotion / CSV"]
+  B --> C["Keep local release"]
+  C --> D["Stage all selected CSV bytes"]
+  D --> E["Local latest data, then CSV / VERSION / changelog"]
+  E --> F["Selected CAS, Git, end hooks, next-dev"]
+  D -->|Failure| G["Preserve release; skip later stages"]
+  E -->|Failure| G
+~~~

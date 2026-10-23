@@ -55,3 +55,6 @@ pub mod github_release;
 pub mod github_zip;
 
 pub mod restore;
+
+/// Configured ordinary publication, separate from CAS storage.
+pub mod publication;

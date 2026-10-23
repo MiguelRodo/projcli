@@ -43,7 +43,7 @@ pub struct FileStorePlan {
     pub applied: bool,
 }
 
-fn actions(source: &Inventory, destination: &Inventory, strategy: StoreStrategy) -> (Vec<String>, Vec<String>, Vec<String>, Vec<String>) {
+pub(crate) fn actions(source: &Inventory, destination: &Inventory, strategy: StoreStrategy) -> (Vec<String>, Vec<String>, Vec<String>, Vec<String>) {
     let uploads: Vec<_> = source.iter().filter(|(path, hash)| match strategy {
         StoreStrategy::UploadAll | StoreStrategy::SyncPurge => true,
         StoreStrategy::UploadMissing => !destination.contains_key(*path),

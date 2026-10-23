@@ -311,3 +311,76 @@ One optional VERSION trust marker is accepted; it is not a byte-verification cla
 Review precision: VERSION.zip requires exactly the canonical VERSION member
 spelling, including on case-insensitive filesystems. Metadata transfer staging
 also closes explicitly and reports cleanup failure paths.
+
+
+## Configured local publication candidate
+
+Current source adds build.local latest publication with explicit send.inspect:
+file. This is newer than installed preview.2 and is not complete projr remote
+parity. All selected namespace identities are checked before hooks; every current
+CSV-selected snapshot and existing remote metadata is staged/read before the
+first destination changes. Data precedes manifest.csv, VERSION and an existing
+project CHANGELOG.md. The build's existing irreversible publication boundary
+preserves the successful local release on publication failure and skips its
+next-dev bump; remote effects may be partial.
+
+~~~yaml
+build:
+  scripts: []
+  git: false
+  local:
+    delivery:
+      path: ../delivery
+      structure: latest
+      content: [output]
+      send:
+        inspect: file
+        cue: if-change
+        strategy: sync-diff
+~~~
+
+Content false/null selects nothing, true selects declared non-cache labels, and
+a list selects exactly those declared labels. Selected labels require CSV hash
+capture. Explicit label lists retain order; true uses sorted declared labels.
+There is no implicit role/destination and no registry706 change. Previews and
+output_run:false skip publication.
+
+| Control | This candidate's execution/fixture scope | Remaining |
+|---|---|---|
+| Content true/false/null/list | Actual CLI selection fixtures; true excludes cache | Full configured provider matrix |
+| cue if-change / always | Both against each strategy; repeated identical sync-diff tests label-version retention/advance | Archive comparison-version selection |
+| inspect file | Shared MD5 byte inspection, current CSV snapshots, exact source-byte validation | GitHub configured inspection |
+| inspect manifest | Selected definitions fail before hooks; no silent file-mode downgrade | Trusted history comparison and fallback |
+| inspect none | Selected definitions fail before hooks | Default upload-all and untrusted-state interactions |
+| upload-all | Upload all selected files, retain extras; existing remote marked untrusted | Other inspection modes |
+| upload-missing | Preserve existing names/bytes, add missing; changes to existing remote marked untrusted | Other inspection modes |
+| sync-diff | Add/change/remove; no-change cue fixture | Archive/history interaction |
+| sync-purge | Mirror full selected file set, including same-byte files, matching the pinned source quirk | Other inspection modes |
+
+if-change and sync-diff remain the existing defaults. The projr default
+inspection is manifest: until implemented, omitting inspect is an error rather
+than changing that default to file. Ordinary archive, nonempty get controls,
+send.conflict and title-level cue are not silently accepted as working policy.
+path-append-label:false is explicitly deferred here because its full destination
+contains the shared metadata namespace.
+
+History retains prior label/version rows and replaces current label/version rows
+with the current project CSV rows. Upload modes can intentionally preserve extra
+or old bytes, so desired-source CSV history is not proof that those bytes equal
+the remote; the VERSION asterisk discloses untrusted existing state.
+
+Two source defects are corrected explicitly: newly empty latest labels receive
+an advertised VERSION entry, and file-equal sync-diff repairs missing/starred
+label metadata after inspection. Pinned R latest/file returns the project version
+without checking VERSION (.dsl_gr_gvc_latest_file); its no-change branch can
+otherwise leave the directory undiscoverable or stale-marked. This is a bounded
+metadata/discoverability correction, not a new default cue or trust policy.
+
+Ponytail full shares the existing definition/content parser, numeric version
+validation, CSV format and four-strategy actions/guarded installer. Snapshots
+preserve selected source directory modes and all staging trees get explicit
+cleanup on success/failure. Planned missing-path namespaces use conservative
+portable case comparison; actual native spelling is rechecked before installation.
+No ownership/ACL/xattr, crash atomicity or concurrent-writer isolation claim.
+No actual GitHub Release test mutation or local heavy testing. Remote exact-head
+checks and independent review are required before delivery.

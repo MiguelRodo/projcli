@@ -318,3 +318,12 @@ Never clear before source lookup/staging; empty/unrecorded labels skip intact.
 Restore's config projection must not make normal builds silently accept ignored
 ordinary upload fields. Correct source indexing/inline bugs with explicit evidence;
 do not add implicit archive paths, new policy defaults or CSV trust claims.
+
+Configured ordinary publication must fail namespace preflight before hooks or any
+destructive replacement, including full/empty/metadata aliases and selected CAS
+overlap. The bounded first slice accepts local latest with explicit file
+inspection only; never silently downgrade the existing manifest default.
+Freeze plans before hooks, stage current CSV-selected files for every target
+before applying any target, preserve directory modes and explicitly clean all
+private staging on every ordinary Result path. Retain the release on publication
+failure and report partial effects. Keep the tested/pending control matrix honest.

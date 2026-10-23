@@ -128,6 +128,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     let project_config: ProjConfig = serde_json::from_value(combined)
         .context("Failed to deserialize combined configuration")?;
     let config = project_config.validate_and_resolve(project_root, is_dev)?;
+    let ordinary = crate::publication::configured(project_root, project_config.build.local.as_ref(), &config)?;
     let execution = execution_override.or(config.settings.execution_directory).unwrap_or(ExecutionDirectory::Native);
     environment.set_working_directory(match execution {
         ExecutionDirectory::Native => caller_directory,
@@ -395,6 +396,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         }
     }
     if is_dev {
+        for target in &ordinary { managed.push(target.base.clone().into_std_path_buf()); }
         // Capture configured local publication stores without invoking publication.
         if let Some(remotes) = &config.remotes.local {
             for remote in remotes.values() {
@@ -616,7 +618,8 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         }
         Ok(())
     };
-    let publish = !is_dev && (config.git.commit || !config.dest.is_empty());
+    let publish = !is_dev && (config.git.commit || !config.dest.is_empty()
+        || (config.output_run.unwrap_or(true) && !ordinary.is_empty()));
     if !publish {
         let finish = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| end_hooks(None))) {
             Ok(result) => result,
@@ -631,6 +634,9 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     if let Err(error) = version_set_at(project_root, &initial_version.to_string(false)) { return Err(backup.restore(error)); }
     drop(backup);
     let publication = (|| -> anyhow::Result<()> {
+        if config.output_run.unwrap_or(true) {
+            crate::publication::publish_local(project_root, &ordinary, &initial_version.to_string(true))?;
+        }
         if let Some(remotes) = &config.remotes.local {
             for target in &config.dest {
                 let remote = remotes.get(target).context("Validated publication target disappeared")?;

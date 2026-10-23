@@ -53,29 +53,29 @@ pub struct RestoreResult {
 }
 #[derive(Clone,Copy,Deserialize)]
 #[serde(rename_all="lowercase")]
-enum Layout {Latest,Archive}
+pub(crate) enum Layout {Latest,Archive}
 #[derive(Clone,Deserialize)]
 #[serde(deny_unknown_fields,rename_all="kebab-case")]
-struct Definition {
-    path:Option<String>,
-    structure:Option<Layout>,
-    path_append_label:Option<bool>,
-    content:Option<Value>,
-    source:Option<Value>,
-    send:Option<Value>,
-    get:Option<Value>,
-    cue:Option<Value>,
-    id:Option<Value>,
+pub(crate) struct Definition {
+    pub(crate) path:Option<String>,
+    pub(crate) structure:Option<Layout>,
+    pub(crate) path_append_label:Option<bool>,
+    pub(crate) content:Option<Value>,
+    pub(crate) source:Option<Value>,
+    pub(crate) send:Option<Value>,
+    pub(crate) get:Option<Value>,
+    pub(crate) cue:Option<Value>,
+    pub(crate) id:Option<Value>,
 }
 struct Source {provider:String,title:String,definition:Definition}
-fn definition(value:&Value)->anyhow::Result<Definition> {
-    let parsed:Definition=serde_json::from_value(value.clone()).context("Invalid ordinary restore remote definition")?;
+pub(crate) fn definition(value:&Value)->anyhow::Result<Definition> {
+    let parsed:Definition=serde_json::from_value(value.clone()).context("Invalid ordinary remote definition")?;
     if let Some(get)=&parsed.get {
         anyhow::ensure!(get.is_object()&&get.as_object().unwrap().is_empty(),
             "get strategy/conflict are not implemented; restore uses explicit --clear");
     }
     // Restore does not execute upload policy. Keep those nodes typed but do not
-    // silently enable them in builds (the normal build parser still rejects them).
+    // silently enable them in builds (publication validates its executable subset).
     if let Some(send)=&parsed.send {anyhow::ensure!(send.is_object(),"send must be a mapping");}
     if let Some(cue)=&parsed.cue {anyhow::ensure!(cue.is_string(),"cue must be a string");}
     if let Some(id)=&parsed.id {anyhow::ensure!(id.is_string(),"id must be a string");}
@@ -98,7 +98,7 @@ fn provider_allowed(provider:&str,request:&RestoreRequest)->bool {
 fn title_allowed(title:&str,request:&RestoreRequest)->bool {
     request.title.as_deref().is_none_or(|filter|filter==title)
 }
-fn content_has(value:Option<&Value>,label:&str,raw:&Value)->anyhow::Result<bool> {
+pub(crate) fn content_has(value:Option<&Value>,label:&str,raw:&Value)->anyhow::Result<bool> {
     match value {
         None|Some(Value::Null)|Some(Value::Bool(false))=>Ok(false),
         Some(Value::Bool(true))=>Ok(!label.to_ascii_lowercase().starts_with("cache")),
