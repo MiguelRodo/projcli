@@ -50,6 +50,12 @@ jobs:
         run: |
           runuser -u rstudio -- python3 -m unittest discover -s tests/acceptance -p test_mixed_render_retry.py
           runuser -u rstudio -- python3 tests/acceptance/mixed_render_retry.py target/debug/proj --evidence mixed-render-retry-evidence.json --artifacts mixed-render-retry-artifacts
+      - name: Integrated M2 local traceability and recovery
+        shell: bash
+        run: runuser -u rstudio -- python3 tests/acceptance/m2_contract.py target/debug/proj --evidence m2-contract-evidence.json --artifacts m2-acceptance-artifacts
+      - name: Validate M2 record source and exact inventory bytes
+        shell: bash
+        run: runuser -u rstudio -- env CARGO_HOME="$RUNNER_TEMP/projcli-cargo" RUSTUP_AUTO_INSTALL=0 PROJCLI_M2_EVIDENCE="$GITHUB_WORKSPACE/m2-acceptance-artifacts" cargo test --locked --test test_m2_contract_witness -- --ignored
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -73,4 +79,14 @@ jobs:
           path: |
             mixed-render-retry-evidence.json
             mixed-render-retry-artifacts
+          if-no-files-found: warn
+
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: m2-contract-evidence
+          path: |
+            m2-contract-evidence.json
+            m2-acceptance-artifacts
           if-no-files-found: warn

@@ -264,3 +264,10 @@ A checksum does not freeze code or prove installed dependency versions. See
 
 Development source retains exact final observed file rows; use [proj history](history.qmd)
 to inspect them separately from release rows and generate a human summary.
+
+
+Development source binds merged analysis parameters, directories and ordered
+script/hook choices to a bounded redacted configuration fingerprint, alongside
+effective runtime policy. Inspect startup_provenance.configuration.effective in
+the attempt JSON. Omission/limit states are explicit; raw parameters and URLs are
+not stored. This is not a frozen executed configuration or installed environment.

@@ -70,3 +70,5 @@ mod provenance;
 
 /// Read-only attempt history and exact final CSV observations.
 pub mod history;
+
+mod config_evidence;

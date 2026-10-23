@@ -142,6 +142,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     let combined = crate::yml::get_combined_yml(Some(selected_profile), project_root)
         .context("Failed to read project configuration")?;
     let directory_order = crate::run_context::directory_order(&combined);
+    let analysis_configuration=(!is_dev).then(||crate::config_evidence::Fingerprint::capture(&combined));
     let project_config: ProjConfig = serde_json::from_value(combined)
         .context("Failed to deserialize combined configuration")?;
     let config = project_config.validate_and_resolve(project_root, is_dev)?;
@@ -359,7 +360,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
             (quarto_exists||bookdown_exists)&&build_scripts.is_none(),
             if config.git.commit {crate::git::head_in(project_root,&environment)}else{None},
             config.git.commit,runner_evidence,
-            crate::provenance::ConfigurationEvidence::capture(&config,execution,clear_stage,selected_cache.is_some())))
+            crate::provenance::ConfigurationEvidence::capture(&config,execution,clear_stage,selected_cache.is_some(),analysis_configuration)))
     }else{None};
     // Parse existing history before hooks or any managed mutation. Preview and
     // disabled output builds neither read nor write the production CSV.
