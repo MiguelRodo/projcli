@@ -272,7 +272,12 @@ pub fn restore_label(root:&Utf8Path,request:&RestoreRequest)->anyhow::Result<Res
         anyhow::ensure!(!path.is_empty(),"Local restore path must not be empty");
         let base=if Utf8Path::new(path).is_absolute(){Utf8PathBuf::from(path)}else{root.join(path)};
         let layout=match source.definition.structure.unwrap_or(Layout::Archive) {Layout::Latest=>LocalStructure::Latest,Layout::Archive=>LocalStructure::Archive};
-        let selected=crate::local_remote::select_version(&base,&label,layout,request.remote_version.as_deref(),source.definition.path_append_label.unwrap_or(true))?;
+        let append=source.definition.path_append_label.unwrap_or(true);
+        let selected=if matches!(layout,LocalStructure::Archive)&&request.remote_version.is_none() {
+            crate::local_remote::list_versions(&base,&label,layout,append)?.into_iter().next()
+                .context("Local archive has no available numeric version")?
+        } else {crate::local_remote::select_version(&base,&label,layout,request.remote_version.as_deref(),append)?};
+        anyhow::ensure!(selected.present,"Advertised local restore source is unavailable");
         result.version=Some(selected.version.clone());
         if selected.empty {result.skipped=Some("empty-remote".into());return Ok(result);}
         crate::local_remote::download_version(root,&selected,&destination,request.clear)?;
