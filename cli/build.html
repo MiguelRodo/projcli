@@ -440,6 +440,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Development-source records also contain startup_provenance, observed before start hooks. It identifies selected code and root dependency declaration fingerprints, the safe effective-policy projection, and recognised numeric runner versions from existing preflight checks. With Git enabled it records the observed revision; otherwise Git is not queried. External source names are redacted.</p>
 <p>The scopes and unknown/limit states are explicit. No environment dump, raw configuration, remote address, parameter value or vendor output is copied. A checksum does not freeze code or prove installed dependency versions. See <a href="../behavior.html#development-source-bounded-startup-provenance">the bounds and omissions</a>.</p>
 <p>Development source retains exact final observed file rows; use <a href="../cli/history.html">proj history</a> to inspect them separately from release rows and generate a human summary.</p>
+<p>Development source binds merged analysis parameters, directories and ordered script/hook choices to a bounded redacted configuration fingerprint, alongside effective runtime policy. Inspect startup_provenance.configuration.effective in the attempt JSON. Omission/limit states are explicit; raw parameters and URLs are not stored. This is not a frozen executed configuration or installed environment.</p>
 
 
 </section>
