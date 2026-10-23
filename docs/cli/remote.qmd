@@ -380,7 +380,7 @@ Ponytail full shares the existing definition/content parser, numeric version
 validation, CSV format and four-strategy actions/guarded installer. Snapshots
 preserve selected source directory modes and all staging trees get explicit
 cleanup on success/failure. Planned missing-path namespaces use conservative
-portable case comparison; actual native spelling is rechecked before installation.
+portable case/NFC comparison; actual native spelling is rechecked before installation.
 No ownership/ACL/xattr, crash atomicity or concurrent-writer isolation claim.
 No actual GitHub Release test mutation or local heavy testing. Remote exact-head
 checks and independent review are required before delivery.

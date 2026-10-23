@@ -2265,9 +2265,16 @@ Unsupported selected modes fail before hooks, rather than silently downgrading.
 See the [execution/fixture matrix](cli/remote.qmd#configured-local-publication-candidate).
 
 Ponytail full shares the restore definition/content parser, CSV, strategy actions
-and guarded installer; no new dependencies, backend trait or registry schema.
+and guarded installer; no new packages or backend trait/registry schema.
 Actual CLI fixtures cover8strategy/cue combinations plus repeated no-change,
 content/empty variants, metadata repair/privacy/namespace/failure boundaries.
 These fixtures have not yet been remotely run; exact-head remote gates and
 independent review are required. No live Release mutation, local heavy tests or
 installed-preview update.
+
+Review amendment: reuse already-locked ICU normalizer2.4 directly for planned
+NFC/case namespace comparison (no new package versions). MacOS initial failures
+came from checking ordinary namespaces when no ordinary targets exist; an early
+return restores unrelated read-only config behavior without weakening guards.
+The shared Linux rename-fault fixture now verifies all private snapshots close
+after second-target preparation failure and first-target installation failure.

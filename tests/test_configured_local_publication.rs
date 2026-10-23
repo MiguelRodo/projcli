@@ -168,3 +168,16 @@ fn all_destination_history_is_validated_before_first_destination_changes() {
     assert!(!root.join("remote").exists());
     assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap().trim(),"Version: v1.2.4");
 }
+
+#[test]
+fn planned_unicode_normalization_aliases_fail_before_hooks_or_namespace_creation() {
+    let (_temporary,root)=setup("sync-diff","always","[output]");
+    let composed="remote-\u{e9}";let decomposed="remote-e\u{301}";
+    let config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("path: remote",&format!("path: {composed}"))
+        .replace("build:\n","build:\n  hooks: {pre: [start.py]}\n");
+    fs::write(root.join("start.py"),"from pathlib import Path\nPath('hook-ran').write_text('bad')\n").unwrap();
+    fs::write(root.join("_proj.yml"),format!("{config}\n    second:\n      path: {decomposed}\n      structure: latest\n      content: [raw]\n      send: {{inspect: file}}\n")).unwrap();
+    let output=invoke(&root,"build");assert!(!output.status.success());
+    assert!(!root.join("hook-ran").exists());assert!(!root.join(composed).exists());assert!(!root.join(decomposed).exists());
+    assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(),"v1.2.3\n");
+}

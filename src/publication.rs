@@ -34,8 +34,9 @@ fn identity(path:&Utf8Path)->anyhow::Result<Utf8PathBuf> {
 fn overlaps(a:&Utf8Path,b:&Utf8Path)->bool {
     // ponytail: conservative portable case comparison for planned missing paths;
     // avoids filesystem probe writes before the build's mutation boundary.
-    let a=Utf8PathBuf::from(a.as_str().to_uppercase());
-    let b=Utf8PathBuf::from(b.as_str().to_uppercase());
+    let normalizer=icu_normalizer::ComposingNormalizer::new_nfc();
+    let a=Utf8PathBuf::from(normalizer.normalize(&a.as_str().to_uppercase()).into_owned());
+    let b=Utf8PathBuf::from(normalizer.normalize(&b.as_str().to_uppercase()).into_owned());
     a.starts_with(&b)||b.starts_with(&a)
 }
 fn native_name(path:&Utf8Path)->anyhow::Result<()> {
@@ -103,6 +104,7 @@ pub(crate) fn configured(root:&Utf8Path,raw:Option<&Map<String,Value>>,config:&c
         }
         targets.push(LocalPublication {title:title.clone(),base,labels:selected,append:definition.path_append_label.unwrap_or(true),strategy,always});
     }
+    if targets.is_empty() {return Ok(targets);}
     validate_namespaces(root,&targets,config)?;
     Ok(targets)
 }
@@ -264,7 +266,7 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
                         crate::path_safety::resolve_path(full.as_std_path(),true)?;
                         fs::rename(&full,retired.path().join("previous"))?;
                         let path=retired.path().to_owned();
-                        if let Err(error)=prepare_owned_cleanup(retired.path()) {
+                        if let Err(error)=crate::fs_utils::prepare_owned_cleanup(retired.path()) {
                             let retained=retired.keep();
                             anyhow::bail!("Empty variant installed; cannot prepare cleanup: {error:#}; retained at {}",retained.display());
                         }
@@ -297,7 +299,7 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
     let mut cleanup_errors=Vec::new();
     for item in prepared {
         let path=item.files.path().to_owned();
-        if let Err(error)=prepare_owned_cleanup(&path) {
+        if let Err(error)=crate::fs_utils::prepare_owned_cleanup(&path) {
             let retained=item.files.keep();
             cleanup_errors.push(format!("Cannot prepare staging cleanup: {error:#}; retained at {}",retained.display()));
         } else if let Err(error)=item.files.close() {
@@ -313,24 +315,3 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
     }
     result
 }
-fn prepare_owned_cleanup(path:&std::path::Path)->anyhow::Result<()> {
-    let metadata=fs::symlink_metadata(path)?;
-    anyhow::ensure!(!metadata.file_type().is_symlink(),"Linked private staging cleanup entry");
-    if metadata.is_dir() {
-        #[cfg(unix)] {
-            use std::os::unix::fs::PermissionsExt;
-            fs::set_permissions(path,fs::Permissions::from_mode(metadata.permissions().mode()|0o700))?;
-        }
-        #[cfg(windows)] {
-            let mut mode=metadata.permissions();mode.set_readonly(false);fs::set_permissions(path,mode)?;
-        }
-        for entry in fs::read_dir(path)? {prepare_owned_cleanup(&entry?.path())?;}
-    } else {
-        anyhow::ensure!(metadata.is_file(),"Special private staging cleanup entry");
-        #[cfg(windows)] {
-            let mut mode=metadata.permissions();mode.set_readonly(false);fs::set_permissions(path,mode)?;
-        }
-    }
-    Ok(())
-}
-

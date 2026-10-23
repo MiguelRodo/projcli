@@ -848,6 +848,7 @@ dependencies = [
  "csv",
  "env_logger",
  "glob",
+ "icu_normalizer",
  "log",
  "md5",
  "regex",
