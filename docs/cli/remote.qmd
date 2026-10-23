@@ -152,9 +152,9 @@ not redacted. Redirects remove Authorization but do not confine network access
 to a provider host; this transport is not a network sandbox.
 
 
-## GitHub ZIP packaging and explicit directory transfer candidate
+## GitHub ZIP packaging and explicit directory transfer
 
-This candidate extends the native Release transport with projr flat names:
+Current source extends the native Release transport with projr flat names:
 prefix-label-vVERSION.zip for archive, prefix-label.zip for latest, and
 -empty before .zip for empty variants. With no prefix, the label is always
 used, including path_append_label=false. Metadata assets remain shared and
@@ -191,8 +191,9 @@ Pinned sources:
 [ZIP layout](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/misc.R#L638),
 [empty sentinel](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github.R#L350),
 [metadata assets](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-versions.R#L1).
-Configured source selection/restore, historical metadata merging, latest asset
-replacement, credentials-helper fallback and CAS remain outstanding. This
+Configured single-label restore and explicit replacement are described below.
+Historical metadata merging, automatic publication, credential-helper fallback
+and complete CAS-structure integration remain outstanding. This
 source candidate does not update the published/installed preview.
 
 Review amendments share the existing native directory-entry alias guard with
@@ -216,7 +217,7 @@ directory cleanup is exercised unprivileged in the pinned gate.
 
 ## Explicit GitHub asset replacement
 
-The source candidate adds --replace to upload, upload-directory and upload-metadata,
+Current source adds --replace to upload, upload-directory and upload-metadata,
 and GithubReleaseClient::replace_asset. Default uploads still reject existing
 names. Explicit replacement follows the working projr delete-then-upload sequence:
 [remote-github-httr.R554-662](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github-httr.R#L554).
@@ -235,10 +236,10 @@ staged bytes despite source mutation after delete, exact DELETE/POST ordering,
 denied/interrupted delete, failed/malformed upload, untrusted endpoints, ambiguous
 names, unsafe sources and machine CLI output. These are mocked REST operations,
 not actual GitHub Release mutations. No live user data/credentials or local
-heavy tests. Remote exact-head gates and independent review remain required.
-Configured restore/source selection and full automatic publication remain next.
+heavy tests. PR182 passed exact-head remote gates and independent review.
+Configured single-label restore follows below; full automatic publication remains open.
 
-## Configured single-label restore candidate
+## Configured single-label restore
 
 remote restore --label LABEL --max-bytes N --max-expanded-bytes N resolves
 one declared final directory from merged active configuration. Optional
@@ -295,7 +296,9 @@ registry or persistence schema. Filesystem and mocked REST actual CLI fixtures
 cover source priority, references/inline/profiles, destination preference,
 numeric archives, VERSION ZIP latest, clear/merge/empty and corrupt failure
 preservation. No actual GitHub Release mutation or local heavy test is performed.
-Exact-head remote verification and independent review are pending.
+PR183 passed independent review at44478558d0ef41660d513a3f7d74fe399684b245,
+all12checks and the [full pinned gate](https://github.com/MiguelRodo/projcli/actions/runs/39944545740).
+It merged ascee85a164fa43cb827c0db69814199994fa4ea66 with an identical tested tree.
 
 Configured restore uses the shared profile selection order: explicit profile,
 PROJR_PROFILE, QUARTO_PROFILE, then build.profile, with earlier profiles winning
