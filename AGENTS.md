@@ -404,3 +404,10 @@ product releases. Published/installed preview.3 packages the subsequent reviewed
 source95441429; its delivery evidence is separate from the synthetic fixture. Do not describe mocked full control coverage as live coverage.
 Keep fixture data distinct from product releases and never use user assets for
 live tests or replay an uncertain mutation without readback.
+
+
+Real-Git failure witnesses must retain fixture-local configuration/credential
+isolation. Distinguish missing-upstream preflight from commit-hook rejection
+after successful analysis. A failed commit can leave the new local release staged
+in Git's index while HEAD/upstream stay unchanged; never assert an invented index
+rollback, successful publication or new sealing policy from that condition.

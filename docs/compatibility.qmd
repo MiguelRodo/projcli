@@ -2621,3 +2621,20 @@ remain mocked REST evidence; other provider/config findings and M2 remain open.
   preview.2 evidence and avoid a new release mechanism.
 - **Limits:** full control coverage is mocked REST; real provider evidence is
   bounded. No completed M2, registry, CAS retention policy or R/IDE parity claim.
+
+
+## M2 optional-Git and commit-failure regression candidate
+
+- **Relationship: new acceptance coverage of existing Rust semantics; comparative
+  R runtime remains unverified.** Pinned projr90be50132d16aee33e39c0f7f35ef906c35f5397
+  build.R430-478 places post-build commits, sends and hooks within finalization;
+  this does not establish its rollback or attempt-identity guarantees.
+- **Candidate:** extend the isolated real-Git fixture for no-remote local commits,
+  early explicitly requested push failure and a real rejecting pre-commit hook.
+  Check exact local/cache/CSV bytes, VERSION, HEAD, staged index and both bare
+  upstream refs. Reuse per-command environment/credential/file-protocol isolation.
+- **Ponytail full:** reuse the existing fixture and split its byte assertion from
+  the committed-HEAD assertion; no new provider, dependency or runtime policy.
+- **Verification:** not run locally; exact-head remote tests and independent review
+  are required. No source defect, completed M2, durable record/seal, index rollback,
+  remote transaction or installed-binary update is claimed.

@@ -473,3 +473,9 @@ exact shared metadata and preservation of older data. See
 No lifecycle order changed for this evidence addition. Preview.3 packages this
 ordinary-publication overlay; the earlier core lifecycle diagrams retain their
 existing meaning.
+
+
+A focused regression candidate checks the existing Git boundary: missing push
+tracking fails in preflight, while a real commit-hook rejection after successful
+analysis retains the local release without advancing HEAD/upstream or bumping
+next-dev. It does not change stage order, invent a seal or promise index rollback.

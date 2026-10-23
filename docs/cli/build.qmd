@@ -182,3 +182,18 @@ Git/remotes are optional; preview leaves production history unchanged.
 See [configuration](../configuration.qmd#production-file-inventory)
 and [limits](../storage-design.qmd#compatible-csv-inventory).
 This is included in preview.3; verification evidence is recorded in the compatibility log and PR175.
+
+
+## Additional real Git failure-boundary witnesses
+
+A regression candidate exercises repositories with no remote/upstream: local
+commit remains available when push is disabled; explicit push without tracking
+configuration must fail preflight before analysis or managed writes. A real
+rejecting pre-commit hook separately checks that the computed local release and
+CSV survive while HEAD/upstream remain unchanged and the next-dev bump is skipped.
+Git's index may already contain the staged release; no index rollback or successful
+publication is claimed.
+
+These are tests of existing behavior, not new attempt identities, sealing rules
+or retry guarantees. Exact-head remote verification and independent review are
+required before treating this candidate as delivered evidence.
