@@ -119,6 +119,7 @@ def main():
             result,_=invoke(binary,root,env,'build','--patch')
             assert result.returncode==0,result.stderr
             assert (root/'released/result.csv').read_bytes()==b'value\n66\n'
+            assert failed_cache.read_bytes()==b'value\n66\n'
             assert (root/'VERSION').read_bytes()==b'Version: v1.2.6.1'
             for name,data in logs.items():assert (root/'.proj/log'/name).read_bytes()==data
             retry_path,retry=next((path,json.loads(path.read_text())) for path in (root/'.proj/log').glob('*.json')
