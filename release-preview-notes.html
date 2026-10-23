@@ -271,7 +271,11 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#projcli-0.4.0-preview.2" id="toc-projcli-0.4.0-preview.2" class="nav-link active" data-scroll-target="#projcli-0.4.0-preview.2">projcli 0.4.0-preview.2</a></li>
+  <li><a href="#projcli-0.4.0-preview.3" id="toc-projcli-0.4.0-preview.3" class="nav-link active" data-scroll-target="#projcli-0.4.0-preview.3">projcli 0.4.0-preview.3</a>
+  <ul class="collapse">
+  <li><a href="#what-changed-since-preview.2" id="toc-what-changed-since-preview.2" class="nav-link" data-scroll-target="#what-changed-since-preview.2">What changed since preview.2</a></li>
+  <li><a href="#existing-workflow-and-limits" id="toc-existing-workflow-and-limits" class="nav-link" data-scroll-target="#existing-workflow-and-limits">Existing workflow and limits</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -281,18 +285,31 @@ ul.task-list li input[type="checkbox"] {
 
 
 
-<section id="projcli-0.4.0-preview.2" class="level1">
-<h1>projcli 0.4.0-preview.2</h1>
-<p>This development preview adds the CLI analysis workflow described below. The exact tagged source commit is recorded in source-commit.txt; checksums.txt verifies both platform downloads. These notes are prepared before publication.</p>
-<p>Run selected R/Python analysis steps from one project configuration, inspect temporary results, and keep the project identity stable when code changes folders. Generated-output paths default to the selected versioned cache. Declared final outputs are promoted only after successful production analysis; previews do not promote or publish. Output cleanup defaults to keeping other final output files, with explicit pre/post cleanup options. Document-output replacement follows its separate documented rules.</p>
-<p>Scripts use the launch folder and document tools retain their native working-folder settings, unless a project-folder override is explicitly requested. The R-package output-r-data role has a fixed final project/data destination; querying it never opts that folder into cleanup or promotion. Declare it explicitly to activate ordinary output management. Supported legacy declarations normalize before merging.</p>
-<p>Individual Quarto/R Markdown HTML and modeled Quarto projects default to embedding resources only when unspecified. Explicit and inherited false values remain respected. Bookdown’s site renderer is unchanged and has no new embedding fallback. Linked-output portability and literal Markdown/LaTeX resource rewriting are not provided. Existing R helpers/packages are unchanged; direct R/IDE parity is not claimed.</p>
-<p>Remote acceptance covers manual configuration and fresh local directory initialization, ordered real Python/R/report steps, a computed CSV and embedded report, deliberate structured failures, ordinary generated-output/archive preservation under none and local archive publication without Git credentials. Prior document outputs are preserved on preview/failure and replaced by successful finalization. Final files and archived object bytes must match the computed witnesses; manifest/ index release and next-development versions are checked, with corruption probes. The reviewed release source must pass the full integrated gate, including all 26 renderer-policy cases, eight combined workflow cases and seven archive corruption probes per successful production case.</p>
-<p>Delivery remains checked Linux/WSL and Windows x86-64 binaries. No Rust compiler or administrator access is needed to install. macOS/ARM binaries are not supplied. Exact public asset checks and the user-local WSL install still precede any delivery completion claim.</p>
-<p>Use sample data or an independently backed-up disposable project. Recovery is bounded and does not isolate arbitrary external script effects, concurrent writers or power loss. Complete provenance, durable attempt/release records, analysis-free publication retry and M2 remain unfinished.</p>
-<p>Release checks and remaining limits: https://miguelrodo.github.io/projcli/release-candidate.html</p>
+<section id="projcli-0.4.0-preview.3" class="level1">
+<h1>projcli 0.4.0-preview.3</h1>
+<p>This development preview adds ordinary local-folder and GitHub Release storage to the existing local analysis workflow. The exact tagged source is recorded in source-commit.txt; checksums.txt identifies both platform downloads. These notes are prepared before publication and do not claim that installation has happened.</p>
+<section id="what-changed-since-preview.2" class="level2">
+<h2 class="anchored" data-anchor-id="what-changed-since-preview.2">What changed since preview.2</h2>
+<ul>
+<li>Save selected declared outputs to a current destination (latest) or keep versioned snapshots (archive), then restore one declared label.</li>
+<li>Choose when to send files (if-change or always), compare recorded history or actual files, or explicitly skip comparison. The four supported transfer strategies control adding, replacing and removing remote files.</li>
+<li>Use GitHub Releases through native HTTP without requiring GitHub CLI. Data and shared CSV/VERSION/changelog metadata use projr-compatible ZIP names. Ordinary manifest.csv records are independent of the existing CAS groundwork.</li>
+<li>Stage and validate downloads before replacing local files. Ambiguous names, unsafe ZIP entries and overlapping publication destinations fail closed. Publication errors report partial progress and preserve the local release.</li>
+<li>Retain explicit-empty-script upload-only builds and development previews that do not publish. Invalid script exclusions and root-enumeration errors fail clearly; real-Git and failed-render/retry regressions are covered.</li>
+</ul>
+<p>The complete GitHub layout/inspection/strategy/cue matrix is exercised with real CLI commands against mocked REST. A separate synthetic real GitHub round-trip passed latest replacement and restore, archive history reuse, changed snapshots, exact data/metadata checks and preservation of older assets. It does not prove all combinations against live GitHub. Evidence: https://miguelrodo.github.io/projcli/remote-compatibility.html#live-github-fixture-verification</p>
+</section>
+<section id="existing-workflow-and-limits" class="level2">
+<h2 class="anchored" data-anchor-id="existing-workflow-and-limits">Existing workflow and limits</h2>
+<p>The configured local R/Python/report workflow, safe versioned cache defaults, explicit output management and native renderer behavior remain supported. Existing R helpers/packages and thesis files are unchanged. Direct R/IDE parity, Bookdown site embedding changes and linked-output portability are not claimed.</p>
+<p>Restore currently requires an explicit single label. Default multi-label raw restore, separate individual-file/list-files/trusted-version conveniences, additional credential-helper/repository inference and local configured path-append-label:false remain follow-up work. Existing token mechanisms are supported; no credentials are installed or permissions granted by proj.</p>
+<p>Remote replacement is not atomic. Errors can follow a successful removal or some uploads; do not infer full rollback or automatically retry a failed publication. Windows read-only backup cleanup may fail after installation; diagnostics distinguish that from a retained original after rollback failure. Recovery does not isolate arbitrary scripts, concurrent writers or power loss.</p>
+<p>Complete provenance, durable attempt/release records, analysis-free publication retry and M2 remain unfinished. The proposed remote registry and CAS-specific snapshot discovery/retention remain separate design work. No new defaults, manifest identity policy or mandatory DVC dependency are introduced.</p>
+<p>Linux/WSL x86-64 and Windows x86-64 binaries are supplied. Linux requires glibc 2.35 or newer; macOS/ARM binaries are not supplied. Installation needs no Rust compiler or administrator access. Use sample data or a backed-up disposable copy.</p>
+<p>Release checks: https://miguelrodo.github.io/projcli/release-candidate.html</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

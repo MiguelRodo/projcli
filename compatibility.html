@@ -343,6 +343,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#configured-github-no-inspection-strategy-matrix" id="toc-configured-github-no-inspection-strategy-matrix" class="nav-link" data-scroll-target="#configured-github-no-inspection-strategy-matrix">Configured GitHub no-inspection strategy matrix</a></li>
   <li><a href="#github-filemanifest-and-archive-history-comparison-candidate" id="toc-github-filemanifest-and-archive-history-comparison-candidate" class="nav-link" data-scroll-target="#github-filemanifest-and-archive-history-comparison-candidate">GitHub file/manifest and archive-history comparison candidate</a></li>
   <li><a href="#live-github-configured-publication-witness" id="toc-live-github-configured-publication-witness" class="nav-link" data-scroll-target="#live-github-configured-publication-witness">Live GitHub configured-publication witness</a></li>
+  <li><a href="#preview.3-release-preparation" id="toc-preview.3-release-preparation" class="nav-link" data-scroll-target="#preview.3-release-preparation">Preview.3 release preparation</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -1074,6 +1075,15 @@ ul.task-list li input[type="checkbox"] {
 <p>A dedicated new synthetic prerelease422144076 retained its pinned tag/source and prerelease status. Five actual CLI builds produced latestv1.2.4/v1.2.5, archive v1.2.6, Projectv1.2.7 reusing archivev1.2.6 and changed archivev1.2.8. Two configured restores verified exact result/kept CSV bytes, unchanged project CSV/VERSION and unchanged remote asset identities/hashes. Older archive and latest ZIP bytes survived archive finalization. Final project version is next-devv1.2.8.1.</p>
 <p>Independent driver review corrected an oracle before live execution: remote CSV appends history while project CSV places current rows first. The witness checks independently expected exact remote serialization and complete project row multisets, rather than asserting unsupported row-order identity. No runtime defect was exposed. Target allowlists, scoped authentication and in-flight markers prevented silent retargeting/replay; no credentials, permissions, existing user assets or Git refs outside the new fixture tag were changed.</p>
 <p>Ponytail full: reuse the reviewed CLI and existing authentication; no new runtime backend/format or live-test dependency. The public report is synthetic verification evidence, not a production manifest schema. The complete matrix/failure cases remain mocked REST evidence; other provider/config findings and M2 remain open.</p>
+</section>
+<section id="preview.3-release-preparation" class="level2">
+<h2 class="anchored" data-anchor-id="preview.3-release-preparation">Preview.3 release preparation</h2>
+<ul>
+<li><strong>Relationship: packaging change; existing source compatibility evidence retained.</strong> Candidate 0.4.0-preview.3 packages reviewed main28921066c6784b1db76bb98aed68952e707be47d without a new runtime policy. The ordinary remote comparisons remain pinned to projr90be50132d16aee33e39c0f7f35ef906c35f5397 in the remote inventory.</li>
+<li><strong>Decision/rationale:</strong> deliver the tested local/GitHub build/store/restore checkpoint while retaining explicit remaining parity, registry and CAS limits. Cargo.toml and the root lock entry agree; an analysis project’s VERSION is unrelated. Public download pins and the installed preview are unchanged.</li>
+<li><strong>Ponytail full:</strong> reused the existing exact-tag draft workflow and release checklist; no workflow, dependency, transport or runtime abstraction added.</li>
+<li><strong>Verification status:</strong> candidate gates and independent release review are required before tagging. Existing runtime evidence includes all48 mocked GitHub control combinations,24 archive history combinations and the bounded five-build/two-restore real GitHub witness. Those do not replace final-source pinned acceptance or exact-tag binary/installer checks.</li>
+</ul>
 
 
 </section>
