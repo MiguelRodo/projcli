@@ -2278,3 +2278,7 @@ came from checking ordinary namespaces when no ordinary targets exist; an early
 return restores unrelated read-only config behavior without weakening guards.
 The shared Linux rename-fault fixture now verifies all private snapshots close
 after second-target preparation failure and first-target installation failure.
+
+Final coverage precision adds a declared hash-enabled cache to content selection
+(to prove true excludes it) and an all-platform later-destination preparation
+failure with read-only selected files and publication-staging residue inspection.

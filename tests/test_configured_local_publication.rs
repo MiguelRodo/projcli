@@ -61,7 +61,11 @@ fn unchanged_sync_diff_cue_controls_label_version_while_project_and_history_adva
 fn content_true_false_null_and_explicit_list_select_only_the_declared_targets() {
     for content in ["true","false","null","[raw]"] {
         let (_temporary,root)=setup("sync-diff","if-change",content);
+        let config=fs::read_to_string(root.join("_proj.yml")).unwrap();
+        fs::write(root.join("_proj.yml"),config.replace("directories:\n","directories:\n  cache: {path: cache, hash: true}\n")).unwrap();
+        fs::create_dir(root.join("cache")).unwrap();fs::write(root.join("cache/private"),"cache bytes").unwrap();
         success(invoke(&root,"build"));
+        assert!(!root.join("remote/cache").exists());
         assert_eq!(root.join("remote/output").exists(),content=="true");
         assert_eq!(root.join("remote/raw").exists(),content=="true"||content=="[raw]");
     }
@@ -180,4 +184,27 @@ fn planned_unicode_normalization_aliases_fail_before_hooks_or_namespace_creation
     let output=invoke(&root,"build");assert!(!output.status.success());
     assert!(!root.join("hook-ran").exists());assert!(!root.join(composed).exists());assert!(!root.join(decomposed).exists());
     assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(),"v1.2.3\n");
+}
+
+#[test]
+fn later_preparation_failure_cleans_readonly_snapshots_on_every_platform() {
+    let (_temporary,root)=setup("sync-diff","always","[output]");
+    let config=fs::read_to_string(root.join("_proj.yml")).unwrap();
+    fs::write(root.join("_proj.yml"),format!("{config}\n    second:\n      path: broken-remote\n      structure: latest\n      content: [raw]\n      send: {{inspect: file}}\n")).unwrap();
+    fs::create_dir(root.join("broken-remote")).unwrap();fs::write(root.join("broken-remote/manifest.csv"),"bad").unwrap();
+    let source=root.join("results/same");let original=fs::metadata(&source).unwrap().permissions();
+    let mut readonly=original.clone();readonly.set_readonly(true);fs::set_permissions(&source,readonly).unwrap();
+    let private=root.join("private-temp");fs::create_dir(&private).unwrap();
+    let output=Command::new(env!("CARGO_BIN_EXE_proj")).current_dir(&root).args(["build","--non-interactive","--project"]).arg(&root)
+        .env("TMPDIR",&private).env("TMP",&private).env("TEMP",&private)
+        .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
+        .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
+    fs::set_permissions(&source,original).unwrap();
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("Cannot read manifest history"));
+    assert!(!root.join("remote").exists());
+    let staging:Vec<_>=fs::read_dir(&private).unwrap().filter_map(|entry| {
+        let entry=entry.unwrap();entry.file_name().to_string_lossy().starts_with("proj-publication-").then_some(entry.path())
+    }).collect();
+    assert!(staging.is_empty(),"retained publication snapshots: {staging:?}");
 }
