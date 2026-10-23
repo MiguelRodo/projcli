@@ -317,7 +317,8 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
                     _=>changed||!existed,
                 };
                 if update {
-                    let untrusted=existed&&(matches!(target.strategy,StoreStrategy::UploadAll|StoreStrategy::UploadMissing)\n                        ||(target.inspect_none&&matches!(target.strategy,StoreStrategy::SyncDiff)));
+                    let untrusted=existed&&(matches!(target.strategy,StoreStrategy::UploadAll|StoreStrategy::UploadMissing)
+                        ||(target.inspect_none&&matches!(target.strategy,StoreStrategy::SyncDiff)));
                     set_version(&mut item.versions,label,format!("{version}{}",if untrusted{"*"}else{""}));
                 }
                 item.rows.retain(|row|!(row.label==*label&&row.version==version));
