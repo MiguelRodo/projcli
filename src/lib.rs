@@ -61,3 +61,5 @@ pub mod publication;
 
 /// Configured ordinary GitHub Release publication through guarded ZIP staging.
 pub mod github_publication;
+
+mod attempt;

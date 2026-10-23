@@ -479,3 +479,12 @@ A focused regression candidate checks the existing Git boundary: missing push
 tracking fails in preflight, while a real commit-hook rejection after successful
 analysis retains the local release without advancing HEAD/upstream or bumping
 next-dev. It does not change stage order, invent a seal or promise index rollback.
+
+## Writer ownership around the staged lifecycle
+
+A build now claims one project writer before input capture and keeps ownership
+through validation, hooks, analysis, local finalization, enabled distribution,
+Git publication, end hooks, recovery and the next development bump. Normal exits
+release the claim. This does not change the stage order shown above or make
+partial remote publication reversible. Crashes leave a fail-closed claim requiring
+the user to confirm it is stale before removing it.

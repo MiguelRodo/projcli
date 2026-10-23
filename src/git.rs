@@ -60,6 +60,20 @@ impl SystemGit {
         }
     }
 
+    // Keep whole-repository scope while excluding only this project's live claim.
+    fn writer_exclusion(&self) -> anyhow::Result<String> {
+        let tracked = git_command_in(Some(&self.repo_path), &self.environment)?
+            .current_dir(&self.repo_path)
+            .args(["ls-files", "--error-unmatch", "--", ".proj/build.lock"]).output()?;
+        anyhow::ensure!(tracked.status.code() == Some(1),
+            "Build writer claim must not be tracked by Git");
+        let prefix = git_command_in(Some(&self.repo_path), &self.environment)?
+            .current_dir(&self.repo_path).args(["rev-parse", "--show-prefix"]).output()?;
+        anyhow::ensure!(prefix.status.success(), "Cannot resolve project path within Git repository");
+        let prefix = std::str::from_utf8(&prefix.stdout)?.trim_end_matches(['\r', '\n']);
+        Ok(format!(":(top,exclude,literal){prefix}.proj/build.lock"))
+    }
+
     fn network_command(&self, action: &str, remote: &str, reference: Option<&str>) -> anyhow::Result<()> {
         let mut arguments = if action == "push" {
             vec![action, "--no-follow-tags", "--recurse-submodules=no", "--", remote]
@@ -99,7 +113,8 @@ impl GitProvider for SystemGit {
     }
 
     fn commit_all(&self, message: &str) -> anyhow::Result<()> {
-        self.run_cmd(&["add", "-A"])?;
+        let exclusion = self.writer_exclusion()?;
+        self.run_cmd(&["add", "-A", "--", ":/", &exclusion])?;
         let output = git_command_in(Some(&self.repo_path), &self.environment)?.current_dir(&self.repo_path)
             .args(["diff", "--cached", "--quiet"]).output()?;
         match output.status.code() {
@@ -297,8 +312,9 @@ pub(crate) fn fetch_remote_in(root: &camino::Utf8Path, remote: &str, environment
 
 pub(crate) fn require_clean_git_in(root: &camino::Utf8Path, environment: &RunEnvironment) -> anyhow::Result<()> {
     let git = SystemGit { repo_path: root.to_owned(), environment: environment.clone() };
+    let exclusion = git.writer_exclusion()?;
     let output = git_command_in(Some(root), environment)?.current_dir(root)
-        .args(["status", "--porcelain", "--untracked-files=all", "--ignore-submodules=none"]).output()?;
+        .args(["status", "--porcelain", "--untracked-files=all", "--ignore-submodules=none", "--", ":/", &exclusion]).output()?;
     anyhow::ensure!(output.status.success(), "Cannot inspect Git worktree state");
     if !output.stdout.is_empty() {
         let expected = output.stdout == b" M VERSION\n" || output.stdout == b" M VERSION\r\n";

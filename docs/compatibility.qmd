@@ -2638,3 +2638,29 @@ remain mocked REST evidence; other provider/config findings and M2 remain open.
 - **Verification:** not run locally; exact-head remote tests and independent review
   are required. No source defect, completed M2, durable record/seal, index rollback,
   remote transaction or installed-binary update is claimed.
+
+## Cooperative attempt identity and project writer exclusion
+
+**New, bounded Rust behavior.** Every build/preview owns a fresh opaque attempt
+identity and an exclusively created .proj/build.lock claim until its full
+lifecycle exits. Existing claims fail closed; ordinary completion removes only
+the matching owned claim. No PID, hostname, username or complete configuration
+is recorded. No persistent machine identifier or centralized catalogue is added.
+
+The pinned R reference remains
+[SATVILab/projr 90be501](https://github.com/SATVILab/projr/tree/90be50132d16aee33e39c0f7f35ef906c35f5397).
+Its build/version code is source context, not evidence of equivalent writer
+exclusion or exact byte recovery. Existing R package files remain untouched.
+
+Ponytail full review reuses tempfile's exclusive random names and existing path
+guards rather than adding a lock service, database or dependency. Git exclusion
+is limited to the ephemeral claim; it does not decide durable log receipts.
+Crash-stale claims require confirmed manual removal, without automatic stealing.
+Arbitrary scripts are outside this cooperative exclusion guarantee.
+
+Remote verification must cover concurrent real CLI builds, fresh identities,
+stale-claim preservation, invalid-config cleanup, symlink/managed-path rejection,
+and successful real Git commits excluding the claim, alongside existing failed
+Git/recovery fixtures and the pinned renderer/combined acceptance suite. No local
+compilation or heavy tests were run. Durable JSON attempt logs and final Git
+receipt sequencing remain pending; end-hook mutation enforcement is deferred.
