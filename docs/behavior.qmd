@@ -555,10 +555,11 @@ Records omit raw configuration, environment, URLs, credentials, command argument
 and subprocess output. IDs are random rather than host/user names. Worktree-local
 Git witnesses contain opaque control hashes and never enter Git history.
 
-This first slice starts at the successful local-release/publication boundary.
-Plain builds with no publication, previews and earlier failed builds still have
-no durable attempt record. Complete source/runner/dependency provenance, earlier
-stage records and cleanup/retention policy remain M2 follow-up work. End-hook
+Publication-enabled records start at the successful local-release boundary.
+Successful plain production builds also retain completed records as described
+below; previews and earlier failed builds still have no durable attempt record.
+Complete source/runner/dependency provenance, earlier stage records and
+cleanup/retention policy remain M2 follow-up work. End-hook
 mutation enforcement stays deferred; these records do not authenticate arbitrary
 scripts or provide a filesystem sandbox. The installed preview.3 is unchanged.
 

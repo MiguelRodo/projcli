@@ -444,8 +444,8 @@ Do not hide modified/tracked receipts, arbitrary neighbouring files or unowned
 VERSION edits. Keep snapshots/receipts under normal Git staging; never stage the
 claim or ownership witness. Do not serialize raw environment, credentials,
 remote URLs, command arguments, descriptions or subprocess output.
-Plain no-publication builds, previews and failures before local release retain
-their existing behavior in this first slice; do not claim full M2 provenance.
+Successful plain production records are covered below. Previews and failures
+before local release retain existing behavior; do not claim full M2 provenance.
 
 
 Successful plain production builds retain completed attempt evidence after all

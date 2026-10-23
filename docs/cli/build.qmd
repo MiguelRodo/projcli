@@ -235,8 +235,8 @@ a receipt or losing that witness makes the normal dirty-work guard apply.
 Preserve the files and resolve the unexpected changes before another build.
 
 No tokens, environment dumps, remote URLs, command arguments or subprocess output
-are copied into these records. This first slice covers publication-enabled
-production builds, including ordinary local publication without Git.
+are copied into these records. Production records include publication-enabled
+builds and successful plain local builds without Git or publication.
 Previews and earlier failures are unchanged. Successful plain production builds
 also retain a completed record after hooks and the next-dev transition.
 These features are development-source behavior; preview.3 has not been updated.
