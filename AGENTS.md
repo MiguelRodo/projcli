@@ -193,7 +193,8 @@ Script/hook include and exclusion syntax must fail preflight on errors, includin
 exclusion-only selections. Never turn malformed exclusions into silent no-ops or
 shell commands. Reuse the shared resolver and preserve valid first-match order,
 deduplication, explicit-empty semantics and literal root handling. Source fixes
-newer than preview.2 do not update the published/installed binary automatically.
+do not update the published/installed binary automatically; delivery requires
+reviewed release and installation verification.
 
 
 Fallback discovery must propagate root/entry/type-inspection failures instead of

@@ -48,7 +48,7 @@ and [compatibility log](compatibility.qmd) for implemented behavior and limits.
 
 ## Compatible CSV inventory
 
-Status: source implementation newer than installed preview.2; release pins are unchanged.
+Status: this CSV implementation is included in published preview.3.
 The user approved temporary projr-compatible CSV while broader recording design
 continues. This supersedes deferring every manifest implementation.
 
