@@ -462,3 +462,11 @@ materialize privately, then the ordinary local planner computes staged effects;
 only those current data effects become ZIP uploads/removals. All GitHub targets
 still prepare before the first external write. Metadata-only no-ops and reuse do
 not manufacture data uploads; failure retains the local release.
+
+
+The current-source GitHub stages also have a real synthetic Release witness:
+five builds and two restores verified latest replacement, archive reuse/change,
+exact shared metadata and preservation of older data. See
+[the live verification](remote-compatibility.qmd#live-github-fixture-verification).
+No lifecycle order changed for this evidence addition; installed preview.2 and
+the released diagrams retain their existing meaning.

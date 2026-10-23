@@ -331,7 +331,8 @@ remove the obsolete sentinel asset after upload. Its PR records mocked REST CLI
 round-trip evidence. File/manifest and historical comparison use the same staged
 ordinary planner as local remotes; the command reference records the full control
 matrix and source-backed blind missing/diff and bounded purge interactions.
-No live GitHub Release round-trip has been performed.
+A dedicated live configured-publication round-trip is now verified below; the
+full decision matrix remains mocked REST coverage.
 
 
 The comparison candidate preserves the existing archive/manifest/sync-diff/
@@ -339,4 +340,38 @@ if-change defaults. Reuse requires newest catalog/VERSION/matching CSV agreement
 and continuous unchanged history. Physical file fallback, trusted partial manifest
 semantics, complete new snapshots and corrupt-empty rejection have actual CLI
 mock REST regression fixtures. Exact-head remote CI and independent review remain
-required; this does not complete all provider options or live GitHub validation.
+required for later changes; the completed source gates are recorded on PR194.
+This does not complete all provider options or M2.
+
+
+## Live GitHub fixture verification
+
+A real GitHub round-trip passed using the source build at
+[03074c8](https://github.com/MiguelRodo/projcli/tree/03074c8e8fe9cf36fe976171d0976a6a701a9e80).
+The [dedicated fixture prerelease](https://github.com/MiguelRodo/projcli/releases/tag/projcli-remote-acceptance-pr194)
+contains synthetic CSV files only. It is not a product release or an installation
+target. The [verification report](github-live-evidence.json) records exact binary,
+artifact and asset hashes; no credentials or local private paths are included.
+
+The isolated CI binary executed five no-script builds and two configured restores:
+
+| Step | Verified result |
+|---|---|
+| Latest v1.2.4 | Native data and shared metadata ZIPs uploaded |
+| Latest v1.2.5 | Selected data replaced; exact bytes restored |
+| Archive v1.2.6 | Complete versioned snapshot created |
+| Unchanged project v1.2.7 | Data reused from v1.2.6; Project metadata advanced |
+| Changed archive v1.2.8 | Complete newer snapshot restored; old archive and latest ZIP bytes unchanged |
+
+Checks compared exact ZIP members, remote CSV serialization and complete project
+history rows, VERSION and file bytes. Restore preserved project CSV/VERSION and
+remote asset identities/hashes. The Release identity, tag commit, prerelease
+status and fixture-only asset names were checked throughout. No Git commits/push,
+existing user assets, credentials or permissions were changed.
+
+This real witness covers file/sync-diff/latest and manifest/sync-diff/archive with
+if-change. The full inspection/strategy/cue/layout and failure matrix is tested
+separately with mocked REST; it is not a live test of every combination. The
+published and installed preview.2 binary remains unchanged and predates this work.
+The fixture's package version string is also preview.2, so identify the tested
+source by its commit and binary hash, not that string alone.

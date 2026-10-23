@@ -393,3 +393,12 @@ catalog-only placeholders must be rejected by the same history eligibility befor
 their bytes could be inspected. Keep full new snapshots, metadata-only no-ops,
 empty variants, all-target preparation and truthful DELETE/POST failures intact.
 Defaults remain archive/manifest/sync-diff/if-change; registry706 stays design-only.
+
+
+The real GitHub witness is docs/github-live-evidence.json and the remote
+compatibility page: source03074c8, exact-main CI artifact/binary hashes, five
+synthetic builds/two restores in a dedicated prerelease. Preserve the distinction
+between that source binary and the installed/released preview.2 despite identical
+package strings. Do not describe mocked full control coverage as live coverage.
+Keep fixture data distinct from product releases and never use user assets for
+live tests or replay an uncertain mutation without readback.
