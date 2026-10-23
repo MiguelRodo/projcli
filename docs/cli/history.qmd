@@ -17,7 +17,7 @@ logical labels and existing MD5 byte hashes, including empty-directory markers.
 It works without Git or active configuration. It reads evidence without acquiring
 a build lock, changing versions, rerunning analysis or contacting a remote.
 
-Each new final observation retains .proj/log/<attempt>.final.csv in the existing
+Each new final observation retains `.proj/log/ATTEMPT_ID.final.csv` in the existing
 label,fn,version,hash format. Its JSON record or Git outcome receipt binds its
 exact bytes and canonical inventory fingerprint. End hooks may change files:
 these final rows describe the observation after finalization was attempted,
