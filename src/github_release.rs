@@ -1,5 +1,5 @@
 //! Native GitHub Release asset transport. ZIPs are opaque at this layer.
-use std::{collections::BTreeSet, fs, io::{Read, Write}, net::IpAddr, time::Duration};
+use std::{collections::BTreeSet, fs, io::{Read, Write, Seek}, net::IpAddr, time::Duration};
 use anyhow::Context;
 use camino::Utf8Path;
 use serde::{Deserialize, Serialize};
@@ -22,7 +22,8 @@ struct Release { id: u64, tag_name: String, upload_url: Option<String> }
 /// Tokens are private, omitted from this client's errors, and never sent on a download
 /// redirect. HTTPS is required except for literal loopback fixture endpoints.
 /// Listing/download can be anonymous; upload requires an existing token.
-/// No credential installation, asset deletion or implicit overwrite occurs.
+/// No credential installation or implicit overwrite occurs. Asset deletion is
+/// restricted to an explicitly requested replacement.
 /// Embedders must not enable ureq DEBUG/TRACE logging for sensitive requests:
 /// dependency wire/URI logging is not redacted. Redirect targets are not a
 /// network sandbox; caller-selected HTTPS services can redirect to other hosts.
@@ -138,6 +139,17 @@ impl GithubReleaseClient {
     /// deleting anything. Creating a missing Release requires create_release.
     /// Publication is not rolled back on a later protocol/network failure.
     pub fn upload_asset(&self, tag: &str, name: &str, source: &Utf8Path, create_release: bool) -> anyhow::Result<ReleaseAsset> {
+        self.upload_asset_impl(tag,name,source,create_release,false)
+    }
+    /// Explicitly replaces a matching asset using projr's delete-then-upload
+    /// sequence, or uploads normally if absent. Stages the full local file and
+    /// validates the upload endpoint before deletion. This is not atomic: a
+    /// failed delete/upload can leave the old asset absent or the outcome
+    /// uncertain. Errors state that boundary; no automatic retry/rollback occurs.
+    pub fn replace_asset(&self, tag: &str, name: &str, source: &Utf8Path, create_release: bool) -> anyhow::Result<ReleaseAsset> {
+        self.upload_asset_impl(tag,name,source,create_release,true)
+    }
+    fn upload_asset_impl(&self, tag: &str, name: &str, source: &Utf8Path, create_release: bool, replace: bool) -> anyhow::Result<ReleaseAsset> {
         asset_name(name)?;
         crate::path_safety::resolve_path(source.as_std_path(), true)?;
         anyhow::ensure!(fs::symlink_metadata(source)?.is_file(), "Asset source must be a regular file");
@@ -145,9 +157,20 @@ impl GithubReleaseClient {
         let metadata = file.metadata()?;
         anyhow::ensure!(metadata.is_file(), "Asset source must be a regular file");
         anyhow::ensure!(self.token.is_some(), "Asset upload requires an existing GitHub token");
+        // ponytail: private full-file staging costs disk space but keeps source
+        // read failures before destructive replacement; no remote transaction.
+        let mut staged=if replace {
+            Some(tempfile::Builder::new().prefix("proj-replace-").tempfile_in(fs::canonicalize(std::env::temp_dir())?)?)
+        } else {None};
+        if let Some(staged)=&mut staged {
+            let copied=std::io::copy(&mut file,staged.as_file_mut()).context("Cannot stage replacement; no asset was deleted")?;
+            anyhow::ensure!(copied==metadata.len(),"Source size changed during replacement staging; no asset was deleted");
+            staged.as_file_mut().flush()?;staged.as_file_mut().rewind()?;
+        }
         let release = self.release(tag, create_release)?;
-        anyhow::ensure!(!self.assets_for_release(release.id)?.iter().any(|asset| asset.name == name),
-            "GitHub asset already exists; no overwrite or deletion performed");
+        let matches:Vec<_>=self.assets_for_release(release.id)?.into_iter().filter(|asset|asset.name==name).collect();
+        anyhow::ensure!(matches.len()<=1,"Asset name is ambiguous; no deletion performed");
+        anyhow::ensure!(replace||matches.is_empty(),"GitHub asset already exists; no overwrite or deletion performed");
         let template = release.upload_url.context("GitHub Release has no upload endpoint")?;
         let upload = template.split('{').next().context("Invalid GitHub upload endpoint")?;
         let upload_uri = uri(upload)?;
@@ -157,20 +180,37 @@ impl GithubReleaseClient {
             && upload_uri.scheme_str() == Some("https") && upload_uri.port_u16().unwrap_or(443) == 443;
         anyhow::ensure!(same_origin(&api_uri, &upload_uri) || public_upload, "Untrusted GitHub upload endpoint");
         anyhow::ensure!(upload_uri.query().is_none(), "GitHub upload endpoint has an unexpected query");
+        let deleted=if let Some(previous)=matches.first() {
+            let response=self.agent.delete(format!("{}/repos/{}/releases/assets/{}",self.api,self.repository,previous.id))
+                .header("Accept","application/vnd.github+json")
+                .header("Authorization",format!("Bearer {}",self.token.as_ref().unwrap()))
+                .header("X-GitHub-Api-Version","2022-11-28").call()
+                .map_err(|_|anyhow::anyhow!("Asset deletion request failed; old asset may have been deleted, replacement was not uploaded; inspect remote state before retrying"))?;
+            let status=response.status().as_u16();
+            anyhow::ensure!(status==204,"Asset deletion failed (HTTP {status}); old asset state is unconfirmed, replacement was not uploaded; inspect remote state before retrying");
+            true
+        } else {false};
+        let result=(|| {
+        let input:&mut dyn Read=match &mut staged {Some(staged)=>staged.as_file_mut(),None=>&mut file};
         let response = self.agent.post(format!("{upload}?name={}", encode(name)))
             .header("Accept", "application/vnd.github+json")
             .header("Authorization", format!("Bearer {}", self.token.as_ref().unwrap()))
             .header("X-GitHub-Api-Version", "2022-11-28")
             .header("Content-Type", "application/octet-stream")
             .header("Content-Length", metadata.len().to_string())
-            .send(ureq::SendBody::from_reader(&mut file))
+            .send(ureq::SendBody::from_reader(input))
             .map_err(|_| anyhow::anyhow!("Asset upload request failed; remote outcome may be uncertain"))?;
         let status = response.status().as_u16();
         anyhow::ensure!(status == 201, "GitHub asset upload failed (HTTP {status}); inspect remote state before retrying");
         let asset: ReleaseAsset = json(response).context("Upload may have completed; cannot validate response")?;
         anyhow::ensure!(asset.id != 0 && asset.name == name && asset.size == metadata.len(),
             "Uploaded asset metadata mismatch; inspect remote state before retrying");
+        anyhow::ensure!(!deleted || matches.first().is_none_or(|old|old.id!=asset.id),
+            "Replacement response reused the deleted asset identity; inspect remote state before retrying");
         Ok(asset)
+        })();
+        if deleted { result.context("Previous asset was deleted; inspect remote state if the replacement was not validated") }
+        else {result}
     }
     /// Streams an exact named asset into a same-directory temporary file, then
     /// replaces an absent/regular destination with a new inode. Guards reject

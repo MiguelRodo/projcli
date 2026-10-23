@@ -3,9 +3,9 @@ use camino::Utf8PathBuf;
 use proj::github_release::GithubReleaseClient;
 use serde_json::json;
 
-struct Reply { method: &'static str, path: String, status: u16, body: Vec<u8>, headers: Vec<(String,String)>, auth: bool, request: Option<Vec<u8>>, zip_request: Option<Vec<(String,Vec<u8>)>> }
+struct Reply { method: &'static str, path: String, status: u16, body: Vec<u8>, headers: Vec<(String,String)>, auth: bool, request: Option<Vec<u8>>, zip_request: Option<Vec<(String,Vec<u8>)>>, before_response: Option<Box<dyn FnOnce()+Send>>, disconnect: bool }
 fn reply(method: &'static str, path: &str, status: u16, body: impl AsRef<[u8]>) -> Reply {
-    Reply { method, path: path.into(), status, body: body.as_ref().to_vec(), headers: vec![], auth: true, request: None, zip_request: None }
+    Reply { method, path: path.into(), status, body: body.as_ref().to_vec(), headers: vec![], auth: true, request: None, zip_request: None, before_response: None, disconnect: false }
 }
 struct Server { base: String, thread: Option<thread::JoinHandle<()>> }
 impl Server {
@@ -49,6 +49,8 @@ impl Server {
                     }
                     actual.sort();assert_eq!(actual,expected);
                 }
+                if let Some(action)=expected.before_response {action();}
+                if expected.disconnect {continue;}
                 write!(stream,"HTTP/1.1 {} Fixture\r\nContent-Length: {}\r\nConnection: close\r\n",expected.status,expected.body.len()).unwrap();
                 for (key,value) in expected.headers { write!(stream,"{key}: {value}\r\n").unwrap(); }
                 stream.write_all(b"\r\n").unwrap();stream.write_all(&expected.body).unwrap();
@@ -297,4 +299,78 @@ fn new_zip_cli_upload_routes_package_exact_members_and_expose_help() {
         assert!(Command::new(env!("CARGO_BIN_EXE_proj")).args(["remote","github",command,"--help"]).output().unwrap().status.success());
     }
     server.finish();
+}
+
+fn replacement_asset(name:&str,size:usize)->String {json!({"id":3,"name":name,"size":size}).to_string()}
+#[test]
+fn explicit_replacement_stages_bytes_before_delete_and_uploads_once() {
+    let temp=tempfile::tempdir().unwrap();let root=root(&temp);let source=root.join("data.zip");
+    std::fs::write(&source,"stable-new").unwrap();
+    let changed=source.clone();
+    let server=Server::start(|base| {
+        let mut delete=reply("DELETE","/repos/owner/repo/releases/assets/2",204,"");
+        delete.before_response=Some(Box::new(move||std::fs::write(changed,"changed-after-delete").unwrap()));
+        let mut upload=reply("POST","/upload?name=data.zip",201,replacement_asset("data.zip",10));
+        upload.request=Some(b"stable-new".to_vec());
+        let mut replies=selected(base,"data.zip",3);replies.extend([delete,upload]);replies
+    });
+    let asset=server.client().replace_asset("data","data.zip",&source,false).unwrap();
+    assert_eq!(asset.id,3);assert_eq!(std::fs::read(source).unwrap(),b"changed-after-delete");server.finish();
+}
+#[test]
+fn replacement_failures_report_the_irreversible_boundary_without_retry_or_secret_bodies() {
+    let temp=tempfile::tempdir().unwrap();let root=root(&temp);let source=root.join("data.zip");
+    std::fs::write(&source,"new").unwrap();
+    for (delete_status,upload_status) in [(403,None),(204,Some(502)),(204,Some(201))] {
+        let server=Server::start(|base| {
+            let mut replies=selected(base,"data.zip",3);
+            replies.push(reply("DELETE","/repos/owner/repo/releases/assets/2",delete_status,""));
+            if let Some(status)=upload_status {replies.push(reply("POST","/upload?name=data.zip",status,"malformed fixture-token signed-url-secret"));}replies
+        });
+        let error=format!("{:#}",server.client().replace_asset("data","data.zip",&source,false).unwrap_err());
+        if delete_status==204 {assert!(error.contains("Previous asset was deleted"),"{error}");}
+        else {assert!(error.contains("replacement was not uploaded"),"{error}");}
+        assert!(error.contains("inspect remote state"));assert!(!error.contains("fixture-token")&&!error.contains("signed-url-secret"));server.finish();
+    }
+    let server=Server::start(|base| {
+        let mut replies=selected(base,"data.zip",3);
+        let mut delete=reply("DELETE","/repos/owner/repo/releases/assets/2",204,"");delete.disconnect=true;replies.push(delete);replies
+    });
+    let error=format!("{:#}",server.client().replace_asset("data","data.zip",&source,false).unwrap_err());
+    assert!(error.contains("may have been deleted")&&error.contains("replacement was not uploaded"));server.finish();
+}
+#[test]
+fn unsafe_or_ambiguous_replacement_preflight_never_deletes() {
+    let temp=tempfile::tempdir().unwrap();let root=root(&temp);let source=root.join("data.zip");std::fs::write(&source,"new").unwrap();
+    let server=Server::start(|_|vec![
+        reply("GET","/repos/owner/repo/releases/tags/data",200,json!({"id":1,"tag_name":"data","upload_url":"https://untrusted.example/upload"}).to_string()),
+        reply("GET","/repos/owner/repo/releases/1/assets?per_page=100&page=1",200,format!("[{}]",asset("data.zip",3))),
+    ]);
+    assert!(server.client().replace_asset("data","data.zip",&source,false).unwrap_err().to_string().contains("Untrusted"));
+    server.finish();
+    let server=Server::start(|base|vec![
+        reply("GET","/repos/owner/repo/releases/tags/data",200,release(base)),
+        reply("GET","/repos/owner/repo/releases/1/assets?per_page=100&page=1",200,
+            json!([{"id":2,"name":"data.zip","size":3},{"id":3,"name":"data.zip","size":3}]).to_string()),
+    ]);
+    assert!(server.client().replace_asset("data","data.zip",&source,false).unwrap_err().to_string().contains("ambiguous"));server.finish();
+    let client=GithubReleaseClient::new("owner/repo","http://127.0.0.1:1",Some("fixture-token".into())).unwrap();
+    assert!(client.replace_asset("data","data.zip",&root.join("absent"),false).is_err());
+    #[cfg(unix)] {
+        std::os::unix::fs::symlink("data.zip",root.join("link")).unwrap();
+        assert!(client.replace_asset("data","data.zip",&root.join("link"),false).is_err());
+    }
+}
+#[test]
+fn cli_replacement_is_explicit_and_machine_result_stays_bounded() {
+    let temp=tempfile::tempdir().unwrap();let root=root(&temp);std::fs::write(root.join("data.zip"),"new").unwrap();
+    let server=Server::start(|base| {let mut replies=selected(base,"data.zip",3);
+        let mut upload=reply("POST","/upload?name=data.zip",201,replacement_asset("data.zip",3));upload.request=Some(b"new".to_vec());
+        replies.extend([reply("DELETE","/repos/owner/repo/releases/assets/2",204,""),upload]);replies});
+    let output=Command::new(env!("CARGO_BIN_EXE_proj")).env("GITHUB_API_URL",&server.base).env("GITHUB_PAT","fixture-token")
+        .args(["--project",root.as_str(),"--machine","remote","github","upload","--repository","owner/repo","--tag","data",
+            "--name","data.zip","--source","data.zip","--replace"]).output().unwrap();
+    assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
+    let value:serde_json::Value=serde_json::from_slice(&output.stdout).unwrap();assert_eq!(value["result"]["completed"],true);
+    assert!(!String::from_utf8_lossy(&output.stdout).contains("fixture-token"));server.finish();
 }
