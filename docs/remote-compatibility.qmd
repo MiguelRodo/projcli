@@ -391,3 +391,59 @@ names, unsafe sources and machine CLI output. These are mocked REST operations,
 not actual GitHub Release mutations. No live user data/credentials or local
 heavy tests. Remote exact-head gates and independent review remain required.
 Configured restore/source selection and full automatic publication remain next.
+
+## Configured single-label restore candidate
+
+remote restore --label LABEL --max-bytes N --max-expanded-bytes N resolves
+one declared final directory from merged active configuration. Optional
+--position source/dest, --provider local/github and --title restrict lookup;
+--profile follows existing earlier-profile/local precedence. --remote-version
+selects an exact archive version; otherwise numeric newest is selected. GitHub
+latest reads canonical VERSION.zip, then downloads its label ZIP. --repository
+owner/repo avoids requiring Git; otherwise origin is inspected locally and its
+host must match the API. GITHUB_API_URL and existing environment tokens retain
+the explicit transport contract. No credentials are installed.
+
+Existing per-directory source.local/source.github title references or named
+inline definitions precede eligible build.local/build.github destinations.
+A shared referenced definition may be refined inline through the existing deep
+merge (null still inherits). Destination source:false excludes it; true or a
+matching label preference beats the first eligible fallback. content:null/false
+selects nothing, true selects declared non-cache roles, and lists select declared
+labels. Source/provider/title declaration order is preserved. No retry switches
+to another configured source after lookup/download fails.
+
+A valid root manifest.csv is required, matching projr's prior-build gate.
+Labels with no recorded files and advertised empty variants skip without clearing.
+CSV history is not used as an integrity/trust proof. Full sources stage before
+the existing merge/clear installer; --clear never removes files before a source
+has been found and copied. Default merge preserves destination-only files.
+Machine results disclose restored/skipped, selected provider/title/version and
+destination; failures stay structured and do not print tokens or raw config.
+
+This deliberately fixes R source-selection indexing/inline-definition bugs and
+clear-before-lookup data loss. It does not add R's implicit hard-coded archive
+fallback: undeclared remotes/paths are errors under the agreed explicit mapping
+contract. Nonempty get policy mappings fail explicitly rather than pretending
+that R's ineffective get.strategy/get.conflict controls work. Send policy is not
+executed by restore. Definitions retain local path versus GitHub title/tag id
+semantics, including spaces and @version tag normalization.
+
+Boundary: ordinary inline remote/source fields are accepted by this command's
+read-only configuration projection only. Normal build validation still rejects
+unsupported ordinary publication fields, preventing silently ignored uploads.
+Configured automatic publication, cue/history policy integration, all-label
+default restore, complete credential-helper fallback and the issue706 registry
+remain subsequent work. Installed preview remains unchanged.
+
+Pinned comparison:
+[restore gate/selection/download](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/restore.R#L140),
+[inline destination defaults](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-dest.R#L197),
+[content eligibility](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send.R#L416).
+Ponytail full reuses merged YAML, typed core validation, CSV decoding, numeric
+version comparison and guarded local/ZIP installers. No backend trait, new
+registry or persistence schema. Filesystem and mocked REST actual CLI fixtures
+cover source priority, references/inline/profiles, destination preference,
+numeric archives, VERSION ZIP latest, clear/merge/empty and corrupt failure
+preservation. No actual GitHub Release mutation or local heavy test is performed.
+Exact-head remote verification and independent review are pending.

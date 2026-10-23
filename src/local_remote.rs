@@ -29,7 +29,7 @@ pub struct LocalVersion {
     pub metadata_untrusted: Option<bool>,
 }
 
-fn version_numbers(text: &str) -> Option<Vec<u64>> {
+pub(crate) fn version_numbers(text: &str) -> Option<Vec<u64>> {
     let bare = text.strip_prefix('v').unwrap_or(text);
     let parts: Vec<_> = bare.split(['.', '-']).collect();
     if parts.len() < 2 || parts.iter().any(|p| p.is_empty() || !p.bytes().all(|b| b.is_ascii_digit())) {
@@ -38,7 +38,7 @@ fn version_numbers(text: &str) -> Option<Vec<u64>> {
     parts.into_iter().map(|p| p.parse().ok()).collect()
 }
 
-fn compare_versions(left: &[u64], right: &[u64]) -> Ordering {
+pub(crate) fn compare_versions(left: &[u64], right: &[u64]) -> Ordering {
     (0..left.len().max(right.len())).map(|i|
         left.get(i).copied().unwrap_or(0).cmp(&right.get(i).copied().unwrap_or(0)))
         .find(|order| *order != Ordering::Equal).unwrap_or(Ordering::Equal)

@@ -861,6 +861,37 @@ fn normalize_r_data_layer(value: &mut Value, file: &Utf8Path) -> anyhow::Result<
             }
         }
     }
+    if legacy {
+        fn remote_labels(remote:&mut Value) {
+            for key in ["content","source"] {
+                if let Some(labels)=remote.get_mut(key).and_then(Value::as_array_mut) {
+                    for label in labels {
+                        if label.as_str().is_some_and(|v|v.eq_ignore_ascii_case("data")) {
+                            *label=Value::String("output-r-data".into());
+                        }
+                    }
+                }
+            }
+        }
+        if let Some(build)=value.get_mut("build").and_then(Value::as_object_mut) {
+            for provider in ["local","github"] {
+                if let Some(remotes)=build.get_mut(provider).and_then(Value::as_object_mut) {
+                    for remote in remotes.values_mut() {remote_labels(remote);}
+                }
+            }
+        }
+        if let Some(directories)=value.get_mut("directories").and_then(Value::as_object_mut) {
+            for directory in directories.values_mut() {
+                if let Some(sources)=directory.get_mut("source").and_then(Value::as_object_mut) {
+                    for provider in sources.values_mut() {
+                        if let Some(remotes)=provider.as_object_mut() {
+                            for remote in remotes.values_mut() {remote_labels(remote);}
+                        }
+                    }
+                }
+            }
+        }
+    }
     Ok(())
 }
 

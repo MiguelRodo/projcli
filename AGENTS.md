@@ -310,3 +310,11 @@ the unique asset/upload endpoint before DELETE; preserve strict new-upload defau
 DELETE followed by upload is the pinned projr behavior, not atomic publication:
 report deleted/uncertain outcomes and never silently retry or imply rollback.
 Mock fixtures only; no existing user assets are test targets.
+
+Configured restore uses existing directories.LABEL.source and build provider
+definitions; issue706 registry remains design-only. Keep source-before-destination,
+preferences/exclusion, merged profile order and numeric/advertised version rules.
+Never clear before source lookup/staging; empty/unrecorded labels skip intact.
+Restore's config projection must not make normal builds silently accept ignored
+ordinary upload fields. Correct source indexing/inline bugs with explicit evidence;
+do not add implicit archive paths, new policy defaults or CSV trust claims.

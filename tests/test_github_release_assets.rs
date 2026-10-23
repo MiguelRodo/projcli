@@ -390,3 +390,128 @@ fn explicit_replacement_of_absent_name_uploads_without_delete_and_rejects_stale_
     let error=format!("{:#}",server.client().replace_asset("data","data.zip",&source,false).unwrap_err());
     assert!(error.contains("Previous asset was deleted")&&error.contains("reused the deleted asset identity"));server.finish();
 }
+
+fn configure_restore(root:&camino::Utf8Path,layout:&str) {
+    std::fs::create_dir(root.join("restored")).unwrap();std::fs::write(root.join("restored/old.txt"),"old-state").unwrap();
+    std::fs::write(root.join("manifest.csv"),"label,fn,version,hash\nraw,data.csv,v1.2.3,900150983cd24fb0d6963f7d28e17f72\n").unwrap();
+    std::fs::write(root.join("_proj.yml"),format!("directories:\n  raw:\n    path: restored\n    source:\n      github: data\nbuild:\n  github:\n    data:\n      structure: {layout}\n      path: analysis\n")).unwrap();
+}
+fn restore_command(root:&camino::Utf8Path,base:&str)->Command {
+    let mut command=Command::new(env!("CARGO_BIN_EXE_proj"));
+    command.env("GITHUB_API_URL",base).env("GITHUB_PAT","fixture-token")
+        .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
+        .args(["--project",root.as_str(),"--machine","remote","restore","--label","raw",
+            "--repository","owner/repo","--max-bytes","100000","--max-expanded-bytes","100000","--clear"]);command
+}
+#[test]
+fn configured_github_archive_restore_selects_numeric_newest_and_exact_data_bytes() {
+    let temp=tempfile::tempdir().unwrap();let root=root(&temp);configure_restore(&root,"archive");
+    let source=root.join("source");std::fs::create_dir(&source).unwrap();std::fs::write(source.join("data.csv"),"selected-1.10").unwrap();
+    let (zip,_)=proj::github_zip::directory_zip(&source).unwrap();let bytes=std::fs::read(zip.path()).unwrap();
+    let server=Server::start(|base|vec![
+        reply("GET","/repos/owner/repo/releases/tags/data",200,release(base)),
+        reply("GET","/repos/owner/repo/releases/1/assets?per_page=100&page=1",200,
+            json!([{"id":5,"name":"analysis-raw-v1.9.zip","size":1},{"id":2,"name":"analysis-raw-v1.10.zip","size":bytes.len()},
+                {"id":6,"name":"analysis-raw-vnotes.zip","size":1}]).to_string()),
+        reply("GET","/repos/owner/repo/releases/tags/data",200,release(base)),
+        reply("GET","/repos/owner/repo/releases/1/assets?per_page=100&page=1",200,format!("[{}]",asset("analysis-raw-v1.10.zip",bytes.len()))),
+        reply("GET","/repos/owner/repo/releases/assets/2",200,&bytes),
+    ]);
+    let output=restore_command(&root,&server.base).output().unwrap();
+    assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
+    let value:serde_json::Value=serde_json::from_slice(&output.stdout).unwrap();assert_eq!(value["result"]["restored"],true);assert_eq!(value["result"]["version"],"v1.10");
+    assert_eq!(std::fs::read(root.join("restored/data.csv")).unwrap(),b"selected-1.10");assert!(!root.join("restored/old.txt").exists());server.finish();
+}
+#[test]
+fn configured_github_latest_reads_metadata_and_preserves_final_on_corrupt_zip() {
+    for corrupt in [false,true] {
+        let temp=tempfile::tempdir().unwrap();let root=root(&temp);configure_restore(&root,"latest");
+        let source=root.join("source");let metadata=root.join("metadata");std::fs::create_dir(&source).unwrap();std::fs::create_dir(&metadata).unwrap();
+        std::fs::write(source.join("data.csv"),"latest-data").unwrap();std::fs::write(metadata.join("VERSION"),"raw: v1.10*\n").unwrap();
+        let (zip,_)=proj::github_zip::directory_zip(&source).unwrap();
+        let bytes=if corrupt {b"not-a-zip".to_vec()}else{std::fs::read(zip.path()).unwrap()};
+        let metadata_zip=proj::github_zip::metadata_zip(&metadata,proj::github_zip::MetadataKind::Version).unwrap();let metadata_bytes=std::fs::read(metadata_zip.path()).unwrap();
+        let server=Server::start(|base| {
+            let listing=json!([{"id":2,"name":"analysis-raw.zip","size":bytes.len()},{"id":3,"name":"VERSION.zip","size":metadata_bytes.len()}]).to_string();
+            let mut replies=vec![
+                reply("GET","/repos/owner/repo/releases/tags/data",200,release(base)),reply("GET","/repos/owner/repo/releases/1/assets?per_page=100&page=1",200,&listing),
+                reply("GET","/repos/owner/repo/releases/tags/data",200,release(base)),reply("GET","/repos/owner/repo/releases/1/assets?per_page=100&page=1",200,&listing),
+                reply("GET","/repos/owner/repo/releases/assets/3",200,&metadata_bytes),
+            ];
+            replies.extend([reply("GET","/repos/owner/repo/releases/tags/data",200,release(base)),
+                reply("GET","/repos/owner/repo/releases/1/assets?per_page=100&page=1",200,&listing),
+                reply("GET","/repos/owner/repo/releases/assets/2",200,&bytes)]);replies
+        });
+        let output=restore_command(&root,&server.base).output().unwrap();
+        let value:serde_json::Value=serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(output.status.success(),!corrupt,"{}",String::from_utf8_lossy(&output.stderr));assert_eq!(value["ok"],!corrupt);
+        if corrupt {assert_eq!(std::fs::read(root.join("restored/old.txt")).unwrap(),b"old-state");assert!(!root.join("restored/data.csv").exists());}
+        else {assert_eq!(value["result"]["version"],"v1.10");assert_eq!(std::fs::read(root.join("restored/data.csv")).unwrap(),b"latest-data");assert!(!root.join("restored/old.txt").exists());}
+        assert!(!String::from_utf8_lossy(&output.stdout).contains("fixture-token"));server.finish();
+    }
+}
+
+#[test]
+fn configured_latest_empty_skips_and_repeated_trust_markers_fail_without_data_download() {
+    for (version,lowercase) in [("v1.10*",false),("v1.10**",false),("v1.10*",true)] {
+        let temp=tempfile::tempdir().unwrap();let root=root(&temp);configure_restore(&root,"latest");
+        let metadata=root.join("metadata");std::fs::create_dir(&metadata).unwrap();
+        std::fs::write(metadata.join("VERSION"),format!("raw: {version}\n")).unwrap();
+        let zip=proj::github_zip::metadata_zip(&metadata,proj::github_zip::MetadataKind::Version).unwrap();
+        let mut bytes=std::fs::read(zip.path()).unwrap();
+        if lowercase {
+            let offsets:Vec<_>=bytes.windows(7).enumerate().filter_map(|(index,part)|(part==b"VERSION").then_some(index)).collect();
+            assert_eq!(offsets.len(),2);
+            for offset in offsets {bytes[offset..offset+7].copy_from_slice(b"version");}
+        }
+        let server=Server::start(|base| {
+            let listing=json!([{"id":2,"name":"analysis-raw-empty.zip","size":1},{"id":3,"name":"VERSION.zip","size":bytes.len()}]).to_string();
+            vec![
+                reply("GET","/repos/owner/repo/releases/tags/data",200,release(base)),reply("GET","/repos/owner/repo/releases/1/assets?per_page=100&page=1",200,&listing),
+                reply("GET","/repos/owner/repo/releases/tags/data",200,release(base)),reply("GET","/repos/owner/repo/releases/1/assets?per_page=100&page=1",200,&listing),
+                reply("GET","/repos/owner/repo/releases/assets/3",200,&bytes),
+            ]
+        });
+        let output=restore_command(&root,&server.base).output().unwrap();
+        let value:serde_json::Value=serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(output.status.success(),version=="v1.10*"&&!lowercase,"{}",String::from_utf8_lossy(&output.stderr));
+        if version=="v1.10*"&&!lowercase {assert_eq!(value["result"]["skipped"],"empty-remote");assert_eq!(value["result"]["restored"],false);}
+        else {assert_eq!(value["ok"],false);}
+        assert_eq!(std::fs::read(root.join("restored/old.txt")).unwrap(),b"old-state");server.finish();
+    }
+}
+#[test]
+fn configured_legacy_data_archive_and_latest_use_existing_namespace_without_rewriting_history() {
+    for layout in ["archive","latest"] {
+        let temp=tempfile::tempdir().unwrap();let root=root(&temp);
+        std::fs::create_dir(root.join("data")).unwrap();std::fs::write(root.join("data/old"),"old").unwrap();
+        let history=b"label,fn,version,hash\ndata,data.csv,v1.2.3,900150983cd24fb0d6963f7d28e17f72\n";
+        std::fs::write(root.join("manifest.csv"),history).unwrap();
+        std::fs::write(root.join("_projr.yml"),format!("directories:\n  data:\n    source:\n      github: data\nbuild:\n  github:\n    data:\n      structure: {layout}\n      path: analysis\n      content: [data]\n      source: [data]\n")).unwrap();
+        let source=root.join("source");let metadata=root.join("metadata");std::fs::create_dir(&source).unwrap();std::fs::create_dir(&metadata).unwrap();
+        std::fs::write(source.join("data.csv"),"legacy data").unwrap();std::fs::write(metadata.join("VERSION"),"data: v1.10*\n").unwrap();
+        let (zip,_)=proj::github_zip::directory_zip(&source).unwrap();let bytes=std::fs::read(zip.path()).unwrap();
+        let meta=proj::github_zip::metadata_zip(&metadata,proj::github_zip::MetadataKind::Version).unwrap();let meta_bytes=std::fs::read(meta.path()).unwrap();
+        let name=if layout=="archive" {"analysis-data-v1.10.zip"} else {"analysis-data.zip"};
+        let server=Server::start(|base| {
+            let listing=json!([{"id":2,"name":name,"size":bytes.len()},{"id":3,"name":"VERSION.zip","size":meta_bytes.len()}]).to_string();
+            let mut replies=vec![reply("GET","/repos/owner/repo/releases/tags/data",200,release(base)),reply("GET","/repos/owner/repo/releases/1/assets?per_page=100&page=1",200,&listing)];
+            if layout=="latest" {replies.extend([
+                reply("GET","/repos/owner/repo/releases/tags/data",200,release(base)),reply("GET","/repos/owner/repo/releases/1/assets?per_page=100&page=1",200,&listing),
+                reply("GET","/repos/owner/repo/releases/assets/3",200,&meta_bytes),
+            ]);}
+            replies.extend([reply("GET","/repos/owner/repo/releases/tags/data",200,release(base)),
+                reply("GET","/repos/owner/repo/releases/1/assets?per_page=100&page=1",200,&listing),
+                reply("GET","/repos/owner/repo/releases/assets/2",200,&bytes)]);replies
+        });
+        let mut command=Command::new(env!("CARGO_BIN_EXE_proj"));
+        command.env("GITHUB_API_URL",&server.base).env("GITHUB_PAT","fixture-token")
+            .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
+            .args(["--project",root.as_str(),"--machine","remote","restore","--label","output-r-data","--repository","owner/repo",
+                "--max-bytes","100000","--max-expanded-bytes","100000","--clear"]);
+        let output=command.output().unwrap();assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
+        let value:serde_json::Value=serde_json::from_slice(&output.stdout).unwrap();assert_eq!(value["result"]["label"],"output-r-data");assert_eq!(value["result"]["version"],"v1.10");
+        assert_eq!(std::fs::read(root.join("data/data.csv")).unwrap(),b"legacy data");assert!(!root.join("data/old").exists());
+        assert_eq!(std::fs::read(root.join("manifest.csv")).unwrap(),history);server.finish();
+    }
+}

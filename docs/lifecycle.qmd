@@ -386,3 +386,7 @@ flowchart TB
 CSV replacement remains inside managed local recovery. Publication failure
 preserves local release CSV; no remote rollback is implied. Later end-hook
 changes are outside inventory, so these records are not sealing.
+
+Configured remote restore is a separate explicit operation, not an automatic
+stage in the build lifecycle above. It selects a source, stages a complete
+download and then invokes guarded merge/clear installation.
