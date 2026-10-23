@@ -1906,3 +1906,10 @@ derive from one canonical physical temporary root. Source publication wording is
 updated to distinguish newer source from installed preview.2. Final exact-head
 gate evidence belongs on [PR175](https://github.com/MiguelRodo/projcli/pull/175);
 earlier source-only review notes above describe their historical checkpoint.
+
+Further platform evidence refined the fixture fix: Git for Windows does not
+accept a verbatim Windows path in GIT_CONFIG_GLOBAL. The real-Git fixture retains
+its original Git-facing paths and canonicalizes only the new direct CSV read.
+The captured-context fixture now supplies a physical external raw path, avoiding
+macOS /var aliases before the new pre-input capture. Production guards and Git
+credential/config behaviour are unchanged.
