@@ -626,3 +626,22 @@ fn historical_empty_archive_sentinel_is_validated_before_reuse_or_metadata_chang
         drop(state);server.finish();
     }
 }
+
+
+#[cfg(target_os="linux")]
+#[test]
+fn final_zip_native_aliases_fail_before_remote_mutations() {
+    for case in ["source-alias","merged-alias"] {
+        let server=Server::start();let (_temporary,root)=setup(&server);latest(&root);
+        fs::write(root.join("results/A.csv"),b"uppercase").unwrap();
+        let old=if case=="source-alias" {
+            fs::write(root.join("results/a.csv"),b"lowercase").unwrap();
+            fixture_zip(&[("prior.csv",b"preserve")])
+        }else{fixture_zip(&[("a.csv",b"remote lowercase")])};
+        seed(&server,"output.zip",old.clone());
+        let output=invoke(&server,&root,&["build","--non-interactive"]);assert!(!output.status.success(),"{case}");
+        let state=server.state.lock().unwrap();assert!(state.uploads.is_empty());assert!(state.deleted.is_empty());
+        assert_eq!(state.assets["output.zip"].1,old);
+        drop(state);server.finish();
+    }
+}

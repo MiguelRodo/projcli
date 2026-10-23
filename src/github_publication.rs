@@ -244,7 +244,11 @@ pub(crate) fn publish(root:&Utf8Path,targets:&[Target],version:&str)->anyhow::Re
                 let full=mirror_path(stage,&target.spec,&label,version,false);
                 let empty_path=mirror_path(stage,&target.spec,&label,version,true);
                 let empty=empty_path.try_exists()?;
-                let (zip,is_empty)=crate::github_zip::directory_zip(if empty {&empty_path}else{&full})?;
+                let data=if empty {&empty_path}else{&full};
+                let files=crate::manifest::inventory_directory(data,false)?.into_iter().collect();
+                // Validate the FINAL union through our own extractor before
+                // enqueueing; local/native names can still alias in a ZIP.
+                let (zip,is_empty)=crate::github_zip::recorded_directory_zip(data,&files)?;
                 anyhow::ensure!(empty==is_empty,"Prepared GitHub empty variant disagrees with its file set");
                 let asset=name(&target.spec,&label,version,empty)?;
                 uploads.push((asset.clone(),Some(zip),true));

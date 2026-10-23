@@ -2545,3 +2545,12 @@ or live Release asset mutations. Installed preview and registry706 unchanged.
 
 Ponytail full: reuse guarded local publication, staging, MD5/action/CSV helpers
 and ZIP transport; no new dependency, alternate schema or second policy engine.
+
+
+Independent review caught a final-serialization gap: a valid native staged union
+can contain ZIP aliases or exceed the extractor's member ceiling. Final data now
+uses the existing recorded ZIP helper and its own extractor validation/explicit
+cleanup before enqueueing. Linux actual CLI source-alias and merged-alias fixtures
+assert failure with no POST/DELETE and unchanged old assets. Remote compilation
+also caught the temporarily unused helper; reuse closes that failure without
+warning suppression or weaker guards.
