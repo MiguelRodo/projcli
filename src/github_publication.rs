@@ -1,7 +1,7 @@
 //! Bounded configured GitHub archive publication. All source ZIPs and shared
 //! metadata stage before uploads. Existing current-version assets fail closed;
 //! latest/history comparison and configured replacement remain separate slices.
-use std::{collections::{BTreeMap,BTreeSet},fs};
+use std::{collections::BTreeSet,fs};
 use anyhow::Context;
 use camino::{Utf8Path,Utf8PathBuf};
 use serde_json::{Map,Value};
@@ -29,7 +29,7 @@ pub(crate) fn validate(root:&Utf8Path,raw:Option<&Map<String,Value>>,config:&cra
     let context=serde_json::json!({"directories":declared});
     let mut specs=Vec::new();
     for (title,value) in raw.into_iter().flatten() {
-        anyhow::ensure!(!title.is_empty()&&!title.chars().any(char::is_control),"Invalid GitHub destination title");
+        anyhow::ensure!(!title.trim_matches(' ').is_empty()&&!title.chars().any(char::is_control),"Invalid GitHub destination title");
         let definition=crate::restore::definition(value)?;
         let mut labels=if let Some(Value::Array(values))=&definition.content {
             values.iter().map(|value|value.as_str().map(str::to_owned).context("Content labels must be strings")).collect::<anyhow::Result<Vec<_>>>()?
@@ -108,6 +108,17 @@ fn metadata(client:&GithubReleaseClient,tag:&str,kind:MetadataKind,stage:&Utf8Pa
         (Err(error),Ok(()))=>Err(error),(Ok(()),result)=>result
     }
 }
+fn current_archive(spec:&Spec,label:&str,current:&str,asset:&str)->anyhow::Result<bool> {
+    let stem=crate::github_zip::directory_asset_name(spec.prefix.as_deref(),spec.append,label,GithubStructure::Latest,None,false)?;
+    let prefix=folded(&(stem.trim_end_matches(".zip").to_owned()+"-v"));
+    let asset=folded(asset);
+    let Some(version)=asset.strip_prefix(&prefix).and_then(|value|value.strip_suffix(".ZIP")) else{return Ok(false)};
+    let version=version.strip_suffix("-EMPTY").unwrap_or(version);
+    if !version.as_bytes().first().is_some_and(u8::is_ascii_digit){return Ok(false);}
+    let numbers=crate::local_remote::version_numbers(version).context("Invalid numeric GitHub archive asset")?;
+    let current=crate::local_remote::version_numbers(current).context("Invalid current archive version")?;
+    Ok(crate::local_remote::compare_versions(&numbers,&current).is_eq())
+}
 /// Prepare all data/metadata archives, then upload data before shared metadata.
 /// Existing current-version data is rejected before any upload; shared metadata
 /// replacement is delete-then-upload, with honest partial/uncertain failure.
@@ -128,12 +139,17 @@ pub(crate) fn publish(root:&Utf8Path,targets:&[Target],version:&str)->anyhow::Re
             anyhow::ensure!(planned==existing||folded(planned)!=folded(existing),"GitHub asset namespace alias: {planned}");
         }}
         for (label,_) in &target.spec.labels {
-            anyhow::ensure!(!actual.contains(&name(&target.spec,label,version,false)?)&&!actual.contains(&name(&target.spec,label,version,true)?),
-                "Current GitHub archive already exists; configured replacement remains pending, no upload performed");
+            for existing in &actual {
+                anyhow::ensure!(!current_archive(&target.spec,label,version,existing)?,
+                    "Current GitHub archive already exists (possibly another numeric spelling); configured replacement remains pending, no upload performed");
+            }
             if label=="output-r-data" {
                 let legacy=crate::github_zip::directory_asset_name(target.spec.prefix.as_deref(),target.spec.append,"data",GithubStructure::Latest,None,false)?;
-                let prefix=legacy.trim_end_matches(".zip").to_owned()+"-v";
-                anyhow::ensure!(!actual.iter().any(|name|folded(name).starts_with(&folded(&prefix))),"Legacy GitHub data namespace requires explicit migration");
+                let canonical=crate::github_zip::directory_asset_name(target.spec.prefix.as_deref(),target.spec.append,label,GithubStructure::Latest,None,false)?;
+                if folded(&legacy)!=folded(&canonical) {
+                    let prefix=legacy.trim_end_matches(".zip").to_owned()+"-v";
+                    anyhow::ensure!(!actual.iter().any(|name|folded(name).starts_with(&folded(&prefix))),"Legacy GitHub data namespace requires explicit migration");
+                }
             }
         }
         let temporary=tempfile::Builder::new().prefix("proj-github-publication-").tempdir_in(fs::canonicalize(std::env::temp_dir())?)?;
@@ -172,7 +188,7 @@ pub(crate) fn publish(root:&Utf8Path,targets:&[Target],version:&str)->anyhow::Re
         })();
         let cleanup_path=temporary.path().to_owned();
         let cleanup=match crate::fs_utils::prepare_owned_cleanup(&cleanup_path) {
-            Ok(())=>temporary.close().map_err(anyhow::Error::from),
+            Ok(())=>temporary.close().map_err(anyhow::Error::from).with_context(||format!("Metadata staging cleanup failed at {}",cleanup_path.display())),
             Err(error)=>{let retained=temporary.keep();Err(error.context(format!("Metadata staging retained at {}",retained.display())))},
         };
         match (result,cleanup){
@@ -190,7 +206,10 @@ pub(crate) fn publish(root:&Utf8Path,targets:&[Target],version:&str)->anyhow::Re
         Ok(())
     })();
     let mut failures=Vec::new();
-    for uploads in prepared {for (_,zip,_) in uploads {if let Err(error)=zip.close(){failures.push(error.to_string());}}}
+    for uploads in prepared {for (_,zip,_) in uploads {
+        let path=zip.path().to_owned();
+        if let Err(error)=zip.close(){failures.push(format!("{}: {error}",path.display()));}
+    }}
     if !failures.is_empty() {return Err(result.err().unwrap_or_else(||anyhow::anyhow!("GitHub publication completed")).context(format!("ZIP cleanup failed: {}",failures.join("; "))));}
     result
 }

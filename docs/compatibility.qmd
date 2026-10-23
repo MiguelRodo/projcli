@@ -2440,3 +2440,11 @@ Non-public API origins require an explicit environment token. Default github.com
 Git/gh credential helpers are only used for the standard HTTPS api.github.com
 origin (port443), never forwarded to Enterprise/custom hosts. A regression uses
 a fake public helper and verifies it is not invoked for a loopback API.
+
+
+Independent review corrections: reject numeric-equivalent full/empty current
+assets (including leading-zero/padded spellings) before mutation; compare distinct
+legacy/canonical stems before treating prior prefixed append-label:false R-data
+archives as legacy; reject all-space Release titles before hooks. Fixtures preserve
+alias bytes/no-POST/no-DELETE and complete two such R-data builds. Cleanup failures
+include the private retained path. Public helper credentials never cross API origins.

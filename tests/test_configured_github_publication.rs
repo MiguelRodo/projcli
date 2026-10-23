@@ -175,3 +175,40 @@ fn enterprise_api_never_uses_default_public_github_credential_helpers() {
     assert_eq!(fs::read(root.join("VERSION")).unwrap(),b"v1.2.3\n");
     server.finish();
 }
+
+#[test]
+fn numeric_current_archive_aliases_are_preserved_without_post_or_delete() {
+    for name in ["output-v01.2.4.zip","output-v1.2.4.0.zip","output-v1.2.4.0-empty.zip","OUTPUT-V01.2.4.ZIP"] {
+        let server=Server::start();let (_temporary,root)=setup(&server);
+        {let mut data=server.state.lock().unwrap();data.exists=true;data.next=1;data.assets.insert(name.into(),(1,b"prior alias bytes".to_vec()));}
+        let output=invoke(&server,&root,&["build","--non-interactive"]);
+        assert!(!output.status.success(),"{name}");
+        assert!(String::from_utf8_lossy(&output.stderr).contains("Current GitHub archive already exists"),"{}",String::from_utf8_lossy(&output.stderr));
+        let data=server.state.lock().unwrap();assert!(data.uploads.is_empty());assert!(data.deleted.is_empty());assert_eq!(data.assets[name].1,b"prior alias bytes");drop(data);server.finish();
+    }
+}
+#[test]
+fn prefixed_no_label_r_data_archives_do_not_conflict_with_their_own_history() {
+    let server=Server::start();let (_temporary,root)=setup(&server);
+    fs::create_dir(root.join("data")).unwrap();fs::write(root.join("data/table.csv"),"R data\n").unwrap();
+    let config=fs::read_to_string(root.join("_proj.yml")).unwrap()
+        .replace("directories:\n","directories:\n  output-r-data: {}\n")
+        .replace("      content: [output]","      path: bundle\n      path-append-label: false\n      content: [output-r-data]");
+    fs::write(root.join("_proj.yml"),config).unwrap();
+    success(invoke(&server,&root,&["build","--non-interactive"]));
+    success(invoke(&server,&root,&["build","--non-interactive"]));
+    let data=server.state.lock().unwrap();
+    for name in ["bundle-v1.2.4.zip","bundle-v1.2.5.zip"] {assert_eq!(members(&data.assets[name].1)["table.csv"],b"R data\n");}
+    drop(data);server.finish();
+}
+#[test]
+fn all_space_release_title_fails_before_hooks_and_network() {
+    let server=Server::start();let (_temporary,root)=setup(&server);
+    let config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("    data:","    '   ':")
+        .replace("build:\n","build:\n  hooks: {pre: [start.py]}\n");
+    fs::write(root.join("_proj.yml"),config).unwrap();
+    fs::write(root.join("start.py"),"from pathlib import Path\nPath('hook-ran').write_text('bad')\n").unwrap();
+    let output=invoke(&server,&root,&["build","--non-interactive"]);assert!(!output.status.success());
+    assert!(!root.join("hook-ran").exists());assert!(!root.join("manifest.csv").exists());
+    assert!(!server.state.lock().unwrap().exists);server.finish();
+}
