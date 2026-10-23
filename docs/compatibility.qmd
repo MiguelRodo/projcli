@@ -2866,3 +2866,7 @@ post-hook fixtures now compare exact retained CSV bytes/rows and generated histo
 to the changed final filesystem, while release CSV/remote bytes stay unchanged.
 A deliberate plain JSON destination collision asserts removal only of the newly
 created owned CSV, preserved unrelated evidence, and exact version/output recovery.
+
+Remote macOS identified the direct library fixture passing its /var temporary
+alias to guarded history reads. The witness now uses its canonical owned root;
+production path guards and exact row/history assertions remain unchanged.

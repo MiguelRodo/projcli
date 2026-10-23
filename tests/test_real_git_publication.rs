@@ -584,7 +584,8 @@ fn git_receipt_observes_post_hook_changes_without_rewriting_the_committed_snapsh
     let reference=&receipt["final_outputs"]["rows"];
     let bytes=fs::read(fixture.root.join(".proj/log").join(reference["file"].as_str().unwrap())).unwrap();
     assert_eq!(proj::manifest_csv::decode(&bytes).unwrap(),rows);
-    let history=proj::history::read(camino::Utf8Path::from_path(&fixture.root).unwrap(),Some(id),20).unwrap();
+    let physical_root=fixture.root.canonicalize().unwrap();
+    let history=proj::history::read(camino::Utf8Path::from_path(&physical_root).unwrap(),Some(id),20).unwrap();
     let detail=serde_json::to_value(&history).unwrap();
     assert_eq!(detail["entries"][0]["status"],"completed");
     assert_eq!(detail["entries"][0]["final_files"]["rows"],serde_json::to_value(&rows).unwrap());
