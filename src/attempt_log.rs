@@ -56,6 +56,10 @@ struct Record {
     operations: Vec<Operation>,
     git: GitOutcome,
     source_head: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    inventory: Option<InventoryEvidence>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    final_outputs: Option<FinalOutputs>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -69,6 +73,47 @@ struct Receipt {
     stage: String,
     version_after: Option<String>,
     git: GitOutcome,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    final_outputs: Option<FinalOutputs>,
+}
+
+/// Fingerprints a phase's canonical CSV rows without copying large inventories into JSON.
+/// The current release rows remain in manifest.csv; MD5 retains its existing semantics.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct InventoryFingerprint {
+    csv_version: String,
+    rows: usize,
+    files: usize,
+    labels: Vec<String>,
+    canonical_csv_blake3: String,
+}
+
+impl InventoryFingerprint {
+    /// Hash the existing CSV codec's exact current rows, including paths and empty markers.
+    pub(crate) fn capture(rows: &[crate::manifest::ManifestRow], version: &str) -> anyhow::Result<Self> {
+        let mut labels:Vec<_>=rows.iter().map(|row|row.label.clone()).collect();
+        labels.sort();labels.dedup();
+        Ok(Self {csv_version:version.into(),rows:rows.len(),
+            files:rows.iter().filter(|row|!row.r#fn.is_empty()).count(),labels,
+            canonical_csv_blake3:blake3::hash(&crate::manifest_csv::encode(rows)?).to_hex().to_string()})
+    }
+}
+
+/// Current-phase inventory witnesses, separate from the cumulative CSV history.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct InventoryEvidence {
+    pub(crate) inputs: InventoryFingerprint,
+    pub(crate) release_outputs: InventoryFingerprint,
+}
+
+/// Final observed outputs after finalization was attempted; failure is not an empty inventory.
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct FinalOutputs {
+    pub(crate) status: Status,
+    pub(crate) inventory: Option<InventoryFingerprint>,
 }
 
 /// The snapshot is mutable until Git starts, then immutable; the outcome is a new file.
@@ -76,6 +121,7 @@ pub(crate) struct AttemptLog {
     path: Utf8PathBuf,
     record: Record,
     sealed_hash: Option<String>,
+    created_directory: bool,
 }
 
 fn timestamp() -> String { chrono::Utc::now().to_rfc3339() }
@@ -92,29 +138,54 @@ fn read(path: &Utf8Path) -> anyhow::Result<Vec<u8>> {
 
 fn create(path: &Utf8Path, bytes: &[u8]) -> anyhow::Result<()> {
     crate::path_safety::resolve_path(path.as_std_path(), true)?;
-    let mut file=fs::OpenOptions::new().write(true).create_new(true).open(path)
-        .context("Cannot create unique attempt evidence")?;
+    let parent=path.parent().context("Attempt evidence has no directory")?;
+    let mut file=tempfile::NamedTempFile::new_in(parent)?;
     file.write_all(bytes)?;
-    file.sync_all()?;
+    file.as_file().sync_all()?;
+    crate::path_safety::resolve_path(path.as_std_path(), true)?;
+    file.persist_noclobber(path).map_err(|error|error.error)
+        .context("Cannot create unique attempt evidence")?;
     Ok(())
 }
 
 impl AttemptLog {
-    /// Start durable evidence only after the successful local-release boundary.
-    pub(crate) fn start(root:&Utf8Path, attempt:&crate::attempt::Attempt, profiles:Vec<String>,
-        before:String, release:String, mode:&str, git:bool, push:bool, source_head:Option<String>) -> anyhow::Result<Self> {
+    /// Prepare evidence without installing a record until start or completed_local succeeds.
+    pub(crate) fn prepare(root:&Utf8Path, attempt:&crate::attempt::Attempt, profiles:Vec<String>,
+        before:String, release:String, mode:&str, git:bool, push:bool, source_head:Option<String>, inventory:Option<InventoryEvidence>) -> anyhow::Result<Self> {
         let directory=root.join(".proj/log");
         crate::path_safety::validate_native_names(root,".proj/log",false)?;
         crate::path_safety::resolve_path(directory.as_std_path(),true)?;
-        fs::create_dir_all(&directory)?;
+        let created_directory=match fs::create_dir(&directory) {
+            Ok(())=>true,
+            Err(error) if error.kind()==std::io::ErrorKind::AlreadyExists=>{
+                anyhow::ensure!(directory.is_dir(),"Attempt log path must be a directory");
+                false
+            },
+            Err(error)=>return Err(error).context("Cannot create attempt log directory"),
+        };
         let path=directory.join(format!("{}.json",attempt.id()));
         let record=Record {schema_version:1,attempt_id:attempt.id().to_owned(),
             started_at:attempt.started_at().to_owned(),recorded_at:timestamp(),profiles,build_mode:mode.into(),version_after:None,
             version_before:before,release_version:release,local_build:"completed".into(),
             stage:"local_release".into(),status:"in_progress".into(),distribution_may_have_started:false,
-            operations:Vec::new(),git:GitOutcome::requested(git,push),source_head};
-        create(&path,&serde_json::to_vec_pretty(&record)?)?;
-        Ok(Self {path,record,sealed_hash:None})
+            operations:Vec::new(),git:GitOutcome::requested(git,push),source_head,inventory,final_outputs:None};
+        Ok(Self {path,record,sealed_hash:None,created_directory})
+    }
+
+    /// Install the initial publication snapshot before any provider or Git entry.
+    pub(crate) fn start(self) -> anyhow::Result<Self> {
+        create(&self.path,&serde_json::to_vec_pretty(&self.record)?)?;
+        Ok(self)
+    }
+
+    /// Install one completed plain-build record only after all recoverable work succeeds.
+    /// Stage complete bytes before exclusive installation; do not truncate an existing record.
+    pub(crate) fn completed_local(mut self,version_after:Option<String>,outputs:FinalOutputs)->anyhow::Result<()> {
+        self.record.status="completed".into();
+        self.record.stage="end_hooks_and_next_dev".into();
+        self.record.version_after=version_after;
+        self.record.final_outputs=Some(outputs);
+        create(&self.path,&serde_json::to_vec_pretty(&self.record)?)
     }
 
     fn save(&mut self) -> anyhow::Result<()> {
@@ -168,13 +239,13 @@ impl AttemptLog {
     }
 
     /// Write a terminal local record or unique Git receipt, then register its local ownership witness.
-    pub(crate) fn finish(&mut self,success:bool,git:GitOutcome,version_after:Option<String>,
+    pub(crate) fn finish(&mut self,success:bool,git:GitOutcome,version_after:Option<String>,outputs:FinalOutputs,
         witness:impl FnOnce(&str,&str,&str)->anyhow::Result<()>) -> anyhow::Result<()> {
         let status=if success {"completed"}else{"failed"};
         if let Some(hash)=&self.sealed_hash {
             let receipt=Receipt {schema_version:1,attempt_id:self.record.attempt_id.clone(),
                 snapshot_hash:hash.clone(),recorded_at:timestamp(),
-                status:status.into(),stage:"git_and_finalization".into(),version_after,git};
+                status:status.into(),stage:"git_and_finalization".into(),version_after,git,final_outputs:Some(outputs)};
             let path=self.path.with_file_name(format!("{}.git.json",self.record.attempt_id));
             let bytes=serde_json::to_vec_pretty(&receipt)?;
             create(&path,&bytes)?;
@@ -183,9 +254,19 @@ impl AttemptLog {
             self.record.status=status.into();
             self.record.git=git;
             self.record.version_after=version_after;
+            self.record.final_outputs=Some(outputs);
             self.save()?;
         }
         Ok(())
+    }
+}
+
+impl Drop for AttemptLog {
+    fn drop(&mut self) {
+        // Remove only our newly created empty directory; never discard installed evidence.
+        if self.created_directory {
+            if let Some(parent)=self.path.parent() {let _=fs::remove_dir(parent);}
+        }
     }
 }
 

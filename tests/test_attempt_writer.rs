@@ -48,10 +48,11 @@ while not Path('continue').exists():
     assert_eq!(fs::read(root.join("VERSION")).unwrap(), during);
     fs::write(root.join("continue"), b"release").unwrap();
     assert!(first.wait().unwrap().success());
-    assert!(!root.join(".proj").exists());
+    assert!(!root.join(".proj/build.lock").exists());
+    assert_eq!(fs::read_dir(root.join(".proj/log")).unwrap().count(),1);
 
     // A second successful run gets a fresh identity, including with .proj retained.
-    fs::create_dir(root.join(".proj")).unwrap();
+    fs::create_dir_all(root.join(".proj")).unwrap();
     fs::write(root.join(".proj/keep"), b"unrelated existing state").unwrap();
     fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('identity.json').write_bytes(Path('.proj/build.lock').read_bytes())\n").unwrap();
     let third = command(&root).output().unwrap();

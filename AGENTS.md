@@ -446,3 +446,14 @@ claim or ownership witness. Do not serialize raw environment, credentials,
 remote URLs, command arguments, descriptions or subprocess output.
 Plain no-publication builds, previews and failures before local release retain
 their existing behavior in this first slice; do not claim full M2 provenance.
+
+
+Successful plain production builds retain completed attempt evidence after all
+recoverable work succeeds. Do not introduce failed/pre-distribution retention or
+preview records implicitly. Bind current input/release-output inventory evidence
+to the existing canonical CSV codec; keep large per-file rows out of JSON.
+Observe final outputs separately and preserve the immutable pre-Git snapshot.
+Output mutation by hooks remains allowed, not an M2 enforcement gate. Fingerprints
+cannot recover missing CSV or enumerate changed final rows; keep these limitations
+and the remaining full provenance/human-history work explicit. New optional
+record fields must still decode earlier pending development receipts.

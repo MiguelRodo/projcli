@@ -522,10 +522,10 @@ Managed caches, output/document destinations and ordinary publication targets
 cannot replace .proj. Optional Git integration excludes only reserved live
 .proj/build.lock paths at every repository depth from clean-state checks and staging, preserving the
 existing whole-repository staging scope. A tracked claim is rejected. This does
-not exclude .proj/log or choose the still-pending final Git receipt sequence.
+not exclude .proj/log. The approved final Git receipt sequence is described below.
 
-Per-attempt durable JSON logs, their retention and post-commit/push receipts are
-not implemented by this ownership slice. End-hook mutation enforcement remains
+Ownership alone does not implement durable JSON logs or final Git receipts;
+the following development-source sections describe those additional slices. End-hook mutation enforcement remains
 deferred; existing hook ordering and failure recovery are unchanged.
 
 ## Development source: publication-attempt evidence
@@ -561,3 +561,34 @@ no durable attempt record. Complete source/runner/dependency provenance, earlier
 stage records and cleanup/retention policy remain M2 follow-up work. End-hook
 mutation enforcement stays deferred; these records do not authenticate arbitrary
 scripts or provide a filesystem sandbox. The installed preview.3 is unchanged.
+
+
+## Development source: plain production records and inventory witnesses
+
+Successful production builds now retain a completed .proj/log record even with
+Git and all publication disabled. It is installed only after end hooks and the
+next-dev transition succeed. Pre-distribution failures and previews still do not
+gain durable records; their retention policy remains undecided.
+
+Attempt JSON references current inventory evidence from the existing manifest.csv:
+selected input rows captured before analysis, release-output rows after promotion,
+and an observation of outputs after finalization is attempted. Each fingerprint
+includes the release version, labels, row/file counts and BLAKE3 of the existing
+codec's canonical CSV rows. File hashes remain MD5. These control fingerprints
+include paths, version and empty-directory markers; they are not a new content-only
+tree identity, authentication or a replacement manifest.
+
+Detailed pre-analysis/release rows remain in the ordinary historical CSV. The JSON
+does not duplicate that potentially large table. End hooks may change files:
+the final observation can differ from the release inventory without enforcement.
+With Git enabled the immutable snapshot retains the release inventory; the later
+receipt holds the final observation. No rewrite of previously published data or
+CSV history follows. Final observation failure is distinct from an empty inventory
+and preserves earlier evidence and the original operation error where present.
+
+Hash-disabled directories and output-disabled builds remain excluded; the latter
+record an explicit not_requested final observation. Additional output hashing is
+needed for the final observation. Fingerprints alone cannot reconstruct missing
+CSV rows or list changed post-hook paths; complete source/config/runner/dependency
+provenance, inspectable final-row retention and human-history generation remain
+unfinished M2 work. The installed preview.3 remains unchanged.

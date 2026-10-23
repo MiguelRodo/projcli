@@ -237,5 +237,15 @@ Preserve the files and resolve the unexpected changes before another build.
 No tokens, environment dumps, remote URLs, command arguments or subprocess output
 are copied into these records. This first slice covers publication-enabled
 production builds, including ordinary local publication without Git.
-Previews, plain builds without publication and earlier failures are unchanged.
+Previews and earlier failures are unchanged. Successful plain production builds
+also retain a completed record after hooks and the next-dev transition.
 These features are development-source behavior; preview.3 has not been updated.
+
+
+The development record also fingerprints the existing CSV's current input and
+release-output rows. The detailed file names and MD5 hashes stay in manifest.csv;
+the JSON records labels, counts and a BLAKE3 checksum of those canonical rows.
+Final output observation runs after finalization is attempted, so an end hook's
+changes can be detected without rejecting ordinary output mutation. With Git,
+that observation belongs to the later receipt. A checksum is not a substitute for
+the CSV or a guarantee that every historical byte remains available.

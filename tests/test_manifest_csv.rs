@@ -22,6 +22,21 @@ fn success(output: std::process::Output) {
     assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
 }
 
+fn record(root:&Path,version:&str)->serde_json::Value {
+    let records:Vec<serde_json::Value>=fs::read_dir(root.join(".proj/log")).unwrap()
+        .map(|entry|serde_json::from_slice(&fs::read(entry.unwrap().path()).unwrap()).unwrap())
+        .filter(|record:&serde_json::Value|record["release_version"]==version).collect();
+    assert_eq!(records.len(),1);
+    records.into_iter().next().unwrap()
+}
+fn assert_fingerprint(fingerprint:&serde_json::Value,rows:&[ManifestRow],version:&str) {
+    assert_eq!(fingerprint["csv_version"],version);
+    assert_eq!(fingerprint["rows"],rows.len());
+    assert_eq!(fingerprint["files"],rows.iter().filter(|row|!row.r#fn.is_empty()).count());
+    let digest=blake3::hash(&proj::manifest_csv::encode(rows).unwrap()).to_hex().to_string();
+    assert_eq!(fingerprint["canonical_csv_blake3"],digest);
+}
+
 #[test]
 fn production_records_md5_pre_inputs_final_outputs_and_exact_history_without_git_or_remotes() {
     let temporary = tempfile::tempdir().unwrap(); let physical_root = temporary.path().canonicalize().unwrap(); let root = physical_root.as_path();
@@ -37,6 +52,18 @@ fn production_records_md5_pre_inputs_final_outputs_and_exact_history_without_git
     assert!(rows.iter().any(|r| r.label == "output" && r.r#fn == "result.csv" && r.hash == "5d41402abc4b2a76b9719d911017c592"));
     assert!(rows.iter().any(|r| r.label == "docs" && r.r#fn.is_empty() && r.hash.is_empty()));
     assert!(!rows.iter().any(|r| r.label == "cache"));
+    let first_record=record(root,"v1.2.4");
+    assert_eq!(first_record["status"],"completed");
+    assert_eq!(first_record["git"]["commit"],"not_requested");
+    assert_eq!(first_record["distribution_may_have_started"],false);
+    assert_eq!(first_record["version_before"],"v1.2.3.4");
+    assert_eq!(first_record["version_after"],"v1.2.4.1");
+    assert_fingerprint(&first_record["inventory"]["inputs"],
+        &rows.iter().filter(|row|row.label=="raw").cloned().collect::<Vec<_>>(),"v1.2.4");
+    assert_fingerprint(&first_record["inventory"]["release_outputs"],
+        &rows.iter().filter(|row|row.label!="raw").cloned().collect::<Vec<_>>(),"v1.2.4");
+    assert_eq!(first_record["final_outputs"]["status"],"completed");
+    assert_eq!(first_record["final_outputs"]["inventory"],first_record["inventory"]["release_outputs"]);
     let pre = manifest::read(path(&root.join("cache/projr/v1.2.4/manifest.csv"))).unwrap();
     assert_eq!(pre, rows.iter().filter(|r| r.label == "raw").cloned().collect::<Vec<_>>());
     assert_eq!(fs::read(root.join("released/result.csv")).unwrap(), b"hello");
@@ -46,6 +73,10 @@ fn production_records_md5_pre_inputs_final_outputs_and_exact_history_without_git
     assert_eq!(history.len(), 6);
     assert!(rows.iter().all(|r| history.contains(r)));
     assert!(history.iter().any(|r| r.label == "raw" && r.version == "v1.2.5" && r.hash != "900150983cd24fb0d6963f7d28e17f72"));
+    assert_eq!(record(root,"v1.2.4"),first_record,"previous attempt evidence changed");
+    assert_fingerprint(&record(root,"v1.2.5")["inventory"]["inputs"],
+        &history.iter().filter(|row|row.label=="raw"&&row.version=="v1.2.5").cloned().collect::<Vec<_>>(),"v1.2.5");
+    assert_eq!(fs::read_dir(root.join(".proj/log")).unwrap().count(),2);
 }
 
 #[test]
@@ -65,6 +96,9 @@ fn configured_hash_flags_and_cache_framework_exclusion_match_projr() {
     let cache: Vec<_> = rows.iter().filter(|r| r.label == "cache").collect();
     assert_eq!(cache.len(), 1);
     assert_eq!(cache[0].r#fn, "retained.csv");
+    let log=record(root,"v1.2.4");
+    assert_eq!(log["inventory"]["inputs"]["labels"],serde_json::json!(["cache"]));
+    assert_fingerprint(&log["inventory"]["inputs"],&cache.into_iter().cloned().collect::<Vec<_>>(),"v1.2.4");
 }
 
 #[test]
@@ -88,7 +122,15 @@ fn preview_disabled_output_and_failed_end_hook_preserve_prior_csv_and_version() 
         }
         else { success(output); }
         assert_eq!(fs::read(root.join("manifest.csv")).unwrap(), prior);
-        if mode != "disabled" {
+        if mode=="disabled" {
+            let log=record(root,"v1.2.4");
+            assert!(log.get("inventory").is_none());
+            assert_eq!(log["final_outputs"]["status"],"not_requested");
+            assert!(log["final_outputs"]["inventory"].is_null());
+        }else{
+            assert!(!root.join(".proj/log").exists(),"pre-distribution failure/preview retention changed");
+        }
+        if mode != "disabled"  {
             assert_eq!(fs::read(root.join("VERSION")).unwrap(), b"v1.2.3-4\n");
         }
     }
@@ -169,4 +211,57 @@ fn cache_free_empty_selection_still_records_explicit_inputs() {
     let rows = manifest::read(path(&root.join("manifest.csv"))).unwrap();
     assert_eq!(rows, vec![ManifestRow { label: "raw".into(), r#fn: "".into(), version: "v1.2.4".into(), hash: "".into() }]);
     assert!(!root.join("cache").exists());
+}
+
+#[test]
+fn end_hook_output_changes_are_observed_without_enforcement_or_rewriting_publication_inventory() {
+    for publish in [false,true] {
+        let temporary=tempfile::tempdir().unwrap();let root=temporary.path().canonicalize().unwrap();
+        fixture(&root,"");
+        fs::write(root.join("released/obsolete.csv"),b"delete").unwrap();
+        let config=fs::read_to_string(root.join("_proj.yml")).unwrap();
+        let destination=if publish {"  local:\n    fixture:\n      path: remote\n      structure: latest\n      content: [output]\n      send: {inspect: file}\n"}else{""};
+        fs::write(root.join("_proj.yml"),format!("{config}  hooks:\n    post: [end.py]\n{destination}")).unwrap();
+        fs::write(root.join("end.py"),"from pathlib import Path\nPath('released/result.csv').rename('released/renamed.csv')\nPath('released/obsolete.csv').unlink()\nPath('released/données.csv').write_bytes(b'abc')\nPath('docs').mkdir(exist_ok=True)\nPath('docs/report.html').write_bytes(b'<html>final</html>')\n").unwrap();
+        success(invoke(&root,"build"));
+        let log=record(&root,"v1.2.4");
+        assert_eq!(log["status"],"completed");
+        assert_eq!(log["distribution_may_have_started"],publish);
+        let rows=manifest::read(path(&root.join("manifest.csv"))).unwrap();
+        let release:Vec<_>=rows.iter().filter(|row|row.label!="raw").cloned().collect();
+        assert_fingerprint(&log["inventory"]["release_outputs"],&release,"v1.2.4");
+        assert!(release.iter().any(|row|row.r#fn=="result.csv"&&row.hash=="5d41402abc4b2a76b9719d911017c592"));
+        assert!(release.iter().any(|row|row.r#fn=="obsolete.csv"));
+        assert!(!release.iter().any(|row|row.r#fn=="renamed.csv"||row.r#fn=="données.csv"));
+        let mut final_rows=manifest::capture_directory("docs",path(&root.join("docs")),"v1.2.4",false).unwrap();
+        final_rows.extend(manifest::capture_directory("output",path(&root.join("released")),"v1.2.4",false).unwrap());
+        assert_eq!(final_rows.iter().filter(|row|!row.r#fn.is_empty()).count(),3);
+        assert!(final_rows.iter().any(|row|row.r#fn=="renamed.csv"&&row.hash=="5d41402abc4b2a76b9719d911017c592"));
+        assert!(final_rows.iter().any(|row|row.r#fn=="données.csv"&&row.hash=="900150983cd24fb0d6963f7d28e17f72"));
+        assert_fingerprint(&log["final_outputs"]["inventory"],&final_rows,"v1.2.4");
+        assert_ne!(log["final_outputs"]["inventory"],log["inventory"]["release_outputs"]);
+        assert_eq!(fs::read(root.join("released/renamed.csv")).unwrap(),b"hello");
+        assert!(!root.join("released/result.csv").exists());
+        if publish {
+            assert_eq!(fs::read(root.join("remote/output/result.csv")).unwrap(),b"hello");
+            assert!(!root.join("remote/output/renamed.csv").exists());
+        }
+    }
+}
+
+#[test]
+fn plain_record_destination_failure_restores_exact_state_without_fabricating_success() {
+    let temporary=tempfile::tempdir().unwrap();let root=temporary.path().canonicalize().unwrap();
+    fixture(&root,"");
+    fs::write(root.join("VERSION"),b"v1.2.3-19\r\n").unwrap();
+    fs::create_dir(root.join(".proj")).unwrap();
+    fs::write(root.join(".proj/log"),b"preserved non-directory").unwrap();
+    let version=fs::read(root.join("VERSION")).unwrap();
+    let output=invoke(&root,"build");
+    assert!(!output.status.success());
+    assert_eq!(fs::read(root.join("VERSION")).unwrap(),version);
+    assert_eq!(fs::read(root.join("released/result.csv")).unwrap(),b"hello");
+    assert!(!root.join("manifest.csv").exists());
+    assert_eq!(fs::read(root.join(".proj/log")).unwrap(),b"preserved non-directory");
+    assert!(!root.join(".proj/build.lock").exists());
 }
