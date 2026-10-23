@@ -308,6 +308,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul>
   <li><a href="#download-one-ordinary-local-version" id="toc-download-one-ordinary-local-version" class="nav-link active" data-scroll-target="#download-one-ordinary-local-version">Download one ordinary local version</a></li>
   <li><a href="#inspect-and-apply-a-concrete-local-file-policy" id="toc-inspect-and-apply-a-concrete-local-file-policy" class="nav-link" data-scroll-target="#inspect-and-apply-a-concrete-local-file-policy">Inspect and apply a concrete local file policy</a></li>
+  <li><a href="#work-with-explicit-github-release-assets" id="toc-work-with-explicit-github-release-assets" class="nav-link" data-scroll-target="#work-with-explicit-github-release-assets">Work with explicit GitHub Release assets</a></li>
   </ul>
 </nav>
     </div>
@@ -361,6 +362,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Source files stay unchanged. Retained paths of the same type keep existing permission flags; new paths use source flags. The download safeguards and limits above apply, including Windows read-only cleanup failures and partial cleanup residue. No crash/concurrent-writer isolation or ACL/ownership/xattr parity follows.</p>
 <p>VERSION, manifest.csv, configured remotes, cue selection, historical comparison, empty remote naming and GitHub/CAS structures are untouched. Use the concrete version directory as destination; this command does not publish a complete discoverable remote snapshot by itself.</p>
 <p>Native filename aliases (for example A.csv/a.csv on a case-insensitive target) are rejected before staging when the planned spelling differs from an existing entry. This includes directory components and keeps upload-missing from becoming an overwrite. Case-sensitive targets retain distinct names. Case-only migrations are not silently inferred by this bounded file-policy command.</p>
+</section>
+<section id="work-with-explicit-github-release-assets" class="level2">
+<h2 class="anchored" data-anchor-id="work-with-explicit-github-release-assets">Work with explicit GitHub Release assets</h2>
+<p>The source CLI provides remote github assets, remote github upload and remote github download. Each requires –repository owner/repo and –tag RELEASE_TAG. Upload also requires –source FILE and –name ASSET_NAME; –create-release explicitly permits a missing Release to be created. Existing names are rejected without deletion. Download requires –name, –destination FILE and –max-bytes N. Source/destination file paths are relative to the selected project root unless absolute. The destination parent must already exist.</p>
+<p>Use an existing GITHUB_PAT, GH_TOKEN or GITHUB_TOKEN, in that order. Public list and download requests can be anonymous. GITHUB_API_URL supports an explicit Enterprise API endpoint including /api/v3. Tokens are never command arguments. No authentication setup or additional credential helper is installed.</p>
+<p>Machine assets returns result.assets; machine upload/download returns completed through the existing worker. ZIP creation/extraction, projr metadata ZIP handling and configured restore are not yet provided by these explicit asset commands. An interrupted upload can have an uncertain remote result: inspect before retry. Downloads stage complete bytes before replacement, preserve existing permissions, and reject protected project state, links and special files. No archive integrity, crash atomicity or concurrent-writer isolation claim follows.</p>
+<p>The CLI does not initialise HTTP wire logging and its own error messages omit tokens, response bodies and signed redirect URLs. Library embedders must avoid ureq DEBUG/TRACE logging for sensitive requests because dependency logging is not redacted. Redirects remove Authorization but do not confine network access to a provider host; this transport is not a network sandbox.</p>
 
 
 </section>
