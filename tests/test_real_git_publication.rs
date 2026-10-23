@@ -364,3 +364,74 @@ fn hostile_inherited_git_routing_cannot_modify_another_temporary_repository() {
     assert!(bytes(victim._temporary.path()) == before,
             "Hostile Git inheritance modified the other temporary project, Git metadata or upstream");
 }
+
+#[test]
+fn successful_git_build_never_commits_live_writer_claim() {
+    let fixture = Fixture::new(false);
+    let result = fixture.build(false);
+    assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+    assert!(!fixture.root.join(".proj/build.lock").exists());
+    let paths = fixture.git(&["ls-tree", "-r", "--name-only", "HEAD"]);
+    assert!(!String::from_utf8_lossy(&paths).lines().any(|path| path == ".proj/build.lock"));
+}
+
+#[test]
+fn nested_project_claim_exclusion_is_literal_and_keeps_whole_repository_scope() {
+    let mut fixture = Fixture::new(false);
+    let repository = fixture.root.clone();
+    let entries: Vec<_> = fs::read_dir(&repository).unwrap()
+        .map(|entry| entry.unwrap().path())
+        .filter(|path| path.file_name().unwrap() != ".git").collect();
+    let nested = repository.join(" child[1]");
+    fs::create_dir(&nested).unwrap();
+    for path in entries { fs::rename(&path, nested.join(path.file_name().unwrap())).unwrap(); }
+    fixture.root = nested;
+    let analysis = fs::read_to_string(fixture.root.join("analysis.py")).unwrap();
+    fs::write(fixture.root.join("analysis.py"), analysis + "\nPath('../outside-generated').write_bytes(b'outside')\nPath('.proj/log').mkdir(exist_ok=True)\nPath('.proj/log/retained.json').write_text('{}')\n").unwrap();
+    fixture.git(&["add", "-A"]);
+    fixture.git(&["commit", "-m", "nested fixture"]);
+    let result = fixture.build(false);
+    assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+    let paths = fixture.text(&["ls-tree", "--full-tree", "-r", "--name-only", "HEAD"]);
+    assert!(paths.lines().any(|path| path == "outside-generated"), "{paths}");
+    assert!(paths.lines().any(|path| path == " child[1]/.proj/log/retained.json"), "{paths}");
+    assert!(!paths.lines().any(|path| path.ends_with(".proj/build.lock")), "{paths}");
+    assert_eq!(fixture.git(&["show", "HEAD:./VERSION"]), b"Version: v1.2.4");
+    assert_eq!(fs::read(fixture.root.join("VERSION")).unwrap(), b"Version: v1.2.4.1");
+    let repeated = fixture.build(false);
+    assert!(repeated.status.success(), "{}", String::from_utf8_lossy(&repeated.stderr));
+    assert_eq!(fixture.git(&["show", "HEAD:./VERSION"]), b"Version: v1.2.5");
+    assert_eq!(fs::read(fixture.root.join("VERSION")).unwrap(), b"Version: v1.2.5.1");
+}
+
+#[test]
+fn sibling_project_claims_are_preserved_but_never_staged() {
+    let fixture = Fixture::new(false);
+    let analysis = fs::read_to_string(fixture.root.join("analysis.py")).unwrap();
+    fs::write(fixture.root.join("analysis.py"), analysis + "\nPath('sibling/.proj').mkdir(parents=True)\nPath('sibling/.proj/build.lock').write_bytes(b'other active attempt')\nPath('sibling/result').write_bytes(b'whole repository scope')\n").unwrap();
+    fixture.git(&["add", "-A"]);
+    fixture.git(&["commit", "-m", "sibling ownership fixture"]);
+    let result = fixture.build(false);
+    assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+    let paths = fixture.text(&["ls-tree", "--full-tree", "-r", "--name-only", "HEAD"]);
+    assert!(!paths.lines().any(|path| path.ends_with(".proj/build.lock")), "{paths}");
+    assert!(paths.lines().any(|path| path == "sibling/result"), "{paths}");
+    assert_eq!(fs::read(fixture.root.join("sibling/.proj/build.lock")).unwrap(), b"other active attempt");
+}
+
+#[test]
+fn tracked_sibling_claim_is_rejected_before_analysis() {
+    let fixture = Fixture::new(false);
+    fs::create_dir_all(fixture.root.join("sibling/.proj")).unwrap();
+    fs::write(fixture.root.join("sibling/.proj/build.lock"), b"tracked reserved claim").unwrap();
+    fixture.git(&["add", "-A"]);
+    fixture.git(&["commit", "-m", "invalid tracked claim"]);
+    let before = fs::read(fixture.root.join("VERSION")).unwrap();
+    let result = fixture.build(false);
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("must not be tracked"));
+    assert_eq!(fs::read(fixture.root.join("VERSION")).unwrap(), before);
+    assert_eq!(fs::read(fixture.root.join("sibling/.proj/build.lock")).unwrap(), b"tracked reserved claim");
+    assert!(!fixture.root.join(".proj/build.lock").exists());
+    assert!(!fixture.root.join("released/results.csv").exists());
+}

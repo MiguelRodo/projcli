@@ -10,7 +10,7 @@ fn build(root: &Path, mode: &str) -> std::io::Result<Output> {
 
 #[cfg(unix)]
 #[test]
-fn unreadable_root_scan_keeps_phase_and_cause_before_hooks_or_managed_writes() {
+fn unreadable_root_keeps_ownership_phase_and_cause_before_hooks_or_managed_writes() {
     use std::os::unix::fs::PermissionsExt;
     for mode in ["build-dev", "build"] {
         for explicit_empty in [false, true] {
@@ -44,8 +44,10 @@ fn unreadable_root_scan_keeps_phase_and_cause_before_hooks_or_managed_writes() {
             assert_eq!(envelope["ok"], false);
             assert_eq!(envelope["protocol_version"], 1);
             assert_eq!(envelope["error"]["code"], "command_failed");
-            let phase = if explicit_empty { "Cannot enumerate managed project state at" } else { "Cannot enumerate fallback scripts at" };
+            // Ownership is now validated before any mutable input capture or scan.
+            let phase = "Cannot acquire build writer ownership at";
             assert!(diagnostic.contains(&format!("{phase} {}", root.display())), "{diagnostic}");
+            assert!(diagnostic.contains("Cannot inspect native store names"), "{diagnostic}");
             assert!(diagnostic.to_lowercase().contains("permission denied"), "{diagnostic}");
             assert_eq!(fs::read(root.join("cache/previous")).unwrap(), b"prior cache");
             assert_eq!(fs::read_dir(root.join("cache")).unwrap().count(), 1);
@@ -54,7 +56,7 @@ fn unreadable_root_scan_keeps_phase_and_cause_before_hooks_or_managed_writes() {
             assert_eq!(fs::read(root.join("VERSION")).unwrap(), b"v1.2.3-4\n");
             assert_eq!(fs::read(root.join(".gitignore")).unwrap(), b"manual-rule\n");
             assert_eq!(fs::read_to_string(root.join("_proj.yml")).unwrap(), config);
-            for name in [".Rbuildignore", ".projr", ".git"] { assert!(!root.join(name).exists()); }
+            for name in [".Rbuildignore", ".projr", ".proj", ".git"] { assert!(!root.join(name).exists()); }
         }
     }
 }

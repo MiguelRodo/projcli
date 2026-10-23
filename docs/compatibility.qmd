@@ -2639,6 +2639,32 @@ remain mocked REST evidence; other provider/config findings and M2 remain open.
   are required. No source defect, completed M2, durable record/seal, index rollback,
   remote transaction or installed-binary update is claimed.
 
+## Cooperative attempt identity and project writer exclusion
+
+**New, bounded Rust behavior.** Every build/preview owns a fresh opaque attempt
+identity and an exclusively created .proj/build.lock claim until its full
+lifecycle exits. Existing claims fail closed; ordinary completion removes only
+the matching owned claim. No PID, hostname, username or complete configuration
+is recorded. No persistent machine identifier or centralized catalogue is added.
+
+The pinned R reference remains
+[SATVILab/projr 90be501](https://github.com/SATVILab/projr/tree/90be50132d16aee33e39c0f7f35ef906c35f5397).
+Its build/version code is source context, not evidence of equivalent writer
+exclusion or exact byte recovery. Existing R package files remain untouched.
+
+Ponytail full review reuses atomic create-new ownership, tempfile random identities and existing path
+guards rather than adding a lock service, database or dependency. Git exclusion
+is limited to ephemeral claims at every repository depth; it does not decide durable log receipts.
+Crash-stale claims require confirmed manual removal, without automatic stealing.
+Arbitrary scripts are outside this cooperative exclusion guarantee.
+
+Remote verification must cover concurrent real CLI builds, fresh identities,
+stale-claim preservation, invalid-config cleanup, symlink/managed-path rejection,
+and successful real Git commits excluding the claim, alongside existing failed
+Git/recovery fixtures and the pinned renderer/combined acceptance suite. No local
+compilation or heavy tests were run. Durable JSON attempt logs and final Git
+receipt sequencing remain pending; end-hook mutation enforcement is deferred.
+
 
 ## M2 exact previous development-version recovery
 
@@ -2658,3 +2684,38 @@ remain mocked REST evidence; other provider/config findings and M2 remain open.
   rollback algorithm, record schema, dependency or hook enforcement.
 - **Verification:** remote exact-head tests and independent review required; no
   local Rust/R/Quarto execution and no complete M2 claim.
+
+
+Independent review caught and corrected three ownership gaps before merge:
+all configured CAS recovery/publication destinations now reject coordination
+overlap; existing native case aliases are rejected using the shared name guard;
+and the fixed claim is created exclusively before identity allocation, so
+rejected competitors create no project-visible candidate files. Regression
+fixtures exercise preview CAS overlap, native case-folded names and clean
+competing acquisition in addition to the original concurrency/Git checks.
+
+The unreadable-root fixture now expects the earlier writer-ownership preflight
+phase, selected-root path and underlying permission error, for both explicit
+empty selection and fallback discovery. All prior byte-preservation assertions
+remain, and absent coordination state must remain absent. Source discovery is
+never reached when ownership cannot safely inspect native coordination names.
+
+A final shared-repository review found that excluding only the current project's
+claim could stage another project's transient claim during whole-repository Git
+publication. The exclusion and tracked-claim check now match the exact reserved
+.proj/build.lock name at every repository depth, using Git's native top/glob
+pathspec. No log directory is excluded. New real-Git witnesses preserve a sibling
+claim created during analysis while excluding it from the commit, retain ordinary
+sibling outputs, and reject a previously tracked sibling claim before analysis.
+This avoids a repository lock service or changes to existing whole-repository
+staging semantics; it does not promise isolation of unrelated Git writers.
+
+The nested-project real Git witness exposed an existing finalization defect:
+committed VERSION inspection assumed the repository root, and clean-state
+recognition assumed a root-level VERSION path. Shared committed-byte inspection
+now uses Git's cwd-relative HEAD:./VERSION reference, and status uses NUL-separated
+paths with the exact repository-relative project prefix. The repeated nested
+build checks release/dev transitions 1.2.4/1.2.4.1 then 1.2.5/1.2.5.1, including
+a leading-space/bracket directory name. No arbitrary dirty files are accepted.
+Browser validation now requires eight rendered lifecycle diagrams, retaining its
+existing native-browser SVG and layout checks.

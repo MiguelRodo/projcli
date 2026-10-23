@@ -480,7 +480,31 @@ tracking fails in preflight, while a real commit-hook rejection after successful
 analysis retains the local release without advancing HEAD/upstream or bumping
 next-dev. It does not change stage order, invent a seal or promise index rollback.
 
+## Development source: writer ownership around the staged lifecycle
+
+This ownership overlay is not part of the installed preview.3 binary.
+
+A build now claims one project writer before input capture and keeps ownership
+through validation, hooks, analysis, local finalization, enabled distribution,
+Git publication, end hooks, recovery and the next development bump. Normal exits
+release the claim. This does not change the stage order shown above or make
+partial remote publication reversible. Crashes leave a fail-closed claim requiring
+the user to confirm it is stale before removing it.
+
 
 Pre-publication recovery restores the exact captured version authority, including
 development counters greater than one; it does not manufacture dev1. This adds
 regression evidence without moving hooks, publication or the next-dev transition.
+
+
+```{mermaid}
+%%| label: fig-lifecycle-writer-ownership
+%%| fig-cap: "Development-source ownership surrounds the existing lifecycle; preview.3 remains unchanged."
+%%| fig-alt: "Claim one project writer before captured inputs, retain ownership through existing stages and recovery, then release the claim on normal exit."
+%%{init: {"htmlLabels": false}}%%
+flowchart TB
+  W["Claim one project writer"]
+  S["Capture inputs; existing pre-build,<br/>build, post-build and recovery stages"]
+  R["Release owned claim on normal exit"]
+  W --> S --> R
+```

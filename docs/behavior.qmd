@@ -503,3 +503,27 @@ are in [storage design](storage-design.qmd#compatible-csv-inventory).
 CAS is an additional remote structure alongside latest and ordinary archive,
 with content-addressed versioned snapshots. Provider/store/restore compatibility
 remains distinct from CSV implementation.
+
+## Cooperative build ownership
+
+Each build and preview takes an exclusive project-local claim at
+.proj/build.lock before capturing mutable build inputs. The claim contains only
+a fresh opaque attempt ID: no hostname, username, credentials or process arguments.
+A competing build fails before hooks, version changes or managed output writes.
+Read-only path/configuration queries do not acquire a claim.
+
+The claim is released after ordinary success, failure and recovery. An existing
+claim is never stolen. A terminated process or machine failure can leave one:
+first confirm no build owns the project, then remove only the stale claim and
+retry. This is cooperative build exclusion, not a filesystem sandbox or a promise
+of crash recovery. Arbitrary scripts and other tools can still change files.
+
+Managed caches, output/document destinations and ordinary publication targets
+cannot replace .proj. Optional Git integration excludes only reserved live
+.proj/build.lock paths at every repository depth from clean-state checks and staging, preserving the
+existing whole-repository staging scope. A tracked claim is rejected. This does
+not exclude .proj/log or choose the still-pending final Git receipt sequence.
+
+Per-attempt durable JSON logs, their retention and post-commit/push receipts are
+not implemented by this ownership slice. End-hook mutation enforcement remains
+deferred; existing hook ordering and failure recovery are unchanged.

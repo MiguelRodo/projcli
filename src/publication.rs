@@ -98,7 +98,7 @@ pub(crate) fn configured(root:&Utf8Path,raw:Option<&Map<String,Value>>,config:&c
         anyhow::ensure!(!path.trim().is_empty(),"Local publication requires nonempty path");
         let base=identity(&if Utf8Path::new(path).is_absolute(){path.into()}else{root.join(path)})?;
         anyhow::ensure!(!root.starts_with(&base),"Publication base contains the project root");
-        for name in [".git",".hg",".svn",".projr"] {
+        for name in [".git",".hg",".svn",".projr",".proj"] {
             anyhow::ensure!(!overlaps(&base,&identity(&root.join(name))?),"Publication overlaps protected project state");
         }
         anyhow::ensure!(definition.path_append_label.unwrap_or(true),"Configured local publication currently requires path-append-label: true");

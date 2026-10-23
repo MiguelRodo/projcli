@@ -100,6 +100,8 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     let caller_directory = std::env::current_dir().context("Cannot capture invocation working directory")?;
     let resolved_root = crate::project::resolve_project_root(Some(project_root))?;
     let project_root = resolved_root.as_path();
+    let _attempt = crate::attempt::Attempt::acquire(project_root)
+        .with_context(|| format!("Cannot acquire build writer ownership at {project_root}"))?;
     let is_dev = mode == BuildMode::Dev;
     let is_prod_run = matches!(mode, BuildMode::ProdMajor | BuildMode::ProdMinor | BuildMode::ProdPatch);
 
@@ -1365,6 +1367,8 @@ case "$1" in
 --version) exit 0 ;;
 symbolic-ref) echo feature ;;
 check-ref-format) exit 0 ;;
+ls-files) exit 1 ;;
+rev-parse) exit 0 ;;
 config)
  for key do :; done
  case "$key" in

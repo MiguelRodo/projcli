@@ -60,6 +60,16 @@ impl SystemGit {
         }
     }
 
+    // Keep whole-repository scope, excluding reserved live claims at every depth.
+    fn writer_exclusion(&self) -> anyhow::Result<&'static str> {
+        let tracked = git_command_in(Some(&self.repo_path), &self.environment)?
+            .current_dir(&self.repo_path)
+            .args(["ls-files", "--error-unmatch", "--", ":(top,glob)**/.proj/build.lock"]).output()?;
+        anyhow::ensure!(tracked.status.code() == Some(1),
+            "Build writer claims must not be tracked by Git");
+        Ok(":(top,exclude,glob)**/.proj/build.lock")
+    }
+
     fn network_command(&self, action: &str, remote: &str, reference: Option<&str>) -> anyhow::Result<()> {
         let mut arguments = if action == "push" {
             vec![action, "--no-follow-tags", "--recurse-submodules=no", "--", remote]
@@ -99,7 +109,8 @@ impl GitProvider for SystemGit {
     }
 
     fn commit_all(&self, message: &str) -> anyhow::Result<()> {
-        self.run_cmd(&["add", "-A"])?;
+        let exclusion = self.writer_exclusion()?;
+        self.run_cmd(&["add", "-A", "--", ":/", &exclusion])?;
         let output = git_command_in(Some(&self.repo_path), &self.environment)?.current_dir(&self.repo_path)
             .args(["diff", "--cached", "--quiet"]).output()?;
         match output.status.code() {
@@ -297,11 +308,20 @@ pub(crate) fn fetch_remote_in(root: &camino::Utf8Path, remote: &str, environment
 
 pub(crate) fn require_clean_git_in(root: &camino::Utf8Path, environment: &RunEnvironment) -> anyhow::Result<()> {
     let git = SystemGit { repo_path: root.to_owned(), environment: environment.clone() };
+    let exclusion = git.writer_exclusion()?;
     let output = git_command_in(Some(root), environment)?.current_dir(root)
-        .args(["status", "--porcelain", "--untracked-files=all", "--ignore-submodules=none"]).output()?;
+        .args(["status", "--porcelain", "-z", "--untracked-files=all", "--ignore-submodules=none", "--", ":/", &exclusion]).output()?;
     anyhow::ensure!(output.status.success(), "Cannot inspect Git worktree state");
     if !output.stdout.is_empty() {
-        let expected = output.stdout == b" M VERSION\n" || output.stdout == b" M VERSION\r\n";
+        let prefix = git_command_in(Some(root), environment)?.current_dir(root)
+            .args(["rev-parse", "--show-prefix"]).output()?;
+        anyhow::ensure!(prefix.status.success(), "Cannot resolve project path within Git repository");
+        let prefix = prefix.stdout.strip_suffix(b"\n").unwrap_or(&prefix.stdout);
+        let prefix = prefix.strip_suffix(b"\r").unwrap_or(prefix);
+        let mut expected_path = b" M ".to_vec();
+        expected_path.extend_from_slice(prefix);
+        expected_path.extend_from_slice(b"VERSION\0");
+        let expected = output.stdout == expected_path;
         anyhow::ensure!(expected && owned_dev_transition_matches(root, &git)?,
             "Git commit requested but the repository already contains changes; resolve them before building");
     }
@@ -539,7 +559,7 @@ fn transition_path(root: &camino::Utf8Path, git: &SystemGit) -> anyhow::Result<s
 
 fn git_file_bytes(git: &SystemGit) -> anyhow::Result<Vec<u8>> {
     let output = git_command_in(Some(&git.repo_path), &git.environment)?.current_dir(&git.repo_path)
-        .args(["show", "HEAD:VERSION"]).output()?;
+        .args(["show", "HEAD:./VERSION"]).output()?;
     anyhow::ensure!(output.status.success(), "Cannot inspect committed VERSION");
     Ok(output.stdout)
 }

@@ -75,6 +75,14 @@ fn overlaps(left: &Path, right: &Path) -> bool {
 /// External resource paths are allowed when disjoint from protected inputs/state.
 pub(crate) fn validate_build_paths(root: &Utf8Path, config: &crate::yml::ValidatedConfig, inputs: &[camino::Utf8PathBuf]) -> anyhow::Result<()> {
     let root_identity = resolve_path(root.as_std_path(), false)?;
+    let coordination = resolve_path(root.join(".proj").as_std_path(), true)?;
+    if let Some(remotes) = &config.remotes.local {
+        for remote in remotes.values() {
+            let destination = resolve_path(remote.path.as_std_path(), true)?;
+            anyhow::ensure!(!overlaps(&destination, &coordination),
+                "CAS publication/recovery destination overlaps build coordination state");
+        }
+    }
     let staging = if config.directories.keys().any(|label| label.eq_ignore_ascii_case("cache")) {
         Some(resolve_path(config.get_path(root, "cache")?.join("projr").as_std_path(), true)?)
     } else { None };
@@ -92,8 +100,8 @@ pub(crate) fn validate_build_paths(root: &Utf8Path, config: &crate::yml::Validat
             if root_identity.starts_with(&identity) {
                 anyhow::bail!("Managed directory '{label}' must not be the project root or an ancestor");
             }
-            for protected in [root_identity.join(".git"), root_identity.join(".svn")] {
-                if overlaps(&identity, &protected) { anyhow::bail!("Managed directory '{label}' overlaps version-control metadata"); }
+            for protected in [root_identity.join(".git"), root_identity.join(".svn"), root_identity.join(".proj")] {
+                if overlaps(&identity, &protected) { anyhow::bail!("Managed directory '{label}' overlaps protected project metadata"); }
             }
             for input in inputs {
                 if resolve_path(input.as_std_path(), false)?.starts_with(&identity) {
@@ -161,7 +169,7 @@ pub(crate) fn validate_document_destination(root: &Utf8Path, input: &Utf8Path, d
     if root.starts_with(&destination) || resolve_path(input.as_std_path(), false)?.starts_with(&destination) {
         anyhow::bail!("Document destination contains the project root or selected input");
     }
-    for protected in [root.join(".git"), root.join(".svn")] {
+    for protected in [root.join(".git"), root.join(".svn"), root.join(".proj")] {
         if overlaps(&destination, &protected) { anyhow::bail!("Document destination overlaps protected project state"); }
     }
     if destination.exists() && !destination.is_dir() { anyhow::bail!("Document destination is not a directory"); }

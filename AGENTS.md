@@ -412,6 +412,16 @@ after successful analysis. A failed commit can leave the new local release stage
 in Git's index while HEAD/upstream stay unchanged; never assert an invented index
 rollback, successful publication or new sealing policy from that condition.
 
+Build ownership uses one cooperative .proj/build.lock claim for the entire
+build/preview function, before input capture and through recovery/finalization.
+Never steal an existing claim or treat its timestamp as proof its owner died.
+Protect .proj from managed cleanup/publication destinations. The live claim is
+excluded from Git staging/status by an exact reserved-name pathspec at every repository depth without
+narrowing the existing whole-repository scope; retained logs must not be hidden.
+This does not implement durable attempt logs, log retention, crash recovery or
+post-Git receipt sequencing. Preserve existing hook semantics; mutation enforcement
+is deferred, not an M2 gate.
+
 
 Pre-distribution failure recovery preserves exact prior VERSION/DESCRIPTION
 bytes and absence, including development counters above one and accepted original
