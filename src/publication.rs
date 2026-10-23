@@ -1,4 +1,4 @@
-//! Bounded configured local latest publication with file or no comparison.
+//! Guarded ordinary local archive/latest publication with CSV or file comparison.
 //! Archive/latest share guarded staging; no registry redesign is implied.
 use std::{collections::BTreeMap,fs,io::Write};
 use anyhow::Context;
@@ -249,6 +249,9 @@ fn archive_comparison(target:&LocalPublication,remote:&[ManifestRow],versions:&[
     }
     let numbers=version_numbers(advertised).unwrap();
     if compare_versions(&numbers,&earliest).is_lt()||compare_versions(&numbers,&current_numbers).is_gt() {return Ok(None);}
+    if latest.empty {
+        anyhow::ensure!(fs::read_dir(&latest.path)?.next().transpose()?.is_none(),"Archive empty marker contains files");
+    }
     if target.inspect_manifest {Ok(Some(recorded))} else {
         let files=inventory(&latest.path)?;
         anyhow::ensure!(!latest.empty||files.is_empty(),"Archive empty marker contains files");

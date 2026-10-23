@@ -519,3 +519,27 @@ fn archive_untrusted_or_drifted_old_comparison_never_produces_a_partial_snapshot
         if state=="future" {assert_eq!(fs::read(root.join("remote/output/v9.0.0/untouched")).unwrap(),b"future");}
     }
 }
+
+#[test]
+fn historical_empty_archive_comparison_must_be_empty_even_when_manifest_agrees() {
+    for inspection in ["file","manifest"] {
+        let (_temporary,root)=setup("sync-diff","if-change","[output]");
+        let config=fs::read_to_string(root.join("_proj.yml")).unwrap()
+            .replace("structure: latest","structure: archive").replace("inspect: file",&format!("inspect: {inspection}"));
+        fs::write(root.join("_proj.yml"),config).unwrap();
+        for name in ["same","changed","new"] {fs::remove_file(root.join("results").join(name)).unwrap();}
+        success(invoke(&root,"build"));
+        let marker=root.join("remote/output/v1.2.4-empty");
+        fs::write(marker.join("unexpected"),"preserve for inspection").unwrap();
+        let history=fs::read(root.join("remote/manifest.csv")).unwrap();
+        let version=fs::read(root.join("remote/VERSION")).unwrap();
+        let output=invoke(&root,"build");
+        assert!(!output.status.success());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("Archive empty marker contains files"),"{}",String::from_utf8_lossy(&output.stderr));
+        assert_eq!(fs::read(marker.join("unexpected")).unwrap(),b"preserve for inspection");
+        assert_eq!(fs::read(root.join("remote/manifest.csv")).unwrap(),history);
+        assert_eq!(fs::read(root.join("remote/VERSION")).unwrap(),version);
+        assert!(!root.join("remote/output/v1.2.5-empty").exists());
+        assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap().trim(),"Version: v1.2.5");
+    }
+}

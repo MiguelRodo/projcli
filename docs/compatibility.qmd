@@ -2400,3 +2400,9 @@ Ponytail full reuses numeric catalog validation, recorded CSV comparison, transf
 and finalisation rather than introducing a second archive engine. No dependencies,
 schema changes, local heavy tests or live user-data mutations. Exact-head remote
 CI and independent review are required; GitHub configured publication remains open.
+
+
+Independent review found that an older empty marker could be reused under
+manifest inspection without checking physical emptiness. The shared eligibility
+path now rejects nonempty historical empty markers for file and manifest modes;
+the regression preserves their unexpected bytes, remote metadata and local release.
