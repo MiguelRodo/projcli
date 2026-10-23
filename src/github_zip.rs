@@ -144,6 +144,23 @@ pub fn directory_zip(source:&Utf8Path)->anyhow::Result<(tempfile::NamedTempFile,
     Ok((zip,empty))
 }
 
+/// Packages exactly current CSV-selected files, checking every streamed MD5.
+/// Unselected files stay excluded; an absent/empty role can emit the sentinel.
+pub(crate) fn recorded_directory_zip(source:&Utf8Path,files:&BTreeMap<String,String>)->anyhow::Result<(tempfile::NamedTempFile,bool)> {
+    crate::path_safety::resolve_path(source.as_std_path(),true)?;
+    match fs::symlink_metadata(source) {
+        Ok(metadata)=>anyhow::ensure!(metadata.is_dir(),"ZIP source root must be a real directory"),
+        Err(error) if error.kind()==std::io::ErrorKind::NotFound&&files.is_empty()=>{},
+        Err(error)=>return Err(error.into()),
+    }
+    let members=files.iter().map(|(name,hash)|(name.clone(),hash.clone())).collect::<Vec<_>>();
+    let zip=write_members(source,&members,files.is_empty())?;
+    // Reuse the native extraction guard to reject archives that this client
+    // itself could not restore, before any remote mutation.
+    let extracted=extract_zip(Utf8Path::from_path(zip.path()).context("ZIP staging path must be UTF-8")?,u64::MAX)?;
+    extracted.close()?;
+    Ok((zip,files.is_empty()))
+}
 /// Packages exactly the canonical metadata member from source, not other files.
 /// This preserves bytes; parsing/merging VERSION/CSV history remains the caller's
 /// responsibility. Missing, linked or special metadata sources are errors.

@@ -354,3 +354,22 @@ require continuous unchanged history and catalog/VERSION/CSV agreement for reuse
 A new version is always complete, never only a diff against an older directory.
 Keep empty variants, shared metadata and exact-version alias preflight bounded;
 configured append-label:false is still rejected. Update tested/pending matrices.
+
+
+Configured GitHub publication supports archive + explicit none/upload-all only.
+Freeze Git/API/token/tag before hooks; stage all CSV-selected restorable ZIPs
+before uploads. Preserve history/data-before-metadata ordering. Reject current
+data assets, portable aliases and legacy ambiguity. Report partial metadata
+replacement; mock REST is not live GitHub evidence.
+
+
+Non-public API origins require an explicit environment token. Default github.com
+Git/gh credential helpers are only used for the standard HTTPS api.github.com
+origin (port443), never forwarded to Enterprise/custom hosts. A regression uses
+a fake public helper and verifies it is not invoked for a loopback API.
+
+
+Public gh credential fallback explicitly requests --hostname github.com, so an
+inherited GH_HOST cannot select Enterprise credentials for the public API.
+Numeric archive alias checks remove exactly one generated .zip suffix, preserving
+valid prefixes/labels that themselves end in .zip. Regression fixtures cover both.

@@ -464,3 +464,55 @@ Archive root/container identities and catalogs are validated before hooks; exact
 current-version spelling is checked during all-target preparation before any
 destination applies. No remote transaction or concurrent-writer guarantee.
 Configured GitHub publication and CAS policy remain separate.
+
+
+### Configured GitHub archive upload candidate
+
+Current source adds a bounded build.github path:
+
+~~~yaml
+build:
+  git: false
+  scripts: []
+  github:
+    data:
+      content: [output]
+      send: {inspect: none}
+~~~
+
+Archive is the existing structure default; none inspection defaults upload-all.
+Both cues create the current snapshot without historical comparison. Data uses
+native label-vVERSION.zip or label-vVERSION-empty.zip names and the existing
+prefix/append-label naming. Missing Releases are created as normal published
+Releases, not drafts. Use a dedicated destination for testing.
+
+Git origin selects owner/repository; existing API URL and credentials are captured
+before hooks. No credentials are installed or changed. Current CSV-selected bytes
+stream into restorable ZIPs; all targets stage before the first upload. Existing
+CSV/VERSION history is retained. Data precedes manifest.zip, VERSION.zip and an
+existing project CHANGELOG.zip. Metadata ZIPs require exactly the canonical member;
+shared metadata download/extraction is bounded at 128 MiB per archive.
+
+Existing current-version data, catalog case aliases, duplicate names and legacy
+data ambiguity fail before upload. Configured data replacement, latest,
+file/manifest inspection and other strategies remain pending. Shared metadata
+replacement uses non-atomic delete-then-upload: failure may leave partial state
+or a missing asset. The successful local release survives and next-dev bump is
+skipped. No remote rollback, automatic retry or concurrent-writer isolation claim.
+
+Evidence uses actual CLI build/store/restore against loopback mocked REST,
+including Release creation, ZIP members, metadata replacement, old archive
+retention, partial failure and preflight rejection. This is not a live GitHub
+Release round trip. Installed preview unchanged; remote CI/review required.
+
+
+Non-public API origins require an explicit environment token. Default github.com
+Git/gh credential helpers are only used for the standard HTTPS api.github.com
+origin (port443), never forwarded to Enterprise/custom hosts. A regression uses
+a fake public helper and verifies it is not invoked for a loopback API.
+
+
+Public gh credential fallback explicitly requests --hostname github.com, so an
+inherited GH_HOST cannot select Enterprise credentials for the public API.
+Numeric archive alias checks remove exactly one generated .zip suffix, preserving
+valid prefixes/labels that themselves end in .zip. Regression fixtures cover both.

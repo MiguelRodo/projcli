@@ -129,6 +129,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         .context("Failed to deserialize combined configuration")?;
     let config = project_config.validate_and_resolve(project_root, is_dev)?;
     let ordinary = crate::publication::configured(project_root, project_config.build.local.as_ref(), &config)?;
+    let github_specs=crate::github_publication::validate(project_root,project_config.build.github.as_ref(),&config)?;
     let execution = execution_override.or(config.settings.execution_directory).unwrap_or(ExecutionDirectory::Native);
     environment.set_working_directory(match execution {
         ExecutionDirectory::Native => caller_directory,
@@ -287,6 +288,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     }
 
     let (initial_version, next_version) = crate::run_context::version_plan(original_version, mode)?;
+    let github=if !is_dev&&config.output_run.unwrap_or(true) {crate::github_publication::capture(project_root,github_specs,&environment,&initial_version.to_string(true))?}else{Vec::new()};
     let run_context = crate::run_context::ContextFile::capture(project_root, &config, profiles, directory_order, initial_version.clone(), is_dev)?;
     environment.set(crate::RUN_CONTEXT_ENV, run_context.path().as_os_str());
     let mut staged_outputs = Vec::new();
@@ -619,7 +621,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         Ok(())
     };
     let publish = !is_dev && (config.git.commit || !config.dest.is_empty()
-        || (config.output_run.unwrap_or(true) && !ordinary.is_empty()));
+        || (config.output_run.unwrap_or(true) && (!ordinary.is_empty()||!github.is_empty())));
     if !publish {
         let finish = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| end_hooks(None))) {
             Ok(result) => result,
@@ -636,6 +638,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     let publication = (|| -> anyhow::Result<()> {
         if config.output_run.unwrap_or(true) {
             crate::publication::publish_local(project_root, &ordinary, &initial_version.to_string(true))?;
+            crate::github_publication::publish(project_root,&github,&initial_version.to_string(true))?;
         }
         if let Some(remotes) = &config.remotes.local {
             for target in &config.dest {

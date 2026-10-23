@@ -2406,3 +2406,51 @@ Independent review found that an older empty marker could be reused under
 manifest inspection without checking physical emptiness. The shared eligibility
 path now rejects nonempty historical empty markers for file and manifest modes;
 the regression preserves their unexpected bytes, remote metadata and local release.
+
+
+### Configured GitHub archive upload: bounded first path
+
+Same: pinned remote-github.R740 merges selected files into label ZIPs and uploads
+through the Release transport; ordinary flat archive names and native metadata
+members use the existing helpers. None defaults upload-all without historical
+comparison. Reuse REST, ZIP writer/extractor, CSV and version helpers; freeze Git
+origin/API/token/tag before hooks using existing credential mechanisms.
+
+Implemented subset: archive plus explicit none/upload-all (explicit/default),
+both cues, content and prefix/append-label naming. All target ZIPs stage before
+HTTP mutations. Data precedes shared CSV/VERSION/changelog; prior history and
+archive assets survive. Missing Releases use existing normal published creation.
+New empty archives carry projr-empty and advertise the current version.
+
+Boundaries: existing current-version data, portable aliases and legacy data
+ambiguity fail before upload. Latest/configured data replacement/other decisions
+remain missing. Metadata replacement can be partially applied; preserve local
+release, skip bump and report uncertainty. Metadata archives are limited to
+128 MiB each. No new registry, schema, credentials or access grants.
+
+Tests: actual build through mock REST then configured restore, two-build old
+archive preservation, exact ZIP members, metadata replacement, partial failure,
+empty/preview behavior, unsupported controls, current-version and alias rejection.
+No live GitHub test or local heavy execution. Ponytail full reuses existing
+transport/ZIP/history helpers, no new dependency or parallel storage engine.
+Exact-head remote gates and independent review are required before delivery.
+
+
+Non-public API origins require an explicit environment token. Default github.com
+Git/gh credential helpers are only used for the standard HTTPS api.github.com
+origin (port443), never forwarded to Enterprise/custom hosts. A regression uses
+a fake public helper and verifies it is not invoked for a loopback API.
+
+
+Independent review corrections: reject numeric-equivalent full/empty current
+assets (including leading-zero/padded spellings) before mutation; compare distinct
+legacy/canonical stems before treating prior prefixed append-label:false R-data
+archives as legacy; reject all-space Release titles before hooks. Fixtures preserve
+alias bytes/no-POST/no-DELETE and complete two such R-data builds. Cleanup failures
+include the private retained path. Public helper credentials never cross API origins.
+
+
+Public gh credential fallback explicitly requests --hostname github.com, so an
+inherited GH_HOST cannot select Enterprise credentials for the public API.
+Numeric archive alias checks remove exactly one generated .zip suffix, preserving
+valid prefixes/labels that themselves end in .zip. Regression fixtures cover both.
