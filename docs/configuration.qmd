@@ -255,3 +255,12 @@ change the projr manifest default to file.
 Archive, manifest/none inspection, path-append-label:false, title-level cue and
 nonempty get/conflict controls are not executable in this bounded slice. Selected
 unsupported policy fails before hooks. Registry706 remains design-only.
+
+
+For configured ordinary local latest publication, explicit send.inspect: none
+selects blind source-file planning and defaults send.strategy to upload-all.
+Explicit upload-missing/sync-diff then overwrite source filenames while retaining
+remote extras; sync-purge only purges when the source is nonempty. See the
+[remote control matrix](cli/remote.qmd) before choosing these combinations.
+Omitted inspection retains the projr manifest default and remains rejected until
+that comparison mode is implemented.

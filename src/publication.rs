@@ -1,5 +1,5 @@
-//! Bounded configured local latest/file publication. Archive/manifest/none
-//! inspection remain explicit errors; no default or registry redesign is implied.
+//! Bounded configured local latest publication with file or no comparison.
+//! Archive/manifest remain explicit errors; no registry redesign is implied.
 use std::{collections::BTreeMap,fs,io::Write};
 use anyhow::Context;
 use camino::{Utf8Path,Utf8PathBuf};
@@ -19,6 +19,8 @@ pub(crate) struct LocalPublication {
     append:bool,
     strategy:StoreStrategy,
     always:bool,
+    // No comparison changes planning, not filesystem safety validation.
+    inspect_none:bool,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -48,7 +50,7 @@ fn destination(target:&LocalPublication,label:&str,empty:bool)->Utf8PathBuf {
     if empty {Utf8PathBuf::from(format!("{path}-empty"))}else{path}
 }
 /// Parse existing build.local definitions and preflight every selected namespace.
-/// Only explicit latest/file is executable in this slice. Null/false content
+/// Only explicit latest with file/none is executable. Null/false content
 /// selects nothing; true uses declared non-cache labels. No directories are made.
 pub(crate) fn configured(root:&Utf8Path,raw:Option<&Map<String,Value>>,config:&crate::yml::ValidatedConfig)->anyhow::Result<Vec<LocalPublication>> {
     let mut targets=Vec::new();
@@ -76,13 +78,15 @@ pub(crate) fn configured(root:&Utf8Path,raw:Option<&Map<String,Value>>,config:&c
         anyhow::ensure!(matches!(definition.structure,Some(crate::restore::Layout::Latest)),
             "Configured local publication currently requires explicit structure: latest; archive remains pending");
         let send:Send=serde_json::from_value(definition.send.clone().unwrap_or(serde_json::json!({})))?;
-        anyhow::ensure!(send.inspect.as_deref()==Some("file"),
-            "Configured local publication currently requires send.inspect: file; manifest (the projr default) and none remain pending");
+        let inspect_none=match send.inspect.as_deref().unwrap_or("manifest") {
+            "file"=>false,"none"=>true,
+            _=>anyhow::bail!("Configured local publication requires send.inspect: file or none; manifest (the projr default) remains pending"),
+        };
         anyhow::ensure!(send.conflict.is_none(),"send.conflict has no working source consumer and is unsupported");
         let always=match send.cue.as_deref().unwrap_or("if-change") {
             "if-change"=>false,"always"=>true,_=>anyhow::bail!("send.cue must be if-change or always"),
         };
-        let strategy=match send.strategy.as_deref().unwrap_or("sync-diff") {
+        let strategy=match send.strategy.as_deref().unwrap_or(if inspect_none {"upload-all"}else{"sync-diff"}) {
             "sync-diff"=>StoreStrategy::SyncDiff,"sync-purge"=>StoreStrategy::SyncPurge,
             "upload-all"=>StoreStrategy::UploadAll,"upload-missing"=>StoreStrategy::UploadMissing,
             _=>anyhow::bail!("Unsupported send.strategy"),
@@ -102,7 +106,7 @@ pub(crate) fn configured(root:&Utf8Path,raw:Option<&Map<String,Value>>,config:&c
                 "Publication content requires CSV capture; enable hash for label {label}");
             selected.push((label.clone(),identity(&config.get_path(root,&label)?)?));
         }
-        targets.push(LocalPublication {title:title.clone(),base,labels:selected,append:definition.path_append_label.unwrap_or(true),strategy,always});
+        targets.push(LocalPublication {title:title.clone(),base,labels:selected,append:definition.path_append_label.unwrap_or(true),strategy,always,inspect_none});
     }
     if targets.is_empty() {return Ok(targets);}
     validate_namespaces(root,&targets,config)?;
@@ -202,7 +206,7 @@ struct Prepared {
     versions:Vec<(String,String)>,
     files:tempfile::TempDir,
 }
-/// Execute frozen local latest/file targets after the local release boundary.
+/// Execute frozen local latest file/none targets after the local release boundary.
 /// Stages only current CSV-selected bytes for every target before the first
 /// remote mutation. Data precedes shared CSV/VERSION/changelog, like projr.
 /// This is not a remote transaction: failure preserves the local release and
@@ -276,12 +280,21 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
                 let full=destination(target,label,false);let empty=destination(target,label,true);
                 native_name(&full)?;native_name(&empty)?;
                 let existed=full.try_exists()?||empty.try_exists()?;
-                let (uploads,_,removals,_)=crate::local_store::actions(&inventory(&source)?,&inventory(&full)?,target.strategy);
+                let source_files=inventory(&source)?;
+                // projr none treats every source file as extra. Missing/diff
+                // therefore upload blindly and retain extras. Purge only runs
+                // when source files are present: an empty source cannot infer
+                // destination extras without a comparison.
+                let strategy=if target.inspect_none {
+                    if matches!(target.strategy,StoreStrategy::SyncPurge)&&!source_files.is_empty() {StoreStrategy::SyncPurge}
+                    else {StoreStrategy::UploadAll}
+                }else{target.strategy};
+                let (uploads,_,removals,_)=crate::local_store::actions(&source_files,&inventory(&full)?,strategy);
                 let changed=!uploads.is_empty()||!removals.is_empty();
                 let metadata_missing_or_untrusted=!item.versions.iter().any(|(key,value)|key==label&&!value.ends_with('*'));
-                let ensure=changed||!existed||target.always
+                let ensure=target.inspect_none||changed||!existed||target.always
                     || (matches!(target.strategy,StoreStrategy::SyncDiff)&&metadata_missing_or_untrusted);
-                if ensure {crate::local_store::store_files(root,&source,&full,target.strategy,false)?;}
+                if ensure {crate::local_store::store_files(root,&source,&full,strategy,false)?;}
                 if full.try_exists()? {
                     if inventory(&full)?.is_empty() {
                         let mode=fs::symlink_metadata(&full)?.permissions();
@@ -304,7 +317,8 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
                     _=>changed||!existed,
                 };
                 if update {
-                    let untrusted=existed&&matches!(target.strategy,StoreStrategy::UploadAll|StoreStrategy::UploadMissing);
+                    let untrusted=existed&&(matches!(target.strategy,StoreStrategy::UploadAll|StoreStrategy::UploadMissing)
+                        ||(target.inspect_none&&matches!(target.strategy,StoreStrategy::SyncDiff)));
                     set_version(&mut item.versions,label,format!("{version}{}",if untrusted{"*"}else{""}));
                 }
                 item.rows.retain(|row|!(row.label==*label&&row.version==version));

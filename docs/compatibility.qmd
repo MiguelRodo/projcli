@@ -2306,3 +2306,32 @@ remote data. Regression fixtures cover directory-only, empty, advertisement-only
 and combined legacy states. Remote verification is required before delivery.
 Ponytail full review reuses the existing publication preflight and preparation
 boundaries; no migration framework or new configuration policy is introduced.
+
+
+### Configured local publication without comparison
+
+Same: pinned projr 90be50132d16aee33e39c0f7f35ef906c35f5397
+[R/yml-dest.R](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-dest.R#L240)
+defaults none inspection to upload-all.
+[R/dest-send-label.R](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send-label.R#L697)
+uses an empty destination filename set for none; sync planning treats every
+source filename as extra. Thus explicit upload-missing and sync-diff overwrite
+all selected files and retain extras. Sync-purge uploads/purges a nonempty source;
+an empty source has no known extras and does not purge. Existing non-purged
+destinations carry an untrusted star when their label version is updated.
+Cues do not suppress the blind upload of nonempty sources.
+
+Same/different: no new default policy; file mode still defaults to sync-diff and
+omitted inspection still means the not-yet-supported manifest mode, which fails
+before hooks. Existing corrections for newly empty metadata remain. Source CSV
+capture, guarded path/type checks and the physical installer still validate bytes;
+none suppresses comparison-based decisions, not all filesystem reads/hashing.
+
+Tests: all four explicit strategies plus omitted strategy, both cues, repeated
+same-byte builds, actual configured local restore, exact final bytes/trust
+markers; existing/new empty sources retain unknown extras or advertise emptiness.
+Remote exact-head compilation/platform/API/renderer checks and independent review
+are required before delivery. GitHub publication, manifest comparison and archive
+history remain pending. Ponytail full reuses the existing action planner and
+guarded installer; one flag and explicit effective transfer selection avoid a
+second storage engine or speculative transport abstraction.
