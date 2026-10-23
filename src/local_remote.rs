@@ -80,7 +80,6 @@ fn directory_present(path: &Utf8Path) -> anyhow::Result<bool> {
 /// ```
 pub fn list_versions(base: &Utf8Path, label: &str, structure: LocalStructure, append_label: bool) -> anyhow::Result<Vec<LocalVersion>> {
     crate::path_safety::validate_directory_label(label)?;
-    anyhow::ensure!(!label.ends_with("-empty"), "Local remote labels must not end in reserved -empty");
     if !directory_present(base)? { return Ok(Vec::new()); }
     let target = if append_label { base.join(label) } else { base.to_owned() };
     match structure {

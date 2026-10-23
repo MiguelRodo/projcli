@@ -110,7 +110,7 @@ remote side effects. [HTTP replacement][http-upload], [GitHub transfer][github].
 |---|---|---|
 | List final remotes | Local immediate child directories; GitHub assets within one configured release. | Ordinary operations missing. No cross-release catalogue promised by R. |
 | List files | Local recursive listing; GitHub ZIP download/extraction. | CAS manifests can list explicit entries internally; not these operations. |
-| Latest version | latest reads label VERSION entry; archive parses local version-directory/GitHub asset names and selects max semantic version, including empty variants. | Ordinary selection missing; current CAS accepts caller-supplied versions. |
+| Latest version | latest reads label VERSION entry; archive parses local version-directory/GitHub asset names and selects max semantic version, including empty variants. | Read-only explicit local latest/archive listing is added in current source, with actual paths, empty variants and metadata markers. Automatic restore selection and GitHub discovery remain missing; current CAS accepts caller-supplied versions. |
 | Trusted version | Stronger helper checks VERSION/archive agreement and project/remote manifest evidence. Restore bypasses this stronger helper. | Missing; do not describe ordinary restore as cryptographically verified. |
 | Download all | Copy directory tree or download named release asset and unzip. | Missing ordinary download/restore. |
 | Download one | Local and GitHub helpers flatten requested file to its basename at destination. | Missing; basename collision handling needs safe bounded implementation rather than unsafe silent overwrite. |
@@ -210,8 +210,10 @@ are claimed; a source test title alone is not an acceptance result.
 
 Next slices should remain independently testable:
 
-1. Pure ordinary local latest/archive path/layout and metadata/version fixtures,
-   with explicit paths and empty variants; no new remote registry schema.
+1. Read-only ordinary local latest/archive inspection is the current bounded
+   source slice: [command reference](cli/remote.qmd), explicit paths and empty
+   variants. It introduces no remote registry schema; exact-head remote checks
+   and independent review are required before merge.
 2. Disposable local store plans for the four existing strategies and inspections,
    then guarded execution/metadata/failure fixtures.
 3. Explicit local list/download/restore with staged validation and honest outcomes.

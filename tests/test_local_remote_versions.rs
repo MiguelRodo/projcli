@@ -82,10 +82,10 @@ fn absent_remote_is_empty_not_created_and_no_append_reads_explicit_archive_root(
 }
 
 #[test]
-fn traversal_and_reserved_labels_fail_without_mutation() {
+fn traversal_labels_fail_without_mutation() {
     let temp = tempfile::tempdir().unwrap(); let physical = temp.path().canonicalize().unwrap();
     let base = Utf8Path::from_path(&physical).unwrap();
-    for label in ["../escape", "/absolute", "a/b", "raw-empty"] {
+    for label in ["../escape", "/absolute", "a/b"] {
         assert!(list_versions(base, label, LocalStructure::Archive, true).is_err());
     }
     assert!(snapshot(&physical).is_empty());
@@ -134,4 +134,19 @@ fn human_help_and_absolute_path_query_agree_with_machine_command() {
     assert!(text.starts_with("v1.2.3 "));
     assert!(text.contains("raw-data"));
     assert_eq!(snapshot(&physical), before);
+}
+
+#[test]
+fn labels_ending_empty_remain_valid_explicit_label_names() {
+    let temp = tempfile::tempdir().unwrap();
+    let physical = temp.path().canonicalize().unwrap();
+    fs::create_dir_all(physical.join("raw-empty/v1.2.3")).unwrap();
+    let base = Utf8Path::from_path(&physical).unwrap();
+    let entries = list_versions(base, "raw-empty", LocalStructure::Archive, true).unwrap();
+    assert_eq!(entries.len(), 1);
+    assert!(!entries[0].empty);
+    fs::write(physical.join("VERSION"), b"raw-empty: v1.2.3\n").unwrap();
+    let entries = list_versions(base, "raw-empty", LocalStructure::Latest, true).unwrap();
+    assert!(entries[0].present);
+    assert!(!entries[0].empty);
 }

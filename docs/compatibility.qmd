@@ -1946,3 +1946,10 @@ empty/missing state, labels, Unicode, read-only snapshots, trust-marker disclosu
 duplicate/invalid metadata, links and FIFOs. Tests are not run locally. Required
 verification is remote locked/pinned and host suites, API/docs checks, followed
 by independent review. Broader ordinary remote compatibility remains incomplete.
+
+Source self-review removed an unnecessary reserved-suffix restriction: an
+explicit label ending in -empty is valid under the shared label contract.
+A regression distinguishes that label's full directory from an empty variant.
+The read-only command does not invent a new configured-label policy.
+Pinned comparison:
+[local/archive and VERSION discovery](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-versions.R#L473).
