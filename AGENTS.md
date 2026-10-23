@@ -354,3 +354,10 @@ require continuous unchanged history and catalog/VERSION/CSV agreement for reuse
 A new version is always complete, never only a diff against an older directory.
 Keep empty variants, shared metadata and exact-version alias preflight bounded;
 configured append-label:false is still rejected. Update tested/pending matrices.
+
+
+Configured GitHub publication supports archive + explicit none/upload-all only.
+Freeze Git/API/token/tag before hooks; stage all CSV-selected restorable ZIPs
+before uploads. Preserve history/data-before-metadata ordering. Reject current
+data assets, portable aliases and legacy ambiguity. Report partial metadata
+replacement; mock REST is not live GitHub evidence.

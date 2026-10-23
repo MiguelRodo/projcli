@@ -270,3 +270,9 @@ Configured ordinary build.local publication now follows the archive default when
 structure is omitted; latest remains explicit. The existing manifest inspection
 and sync-diff/if-change defaults apply. See [archive publication](cli/remote.qmd)
 for historical reuse, complete snapshots and unsupported append-label:false.
+
+
+The first build.github upload subset requires explicit send.inspect: none and
+upload-all (the none default), with archive as the existing structure default.
+Other decision combinations and existing current-version data fail explicitly.
+See the remote CLI page for credentials, metadata bounds and partial failure.

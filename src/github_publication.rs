@@ -137,6 +137,7 @@ pub(crate) fn publish(root:&Utf8Path,targets:&[Target],version:&str)->anyhow::Re
             let mut rows=crate::manifest::read(&stage.join("manifest.csv"))?;
             let mut versions=crate::publication::version_entries(&stage.join("VERSION"))?;
             anyhow::ensure!(!target.spec.labels.iter().any(|(label,_)|label=="output-r-data")||!versions.iter().any(|(label,_)|label.eq_ignore_ascii_case("data")),"Legacy GitHub data advertisement requires explicit migration");
+            crate::publication::set_version(&mut versions,"Project",version.into());
             for (label,source) in &target.spec.labels {
                 let files=crate::publication::recorded_files(&history,label,version).context("Current GitHub CSV rows are missing or ambiguous")?;
                 let (zip,empty)=crate::github_zip::recorded_directory_zip(source,&files)?;

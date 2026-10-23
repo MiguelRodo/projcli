@@ -321,3 +321,9 @@ Local archive publication is the current incremental slice: complete versioned
 snapshots, historical reuse eligibility and actual build/store/restore matrix.
 Its PR records exact-head review/CI evidence. Configured GitHub publication and
 configured append-label:false remain pending; no full remote-completion claim.
+
+
+Configured GitHub archive upload is now a candidate for explicit none/upload-all,
+including missing Release creation, CSV data ZIPs and shared metadata history.
+Its PR records mocked REST CLI round-trip evidence. Latest, configured current-data
+replacement, other strategies and file/manifest comparison remain pending.

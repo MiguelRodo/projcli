@@ -432,3 +432,9 @@ The ordinary-local publication stage now finalises archive or latest targets.
 Archive comparison eligibility is frozen during all-target preparation; old
 versions remain untouched and new versions are complete snapshots. Publication
 ordering and the release-preserving failure branch are unchanged.
+
+
+The ordinary-publication overlay now stages configured GitHub archive ZIPs after
+ordinary local finalisation and before CAS/Git. Routing freezes before hooks;
+all GitHub ZIPs prepare before uploads, data before metadata. External failure
+retains the local release and skips bump; there is no transaction across providers.

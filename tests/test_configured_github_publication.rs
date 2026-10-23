@@ -88,7 +88,7 @@ fn actual_build_creates_release_data_and_metadata_then_restores_and_retains_old_
     {
         let state=server.state.lock().unwrap();assert_eq!(state.uploads,["output-v1.2.4.zip","manifest.zip","VERSION.zip","CHANGELOG.zip"]);
         assert_eq!(members(&state.assets["output-v1.2.4.zip"].1)["result.csv"],b"actual fixture bytes\n");
-        assert_eq!(members(&state.assets["VERSION.zip"].1)["VERSION"],b"output: v1.2.4\nProject: v1.2.4\n");
+        assert_eq!(members(&state.assets["VERSION.zip"].1)["VERSION"],b"Project: v1.2.4\noutput: v1.2.4\n");
         assert_eq!(members(&state.assets["manifest.zip"].1)["manifest.csv"],fs::read(root.join("manifest.csv")).unwrap());
     }
     fs::write(root.join("results/result.csv"),"second fixture\n").unwrap();success(invoke(&server,&root,&["build","--non-interactive"]));
@@ -120,4 +120,42 @@ fn existing_current_archive_is_rejected_before_any_upload_or_deletion() {
     assert!(String::from_utf8_lossy(&output.stderr).contains("Current GitHub archive already exists"));
     {let state=server.state.lock().unwrap();assert!(state.uploads.is_empty());assert!(state.deleted.is_empty());assert_eq!(state.assets["output-v1.2.4.zip"].1,b"existing bytes");}
     server.finish();
+}
+
+#[test]
+fn empty_archives_use_native_sentinel_and_preview_makes_no_requests() {
+    let server=Server::start();let (_temporary,root)=setup(&server);
+    success(invoke(&server,&root,&["build-dev","--non-interactive"]));
+    assert!(!server.state.lock().unwrap().exists);
+    fs::remove_file(root.join("results/result.csv")).unwrap();
+    success(invoke(&server,&root,&["build","--non-interactive"]));
+    let state=server.state.lock().unwrap();
+    let (name,(_,bytes))=state.assets.iter().find(|(name,_)|name.starts_with("output-v")).unwrap();
+    assert!(name.ends_with("-empty.zip"));
+    assert_eq!(members(bytes),BTreeMap::from([("projr-empty".into(),Vec::new())]));
+    drop(state);server.finish();
+}
+#[test]
+fn unsupported_decisions_fail_before_hooks_and_catalog_aliases_never_upload() {
+    for state in ["manifest","strategy","latest","alias"] {
+        let server=Server::start();let (_temporary,root)=setup(&server);
+        let mut config=fs::read_to_string(root.join("_proj.yml")).unwrap();
+        config=match state {
+            "manifest"=>config.replace("inspect: none","inspect: manifest"),
+            "strategy"=>config.replace("inspect: none","inspect: none, strategy: sync-diff"),
+            "latest"=>config.replace("      content:","      structure: latest\n      content:"),
+            _=>config,
+        };
+        if state!="alias" {
+            config=config.replace("build:\n","build:\n  hooks: {pre: [start.py]}\n");
+            fs::write(root.join("start.py"),"from pathlib import Path\nPath('hook-ran').write_text('bad')\n").unwrap();
+        }else{
+            let mut data=server.state.lock().unwrap();data.exists=true;data.assets.insert("MANIFEST.zip".into(),(1,b"keep".to_vec()));
+        }
+        fs::write(root.join("_proj.yml"),config).unwrap();
+        let output=invoke(&server,&root,&["build","--non-interactive"]);assert!(!output.status.success(),"{state}");
+        assert!(!root.join("hook-ran").exists());
+        if state!="alias" {assert!(!root.join("manifest.csv").exists());assert_eq!(fs::read(root.join("VERSION")).unwrap(),b"v1.2.3\n");}
+        let data=server.state.lock().unwrap();assert!(data.uploads.is_empty());assert!(data.deleted.is_empty());drop(data);server.finish();
+    }
 }

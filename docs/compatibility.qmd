@@ -2406,3 +2406,31 @@ Independent review found that an older empty marker could be reused under
 manifest inspection without checking physical emptiness. The shared eligibility
 path now rejects nonempty historical empty markers for file and manifest modes;
 the regression preserves their unexpected bytes, remote metadata and local release.
+
+
+### Configured GitHub archive upload: bounded first path
+
+Same: pinned remote-github.R740 merges selected files into label ZIPs and uploads
+through the Release transport; ordinary flat archive names and native metadata
+members use the existing helpers. None defaults upload-all without historical
+comparison. Reuse REST, ZIP writer/extractor, CSV and version helpers; freeze Git
+origin/API/token/tag before hooks using existing credential mechanisms.
+
+Implemented subset: archive plus explicit none/upload-all (explicit/default),
+both cues, content and prefix/append-label naming. All target ZIPs stage before
+HTTP mutations. Data precedes shared CSV/VERSION/changelog; prior history and
+archive assets survive. Missing Releases use existing normal published creation.
+New empty archives carry projr-empty and advertise the current version.
+
+Boundaries: existing current-version data, portable aliases and legacy data
+ambiguity fail before upload. Latest/configured data replacement/other decisions
+remain missing. Metadata replacement can be partially applied; preserve local
+release, skip bump and report uncertainty. Metadata archives are limited to
+128 MiB each. No new registry, schema, credentials or access grants.
+
+Tests: actual build through mock REST then configured restore, two-build old
+archive preservation, exact ZIP members, metadata replacement, partial failure,
+empty/preview behavior, unsupported controls, current-version and alias rejection.
+No live GitHub test or local heavy execution. Ponytail full reuses existing
+transport/ZIP/history helpers, no new dependency or parallel storage engine.
+Exact-head remote gates and independent review are required before delivery.
