@@ -301,8 +301,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </nav>
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#download-one-ordinary-local-version" id="toc-download-one-ordinary-local-version" class="nav-link active" data-scroll-target="#download-one-ordinary-local-version">Download one ordinary local version</a></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -334,8 +340,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Latest reads the exact label entry from base/VERSION. It reports the trailing asterisk as metadata_untrusted, plus present and empty fields. A missing target is reported explicitly; an absent asterisk is <strong>not proof of verified content</strong>. Archive results do not infer trust from metadata and return null for that field. An absent base or VERSION yields no entries and creates nothing. Duplicate label entries and malformed advertised versions are errors.</p>
 <p>Use –path-append-label false only when version directories or latest contents are directly at the supplied base. VERSION remains at that explicit base. For latest, reading that file means the base already exists, so present is true and empty is false: a sibling base-empty is not selected. This mode does not infer whether the base contains data files; directory presence is not integrity. This makes the inspected path explicit; it is not a new remote registry format.</p>
 <p>Machine output retains protocol v1 and adds a versions query result. No byte verification, latest-source selection, credential discovery or publication occurs.</p>
+<section id="download-one-ordinary-local-version" class="level2">
+<h2 class="anchored" data-anchor-id="download-one-ordinary-local-version">Download one ordinary local version</h2>
+<p>Current source work adds remote download. It is an explicit transfer, independent of configured source selection and build publication. For archive, supply the exact numeric directory spelling via –remote-version (for example v1.2.3-4). For latest, omit that option: the advertised VERSION label entry is required. A full archive directory wins over its corresponding -empty variant.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> <span class="at">--project</span> . remote download <span class="at">--path</span> /physical/archive <span class="at">--label</span> raw-data <span class="at">--remote-version</span> v1.2.3 <span class="at">--destination</span> downloaded-data</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> <span class="at">--project</span> . remote download <span class="at">--path</span> /physical/latest <span class="at">--label</span> raw-data <span class="at">--structure</span> latest <span class="at">--destination</span> downloaded-data</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The destination parent must exist. Private staging receives all source files (including nested and hidden files) before an existing destination changes. Matching files receive downloaded bytes; destination-only files survive by default. –clear explicitly discards those extras only after staging succeeds. An empty source marker preserves existing files normally, or produces an empty destination with –clear. A marker containing entries is rejected.</p>
+<p>Project-root/ancestor, VCS/framework-state and overlapping destinations are rejected, along with symlinked paths and linked/special copied entries. Hard-linked external aliases keep their bytes. Copy/selection failure preserves the existing destination. If installation fails, restoration is attempted; a failed rollback reports where the original directory was retained. This is not crash atomicity or protection against concurrent writers. Post-install cleanup failure is reported as an installed download with incomplete private-staging cleanup.</p>
+<p>The command does not authenticate metadata, compare downloaded bytes to CSV, choose configured restore sources or change local VERSION/manifest/configuration. A latest untrusted marker does not prevent this explicitly requested download; it remains a warning about metadata, not a verified-content claim. Machine mode returns completed: true only after successful completion.</p>
+<p>Permission flags are preserved for newly downloaded entries. Merge mode retains existing file/directory permission flags, and an existing destination root keeps its flags even with –clear. Ownership, ACLs and extended attributes are outside this bounded guarantee; replacing a tree is not a full metadata-preserving backup.</p>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
