@@ -198,3 +198,22 @@ This verifies existing archive machinery only. It does not automatically record
 all build inputs, code, configuration or dependencies, select a future build
 record format, or decide content-only identity and retention policy. Complete M2
 provenance remains unfinished.
+
+## Production file inventory
+
+Current source adds directory boolean **hash**. It defaults to true for
+declared raw/output/docs labels and false for cache labels. Set hash: false
+to omit a directory, or hash: true to include a cache. Each active layer must
+use a boolean; null, numbers and strings fail validation before hooks.
+
+```yaml
+directories:
+  raw-data: {path: inputs}
+  cache: {path: _tmp, hash: false}
+  output: {path: results}
+```
+
+A successful output-enabled production build writes root manifest.csv, without
+requiring Git or a remote. Preview and build.output_run: false leave that CSV
+alone. See [the inventory notes](storage-design.qmd#compatible-csv-inventory).
+This is newer than installed preview.2. See the compatibility log and PR175 for verification evidence.

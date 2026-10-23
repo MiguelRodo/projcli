@@ -126,3 +126,6 @@ behavior has not yet been proved; new frontend integrations are separate work.
 M2, complete input/code/dependency provenance and analysis-free publication
 retry remain unfinished. Preview recovery is bounded and does not isolate every
 write or undo arbitrary external effects.
+
+Current source (newer than preview.2): [projr-compatible CSV inventories](docs/storage-design.qmd#compatible-csv-inventory)
+record declared inputs, outputs and history. Release pins remain unchanged.

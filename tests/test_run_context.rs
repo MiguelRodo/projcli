@@ -14,11 +14,12 @@ fn child_queries_use_captured_mapping_profile_and_active_version_after_cwd_and_f
     for mode in ["build-dev", "build"] {
       for failing in [false, true] {
         let parent = tempfile::tempdir().unwrap();
-        let root = parent.path().join("project with spaces"); fs::create_dir(&root).unwrap();
+        let physical_parent = parent.path().canonicalize().unwrap();
+        let root = physical_parent.join("project with spaces"); fs::create_dir(&root).unwrap();
         fs::create_dir(root.join("cache")).unwrap();
         fs::create_dir(root.join("released")).unwrap();
-        let external = parent.path().join("external raw"); fs::create_dir(&external).unwrap();
-        let other = parent.path().join("other"); fs::create_dir(&other).unwrap();
+        let external = physical_parent.join("external raw"); fs::create_dir(&external).unwrap();
+        let other = physical_parent.join("other"); fs::create_dir(&other).unwrap();
         fs::write(other.join("VERSION"), "v9.9.9").unwrap();
         fs::write(root.join("VERSION"), "v1.2.3-4\n").unwrap();
         let config = "directories:\n  cache:\n    path: cache\n  output:\n    path: released\nbuild:\n  profile: alpha\n  scripts: [wrong.py]\n  git: false\n  restrictions:\n    not_behind: false\n";

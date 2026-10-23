@@ -247,3 +247,14 @@ path/content fixtures, including changed bytes, additions, renames and deletions
 Preserve previous evidence across ordinary ingestions. Do not infer a future
 build-record schema, rename-event format, content-only identity, retention policy
 or lifecycle capture point from this existing-format acceptance coverage.
+
+## Temporary CSV inventory scope (23 October 2026)
+
+User-approved interim manifest.csv follows projr label/fn/version/hash, MD5 bytes
+and production pre-input/post-output/history semantics. Keep syntax in
+manifest_csv and capture/history in manifest; CSV is independent of CAS.
+Preserve guarded writes, absent-file rollback and existing lifecycle. No mandatory
+cache for cache-free builds. Directory hash defaults true except cache; reject
+non-booleans before layer merging. CAS is a third remote structure alongside
+latest/archive; full store/restore, retention/discovery and identity/sealing are
+separate. Exact-head remote tests and independent review are required; evidence is recorded on PR175.

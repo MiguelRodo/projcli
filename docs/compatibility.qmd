@@ -1849,3 +1849,67 @@ remote tests and focused independent review are required for this fixture delta.
   or code change. Run existing three-platform and pinned acceptance remotely,
   then obtain independent review. No local Rust/R/Quarto execution or installed
   preview.2 change. Lifecycle diagrams retain their current order.
+
+## Temporary projr-compatible CSV inventories (local candidate)
+
+- **Pinned source:** SATVILab/projr 90be50132d16aee33e39c0f7f35ef906c35f5397;
+  [source findings](storage-design.qmd#compatible-csv-inventory). R/thesis untouched.
+- **Same:** root manifest.csv label/fn/version/hash strings, MD5 file bytes,
+  leading-v release version, empty marker, default raw/output/docs hashing and
+  cache exclusion unless opted in, pre/post/history production snapshots.
+  Preview does not write production CSV. CAS is not required.
+- **Different:** exact tuple deduplication fixes concatenated-key collisions in
+  R's Reduce(paste0, manifest). Guarded new-inode writes avoid destructive removal
+  and hard-link alias mutation. Links, special files, unsafe/non-UTF-8 names and
+  malformed history fail closed. Labels/paths sort deterministically; R runtime
+  and cross-language ordering parity unverified. Cache-free builds keep pre-state
+  in memory. Existing Rust lifecycle remains; end hooks can change inventoried files.
+- **Separate:** legacy CSV is not CAS JSON or plural .projr/manifests.csv. Full
+  latest/archive store/restore remains a gap; CAS is a third remote-layout
+  direction. No retention/discovery/identity/sealing policy introduced.
+- **Ponytail full:** reuse typed config, path guards, recovery and tempfile.
+  Isolate CSV syntax, no backend trait/factory. Add csv 1.4.0 and md5 0.8.0
+  instead of hand-rolling quoting/digests. csv-core 0.1.13 is the only new
+  transitive crate; existing dependencies reused.
+- **Actual checks:** source review, TOML/dependency graph/checksum inspection and
+  whitespace only. No Rust/R/Quarto execution. Added codec and filesystem/CLI
+  fixtures for quoting, literal MD5, pre/post timing, history, hash flags,
+  missing/empty directories, cache exclusion, no-cache use, preview/disabled
+  output, invalid history/layers, end-hook rollback, hard-link aliases, source
+  links and FIFOs. Tests are **not yet executed**.
+- **Required:** independent diff review, then when external actions are authorized,
+  locked three-platform tests, pinned full suite/API docs/26 renderer cases,
+  combined and mixed-failure Git/CAS acceptance and docs native-browser validation.
+  Review exact tested head before merge. No push, dispatch, release, deployment
+  or installation this turn.
+
+Independent Ponytail source review found no blocking runtime issue. Two witness
+gaps were fixed and re-reviewed: deliberate end-hook failure must first read a
+current-release CSV row and leave a retained cache marker, and UTF-8 labels and
+filenames now have explicit codec/filesystem roundtrip fixtures. Schema, MD5,
+capture timing, history/deduplication, empty/excluded directories, guarded writes
+and managed rollback were reviewed. Compilation, test execution, comparative R
+execution and Windows behavior remain unverified; review is not executed acceptance.
+
+Remote first-head checks: Linux and Windows suites passed; pinned run
+39909563384 completed Rust tests/API docs, real renderer, combined M1, archive
+object-byte and mixed-document failure/retry acceptance. macOS exposed fixture
+paths retaining its /var alias: direct inventory/read APIs correctly rejected
+that symlink, so fixture roots now use physical canonical paths. Docs browser
+validation found the new seventh lifecycle figure; its exact expected count is
+updated, retaining all SVG shape/size and screenshot assertions. These corrections
+require fresh exact-head remote checks; no path guard or assertion is weakened.
+
+The new CSV assertions also exposed the /var alias in the older real-Git
+publication fixture. Its owned temporary root, upstream and empty Git config now
+derive from one canonical physical temporary root. Source publication wording is
+updated to distinguish newer source from installed preview.2. Final exact-head
+gate evidence belongs on [PR175](https://github.com/MiguelRodo/projcli/pull/175);
+earlier source-only review notes above describe their historical checkpoint.
+
+Further platform evidence refined the fixture fix: Git for Windows does not
+accept a verbatim Windows path in GIT_CONFIG_GLOBAL. The real-Git fixture retains
+its original Git-facing paths and canonicalizes only the new direct CSV read.
+The captured-context fixture now supplies a physical external raw path, avoiding
+macOS /var aliases before the new pre-input capture. Production guards and Git
+credential/config behaviour are unchanged.

@@ -249,20 +249,23 @@ pub struct ResolvedGitConfig {
 ///
 /// ```rust
 /// use proj::yml::{DirConfig, IgnoreConfig};
-/// let dir = DirConfig { path: None, safe: None, ignore: IgnoreConfig::Single("all".to_string()) };
+/// let dir = DirConfig { path: None, safe: None, hash: None, ignore: IgnoreConfig::Single("all".to_string()) };
 /// ```
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct DirConfig {
     pub path: Option<Utf8PathBuf>,
     /// Optional safe-cache selection marker; valid only on cache-class mappings.
-    #[serde(default, deserialize_with = "deserialize_safe_cache")]
+    #[serde(default, deserialize_with = "deserialize_explicit_bool")]
     pub safe: Option<bool>,
+    /// Include this label in the projr-compatible inventory (default: all except cache).
+    #[serde(default, deserialize_with = "deserialize_explicit_bool")]
+    pub hash: Option<bool>,
     #[serde(default = "default_ignore")]
     pub ignore: IgnoreConfig,
 }
 
-fn deserialize_safe_cache<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Option<bool>, D::Error> {
+fn deserialize_explicit_bool<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Option<bool>, D::Error> {
     // Missing is unspecified; explicitly present null/string/number is not a boolean.
     bool::deserialize(deserializer).map(Some)
 }
@@ -358,13 +361,15 @@ pub struct ValidatedConfig {
 /// ```rust
 /// use camino::{Utf8Path, Utf8PathBuf};
 /// use proj::yml::{ResolvedDir, IgnoreConfig};
-/// let resolved = ResolvedDir { path: Utf8PathBuf::from("_raw"), safe: None, ignore: IgnoreConfig::Single("all".to_string()) };
+/// let resolved = ResolvedDir { path: Utf8PathBuf::from("_raw"), safe: None, hash: None, ignore: IgnoreConfig::Single("all".to_string()) };
 /// ```
 #[derive(Debug)]
 pub struct ResolvedDir {
     pub path: Utf8PathBuf,
     /// Validated optional safe-cache selection marker.
     pub safe: Option<bool>,
+    /// Explicit inventory override; unspecified defaults to false for cache, true otherwise.
+    pub hash: Option<bool>,
     pub ignore: IgnoreConfig,
 }
 
@@ -450,6 +455,7 @@ impl ProjConfig {
                 ResolvedDir {
                     path,
                     safe: config.safe,
+                    hash: config.hash,
                     ignore: config.ignore.clone(),
                 },
             );
@@ -534,7 +540,7 @@ impl ValidatedConfig {
     ///
     /// let mut dirs = HashMap::new();
     /// dirs.insert("raw-data".to_string(), ResolvedDir {
-    ///     safe: None,
+    ///     safe: None, hash: None,
     ///     path: Utf8PathBuf::from("_raw_data"),
     ///     ignore: IgnoreConfig::Single("all".to_string())
     /// });
@@ -646,8 +652,10 @@ fn read_configuration_file(path: &Utf8Path) -> anyhow::Result<Value> {
     // Validate explicit markers before deep_merge's null-inheritance rule can hide them.
     if let Some(directories) = value.get("directories").and_then(Value::as_object) {
         for (label, directory) in directories {
-            if let Some(marker) = directory.get("safe") {
-                anyhow::ensure!(marker.is_boolean(), "Directory '{label}' safe selection must be boolean in {path}");
+            for key in ["safe", "hash"] {
+                if let Some(marker) = directory.get(key) {
+                    anyhow::ensure!(marker.is_boolean(), "Directory '{label}' {key} selection must be boolean in {path}");
+                }
             }
         }
     }

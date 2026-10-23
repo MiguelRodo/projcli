@@ -134,6 +134,11 @@ if os.environ['PROJCLI_TEST_FAIL_ANALYSIS']=='1':
         assert_eq!(fs::read(self.root.join("cache/projr/v1.2.4/output/results.csv")).unwrap(), expected);
         assert_eq!(self.git(&["show", "HEAD:released/results.csv"]), expected);
         assert_eq!(self.git(&["show", "HEAD:VERSION"]), b"Version: v1.2.4");
+        let manifest_path = self.root.join("manifest.csv").canonicalize().unwrap();
+        let rows = proj::manifest::read(camino::Utf8Path::from_path(&manifest_path).unwrap()).unwrap();
+        assert!(rows.iter().any(|row| row.label == "output" && row.r#fn == "results.csv"
+            && row.version == "v1.2.4" && row.hash == "a70ebd90b8339a208d1573da9c1a700f"));
+        assert_eq!(self.git(&["show", "HEAD:manifest.csv"]), fs::read(manifest_path).unwrap());
         assert_eq!(fs::read(self.root.join("released/previous.csv")).unwrap(), b"previous\n21\n");
     }
 }
