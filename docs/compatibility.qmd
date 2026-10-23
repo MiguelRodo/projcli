@@ -1913,3 +1913,13 @@ its original Git-facing paths and canonicalizes only the new direct CSV read.
 The captured-context fixture now supplies a physical external raw path, avoiding
 macOS /var aliases before the new pre-input capture. Production guards and Git
 credential/config behaviour are unchanged.
+
+## Complete remote surface source inventory
+
+The [pinned remote inventory](remote-compatibility.qmd) records actual local and
+GitHub Release-asset behaviour, every parsed/defaulted remote setting, store and
+restore semantics, stale documentation/stubs, test coverage intent and Rust gaps.
+Its separate configuration assessment excludes the approved CSV choice and does
+not silently redesign policy. R and thesis stay read-only; no live remote upload,
+new credentials or local heavy execution. Independent source review and remote
+docs validation are required. Ordinary remote compatibility remains incomplete.

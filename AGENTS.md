@@ -258,3 +258,13 @@ cache for cache-free builds. Directory hash defaults true except cache; reject
 non-booleans before layer merging. CAS is a third remote structure alongside
 latest/archive; full store/restore, retention/discovery and identity/sealing are
 separate. Exact-head remote tests and independent review are required; evidence is recorded on PR175.
+
+## Remote parity implementation boundary
+
+Use docs/remote-compatibility.qmd as the pinned source inventory, not a claim of
+implemented parity. Port working local/GitHub latest/archive options in bounded
+reviewed slices; distinguish accepted-only fields and source bugs. Preserve
+path guards and honest publication failures. CAS is additional; no retention/GC
+or discovery policy follows. The future registry proposal remains issue-only.
+Never use user datasets or destructive live-provider operations for fixtures;
+remote heavy tests and mocked/disposable transports are the default.
