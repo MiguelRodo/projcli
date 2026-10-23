@@ -323,6 +323,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#existing-archive-inventory-coverage" id="toc-existing-archive-inventory-coverage" class="nav-link" data-scroll-target="#existing-archive-inventory-coverage">Existing archive inventory coverage</a></li>
   <li><a href="#production-file-inventory" id="toc-production-file-inventory" class="nav-link" data-scroll-target="#production-file-inventory">Production file inventory</a></li>
   <li><a href="#configured-restore-source-fields" id="toc-configured-restore-source-fields" class="nav-link" data-scroll-target="#configured-restore-source-fields">Configured restore source fields</a></li>
+  <li><a href="#configured-local-publication-candidate" id="toc-configured-local-publication-candidate" class="nav-link" data-scroll-target="#configured-local-publication-candidate">Configured local publication candidate</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -476,6 +477,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>The current source’s explicit remote restore command reads the existing projr directories.LABEL.source and build.local/build.github definitions. See the <a href="./cli/remote.html">remote command reference</a> for lookup precedence, limits and safety. This does not enable automatic ordinary uploads in build; normal build validation still rejects unsupported publication fields. The future top-level registry proposal remains separate. _proj.yml and legacy _projr.yml discovery/conflict rules remain unchanged.</p>
 <p>Configured restore uses the shared profile selection order: explicit profile, PROJR_PROFILE, QUARTO_PROFILE, then build.profile, with earlier profiles winning and local overrides last. Machine failures preserve installation/recovery details on stderr, including retained backup paths; stdout stays a structured failure. Legacy data CSV rows and remote data namespaces are read without rewriting history; ambiguous canonical/legacy namespaces fail before installation. One optional VERSION trust marker is accepted; it is not a byte-verification claim.</p>
 <p>Review precision: VERSION.zip requires exactly the canonical VERSION member spelling, including on case-insensitive filesystems. Metadata transfer staging also closes explicitly and reports cleanup failure paths.</p>
+</section>
+<section id="configured-local-publication-candidate" class="level2">
+<h2 class="anchored" data-anchor-id="configured-local-publication-candidate">Configured local publication candidate</h2>
+<p>build.local.TITLE accepts selected latest destinations with explicit send.inspect:file. See the <a href="./cli/remote.html#configured-local-publication-candidate">remote command reference</a> for the complete example and tested/pending control matrix. content:false/null disables a destination, true selects declared non-cache roles, and a list retains its explicit label order. Each selected role must have CSV hash capture enabled. The existing if-change/sync-diff defaults remain; omitted inspect does not silently change the projr manifest default to file.</p>
+<p>Archive, manifest/none inspection, path-append-label:false, title-level cue and nonempty get/conflict controls are not executable in this bounded slice. Selected unsupported policy fails before hooks. Registry706 remains design-only.</p>
 
 
 </section>

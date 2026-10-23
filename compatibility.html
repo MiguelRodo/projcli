@@ -331,6 +331,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#explicit-github-asset-replacement" id="toc-explicit-github-asset-replacement" class="nav-link" data-scroll-target="#explicit-github-asset-replacement">Explicit GitHub asset replacement</a></li>
   <li><a href="#configured-single-label-restore" id="toc-configured-single-label-restore" class="nav-link" data-scroll-target="#configured-single-label-restore">Configured single-label restore</a></li>
   <li><a href="#remote-delivery-documentation-reconciliation" id="toc-remote-delivery-documentation-reconciliation" class="nav-link" data-scroll-target="#remote-delivery-documentation-reconciliation">Remote delivery documentation reconciliation</a></li>
+  <li><a href="#configured-local-publication-candidate" id="toc-configured-local-publication-candidate" class="nav-link" data-scroll-target="#configured-local-publication-candidate">Configured local publication candidate</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -952,6 +953,15 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="remote-delivery-documentation-reconciliation">Remote delivery documentation reconciliation</h2>
 <p>The inventory now separates delivered explicit transport/configured single-label restore from still-missing automatic publication, cue/history and credential-helper parity. Earlier source-audit missing-feature rows are updated rather than relying on appended candidate sections. No runtime change. Ponytail full: reuse the existing source inventory and exact PR evidence; no new feature or design schema.</p>
 <p>The follow-up Ponytail review removed obsolete duplicated candidate narratives from the inventory and linked the maintained command reference instead. This avoids conflicting pending/delivered and stdout/stderr redaction descriptions.</p>
+</section>
+<section id="configured-local-publication-candidate" class="level2">
+<h2 class="anchored" data-anchor-id="configured-local-publication-candidate">Configured local publication candidate</h2>
+<p>Same: existing build.local definition style; explicit latest/file, content selection, if-change/always, four transfer strategies, Project/label VERSION, current-label CSV history and existing changelog copy after data. Sync-purge reuploads same-byte files, matching pinned dest-send-label.R1330+.</p>
+<p>Different: all namespace aliases/overlaps fail before hooks; every selected source is staged before the first destination changes; hard-linked metadata aliases keep their old inode bytes; source directory privacy survives staging. All private staging owners close explicitly on ordinary error/success paths. Missing/starred file-equal sync-diff metadata and newly empty labels become advertised correctly. The pinned latest/file comparison helper355 ignores VERSION, so those are bounded discoverability corrections, not byte-for-byte reproduction of its no-change bug.</p>
+<p>Pending: archive comparison/history, manifest/none inspection (including the existing manifest default), configured GitHub publication and full policy matrix. Unsupported selected modes fail before hooks, rather than silently downgrading. See the <a href="./cli/remote.html#configured-local-publication-candidate">execution/fixture matrix</a>.</p>
+<p>Ponytail full shares the restore definition/content parser, CSV, strategy actions and guarded installer; no new packages or backend trait/registry schema. Actual CLI fixtures cover8strategy/cue combinations plus repeated no-change, content/empty variants, metadata repair/privacy/namespace/failure boundaries. Exact-head remote gates and independent review evidence are recorded on <a href="https://github.com/MiguelRodo/projcli/pull/185">PR185</a>. No live Release mutation, local heavy tests or installed-preview update.</p>
+<p>Review amendment: reuse already-locked ICU normalizer2.4 directly for planned NFC/case namespace comparison (no new package versions). MacOS initial failures came from checking ordinary namespaces when no ordinary targets exist; an early return restores unrelated read-only config behavior without weakening guards. The shared Linux rename-fault fixture now verifies all private snapshots close after second-target preparation failure and first-target installation failure.</p>
+<p>Final coverage precision adds a declared hash-enabled cache to content selection (to prove true excludes it) and an all-platform later-destination preparation failure with read-only selected files and publication-staging residue inspection.</p>
 
 
 </section>

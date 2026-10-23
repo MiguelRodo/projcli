@@ -280,6 +280,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#critical-configuration-assessment-separate-from-compatibility" id="toc-critical-configuration-assessment-separate-from-compatibility" class="nav-link" data-scroll-target="#critical-configuration-assessment-separate-from-compatibility">Critical configuration assessment, separate from compatibility</a></li>
   <li><a href="#test-evidence-and-bounded-implementation-sequence" id="toc-test-evidence-and-bounded-implementation-sequence" class="nav-link" data-scroll-target="#test-evidence-and-bounded-implementation-sequence">Test evidence and bounded implementation sequence</a></li>
   <li><a href="#current-command-reference" id="toc-current-command-reference" class="nav-link" data-scroll-target="#current-command-reference">Current command reference</a></li>
+  <li><a href="#configured-local-publication-candidate" id="toc-configured-local-publication-candidate" class="nav-link" data-scroll-target="#configured-local-publication-candidate">Configured local publication candidate</a></li>
   </ul>
 </nav>
     </div>
@@ -786,6 +787,11 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="current-command-reference">Current command reference</h2>
 <p>See the <a href="./cli/remote.html">remote command reference</a> for the delivered local inspection/download/store, GitHub asset/ZIP/replacement and configured restore commands, limits and failure boundaries. The <a href="./compatibility.html">compatibility log</a> retains per-slice source comparisons, review findings and verification evidence.</p>
 <p>Machine restore stdout has a static structured failure. Stderr carries the operational diagnostic chain, including paths and parser details; it is not a general configuration-redaction boundary. HTTP errors omit credentials and response bodies. Empty/unrecorded labels skip without clearing, and successful CSV/version selection is not a byte-integrity guarantee.</p>
+</section>
+<section id="configured-local-publication-candidate" class="level2">
+<h2 class="anchored" data-anchor-id="configured-local-publication-candidate">Configured local publication candidate</h2>
+<p>The next bounded slice integrates build.local latest/file with the build’s existing release boundary: current CSV-selected staging, all four file strategies, both cues, namespace preflight and shared CSV/VERSION/changelog updates. See the <a href="./cli/remote.html#configured-local-publication-candidate">control matrix</a>. <a href="https://github.com/MiguelRodo/projcli/pull/185">PR185</a> records exact-head independent review and remote verification. Manifest/none inspection, archive comparison selection and configured GitHub publication remain pending; the manifest default is not changed to file.</p>
+<p>Pinned R comparison: dest-send-label.R355,854-1560,1587-1788 and manifest.R67-75,192-225 in the source revision linked above. New empty labels and file-equal missing/starred metadata receive explicit discoverability corrections; these are documented differences rather than claims that the pinned R no-change path already repairs them. No registry or unresolved retention/default policy is adopted.</p>
 
 
 </section>

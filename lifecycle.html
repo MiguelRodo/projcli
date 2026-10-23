@@ -287,6 +287,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#maintaining-this-figure" id="toc-maintaining-this-figure" class="nav-link" data-scroll-target="#maintaining-this-figure">Maintaining this figure</a></li>
   <li><a href="#failure-followed-by-a-smaller-build" id="toc-failure-followed-by-a-smaller-build" class="nav-link" data-scroll-target="#failure-followed-by-a-smaller-build">Failure followed by a smaller build</a></li>
   <li><a href="#source-csv-inventory-additional-capture-points" id="toc-source-csv-inventory-additional-capture-points" class="nav-link" data-scroll-target="#source-csv-inventory-additional-capture-points">Source CSV inventory: additional capture points</a></li>
+  <li><a href="#configured-ordinary-publication-candidate" id="toc-configured-ordinary-publication-candidate" class="nav-link" data-scroll-target="#configured-ordinary-publication-candidate">Configured ordinary publication candidate</a></li>
   </ul>
 </nav>
     </div>
@@ -737,6 +738,11 @@ Figure&nbsp;7: Current source: production CSV capture within managed recovery.
 </div>
 <p>CSV replacement remains inside managed local recovery. Publication failure preserves local release CSV; no remote rollback is implied. Later end-hook changes are outside inventory, so these records are not sealing.</p>
 <p>Configured remote restore is a separate explicit operation, not an automatic stage in the build lifecycle above. It selects a source, stages a complete download and then invokes guarded merge/clear installation.</p>
+</section>
+<section id="configured-ordinary-publication-candidate" class="level2">
+<h2 class="anchored" data-anchor-id="configured-ordinary-publication-candidate">Configured ordinary publication candidate</h2>
+<p>Current source (newer than installed preview.2) places configured local latest/file publication after successful CSV capture and the existing local-release boundary, before selected CAS export, Git publication, end hooks and next-dev bump. Namespace/configuration validation happens before hooks. It stages every selected CSV snapshot before the first remote mutation, then writes data and shared CSV/VERSION/changelog. Failure preserves the local release and skips later stages; it does not roll back already published destinations. Preview skips this path. The released diagrams above retain their installed-version meaning.</p>
+<p><sub></sub>~{mermaid} %%| label: fig-lifecycle-ordinary-publication %%| fig-cap: “Current-source candidate: bounded ordinary local publication.” %%| fig-alt: “Before hooks validate all publication namespaces. After local success and CSV capture, establish the release boundary, stage all selected CSV files, publish local data then metadata, then continue CAS, Git, end hooks and next development version. Failure preserves the release and reports partial effects.” flowchart TB A[“Preflight all namespaces before hooks”] –&gt; B[“Existing analysis / promotion / CSV”] B –&gt; C[“Keep local release”] C –&gt; D[“Stage all selected CSV bytes”] D –&gt; E[“Local latest data, then CSV / VERSION / changelog”] E –&gt; F[“Selected CAS, Git, end hooks, next-dev”] D –&gt;|Failure| G[“Preserve release; skip later stages”] E –&gt;|Failure| G <sub></sub>~</p>
 
 
 </section>

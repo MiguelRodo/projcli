@@ -312,6 +312,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#github-zip-packaging-and-explicit-directory-transfer" id="toc-github-zip-packaging-and-explicit-directory-transfer" class="nav-link" data-scroll-target="#github-zip-packaging-and-explicit-directory-transfer">GitHub ZIP packaging and explicit directory transfer</a></li>
   <li><a href="#explicit-github-asset-replacement" id="toc-explicit-github-asset-replacement" class="nav-link" data-scroll-target="#explicit-github-asset-replacement">Explicit GitHub asset replacement</a></li>
   <li><a href="#configured-single-label-restore" id="toc-configured-single-label-restore" class="nav-link" data-scroll-target="#configured-single-label-restore">Configured single-label restore</a></li>
+  <li><a href="#configured-local-publication-candidate" id="toc-configured-local-publication-candidate" class="nav-link" data-scroll-target="#configured-local-publication-candidate">Configured local publication candidate</a></li>
   </ul>
 </nav>
     </div>
@@ -399,6 +400,88 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Pinned comparison: <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/restore.R#L140">restore gate/selection/download</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-dest.R#L197">inline destination defaults</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send.R#L416">content eligibility</a>. Ponytail full reuses merged YAML, typed core validation, CSV decoding, numeric version comparison and guarded local/ZIP installers. No backend trait, new registry or persistence schema. Filesystem and mocked REST actual CLI fixtures cover source priority, references/inline/profiles, destination preference, numeric archives, VERSION ZIP latest, clear/merge/empty and corrupt failure preservation. No actual GitHub Release mutation or local heavy test is performed. PR183 passed independent review at44478558d0ef41660d513a3f7d74fe399684b245, all12checks and the <a href="https://github.com/MiguelRodo/projcli/actions/runs/39944545740">full pinned gate</a>. It merged ascee85a164fa43cb827c0db69814199994fa4ea66 with an identical tested tree.</p>
 <p>Configured restore uses the shared profile selection order: explicit profile, PROJR_PROFILE, QUARTO_PROFILE, then build.profile, with earlier profiles winning and local overrides last. Machine failures preserve installation/recovery details on stderr, including retained backup paths; stdout stays a structured failure. Legacy data CSV rows and remote data namespaces are read without rewriting history; ambiguous canonical/legacy namespaces fail before installation. One optional VERSION trust marker is accepted; it is not a byte-verification claim.</p>
 <p>Review precision: VERSION.zip requires exactly the canonical VERSION member spelling, including on case-insensitive filesystems. Metadata transfer staging also closes explicitly and reports cleanup failure paths.</p>
+</section>
+<section id="configured-local-publication-candidate" class="level2">
+<h2 class="anchored" data-anchor-id="configured-local-publication-candidate">Configured local publication candidate</h2>
+<p>Current source adds build.local latest publication with explicit send.inspect: file. This is newer than installed preview.2 and is not complete projr remote parity. All selected namespace identities are checked before hooks; every current CSV-selected snapshot and existing remote metadata is staged/read before the first destination changes. Data precedes manifest.csv, VERSION and an existing project CHANGELOG.md. The build’s existing irreversible publication boundary preserves the successful local release on publication failure and skips its next-dev bump; remote effects may be partial.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">build</span><span class="kw">:</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">scripts</span><span class="kw">:</span><span class="at"> </span><span class="kw">[]</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">git</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">local</span><span class="kw">:</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">delivery</span><span class="kw">:</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">path</span><span class="kw">:</span><span class="at"> ../delivery</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">structure</span><span class="kw">:</span><span class="at"> latest</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">content</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">output</span><span class="kw">]</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">send</span><span class="kw">:</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">inspect</span><span class="kw">:</span><span class="at"> file</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">cue</span><span class="kw">:</span><span class="at"> if-change</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">strategy</span><span class="kw">:</span><span class="at"> sync-diff</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Content false/null selects nothing, true selects declared non-cache labels, and a list selects exactly those declared labels. Selected labels require CSV hash capture. Explicit label lists retain order; true uses sorted declared labels. There is no implicit role/destination and no registry706 change. Previews and output_run:false skip publication.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Control</th>
+<th>This candidate’s execution/fixture scope</th>
+<th>Remaining</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Content true/false/null/list</td>
+<td>Actual CLI selection fixtures; true excludes cache</td>
+<td>Full configured provider matrix</td>
+</tr>
+<tr class="even">
+<td>cue if-change / always</td>
+<td>Both against each strategy; repeated identical sync-diff tests label-version retention/advance</td>
+<td>Archive comparison-version selection</td>
+</tr>
+<tr class="odd">
+<td>inspect file</td>
+<td>Shared MD5 byte inspection, current CSV snapshots, exact source-byte validation</td>
+<td>GitHub configured inspection</td>
+</tr>
+<tr class="even">
+<td>inspect manifest</td>
+<td>Selected definitions fail before hooks; no silent file-mode downgrade</td>
+<td>Trusted history comparison and fallback</td>
+</tr>
+<tr class="odd">
+<td>inspect none</td>
+<td>Selected definitions fail before hooks</td>
+<td>Default upload-all and untrusted-state interactions</td>
+</tr>
+<tr class="even">
+<td>upload-all</td>
+<td>Upload all selected files, retain extras; existing remote marked untrusted</td>
+<td>Other inspection modes</td>
+</tr>
+<tr class="odd">
+<td>upload-missing</td>
+<td>Preserve existing names/bytes, add missing; changes to existing remote marked untrusted</td>
+<td>Other inspection modes</td>
+</tr>
+<tr class="even">
+<td>sync-diff</td>
+<td>Add/change/remove; no-change cue fixture</td>
+<td>Archive/history interaction</td>
+</tr>
+<tr class="odd">
+<td>sync-purge</td>
+<td>Mirror full selected file set, including same-byte files, matching the pinned source quirk</td>
+<td>Other inspection modes</td>
+</tr>
+</tbody>
+</table>
+<p>if-change and sync-diff remain the existing defaults. The projr default inspection is manifest: until implemented, omitting inspect is an error rather than changing that default to file. Ordinary archive, nonempty get controls, send.conflict and title-level cue are not silently accepted as working policy. path-append-label:false is explicitly deferred here because its full destination contains the shared metadata namespace.</p>
+<p>History retains prior label/version rows and replaces current label/version rows with the current project CSV rows. Upload modes can intentionally preserve extra or old bytes, so desired-source CSV history is not proof that those bytes equal the remote; the VERSION asterisk discloses untrusted existing state.</p>
+<p>Two source defects are corrected explicitly: newly empty latest labels receive an advertised VERSION entry, and file-equal sync-diff repairs missing/starred label metadata after inspection. Pinned R latest/file returns the project version without checking VERSION (.dsl_gr_gvc_latest_file); its no-change branch can otherwise leave the directory undiscoverable or stale-marked. This is a bounded metadata/discoverability correction, not a new default cue or trust policy.</p>
+<p>Ponytail full shares the existing definition/content parser, numeric version validation, CSV format and four-strategy actions/guarded installer. Snapshots preserve selected source directory modes and all staging trees get explicit cleanup on success/failure. Planned missing-path namespaces use conservative portable case/NFC comparison; actual native spelling is rechecked before installation. No ownership/ACL/xattr, crash atomicity or concurrent-writer isolation claim. No actual GitHub Release test mutation or local heavy testing. Remote exact-head checks and independent review are required before delivery.</p>
 
 
 </section>
