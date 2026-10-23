@@ -1,0 +1,235 @@
+{
+  "complete": true,
+  "source_commit": "03074c8e8fe9cf36fe976171d0976a6a701a9e80",
+  "ci_binary_run": "https://github.com/MiguelRodo/projcli/actions/runs/39986963543",
+  "ci_artifact_id": 12516450488,
+  "ci_artifact_sha256": "16aa78a72cc336422fa336b92408dfaaab6a3d8f88b8a555197420418fb29063",
+  "binary_sha256": "c1ac9af37d8355860e8d940d7b1cc588580ff57e3e78cba6ac1fa79553913425",
+  "reported_version": "proj 0.4.0-preview.2",
+  "protocol_version": 1,
+  "release_id": 422144076,
+  "release_url": "https://github.com/MiguelRodo/projcli/releases/tag/projcli-remote-acceptance-pr194",
+  "release_is_fixture_prerelease": true,
+  "synthetic_files_only": true,
+  "installed_binary_changed": false,
+  "build_count": 5,
+  "restore_count": 2,
+  "final_development_version": "v1.2.8.1",
+  "project_authority_bytes_preserved_by_restore": true,
+  "remote_assets_unchanged_by_restore": true,
+  "checkpoints": [
+    {
+      "step": "latest-initial",
+      "project_version": "1.2.4",
+      "assets": {
+        "acceptance-latest-output.zip": {
+          "id": 669911606,
+          "zip_sha256": "202db9572c2ccb33898f53f2d01eefbd6f6fad49cc0571ae85ba4dd899a63b4c",
+          "members": {
+            "kept.csv": "d9a1b89f6d92a508b356037951944991636beb6ed0e8ed6b0e38342b50259874",
+            "result.csv": "648463d8885fd5dede951af515a5e5b2ecb34af5b3e6dda9706ad76f4bac0d8d"
+          }
+        },
+        "manifest.zip": {
+          "id": 669911676,
+          "zip_sha256": "7a1cdf02573ec06bb920473d85239bfc0b79cc47f7ea9ddeb4014a454b280384",
+          "members": {
+            "manifest.csv": "a556bda39b94cbb9c478b8a0c120cb0544a1764490b697e6cf5fc4bde1737675"
+          }
+        },
+        "VERSION.zip": {
+          "id": 669911734,
+          "zip_sha256": "581809ebf739ff5adcda7ff78638265c06be0c47d7a38ea053b8bc2fc482c3e1",
+          "members": {
+            "VERSION": "d1b805ce02dc8358ff11e82ad85687bf25fae4e7419f8c8138c3787a3e0da873"
+          }
+        }
+      }
+    },
+    {
+      "step": "latest-replace",
+      "project_version": "1.2.5",
+      "assets": {
+        "acceptance-latest-output.zip": {
+          "id": 669912833,
+          "zip_sha256": "3256106e09e96037b9a4e267933b67c5d80b15fa02f16272c6f6607986a1a4ac",
+          "members": {
+            "kept.csv": "d9a1b89f6d92a508b356037951944991636beb6ed0e8ed6b0e38342b50259874",
+            "result.csv": "34db06a61d211d7e9a6f7df4004c7db01d759e42e6ef666d560cf4f868eb7507"
+          }
+        },
+        "manifest.zip": {
+          "id": 669912990,
+          "zip_sha256": "00420adb57ba3d8975366f3cacd504f2d617e9e05957c2a08d871551d945e6c5",
+          "members": {
+            "manifest.csv": "44049f3ca4aa1dfd11ad77aace2296ee6baf46e2202536540639a4e6a59a99ab"
+          }
+        },
+        "VERSION.zip": {
+          "id": 669913164,
+          "zip_sha256": "1c13e4136e04d19edaf2ab6ccd1be0aac099753c6dd45947b9746f4eef3a8365",
+          "members": {
+            "VERSION": "de821a21bc057d88de33bdb46f03463f00f778c19295c3d41b90a1ec94fe6af7"
+          }
+        }
+      }
+    },
+    {
+      "step": "archive-initial",
+      "project_version": "1.2.6",
+      "assets": {
+        "acceptance-archive-output-v1.2.6.zip": {
+          "id": 669916227,
+          "zip_sha256": "3256106e09e96037b9a4e267933b67c5d80b15fa02f16272c6f6607986a1a4ac",
+          "members": {
+            "kept.csv": "d9a1b89f6d92a508b356037951944991636beb6ed0e8ed6b0e38342b50259874",
+            "result.csv": "34db06a61d211d7e9a6f7df4004c7db01d759e42e6ef666d560cf4f868eb7507"
+          }
+        },
+        "acceptance-latest-output.zip": {
+          "id": 669912833,
+          "zip_sha256": "3256106e09e96037b9a4e267933b67c5d80b15fa02f16272c6f6607986a1a4ac",
+          "members": {
+            "kept.csv": "d9a1b89f6d92a508b356037951944991636beb6ed0e8ed6b0e38342b50259874",
+            "result.csv": "34db06a61d211d7e9a6f7df4004c7db01d759e42e6ef666d560cf4f868eb7507"
+          }
+        },
+        "manifest.zip": {
+          "id": 669916372,
+          "zip_sha256": "b11812bfa73b5fc50c0c582d2cec96153f90a1095549fd67daf62ea3bae7b3c0",
+          "members": {
+            "manifest.csv": "3bb58b4646ee76dea7d808091f24d95edc3e7829db5956353b4b9ed9136e3273"
+          }
+        },
+        "VERSION.zip": {
+          "id": 669916483,
+          "zip_sha256": "89b842b09a0ec2238cf3aeff04a86c0d9bb310943d206532b63735aa3ca5c5a2",
+          "members": {
+            "VERSION": "7f9e11e7ce41665f13fa96efc8cfd87582f9c67a4ba896ee142379af6f69c5d8"
+          }
+        }
+      }
+    },
+    {
+      "step": "archive-reuse",
+      "project_version": "1.2.7",
+      "assets": {
+        "acceptance-archive-output-v1.2.6.zip": {
+          "id": 669916227,
+          "zip_sha256": "3256106e09e96037b9a4e267933b67c5d80b15fa02f16272c6f6607986a1a4ac",
+          "members": {
+            "kept.csv": "d9a1b89f6d92a508b356037951944991636beb6ed0e8ed6b0e38342b50259874",
+            "result.csv": "34db06a61d211d7e9a6f7df4004c7db01d759e42e6ef666d560cf4f868eb7507"
+          }
+        },
+        "acceptance-latest-output.zip": {
+          "id": 669912833,
+          "zip_sha256": "3256106e09e96037b9a4e267933b67c5d80b15fa02f16272c6f6607986a1a4ac",
+          "members": {
+            "kept.csv": "d9a1b89f6d92a508b356037951944991636beb6ed0e8ed6b0e38342b50259874",
+            "result.csv": "34db06a61d211d7e9a6f7df4004c7db01d759e42e6ef666d560cf4f868eb7507"
+          }
+        },
+        "manifest.zip": {
+          "id": 669918027,
+          "zip_sha256": "68dcd178e8e269e699e0a921ef71a6b324a65740a19c2e46ebe15f940936830f",
+          "members": {
+            "manifest.csv": "381952c7c08f7b94dd60a2a72851c877733da54666e5ff3195c488b8f344578a"
+          }
+        },
+        "VERSION.zip": {
+          "id": 669918123,
+          "zip_sha256": "b01335348a8d4da154061db6a2e89ea1a57a045a5c3342d514a4a28f66a03a01",
+          "members": {
+            "VERSION": "c49fba839f1cd06d444dccfba71e341cfd0f9999ca79230166bd0c81ba5c34c1"
+          }
+        }
+      }
+    },
+    {
+      "step": "archive-change",
+      "project_version": "1.2.8",
+      "assets": {
+        "acceptance-archive-output-v1.2.6.zip": {
+          "id": 669916227,
+          "zip_sha256": "3256106e09e96037b9a4e267933b67c5d80b15fa02f16272c6f6607986a1a4ac",
+          "members": {
+            "kept.csv": "d9a1b89f6d92a508b356037951944991636beb6ed0e8ed6b0e38342b50259874",
+            "result.csv": "34db06a61d211d7e9a6f7df4004c7db01d759e42e6ef666d560cf4f868eb7507"
+          }
+        },
+        "acceptance-archive-output-v1.2.8.zip": {
+          "id": 669919663,
+          "zip_sha256": "f815556a6af92eb0b6121e8aa8834cabc3cd97ff880c698c8fd3b3d826e16801",
+          "members": {
+            "kept.csv": "d9a1b89f6d92a508b356037951944991636beb6ed0e8ed6b0e38342b50259874",
+            "result.csv": "b1bb3a37bb55bc5c27c6104401af6ec2476e77270d3c82b0e2bdf5ff5b6981a6"
+          }
+        },
+        "acceptance-latest-output.zip": {
+          "id": 669912833,
+          "zip_sha256": "3256106e09e96037b9a4e267933b67c5d80b15fa02f16272c6f6607986a1a4ac",
+          "members": {
+            "kept.csv": "d9a1b89f6d92a508b356037951944991636beb6ed0e8ed6b0e38342b50259874",
+            "result.csv": "34db06a61d211d7e9a6f7df4004c7db01d759e42e6ef666d560cf4f868eb7507"
+          }
+        },
+        "manifest.zip": {
+          "id": 669919757,
+          "zip_sha256": "57cfedc72781cdca1726faa16348d00a08e85c798991ef0806cd12035c95cf8b",
+          "members": {
+            "manifest.csv": "b1353502e92fc50a5692c9afed353acf7d56b8c991fd1c03b68a2f2bc04eeb19"
+          }
+        },
+        "VERSION.zip": {
+          "id": 669919863,
+          "zip_sha256": "83ff27db7e3ff3679f9c7a58a9b3936186af7f65a159390dd22e4d039dc43516",
+          "members": {
+            "VERSION": "8902cbd2e5012f0d0ba0adb3842e04c975ffbc02f084ba118b1e0073011c8e37"
+          }
+        }
+      }
+    }
+  ],
+  "final_assets": {
+    "acceptance-archive-output-v1.2.6.zip": {
+      "id": 669916227,
+      "zip_sha256": "3256106e09e96037b9a4e267933b67c5d80b15fa02f16272c6f6607986a1a4ac",
+      "members": {
+        "kept.csv": "d9a1b89f6d92a508b356037951944991636beb6ed0e8ed6b0e38342b50259874",
+        "result.csv": "34db06a61d211d7e9a6f7df4004c7db01d759e42e6ef666d560cf4f868eb7507"
+      }
+    },
+    "acceptance-archive-output-v1.2.8.zip": {
+      "id": 669919663,
+      "zip_sha256": "f815556a6af92eb0b6121e8aa8834cabc3cd97ff880c698c8fd3b3d826e16801",
+      "members": {
+        "kept.csv": "d9a1b89f6d92a508b356037951944991636beb6ed0e8ed6b0e38342b50259874",
+        "result.csv": "b1bb3a37bb55bc5c27c6104401af6ec2476e77270d3c82b0e2bdf5ff5b6981a6"
+      }
+    },
+    "acceptance-latest-output.zip": {
+      "id": 669912833,
+      "zip_sha256": "3256106e09e96037b9a4e267933b67c5d80b15fa02f16272c6f6607986a1a4ac",
+      "members": {
+        "kept.csv": "d9a1b89f6d92a508b356037951944991636beb6ed0e8ed6b0e38342b50259874",
+        "result.csv": "34db06a61d211d7e9a6f7df4004c7db01d759e42e6ef666d560cf4f868eb7507"
+      }
+    },
+    "manifest.zip": {
+      "id": 669919757,
+      "zip_sha256": "57cfedc72781cdca1726faa16348d00a08e85c798991ef0806cd12035c95cf8b",
+      "members": {
+        "manifest.csv": "b1353502e92fc50a5692c9afed353acf7d56b8c991fd1c03b68a2f2bc04eeb19"
+      }
+    },
+    "VERSION.zip": {
+      "id": 669919863,
+      "zip_sha256": "83ff27db7e3ff3679f9c7a58a9b3936186af7f65a159390dd22e4d039dc43516",
+      "members": {
+        "VERSION": "8902cbd2e5012f0d0ba0adb3842e04c975ffbc02f084ba118b1e0073011c8e37"
+      }
+    }
+  },
+  "verification_report_only_not_runtime_manifest_schema": true
+}

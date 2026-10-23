@@ -2554,3 +2554,34 @@ cleanup before enqueueing. Linux actual CLI source-alias and merged-alias fixtur
 assert failure with no POST/DELETE and unchanged old assets. Remote compilation
 also caught the temporarily unused helper; reuse closes that failure without
 warning suppression or weaker guards.
+
+
+## Live GitHub configured-publication witness
+
+Verified against actual GitHub, not a mock: reviewed source03074c8, exact-main
+Actions artifact12516450488 (run39986963543), artifact SHA256
+16aa78a72cc336422fa336b92408dfaaab6a3d8f88b8a555197420418fb29063 and binary SHA256
+c1ac9af37d8355860e8d940d7b1cc588580ff57e3e78cba6ac1fa79553913425.
+The binary was verified and run in an isolated directory, without installation or
+local compilation/heavy tests. Its unchanged package string preview.2 does not
+identify this newer source revision.
+
+A dedicated new synthetic prerelease422144076 retained its pinned tag/source and
+prerelease status. Five actual CLI builds produced latestv1.2.4/v1.2.5, archive
+v1.2.6, Projectv1.2.7 reusing archivev1.2.6 and changed archivev1.2.8. Two configured
+restores verified exact result/kept CSV bytes, unchanged project CSV/VERSION and
+unchanged remote asset identities/hashes. Older archive and latest ZIP bytes
+survived archive finalization. Final project version is next-devv1.2.8.1.
+
+Independent driver review corrected an oracle before live execution: remote CSV
+appends history while project CSV places current rows first. The witness checks
+independently expected exact remote serialization and complete project row
+multisets, rather than asserting unsupported row-order identity. No runtime
+defect was exposed. Target allowlists, scoped authentication and in-flight
+markers prevented silent retargeting/replay; no credentials, permissions,
+existing user assets or Git refs outside the new fixture tag were changed.
+
+Ponytail full: reuse the reviewed CLI and existing authentication; no new runtime
+backend/format or live-test dependency. The public report is synthetic verification
+evidence, not a production manifest schema. The complete matrix/failure cases
+remain mocked REST evidence; other provider/config findings and M2 remain open.

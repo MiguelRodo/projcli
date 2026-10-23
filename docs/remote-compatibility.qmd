@@ -29,21 +29,22 @@ PR183's independently reviewed head44478558d0ef41660d513a3f7d74fe399684b245
 passed all12checks and the [pinned gate](https://github.com/MiguelRodo/projcli/actions/runs/39944545740):
 26renderer,8combined-build and2mixed-recovery cases, plus Rust/API and
 configured-restore fixtures. GitHub transport tests use mocked HTTP and actual
-CLI commands; no live GitHub Release test mutation was performed.
+CLI commands. Those fixtures used mocked REST; the later bounded live GitHub
+verification is recorded below.
 
 ## Providers, layouts and transports
 
 | Surface | Actual pinned projr behaviour | projcli mapping and coverage |
 |---|---|---|
-| Provider/type enum | Only local and github are dispatched and validated. [Options][options], [dispatcher][dispatcher]. | Local/GitHub explicit transport and single-label configured restore exist. Full automatic publication parity remains incomplete; CAS integrity tests are separate. |
-| Local | Plain filesystem directories/files; relative base is project root. No provider credentials. Lookup does not create directories. [Local][local]. | Explicit listing/download and guarded file-policy execution exist. Configured single-label restore resolves latest/archive. Complete metadata publication is missing. |
+| Provider/type enum | Only local and github are dispatched and validated. [Options][options], [dispatcher][dispatcher]. | Local/GitHub explicit transport and single-label configured restore exist. Configured publication covers latest/archive with all three inspections, four strategies and both cues in mocked CLI fixtures; bounded live evidence is below. Full remote parity remains incomplete; CAS integrity tests are separate. |
+| Local | Plain filesystem directories/files; relative base is project root. No provider credentials. Lookup does not create directories. [Local][local]. | Explicit listing/download and guarded file-policy execution exist. Configured single-label restore resolves latest/archive. Configured latest/archive publication writes CSV/VERSION/changelog metadata. |
 | GitHub | GitHub Release assets via direct httr REST, with release tag + asset filename handles. Current implementation does not depend on piggyback despite comments. [GitHub][github], [HTTP][http]. | Native REST listing/upload/download, compatible ZIPs and explicit replacement exist, with mocked transport fixtures. Git commit/push remains separate. |
 | OSF | Not in current enums/dispatch. Removed extra-option helper and explicit unsupported version helper remain. Old vignette mentions are stale. [Removed extras][dest], [OSF stub][versions]. | Do not advertise or implement merely from stale docs. |
 | Other transports | No S3, generic HTTP-storage, SSH/SFTP or DVC provider in the dispatch. A local path can of course point to a mounted filesystem. [Options][options]. | No parity promise for absent providers. Future optional DVC remains separate. |
-| latest hierarchy | Local path[/label]; label append defaults true. New sends update that location. [Layout][layout]. | Configured local latest publication, inspection/download/restore and finalisation execute; configured GitHub archive/none/upload-all is a candidate; other combinations remain pending. |
-| archive hierarchy | Local path[/label]/v&lt;version&gt;; versioned snapshots coexist. The remote pre-root holds shared metadata. [Layout][layout]. | Explicit numeric archive inspection/download/restore exists. Existing CAS snapshots remain a distinct layout; configured ordinary publication is incomplete. |
-| GitHub flat layout | Latest assets use path/label-derived flat name; archive adds version; ordinary content is ZIP-packaged. Metadata uses its own ZIP assets. [Flat naming][flat], [GitHub][github]. | Compatible flat names, prefix/append-label options and ZIP transfer exist. Configured restore uses them; Configured GitHub archive/none/upload-all is now a bounded candidate; remaining decision combinations are missing. |
-| Empty content | Local final name gets -empty; GitHub name gets -empty.zip and ZIP has projr-empty sentinel. Full/empty variants are reconciled. [Local][local], [store finalisation][store-final]. | ZIP sentinel/names and local empty variants are supported. Configured restore skips advertised empty labels without clearing. Configured local latest publication reconciles full/empty variants; configured GitHub archive/none/upload-all is a candidate; other combinations remain pending. |
+| latest hierarchy | Local path[/label]; label append defaults true. New sends update that location. [Layout][layout]. | Configured local latest publication, inspection/download/restore and finalisation execute; configured GitHub latest/archive covers all inspection/strategy/cue combinations in mocked CLI fixtures, with bounded live verification below. |
+| archive hierarchy | Local path[/label]/v&lt;version&gt;; versioned snapshots coexist. The remote pre-root holds shared metadata. [Layout][layout]. | Configured ordinary local/GitHub archive publication, inspection/download/restore and unchanged-history reuse exist. Existing CAS snapshots remain a distinct layout. |
+| GitHub flat layout | Latest assets use path/label-derived flat name; archive adds version; ordinary content is ZIP-packaged. Metadata uses its own ZIP assets. [Flat naming][flat], [GitHub][github]. | Compatible flat names, prefix/append-label options and ZIP transfer exist. Configured restore uses them; Configured GitHub latest/archive publication and history comparison cover the complete mocked control matrix; bounded live verification is below. |
+| Empty content | Local final name gets -empty; GitHub name gets -empty.zip and ZIP has projr-empty sentinel. Full/empty variants are reconciled. [Local][local], [store finalisation][store-final]. | ZIP sentinel/names and local empty variants are supported. Configured restore skips advertised empty labels without clearing. Configured local latest publication reconciles full/empty variants; configured GitHub latest/archive covers all inspection/strategy/cue combinations in mocked CLI fixtures, with bounded live verification below. |
 | CAS addition | Not an R layout. User requires it alongside latest and archive, with content-addressed versioned snapshots. | Existing local CAS objects/JSON/index are bounded groundwork; no new retention, GC or discovery policy adopted. |
 
 ## Configuration, defaults, aliases and precedence
@@ -60,19 +61,19 @@ shape has demonstrated end-to-end behaviour. [Destination storage][dest],
 | Title | Named mapping key. Local helper describes title as descriptive; GitHub title becomes release tag. Internal title helper can derive it from content; public wrappers require the title argument. GitHub wrapper replaces spaces with hyphens. | Configured restore uses named references/inline definitions and GitHub tag space/@version normalization; local title remains descriptive. |
 | content | Validates allowed labels; send helper treats null/false as none, true as automatic output/raw/docs, vector as selected labels. Boolean helper support and strict validation are not fully consistent. Cache is not in automatic selection. | Restore accepts false/null, true for declared non-cache roles, or explicit label lists. Build publication remains restricted; no implicit undeclared roles are added. |
 | Special content | R option lists also mention docs/data/code/package; wrappers differ in their allowed sets, and code has special ZIP branches. This is not proof each implicit role works through all send paths. | Preserve approved output-r-data and explicit paths. Do not add implicit code/package/language roles merely from enum text; verify actual packaging route separately. |
-| structure | archive by default; only archive/latest accepted. The wrapper prose saying version is not a supported alias. | Explicit local/GitHub operations and restore support latest/archive. Configured local latest publication executes; ordinary local archive publication now executes; configured GitHub archive/none/upload-all is a candidate; other combinations remain pending. |
+| structure | archive by default; only archive/latest accepted. The wrapper prose saying version is not a supported alias. | Explicit local/GitHub operations and restore support latest/archive. Configured local latest publication executes; ordinary local archive publication now executes; configured GitHub latest/archive covers all inspection/strategy/cue combinations in mocked CLI fixtures, with bounded live verification below. |
 | path | Required for local, anchored at project root when relative. Optional prefix for flat GitHub names. | Local source paths are explicit/root-anchored; compatible GitHub flat-name prefixes exist. |
 | path-append-label | Hyphenated YAML key; defaults true. Snake-case path_append_label is an R argument, not evidence of a YAML alias. | Supported by explicit naming/download and configured restore; default true. |
 | id | Validator accepts it; completion overwrites local id with path and GitHub id with title. Do not mistake it for a freely configurable independent backend id. | Restore accepts a string id but uses local path/GitHub title, matching completion semantics; it is not an independent routing override. |
 | description/id_parent/role | Internal add/check arguments include these legacy fields. Extra-options helper now discards OSF-related extras. No current standalone OSF behaviour follows. | No port required for dead fields without a working source route. |
-| send.cue | if-change by default; enum only if-change/always. never occurs in stale wrapper docs but is rejected by current enum. Title-level cue lookup/setter and nested send.cue differ; see defects. | Both nested cues execute in configured local latest with all strategies and inspection modes; archive/GitHub combinations remain pending. |
-| send.inspect | manifest by default; file/manifest/none accepted. | Configured local latest supports ordinary MD5 file, default manifest-history comparison/fallback, and none planning. CAS JSON/BLAKE3 checks remain distinct. Ordinary local archive comparison is implemented; configured GitHub publication pending. |
-| send.strategy | sync-diff default, except inspect:none defaults upload-all. Explicit upload-missing/upload-all/sync-purge/sync-diff preserved. | Configured local latest supports all four strategies and both cues with CSV/VERSION/changelog updates; actual build/store/restore fixtures cover file, none and trusted manifest actions. Other provider/layout combinations pending. |
+| send.cue | if-change by default; enum only if-change/always. never occurs in stale wrapper docs but is rejected by current enum. Title-level cue lookup/setter and nested send.cue differ; see defects. | Both nested cues execute in configured local/GitHub latest/archive across all strategies and inspection modes in mocked CLI fixtures. |
+| send.inspect | manifest by default; file/manifest/none accepted. | Configured local latest supports ordinary MD5 file, default manifest-history comparison/fallback, and none planning. CAS JSON/BLAKE3 checks remain distinct. Ordinary local/GitHub archive comparison is implemented; the complete GitHub control matrix is mocked, with bounded live verification below. |
+| send.strategy | sync-diff default, except inspect:none defaults upload-all. Explicit upload-missing/upload-all/sync-purge/sync-diff preserved. | Configured local latest supports all four strategies and both cues with CSV/VERSION/changelog updates; actual build/store/restore fixtures cover file, none and trusted manifest actions. Local/GitHub latest/archive share the planner; complete GitHub combinations have mocked CLI coverage and bounded live verification below. |
 | send.conflict | Validator accepts overwrite/skip/error, but no store consumer was found. | Accepted-only R surface, not a functioning conflict-policy requirement. Rust must not silently accept an ineffective control. |
 | get.strategy/get.conflict | Accepted/checked; public destination wrappers comment out get arguments. Restore does not consume these policy fields. | Restore rejects nonempty get mappings explicitly instead of pretending the ineffective controls execute. Explicit --clear selects replacement versus merge. |
 | source on destination | Restore permits true (preferred), false (exclude), or label vector (preferred for those labels); content must include the label. If absent, first eligible destination is fallback. | Configured restore implements preferences/exclusion/content eligibility with regression fixtures. |
 | Per-directory source | Source lookup precedes destination lookup by default; pos can restrict source/dest, type and .title restrict selection. Inline/reference default paths are not uniformly reliable. | Existing source-first references and named inline mappings implemented; indexing/inline source bugs are corrected with fixtures. |
-| Settings granularity | Transfer settings are shared per destination title; content labels inherit them. Per-label source mappings choose their own source entries. | Restore resolves per-label sources and shared destination definitions. Complete configured store plans remain missing. |
+| Settings granularity | Transfer settings are shared per destination title; content labels inherit them. Per-label source mappings choose their own source entries. | Restore resolves per-label sources and shared destination definitions. Configured build/store plans resolve shared title settings and selected labels. |
 | YAML layers | Local overrides active profiles overrides base; earlier listed profiles win; merge recurses, null inherits. R uses _projr base/profile/local names. [Merge][merge]. | Core merge precedence exists. Deliberate primary _proj.yml plus legacy _projr.yml conflict error retained. |
 | Archive function arguments | archive_local/archive_github accept false/null, true or selected labels; create implicit archive destination only when YAML has no archive title. Existing archive title wins; always_archive controls generated cue. [Send dispatch][send]. | Missing compatibility entrypoints. Do not override explicit YAML silently. |
 | Future registry | A separate user-requested registry/source-selection redesign is recorded; its naming remains open. | [Issue706][registry] is design-only; do not implement this new schema as part of parity work yet. |
@@ -331,7 +332,8 @@ remove the obsolete sentinel asset after upload. Its PR records mocked REST CLI
 round-trip evidence. File/manifest and historical comparison use the same staged
 ordinary planner as local remotes; the command reference records the full control
 matrix and source-backed blind missing/diff and bounded purge interactions.
-No live GitHub Release round-trip has been performed.
+A dedicated live configured-publication round-trip is now verified below; the
+full decision matrix remains mocked REST coverage.
 
 
 The comparison candidate preserves the existing archive/manifest/sync-diff/
@@ -339,4 +341,38 @@ if-change defaults. Reuse requires newest catalog/VERSION/matching CSV agreement
 and continuous unchanged history. Physical file fallback, trusted partial manifest
 semantics, complete new snapshots and corrupt-empty rejection have actual CLI
 mock REST regression fixtures. Exact-head remote CI and independent review remain
-required; this does not complete all provider options or live GitHub validation.
+required for later changes; the completed source gates are recorded on PR194.
+This does not complete all provider options or M2.
+
+
+## Live GitHub fixture verification
+
+A real GitHub round-trip passed using the source build at
+[03074c8](https://github.com/MiguelRodo/projcli/tree/03074c8e8fe9cf36fe976171d0976a6a701a9e80).
+The [dedicated fixture prerelease](https://github.com/MiguelRodo/projcli/releases/tag/projcli-remote-acceptance-pr194)
+contains synthetic CSV files only. It is not a product release or an installation
+target. The [verification report](github-live-evidence.json) records exact binary,
+artifact and asset hashes; no credentials or local private paths are included.
+
+The isolated CI binary executed five no-script builds and two configured restores:
+
+| Step | Verified result |
+|---|---|
+| Latest v1.2.4 | Native data and shared metadata ZIPs uploaded |
+| Latest v1.2.5 | Selected data replaced; exact bytes restored |
+| Archive v1.2.6 | Complete versioned snapshot created |
+| Unchanged project v1.2.7 | Data reused from v1.2.6; Project metadata advanced |
+| Changed archive v1.2.8 | Complete newer snapshot restored; old archive and latest ZIP bytes unchanged |
+
+Checks compared exact ZIP members, remote CSV serialization and complete project
+history rows, VERSION and file bytes. Restore preserved project CSV/VERSION and
+remote asset identities/hashes. The Release identity, tag commit, prerelease
+status and fixture-only asset names were checked throughout. No Git commits/push,
+existing user assets, credentials or permissions were changed.
+
+This real witness covers file/sync-diff/latest and manifest/sync-diff/archive with
+if-change. The full inspection/strategy/cue/layout and failure matrix is tested
+separately with mocked REST; it is not a live test of every combination. The
+published and installed preview.2 binary remains unchanged and predates this work.
+The fixture's package version string is also preview.2, so identify the tested
+source by its commit and binary hash, not that string alone.

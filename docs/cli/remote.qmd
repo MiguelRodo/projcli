@@ -594,8 +594,18 @@ ZIPs must contain exactly the native zero-byte sentinel, even when CSV agrees.
 | Trusted partial manifest / starred, mismatched or missing history | Preserve unselected drift / file fallback |
 | Archive reversion, physical drift, ineligible/future metadata | Correct reuse versus complete current snapshot |
 | Empty transitions and corrupt empty history | Stage/validate before upload/deletion |
-| Live GitHub round-trip | Not performed; requires a dedicated safe destination |
+| Live GitHub round-trip | Dedicated synthetic latest file/sync-diff and archive manifest/sync-diff, both if-change, passed below; full matrix remains mocked REST |
 
-Source-only candidate pending exact-head remote CI and independent review;
-installed preview remains unchanged. No new registry, defaults or CAS retention
+Source implementation passed exact-head remote CI and independent review in
+[PR194](https://github.com/MiguelRodo/projcli/pull/194); installed preview remains unchanged. No new registry, defaults or CAS retention
 policy is introduced.
+
+
+### Real GitHub verification
+
+A [dedicated synthetic fixture](../remote-compatibility.qmd#live-github-fixture-verification)
+passed actual GitHub latest upload/replacement/restore, archive creation,
+unchanged-history reuse and changed-snapshot restore using an isolated CI binary.
+Exact ZIP/data/CSV/VERSION checks and preservation witnesses passed. This is a
+source-build verification, not a new CLI release; do not install the fixture
+prerelease. The full control/failure matrix above still uses mocked REST.
