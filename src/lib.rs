@@ -53,3 +53,5 @@ pub mod local_store;
 pub mod github_release;
 
 pub mod github_zip;
+
+pub mod restore;

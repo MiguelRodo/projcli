@@ -122,6 +122,30 @@ pub enum Commands {
 /// Ordinary local inspection/download; does not change the configured remote registry.
 #[derive(Subcommand)]
 pub enum RemoteCommands {
+    /// Restore one declared final directory using existing inline configuration.
+    Restore {
+        #[arg(long)]
+        label:String,
+        #[arg(long,value_parser=["source","dest"])]
+        position:Option<String>,
+        #[arg(long,value_parser=["local","github"])]
+        provider:Option<String>,
+        #[arg(long)]
+        title:Option<String>,
+        #[arg(long)]
+        remote_version:Option<String>,
+        /// Explicit owner/repository; otherwise resolve the selected project's Git origin.
+        #[arg(long)]
+        repository:Option<String>,
+        #[arg(long)]
+        profile:Option<String>,
+        #[arg(long)]
+        clear:bool,
+        #[arg(long)]
+        max_bytes:u64,
+        #[arg(long)]
+        max_expanded_bytes:u64,
+    },
     /// Explicit GitHub Release assets; does not change configured destinations.
     Github {
         #[command(subcommand)]
@@ -441,6 +465,12 @@ fn main() {
 
     match &cli.command {
         Commands::Capabilities => unreachable!("Capabilities handled before project selection"),
+        Commands::Remote {command:command @ RemoteCommands::Restore {..}} => {
+            match configured_restore(&root,command) {
+                Ok(result)=>println!("{}",serde_json::to_string_pretty(&result).expect("Restore result is serializable")),
+                Err(error)=>fail(format_args!("Configured restore failed: {error:#}")),
+            }
+        },
         Commands::Remote { command: RemoteCommands::Github { command } } => {
             match github_assets(&root, command) {
                 Ok(result) => println!("{}", serde_json::to_string_pretty(&result).expect("Asset metadata is serializable")),
@@ -783,4 +813,13 @@ fn github_assets(root: &camino::Utf8Path, command: &GithubCommands) -> anyhow::R
         },
     };
     Ok(result)
+}
+
+fn configured_restore(root:&camino::Utf8Path,command:&RemoteCommands)->anyhow::Result<proj::restore::RestoreResult> {
+    let RemoteCommands::Restore {label,position,provider,title,remote_version,repository,profile,clear,max_bytes,max_expanded_bytes}=command
+        else {anyhow::bail!("Expected configured restore command");};
+    let request=proj::restore::RestoreRequest {label:label.clone(),position:position.clone(),provider:provider.clone(),
+        title:title.clone(),remote_version:remote_version.clone(),repository:repository.clone(),profile:profile.clone(),
+        clear:*clear,max_bytes:*max_bytes,max_expanded_bytes:*max_expanded_bytes};
+    proj::restore::restore_label(root,&request)
 }

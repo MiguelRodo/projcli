@@ -45,7 +45,7 @@ pub(crate) fn emit_argument_error() -> i32 {
 pub(crate) fn emit_capabilities() -> i32 {
     emit(Ok(json!({
         "capability_version": CAPABILITY_VERSION,
-        "machine_commands": ["capabilities", "remote versions", "remote download", "remote store", "remote github assets", "remote github upload", "remote github download", "remote github upload-directory", "remote github upload-metadata", "remote github download-directory", "path get", "version get", "version set", "yml read", "init", "ignore add", "ignore remove", "build", "build-dev"],
+        "machine_commands": ["capabilities", "remote restore", "remote versions", "remote download", "remote store", "remote github assets", "remote github upload", "remote github download", "remote github upload-directory", "remote github upload-metadata", "remote github download-directory", "path get", "version get", "version set", "yml read", "init", "ignore add", "ignore remove", "build", "build-dev"],
         "non_interactive": true,
         "path_targets": ["safe", "final"],
         "path_fragments": true,
@@ -68,6 +68,12 @@ pub(crate) fn run(cli: &Cli) -> i32 {
         Err(_) => return emit(Err(failure(ErrorCode::ProjectSelectionFailed, "Cannot select the project directory."))),
     };
     let result = match &cli.command {
+        Commands::Remote {command:command @ RemoteCommands::Restore {..}} => {
+            crate::configured_restore(&root,command)
+                .map(|result|serde_json::to_value(result).expect("Restore result is serializable"))
+                .map_err(|_|failure(ErrorCode::CommandFailed,"Configured restore failed; inspect destination state if installation or cleanup failed."))
+        }
+
         Commands::Remote { command: RemoteCommands::Github { command: command @ crate::GithubCommands::Assets { .. } } } => {
             crate::github_assets(&root, command)
                 .map_err(|_| failure(ErrorCode::QueryFailed, "Cannot list the requested GitHub Release assets."))

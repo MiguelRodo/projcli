@@ -304,3 +304,11 @@ bound compressed and expanded bytes independently, validate CRC/portable paths
 and reject links, aliases, duplicates and special entries before guarded install.
 Empty variants require only the zero-byte projr-empty sentinel. Explicit directory
 transfer is not configured restore, metadata history merge or overwrite parity.
+
+Configured restore uses existing directories.LABEL.source and build provider
+definitions; issue706 registry remains design-only. Keep source-before-destination,
+preferences/exclusion, merged profile order and numeric/advertised version rules.
+Never clear before source lookup/staging; empty/unrecorded labels skip intact.
+Restore's config projection must not make normal builds silently accept ignored
+ordinary upload fields. Correct source indexing/inline bugs with explicit evidence;
+do not add implicit archive paths, new policy defaults or CSV trust claims.
