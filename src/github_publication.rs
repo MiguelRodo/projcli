@@ -71,7 +71,16 @@ pub(crate) fn capture(root:&Utf8Path,specs:Vec<Spec>,environment:&crate::run_env
     if specs.is_empty(){return Ok(Vec::new());}
     let api=environment.text("GITHUB_API_URL").unwrap_or("https://api.github.com");
     let repository=crate::restore::repository_in(root,None,api,environment)?;
-    let token=crate::git::get_github_token_in(environment)?;
+    let explicit=["GITHUB_PAT","GH_TOKEN","GITHUB_TOKEN"].iter()
+        .find_map(|key|environment.text(key).filter(|value|!value.trim().is_empty()).map(str::to_owned));
+    let origin:ureq::http::Uri=api.parse().context("Invalid GitHub API base")?;
+    let public=origin.scheme_str()==Some("https")&&origin.host().is_some_and(|host|host.eq_ignore_ascii_case("api.github.com"))
+        &&origin.port_u16().unwrap_or(443)==443;
+    let token=match explicit {
+        Some(token)=>token,
+        None=>{anyhow::ensure!(public,"A non-public GitHub API requires an explicit environment token; github.com credential helpers are not used");
+            crate::git::get_github_token_in(environment)?},
+    };
     let mut tags=BTreeSet::new();let mut targets=Vec::new();
     for spec in specs {
         let tag=if spec.title=="@version" {version.into()}else{spec.title.trim_matches(' ').replace(' ',"-")};

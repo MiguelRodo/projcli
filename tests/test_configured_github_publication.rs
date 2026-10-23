@@ -13,6 +13,7 @@ impl Server {
         let worker=thread::spawn(move||{
             while !halt.load(Ordering::Relaxed) {
                 let (mut stream,_)=match listener.accept(){Ok(value)=>value,Err(error) if error.kind()==std::io::ErrorKind::WouldBlock=>{thread::sleep(Duration::from_millis(5));continue;},Err(error)=>panic!("{error}")};
+                stream.set_nonblocking(false).unwrap();
                 stream.set_read_timeout(Some(Duration::from_secs(10))).unwrap();
                 let mut head=Vec::new();while !head.ends_with(b"\r\n\r\n") {let mut byte=[0];stream.read_exact(&mut byte).unwrap();head.push(byte[0]);assert!(head.len()<65536);}
                 let text=String::from_utf8(head).unwrap();let mut first=text.lines().next().unwrap().split_whitespace();
@@ -158,4 +159,19 @@ fn unsupported_decisions_fail_before_hooks_and_catalog_aliases_never_upload() {
         if state!="alias" {assert!(!root.join("manifest.csv").exists());assert_eq!(fs::read(root.join("VERSION")).unwrap(),b"v1.2.3\n");}
         let data=server.state.lock().unwrap();assert!(data.uploads.is_empty());assert!(data.deleted.is_empty());drop(data);server.finish();
     }
+}
+
+#[test]
+fn enterprise_api_never_uses_default_public_github_credential_helpers() {
+    let server=Server::start();let (_temporary,root)=setup(&server);
+    let helper="!f() { printf 'username=fixture\\npassword=public-only\\n'; echo called > helper-called; }; f";
+    assert!(command(&root,"git").args(["config","credential.helper",helper]).output().unwrap().status.success());
+    let output=command(&root,env!("CARGO_BIN_EXE_proj")).env("GITHUB_API_URL",&server.base)
+        .args(["--project"]).arg(&root).args(["build","--non-interactive"]).output().unwrap();
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("requires an explicit environment token"));
+    assert!(!root.join("helper-called").exists());
+    assert!(!server.state.lock().unwrap().exists);
+    assert_eq!(fs::read(root.join("VERSION")).unwrap(),b"v1.2.3\n");
+    server.finish();
 }

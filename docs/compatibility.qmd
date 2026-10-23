@@ -2434,3 +2434,9 @@ empty/preview behavior, unsupported controls, current-version and alias rejectio
 No live GitHub test or local heavy execution. Ponytail full reuses existing
 transport/ZIP/history helpers, no new dependency or parallel storage engine.
 Exact-head remote gates and independent review are required before delivery.
+
+
+Non-public API origins require an explicit environment token. Default github.com
+Git/gh credential helpers are only used for the standard HTTPS api.github.com
+origin (port443), never forwarded to Enterprise/custom hosts. A regression uses
+a fake public helper and verifies it is not invoked for a loopback API.

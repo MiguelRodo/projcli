@@ -504,3 +504,9 @@ Evidence uses actual CLI build/store/restore against loopback mocked REST,
 including Release creation, ZIP members, metadata replacement, old archive
 retention, partial failure and preflight rejection. This is not a live GitHub
 Release round trip. Installed preview unchanged; remote CI/review required.
+
+
+Non-public API origins require an explicit environment token. Default github.com
+Git/gh credential helpers are only used for the standard HTTPS api.github.com
+origin (port443), never forwarded to Enterprise/custom hosts. A regression uses
+a fake public helper and verifies it is not invoked for a loopback API.

@@ -361,3 +361,9 @@ Freeze Git/API/token/tag before hooks; stage all CSV-selected restorable ZIPs
 before uploads. Preserve history/data-before-metadata ordering. Reject current
 data assets, portable aliases and legacy ambiguity. Report partial metadata
 replacement; mock REST is not live GitHub evidence.
+
+
+Non-public API origins require an explicit environment token. Default github.com
+Git/gh credential helpers are only used for the standard HTTPS api.github.com
+origin (port443), never forwarded to Enterprise/custom hosts. A regression uses
+a fake public helper and verifies it is not invoked for a loopback API.
