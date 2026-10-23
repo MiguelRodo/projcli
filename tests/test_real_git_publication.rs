@@ -128,18 +128,23 @@ if os.environ['PROJCLI_TEST_FAIL_ANALYSIS']=='1':
         output
     }
 
-    fn assert_local_release(&self) {
+    fn assert_release_files(&self) {
         let expected = b"result\n84\n";
         assert_eq!(fs::read(self.root.join("released/results.csv")).unwrap(), expected);
         assert_eq!(fs::read(self.root.join("cache/projr/v1.2.4/output/results.csv")).unwrap(), expected);
-        assert_eq!(self.git(&["show", "HEAD:released/results.csv"]), expected);
-        assert_eq!(self.git(&["show", "HEAD:VERSION"]), b"Version: v1.2.4");
         let manifest_path = self.root.join("manifest.csv").canonicalize().unwrap();
         let rows = proj::manifest::read(camino::Utf8Path::from_path(&manifest_path).unwrap()).unwrap();
         assert!(rows.iter().any(|row| row.label == "output" && row.r#fn == "results.csv"
             && row.version == "v1.2.4" && row.hash == "a70ebd90b8339a208d1573da9c1a700f"));
-        assert_eq!(self.git(&["show", "HEAD:manifest.csv"]), fs::read(manifest_path).unwrap());
         assert_eq!(fs::read(self.root.join("released/previous.csv")).unwrap(), b"previous\n21\n");
+    }
+
+    fn assert_local_release(&self) {
+        self.assert_release_files();
+        assert_eq!(self.git(&["show", "HEAD:released/results.csv"]), b"result\n84\n");
+        assert_eq!(self.git(&["show", "HEAD:VERSION"]), b"Version: v1.2.4");
+        assert_eq!(self.git(&["show", "HEAD:manifest.csv"]),
+                   fs::read(self.root.join("manifest.csv")).unwrap());
     }
 }
 
@@ -163,6 +168,66 @@ fn actual_push_uses_only_the_configured_non_main_upstream_and_remains_optional()
         let status = String::from_utf8(fixture.git(&["status", "--porcelain"])).unwrap();
         assert_eq!(status.lines().collect::<Vec<_>>(), [" M VERSION"]);
     }
+}
+
+#[test]
+fn no_remote_allows_local_commit_but_requested_push_fails_before_analysis() {
+    for push in [false, true] {
+        let fixture = Fixture::new(push);
+        fixture.git(&["remote", "remove", "fixture-upstream"]);
+        assert_eq!(fixture.text(&["remote"]), "");
+        let initial = fixture.text(&["rev-parse", "HEAD"]);
+        let result = fixture.build(false);
+        if push {
+            assert!(!result.status.success());
+            let diagnostic = String::from_utf8_lossy(&result.stderr);
+            assert!(diagnostic.contains("tracking remote"), "{diagnostic}");
+            assert!(!diagnostic.contains("Local build succeeded"), "{diagnostic}");
+            assert_eq!(fixture.text(&["rev-parse", "HEAD"]), initial);
+            assert_eq!(fs::read(fixture.root.join("VERSION")).unwrap(), b"v1.2.3-4\n");
+            assert_eq!(fs::read(fixture.root.join("released/previous.csv")).unwrap(), b"previous\n21\n");
+            assert!(!fixture.root.join("released/results.csv").exists());
+            assert!(!fixture.root.join("cache").exists(), "push preflight must precede analysis/cache writes");
+            assert!(!fixture.root.join("manifest.csv").exists());
+            assert_eq!(fixture.text(&["status", "--porcelain"]), "");
+        } else {
+            assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+            assert_ne!(fixture.text(&["rev-parse", "HEAD"]), initial);
+            fixture.assert_local_release();
+            assert_eq!(fs::read(fixture.root.join("VERSION")).unwrap(), b"Version: v1.2.4.1");
+        }
+        fixture.assert_upstream_refs(&initial, &initial);
+    }
+}
+
+#[test]
+fn rejecting_real_pre_commit_hook_preserves_local_release_without_commit_or_push() {
+    let fixture = Fixture::new(true);
+    let initial = fixture.text(&["rev-parse", "HEAD"]);
+    let hook = fixture.root.join(".git/hooks/pre-commit");
+    fs::write(&hook, "#!/bin/sh\necho DELIBERATE-PRE-COMMIT-REJECTION >&2\nexit 17\n").unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&hook, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let result = fixture.build(false);
+    assert!(!result.status.success());
+    let diagnostic = String::from_utf8_lossy(&result.stderr);
+    assert!(diagnostic.contains("DELIBERATE-PRE-COMMIT-REJECTION"), "{diagnostic}");
+    assert!(diagnostic.contains("Local build succeeded"), "{diagnostic}");
+    assert!(diagnostic.contains("local release preserved"), "{diagnostic}");
+    fixture.assert_release_files();
+    assert_eq!(fs::read(fixture.root.join("VERSION")).unwrap(), b"Version: v1.2.4");
+    assert_eq!(fixture.text(&["rev-parse", "HEAD"]), initial);
+    assert_eq!(fixture.git(&["show", "HEAD:VERSION"]), b"v1.2.3-4\n");
+    // Git staged the successful local release before the hook rejected its commit.
+    // Do not claim that index state was rolled back or that publication succeeded.
+    assert_eq!(fixture.git(&["show", ":released/results.csv"]), b"result\n84\n");
+    assert_eq!(fixture.git(&["show", ":VERSION"]), b"Version: v1.2.4");
+    assert_eq!(fixture.git(&["show", ":manifest.csv"]),
+               fs::read(fixture.root.join("manifest.csv")).unwrap());
+    fixture.assert_upstream_refs(&initial, &initial);
 }
 
 #[test]
