@@ -124,7 +124,7 @@ fn preview_and_output_disabled_do_not_publish() {
 }
 #[test]
 fn collisions_and_unsupported_inspection_fail_before_hooks_or_any_remote_write() {
-    for edit in ["collision","append-false","overlap","manifest","invalid-inspect","archive","conflict"] {
+    for edit in ["collision","append-false","overlap","invalid-inspect","archive","conflict"] {
         let (_temporary,root)=setup("sync-diff","always","[output]");
         fs::write(root.join("start.py"),"from pathlib import Path\nPath('hook-ran').write_text('bad')\n").unwrap();
         let mut config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("build:\n","build:\n  hooks: {pre: [start.py]}\n");
@@ -132,7 +132,6 @@ fn collisions_and_unsupported_inspection_fail_before_hooks_or_any_remote_write()
             "collision"=>config.replace("  raw: {path: input}","  raw: {path: input}\n  output-empty: {path: other}").replace("content: [output]","content: [output, output-empty]"),
             "append-false"=>config.replace("structure: latest","structure: latest\n      path-append-label: false"),
             "overlap"=>config.replace("path: remote","path: results"),
-            "manifest"=>config.replace("inspect: file","inspect: manifest"),
             "invalid-inspect"=>config.replace("inspect: file","inspect: invalid"),
             "archive"=>config.replace("structure: latest","structure: archive"),
             _=>config.replace("inspect: file","inspect: file\n        conflict: overwrite"),
@@ -338,5 +337,54 @@ fn no_inspection_empty_source_retains_unknown_extras_even_for_purge() {
                 assert!(version.contains("output: v1.2.4\n"),"{version}");
             }
         }
+    }
+}
+
+#[test]
+fn manifest_default_trusts_matching_history_and_preserves_unselected_actual_bytes() {
+    for explicit in [false,true] {
+        let (_temporary,root)=setup("sync-diff","if-change","[output]");
+        let mut config=fs::read_to_string(root.join("_proj.yml")).unwrap();
+        config=if explicit {config.replace("inspect: file","inspect: manifest")}else{config.replace("        inspect: file\n","")};
+        fs::write(root.join("_proj.yml"),config).unwrap();
+        success(invoke(&root,"build"));
+        // History agrees, so a same-record file is intentionally not rehashed
+        // for the decision even if actual bytes have independently drifted.
+        fs::write(root.join("remote/output/same"),"remote drift").unwrap();
+        fs::write(root.join("results/changed"),"changed again").unwrap();
+        success(invoke(&root,"build"));
+        assert_eq!(fs::read(root.join("remote/output/same")).unwrap(),b"remote drift");
+        assert_eq!(fs::read(root.join("remote/output/changed")).unwrap(),b"changed again");
+        assert!(fs::read_to_string(root.join("remote/VERSION")).unwrap().contains("output: v1.2.5\n"));
+        // No source change keeps the prior label version with if-change.
+        success(invoke(&root,"build"));
+        assert!(fs::read_to_string(root.join("remote/VERSION")).unwrap().contains("output: v1.2.5\n"));
+    }
+}
+#[test]
+fn manifest_untrusted_missing_or_mismatched_history_falls_back_to_physical_bytes() {
+    for state in ["star","missing-local","missing-remote","mismatch","duplicate"] {
+        let (_temporary,root)=setup("sync-diff","if-change","[output]");
+        let config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("inspect: file","inspect: manifest");
+        fs::write(root.join("_proj.yml"),config).unwrap();
+        success(invoke(&root,"build"));
+        fs::write(root.join("remote/output/same"),"remote drift").unwrap();
+        match state {
+            "star"=>{fs::write(root.join("remote/VERSION"),"Project: v1.2.4\noutput: v1.2.4*\n").unwrap();},
+            "missing-local"=>{fs::remove_file(root.join("manifest.csv")).unwrap();},
+            "missing-remote"=>{fs::remove_file(root.join("remote/manifest.csv")).unwrap();},
+            "mismatch"|"duplicate"=>{
+                let path=root.join("remote/manifest.csv");
+                let text=fs::read_to_string(&path).unwrap();
+                let text=if state=="mismatch" {text.replace("51037a4a37730f52c8732586d3aaa316","900150983cd24fb0d6963f7d28e17f72")}else{
+                    format!("{text}{}",text.lines().nth(1).unwrap().to_owned()+"\n")
+                };
+                fs::write(path,text).unwrap();
+            },
+            _=>unreachable!(),
+        }
+        success(invoke(&root,"build"));
+        assert_eq!(fs::read(root.join("remote/output/same")).unwrap(),b"same","{state}");
+        assert!(fs::read_to_string(root.join("remote/VERSION")).unwrap().contains("output: v1.2.5\n"),"{state}");
     }
 }

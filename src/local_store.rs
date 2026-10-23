@@ -79,6 +79,15 @@ fn inventory(path: &Utf8Path) -> anyhow::Result<Inventory> {
 /// writer/crash atomicity are not guaranteed. Post-install cleanup failure can
 /// leave partial residue and is reported as an installed transfer, not rollback.
 pub fn store_files(root: &Utf8Path, source: &Utf8Path, destination: &Utf8Path, strategy: StoreStrategy, dry_run: bool) -> anyhow::Result<FileStorePlan> {
+    store_files_impl(root,source,destination,strategy,dry_run,None)
+}
+/// Apply actions derived from a caller-validated historical comparison. Physical
+/// inventories still guard staging; files not selected by the comparison retain
+/// their actual bytes. Only configured publication supplies trusted CSV history.
+pub(crate) fn store_compared_files(root:&Utf8Path,source:&Utf8Path,destination:&Utf8Path,strategy:StoreStrategy,comparison:&Inventory)->anyhow::Result<FileStorePlan> {
+    store_files_impl(root,source,destination,strategy,false,Some(comparison))
+}
+fn store_files_impl(root:&Utf8Path,source:&Utf8Path,destination:&Utf8Path,strategy:StoreStrategy,dry_run:bool,comparison:Option<&Inventory>)->anyhow::Result<FileStorePlan> {
     crate::path_safety::resolve_path(source.as_std_path(), true)?;
     anyhow::ensure!(fs::symlink_metadata(source)?.is_dir(), "Store source must be a real directory: {source}");
     crate::local_remote::validate_download_destination(root, source, destination)?;
@@ -87,7 +96,7 @@ pub fn store_files(root: &Utf8Path, source: &Utf8Path, destination: &Utf8Path, s
     anyhow::ensure!(fs::symlink_metadata(parent)?.is_dir(), "Store destination parent must already exist: {parent}");
     let original_source = inventory(source)?;
     let original_destination = inventory(destination)?;
-    let (uploads, overwrites, removals, same_bytes) = actions(&original_source, &original_destination, strategy);
+    let (uploads, overwrites, removals, same_bytes) = actions(&original_source, comparison.unwrap_or(&original_destination), strategy);
     let mirror = matches!(strategy, StoreStrategy::SyncDiff | StoreStrategy::SyncPurge);
     for name in &uploads {
         crate::path_safety::validate_native_names(destination, name, mirror)?;
@@ -109,13 +118,27 @@ pub fn store_files(root: &Utf8Path, source: &Utf8Path, destination: &Utf8Path, s
     let staging = tempfile::Builder::new().prefix(".proj-store-source-").tempdir_in(parent)?;
     let staged = Utf8PathBuf::try_from(staging.path().to_owned())?;
     let execution: anyhow::Result<()> = (|| {
-    let selected: Inventory = if mirror { original_source.clone() } else {
+    let selected: Inventory = if matches!(strategy,StoreStrategy::SyncDiff) && comparison.is_some() {
+        let mut desired=original_destination.clone();
+        for name in &plan.removals {desired.remove(name);}
+        for name in &plan.uploads {
+            // Reject unrecorded physical file/directory conflicts rather than
+            // silently deleting extra paths not selected by the comparison.
+            for existing in desired.keys() {
+                anyhow::ensure!(existing==name||(!existing.starts_with(&format!("{name}/"))&&!name.starts_with(&format!("{existing}/"))),
+                    "Historical comparison conflicts with actual destination shape at {name}");
+            }
+            desired.insert(name.clone(),original_source[name].clone());
+        }
+        desired
+    } else if mirror { original_source.clone() } else {
         plan.uploads.iter().map(|path| (path.clone(), original_source[path].clone())).collect()
     };
     for name in selected.keys() {
         let target = staged.join(name);
         fs::create_dir_all(target.parent().context("Store upload has no parent")?)?;
-        fs::copy(source.join(name), &target).with_context(|| format!("Cannot stage store upload {name}"))?;
+        let from=if comparison.is_some()&&mirror&&!plan.uploads.contains(name) {destination}else{source};
+        fs::copy(from.join(name), &target).with_context(|| format!("Cannot stage store upload {name}"))?;
     }
     anyhow::ensure!(inventory(&staged)? == selected && inventory(source)? == original_source,
         "Store source bytes changed while staging");

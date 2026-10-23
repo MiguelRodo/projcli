@@ -350,16 +350,15 @@ output_run:false skip publication.
 | Content true/false/null/list | Actual CLI selection fixtures; true excludes cache | Full configured provider matrix |
 | cue if-change / always | Both against each strategy; repeated identical sync-diff tests label-version retention/advance | Archive comparison-version selection |
 | inspect file | Shared MD5 byte inspection, current CSV snapshots, exact source-byte validation | GitHub configured inspection |
-| inspect manifest | Selected definitions fail before hooks; no silent file-mode downgrade | Trusted history comparison and fallback |
+| inspect manifest | Default and explicit mode; matching project/remote history; physical fallback on missing/mismatched/starred history | Archive comparison and GitHub publication |
 | inspect none | All four strategies and both cues; default upload-all; exact build/store/restore bytes and trust markers | Other providers/layouts |
 | upload-all | Upload all selected files, retain extras; existing remote marked untrusted | Other inspection modes |
 | upload-missing | Preserve existing names/bytes, add missing; changes to existing remote marked untrusted | Other inspection modes |
 | sync-diff | Add/change/remove; no-change cue fixture | Archive/history interaction |
 | sync-purge | Mirror full selected file set, including same-byte files, matching the pinned source quirk | Other inspection modes |
 
-if-change and sync-diff remain the existing defaults. The projr default
-inspection is manifest: until implemented, omitting inspect is an error rather
-than changing that default to file or none. Ordinary archive, nonempty get controls,
+if-change, sync-diff and manifest inspection remain the existing defaults.
+Ordinary archive, nonempty get controls,
 send.conflict and title-level cue are not silently accepted as working policy.
 path-append-label:false is explicitly deferred here because its full destination
 contains the shared metadata namespace.
@@ -411,3 +410,26 @@ validation, staging and physical installation safety still read files. It is not
 a promise of zero remote reads or hashing. The shared physical transfer remains
 guarded and may read destination bytes while installing. Archive and configured
 GitHub publication remain pending.
+
+
+### Manifest comparison for local latest publication
+
+Manifest is the default inspection. The remote label VERSION must be unstarred,
+and the corresponding label/version CSV rows must exist and match project history
+exactly as filename/MD5 sets. Then current source rows are compared with those
+recorded rows. Otherwise comparison falls back to physical files. Missing,
+mismatched, duplicate or ambiguous rows cannot establish trust; malformed history
+still fails closed rather than being overwritten.
+
+A matching history is a performance/decision trust convention, not proof of
+actual remote bytes. If bytes drift independently while history still agrees,
+unselected files are retained. Use inspect: file to compare actual bytes.
+Sync-purge still replaces the whole file set when triggered. Shared guarded
+staging checks physical paths/types/bytes during installation; this mode does not
+promise zero remote reads. Explicit upload-all ignores comparison like projr.
+
+Projr strips the star before its latest-manifest helper checks history. Rust
+deliberately treats a starred label as untrusted and falls back to file comparison,
+consistent with the stated marker meaning. This is a source bug correction, not
+a new history/authenticity policy. Archive and configured GitHub publication are
+still pending.

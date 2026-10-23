@@ -421,3 +421,8 @@ The ordinary-local publication stage also supports explicit none comparison:
 source filenames are uploaded blindly according to the documented strategy
 interaction, after all-target staging and before CAS/Git. This does not change
 the staged lifecycle diagram or the release-preserving failure boundary.
+
+
+Ordinary-local latest publication can use the default manifest comparison.
+History eligibility is resolved from the already captured metadata and project
+CSV; the staged publication position and failure boundary remain unchanged.
