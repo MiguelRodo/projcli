@@ -297,3 +297,10 @@ restore or credential-helper parity claim follows from the initial transport.
 Use mocked HTTP fixtures and remote tests, never live user dataset uploads.
 Document that embedders must not enable unredacted ureq DEBUG/TRACE logging;
 no network endpoint confinement follows from stripping redirect credentials.
+
+GitHub ZIPs use projr's relative members, flat latest/archive names and shared
+manifest/VERSION/CHANGELOG ZIP names. Extract only to private temporary trees,
+bound compressed and expanded bytes independently, validate CRC/portable paths
+and reject links, aliases, duplicates and special entries before guarded install.
+Empty variants require only the zero-byte projr-empty sentinel. Explicit directory
+transfer is not configured restore, metadata history merge or overwrite parity.

@@ -304,3 +304,46 @@ tokens, response bodies and signed redirect URLs. Library embedders must avoid
 ureq DEBUG/TRACE logging for sensitive requests because dependency logging is
 not redacted. Redirects remove Authorization but do not confine network access
 to a provider host; this transport is not a network sandbox.
+
+
+## GitHub ZIP packaging and explicit directory transfer candidate
+
+This candidate extends the native Release transport with projr flat names:
+prefix-label-vVERSION.zip for archive, prefix-label.zip for latest, and
+-empty before .zip for empty variants. With no prefix, the label is always
+used, including path_append_label=false. Metadata assets remain shared and
+unprefixed: manifest.zip contains manifest.csv, VERSION.zip contains VERSION,
+and CHANGELOG.zip contains CHANGELOG.md. Directory ZIP entries are relative to
+the selected source, without an enclosing folder. Empty sources contain the
+single zero-byte projr-empty sentinel; empty subdirectories are not archived.
+
+The CLI adds remote github upload-directory (label/structure/remote-version,
+optional prefix/path-append-label), upload-metadata (kind manifest/version/
+changelog and a source directory), and download-directory (exact asset name,
+destination, max-bytes, max-expanded-bytes, optional clear/empty). Uploads remain
+new-name-only; metadata is packaged byte-for-byte rather than silently merged.
+Download stages extraction privately and uses the existing guarded merge/clear
+installer. Explicit empty requires exactly the sentinel and consumes it before
+installation. Destination-only files survive unless clear is requested.
+
+Safety changes from R's direct utils::unzip: bounded expanded bytes and100000
+members, CRC validation, reject links/special/encrypted entries, traversal,
+backslashes, device names, native aliases, duplicate members and parent/file
+collisions before project installation. Retain existing installer rollback and
+Windows backup-cleanup limits; no crash/concurrent-writer guarantee is added.
+
+Ponytail full: one ZIP crate with only Deflate enabled, existing MD5 inventory,
+HTTP client and guarded installer. No backend interface, registry or new YAML
+policy. Independent tests cover exact metadata/Unicode/hidden/empty members,
+malicious names, CRC/expanded limits and mocked actual ZIP upload/download
+merge/clear. No local heavy tests; remote lock resolution, exact-head platform/
+pinned/docs acceptance and independent review are pending.
+
+Pinned sources:
+[flat names](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote.R#L525),
+[ZIP layout](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/misc.R#L638),
+[empty sentinel](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github.R#L350),
+[metadata assets](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-versions.R#L1).
+Configured source selection/restore, historical metadata merging, latest asset
+replacement, credentials-helper fallback and CAS remain outstanding. This
+source candidate does not update the published/installed preview.

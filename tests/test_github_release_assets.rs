@@ -221,3 +221,36 @@ fn windows_authority_aliases_fail_before_network() {
     assert_eq!(std::fs::read(root.join("VERSION")).unwrap(),b"authority");
     assert_eq!(std::fs::read(root.join("_projr-local.yml")).unwrap(),b"authority");
 }
+
+#[test]
+fn directory_zip_upload_and_safe_download_merge_clear_and_empty_variants() {
+    use proj::github_zip::{directory_zip,directory_asset_name,GithubStructure,download_directory};
+    let temp=tempfile::tempdir().unwrap();let root=root(&temp);
+    let source=root.join("source");let destination=root.join("restored");
+    std::fs::create_dir(&source).unwrap();std::fs::create_dir(&destination).unwrap();
+    std::fs::write(source.join("report.txt"),"new-report").unwrap();std::fs::write(destination.join("old.txt"),"retain").unwrap();
+    let (zip,empty)=directory_zip(&source).unwrap();assert!(!empty);
+    let name=directory_asset_name(None,true,"output",GithubStructure::Archive,Some("1.2.3"),empty).unwrap();
+    let bytes=std::fs::read(zip.path()).unwrap();
+    let server=Server::start(|base| {
+        let mut upload=reply("POST","/upload?name=output-v1.2.3.zip",201,asset(&name,bytes.len()));upload.request=Some(bytes.clone());
+        let mut replies=vec![
+            reply("GET","/repos/owner/repo/releases/tags/data",200,release(base)),
+            reply("GET","/repos/owner/repo/releases/1/assets?per_page=100&page=1",200,"[]"),upload];
+        for _ in 0..2 {replies.extend(selected(base,&name,bytes.len()));
+            replies.push(reply("GET","/repos/owner/repo/releases/assets/2",200,&bytes));}replies
+    });
+    server.client().upload_asset("data",&name,camino::Utf8Path::from_path(zip.path()).unwrap(),false).unwrap();
+    download_directory(&server.client(),&root,"data",&name,&destination,10000,10000,false,false).unwrap();
+    assert_eq!(std::fs::read(destination.join("report.txt")).unwrap(),b"new-report");
+    assert_eq!(std::fs::read(destination.join("old.txt")).unwrap(),b"retain");
+    download_directory(&server.client(),&root,"data",&name,&destination,10000,10000,true,false).unwrap();
+    assert!(!destination.join("old.txt").exists());server.finish();
+    let empty_source=tempfile::tempdir().unwrap();
+    let (empty_zip,empty)=directory_zip(camino::Utf8Path::from_path(empty_source.path()).unwrap()).unwrap();assert!(empty);
+    let bytes=std::fs::read(empty_zip.path()).unwrap();
+    let server=Server::start(|base| {let mut replies=selected(base,"output-empty.zip",bytes.len());
+        replies.push(reply("GET","/repos/owner/repo/releases/assets/2",200,&bytes));replies});
+    download_directory(&server.client(),&root,"data","output-empty.zip",&destination,10000,10000,true,true).unwrap();
+    assert_eq!(std::fs::read_dir(destination).unwrap().count(),0);server.finish();
+}
