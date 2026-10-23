@@ -233,6 +233,9 @@ pub enum GithubCommands {
         path_append_label: bool,
         #[arg(long)]
         create_release: bool,
+        /// Explicitly delete an existing same-name asset before uploading.
+        #[arg(long)]
+        replace: bool,
     },
     /// Upload a new canonical manifest/VERSION/CHANGELOG ZIP asset.
     UploadMetadata {
@@ -247,6 +250,9 @@ pub enum GithubCommands {
         kind: String,
         #[arg(long)]
         create_release: bool,
+        /// Explicitly delete an existing same-name asset before uploading.
+        #[arg(long)]
+        replace: bool,
     },
     /// Safely extract a selected directory ZIP and merge/clear its destination.
     DownloadDirectory {
@@ -275,7 +281,7 @@ pub enum GithubCommands {
         #[arg(long)]
         tag: String,
     },
-    /// Upload a new asset without replacing or deleting an existing name.
+    /// Upload an asset; existing names require explicit --replace.
     Upload {
         #[arg(long)]
         repository: String,
@@ -288,6 +294,9 @@ pub enum GithubCommands {
         /// Explicitly allow creating the Release if its tag is absent.
         #[arg(long)]
         create_release: bool,
+        /// Explicitly delete an existing same-name asset before uploading.
+        #[arg(long)]
+        replace: bool,
     },
     /// Download one asset with staged regular-file replacement.
     Download {
@@ -778,15 +787,15 @@ fn github_assets(root: &camino::Utf8Path, command: &GithubCommands) -> anyhow::R
     let api = std::env::var("GITHUB_API_URL").unwrap_or_else(|_| "https://api.github.com".into());
     let client = proj::github_release::GithubReleaseClient::new(repository, &api, token)?;
     let result = match command {
-        GithubCommands::UploadDirectory { tag, source, label, structure, remote_version, prefix, path_append_label, create_release, .. } => {
+        GithubCommands::UploadDirectory { tag, source, label, structure, remote_version, prefix, path_append_label, create_release, replace, .. } => {
             let source=if source.is_absolute() {source.clone()} else {root.join(source)};
             let (zip,empty)=proj::github_zip::directory_zip(&source)?;
             let structure=if structure=="latest" {proj::github_zip::GithubStructure::Latest} else {proj::github_zip::GithubStructure::Archive};
             let name=proj::github_zip::directory_asset_name(prefix.as_deref(),*path_append_label,label,structure,remote_version.as_deref(),empty)?;
             let file=camino::Utf8Path::from_path(zip.path()).ok_or_else(||anyhow::anyhow!("ZIP path must be UTF-8"))?;
-            serde_json::json!({"asset":client.upload_asset(tag,&name,file,*create_release)?})
+            serde_json::json!({"asset":upload_github_asset(&client,tag,&name,file,*create_release,*replace)?})
         },
-        GithubCommands::UploadMetadata { tag,source,kind,create_release,.. } => {
+        GithubCommands::UploadMetadata { tag,source,kind,create_release,replace,.. } => {
             let source=if source.is_absolute() {source.clone()} else {root.join(source)};
             let kind=match kind.as_str() {
                 "manifest"=>proj::github_zip::MetadataKind::Manifest,
@@ -796,16 +805,16 @@ fn github_assets(root: &camino::Utf8Path, command: &GithubCommands) -> anyhow::R
             };
             let zip=proj::github_zip::metadata_zip(&source,kind)?;
             let file=camino::Utf8Path::from_path(zip.path()).ok_or_else(||anyhow::anyhow!("ZIP path must be UTF-8"))?;
-            serde_json::json!({"asset":client.upload_asset(tag,kind.names().0,file,*create_release)?})
+            serde_json::json!({"asset":upload_github_asset(&client,tag,kind.names().0,file,*create_release,*replace)?})
         },
         GithubCommands::DownloadDirectory { tag,name,destination,max_bytes,max_expanded_bytes,clear,empty,.. } => {
             let destination=if destination.is_absolute() {destination.clone()} else {root.join(destination)};
             serde_json::json!({"asset":proj::github_zip::download_directory(&client,root,tag,name,&destination,*max_bytes,*max_expanded_bytes,*clear,*empty)?})
         },
         GithubCommands::Assets { tag, .. } => serde_json::json!({"assets": client.assets(tag)?}),
-        GithubCommands::Upload { tag, name, source, create_release, .. } => {
+        GithubCommands::Upload { tag, name, source, create_release, replace, .. } => {
             let source = if source.is_absolute() { source.clone() } else { root.join(source) };
-            serde_json::json!({"asset": client.upload_asset(tag, name, &source, *create_release)?})
+            serde_json::json!({"asset": upload_github_asset(&client,tag,name,&source,*create_release,*replace)?})
         },
         GithubCommands::Download { tag, name, destination, max_bytes, .. } => {
             let destination = if destination.is_absolute() { destination.clone() } else { root.join(destination) };
@@ -813,6 +822,11 @@ fn github_assets(root: &camino::Utf8Path, command: &GithubCommands) -> anyhow::R
         },
     };
     Ok(result)
+}
+
+fn upload_github_asset(client:&proj::github_release::GithubReleaseClient,tag:&str,name:&str,source:&camino::Utf8Path,create_release:bool,replace:bool)->anyhow::Result<proj::github_release::ReleaseAsset> {
+    if replace {client.replace_asset(tag,name,source,create_release)}
+    else {client.upload_asset(tag,name,source,create_release)}
 }
 
 fn configured_restore(root:&camino::Utf8Path,command:&RemoteCommands)->anyhow::Result<proj::restore::RestoreResult> {

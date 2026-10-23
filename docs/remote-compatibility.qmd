@@ -368,6 +368,30 @@ distinguishes installed output from failed transfer. Readonly/zero-mode owned
 directory cleanup is exercised unprivileged in the pinned gate.
 
 
+## Explicit GitHub asset replacement
+
+The source candidate adds --replace to upload, upload-directory and upload-metadata,
+and GithubReleaseClient::replace_asset. Default uploads still reject existing
+names. Explicit replacement follows the working projr delete-then-upload sequence:
+[remote-github-httr.R554-662](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github-httr.R#L554).
+
+Before deletion, validate the regular source, stage its complete bytes privately,
+resolve the Release/unique asset and validate its trusted upload endpoint. An
+absent name uploads normally. A successful delete is followed by one upload;
+errors after deletion explicitly state that the previous asset was deleted.
+An interrupted deletion reports an uncertain old-asset state and does not start
+the upload. This is not atomic publication, backup retention or remote rollback.
+There is no automatic retry, new history/sealing policy or changed YAML default.
+
+Ponytail full reuses the existing client and request/body fixtures, with a private
+file snapshot only for explicit replacement. Mocked end-to-end witnesses cover
+staged bytes despite source mutation after delete, exact DELETE/POST ordering,
+denied/interrupted delete, failed/malformed upload, untrusted endpoints, ambiguous
+names, unsafe sources and machine CLI output. These are mocked REST operations,
+not actual GitHub Release mutations. No live user data/credentials or local
+heavy tests. Remote exact-head gates and independent review remain required.
+Configured restore/source selection and full automatic publication remain next.
+
 ## Configured single-label restore candidate
 
 remote restore --label LABEL --max-bytes N --max-expanded-bytes N resolves
