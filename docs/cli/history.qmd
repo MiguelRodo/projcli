@@ -1,0 +1,49 @@
+---
+title: "Inspect build history"
+---
+
+This command is in development source, after installed preview.3.
+
+~~~bash
+proj history
+proj history --limit 10
+proj history --attempt attempt-0123456789abcdefghijklmn
+proj --machine history
+~~~
+
+The summary shows the newest recorded attempts first, ordered by start
+time with an ID tie-breaker. --attempt lists final observed file names,
+logical labels and existing MD5 byte hashes, including empty-directory markers.
+It works without Git or active configuration. It reads evidence without acquiring
+a build lock, changing versions, rerunning analysis or contacting a remote.
+
+Each new final observation retains `.proj/log/ATTEMPT_ID.final.csv` in the existing
+label,fn,version,hash format. Its JSON record or Git outcome receipt binds its
+exact bytes and canonical inventory fingerprint. End hooks may change files:
+these final rows describe the observation after finalization was attempted,
+separately from the release inventory. They do not prove that files still exist,
+authenticate another person's record, or verify remote availability.
+
+With optional Git, the final CSV and outcome receipt join the **next normal
+commit**. The pre-Git record remains unchanged; no recursive bookkeeping commit
+is created. Only an intact, locally witnessed receipt/CSV bundle qualifies for
+the narrow pending-evidence exception. Missing or altered companions fail closed.
+
+For earlier records containing only inventory fingerprints, detailed rows are
+available from project manifest.csv only when the release, labels, counts and
+canonical fingerprint match exactly. Otherwise they are unavailable. A pending
+pre-Git snapshot without a terminal receipt remains unresolved.
+
+Human output is Markdown on stdout, safely quoting file names. Redirect it to a
+file if useful; proj does not rewrite BUILDLOG.md or the curated changelog.
+The machine envelope contains result.history.entries; details add
+final_files.source and final_files.rows. Summary queries omit detailed rows.
+
+Queries allow 1–100 summaries (default 20), scan at most 10,000 log directory
+entries and accept at most 64 MiB total JSON, 1 MiB per JSON file and 16 MiB/
+100,000 rows per selected CSV. New final CSV retention uses the same CSV limits.
+Malformed records, linked paths, mismatched receipts and corrupted selected CSVs
+are errors. Disabled/failed observations are not empty inventories.
+
+Previews and pre-distribution failures retain their existing behavior. No
+failure-retention, pruning, registry or remote policy is chosen here.

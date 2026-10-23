@@ -5,11 +5,21 @@ use crate::manifest::ManifestRow;
 /// Decodes the exact four-column projr schema. Missing/corrupt fields are errors;
 /// this function performs no filesystem access and never repairs history.
 pub fn decode(bytes: &[u8]) -> anyhow::Result<Vec<ManifestRow>> {
+    decode_with_limit(bytes, None)
+}
+
+/// Read a bounded retained snapshot without changing ordinary CSV decoding.
+pub(crate) fn decode_bounded(bytes: &[u8],max_rows:usize)->anyhow::Result<Vec<ManifestRow>> {
+    decode_with_limit(bytes,Some(max_rows))
+}
+
+fn decode_with_limit(bytes:&[u8],limit:Option<usize>)->anyhow::Result<Vec<ManifestRow>> {
     let mut reader = csv::Reader::from_reader(bytes);
     anyhow::ensure!(reader.headers()?.iter().eq(["label", "fn", "version", "hash"]),
         "manifest.csv requires columns label,fn,version,hash in that order");
     let mut rows = Vec::new();
     for row in reader.deserialize::<ManifestRow>() {
+        anyhow::ensure!(limit.is_none_or(|limit|rows.len()<limit),"Retained CSV exceeds its row limit");
         let row = row.context("Invalid manifest.csv record")?;
         row.validate()?;
         rows.push(row);

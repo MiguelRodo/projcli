@@ -628,6 +628,27 @@ These are startup observations, not frozen source bytes: a start hook can change
 a later script or dependency declaration. Implicit renderer-project source sets,
 imported code, effective renderer configuration, arbitrary parameters and installed
 dependency state are not fully captured. Unknown states must not be presented as
-complete provenance. Detailed final rows and generated human history remain
-separate M2 work. CSV/MD5 and failure-retention behavior are unchanged, as is the
+complete provenance. That startup slice alone did not include detailed final rows or generated human
+history; the following section adds them. CSV/MD5 and failure-retention behavior are unchanged, as is the
 installed preview.3.
+
+
+## Development source: final file observations and derived history
+
+New final observations retain a bounded existing-format per-attempt CSV alongside
+their JSON reference. proj history generates summaries; --attempt validates
+and lists exact final observed rows. No configuration, Git, lock or remote access
+is needed. Unknown/missing receipts remain unresolved; old fingerprint-only
+records can use project manifest.csv only on an exact fingerprint match.
+The human view is generated on stdout; the curated changelog is not rewritten.
+With Git the final CSV accompanies its receipt in the next normal commit; both
+must remain intact for the existing pending-evidence exception. Missing/corrupt
+selected CSVs are errors. Existing CSV history, MD5, hooks and retention remain
+unchanged. See [the history reference](cli/history.qmd) for bounds and examples.
+
+This is the bounded final-row/derived-human-history slice, subject to exact
+remote checks. It does not fill omitted renderer configuration/parameters,
+implicit source sets, executed source freezing or installed dependency state.
+Full environment reproduction is outside M2's local traceability gate. Relevant
+remaining M2 evidence must be checked against actual issue criteria, not an
+unbounded provenance wish list. The installed preview.3 is unchanged.

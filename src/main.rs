@@ -47,6 +47,13 @@ pub struct Cli {
 pub enum Commands {
     /// Report the CLI and machine protocol capabilities without loading a project.
     Capabilities,
+    /// Inspect recorded build outcomes and final files without changing project state.
+    History {
+        #[arg(long)]
+        attempt: Option<String>,
+        #[arg(long, default_value_t=20)]
+        limit: usize,
+    },
     /// Inspect ordinary local remote storage without publishing or restoring.
     Remote {
         #[command(subcommand)]
@@ -474,6 +481,10 @@ fn main() {
 
     match &cli.command {
         Commands::Capabilities => unreachable!("Capabilities handled before project selection"),
+        Commands::History {attempt,limit} => match proj::history::read(&root,attempt.as_deref(),*limit) {
+            Ok(history)=>print!("{}",history.markdown()),
+            Err(error)=>fail(format_args!("Cannot inspect build history: {error:#}")),
+        },
         Commands::Remote {command:command @ RemoteCommands::Restore {..}} => {
             match configured_restore(&root,command) {
                 Ok(result)=>println!("{}",serde_json::to_string_pretty(&result).expect("Restore result is serializable")),

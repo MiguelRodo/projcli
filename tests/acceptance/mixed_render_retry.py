@@ -1,6 +1,6 @@
 """Remote-only real renderer/Git recovery acceptance; no M2 record format implied."""
 from __future__ import annotations
-import argparse, hashlib, json, os, shutil, subprocess, tempfile
+import argparse, csv, hashlib, json, os, shutil, subprocess, tempfile
 from pathlib import Path
 
 
@@ -163,7 +163,12 @@ def run_case(binary, workspace, artifacts, project):
     assert receipt['version_after'] == 'v1.2.4.1'
     snapshot_path = f".proj/log/{receipt['attempt_id']}.json"
     assert git('show', f'HEAD:{snapshot_path}') == (root / snapshot_path).read_bytes()
-    assert sorted(status) == sorted([' M VERSION', f'?? {receipt_path}']), status
+    final_csv = root / '.proj/log' / receipt['final_outputs']['rows']['file']
+    assert final_csv.is_file()
+    assert len(final_csv.read_bytes()) == receipt['final_outputs']['rows']['bytes']
+    final_rows = list(csv.DictReader(final_csv.open()))
+    assert final_rows and all(row['version'] == 'v1.2.4' for row in final_rows)
+    assert sorted(status) == sorted([' M VERSION', f'?? {receipt_path}', f'?? {final_csv.relative_to(root).as_posix()}']), status
     shutil.copytree(root / 'published', destination / 'final')
     for path, data in tracked.items():
         target = destination / 'committed' / path

@@ -49,7 +49,7 @@ while not Path('continue').exists():
     fs::write(root.join("continue"), b"release").unwrap();
     assert!(first.wait().unwrap().success());
     assert!(!root.join(".proj/build.lock").exists());
-    assert_eq!(fs::read_dir(root.join(".proj/log")).unwrap().count(),1);
+    assert_eq!(fs::read_dir(root.join(".proj/log")).unwrap().count(),2);
 
     // A second successful run gets a fresh identity, including with .proj retained.
     fs::create_dir_all(root.join(".proj")).unwrap();

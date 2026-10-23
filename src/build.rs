@@ -656,12 +656,10 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         config.git.commit,push_target.is_some(),
         if config.git.commit {crate::git::head_in(project_root,&environment)}else{None},attempt_inventory.clone(),startup_provenance.clone());
     let observe_outputs=|| -> anyhow::Result<crate::attempt_log::FinalOutputs> {
-        let inventory=if record_manifest {
+        if record_manifest {
             let rows=crate::manifest::capture_build(project_root,&config,&initial_version.to_string(true),false)?;
-            Some(crate::attempt_log::InventoryFingerprint::capture(&rows,&initial_version.to_string(true))?)
-        }else{None};
-        Ok(crate::attempt_log::FinalOutputs {
-            status:if record_manifest {crate::attempt_log::Status::Completed}else{crate::attempt_log::Status::NotRequested},inventory})
+            crate::attempt_log::FinalOutputs::observed(rows,&initial_version.to_string(true))
+        }else{Ok(crate::attempt_log::FinalOutputs::not_requested())}
     };
     let publish = !is_dev && (config.git.commit || !config.dest.is_empty()
         || (config.output_run.unwrap_or(true) && (!ordinary.is_empty()||!github.is_empty())));
@@ -722,7 +720,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     })();
     let (outputs,observation)=match observe_outputs() {
         Ok(outputs)=>(outputs,Ok(())),
-        Err(error)=>(crate::attempt_log::FinalOutputs {status:crate::attempt_log::Status::Failed,inventory:None},
+        Err(error)=>(crate::attempt_log::FinalOutputs::failed(),
             Err(error).context("Cannot observe final outputs; earlier inventory evidence remains")),
     };
     let publication=crate::attempt_log::retain_result(publication,observation);

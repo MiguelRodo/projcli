@@ -24,7 +24,8 @@ fn success(output: std::process::Output) {
 
 fn record(root:&Path,version:&str)->serde_json::Value {
     let records:Vec<serde_json::Value>=fs::read_dir(root.join(".proj/log")).unwrap()
-        .map(|entry|serde_json::from_slice(&fs::read(entry.unwrap().path()).unwrap()).unwrap())
+        .map(|entry|entry.unwrap().path()).filter(|path|path.extension().is_some_and(|value|value=="json"))
+        .map(|path|serde_json::from_slice(&fs::read(path).unwrap()).unwrap())
         .filter(|record:&serde_json::Value|record["release_version"]==version).collect();
     assert_eq!(records.len(),1);
     records.into_iter().next().unwrap()
@@ -76,7 +77,7 @@ fn production_records_md5_pre_inputs_final_outputs_and_exact_history_without_git
     assert_eq!(record(root,"v1.2.4"),first_record,"previous attempt evidence changed");
     assert_fingerprint(&record(root,"v1.2.5")["inventory"]["inputs"],
         &history.iter().filter(|row|row.label=="raw"&&row.version=="v1.2.5").cloned().collect::<Vec<_>>(),"v1.2.5");
-    assert_eq!(fs::read_dir(root.join(".proj/log")).unwrap().count(),2);
+    assert_eq!(fs::read_dir(root.join(".proj/log")).unwrap().count(),4);
 }
 
 #[test]
@@ -240,6 +241,18 @@ fn end_hook_output_changes_are_observed_without_enforcement_or_rewriting_publica
         assert!(final_rows.iter().any(|row|row.r#fn=="données.csv"&&row.hash=="900150983cd24fb0d6963f7d28e17f72"));
         assert_fingerprint(&log["final_outputs"]["inventory"],&final_rows,"v1.2.4");
         assert_ne!(log["final_outputs"]["inventory"],log["inventory"]["release_outputs"]);
+        let reference=&log["final_outputs"]["rows"];
+        let bytes=fs::read(root.join(".proj/log").join(reference["file"].as_str().unwrap())).unwrap();
+        assert_eq!(reference["bytes"],bytes.len());
+        assert_eq!(reference["blake3"],blake3::hash(&bytes).to_hex().as_str());
+        assert_eq!(proj::manifest_csv::decode(&bytes).unwrap(),final_rows);
+        let id=log["attempt_id"].as_str().unwrap();
+        let history=proj::history::read(path(&root),Some(id),20).unwrap();
+        let detail=serde_json::to_value(&history).unwrap();
+        assert_eq!(detail["entries"][0]["final_files"]["rows"],serde_json::to_value(&final_rows).unwrap());
+        let human=history.markdown();
+        assert!(human.contains("renamed&#46;csv")&&human.contains("données&#46;csv"));
+        assert!(!human.contains("obsolete&#46;csv")&&!human.contains("result&#46;csv"));
         assert_eq!(fs::read(root.join("released/renamed.csv")).unwrap(),b"hello");
         assert!(!root.join("released/result.csv").exists());
         if publish {
@@ -263,5 +276,23 @@ fn plain_record_destination_failure_restores_exact_state_without_fabricating_suc
     assert_eq!(fs::read(root.join("released/result.csv")).unwrap(),b"hello");
     assert!(!root.join("manifest.csv").exists());
     assert_eq!(fs::read(root.join(".proj/log")).unwrap(),b"preserved non-directory");
+    assert!(!root.join(".proj/build.lock").exists());
+}
+
+#[test]
+fn plain_record_install_failure_removes_only_its_new_csv_and_restores_exact_version() {
+    let temporary=tempfile::tempdir().unwrap();let root=temporary.path().canonicalize().unwrap();
+    fixture(&root,"");
+    let config=fs::read_to_string(root.join("_proj.yml")).unwrap();
+    fs::write(root.join("_proj.yml"),format!("{config}  hooks:\n    post: [block.py]\n")).unwrap();
+    fs::write(root.join("block.py"),"import json\nfrom pathlib import Path\nidentity=json.loads(Path('.proj/build.lock').read_bytes())['attempt_id']\nlogs=Path('.proj/log')\nlogs.mkdir(parents=True,exist_ok=True)\n(logs / (identity+'.json')).mkdir()\n(logs / 'unrelated.txt').write_bytes(b'preserved')\n").unwrap();
+    let before=fs::read(root.join("VERSION")).unwrap();
+    let result=invoke(&root,"build");assert!(!result.status.success());
+    assert_eq!(fs::read(root.join("VERSION")).unwrap(),before);
+    assert_eq!(fs::read(root.join("released/result.csv")).unwrap(),b"hello");
+    assert!(!root.join("manifest.csv").exists());
+    let paths:Vec<_>=fs::read_dir(root.join(".proj/log")).unwrap().map(|entry|entry.unwrap().path()).collect();
+    assert_eq!(paths.len(),2);assert!(paths.iter().all(|path|path.is_dir()||path.file_name().unwrap()=="unrelated.txt"));
+    assert_eq!(fs::read(root.join(".proj/log/unrelated.txt")).unwrap(),b"preserved");
     assert!(!root.join(".proj/build.lock").exists());
 }

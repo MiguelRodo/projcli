@@ -507,8 +507,8 @@ flowchart TB
   S["Preflight; bounded startup observations;<br/>existing pre-build, analysis,<br/>promotion and recovery"]
   P{"Production local success?"}
   D{"Publication enabled?"}
-  L["End hooks; next dev;<br/>observe outputs; install completed log"]
-  G["Retain snapshot; distribution/Git;<br/>existing finalization; observe outputs;<br/>retain final log or Git receipt"]
+  L["End hooks; next dev;<br/>observe outputs; retain final CSV;<br/>install completed log"]
+  G["Retain snapshot; distribution/Git;<br/>existing finalization; observe outputs;<br/>retain final CSV and log or Git receipt"]
   R["Release owned claim on normal exit"]
   W --> S --> P
   P -->|"Preview or earlier failure"| R
@@ -539,3 +539,7 @@ dependency declarations and a safe policy summary after preflight, before start
 hooks. It reuses existing runner version responses. No hook or version adjacency
 moves; startup observations are not immutable executed-code evidence. Earlier
 failed-build retention and output-mutation enforcement remain unchanged.
+
+Final observed rows are retained in a checksum-bound per-attempt CSV; the
+[history command](cli/history.qmd) reads these alongside terminal records or Git
+receipts. This adds evidence without moving hooks, promotion or Git commits.

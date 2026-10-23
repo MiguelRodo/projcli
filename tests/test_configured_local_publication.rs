@@ -555,6 +555,8 @@ fn standalone_publication_logs_versions_and_outcomes_without_git_or_environment_
         .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
     success(output);
     let logs:Vec<_>=fs::read_dir(root.join(".proj/log")).unwrap().map(|entry|entry.unwrap().path()).collect();
+    assert_eq!(logs.len(),2);
+    let logs:Vec<_>=logs.into_iter().filter(|path|path.extension().is_some_and(|value|value=="json")).collect();
     assert_eq!(logs.len(),1);
     let text=fs::read_to_string(&logs[0]).unwrap();
     for secret in ["DO-NOT-RECORD-TOKEN","user:password","example.test","token=secret","PROJCLI_TEST_PRIVATE_URL"] {
@@ -583,7 +585,7 @@ fn final_record_replacement_preserves_an_existing_hardlinked_alias() {
     fs::write(root.join("_proj.yml"),config).unwrap();
     fs::write(root.join("hook.py"),"from pathlib import Path\nimport os\nrecord=next(Path('.proj/log').glob('*.json'))\nPath('saved-log-bytes').write_bytes(record.read_bytes())\nos.link(record, 'log-hardlink.json')\n").unwrap();
     success(invoke(&root,"build"));
-    let record=fs::read_dir(root.join(".proj/log")).unwrap().next().unwrap().unwrap().path();
+    let record=fs::read_dir(root.join(".proj/log")).unwrap().map(|entry|entry.unwrap().path()).find(|path|path.extension().is_some_and(|value|value=="json")).unwrap();
     let saved=fs::read(root.join("saved-log-bytes")).unwrap();
     assert_eq!(fs::read(root.join("log-hardlink.json")).unwrap(),saved);
     assert_ne!(fs::read(&record).unwrap(),saved);

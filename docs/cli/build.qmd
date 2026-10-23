@@ -261,3 +261,6 @@ The scopes and unknown/limit states are explicit. No environment dump, raw
 configuration, remote address, parameter value or vendor output is copied.
 A checksum does not freeze code or prove installed dependency versions. See
 [the bounds and omissions](../behavior.qmd#development-source-bounded-startup-provenance).
+
+Development source retains exact final observed file rows; use [proj history](history.qmd)
+to inspect them separately from release rows and generate a human summary.
