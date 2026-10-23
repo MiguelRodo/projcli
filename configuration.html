@@ -322,6 +322,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#r-package-data" id="toc-r-package-data" class="nav-link" data-scroll-target="#r-package-data">R package data</a></li>
   <li><a href="#existing-archive-inventory-coverage" id="toc-existing-archive-inventory-coverage" class="nav-link" data-scroll-target="#existing-archive-inventory-coverage">Existing archive inventory coverage</a></li>
   <li><a href="#production-file-inventory" id="toc-production-file-inventory" class="nav-link" data-scroll-target="#production-file-inventory">Production file inventory</a></li>
+  <li><a href="#configured-restore-source-fields" id="toc-configured-restore-source-fields" class="nav-link" data-scroll-target="#configured-restore-source-fields">Configured restore source fields</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -469,6 +470,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">cache</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">path</span><span class="kw">:</span><span class="at"> _tmp</span><span class="kw">,</span><span class="at"> </span><span class="fu">hash</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span><span class="kw">}</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">output</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">path</span><span class="kw">:</span><span class="at"> results</span><span class="kw">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>A successful output-enabled production build writes root manifest.csv, without requiring Git or a remote. Preview and build.output_run: false leave that CSV alone. See <a href="./storage-design.html#compatible-csv-inventory">the inventory notes</a>. This is newer than installed preview.2. See the compatibility log and PR175 for verification evidence.</p>
+</section>
+<section id="configured-restore-source-fields" class="level2">
+<h2 class="anchored" data-anchor-id="configured-restore-source-fields">Configured restore source fields</h2>
+<p>The source candidate’s explicit remote restore command reads the existing projr directories.LABEL.source and build.local/build.github definitions. See the <a href="./cli/remote.html">remote command reference</a> for lookup precedence, limits and safety. This does not enable automatic ordinary uploads in build; normal build validation still rejects unsupported publication fields. The future top-level registry proposal remains separate. _proj.yml and legacy _projr.yml discovery/conflict rules remain unchanged.</p>
+<p>Configured restore uses the shared profile selection order: explicit profile, PROJR_PROFILE, QUARTO_PROFILE, then build.profile, with earlier profiles winning and local overrides last. Machine failures preserve installation/recovery details on stderr, including retained backup paths; stdout stays a structured failure. Legacy data CSV rows and remote data namespaces are read without rewriting history; ambiguous canonical/legacy namespaces fail before installation. One optional VERSION trust marker is accepted; it is not a byte-verification claim.</p>
+<p>Review precision: VERSION.zip requires exactly the canonical VERSION member spelling, including on case-insensitive filesystems. Metadata transfer staging also closes explicitly and reports cleanup failure paths.</p>
 
 
 </section>
