@@ -2,7 +2,7 @@
 use std::{collections::BTreeMap,fs,io::{Read,Write},net::TcpListener,path::Path,process::{Command,Output},sync::{Arc,Mutex,atomic::{AtomicBool,Ordering}},thread,time::Duration};
 use serde_json::json;
 #[derive(Default)]
-struct State {exists:bool,next:u64,assets:BTreeMap<String,(u64,Vec<u8>)>,uploads:Vec<String>,deleted:Vec<String>,fail_version:bool}
+struct State {exists:bool,next:u64,assets:BTreeMap<String,(u64,Vec<u8>)>,uploads:Vec<String>,deleted:Vec<String>,fail_version:bool,fail_data:bool}
 struct Server {base:String,state:Arc<Mutex<State>>,stop:Arc<AtomicBool>,thread:Option<thread::JoinHandle<()>>}
 impl Server {
     fn start()->Self {
@@ -32,7 +32,7 @@ impl Server {
                     serde_json::to_vec(&data.assets.iter().map(|(name,(id,bytes))|json!({"id":id,"name":name,"size":bytes.len()})).collect::<Vec<_>>()).unwrap()
                 }else if method=="POST"&&path.starts_with("/upload?name=") {
                     let name=path.strip_prefix("/upload?name=").unwrap().to_owned();
-                    if data.fail_version&&name=="VERSION.zip" {status=503;b"{}".to_vec()}else{
+                    if (data.fail_version&&name=="VERSION.zip")||(data.fail_data&&name.starts_with("output")) {status=503;b"{}".to_vec()}else{
                         assert!(!data.assets.contains_key(&name));data.next+=1;let id=data.next;
                         data.uploads.push(name.clone());let size=body.len();data.assets.insert(name.clone(),(id,body));
                         status=201;json!({"id":id,"name":name,"size":size}).to_string().into_bytes()
@@ -114,11 +114,11 @@ fn metadata_upload_failure_preserves_local_release_and_reports_partial_publicati
     server.finish();
 }
 #[test]
-fn existing_current_archive_is_rejected_before_any_upload_or_deletion() {
+fn corrupt_current_archive_is_rejected_before_any_upload_or_deletion() {
     let server=Server::start();let (_temporary,root)=setup(&server);
     {let mut state=server.state.lock().unwrap();state.exists=true;state.next=1;state.assets.insert("output-v1.2.4.zip".into(),(1,b"existing bytes".to_vec()));}
     let output=invoke(&server,&root,&["build","--non-interactive"]);assert!(!output.status.success());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("Current GitHub archive already exists"));
+    assert!(!String::from_utf8_lossy(&output.stderr).is_empty());
     {let state=server.state.lock().unwrap();assert!(state.uploads.is_empty());assert!(state.deleted.is_empty());assert_eq!(state.assets["output-v1.2.4.zip"].1,b"existing bytes");}
     server.finish();
 }
@@ -138,13 +138,13 @@ fn empty_archives_use_native_sentinel_and_preview_makes_no_requests() {
 }
 #[test]
 fn unsupported_decisions_fail_before_hooks_and_catalog_aliases_never_upload() {
-    for state in ["manifest","strategy","latest","alias"] {
+    for state in ["manifest","strategy","layout","alias"] {
         let server=Server::start();let (_temporary,root)=setup(&server);
         let mut config=fs::read_to_string(root.join("_proj.yml")).unwrap();
         config=match state {
             "manifest"=>config.replace("inspect: none","inspect: manifest"),
             "strategy"=>config.replace("inspect: none","inspect: none, strategy: sync-diff"),
-            "latest"=>config.replace("      content:","      structure: latest\n      content:"),
+            "layout"=>config.replace("      content:","      structure: unknown\n      content:"),
             _=>config,
         };
         if state!="alias" {
@@ -240,4 +240,117 @@ fn public_gh_fallback_pins_hostname_despite_an_inherited_enterprise_host() {
     assert!(!output.status.success(),"fake helper intentionally returns no token, so no network request is made");
     assert_eq!(fs::read_to_string(root.join("gh-args")).unwrap(),"auth\ntoken\n--hostname\ngithub.com\n");
     assert!(!server.state.lock().unwrap().exists);server.finish();
+}
+
+
+// Construct independent ZIP witnesses rather than relying on the publisher under test.
+fn fixture_zip(files:&[(&str,&[u8])])->Vec<u8> {
+    let mut cursor=std::io::Cursor::new(Vec::new());
+    {
+        let mut writer=zip::ZipWriter::new(&mut cursor);
+        for (name,bytes) in files {
+            writer.start_file(*name,zip::write::SimpleFileOptions::default()).unwrap();
+            writer.write_all(bytes).unwrap();
+        }
+        writer.finish().unwrap();
+    }
+    cursor.into_inner()
+}
+fn latest(root:&Path) {
+    let path=root.join("_proj.yml");
+    let config=fs::read_to_string(&path).unwrap().replace("      content:","      structure: latest\n      content:");
+    fs::write(path,config).unwrap();
+}
+fn seed(server:&Server,name:&str,bytes:Vec<u8>) {
+    let mut state=server.state.lock().unwrap();state.exists=true;state.next+=1;
+    let id=state.next;state.assets.insert(name.into(),(id,bytes));
+}
+#[test]
+fn latest_replaces_current_selected_bytes_keeps_extras_and_restores_through_cli() {
+    for cue in ["if-change","always"] {
+        let server=Server::start();let (_temporary,root)=setup(&server);latest(&root);
+        let config=fs::read_to_string(root.join("_proj.yml")).unwrap()
+            .replace("inspect: none",&format!("inspect: none, cue: {cue}"))
+            .replace("content: [output]","content: true");
+        fs::write(root.join("_proj.yml"),config).unwrap();
+        seed(&server,"output.zip",fixture_zip(&[("result.csv",b"old"),("extra/old.csv",b"keep")]));
+        success(invoke(&server,&root,&["build","--non-interactive"]));
+        {
+            let state=server.state.lock().unwrap();
+            assert_eq!(members(&state.assets["output.zip"].1),BTreeMap::from([
+                ("result.csv".into(),b"actual fixture bytes\n".to_vec()),("extra/old.csv".into(),b"keep".to_vec())]));
+            assert_eq!(members(&state.assets["VERSION.zip"].1)["VERSION"],b"Project: v1.2.4\noutput: v1.2.4*\n");
+            assert_eq!(state.deleted,["output.zip"]);
+        }
+        fs::write(root.join("results/result.csv"),"second").unwrap();
+        success(invoke(&server,&root,&["build","--non-interactive"]));
+        fs::write(root.join("results/result.csv"),"damaged").unwrap();
+        success(invoke(&server,&root,&["remote","restore","--label","output","--clear","--repository","owner/repo","--max-bytes","1000000","--max-expanded-bytes","1000000"]));
+        assert_eq!(fs::read(root.join("results/result.csv")).unwrap(),b"second");
+        assert_eq!(fs::read(root.join("results/extra/old.csv")).unwrap(),b"keep");
+        server.finish();
+    }
+}
+#[test]
+fn canonical_current_archive_replacement_keeps_extras_and_older_versions() {
+    let server=Server::start();let (_temporary,root)=setup(&server);
+    let old=fixture_zip(&[("historical.csv",b"history")]);seed(&server,"output-v1.2.3.zip",old.clone());
+    seed(&server,"output-v1.2.4.zip",fixture_zip(&[("prior.csv",b"prior")]));
+    success(invoke(&server,&root,&["build","--non-interactive"]));
+    {
+        let state=server.state.lock().unwrap();
+        assert_eq!(state.assets["output-v1.2.3.zip"].1,old);
+        assert_eq!(members(&state.assets["output-v1.2.4.zip"].1),BTreeMap::from([
+            ("prior.csv".into(),b"prior".to_vec()),("result.csv".into(),b"actual fixture bytes\n".to_vec())]));
+        assert_eq!(state.deleted,["output-v1.2.4.zip"]);
+        assert_eq!(members(&state.assets["VERSION.zip"].1)["VERSION"],b"Project: v1.2.4\noutput: v1.2.4*\n");
+    }
+    server.finish();
+}
+#[test]
+fn latest_empty_source_keeps_existing_data_and_its_advertised_version() {
+    let server=Server::start();let (_temporary,root)=setup(&server);latest(&root);
+    success(invoke(&server,&root,&["build","--non-interactive"]));
+    let prior=server.state.lock().unwrap().assets["output.zip"].1.clone();
+    fs::remove_file(root.join("results/result.csv")).unwrap();
+    success(invoke(&server,&root,&["build","--non-interactive"]));
+    {
+        let state=server.state.lock().unwrap();assert_eq!(state.assets["output.zip"].1,prior);
+        assert!(!state.assets.contains_key("output-empty.zip"));
+        assert_eq!(state.uploads.iter().filter(|name|name.as_str()=="output.zip").count(),1);
+        assert_eq!(members(&state.assets["VERSION.zip"].1)["VERSION"],b"Project: v1.2.5\noutput: v1.2.4\n");
+    }
+    server.finish();
+}
+#[test]
+fn latest_empty_variant_is_validated_and_removed_only_after_full_upload() {
+    for valid in [true,false] {
+        let server=Server::start();let (_temporary,root)=setup(&server);latest(&root);
+        let bytes=fixture_zip(if valid {&[("projr-empty",b"")]}else{&[("surprise.csv",b"preserve")]});
+        seed(&server,"output-empty.zip",bytes.clone());
+        let output=invoke(&server,&root,&["build","--non-interactive"]);
+        let state=server.state.lock().unwrap();
+        if valid {
+            assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
+            assert!(!state.assets.contains_key("output-empty.zip"));assert_eq!(state.deleted,["output-empty.zip"]);
+            assert_eq!(members(&state.assets["output.zip"].1)["result.csv"],b"actual fixture bytes\n");
+        }else{
+            assert!(!output.status.success());assert!(state.uploads.is_empty());assert!(state.deleted.is_empty());
+            assert_eq!(state.assets["output-empty.zip"].1,bytes);
+        }
+        drop(state);server.finish();
+    }
+}
+#[test]
+fn latest_data_replacement_failure_reports_deleted_asset_and_keeps_local_release() {
+    let server=Server::start();let (_temporary,root)=setup(&server);latest(&root);
+    seed(&server,"output.zip",fixture_zip(&[("prior.csv",b"prior")]));
+    server.state.lock().unwrap().fail_data=true;
+    let output=invoke(&server,&root,&["build","--non-interactive"]);
+    assert!(!output.status.success());let stderr=String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("partially published"));assert!(stderr.contains("Previous asset was deleted"));
+    assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap().trim(),"Version: v1.2.4");
+    assert_eq!(fs::read(root.join("results/result.csv")).unwrap(),b"actual fixture bytes\n");
+    let state=server.state.lock().unwrap();assert!(!state.assets.contains_key("output.zip"));assert!(state.uploads.is_empty());
+    assert_eq!(state.deleted,["output.zip"]);drop(state);server.finish();
 }

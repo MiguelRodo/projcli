@@ -224,6 +224,22 @@ impl GithubReleaseClient {
         if deleted { result.context("Previous asset was deleted; inspect remote state if the replacement was not validated") }
         else {result}
     }
+    /// Removes one exact named asset after fresh unambiguous lookup. Intended for
+    /// obsolete empty variants after their full replacement has been validated.
+    /// No retry or rollback: failure reports an uncertain remote deletion.
+    pub(crate) fn delete_asset(&self,tag:&str,name:&str)->anyhow::Result<()> {
+        asset_name(name)?;
+        let token=self.token.as_ref().context("Asset deletion requires an existing GitHub token")?;
+        let release=self.release(tag,false)?;
+        let matches:Vec<_>=self.assets_for_release(release.id)?.into_iter().filter(|asset|asset.name==name).collect();
+        anyhow::ensure!(matches.len()==1,"Asset deletion requires exactly one matching name; no deletion performed");
+        let response=self.agent.delete(format!("{}/repos/{}/releases/assets/{}",self.api,self.repository,matches[0].id))
+            .header("Accept","application/vnd.github+json").header("Authorization",format!("Bearer {token}"))
+            .header("X-GitHub-Api-Version","2022-11-28").call()
+            .map_err(|_|anyhow::anyhow!("Asset deletion request failed; remote state is uncertain; inspect before retrying"))?;
+        anyhow::ensure!(response.status().as_u16()==204,"Asset deletion failed (HTTP {}); remote state is uncertain; inspect before retrying",response.status().as_u16());
+        Ok(())
+    }
     /// Streams an exact named asset into a same-directory temporary file, then
     /// replaces an absent/regular destination with a new inode. Guards reject
     /// links, special files and project metadata. Truncation/size-limit/network

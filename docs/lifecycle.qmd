@@ -394,7 +394,7 @@ download and then invokes guarded merge/clear installation.
 ## Configured ordinary publication candidate
 
 Current source (newer than installed preview.2) publishes ordinary local
-archive/latest targets, then the bounded GitHub archive upload path, before
+archive/latest targets, then the bounded GitHub latest/archive publication path, before
 selected CAS export, Git publication, end hooks and next-dev bump.
 Configuration/planned names are checked and GitHub routing is frozen before hooks.
 Each provider stages every selected CSV snapshot before its first remote mutation;
@@ -413,7 +413,7 @@ flowchart TB
   C --> D["Stage all selected local CSV bytes"]
   D --> E["Local archive/latest data, then metadata"]
   E --> H["Validate catalog; prepare all GitHub ZIPs"]
-  H --> I["GitHub archive data, then metadata ZIPs"]
+  H --> I["GitHub latest/archive replacements, then metadata ZIPs"]
   I --> F["Selected CAS, Git, end hooks, next-dev"]
   D -->|Failure| G["Preserve release; skip later stages"]
   E -->|Failure| G
@@ -439,7 +439,13 @@ versions remain untouched and new versions are complete snapshots. Publication
 ordering and the release-preserving failure branch are unchanged.
 
 
-The ordinary-publication overlay now stages configured GitHub archive ZIPs after
+The ordinary-publication overlay now stages configured GitHub latest/archive ZIPs after
 ordinary local finalisation and before CAS/Git. Routing freezes before hooks;
 all GitHub ZIPs prepare before uploads, data before metadata. External failure
 retains the local release and skips bump; there is no transaction across providers.
+
+
+Existing canonical GitHub data is downloaded and merged during preparation.
+Full uploads precede removal of obsolete empty variants and shared metadata.
+Replacement DELETE/POST failures report partial or uncertain state; they do not
+roll back remote assets or the successful local release.
