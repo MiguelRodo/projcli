@@ -1,9 +1,10 @@
-//! Configured GitHub latest/archive publication with explicit none/upload-all.
+//! Configured GitHub latest/archive publication with explicit none inspection and all four strategies.
 //! All selected bytes, merged data ZIPs and metadata stage before remote writes.
 use std::{collections::BTreeSet,fs};
 use anyhow::Context;
 use camino::{Utf8Path,Utf8PathBuf};
 use serde_json::{Map,Value};
+use crate::local_store::StoreStrategy;
 use crate::{github_release::GithubReleaseClient,github_zip::{GithubStructure,MetadataKind}};
 
 /// Validated configuration without credentials, HTTP or local mutation.
@@ -12,6 +13,7 @@ pub(crate) struct Spec {
     prefix:Option<String>,
     append:bool,
     latest:bool,
+    strategy:StoreStrategy,
     labels:Vec<(String,Utf8PathBuf)>,
 }
 /// Frozen repository, API origin, token and tag selected before hooks.
@@ -44,7 +46,11 @@ pub(crate) fn validate(root:&Utf8Path,raw:Option<&Map<String,Value>>,config:&cra
         anyhow::ensure!(definition.cue.is_none(),"Use send.cue, not a title-level cue");
         let send:crate::publication::Send=serde_json::from_value(definition.send.unwrap_or(serde_json::json!({})))?;
         anyhow::ensure!(send.inspect.as_deref()==Some("none"),"Configured GitHub publication currently requires explicit send.inspect: none; manifest/file remain pending");
-        anyhow::ensure!(send.strategy.as_deref().unwrap_or("upload-all")=="upload-all","Configured GitHub publication currently supports upload-all only");
+        let strategy=match send.strategy.as_deref().unwrap_or("upload-all") {
+            "upload-all"=>StoreStrategy::UploadAll,"upload-missing"=>StoreStrategy::UploadMissing,
+            "sync-diff"=>StoreStrategy::SyncDiff,"sync-purge"=>StoreStrategy::SyncPurge,
+            _=>anyhow::bail!("Unknown GitHub send.strategy"),
+        };
         anyhow::ensure!(matches!(send.cue.as_deref().unwrap_or("if-change"),"if-change"|"always"),"send.cue must be if-change or always");
         anyhow::ensure!(send.conflict.is_none(),"send.conflict has no working source consumer");
         let mut selected=Vec::new();
@@ -54,7 +60,7 @@ pub(crate) fn validate(root:&Utf8Path,raw:Option<&Map<String,Value>>,config:&cra
             let path=Utf8PathBuf::try_from(crate::path_safety::resolve_path(config.get_path(root,&label)?.as_std_path(),true)?)?;
             selected.push((label,path));
         }
-        let spec=Spec{title:title.clone(),prefix:definition.path,append:definition.path_append_label.unwrap_or(true),latest:matches!(definition.structure,Some(crate::restore::Layout::Latest)),labels:selected};
+        let spec=Spec{title:title.clone(),prefix:definition.path,append:definition.path_append_label.unwrap_or(true),latest:matches!(definition.structure,Some(crate::restore::Layout::Latest)),strategy,labels:selected};
         // Version suffix is constant across selected labels, so this catches
         // planned namespace aliases before the actual release version is known.
         let mut names=BTreeSet::from([folded("manifest.zip"),folded("VERSION.zip"),folded("CHANGELOG.zip")]);
@@ -120,14 +126,14 @@ fn current_archive(spec:&Spec,label:&str,current:&str,asset:&str)->anyhow::Resul
 }
 // Reuse the guarded directory merge; never re-read unrecorded project files.
 fn data_zip(stage:&Utf8Path,source:&Utf8Path,files:&std::collections::BTreeMap<String,String>,
-    existing:Option<&Utf8Path>)->anyhow::Result<(tempfile::NamedTempFile,bool)> {
+    existing:Option<&Utf8Path>,strategy:StoreStrategy)->anyhow::Result<(tempfile::NamedTempFile,bool)> {
     let (zip,empty)=crate::github_zip::recorded_directory_zip(source,files)?;
     let Some(existing)=existing else{return Ok((zip,empty));};
     let result=(|| {
         let extracted=crate::github_zip::extract_zip(Utf8Path::from_path(zip.path()).context("ZIP staging path must be UTF-8")?,128*1024*1024)?;
         let result=(|| {
             let selected=Utf8Path::from_path(extracted.path()).context("Extraction path must be UTF-8")?;
-            crate::local_store::store_files(stage,selected,existing,crate::local_store::StoreStrategy::UploadAll,false)?;
+            crate::local_store::store_files(stage,selected,existing,strategy,false)?;
             crate::github_zip::directory_zip(existing)
         })();
         let cleanup=extracted.close();
@@ -206,14 +212,20 @@ pub(crate) fn publish(root:&Utf8Path,targets:&[Target],version:&str)->anyhow::Re
                         128*1024*1024,128*1024*1024,true,empty)?;
                 }
                 if !files.is_empty()||existing.is_none() {
-                    let (zip,empty)=data_zip(stage,source,&files,existing.map(|_|merged.as_path()))?;
+                    let (zip,empty)=data_zip(stage,source,&files,existing.map(|_|merged.as_path()),
+                        if matches!(target.spec.strategy,StoreStrategy::SyncPurge) {StoreStrategy::SyncPurge}else{StoreStrategy::UploadAll})?;
                     let asset=if empty {empty_name.clone()}else{full.clone()};
                     uploads.push((asset.clone(),Some(zip),existing.is_some()));
                     if let Some((previous,_))=existing.filter(|(previous,_)|*previous!=asset) {
                         uploads.push((previous.into(),None,false));
                     }
-                    crate::publication::set_version(&mut versions,label,
-                        if existing.is_some(){format!("{version}*")}else{version.into()});
+                }
+                // With no comparison missing/diff blindly select every source
+                // file. Purge knows the complete replacement when nonempty.
+                // Diff also advances untrusted metadata on an empty no-op.
+                if !files.is_empty()||existing.is_none()||matches!(target.spec.strategy,StoreStrategy::SyncDiff) {
+                    let untrusted=existing.is_some()&&!matches!(target.spec.strategy,StoreStrategy::SyncPurge);
+                    crate::publication::set_version(&mut versions,label,format!("{version}{}",if untrusted {"*"}else{""}));
                 }
                 rows.retain(|row|!(row.label==*label&&row.version==version));
                 rows.extend(history.iter().filter(|row|row.label==*label&&row.version==version).cloned());

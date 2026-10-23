@@ -500,14 +500,15 @@ the default and may replace only the exact canonical current-version asset;
 older versions remain untouched. Existing data ZIPs are downloaded and validated,
 then selected CSV bytes overwrite their matching members while remote-only files
 survive. Empty source selection leaves existing data and its label VERSION intact.
-An existing target updated without inspection receives a starred VERSION because
-its retained extras are not described by the source inventory. Project/history
+Upload-all, upload-missing and sync-diff updates to existing targets receive a
+starred VERSION because retained extras are not described by the source inventory.
+A nonempty sync-purge replaces the complete file set and removes that star. Project/history
 metadata still advances. Empty-to-full upload removes the validated obsolete
 empty variant only after the full upload succeeds.
 
 Catalog case/numeric aliases, simultaneous full/empty assets, malformed ZIPs and
 legacy data ambiguity fail during all-target preparation before upload/deletion.
-File/manifest inspection and other GitHub strategies remain pending. Data and
+File/manifest GitHub inspection remains pending. Data and
 shared metadata replacement use non-atomic delete-then-upload: failure may leave partial state
 or a missing asset. The successful local release survives and next-dev bump is
 skipped. No remote rollback, automatic retry or concurrent-writer isolation claim.
@@ -529,3 +530,27 @@ Public gh credential fallback explicitly requests --hostname github.com, so an
 inherited GH_HOST cannot select Enterprise credentials for the public API.
 Numeric archive alias checks remove exactly one generated .zip suffix, preserving
 valid prefixes/labels that themselves end in .zip. Regression fixtures cover both.
+
+### GitHub no-inspection strategy controls
+
+With explicit send.inspect: none, the default strategy is upload-all. All four
+strategies are supported with either cue and latest/archive layout:
+
+| Strategy | Nonempty source against existing target | Empty source against existing target |
+|---|---|---|
+| upload-all | Upload every selected file; retain extras | Keep data and label VERSION |
+| upload-missing | Same blind upload as upload-all | Keep data and label VERSION |
+| sync-diff | Same blind upload as upload-all | Keep data; advance untrusted label VERSION |
+| sync-purge | Replace complete data file set | Keep data and label VERSION |
+
+These are pinned projr's none-inspection interactions: no comparison means every
+source file is considered extra, so missing/diff cannot skip existing matching
+paths or infer destination-only files. Neither cue changes that fact. Nonempty
+purge knows the complete replacement and produces an unstarred label VERSION.
+Empty source cannot infer destination extras, even under purge/always.
+New targets (including empty targets) remain discoverable as described above.
+
+Mock REST fixtures execute all 2 layouts x 4 strategies x 2 cues through actual
+build and configured restore with exact ZIP/metadata/retained-extra assertions;
+empty-source coverage checks all strategies and cues. This is not live GitHub
+evidence. File/manifest inspection and historical archive comparison remain pending.

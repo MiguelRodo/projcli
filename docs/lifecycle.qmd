@@ -449,3 +449,8 @@ Existing canonical GitHub data is downloaded and merged during preparation.
 Full uploads precede removal of obsolete empty variants and shared metadata.
 Replacement DELETE/POST failures report partial or uncertain state; they do not
 roll back remote assets or the successful local release.
+
+
+No-inspection GitHub strategies select their merge/purge actions during that same
+preparation phase. Nonempty purge changes the prepared replacement ZIP; it does
+not add an early remote deletion phase or change the release-preserving boundary.
