@@ -1366,6 +1366,8 @@ case "$1" in
 --version) exit 0 ;;
 symbolic-ref) echo feature ;;
 check-ref-format) exit 0 ;;
+ls-files) exit 1 ;;
+rev-parse) printf '\\n' ;;
 config)
  for key do :; done
  case "$key" in
