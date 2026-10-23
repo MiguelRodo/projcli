@@ -320,6 +320,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#configured-github-publication-candidate" id="toc-configured-github-publication-candidate" class="nav-link" data-scroll-target="#configured-github-publication-candidate">Configured GitHub publication candidate</a></li>
   <li><a href="#github-no-inspection-strategy-controls" id="toc-github-no-inspection-strategy-controls" class="nav-link" data-scroll-target="#github-no-inspection-strategy-controls">GitHub no-inspection strategy controls</a></li>
   <li><a href="#github-filemanifest-comparison-and-archive-history" id="toc-github-filemanifest-comparison-and-archive-history" class="nav-link" data-scroll-target="#github-filemanifest-comparison-and-archive-history">GitHub file/manifest comparison and archive history</a></li>
+  <li><a href="#real-github-verification" id="toc-real-github-verification" class="nav-link" data-scroll-target="#real-github-verification">Real GitHub verification</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -611,11 +612,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 <tr class="even">
 <td>Live GitHub round-trip</td>
-<td>Not performed; requires a dedicated safe destination</td>
+<td>Dedicated synthetic latest file/sync-diff and archive manifest/sync-diff, both if-change, passed below; full matrix remains mocked REST</td>
 </tr>
 </tbody>
 </table>
-<p>Source-only candidate pending exact-head remote CI and independent review; installed preview remains unchanged. No new registry, defaults or CAS retention policy is introduced.</p>
+<p>Source implementation passed exact-head remote CI and independent review in <a href="https://github.com/MiguelRodo/projcli/pull/194">PR194</a>; installed preview remains unchanged. No new registry, defaults or CAS retention policy is introduced.</p>
+</section>
+<section id="real-github-verification" class="level3">
+<h3 class="anchored" data-anchor-id="real-github-verification">Real GitHub verification</h3>
+<p>A <a href="../remote-compatibility.html#live-github-fixture-verification">dedicated synthetic fixture</a> passed actual GitHub latest upload/replacement/restore, archive creation, unchanged-history reuse and changed-snapshot restore using an isolated CI binary. Exact ZIP/data/CSV/VERSION checks and preservation witnesses passed. This is a source-build verification, not a new CLI release; do not install the fixture prerelease. The full control/failure matrix above still uses mocked REST.</p>
 
 
 </section>
