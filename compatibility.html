@@ -332,6 +332,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#configured-single-label-restore" id="toc-configured-single-label-restore" class="nav-link" data-scroll-target="#configured-single-label-restore">Configured single-label restore</a></li>
   <li><a href="#remote-delivery-documentation-reconciliation" id="toc-remote-delivery-documentation-reconciliation" class="nav-link" data-scroll-target="#remote-delivery-documentation-reconciliation">Remote delivery documentation reconciliation</a></li>
   <li><a href="#configured-local-publication-candidate" id="toc-configured-local-publication-candidate" class="nav-link" data-scroll-target="#configured-local-publication-candidate">Configured local publication candidate</a></li>
+  <li><a href="#local-publication-to-restore-acceptance" id="toc-local-publication-to-restore-acceptance" class="nav-link" data-scroll-target="#local-publication-to-restore-acceptance">Local publication-to-restore acceptance</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -962,6 +963,11 @@ ul.task-list li input[type="checkbox"] {
 <p>Ponytail full shares the restore definition/content parser, CSV, strategy actions and guarded installer; no new packages or backend trait/registry schema. Actual CLI fixtures cover8strategy/cue combinations plus repeated no-change, content/empty variants, metadata repair/privacy/namespace/failure boundaries. Exact-head remote gates and independent review evidence are recorded on <a href="https://github.com/MiguelRodo/projcli/pull/185">PR185</a>. No live Release mutation, local heavy tests or installed-preview update.</p>
 <p>Review amendment: reuse already-locked ICU normalizer2.4 directly for planned NFC/case namespace comparison (no new package versions). MacOS initial failures came from checking ordinary namespaces when no ordinary targets exist; an early return restores unrelated read-only config behavior without weakening guards. The shared Linux rename-fault fixture now verifies all private snapshots close after second-target preparation failure and first-target installation failure.</p>
 <p>Final coverage precision adds a declared hash-enabled cache to content selection (to prove true excludes it) and an all-platform later-destination preparation failure with read-only selected files and publication-staging residue inspection.</p>
+</section>
+<section id="local-publication-to-restore-acceptance" class="level2">
+<h2 class="anchored" data-anchor-id="local-publication-to-restore-acceptance">Local publication-to-restore acceptance</h2>
+<p>The configured local latest/file matrix now follows each of the8strategy/cue builds with actual machine CLI restore, using configured destination fallback and VERSION discovery. It deliberately damages local bytes/adds a local-only file, then checks explicit clear restores exactly the strategy’s remote bytes while project CSV/VERSION remain unchanged. An advertised empty snapshot preserves local-only bytes. This is a real local-filesystem round trip, not just upload success, mock transport, or an actual GitHub Release round trip.</p>
+<p>Runtime is unchanged from PR185. Ponytail full extends existing fixtures instead of adding a new driver/framework. Independent exact-head review and remote execution evidence belong to the linked acceptance PR; no local heavy tests.</p>
 
 
 </section>
