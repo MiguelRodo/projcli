@@ -346,3 +346,11 @@ remote label/version rows only for unstarred metadata; otherwise use file fallba
 Never strip the untrusted marker to establish trust. Preserve actual unselected
 bytes under trusted partial sync-diff, full replacement under purge, and guarded
 physical staging. Malformed history still fails closed; no authenticity claim.
+
+
+Ordinary local archive publication defaults to archive and preserves all older
+versions. Freeze eligible historical comparisons during all-target preparation;
+require continuous unchanged history and catalog/VERSION/CSV agreement for reuse.
+A new version is always complete, never only a diff against an older directory.
+Keep empty variants, shared metadata and exact-version alias preflight bounded;
+configured append-label:false is still rejected. Update tested/pending matrices.

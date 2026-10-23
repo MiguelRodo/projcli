@@ -315,7 +315,7 @@ also closes explicitly and reports cleanup failure paths.
 
 ## Configured local publication candidate
 
-Current source supports build.local latest publication with manifest inspection
+Current source supports build.local archive (the default) and latest publication with manifest inspection
 by default, explicit file comparison, or explicit none comparison. This is newer than installed preview.2 and is not complete projr remote
 parity. All selected namespace identities are checked before hooks; every current
 CSV-selected snapshot and existing remote metadata is staged/read before the
@@ -358,7 +358,7 @@ output_run:false skip publication.
 | sync-purge | Mirror full selected file set, including same-byte files, matching the pinned source quirk | Other inspection modes |
 
 if-change, sync-diff and manifest inspection remain the existing defaults.
-Ordinary archive, nonempty get controls,
+Nonempty get controls,
 send.conflict and title-level cue are not silently accepted as working policy.
 path-append-label:false is explicitly deferred here because its full destination
 contains the shared metadata namespace.
@@ -433,3 +433,34 @@ deliberately treats a starred label as untrusted and falls back to file comparis
 consistent with the stated marker meaning. This is a source bug correction, not
 a new history/authenticity policy. Archive and configured GitHub publication are
 still pending.
+
+
+### Configured ordinary local archives
+
+Omitting structure uses archive, matching projr. Each label stores complete
+snapshots at path/label/vVERSION (or vVERSION-empty), with shared metadata at path.
+Earlier versions are retained. Explicit path-append-label:false remains unsupported
+for configured publication; source lookup/explicit download support is separate.
+
+For if-change, an older archive can be reused only when its newest catalog entry,
+unstarred VERSION label and matching project/remote history agree, and the version
+falls within the continuous unchanged suffix of project history. File inspection
+then compares that eligible directory's bytes; manifest inspection compares its
+recorded rows. Missing/stale/future/mismatched/untrusted evidence forces the current
+version. Always with an absent current destination selects a fresh snapshot.
+None and upload-all do not select historical comparisons.
+
+When a new snapshot is required it contains the complete current CSV-selected
+source, including when only one file differed from an older comparison. This
+avoids the native source's potential partial-new-directory behavior after old
+comparison byte drift. Old snapshots are never patched as comparison sources.
+Shared metadata still advances when unchanged content reuses an older version.
+Empty transitions retain history; redundant unchanged empty snapshots are skipped.
+
+Remote fixtures cover the 3 inspection x 4 strategy x 2 cue matrix through actual
+build/store/restore, default archive/manifest, empty transitions, reversion after
+an intervening change, and missing/untrusted/forward/drifted comparison evidence.
+Archive root/container identities and catalogs are validated before hooks; exact
+current-version spelling is checked during all-target preparation before any
+destination applies. No remote transaction or concurrent-writer guarantee.
+Configured GitHub publication and CAS policy remain separate.

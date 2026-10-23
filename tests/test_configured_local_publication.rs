@@ -124,7 +124,7 @@ fn preview_and_output_disabled_do_not_publish() {
 }
 #[test]
 fn collisions_and_unsupported_inspection_fail_before_hooks_or_any_remote_write() {
-    for edit in ["collision","append-false","overlap","invalid-inspect","archive","conflict"] {
+    for edit in ["collision","append-false","overlap","invalid-inspect","invalid-layout","conflict"] {
         let (_temporary,root)=setup("sync-diff","always","[output]");
         fs::write(root.join("start.py"),"from pathlib import Path\nPath('hook-ran').write_text('bad')\n").unwrap();
         let mut config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("build:\n","build:\n  hooks: {pre: [start.py]}\n");
@@ -133,7 +133,7 @@ fn collisions_and_unsupported_inspection_fail_before_hooks_or_any_remote_write()
             "append-false"=>config.replace("structure: latest","structure: latest\n      path-append-label: false"),
             "overlap"=>config.replace("path: remote","path: results"),
             "invalid-inspect"=>config.replace("inspect: file","inspect: invalid"),
-            "archive"=>config.replace("structure: latest","structure: archive"),
+            "invalid-layout"=>config.replace("structure: latest","structure: invalid"),
             _=>config.replace("inspect: file","inspect: file\n        conflict: overwrite"),
         };
         fs::write(root.join("_proj.yml"),config).unwrap();let before=fs::read(root.join("VERSION")).unwrap();
@@ -438,4 +438,84 @@ fn trusted_manifest_unknown_shape_conflict_preserves_remote_and_local_release() 
     assert_eq!(fs::read(root.join("remote/manifest.csv")).unwrap(),history);
     assert_eq!(fs::read(root.join("remote/VERSION")).unwrap(),version);
     assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap().trim(),"Version: v1.2.5");
+}
+
+#[test]
+fn archive_all_inspections_strategies_and_cues_preserve_snapshots_and_restore() {
+    for inspection in ["file","manifest","none"] {
+        for strategy in ["upload-all","upload-missing","sync-diff","sync-purge"] {
+            for cue in ["always","if-change"] {
+                let (_temporary,root)=setup(strategy,cue,"[output]");
+                let config=fs::read_to_string(root.join("_proj.yml")).unwrap()
+                    .replace("structure: latest","structure: archive").replace("inspect: file",&format!("inspect: {inspection}"));
+                fs::write(root.join("_proj.yml"),config).unwrap();
+                success(invoke(&root,"build"));
+                let original=files(&root.join("remote/output/v1.2.4"));
+                assert_eq!(original,files(&root.join("results")));
+                success(invoke(&root,"build"));
+                let reuse=inspection!="none"&&cue=="if-change"&&(strategy=="sync-diff"||strategy=="upload-missing");
+                assert_eq!(root.join("remote/output/v1.2.5").exists(),!reuse,"{inspection}/{strategy}/{cue}");
+                assert_eq!(files(&root.join("remote/output/v1.2.4")),original);
+                fs::write(root.join("results/changed"),"next release").unwrap();
+                success(invoke(&root,"build"));
+                let expected=files(&root.join("results"));
+                assert_eq!(files(&root.join("remote/output/v1.2.6")),expected);
+                assert_eq!(files(&root.join("remote/output/v1.2.4")),original);
+                fs::write(root.join("results/changed"),"damaged").unwrap();
+                let restored=restore(&root);
+                assert_eq!(restored["result"]["version"],"v1.2.6");
+                assert_eq!(files(&root.join("results")),expected);
+            }
+        }
+    }
+}
+#[test]
+fn default_archive_layout_records_empty_and_nonempty_versions_without_erasing_history() {
+    let (_temporary,root)=setup("sync-diff","if-change","[output]");
+    let config=fs::read_to_string(root.join("_proj.yml")).unwrap()
+        .replace("      structure: latest\n","").replace("        inspect: file\n","");
+    fs::write(root.join("_proj.yml"),config).unwrap();
+    for name in ["same","changed","new"] {fs::remove_file(root.join("results").join(name)).unwrap();}
+    success(invoke(&root,"build"));
+    assert!(root.join("remote/output/v1.2.4-empty").is_dir());
+    success(invoke(&root,"build"));
+    assert!(!root.join("remote/output/v1.2.5-empty").exists());
+    fs::write(root.join("results/now"),"nonempty").unwrap();
+    success(invoke(&root,"build"));
+    assert!(root.join("remote/output/v1.2.4-empty").is_dir());
+    assert_eq!(fs::read(root.join("remote/output/v1.2.6/now")).unwrap(),b"nonempty");
+}
+
+#[test]
+fn changed_then_reverted_archive_history_requires_a_new_complete_snapshot() {
+    let (_temporary,root)=setup("sync-diff","if-change","[output]");
+    let config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("structure: latest","structure: archive");
+    fs::write(root.join("_proj.yml"),config).unwrap();
+    success(invoke(&root,"build"));
+    let original=files(&root.join("remote/output/v1.2.4"));
+    fs::write(root.join("results/changed"),"intermediate").unwrap();success(invoke(&root,"build"));
+    fs::write(root.join("results/changed"),"new").unwrap();success(invoke(&root,"build"));
+    assert_eq!(files(&root.join("remote/output/v1.2.6")),original);
+    assert_eq!(fs::read(root.join("remote/output/v1.2.5/changed")).unwrap(),b"intermediate");
+}
+#[test]
+fn archive_untrusted_or_drifted_old_comparison_never_produces_a_partial_snapshot() {
+    for state in ["star","drift","mismatch","future"] {
+        let (_temporary,root)=setup("sync-diff","if-change","[output]");
+        let config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("structure: latest","structure: archive");
+        fs::write(root.join("_proj.yml"),config).unwrap();success(invoke(&root,"build"));
+        match state {
+            "star"=>fs::write(root.join("remote/VERSION"),"Project: v1.2.4\noutput: v1.2.4*\n").unwrap(),
+            "drift"=>fs::write(root.join("remote/output/v1.2.4/same"),"remote drift").unwrap(),
+            "mismatch"=>fs::write(root.join("remote/VERSION"),"Project: v1.2.4\noutput: v1.2.3\n").unwrap(),
+            _=>{
+                fs::create_dir(root.join("remote/output/v9.0.0")).unwrap();
+                fs::write(root.join("remote/output/v9.0.0/untouched"),"future").unwrap();
+            },
+        }
+        success(invoke(&root,"build"));
+        assert_eq!(files(&root.join("remote/output/v1.2.5")),files(&root.join("results")),"{state}");
+        if state=="drift" {assert_eq!(fs::read(root.join("remote/output/v1.2.4/same")).unwrap(),b"remote drift");}
+        if state=="future" {assert_eq!(fs::read(root.join("remote/output/v9.0.0/untouched")).unwrap(),b"future");}
+    }
 }

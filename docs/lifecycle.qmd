@@ -426,3 +426,9 @@ the staged lifecycle diagram or the release-preserving failure boundary.
 Ordinary-local latest publication can use the default manifest comparison.
 History eligibility is resolved from the already captured metadata and project
 CSV; the staged publication position and failure boundary remain unchanged.
+
+
+The ordinary-local publication stage now finalises archive or latest targets.
+Archive comparison eligibility is frozen during all-target preparation; old
+versions remain untouched and new versions are complete snapshots. Publication
+ordering and the release-preserving failure branch are unchanged.
