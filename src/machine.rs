@@ -45,7 +45,7 @@ pub(crate) fn emit_argument_error() -> i32 {
 pub(crate) fn emit_capabilities() -> i32 {
     emit(Ok(json!({
         "capability_version": CAPABILITY_VERSION,
-        "machine_commands": ["capabilities", "remote versions", "remote download", "path get", "version get", "version set", "yml read", "init", "ignore add", "ignore remove", "build", "build-dev"],
+        "machine_commands": ["capabilities", "remote versions", "remote download", "remote store", "path get", "version get", "version set", "yml read", "init", "ignore add", "ignore remove", "build", "build-dev"],
         "non_interactive": true,
         "path_targets": ["safe", "final"],
         "path_fragments": true,
@@ -54,7 +54,7 @@ pub(crate) fn emit_capabilities() -> i32 {
         "default_path_target": "safe",
         "default_path_format": "auto",
         "logs": "stderr",
-        "queries": {"remote versions": "versions", "path get": "path", "version get": "version", "yml read": "validated"},
+        "queries": {"remote store --dry-run": "plan", "remote versions": "versions", "path get": "path", "version get": "version", "yml read": "validated"},
         "preview_output_isolation": false,
         "attempt_release_records": false,
         "direct_r_ide_parity": false
@@ -68,6 +68,11 @@ pub(crate) fn run(cli: &Cli) -> i32 {
         Err(_) => return emit(Err(failure(ErrorCode::ProjectSelectionFailed, "Cannot select the project directory."))),
     };
     let result = match &cli.command {
+        Commands::Remote { command: RemoteCommands::Store { source, destination, strategy, inspect: _, dry_run: true } } => {
+            crate::local_store_files(&root, source, destination, strategy, true)
+                .map(|plan| json!({"plan": plan}))
+                .map_err(|_| failure(ErrorCode::QueryFailed, "Cannot plan the requested local file transfer."))
+        }
         Commands::Remote { command: RemoteCommands::Versions { path, label, structure, path_append_label } } => {
             crate::query_local_versions(&root, path, label, structure, *path_append_label)
                 .map(|versions| json!({"versions": versions}))

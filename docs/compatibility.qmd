@@ -1989,3 +1989,37 @@ Read-only staged files are replaced before overlay; final modes apply deepest
 first. Ownership/ACL/xattr parity is not claimed. Review also requires actual
 installation/rollback failure witnesses; no recovery completion claim follows
 from source inspection alone.
+
+## Explicit ordinary local file-policy layer
+
+Pinned projr dest-send-label.R585-740 and825-1458 distinguishes upload-all,
+upload-missing, sync-diff and sync-purge under file inspection. The current
+candidate adds these explicit physical-directory actions with dry-run output
+and guarded execution. It reuses streaming MD5 inventory and the reviewed
+download installer rather than introducing a backend interface or dependency.
+Existing capture-directory/build/download behavior is retained by shared helper
+extraction and their regressions.
+
+The command requires explicit --inspect file, defaults only its strategy to
+the existing sync-diff, and never changes YAML defaults or the registry design.
+It handles files, not standalone remote metadata publication: VERSION/CSV,
+cues, trusted historical comparison, configured selection and empty-variant
+finalisation remain missing. Mirror staging may copy unchanged bytes privately;
+plan action sets are not a syscall or performance guarantee. Existing modes
+survive for retained same-type paths; new entries use source flags. The known
+Windows readonly cleanup boundary remains honest.
+
+Ponytail full: one small file-policy module, shared MD5 walker/installer, no new
+crate or persistence schema. Fixtures cover each real CLI dry-run/action byte
+set, equal-length/equal-mtime changes, empty/Unicode inputs, no metadata writes,
+type collisions, permissions, hard-link aliases and unsafe paths. The existing
+Linux rename-fault witness now exercises both installer consumers. Tests remain
+remote-only; independent review and exact-head host/pinned/API/docs are gates.
+
+Independent review found logical case-sensitive names could misclassify an
+existing native alias as an upload-missing addition (and under-report upload-all
+overwrites). Preflight now compares native directory entries and rejects an
+existing alias before staging, including parent components, without writing probe
+files. Filesystem-sensitive CLI fixtures exercise all four policies and nested
+names; case-sensitive filesystems retain distinct-name behaviour. Exact-head
+remote verification and re-review remain required.

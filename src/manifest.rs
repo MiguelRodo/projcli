@@ -89,11 +89,8 @@ pub fn deduplicate(rows: impl IntoIterator<Item = ManifestRow>) -> Vec<ManifestR
     rows.into_iter().filter(|row| seen.insert(row.clone())).collect()
 }
 
-/// Recursively inventories regular files using streaming MD5. Missing/empty
-/// directories get an empty marker; inspection/read failures propagate.
-/// Cache captures exclude the whole framework-owned projr subtree.
-/// Links and special files are rejected; no file is executed or mutated.
-pub fn capture_directory(label: &str, directory: &Utf8Path, version: &str, cache: bool) -> anyhow::Result<Vec<ManifestRow>> {
+// Shared physical file inventory; no version/label or persistence policy.
+pub(crate) fn inventory_directory(directory: &Utf8Path, cache: bool) -> anyhow::Result<Vec<(String, String)>> {
     fn visit(root: &Utf8Path, path: &Utf8Path, cache: bool, files: &mut Vec<(String, String)>) -> anyhow::Result<()> {
         crate::path_safety::resolve_path(path.as_std_path(), true)?;
         let metadata = match fs::symlink_metadata(path) {
@@ -128,6 +125,15 @@ pub fn capture_directory(label: &str, directory: &Utf8Path, version: &str, cache
     let mut files = Vec::new();
     visit(directory, directory, cache, &mut files)?;
     files.sort();
+    Ok(files)
+}
+
+/// Recursively inventories regular files using streaming MD5. Missing/empty
+/// directories get an empty marker; inspection/read failures propagate.
+/// Cache captures exclude the whole framework-owned projr subtree.
+/// Links and special files are rejected; no file is executed or mutated.
+pub fn capture_directory(label: &str, directory: &Utf8Path, version: &str, cache: bool) -> anyhow::Result<Vec<ManifestRow>> {
+    let mut files = inventory_directory(directory, cache)?;
     if files.is_empty() { files.push((String::new(), String::new())); }
     files.into_iter().map(|(r#fn, hash)| {
         let row = ManifestRow { label: label.to_owned(), r#fn, version: version.to_owned(), hash };

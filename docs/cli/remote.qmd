@@ -76,3 +76,47 @@ Permission flags are preserved for newly downloaded entries. Merge mode retains
 existing file/directory permission flags, and an existing destination root keeps
 its flags even with --clear. Ownership, ACLs and extended attributes are outside
 this bounded guarantee; replacing a tree is not a full metadata-preserving backup.
+
+## Inspect and apply a concrete local file policy
+
+Current source work adds remote store for file-inspected transfers to one
+explicit physical target. This is the file-policy layer, not configured build
+publication or archive/version metadata management. Supply --inspect file
+explicitly; manifest/none inspection are not accepted by this bounded command.
+The existing configuration default inspection is unchanged.
+
+```bash
+proj --machine --project . remote store --source generated --destination /physical/remote/output/v1.2.3 --inspect file --dry-run
+proj --project . remote store --source generated --destination /physical/remote/output/v1.2.3 --inspect file --strategy sync-diff
+```
+
+The default strategy is sync-diff, matching projr. upload-all selects every
+source file and keeps destination-only files; upload-missing uploads only absent
+names; sync-diff uploads new/different files and removes destination-only files;
+sync-purge lists all existing files for removal and every source file for upload.
+A dry run reports uploads, overwrites, removals and same_bytes (informational
+even when those paths are re-uploaded). It creates nothing.
+
+This command uses current streaming MD5 byte inventories, not modification time
+or a claim of authenticity. Hidden/nested files are included; empty subdirectories
+are not transfer records. The destination parent must exist. It stages selected
+source bytes, checks their hashes and rechecks source/target inventories before
+the shared guarded installer changes the target. Mirror execution builds a full
+replacement snapshot, so unchanged bytes may be copied privately too; do not
+interpret the plan as a syscall or disk-I/O count.
+
+Source files stay unchanged. Retained paths of the same type keep existing
+permission flags; new paths use source flags. The download safeguards and limits
+above apply, including Windows read-only cleanup failures and partial cleanup
+residue. No crash/concurrent-writer isolation or ACL/ownership/xattr parity follows.
+
+VERSION, manifest.csv, configured remotes, cue selection, historical comparison,
+empty remote naming and GitHub/CAS structures are untouched. Use the concrete
+version directory as destination; this command does not publish a complete
+discoverable remote snapshot by itself.
+
+Native filename aliases (for example A.csv/a.csv on a case-insensitive target)
+are rejected before staging when the planned spelling differs from an existing
+entry. This includes directory components and keeps upload-missing from becoming
+an overwrite. Case-sensitive targets retain distinct names. Case-only migrations
+are not silently inferred by this bounded file-policy command.
