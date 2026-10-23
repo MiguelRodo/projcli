@@ -39,9 +39,71 @@ branch is not the product goal. This direction does not change current build or
 Git branch policies, or remove the need to report failed attempts honestly.
 
 Attempt/release identity, allocation, sealing and how failures relate to this
-catalogue remain open. So do the manifest schema, durable storage, remote-only
-discovery, retention and Git-tracking policy. No M2 persistence implementation
-or milestone completion follows from these constraints.
+catalogue remain open. Temporary legacy CSV is approved below. Durable recording architecture,
+remote-only discovery, retention and Git-tracking policy remain open; this note
+does not claim M2 completion.
 
 See the [behavior contract](behavior.qmd), [current lifecycle](lifecycle.qmd)
 and [compatibility log](compatibility.qmd) for implemented behavior and limits.
+
+## Compatible CSV inventory
+
+Status: local, unverified source candidate; installed preview.2 is unchanged.
+The user approved temporary projr-compatible CSV while broader recording design
+continues. This supersedes deferring every manifest implementation.
+
+The root manifest.csv contains quoted string columns in this order:
+label,fn,version,hash. The filename is relative to its declared directory with
+slash separators, version includes v, and hash is the lowercase MD5 of file bytes.
+An empty or absent declared directory has one row with blank filename and hash.
+MD5 provides legacy comparison compatibility, not authenticity or security.
+
+Production captures hash-enabled raw/cache directories before analysis, after
+start hooks and preparation. Cache capture excludes its framework-owned projr
+subtree. After successful output promotion it captures hash-enabled output/docs,
+then writes those snapshots followed by prior history. Exact duplicate rows are
+omitted; different versions retain records. With no eligible cache the pre-state
+stays in memory; otherwise it is also saved at
+`<selected-cache>/projr/<release-version>/manifest.csv`. No mapping is invented.
+Explicit empty analysis can inventory existing artifacts without claiming analysis ran.
+
+Existing history must have the four columns in order and valid rows; corruption
+fails before hooks instead of being discarded. New CSV writes use guarded
+same-directory replacement, preserving hard-link aliases. Failure before
+publication restores root CSV bytes/presence with managed state. Publication
+failure retains the successful local release and CSV. Cache residue may remain.
+Previews do not produce production records.
+
+This is an inventory at two lifecycle points, not sealing, environment capture,
+immutable attempt identity, concurrent snapshot or complete provenance. End hooks
+run later and may change artifacts. The codec is isolated from build capture for
+later replacement. CSV has no dependency on CAS. The existing plural
+.projr/manifests.csv CAS index and remote JSON/objects remain separate, unchanged.
+
+### Remote layout direction
+
+projr separates provider configuration from latest/archive layouts. Local
+providers use `path[/label]` and `path[/label]/v<version>`. Store planning includes
+inspection, cues and sync strategies; restore selects available label versions
+and copies into final paths. Compatibility includes more than copying a manifest.
+
+Working interpretation: retain ordinary latest/archive and add **CAS as a third
+remote structure**, with versioned snapshots and content-addressed objects.
+CAS can provide archive storage without becoming the manifest format. Current
+Rust runtime still accepts only local CAS remotes; latest/archive providers,
+full store/restore policy and CSV-driven queries are not implemented by this
+candidate. Retention, garbage collection and discovery remain open. No DVC dependency.
+
+Pinned reference:
+[manifest](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/manifest.R),
+[hashing](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/hash.R),
+[build capture](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/build-manifest.R),
+[defaults](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-dir.R#L65),
+[layouts](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote.R#L463),
+[store](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send-label.R),
+[restore](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/restore.R).
+
+Existing opt-in Git commit behavior still stages eligible project files, including
+root CSV unless ignored. This adds no automatic Git requirement or ignore rule.
+All regular files, including dotfiles, are inventoried; exact R enumeration parity
+beyond the stated schema/capture comparison remains unverified.

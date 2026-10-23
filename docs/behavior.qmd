@@ -492,3 +492,14 @@ Past manifest bytes and their referenced objects remain valid across later
 ingestions in this sequence. These are full snapshots in the existing format,
 not newly defined rename events, tombstones, build records or retention rules.
 No lifecycle capture point or broader provenance completion is implied.
+
+## Temporary compatible CSV recording
+
+User-approved projr-style manifest.csv is independent of CAS. Preserve the
+four-column inventory and production pre/post/history semantics; keep the codec
+replaceable. This does not decide attempt identity, sealing, retention,
+remote-only discovery or Git policy. The local candidate and bounded deviations
+are in [storage design](storage-design.qmd#compatible-csv-inventory).
+CAS is an additional remote structure alongside latest and ordinary archive,
+with content-addressed versioned snapshots. Provider/store/restore compatibility
+remains distinct from CSV implementation.

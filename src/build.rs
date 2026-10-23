@@ -333,12 +333,18 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         &environment,
     )?;
 
+    // Parse existing history before hooks or any managed mutation. Preview and
+    // disabled output builds neither read nor write the production CSV.
+    let record_manifest = !is_dev && config.output_run.unwrap_or(true);
+    let previous_manifest = if record_manifest {
+        crate::manifest::read(&project_root.join("manifest.csv"))?
+    } else { Vec::new() };
     // Capture exact local state before the first controlled project mutation.
     let mut managed = vec![];
     let mut native_artifacts = Vec::new();
     let mut native_layouts = Vec::new();
     let frozen_book_assets = if bookdown_exists { Some(bookdown_asset_paths(project_root, &config.get_path(project_root, "docs")?)?.0) } else { None };
-    for name in ["VERSION", ".gitignore", ".Rbuildignore", "_proj.yml", "_projr.yml", "_projr-local.yml", "DESCRIPTION", "_quarto.yml", "_bookdown.yml"] {
+    for name in ["VERSION", "manifest.csv", ".gitignore", ".Rbuildignore", "_proj.yml", "_projr.yml", "_projr-local.yml", "DESCRIPTION", "_quarto.yml", "_bookdown.yml"] {
         managed.push(project_root.join(name).into_std_path_buf());
     }
     for entry in fs::read_dir(project_root)
@@ -519,6 +525,16 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
             }
             Ok(())
         };
+        let pre_manifest = if record_manifest {
+            let rows = crate::manifest::capture_build(project_root, &config, &initial_version.to_string(true), true)?;
+            if let Some(cache) = &cache_root {
+                let directory = cache.join("projr").join(initial_version.cache_key());
+                crate::path_safety::resolve_path(directory.as_std_path(), true)?;
+                fs::create_dir_all(&directory)?;
+                crate::manifest::write(&directory.join("manifest.csv"), &rows)?;
+            }
+            rows
+        } else { Vec::new() };
         // No preparation, hooks or metadata work may intervene at these boundaries.
         if !is_dev && run_analysis && config.output_run.unwrap_or(true) && clear_stage == crate::yml::OutputClearStage::Pre {
             crate::clear::clear_post(project_root, false, &config, Some("post"), false)?;
@@ -558,6 +574,11 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
                 crate::clear::clear_post(project_root, false, &config, Some("never"), true)?;
                 crate::fs_utils::copy_dir_recursive(staging, &docs)?;
             }
+        }
+        if record_manifest {
+            let outputs = crate::manifest::capture_build(project_root, &config, &initial_version.to_string(true), false)?;
+            let rows = crate::manifest::deduplicate(pre_manifest.into_iter().chain(outputs).chain(previous_manifest.iter().cloned()));
+            crate::manifest::write(&project_root.join("manifest.csv"), &rows)?;
         }
         Ok(())
     }));

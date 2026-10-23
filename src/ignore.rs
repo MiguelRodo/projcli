@@ -47,7 +47,7 @@ impl Default for IgnoreType {
 /// use proj::yml::{ResolvedGitConfig, RestrictionsConfig, GlobalConfig};
 /// let mut dirs = HashMap::new();
 /// dirs.insert("raw".to_string(), ResolvedDir {
-///     safe: None,
+///     safe: None, hash: None,
 ///     path: root.join("_raw"),
 ///     ignore: IgnoreConfig::Single("all".to_string())
 /// });
