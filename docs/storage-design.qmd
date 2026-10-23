@@ -48,7 +48,7 @@ and [compatibility log](compatibility.qmd) for implemented behavior and limits.
 
 ## Compatible CSV inventory
 
-Status: local, unverified source candidate; installed preview.2 is unchanged.
+Status: source implementation newer than installed preview.2; release pins are unchanged.
 The user approved temporary projr-compatible CSV while broader recording design
 continues. This supersedes deferring every manifest implementation.
 
@@ -92,7 +92,7 @@ remote structure**, with versioned snapshots and content-addressed objects.
 CAS can provide archive storage without becoming the manifest format. Current
 Rust runtime still accepts only local CAS remotes; latest/archive providers,
 full store/restore policy and CSV-driven queries are not implemented by this
-candidate. Retention, garbage collection and discovery remain open. No DVC dependency.
+slice. Retention, garbage collection and discovery remain open. No DVC dependency.
 
 Pinned reference:
 [manifest](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/manifest.R),

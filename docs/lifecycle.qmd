@@ -363,15 +363,15 @@ Inventory transition tests exercise explicit CAS calls independently of this
 lifecycle. They do not add automatic pre-analysis input or final-output provenance
 capture, choose sealing points or complete the unfinished build-record work.
 
-## Local CSV candidate: additional capture points
+## Source CSV inventory: additional capture points
 
-Local, unverified change newer than installed preview.2. Released diagrams above
+Source change newer than installed preview.2. Released diagrams above
 retain their status. Production with output_run enabled adds these points without
 changing clear/analysis adjacency; preview skips CSV capture.
 
 ```{mermaid}
 %%| label: fig-lifecycle-local-csv
-%%| fig-cap: "Local candidate: production CSV capture within managed recovery."
+%%| fig-cap: "Current source: production CSV capture within managed recovery."
 %%| fig-alt: "Validate history before hooks, capture inputs after preparation, execute existing analysis and promotion, then capture outputs and replace CSV before publication and end hooks."
 %%{init: {"htmlLabels": false}}%%
 flowchart TB

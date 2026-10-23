@@ -14,9 +14,10 @@ struct Fixture {
 impl Fixture {
     fn new(push: bool) -> Self {
         let temporary = tempfile::tempdir().unwrap();
-        let root = temporary.path().join("project with spaces");
-        let upstream = temporary.path().join("bare upstream.git");
-        let global = temporary.path().join("empty-git-config");
+        let physical_root = temporary.path().canonicalize().unwrap();
+        let root = physical_root.join("project with spaces");
+        let upstream = physical_root.join("bare upstream.git");
+        let global = physical_root.join("empty-git-config");
         fs::create_dir(&root).unwrap();
         fs::write(&global, "").unwrap();
         let fixture = Self { _temporary: temporary, root, upstream, global };

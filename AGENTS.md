@@ -257,4 +257,4 @@ Preserve guarded writes, absent-file rollback and existing lifecycle. No mandato
 cache for cache-free builds. Directory hash defaults true except cache; reject
 non-booleans before layer merging. CAS is a third remote structure alongside
 latest/archive; full store/restore, retention/discovery and identity/sealing are
-separate. This local candidate awaits remote tests and independent review.
+separate. Exact-head remote tests and independent review are required; evidence is recorded on PR175.

@@ -84,5 +84,5 @@ Bookdown site embedding is unchanged. Existing R helpers and R/IDE parity, linke
 HTML portability, complete provenance and publication retry remain outside this
 claim. The [behavior contract](behavior.qmd) remains the detailed source of scope.
 
-Local source candidate: [projr-compatible production CSV inventories](storage-design.qmd#compatible-csv-inventory)
-are independent of CAS. Not in installed preview.2; remote verification pending.
+Current source: [projr-compatible production CSV inventories](storage-design.qmd#compatible-csv-inventory)
+are independent of CAS and newer than installed preview.2.

@@ -173,12 +173,12 @@ No-op commit behavior is tested at the Git provider boundary: unchanged files
 produce no extra commit, while a real change does. A normal production CLI build
 advances VERSION and therefore need not be a no-op.
 
-## Local candidate: inspect the production inventory
+## Inspect the production inventory
 
-Local source adds root manifest.csv after successful output-enabled production
+Current source adds root manifest.csv after successful output-enabled production
 builds. Open it in a text editor/spreadsheet to inspect directory labels, relative
 filenames, release versions and MD5 values, including earlier versions.
 Git/remotes are optional; preview leaves production history unchanged.
-See [configuration](../configuration.qmd#production-file-inventory-local-candidate)
+See [configuration](../configuration.qmd#production-file-inventory)
 and [limits](../storage-design.qmd#compatible-csv-inventory).
-Not shipped in preview.2; remote verification pending.
+This is newer than preview.2; verification evidence is recorded in the compatibility log and PR175.

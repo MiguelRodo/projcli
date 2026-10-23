@@ -1899,3 +1899,10 @@ that symlink, so fixture roots now use physical canonical paths. Docs browser
 validation found the new seventh lifecycle figure; its exact expected count is
 updated, retaining all SVG shape/size and screenshot assertions. These corrections
 require fresh exact-head remote checks; no path guard or assertion is weakened.
+
+The new CSV assertions also exposed the /var alias in the older real-Git
+publication fixture. Its owned temporary root, upstream and empty Git config now
+derive from one canonical physical temporary root. Source publication wording is
+updated to distinguish newer source from installed preview.2. Final exact-head
+gate evidence belongs on [PR175](https://github.com/MiguelRodo/projcli/pull/175);
+earlier source-only review notes above describe their historical checkpoint.
