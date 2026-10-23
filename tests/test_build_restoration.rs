@@ -14,9 +14,17 @@ fn snapshot(root: &Path) -> BTreeMap<PathBuf, Option<Vec<u8>>> {
 }
 
 #[test]
-fn failure_at_each_hook_and_analysis_restores_exact_release_and_version_absence() {
+fn failure_at_each_hook_and_analysis_restores_exact_version_authorities_and_dev_counters() {
+    let authorities: [(&str, Option<&[u8]>, Option<&[u8]>); 5] = [
+        ("absent", None, None),
+        ("release-version", Some(b"v1.2.3\n"), None),
+        ("dev-seven", Some(b"Version: v1.2.3-7\r\n"), None),
+        ("both-authorities", Some(b"Version: v1.2.3.7\n"),
+         Some(b"Package: fixture\nVersion: 1.2.3.42\n")),
+        ("description-only", None, Some(b"Package: fixture\nVersion: 1.2.3.19\n")),
+    ];
     for phase in ["pre", "analysis", "post", "both"] {
-        for existing_version in [false, true] {
+        for (authority, version_bytes, description_bytes) in authorities {
             let project = tempfile::tempdir().unwrap();
             let root = project.path();
             let hooks = if phase == "analysis" { String::new() } else { format!("  hooks:\n    {phase}: [fail.py]\n") };
@@ -25,12 +33,13 @@ fn failure_at_each_hook_and_analysis_restores_exact_release_and_version_absence(
             fs::write(root.join(".gitignore"), "# exact prior ignore\nmanual\n").unwrap();
             fs::write(root.join(".Rbuildignore"), "^manual$\n").unwrap();
             fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('output/new').write_text('new')\n").unwrap();
-            fs::write(root.join("fail.py"), "from pathlib import Path\nPath('output').mkdir(exist_ok=True)\nPath('output/partial').write_text('partial')\nPath('published/old.html').write_text('changed')\nraise SystemExit(17)\n").unwrap();
+            fs::write(root.join("fail.py"), "from pathlib import Path\nPath('output').mkdir(exist_ok=True)\nPath('output/partial').write_text('partial')\nPath('published/old.html').write_text('changed')\nPath('VERSION').write_text('Version: v9.9.9.1')\nPath('DESCRIPTION').write_text('Package: fixture\\nVersion: 9.9.9.1\\n')\nraise SystemExit(17)\n").unwrap();
             fs::create_dir_all(root.join("output/empty")).unwrap();
             fs::create_dir(root.join("published")).unwrap();
             fs::write(root.join("output/previous"), b"old\0output").unwrap();
             fs::write(root.join("published/old.html"), "old docs").unwrap();
-            if existing_version { fs::write(root.join("VERSION"), "v1.2.3\n").unwrap(); }
+            if let Some(bytes) = version_bytes { fs::write(root.join("VERSION"), bytes).unwrap(); }
+            if let Some(bytes) = description_bytes { fs::write(root.join("DESCRIPTION"), bytes).unwrap(); }
             let before = snapshot(root);
             let result = Command::new(env!("CARGO_BIN_EXE_proj"))
                 .args(["build", "--patch", "--non-interactive", "--project"]).arg(root).current_dir(root)
@@ -38,7 +47,7 @@ fn failure_at_each_hook_and_analysis_restores_exact_release_and_version_absence(
                 .env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
             assert!(!result.status.success(), "{phase}");
             assert!(String::from_utf8_lossy(&result.stderr).contains("17"), "{}", String::from_utf8_lossy(&result.stderr));
-            assert_eq!(snapshot(root), before, "{phase}, existing VERSION={existing_version}");
+            assert_eq!(snapshot(root), before, "{phase}, authority={authority}");
         }
     }
 }
