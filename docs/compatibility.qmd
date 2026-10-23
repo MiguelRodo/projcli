@@ -2604,3 +2604,20 @@ remain mocked REST evidence; other provider/config findings and M2 remain open.
   GitHub control combinations,24 archive history combinations and the bounded
   five-build/two-restore real GitHub witness. Those do not replace final-source
   pinned acceptance or exact-tag binary/installer checks.
+
+
+## Preview.3 public delivery and installation pins
+
+- **Relationship: packaging/documentation delivery; no new runtime semantics.**
+  Released source95441429fe0ba6779b831ffdf9ad952136a946d0 retains the pinned R
+  comparisons and deliberately bounded parity documented in the remote inventory.
+- **Executed evidence:** final-main and exact-tag gates, independent asset review,
+  five public byte comparisons and backed-up user-local WSL success/failure smoke
+  are recorded in [delivery evidence](release-delivery.qmd#verified-preview3-delivery).
+  Installed version/protocol and exact Linux bytes match the release; old binary
+  bytes remain in the user-local backup.
+- **Ponytail full:** update existing README/install pins and downloaded-binary
+  checks together after publication, reuse existing installers, retain historical
+  preview.2 evidence and avoid a new release mechanism.
+- **Limits:** full control coverage is mocked REST; real provider evidence is
+  bounded. No completed M2, registry, CAS retention policy or R/IDE parity claim.

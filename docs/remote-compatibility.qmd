@@ -11,12 +11,13 @@ code, shipped template, documentation and test sources. R tests and live provide
 operations were not executed for this audit. A test file is evidence of coverage
 intent, not proof of a passing integration run.
 
-**Current source:** explicit local latest/archive listing and staged download,
+**Released in preview.3:** explicit local latest/archive listing and staged download,
 file-inspected store strategies, native GitHub Release asset/ZIP transfer and
 explicit replacement, and configured single-label local/GitHub restore are
-implemented. Automatic ordinary publication, metadata-history/cue integration,
-default multi-label restore and complete credential-helper parity remain gaps.
-The current source features are newer than installed preview.2. CSV capture
+implemented. Automatic ordinary publication and metadata-history/cue integration
+are implemented for latest/archive; default multi-label restore and complete
+credential-helper parity remain gaps. The published and installed preview.3
+packages these features. CSV capture
 does not complete remote parity or M2. CAS is an additional third structure,
 not the replacement manifest format or the only archive layout.
 
@@ -231,10 +232,10 @@ are claimed; a source test title alone is not an acceptance result.
 
 Remaining slices should stay independently testable:
 
-1. Configured ordinary publication: cue/inspection policies, shared metadata
-   history updates, empty-variant reconciliation and all-destination namespace
-   preflight before mutation. Existing explicit transfer commands are foundations,
-   not evidence that this combined lifecycle already runs.
+1. Remaining ordinary publication compatibility, including local configured
+   path-append-label:false. Latest/archive cue/inspection/strategy planning,
+   metadata history, empty variants and namespace preflight are delivered;
+   preserve that complete tested matrix while filling the bounded gaps.
 2. Remaining restore conveniences and compatibility: default multi-label raw
    restore, individual-file extraction, credential-helper fallback and repository
    inference beyond origin. Retain source-first selection and guarded installation.
@@ -373,6 +374,7 @@ existing user assets, credentials or permissions were changed.
 This real witness covers file/sync-diff/latest and manifest/sync-diff/archive with
 if-change. The full inspection/strategy/cue/layout and failure matrix is tested
 separately with mocked REST; it is not a live test of every combination. The
-published and installed preview.2 binary remains unchanged and predates this work.
+published preview.3 packages these source changes and is now installed in the
+verified WSL location; see [delivery evidence](release-delivery.qmd#verified-preview3-delivery).
 The fixture's package version string is also preview.2, so identify the tested
 source by its commit and binary hash, not that string alone.

@@ -1,6 +1,6 @@
 # Preview feature status
 
-The published development release is [0.4.0-preview.2](install.qmd). The verified
+The published development release is [0.4.0-preview.3](install.qmd). The verified
 WSL user-local command also reports that version. See
 [release evidence](release-delivery.qmd) for the exact source and checks.
 
@@ -16,7 +16,8 @@ data while evaluating it. The existing projr R package and thesis remain unchang
 | Automation | Opt-in protocol-v1 JSON, capability version, typed queries, noninteractive command worker, nonzero failures; child logs on stderr. | Cross-platform machine tests. Static coarse error codes; no invented attempt/release record on success. |
 | Preview preservation | The released CLI restores captured managed state after successful/failed previews. Cache results remain. | Included through the reviewed recovery dependency; final integrated tests and actual released-binary checks passed. Generated-output path queries use the safe cache by default; arbitrary writes are not isolated. |
 | Production safety groundwork | Path guards, bounded local failure recovery, optional checked Git publication and verified CAS bytes. | Focused fixtures and reviews; incomplete release identity/provenance/retry model. This page is not an invitation to run on valuable production data. |
-| Binary delivery | [Development prerelease 0.4.0-preview.2](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.2) supplies versioned Linux/Windows x86-64 assets with mandatory checksums. | Exact-tag workflow, uploaded/public asset hashes and both native binary smokes passed. WSL user-local installation and tiny success/failure Python previews passed. Other platforms are not supplied. |
+| Ordinary remotes | Local/GitHub latest/archive publication and guarded single-label restore; file/manifest/none inspection, four strategies and both supported cues. | Full mocked CLI matrix; bounded real latest/archive round-trip. Complete option parity and M2 remain unfinished. |
+| Binary delivery | [Development prerelease 0.4.0-preview.3](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.3) supplies versioned Linux/Windows x86-64 assets with mandatory checksums. | Exact-tag workflow, uploaded/public asset hashes and both native binary smokes passed. WSL user-local installation and tiny success/failure Python previews passed. Other platforms are not supplied. |
 
 Still unfinished: direct projr/quarto R API/RStudio parity, existing R helper
 integration, automatic isolation of every script write,
