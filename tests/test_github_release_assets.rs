@@ -374,3 +374,19 @@ fn cli_replacement_is_explicit_and_machine_result_stays_bounded() {
     let value:serde_json::Value=serde_json::from_slice(&output.stdout).unwrap();assert_eq!(value["result"]["completed"],true);
     assert!(!String::from_utf8_lossy(&output.stdout).contains("fixture-token"));server.finish();
 }
+
+#[test]
+fn explicit_replacement_of_absent_name_uploads_without_delete_and_rejects_stale_identity() {
+    let temp=tempfile::tempdir().unwrap();let root=root(&temp);let source=root.join("data.zip");std::fs::write(&source,"new").unwrap();
+    let server=Server::start(|base|vec![
+        reply("GET","/repos/owner/repo/releases/tags/data",200,release(base)),
+        reply("GET","/repos/owner/repo/releases/1/assets?per_page=100&page=1",200,"[]"),
+        reply("POST","/upload?name=data.zip",201,replacement_asset("data.zip",3)),
+    ]);
+    assert_eq!(server.client().replace_asset("data","data.zip",&source,false).unwrap().id,3);server.finish();
+    let server=Server::start(|base| {let mut replies=selected(base,"data.zip",3);
+        replies.extend([reply("DELETE","/repos/owner/repo/releases/assets/2",204,""),
+            reply("POST","/upload?name=data.zip",201,asset("data.zip",3))]);replies});
+    let error=format!("{:#}",server.client().replace_asset("data","data.zip",&source,false).unwrap_err());
+    assert!(error.contains("Previous asset was deleted")&&error.contains("reused the deleted asset identity"));server.finish();
+}

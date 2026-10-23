@@ -257,7 +257,7 @@ pub enum GithubCommands {
         #[arg(long)]
         tag: String,
     },
-    /// Upload a new asset without replacing or deleting an existing name.
+    /// Upload an asset; existing names require explicit --replace.
     Upload {
         #[arg(long)]
         repository: String,
