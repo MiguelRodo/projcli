@@ -2454,3 +2454,40 @@ Public gh credential fallback explicitly requests --hostname github.com, so an
 inherited GH_HOST cannot select Enterprise credentials for the public API.
 Numeric archive alias checks remove exactly one generated .zip suffix, preserving
 valid prefixes/labels that themselves end in .zip. Regression fixtures cover both.
+
+
+## Configured GitHub latest and current-data replacement
+
+Same: pinned projr remote-github.R740-811 downloads an existing ZIP, overwrites
+selected files and uploads the merged tree. This slice implements that behavior
+for explicit none/upload-all, both cues, latest and exact current archive names.
+Remote-only bytes survive; empty source makes no data change. Shared CSV history
+and Project VERSION advance, while an updated existing label receives the native
+untrusted star. Older archives remain unchanged.
+
+New safety guards: validate all existing ZIPs during preparation, including empty
+sentinels; reject simultaneous full/empty assets and portable/numeric aliases.
+Upload full data before deleting its obsolete empty variant. Delete/upload is
+non-atomic: failures preserve the local release and skip bump; no rollback or
+retry claim. Existing endpoint/credential guards remain intact.
+
+Tests added: actual CLI mocked REST latest two-build/restore under both cues and
+content:true, current archive merge with older history, empty-source preservation,
+empty sentinel validation/transition, corrupt ZIP rejection and replacement
+upload failure after DELETE. These are runnable regression candidates pending
+exact-head remote execution and independent review. No live provider mutations.
+Ponytail full: reuse ZIP extraction, recorded-byte ZIP creation and guarded
+UploadAll directory merge; no new dependencies or policy engine.
+
+| Controls | Local latest/archive | GitHub latest/archive |
+|---|---|---|
+| file/manifest/none x four strategies x both cues | Delivered remote fixture matrix | none/upload-all candidate fixtures; others pending |
+| Existing selected data replacement | Delivered | Candidate mocked REST, extras retained |
+| Configured restore | Delivered | Existing mocked REST, latest candidate exercised |
+| Live GitHub round trip | N/A | Pending dedicated destination/operations approval |
+
+
+Independent Ponytail review found no source blocker. Follow-up fixture coverage
+adds empty-source invalid-sentinel rejection, simultaneous full/empty rejection,
+and failed full upload preserving the old empty asset without DELETE. The command
+reference states the bounded data/selected-merge preparation sizes explicitly.
