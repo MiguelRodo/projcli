@@ -1953,3 +1953,9 @@ A regression distinguishes that label's full directory from an empty variant.
 The read-only command does not invent a new configured-label policy.
 Pinned comparison:
 [local/archive and VERSION discovery](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-versions.R#L473).
+
+Independent source review cleared fc2559c for the bounded read-only scope with
+no blockers. Its two follow-ups are included: the machine result fields are
+documented and a fixture demonstrates latest/no-label-appending reports the
+base's presence rather than selecting a sibling empty marker. No runtime
+semantics changed in this review delta. Exact final-head CI/review remain gates.

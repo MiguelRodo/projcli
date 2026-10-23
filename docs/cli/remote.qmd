@@ -30,6 +30,9 @@ entries and malformed advertised versions are errors.
 
 Use --path-append-label false only when version directories or latest contents
 are directly at the supplied base. VERSION remains at that explicit base.
+For latest, reading that file means the base already exists, so present is true
+and empty is false: a sibling base-empty is not selected. This mode does not
+infer whether the base contains data files; directory presence is not integrity.
 This makes the inspected path explicit; it is not a new remote registry format.
 
 Machine output retains protocol v1 and adds a versions query result. No byte

@@ -150,3 +150,22 @@ fn labels_ending_empty_remain_valid_explicit_label_names() {
     assert!(entries[0].present);
     assert!(!entries[0].empty);
 }
+
+#[test]
+fn latest_without_label_appending_reports_base_presence_not_sibling_marker() {
+    let temp = tempfile::tempdir().unwrap();
+    let physical = temp.path().canonicalize().unwrap();
+    fs::create_dir(physical.join("remote")).unwrap();
+    fs::create_dir(physical.join("remote-empty")).unwrap();
+    fs::write(physical.join("remote/VERSION"), b"raw-data: v1.2.3*\n").unwrap();
+    let before = snapshot(&physical);
+    let output = invoke(&physical, "latest", false);
+    assert!(output.status.success());
+    let result = query(&output);
+    let entry = &result["result"]["versions"][0];
+    assert_eq!(entry["present"], true);
+    assert_eq!(entry["empty"], false);
+    assert_eq!(entry["metadata_untrusted"], true);
+    assert!(entry["path"].as_str().unwrap().ends_with("remote"));
+    assert_eq!(snapshot(&physical), before);
+}
