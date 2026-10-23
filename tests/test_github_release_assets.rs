@@ -24,6 +24,7 @@ impl Server {
                         other => panic!("Fixture did not receive expected request: {other:?}"),
                     }
                 };
+                stream.set_nonblocking(false).unwrap();
                 stream.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
                 let mut bytes=Vec::new();
                 while !bytes.ends_with(b"\r\n\r\n") {
@@ -215,7 +216,7 @@ fn windows_authority_aliases_fail_before_network() {
         // A non-verbatim path exercises Win32 trailing-dot/space normalisation.
         let text=alias.as_str().strip_prefix(r"\\?\").unwrap_or(alias.as_str());
         let error=client.download_asset(&root,"data","data.zip",camino::Utf8Path::new(text),100).unwrap_err();
-        assert!(error.to_string().contains("protected"),"{error:#}");
+        assert!(error.to_string().contains("native path alias"),"{error:#}");
     }
     assert_eq!(std::fs::read(root.join("VERSION")).unwrap(),b"authority");
     assert_eq!(std::fs::read(root.join("_projr-local.yml")).unwrap(),b"authority");

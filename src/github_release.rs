@@ -152,8 +152,8 @@ impl GithubReleaseClient {
         let upload = template.split('{').next().context("Invalid GitHub upload endpoint")?;
         let upload_uri = uri(upload)?;
         let api_uri = uri(&self.api)?;
-        let public_upload = api_uri.host() == Some("api.github.com") && api_uri.scheme_str() == Some("https")
-            && api_uri.port_u16().unwrap_or(443) == 443 && upload_uri.host() == Some("uploads.github.com")
+        let public_upload = api_uri.host().is_some_and(|host| host.eq_ignore_ascii_case("api.github.com")) && api_uri.scheme_str() == Some("https")
+            && api_uri.port_u16().unwrap_or(443) == 443 && upload_uri.host().is_some_and(|host| host.eq_ignore_ascii_case("uploads.github.com"))
             && upload_uri.scheme_str() == Some("https") && upload_uri.port_u16().unwrap_or(443) == 443;
         anyhow::ensure!(same_origin(&api_uri, &upload_uri) || public_upload, "Untrusted GitHub upload endpoint");
         anyhow::ensure!(upload_uri.query().is_none(), "GitHub upload endpoint has an unexpected query");
@@ -220,6 +220,11 @@ impl GithubReleaseClient {
     }
 }
 fn validate_destination(root: &Utf8Path, destination: &Utf8Path) -> anyhow::Result<()> {
+    // Reject Win32 aliases before resolving prefixes into verbatim paths, which
+    // otherwise changes the meaning of trailing spaces/dots on Windows.
+    anyhow::ensure!(!destination.components().any(|part| {
+        matches!(part, camino::Utf8Component::Normal(name) if name.ends_with(['.', ' ']))
+    }), "Asset destination contains an unsafe native path alias");
     let identity = crate::path_safety::resolve_path(destination.as_std_path(), true)?;
     let root_identity = crate::path_safety::resolve_path(root.as_std_path(), false)?;
     if let Ok(relative) = identity.strip_prefix(&root_identity) {

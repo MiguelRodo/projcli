@@ -2061,3 +2061,10 @@ tokens, response bodies and signed redirect URLs. Library embedders must avoid
 ureq DEBUG/TRACE logging for sensitive requests because dependency logging is
 not redacted. Redirects remove Authorization but do not confine network access
 to a provider host; this transport is not a network sandbox.
+
+Remote Windows regression exposed two real portability issues: accepted fixture
+sockets inherit nonblocking state and must explicitly become blocking before
+bounded reads; prefix canonicalisation changes Win32 trailing-dot/space lookup
+into verbatim lookup. Asset destinations now reject those aliases before prefix
+resolution and still inspect resolved authority names (including short aliases).
+No assertion is removed; the Windows witness requires the alias guard before HTTP.
