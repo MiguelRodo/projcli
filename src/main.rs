@@ -189,6 +189,61 @@ pub enum RemoteCommands {
 /// Native GitHub Release API operations. Tokens are read from the existing environment.
 #[derive(Subcommand)]
 pub enum GithubCommands {
+    /// Package a directory with projr naming and upload a new asset.
+    UploadDirectory {
+        #[arg(long)]
+        repository: String,
+        #[arg(long)]
+        tag: String,
+        #[arg(long)]
+        source: camino::Utf8PathBuf,
+        #[arg(long)]
+        label: String,
+        #[arg(long, default_value = "archive", value_parser = ["latest", "archive"])]
+        structure: String,
+        #[arg(long)]
+        remote_version: Option<String>,
+        #[arg(long)]
+        prefix: Option<String>,
+        #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
+        path_append_label: bool,
+        #[arg(long)]
+        create_release: bool,
+    },
+    /// Upload a new canonical manifest/VERSION/CHANGELOG ZIP asset.
+    UploadMetadata {
+        #[arg(long)]
+        repository: String,
+        #[arg(long)]
+        tag: String,
+        /// Directory containing the canonical metadata file.
+        #[arg(long)]
+        source: camino::Utf8PathBuf,
+        #[arg(long, value_parser = ["manifest", "version", "changelog"])]
+        kind: String,
+        #[arg(long)]
+        create_release: bool,
+    },
+    /// Safely extract a selected directory ZIP and merge/clear its destination.
+    DownloadDirectory {
+        #[arg(long)]
+        repository: String,
+        #[arg(long)]
+        tag: String,
+        #[arg(long)]
+        name: String,
+        #[arg(long)]
+        destination: camino::Utf8PathBuf,
+        #[arg(long)]
+        max_bytes: u64,
+        #[arg(long)]
+        max_expanded_bytes: u64,
+        #[arg(long)]
+        clear: bool,
+        /// Require and consume the projr empty-variant sentinel.
+        #[arg(long)]
+        empty: bool,
+    },
     /// List all assets on an existing exact-tag Release.
     Assets {
         #[arg(long)]
@@ -685,13 +740,38 @@ fn local_store_files(root: &camino::Utf8Path, source: &camino::Utf8Path, destina
 fn github_assets(root: &camino::Utf8Path, command: &GithubCommands) -> anyhow::Result<serde_json::Value> {
     let repository = match command {
         GithubCommands::Assets { repository, .. } | GithubCommands::Upload { repository, .. }
-            | GithubCommands::Download { repository, .. } => repository,
+            | GithubCommands::Download { repository, .. } | GithubCommands::UploadDirectory { repository, .. }
+            | GithubCommands::UploadMetadata { repository, .. } | GithubCommands::DownloadDirectory { repository, .. } => repository,
     };
     let token = ["GITHUB_PAT", "GH_TOKEN", "GITHUB_TOKEN"].iter()
         .find_map(|name| std::env::var(name).ok().filter(|value| !value.trim().is_empty()));
     let api = std::env::var("GITHUB_API_URL").unwrap_or_else(|_| "https://api.github.com".into());
     let client = proj::github_release::GithubReleaseClient::new(repository, &api, token)?;
     let result = match command {
+        GithubCommands::UploadDirectory { tag, source, label, structure, remote_version, prefix, path_append_label, create_release, .. } => {
+            let source=if source.is_absolute() {source.clone()} else {root.join(source)};
+            let (zip,empty)=proj::github_zip::directory_zip(&source)?;
+            let structure=if structure=="latest" {proj::github_zip::GithubStructure::Latest} else {proj::github_zip::GithubStructure::Archive};
+            let name=proj::github_zip::directory_asset_name(prefix.as_deref(),*path_append_label,label,structure,remote_version.as_deref(),empty)?;
+            let file=camino::Utf8Path::from_path(zip.path()).ok_or_else(||anyhow::anyhow!("ZIP path must be UTF-8"))?;
+            serde_json::json!({"asset":client.upload_asset(tag,&name,file,*create_release)?})
+        },
+        GithubCommands::UploadMetadata { tag,source,kind,create_release,.. } => {
+            let source=if source.is_absolute() {source.clone()} else {root.join(source)};
+            let kind=match kind.as_str() {
+                "manifest"=>proj::github_zip::MetadataKind::Manifest,
+                "version"=>proj::github_zip::MetadataKind::Version,
+                "changelog"=>proj::github_zip::MetadataKind::Changelog,
+                _=>anyhow::bail!("Unsupported metadata kind"),
+            };
+            let zip=proj::github_zip::metadata_zip(&source,kind)?;
+            let file=camino::Utf8Path::from_path(zip.path()).ok_or_else(||anyhow::anyhow!("ZIP path must be UTF-8"))?;
+            serde_json::json!({"asset":client.upload_asset(tag,kind.names().0,file,*create_release)?})
+        },
+        GithubCommands::DownloadDirectory { tag,name,destination,max_bytes,max_expanded_bytes,clear,empty,.. } => {
+            let destination=if destination.is_absolute() {destination.clone()} else {root.join(destination)};
+            serde_json::json!({"asset":proj::github_zip::download_directory(&client,root,tag,name,&destination,*max_bytes,*max_expanded_bytes,*clear,*empty)?})
+        },
         GithubCommands::Assets { tag, .. } => serde_json::json!({"assets": client.assets(tag)?}),
         GithubCommands::Upload { tag, name, source, create_release, .. } => {
             let source = if source.is_absolute() { source.clone() } else { root.join(source) };

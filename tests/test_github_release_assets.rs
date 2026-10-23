@@ -3,9 +3,9 @@ use camino::Utf8PathBuf;
 use proj::github_release::GithubReleaseClient;
 use serde_json::json;
 
-struct Reply { method: &'static str, path: String, status: u16, body: Vec<u8>, headers: Vec<(String,String)>, auth: bool, request: Option<Vec<u8>> }
+struct Reply { method: &'static str, path: String, status: u16, body: Vec<u8>, headers: Vec<(String,String)>, auth: bool, request: Option<Vec<u8>>, zip_request: Option<Vec<(String,Vec<u8>)>> }
 fn reply(method: &'static str, path: &str, status: u16, body: impl AsRef<[u8]>) -> Reply {
-    Reply { method, path: path.into(), status, body: body.as_ref().to_vec(), headers: vec![], auth: true, request: None }
+    Reply { method, path: path.into(), status, body: body.as_ref().to_vec(), headers: vec![], auth: true, request: None, zip_request: None }
 }
 struct Server { base: String, thread: Option<thread::JoinHandle<()>> }
 impl Server {
@@ -40,6 +40,15 @@ impl Server {
                 let length: usize=headers.iter().find(|(k,_)|k=="content-length").map(|(_,v)|v.parse().unwrap()).unwrap_or(0);
                 let mut body=vec![0;length];stream.read_exact(&mut body).unwrap();
                 if let Some(request)=expected.request { assert_eq!(body,request); }
+                if let Some(expected)=expected.zip_request {
+                    let mut zip=zip::ZipArchive::new(std::io::Cursor::new(&body)).unwrap();let mut actual=Vec::new();
+                    for index in 0..zip.len() {
+                        let mut member=zip.by_index(index).unwrap();if member.is_dir() {continue;}
+                        let name=member.name().unwrap().into_owned();let mut bytes=Vec::new();member.read_to_end(&mut bytes).unwrap();
+                        actual.push((name,bytes));
+                    }
+                    actual.sort();assert_eq!(actual,expected);
+                }
                 write!(stream,"HTTP/1.1 {} Fixture\r\nContent-Length: {}\r\nConnection: close\r\n",expected.status,expected.body.len()).unwrap();
                 for (key,value) in expected.headers { write!(stream,"{key}: {value}\r\n").unwrap(); }
                 stream.write_all(b"\r\n").unwrap();stream.write_all(&expected.body).unwrap();
@@ -220,4 +229,72 @@ fn windows_authority_aliases_fail_before_network() {
     }
     assert_eq!(std::fs::read(root.join("VERSION")).unwrap(),b"authority");
     assert_eq!(std::fs::read(root.join("_projr-local.yml")).unwrap(),b"authority");
+}
+
+#[test]
+fn directory_zip_upload_and_safe_download_merge_clear_and_empty_variants() {
+    use proj::github_zip::{directory_zip,directory_asset_name,GithubStructure,download_directory};
+    let temp=tempfile::tempdir().unwrap();let root=root(&temp);
+    let source=root.join("source");let destination=root.join("restored");
+    std::fs::create_dir(&source).unwrap();std::fs::create_dir(&destination).unwrap();
+    std::fs::write(source.join("report.txt"),"new-report").unwrap();std::fs::write(destination.join("old.txt"),"retain").unwrap();
+    let (zip,empty)=directory_zip(&source).unwrap();assert!(!empty);
+    let name=directory_asset_name(None,true,"output",GithubStructure::Archive,Some("1.2.3"),empty).unwrap();
+    let bytes=std::fs::read(zip.path()).unwrap();
+    let server=Server::start(|base| {
+        let mut upload=reply("POST","/upload?name=output-v1.2.3.zip",201,asset(&name,bytes.len()));upload.request=Some(bytes.clone());
+        let mut replies=vec![
+            reply("GET","/repos/owner/repo/releases/tags/data",200,release(base)),
+            reply("GET","/repos/owner/repo/releases/1/assets?per_page=100&page=1",200,"[]"),upload];
+        for _ in 0..2 {replies.extend(selected(base,&name,bytes.len()));
+            replies.push(reply("GET","/repos/owner/repo/releases/assets/2",200,&bytes));}replies
+    });
+    server.client().upload_asset("data",&name,camino::Utf8Path::from_path(zip.path()).unwrap(),false).unwrap();
+    download_directory(&server.client(),&root,"data",&name,&destination,10000,10000,false,false).unwrap();
+    assert_eq!(std::fs::read(destination.join("report.txt")).unwrap(),b"new-report");
+    assert_eq!(std::fs::read(destination.join("old.txt")).unwrap(),b"retain");
+    download_directory(&server.client(),&root,"data",&name,&destination,10000,10000,true,false).unwrap();
+    assert!(!destination.join("old.txt").exists());server.finish();
+    let empty_source=tempfile::tempdir().unwrap();
+    let (empty_zip,empty)=directory_zip(camino::Utf8Path::from_path(&empty_source.path().canonicalize().unwrap()).unwrap()).unwrap();assert!(empty);
+    let bytes=std::fs::read(empty_zip.path()).unwrap();
+    let server=Server::start(|base| {let mut replies=selected(base,"output-empty.zip",bytes.len());
+        replies.push(reply("GET","/repos/owner/repo/releases/assets/2",200,&bytes));replies});
+    download_directory(&server.client(),&root,"data","output-empty.zip",&destination,10000,10000,true,true).unwrap();
+    assert_eq!(std::fs::read_dir(destination).unwrap().count(),0);server.finish();
+}
+
+#[test]
+fn new_zip_cli_upload_routes_package_exact_members_and_expose_help() {
+    use proj::github_zip::{directory_zip,metadata_zip,MetadataKind};
+    let temp=tempfile::tempdir().unwrap();let root=root(&temp);
+    let source=root.join("source");std::fs::create_dir(&source).unwrap();
+    std::fs::write(source.join("report.txt"),"report").unwrap();std::fs::write(root.join("manifest.csv"),"label,fn,version,hash\n").unwrap();
+    let (directory,_)=directory_zip(&source).unwrap();let directory_size=directory.as_file().metadata().unwrap().len() as usize;
+    let metadata=metadata_zip(&root,MetadataKind::Manifest).unwrap();let metadata_size=metadata.as_file().metadata().unwrap().len() as usize;
+    let server=Server::start(|base| {
+        let mut replies=Vec::new();
+        for (name,size,members) in [
+            ("output-v1.2.3.zip",directory_size,vec![("report.txt".into(),b"report".to_vec())]),
+            ("manifest.zip",metadata_size,vec![("manifest.csv".into(),b"label,fn,version,hash\n".to_vec())]),
+        ] {
+            replies.push(reply("GET","/repos/owner/repo/releases/tags/data",200,release(base)));
+            replies.push(reply("GET","/repos/owner/repo/releases/1/assets?per_page=100&page=1",200,"[]"));
+            let mut upload=reply("POST",&format!("/upload?name={name}"),201,asset(name,size));upload.zip_request=Some(members);replies.push(upload);
+        }replies
+    });
+    for arguments in [
+        vec!["upload-directory","--source","source","--label","output","--remote-version","1.2.3"],
+        vec!["upload-metadata","--source",".","--kind","manifest"],
+    ] {
+        let output=Command::new(env!("CARGO_BIN_EXE_proj")).env("GITHUB_API_URL",&server.base).env("GITHUB_PAT","fixture-token")
+            .args(["--project",root.as_str(),"--machine","remote","github"]).args(arguments)
+            .args(["--repository","owner/repo","--tag","data"]).output().unwrap();
+        assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
+        let value:serde_json::Value=serde_json::from_slice(&output.stdout).unwrap();assert_eq!(value["result"]["completed"],true);
+    }
+    for command in ["upload-directory","upload-metadata","download-directory"] {
+        assert!(Command::new(env!("CARGO_BIN_EXE_proj")).args(["remote","github",command,"--help"]).output().unwrap().status.success());
+    }
+    server.finish();
 }
