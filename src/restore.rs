@@ -218,12 +218,14 @@ fn github_version(client:&crate::github_release::GithubReleaseClient,root:&Utf8P
         Ok((version,name,empty))
     } else {
         let transfer=tempfile::Builder::new().prefix("proj-restore-meta-").tempdir_in(fs::canonicalize(std::env::temp_dir())?)?;
+        let downloaded=(|| {
         let path=Utf8Path::from_path(transfer.path()).context("Metadata path must be UTF-8")?.join("VERSION.zip");
         client.download_asset(root,tag,"VERSION.zip",&path,request.max_bytes.min(4*1024*1024))?;
         let extracted=crate::github_zip::extract_zip(&path,request.max_expanded_bytes.min(16*1024*1024))?;
         let result=(|| {
             let directory=Utf8Path::from_path(extracted.path()).context("Metadata path must be UTF-8")?;
-            anyhow::ensure!(fs::read_dir(directory)?.count()==1,"VERSION.zip must contain exactly VERSION");
+            let entries=fs::read_dir(directory)?.collect::<Result<Vec<_>,_>>()?;
+            anyhow::ensure!(entries.len()==1&&entries[0].file_name()=="VERSION","VERSION.zip must contain exactly VERSION");
             let text=crate::fs_utils::read_managed_text(&directory.join("VERSION"))?;
             let matches:Vec<_>=text.lines().filter_map(|line|line.split_once(':')).filter(|(key,_)|key.trim()==label||(label=="output-r-data"&&key.trim().eq_ignore_ascii_case("data"))).collect();
             anyhow::ensure!(matches.len()==1,"VERSION.zip label is missing or ambiguous");
@@ -245,6 +247,15 @@ fn github_version(client:&crate::github_release::GithubReleaseClient,root:&Utf8P
             (Err(error),Ok(()))=>Err(error),
             (Ok(_),Err(error))=>Err(error),
             (Err(error),Err(cleanup))=>Err(error.context(format!("Metadata extraction cleanup also failed: {cleanup:#}"))),
+        }
+        })();
+        let cleanup_path=transfer.path().to_owned();
+        let cleanup=transfer.close().with_context(||format!("Metadata staging cleanup failed at {}",cleanup_path.display()));
+        match (downloaded,cleanup) {
+            (Ok(result),Ok(()))=>Ok(result),
+            (Err(error),Ok(()))=>Err(error),
+            (Ok(_),Err(error))=>Err(error),
+            (Err(error),Err(cleanup))=>Err(error.context(format!("Metadata staging cleanup also failed: {cleanup:#}"))),
         }
     }
 }

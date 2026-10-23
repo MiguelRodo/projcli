@@ -453,12 +453,17 @@ fn configured_github_latest_reads_metadata_and_preserves_final_on_corrupt_zip() 
 
 #[test]
 fn configured_latest_empty_skips_and_repeated_trust_markers_fail_without_data_download() {
-    for version in ["v1.10*","v1.10**"] {
+    for (version,lowercase) in [("v1.10*",false),("v1.10**",false),("v1.10*",true)] {
         let temp=tempfile::tempdir().unwrap();let root=root(&temp);configure_restore(&root,"latest");
         let metadata=root.join("metadata");std::fs::create_dir(&metadata).unwrap();
         std::fs::write(metadata.join("VERSION"),format!("raw: {version}\n")).unwrap();
         let zip=proj::github_zip::metadata_zip(&metadata,proj::github_zip::MetadataKind::Version).unwrap();
-        let bytes=std::fs::read(zip.path()).unwrap();
+        let mut bytes=std::fs::read(zip.path()).unwrap();
+        if lowercase {
+            let offsets:Vec<_>=bytes.windows(7).enumerate().filter_map(|(index,part)|(part==b"VERSION").then_some(index)).collect();
+            assert_eq!(offsets.len(),2);
+            for offset in offsets {bytes[offset..offset+7].copy_from_slice(b"version");}
+        }
         let server=Server::start(|base| {
             let listing=json!([{"id":2,"name":"analysis-raw-empty.zip","size":1},{"id":3,"name":"VERSION.zip","size":bytes.len()}]).to_string();
             vec![
@@ -469,8 +474,8 @@ fn configured_latest_empty_skips_and_repeated_trust_markers_fail_without_data_do
         });
         let output=restore_command(&root,&server.base).output().unwrap();
         let value:serde_json::Value=serde_json::from_slice(&output.stdout).unwrap();
-        assert_eq!(output.status.success(),version=="v1.10*","{}",String::from_utf8_lossy(&output.stderr));
-        if version=="v1.10*" {assert_eq!(value["result"]["skipped"],"empty-remote");assert_eq!(value["result"]["restored"],false);}
+        assert_eq!(output.status.success(),version=="v1.10*"&&!lowercase,"{}",String::from_utf8_lossy(&output.stderr));
+        if version=="v1.10*"&&!lowercase {assert_eq!(value["result"]["skipped"],"empty-remote");assert_eq!(value["result"]["restored"],false);}
         else {assert_eq!(value["ok"],false);}
         assert_eq!(std::fs::read(root.join("restored/old.txt")).unwrap(),b"old-state");server.finish();
     }

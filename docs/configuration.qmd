@@ -235,3 +235,7 @@ on stderr, including retained backup paths; stdout stays a structured failure.
 Legacy data CSV rows and remote data namespaces are read without rewriting
 history; ambiguous canonical/legacy namespaces fail before installation.
 One optional VERSION trust marker is accepted; it is not a byte-verification claim.
+
+Review precision: VERSION.zip requires exactly the canonical VERSION member
+spelling, including on case-insensitive filesystems. Metadata transfer staging
+also closes explicitly and reports cleanup failure paths.

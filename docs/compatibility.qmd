@@ -2183,7 +2183,10 @@ CSV history is not used as an integrity/trust proof. Full sources stage before
 the existing merge/clear installer; --clear never removes files before a source
 has been found and copied. Default merge preserves destination-only files.
 Machine results disclose restored/skipped, selected provider/title/version and
-destination; failures stay structured and do not print tokens or raw config.
+destination; failures keep protocol stdout structured with static error text. Stderr carries
+the operational diagnostic chain, including paths and parser details; it is not
+a general configuration-redaction boundary. HTTP errors omit credentials and
+response bodies.
 
 This deliberately fixes R source-selection indexing/inline-definition bugs and
 clear-before-lookup data loss. It does not add R's implicit hard-coded archive
@@ -2219,3 +2222,7 @@ on stderr, including retained backup paths; stdout stays a structured failure.
 Legacy data CSV rows and remote data namespaces are read without rewriting
 history; ambiguous canonical/legacy namespaces fail before installation.
 One optional VERSION trust marker is accepted; it is not a byte-verification claim.
+
+Review precision: VERSION.zip requires exactly the canonical VERSION member
+spelling, including on case-insensitive filesystems. Metadata transfer staging
+also closes explicitly and reports cleanup failure paths.
