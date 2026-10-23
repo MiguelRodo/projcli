@@ -172,6 +172,12 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./cli/history.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Inspect build history</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./cli/remote.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Inspect local remote versions</span></a>
   </div>
@@ -305,6 +311,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#development-source-publication-attempt-evidence" id="toc-development-source-publication-attempt-evidence" class="nav-link" data-scroll-target="#development-source-publication-attempt-evidence">Development source: publication-attempt evidence</a></li>
   <li><a href="#development-source-plain-production-records-and-inventory-witnesses" id="toc-development-source-plain-production-records-and-inventory-witnesses" class="nav-link" data-scroll-target="#development-source-plain-production-records-and-inventory-witnesses">Development source: plain production records and inventory witnesses</a></li>
   <li><a href="#development-source-bounded-startup-provenance" id="toc-development-source-bounded-startup-provenance" class="nav-link" data-scroll-target="#development-source-bounded-startup-provenance">Development source: bounded startup provenance</a></li>
+  <li><a href="#development-source-final-file-observations-and-derived-history" id="toc-development-source-final-file-observations-and-derived-history" class="nav-link" data-scroll-target="#development-source-final-file-observations-and-derived-history">Development source: final file observations and derived history</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -511,7 +518,12 @@ ul.task-list li input[type="checkbox"] {
 <li>Fingerprints of fixed root dependency declarations: renv.lock, DESCRIPTION, pyproject.toml, requirements.txt, requirements-dev.txt, poetry.lock, uv.lock, Pipfile.lock, Project.toml, Manifest.toml, Cargo.lock, environment.yml and environment.yaml. These are declarations, not proof of installed packages.</li>
 </ul>
 <p>File observation limits are 256 selected unique source entries, 8 MiB per file and a shared 64 MiB read budget, with at most one lookahead byte. Missing, unavailable, linked/special and over-limit declarations have explicit states; they do not make a previously supported build fail. Long source names are capped at 256 UTF-8 bytes before redaction. The 16 KiB runner-response cap controls what metadata is accepted; existing preflight subprocess output buffering is unchanged.</p>
-<p>These are startup observations, not frozen source bytes: a start hook can change a later script or dependency declaration. Implicit renderer-project source sets, imported code, effective renderer configuration, arbitrary parameters and installed dependency state are not fully captured. Unknown states must not be presented as complete provenance. Detailed final rows and generated human history remain separate M2 work. CSV/MD5 and failure-retention behavior are unchanged, as is the installed preview.3.</p>
+<p>These are startup observations, not frozen source bytes: a start hook can change a later script or dependency declaration. Implicit renderer-project source sets, imported code, effective renderer configuration, arbitrary parameters and installed dependency state are not fully captured. Unknown states must not be presented as complete provenance. That startup slice alone did not include detailed final rows or generated human history; the following section adds them. CSV/MD5 and failure-retention behavior are unchanged, as is the installed preview.3.</p>
+</section>
+<section id="development-source-final-file-observations-and-derived-history" class="level2">
+<h2 class="anchored" data-anchor-id="development-source-final-file-observations-and-derived-history">Development source: final file observations and derived history</h2>
+<p>New final observations retain a bounded existing-format per-attempt CSV alongside their JSON reference. proj history generates summaries; –attempt validates and lists exact final observed rows. No configuration, Git, lock or remote access is needed. Unknown/missing receipts remain unresolved; old fingerprint-only records can use project manifest.csv only on an exact fingerprint match. The human view is generated on stdout; the curated changelog is not rewritten. With Git the final CSV accompanies its receipt in the next normal commit; both must remain intact for the existing pending-evidence exception. Missing/corrupt selected CSVs are errors. Existing CSV history, MD5, hooks and retention remain unchanged. See <a href="./cli/history.html">the history reference</a> for bounds and examples.</p>
+<p>This is the bounded final-row/derived-human-history slice, subject to exact remote checks. It does not fill omitted renderer configuration/parameters, implicit source sets, executed source freezing or installed dependency state. Full environment reproduction is outside M2’s local traceability gate. Relevant remaining M2 evidence must be checked against actual issue criteria, not an unbounded provenance wish list. The installed preview.3 is unchanged.</p>
 
 
 </section>

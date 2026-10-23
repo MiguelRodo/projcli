@@ -175,6 +175,12 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./cli/history.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Inspect build history</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./cli/remote.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Inspect local remote versions</span></a>
   </div>
@@ -772,8 +778,8 @@ flowchart TB
   S["Preflight; bounded startup observations;&lt;br/&gt;existing pre-build, analysis,&lt;br/&gt;promotion and recovery"]
   P{"Production local success?"}
   D{"Publication enabled?"}
-  L["End hooks; next dev;&lt;br/&gt;observe outputs; install completed log"]
-  G["Retain snapshot; distribution/Git;&lt;br/&gt;existing finalization; observe outputs;&lt;br/&gt;retain final log or Git receipt"]
+  L["End hooks; next dev;&lt;br/&gt;observe outputs; retain final CSV;&lt;br/&gt;install completed log"]
+  G["Retain snapshot; distribution/Git;&lt;br/&gt;existing finalization; observe outputs;&lt;br/&gt;retain final CSV and log or Git receipt"]
   R["Release owned claim on normal exit"]
   W --&gt; S --&gt; P
   P --&gt;|"Preview or earlier failure"| R
@@ -796,6 +802,7 @@ Figure&nbsp;8: Development-source ownership surrounds the existing lifecycle; pr
 <p>Publication-attempt evidence starts at the successful local-release boundary. The snapshot records possible distribution before provider calls and survives later failure. Immediately before optional Git, the framework freezes that snapshot. The normal commit includes it; a later local receipt records actual Git and end-hook/next-dev outcomes for the next ordinary commit. No bookkeeping commit loop is introduced. Missing receipts after a crash remain unresolved; failed requests never promise that remote state was unchanged.</p>
 <p>This overlay does not move end hooks, enforce output sealing or change the released lifecycle figures. Successful plain production builds now install a completed record after end hooks/next-dev succeed. Previews and earlier failures remain outside durable-log coverage. Final output observation fingerprints the post-finalization state; it never silently redefines the bytes already published.</p>
 <p>The development-source ownership overlay now observes selected sources, root dependency declarations and a safe policy summary after preflight, before start hooks. It reuses existing runner version responses. No hook or version adjacency moves; startup observations are not immutable executed-code evidence. Earlier failed-build retention and output-mutation enforcement remain unchanged.</p>
+<p>Final observed rows are retained in a checksum-bound per-attempt CSV; the <a href="./cli/history.html">history command</a> reads these alongside terminal records or Git receipts. This adds evidence without moving hooks, promotion or Git commits.</p>
 
 
 </section>

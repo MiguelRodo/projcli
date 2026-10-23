@@ -207,6 +207,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../cli/history.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Inspect build history</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../cli/remote.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Inspect local remote versions</span></a>
   </div>
@@ -433,6 +439,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>The development record also fingerprints the existing CSV’s current input and release-output rows. The detailed file names and MD5 hashes stay in manifest.csv; the JSON records labels, counts and a BLAKE3 checksum of those canonical rows. Final output observation runs after finalization is attempted, so an end hook’s changes can be detected without rejecting ordinary output mutation. With Git, that observation belongs to the later receipt. A checksum is not a substitute for the CSV or a guarantee that every historical byte remains available.</p>
 <p>Development-source records also contain startup_provenance, observed before start hooks. It identifies selected code and root dependency declaration fingerprints, the safe effective-policy projection, and recognised numeric runner versions from existing preflight checks. With Git enabled it records the observed revision; otherwise Git is not queried. External source names are redacted.</p>
 <p>The scopes and unknown/limit states are explicit. No environment dump, raw configuration, remote address, parameter value or vendor output is copied. A checksum does not freeze code or prove installed dependency versions. See <a href="../behavior.html#development-source-bounded-startup-provenance">the bounds and omissions</a>.</p>
+<p>Development source retains exact final observed file rows; use <a href="../cli/history.html">proj history</a> to inspect them separately from release rows and generate a human summary.</p>
 
 
 </section>
