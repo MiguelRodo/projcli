@@ -1368,7 +1368,7 @@ case "$1" in
 symbolic-ref) echo feature ;;
 check-ref-format) exit 0 ;;
 ls-files) exit 1 ;;
-rev-parse) printf '\\n' ;;
+rev-parse) exit 0 ;;
 config)
  for key do :; done
  case "$key" in

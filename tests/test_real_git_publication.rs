@@ -392,7 +392,7 @@ fn nested_project_claim_exclusion_is_literal_and_keeps_whole_repository_scope() 
     fixture.git(&["commit", "-m", "nested fixture"]);
     let result = fixture.build(false);
     assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
-    let paths = fixture.text(&["ls-tree", "-r", "--name-only", "HEAD"]);
+    let paths = fixture.text(&["ls-tree", "--full-tree", "-r", "--name-only", "HEAD"]);
     assert!(paths.lines().any(|path| path == "outside-generated"), "{paths}");
     assert!(paths.lines().any(|path| path == " child[1]/.proj/log/retained.json"), "{paths}");
     assert!(!paths.lines().any(|path| path.ends_with(".proj/build.lock")), "{paths}");
