@@ -207,3 +207,30 @@ mod portable_label_tests {
         assert!(validate_directory_labels(["output-ä"]).is_ok());
     }
 }
+
+/// Rejects an existing native alias whose actual directory entry has another spelling.
+pub(crate) fn validate_native_names(base: &Utf8Path, relative: &str, mirror: bool) -> anyhow::Result<()> {
+    let mut current = base.to_owned();
+    for component in Utf8Path::new(relative).iter() {
+        let entries = match fs::read_dir(&current) {
+            Ok(entries) => entries,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound
+                || (mirror && error.kind() == std::io::ErrorKind::NotADirectory) => return Ok(()),
+            Err(error) => return Err(error).with_context(|| format!("Cannot inspect native store names at {current}")),
+        };
+        let mut exact = false;
+        for entry in entries {
+            let entry = entry.with_context(|| format!("Cannot read native store name at {current}"))?;
+            exact |= entry.file_name() == std::ffi::OsStr::new(component);
+        }
+        current.push(component);
+        if !exact {
+            match fs::symlink_metadata(&current) {
+                Ok(_) => anyhow::bail!("Ambiguous native filesystem alias in store destination: {current}"),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+                Err(error) => return Err(error).with_context(|| format!("Cannot inspect native store destination {current}")),
+            }
+        }
+    }
+    Ok(())
+}

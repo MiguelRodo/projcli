@@ -77,11 +77,30 @@ fn portable_member(name:&str)->anyhow::Result<Utf8PathBuf> {
 }
 
 fn write_members(source:&Utf8Path, members:&[(String,String)], empty:bool)->anyhow::Result<tempfile::NamedTempFile> {
-    let mut output=tempfile::Builder::new().prefix("proj-github-").suffix(".zip").tempfile()?;
+    let mut output=tempfile::Builder::new().prefix("proj-github-").suffix(".zip").tempfile_in(fs::canonicalize(std::env::temp_dir())?)?;
     {
         let mut writer=zip::ZipWriter::new(output.as_file_mut());
         let options=zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
         if empty { writer.start_file("projr-empty",options)?; }
+        // Preserve nonempty parent-directory privacy, without adding empty dirs.
+        let mut directories=BTreeSet::new();
+        for (relative,_) in members {
+            let mut parent=Utf8Path::new(relative).parent();
+            while let Some(path)=parent.filter(|path| !path.as_str().is_empty()) {
+                directories.insert(path.to_owned());parent=path.parent();
+            }
+        }
+        for relative in directories {
+            let path=source.join(&relative);
+            crate::path_safety::resolve_path(path.as_std_path(),true)?;
+            anyhow::ensure!(fs::symlink_metadata(&path)?.is_dir(),"ZIP parent must be a real directory");
+            #[cfg(unix)]
+            let options={
+                use std::os::unix::fs::PermissionsExt;
+                options.unix_permissions(fs::metadata(path)?.permissions().mode()&0o777)
+            };
+            writer.add_directory(format!("{relative}/"),options)?;
+        }
         for (relative,expected) in members {
             portable_member(relative)?;
             let path=source.join(relative);
@@ -110,14 +129,19 @@ fn write_members(source:&Utf8Path, members:&[(String,String)], empty:bool)->anyh
 /// Creates a private ZIP with source-relative members and no enclosing directory.
 /// Empty directories produce the projr-empty sentinel. Existing streaming inventory
 /// rejects links/special files; copied bytes must match that inventory. Empty
-/// subdirectories are not archived, matching projr's file-list packaging.
+/// subdirectories are omitted. Nonempty parent directory entries preserve Unix
+/// privacy modes, a safety addition to projr's file-list packaging.
+/// Returns the private ZIP and whether it represents an empty source.
 /// The caller owns cleanup and decides the final asset name/publication policy.
 pub fn directory_zip(source:&Utf8Path)->anyhow::Result<(tempfile::NamedTempFile,bool)> {
     crate::path_safety::resolve_path(source.as_std_path(),true)?;
     anyhow::ensure!(fs::symlink_metadata(source)?.is_dir(),"ZIP source must be a real directory");
     let members=crate::manifest::inventory_directory(source,false)?;
     let empty=members.is_empty();
-    Ok((write_members(source,&members,empty)?,empty))
+    let zip=write_members(source,&members,empty)?;
+    anyhow::ensure!(crate::manifest::inventory_directory(source,false)?==members,
+        "ZIP source inventory changed during preparation");
+    Ok((zip,empty))
 }
 
 /// Packages exactly the canonical metadata member from source, not other files.
@@ -144,9 +168,11 @@ pub fn extract_zip(archive:&Utf8Path,max_bytes:u64)->anyhow::Result<tempfile::Te
     anyhow::ensure!(fs::symlink_metadata(archive)?.is_file(),"ZIP archive must be a regular file");
     let input=fs::File::open(archive)?;let mut zip=zip::ZipArchive::new(input)?;
     anyhow::ensure!(zip.len()<=100000,"ZIP exceeds member limit");
-    let output=tempfile::Builder::new().prefix("proj-unzip-").tempdir()?;
+    let output=tempfile::Builder::new().prefix("proj-unzip-").tempdir_in(fs::canonicalize(std::env::temp_dir())?)?;
     let root=Utf8Path::from_path(output.path()).context("ZIP temporary path must be UTF-8")?;
     let mut names=BTreeSet::new();let mut prefixes=BTreeMap::<String,(String,bool)>::new();let mut total=0u64;
+    #[cfg(unix)]
+    let mut directory_modes=Vec::new();
     for index in 0..zip.len() {
         let mut member=zip.by_index(index)?;
         let name=member.name()?.into_owned();let relative=portable_member(&name)?;
@@ -163,19 +189,36 @@ pub fn extract_zip(archive:&Utf8Path,max_bytes:u64)->anyhow::Result<tempfile::Te
                     "ZIP contains conflicting member paths or native parent aliases");
             }
         }
+        crate::path_safety::validate_native_names(root,relative.as_str(),false)?;
         let destination=root.join(&relative);
-        if member.is_dir() {fs::create_dir_all(&destination)?;continue;}
+        if member.is_dir() {
+            anyhow::ensure!(member.size()==0,"ZIP directory member has a payload");
+            let mut probe=[0];
+            anyhow::ensure!(member.read(&mut probe)?==0,"ZIP directory member has a payload");
+            fs::create_dir_all(&destination)?;
+            #[cfg(unix)]
+            if mode!=0 {directory_modes.push((destination,mode&0o777));}
+            continue;
+        }
         total=total.checked_add(member.size()).context("ZIP expanded size overflow")?;
         anyhow::ensure!(total<=max_bytes,"ZIP exceeds expanded-byte limit");
         fs::create_dir_all(destination.parent().context("ZIP member has no parent")?)?;
         // create_new catches file/directory collisions even on native aliases.
         let mut file=fs::OpenOptions::new().write(true).create_new(true).open(&destination)?;
-        let actual=std::io::copy(&mut (&mut member).take(max_bytes.saturating_add(1)),&mut file)?;
-        anyhow::ensure!(actual==member.size(),"ZIP member size mismatch");
+        let expected=member.size();
+        let actual=std::io::copy(&mut (&mut member).take(expected),&mut file)?;
+        anyhow::ensure!(actual==expected,"ZIP member size mismatch");
+        let mut probe=[0];
+        anyhow::ensure!(member.read(&mut probe)?==0,"ZIP member exceeds advertised size");
         #[cfg(unix)] {
             use std::os::unix::fs::PermissionsExt;
             fs::set_permissions(&destination,fs::Permissions::from_mode(if mode==0 {0o600}else{mode&0o777}))?;
         }
+    }
+    #[cfg(unix)] {
+        use std::os::unix::fs::PermissionsExt;
+        directory_modes.sort_by_key(|(path,_)|std::cmp::Reverse(path.components().count()));
+        for (path,mode) in directory_modes {fs::set_permissions(path,fs::Permissions::from_mode(mode))?;}
     }
     Ok(output)
 }
@@ -188,7 +231,7 @@ pub fn extract_zip(archive:&Utf8Path,max_bytes:u64)->anyhow::Result<tempfile::Te
 pub fn download_directory(client:&crate::github_release::GithubReleaseClient,
     root:&Utf8Path,tag:&str,name:&str,destination:&Utf8Path,max_bytes:u64,
     max_expanded_bytes:u64,clear:bool,empty:bool)->anyhow::Result<crate::github_release::ReleaseAsset> {
-    let transfer=tempfile::Builder::new().prefix("proj-github-transfer-").tempdir()?;
+    let transfer=tempfile::Builder::new().prefix("proj-github-transfer-").tempdir_in(fs::canonicalize(std::env::temp_dir())?)?;
     let transfer_root=Utf8Path::from_path(transfer.path()).context("Transfer path must be UTF-8")?;
     crate::local_remote::validate_download_destination(root,transfer_root,destination)?;
     let archive=transfer_root.join("asset.zip");

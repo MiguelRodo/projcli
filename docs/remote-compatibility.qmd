@@ -314,7 +314,8 @@ prefix-label-vVERSION.zip for archive, prefix-label.zip for latest, and
 used, including path_append_label=false. Metadata assets remain shared and
 unprefixed: manifest.zip contains manifest.csv, VERSION.zip contains VERSION,
 and CHANGELOG.zip contains CHANGELOG.md. Directory ZIP entries are relative to
-the selected source, without an enclosing folder. Empty sources contain the
+the selected source, without an enclosing folder. Nonempty parent-directory entries retain Unix
+permission modes; empty directory entries remain omitted. Empty sources contain the
 single zero-byte projr-empty sentinel; empty subdirectories are not archived.
 
 The CLI adds remote github upload-directory (label/structure/remote-version,
@@ -347,3 +348,13 @@ Pinned sources:
 Configured source selection/restore, historical metadata merging, latest asset
 replacement, credentials-helper fallback and CAS remain outstanding. This
 source candidate does not update the published/installed preview.
+
+Review amendments share the existing native directory-entry alias guard with
+file-policy transfers, validate empty-directory CRC with a bounded probe, and
+never persist an expanded-byte probe beyond each member's advertised size.
+Directory modes apply deepest-first after extraction; an existing destination's
+modes still follow the previously documented merge policy. File-only ZIPs from
+other writers have no directory privacy metadata to restore. Source root modes
+are not encoded as a new manifest field. No ACL/ownership/xattr claim follows.
+Temporary paths are created beneath the physical canonical system temp directory;
+macOS /var aliases are not an excuse to weaken external path guards.

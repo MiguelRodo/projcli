@@ -65,32 +65,6 @@ fn inventory(path: &Utf8Path) -> anyhow::Result<Inventory> {
 
 // Resolve against native directory entries without creating a probe file.
 // Ambiguous case/normalisation/short-name aliases must not masquerade as missing.
-fn validate_native_names(base: &Utf8Path, relative: &str, mirror: bool) -> anyhow::Result<()> {
-    let mut current = base.to_owned();
-    for component in Utf8Path::new(relative).iter() {
-        let entries = match fs::read_dir(&current) {
-            Ok(entries) => entries,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound
-                || (mirror && error.kind() == std::io::ErrorKind::NotADirectory) => return Ok(()),
-            Err(error) => return Err(error).with_context(|| format!("Cannot inspect native store names at {current}")),
-        };
-        let mut exact = false;
-        for entry in entries {
-            let entry = entry.with_context(|| format!("Cannot read native store name at {current}"))?;
-            exact |= entry.file_name() == std::ffi::OsStr::new(component);
-        }
-        current.push(component);
-        if !exact {
-            match fs::symlink_metadata(&current) {
-                Ok(_) => anyhow::bail!("Ambiguous native filesystem alias in store destination: {current}"),
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
-                Err(error) => return Err(error).with_context(|| format!("Cannot inspect native store destination {current}")),
-            }
-        }
-    }
-    Ok(())
-}
-
 /// Plans or executes one explicit physical-directory transfer with MD5 file
 /// inspection. The default CLI policy is projr's sync-diff, but file inspection
 /// must be explicitly selected. No YAML defaults or registry semantics change.
@@ -116,7 +90,7 @@ pub fn store_files(root: &Utf8Path, source: &Utf8Path, destination: &Utf8Path, s
     let (uploads, overwrites, removals, same_bytes) = actions(&original_source, &original_destination, strategy);
     let mirror = matches!(strategy, StoreStrategy::SyncDiff | StoreStrategy::SyncPurge);
     for name in &uploads {
-        validate_native_names(destination, name, mirror)?;
+        crate::path_safety::validate_native_names(destination, name, mirror)?;
         let target = destination.join(name);
         match fs::symlink_metadata(&target) {
             Ok(metadata) => anyhow::ensure!(mirror || metadata.is_file(), "Store file conflicts with destination directory: {target}"),
