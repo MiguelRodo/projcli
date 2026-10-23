@@ -412,7 +412,7 @@ flowchart TB
   B --> C["Keep local release"]
   C --> D["Stage all selected local CSV bytes"]
   D --> E["Local archive/latest data, then metadata"]
-  E --> H["Validate catalog; prepare all GitHub ZIPs"]
+  E --> H["Validate catalog/history; stage comparison and ZIP effects"]
   H --> I["GitHub latest/archive replacements, then metadata ZIPs"]
   I --> F["Selected CAS, Git, end hooks, next-dev"]
   D -->|Failure| G["Preserve release; skip later stages"]
@@ -454,3 +454,11 @@ roll back remote assets or the successful local release.
 No-inspection GitHub strategies select their merge/purge actions during that same
 preparation phase. Nonempty purge changes the prepared replacement ZIP; it does
 not add an early remote deletion phase or change the release-preserving boundary.
+
+
+File/manifest eligibility and archive history selection are now part of GitHub
+preparation in the current-source overlay. Current and eligible historical ZIPs
+materialize privately, then the ordinary local planner computes staged effects;
+only those current data effects become ZIP uploads/removals. All GitHub targets
+still prepare before the first external write. Metadata-only no-ops and reuse do
+not manufacture data uploads; failure retains the local release.

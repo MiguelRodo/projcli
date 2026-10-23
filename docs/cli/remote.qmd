@@ -349,8 +349,8 @@ output_run:false skip publication.
 |---|---|---|
 | Content true/false/null/list | Actual CLI selection fixtures; true excludes cache | Full configured provider matrix |
 | cue if-change / always | Both against each strategy; repeated identical sync-diff tests label-version retention/advance | Archive comparison-version selection |
-| inspect file | Shared MD5 byte inspection, current CSV snapshots, exact source-byte validation | GitHub configured inspection |
-| inspect manifest | Default and explicit mode; matching project/remote history; physical fallback on missing/mismatched/starred history | Archive comparison and GitHub publication |
+| inspect file | Shared MD5 byte inspection and exact source-byte validation, local/GitHub | Live provider evidence |
+| inspect manifest | Default/explicit local/GitHub comparison; matching history and physical fallback | CSV authenticity is not provided |
 | inspect none | All four strategies and both cues; default upload-all; exact build/store/restore bytes and trust markers | Other providers/layouts |
 | upload-all | Upload all selected files, retain extras; existing remote marked untrusted | Other inspection modes |
 | upload-missing | Preserve existing names/bytes, add missing; changes to existing remote marked untrusted | Other inspection modes |
@@ -492,8 +492,9 @@ stream into restorable ZIPs; all targets stage before the first upload. Existing
 CSV/VERSION history is retained. Data precedes manifest.zip, VERSION.zip and an
 existing project CHANGELOG.zip. Metadata ZIPs require exactly the canonical member;
 shared metadata and existing data download/extraction are bounded at 128 MiB
-compressed and expanded per archive; selected merge extraction has the same
-expanded limit. These caps fail during preparation before remote changes.
+compressed and expanded per archive; current/newest eligible data is staged privately under that same expanded limit.
+Unselected older archives are not downloaded. These caps fail during preparation
+before remote changes.
 
 Set structure: latest to replace label.zip (or label-empty.zip). Archive remains
 the default and may replace only the exact canonical current-version asset;
@@ -509,7 +510,7 @@ empty variant only after the full upload succeeds.
 
 Catalog case/numeric aliases, simultaneous full/empty assets, malformed ZIPs and
 legacy data ambiguity fail during all-target preparation before upload/deletion.
-File/manifest GitHub inspection remains pending. Data and
+File/manifest comparison uses the shared rules below. Data and
 shared metadata replacement use non-atomic delete-then-upload: failure may leave partial state
 or a missing asset. The successful local release survives and next-dev bump is
 skipped. No remote rollback, automatic retry or concurrent-writer isolation claim.
@@ -554,4 +555,44 @@ New targets (including empty targets) remain discoverable as described above.
 Mock REST fixtures execute all 2 layouts x 4 strategies x 2 cues through actual
 build and configured restore with exact ZIP/metadata/retained-extra assertions;
 empty-source coverage checks all strategies and cues. This is not live GitHub
-evidence. File/manifest inspection and historical archive comparison remain pending.
+evidence. File/manifest and archive-history rules follow below.
+
+
+### GitHub file/manifest comparison and archive history
+
+Omitting send uses the existing defaults: inspect: manifest, strategy: sync-diff,
+cue: if-change and structure: archive. Explicit file and none are also supported.
+All modes use the same ordinary publication planner as local remotes, operating
+on private staged GitHub data/metadata before any upload or deletion.
+
+File inspection compares actual uncompressed path/MD5 inventories. Manifest
+inspection uses matching project and remote label/version CSV rows only when
+VERSION is unstarred; otherwise it falls back to file inspection. Matching CSV
+does not authenticate bytes: unselected actual drift survives a trusted partial
+sync-diff. Missing/mismatched/starred history cannot establish trust.
+
+For archive comparison, only the newest advertised catalog entry may be reused.
+Catalog/version/CSV must agree and the advertised version must lie in the
+continuous unchanged suffix of project history. Changed-then-reverted content
+cannot reuse a pre-change snapshot. None/upload-all bypass historical comparison;
+always with no current target creates a new snapshot. New snapshots contain the
+complete current CSV-selected source, including when only part changed relative
+to an older comparison. Older archive assets remain untouched.
+
+Current data and an eligible newest historical entry are downloaded and validated
+before writes; an ineligible older archive is not downloaded. Ambiguous newest
+numeric/full/empty variants and portable aliases fail closed. Empty historical
+ZIPs must contain exactly the native zero-byte sentinel, even when CSV agrees.
+
+| GitHub controls | Candidate verification |
+|---|---|
+| 3 inspections x 4 strategies x 2 cues x 2 layouts | Actual CLI mocked REST data/metadata and restore matrix |
+| Archive unchanged/changed history across all 24 control combinations | Complete snapshots, exact VERSION, old bytes preserved |
+| Trusted partial manifest / starred, mismatched or missing history | Preserve unselected drift / file fallback |
+| Archive reversion, physical drift, ineligible/future metadata | Correct reuse versus complete current snapshot |
+| Empty transitions and corrupt empty history | Stage/validate before upload/deletion |
+| Live GitHub round-trip | Not performed; requires a dedicated safe destination |
+
+Source-only candidate pending exact-head remote CI and independent review;
+installed preview remains unchanged. No new registry, defaults or CAS retention
+policy is introduced.
