@@ -2638,3 +2638,23 @@ remain mocked REST evidence; other provider/config findings and M2 remain open.
 - **Verification:** not run locally; exact-head remote tests and independent review
   are required. No source defect, completed M2, durable record/seal, index rollback,
   remote transaction or installed-binary update is claimed.
+
+
+## M2 exact previous development-version recovery
+
+- **Relationship: expanded acceptance of the approved Rust exact-byte rollback
+  contract; comparative R failure runtime is unverified.** Reference projr
+  90be50132d16aee33e39c0f7f35ef906c35f5397 build-pre.R443-456 sets the planned run
+  version and ensures a development version with dev_force. Those helpers are
+  source evidence, not proof that every R failure boundary restores prior files.
+- **Approved behavior:** pre-distribution failures retain the exact old development
+  version, including counters above one; never reset to dev1. Existing irreversible
+  publication behavior and hook ordering stay intact.
+- **Coverage:** reuse the hook/analysis restoration fixture across absent authority,
+  release VERSION, dev7 with CRLF, distinct VERSION/DESCRIPTION dev7/dev42 and
+  DESCRIPTION-only dev19. Fault scripts overwrite both authority files; snapshot
+  assertions require exact original bytes/absence and managed outputs.
+- **Ponytail full:** extend the existing fixture and recovery engine; no new version
+  rollback algorithm, record schema, dependency or hook enforcement.
+- **Verification:** remote exact-head tests and independent review required; no
+  local Rust/R/Quarto execution and no complete M2 claim.

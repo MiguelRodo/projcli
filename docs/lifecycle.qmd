@@ -479,3 +479,8 @@ A focused regression candidate checks the existing Git boundary: missing push
 tracking fails in preflight, while a real commit-hook rejection after successful
 analysis retains the local release without advancing HEAD/upstream or bumping
 next-dev. It does not change stage order, invent a seal or promise index rollback.
+
+
+Pre-publication recovery restores the exact captured version authority, including
+development counters greater than one; it does not manufacture dev1. This adds
+regression evidence without moving hooks, publication or the next-dev transition.

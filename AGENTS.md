@@ -411,3 +411,9 @@ isolation. Distinguish missing-upstream preflight from commit-hook rejection
 after successful analysis. A failed commit can leave the new local release staged
 in Git's index while HEAD/upstream stay unchanged; never assert an invented index
 rollback, successful publication or new sealing policy from that condition.
+
+
+Pre-distribution failure recovery preserves exact prior VERSION/DESCRIPTION
+bytes and absence, including development counters above one and accepted original
+formatting. Never synthesize dev1 as rollback. Publication-boundary behavior and
+end-hook lifecycle remain unchanged; hook-mutation enforcement is deferred.

@@ -197,3 +197,13 @@ publication is claimed.
 These are tests of existing behavior, not new attempt identities, sealing rules
 or retry guarantees. Exact-head remote verification and independent review are
 required before treating this candidate as delivered evidence.
+
+
+## Exact development-version recovery
+
+Before the irreversible publication boundary, supported failure recovery restores
+the original VERSION/DESCRIPTION files byte for byte, including prior absence.
+A project starting at dev7 or dev19 must not be reset to dev1. The regression
+matrix deliberately overwrites both authority files before hook/analysis failures
+and checks the complete recovered managed state. This does not change the existing
+rule that failure after publication begins preserves the successful local release.
