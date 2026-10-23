@@ -3,6 +3,23 @@ title: "Preview release checks"
 subtitle: "The review and delivery sequence, with verified preview.2 evidence."
 ---
 
+## Preview.3 candidate
+
+The next candidate is 0.4.0-preview.3, prepared from reviewed main
+28921066c6784b1db76bb98aed68952e707be47d. It combines the ordinary local/GitHub
+latest/archive publication and guarded single-label restore slices with the
+[bounded real GitHub evidence](remote-compatibility.qmd#live-github-fixture-verification).
+This is a coherent remote-workflow preview, not complete projr parity or M2.
+
+The version and release notes are preparation only. Require independent review,
+the complete pinned renderer/combined/recovery gate on the final source and
+host/install/docs checks before tagging. Public installation pins stay on
+preview.2 until draft assets and public bytes are verified; WSL installation
+then preserves the previous user-local binary and checks disposable preview
+success/failure. No new live fixture operations or credential/access changes
+are needed. See [the notes](release-preview-notes.md) for the intended scope and
+remaining limits.
+
 ## Verified preview.2
 
 [0.4.0-preview.2](install.qmd) is now published and installed in the checked WSL

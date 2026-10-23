@@ -2585,3 +2585,22 @@ Ponytail full: reuse the reviewed CLI and existing authentication; no new runtim
 backend/format or live-test dependency. The public report is synthetic verification
 evidence, not a production manifest schema. The complete matrix/failure cases
 remain mocked REST evidence; other provider/config findings and M2 remain open.
+
+
+## Preview.3 release preparation
+
+- **Relationship: packaging change; existing source compatibility evidence retained.**
+  Candidate 0.4.0-preview.3 packages reviewed main28921066c6784b1db76bb98aed68952e707be47d
+  without a new runtime policy. The ordinary remote comparisons remain pinned
+  to projr90be50132d16aee33e39c0f7f35ef906c35f5397 in the remote inventory.
+- **Decision/rationale:** deliver the tested local/GitHub build/store/restore
+  checkpoint while retaining explicit remaining parity, registry and CAS limits.
+  Cargo.toml and the root lock entry agree; an analysis project's VERSION is
+  unrelated. Public download pins and the installed preview are unchanged.
+- **Ponytail full:** reused the existing exact-tag draft workflow and release
+  checklist; no workflow, dependency, transport or runtime abstraction added.
+- **Verification status:** candidate gates and independent release review are
+  required before tagging. Existing runtime evidence includes all48 mocked
+  GitHub control combinations,24 archive history combinations and the bounded
+  five-build/two-restore real GitHub witness. Those do not replace final-source
+  pinned acceptance or exact-tag binary/installer checks.
