@@ -2693,3 +2693,9 @@ and the fixed claim is created exclusively before identity allocation, so
 rejected competitors create no project-visible candidate files. Regression
 fixtures exercise preview CAS overlap, native case-folded names and clean
 competing acquisition in addition to the original concurrency/Git checks.
+
+The unreadable-root fixture now expects the earlier writer-ownership preflight
+phase, selected-root path and underlying permission error, for both explicit
+empty selection and fallback discovery. All prior byte-preservation assertions
+remain, and absent coordination state must remain absent. Source discovery is
+never reached when ownership cannot safely inspect native coordination names.
