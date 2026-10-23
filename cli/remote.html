@@ -319,6 +319,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#configured-ordinary-local-archives" id="toc-configured-ordinary-local-archives" class="nav-link" data-scroll-target="#configured-ordinary-local-archives">Configured ordinary local archives</a></li>
   <li><a href="#configured-github-publication-candidate" id="toc-configured-github-publication-candidate" class="nav-link" data-scroll-target="#configured-github-publication-candidate">Configured GitHub publication candidate</a></li>
   <li><a href="#github-no-inspection-strategy-controls" id="toc-github-no-inspection-strategy-controls" class="nav-link" data-scroll-target="#github-no-inspection-strategy-controls">GitHub no-inspection strategy controls</a></li>
+  <li><a href="#github-filemanifest-comparison-and-archive-history" id="toc-github-filemanifest-comparison-and-archive-history" class="nav-link" data-scroll-target="#github-filemanifest-comparison-and-archive-history">GitHub file/manifest comparison and archive history</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -450,13 +451,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 <tr class="odd">
 <td>inspect file</td>
-<td>Shared MD5 byte inspection, current CSV snapshots, exact source-byte validation</td>
-<td>GitHub configured inspection</td>
+<td>Shared MD5 byte inspection and exact source-byte validation, local/GitHub</td>
+<td>Live provider evidence</td>
 </tr>
 <tr class="even">
 <td>inspect manifest</td>
-<td>Default and explicit mode; matching project/remote history; physical fallback on missing/mismatched/starred history</td>
-<td>Archive comparison and GitHub publication</td>
+<td>Default/explicit local/GitHub comparison; matching history and physical fallback</td>
+<td>CSV authenticity is not provided</td>
 </tr>
 <tr class="odd">
 <td>inspect none</td>
@@ -520,9 +521,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">content</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">output</span><span class="kw">]</span></span>
 <span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">send</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="fu">inspect</span><span class="kw">:</span><span class="at"> none</span><span class="kw">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Archive is the existing structure default; none inspection defaults upload-all. Both cues upload selected nonempty bytes without historical comparison. Archive data uses native label-vVERSION.zip or label-vVERSION-empty.zip names and the existing prefix/append-label naming. Missing Releases are created as normal published Releases, not drafts. Use a dedicated destination for testing.</p>
-<p>Git origin selects owner/repository; existing API URL and credentials are captured before hooks. No credentials are installed or changed. Current CSV-selected bytes stream into restorable ZIPs; all targets stage before the first upload. Existing CSV/VERSION history is retained. Data precedes manifest.zip, VERSION.zip and an existing project CHANGELOG.zip. Metadata ZIPs require exactly the canonical member; shared metadata and existing data download/extraction are bounded at 128 MiB compressed and expanded per archive; selected merge extraction has the same expanded limit. These caps fail during preparation before remote changes.</p>
-<p>Set structure: latest to replace label.zip (or label-empty.zip). Archive remains the default and may replace only the exact canonical current-version asset; older versions remain untouched. Existing data ZIPs are downloaded and validated, then selected CSV bytes overwrite their matching members while remote-only files survive. Empty source selection leaves existing data intact; the strategy table below explains when label VERSION also advances. Upload-all, upload-missing and sync-diff updates to existing targets receive a starred VERSION because retained extras are not described by the source inventory. A nonempty sync-purge replaces the complete file set and removes that star. Project/history metadata still advances. Empty-to-full upload removes the validated obsolete empty variant only after the full upload succeeds.</p>
-<p>Catalog case/numeric aliases, simultaneous full/empty assets, malformed ZIPs and legacy data ambiguity fail during all-target preparation before upload/deletion. File/manifest GitHub inspection remains pending. Data and shared metadata replacement use non-atomic delete-then-upload: failure may leave partial state or a missing asset. The successful local release survives and next-dev bump is skipped. No remote rollback, automatic retry or concurrent-writer isolation claim.</p>
+<p>Git origin selects owner/repository; existing API URL and credentials are captured before hooks. No credentials are installed or changed. Current CSV-selected bytes stream into restorable ZIPs; all targets stage before the first upload. Existing CSV/VERSION history is retained. Data precedes manifest.zip, VERSION.zip and an existing project CHANGELOG.zip. Metadata ZIPs require exactly the canonical member; shared metadata and existing data download/extraction are bounded at 128 MiB compressed and expanded per downloaded archive. Unselected older archives are not downloaded. Generated final ZIPs are checked through the native extractor for portable names and its 100,000-member ceiling; the download byte cap does not limit generated source ZIPs. Validation fails before remote changes.</p>
+<p>Set structure: latest to replace label.zip (or label-empty.zip). Archive remains the default and may replace only the exact canonical current-version asset; older versions remain untouched. Existing data ZIPs are downloaded and validated, then the selected comparison and strategy are applied privately. Upload-all and none’s blind missing/diff overwrite selected members while retaining extras; inspected missing preserves existing matching paths, and sync-diff/purge follow their comparison/removal rules. With none, empty selection preserves data; an inspected sync may instead finalize an empty target.</p>
+<p>Existing upload-all/missing updates are starred, as are none’s sync-diff updates. Inspected sync-diff and nonempty purge can advertise an unstarred complete decision. Project/history metadata still advances. The tables below describe each mode. Empty-to-full upload removes the validated obsolete empty variant only after the full upload succeeds.</p>
+<p>Catalog case/numeric aliases, simultaneous full/empty assets, malformed ZIPs and legacy data ambiguity fail during all-target preparation before upload/deletion. File/manifest comparison uses the shared rules below. Data and shared metadata replacement use non-atomic delete-then-upload: failure may leave partial state or a missing asset. The successful local release survives and next-dev bump is skipped. No remote rollback, automatic retry or concurrent-writer isolation claim.</p>
 <p>Evidence uses actual CLI build/store/restore against loopback mocked REST, including Release creation, ZIP members, metadata replacement, old archive retention, latest replacement/restore with retained extras, both cues, empty-source preservation, validated empty transitions, partial failure and preflight rejection. This is not a live GitHub Release round trip. Installed preview unchanged; remote CI/review required.</p>
 <p>Non-public API origins require an explicit environment token. Default github.com Git/gh credential helpers are only used for the standard HTTPS api.github.com origin (port443), never forwarded to Enterprise/custom hosts. A regression uses a fake public helper and verifies it is not invoked for a loopback API.</p>
 <p>Public gh credential fallback explicitly requests –hostname github.com, so an inherited GH_HOST cannot select Enterprise credentials for the public API. Numeric archive alias checks remove exactly one generated .zip suffix, preserving valid prefixes/labels that themselves end in .zip. Regression fixtures cover both.</p>
@@ -567,7 +569,53 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tbody>
 </table>
 <p>These are pinned projr’s none-inspection interactions: no comparison means every source file is considered extra, so missing/diff cannot skip existing matching paths or infer destination-only files. Neither cue changes that fact. Nonempty purge knows the complete replacement and produces an unstarred label VERSION. Empty source cannot infer destination extras, even under purge/always. New targets (including empty targets) remain discoverable as described above.</p>
-<p>Mock REST fixtures execute all 2 layouts x 4 strategies x 2 cues through actual build and configured restore with exact ZIP/metadata/retained-extra assertions; empty-source coverage checks all strategies and cues. This is not live GitHub evidence. File/manifest inspection and historical archive comparison remain pending.</p>
+<p>Mock REST fixtures execute all 2 layouts x 4 strategies x 2 cues through actual build and configured restore with exact ZIP/metadata/retained-extra assertions; empty-source coverage checks all strategies and cues. This is not live GitHub evidence. File/manifest and archive-history rules follow below.</p>
+</section>
+<section id="github-filemanifest-comparison-and-archive-history" class="level3">
+<h3 class="anchored" data-anchor-id="github-filemanifest-comparison-and-archive-history">GitHub file/manifest comparison and archive history</h3>
+<p>Omitting send uses the existing defaults: inspect: manifest, strategy: sync-diff, cue: if-change and structure: archive. Explicit file and none are also supported. All modes use the same ordinary publication planner as local remotes, operating on private staged GitHub data/metadata before any upload or deletion.</p>
+<p>File inspection compares actual uncompressed path/MD5 inventories. Manifest inspection uses matching project and remote label/version CSV rows only when VERSION is unstarred; otherwise it falls back to file inspection. Matching CSV does not authenticate bytes: unselected actual drift survives a trusted partial sync-diff. Missing/mismatched/starred history cannot establish trust.</p>
+<p>For archive comparison, only the newest advertised catalog entry may be reused. Catalog/version/CSV must agree and the advertised version must lie in the continuous unchanged suffix of project history. Changed-then-reverted content cannot reuse a pre-change snapshot. None/upload-all bypass historical comparison; always with no current target creates a new snapshot. New snapshots contain the complete current CSV-selected source, including when only part changed relative to an older comparison. Older archive assets remain untouched.</p>
+<p>Current data and an eligible newest historical entry are downloaded and validated before writes; an ineligible older archive is not downloaded. Ambiguous newest numeric/full/empty variants and portable aliases fail closed. Empty historical ZIPs must contain exactly the native zero-byte sentinel, even when CSV agrees.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>GitHub controls</th>
+<th>Candidate verification</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>3 inspections x 4 strategies x 2 cues x 2 layouts</td>
+<td>Actual CLI mocked REST data/metadata and restore matrix</td>
+</tr>
+<tr class="even">
+<td>Archive unchanged/changed history across all 24 control combinations</td>
+<td>Complete snapshots, exact VERSION, old bytes preserved</td>
+</tr>
+<tr class="odd">
+<td>Trusted partial manifest / starred, mismatched or missing history</td>
+<td>Preserve unselected drift / file fallback</td>
+</tr>
+<tr class="even">
+<td>Archive reversion, physical drift, ineligible/future metadata</td>
+<td>Correct reuse versus complete current snapshot</td>
+</tr>
+<tr class="odd">
+<td>Empty transitions and corrupt empty history</td>
+<td>Stage/validate before upload/deletion</td>
+</tr>
+<tr class="even">
+<td>Live GitHub round-trip</td>
+<td>Not performed; requires a dedicated safe destination</td>
+</tr>
+</tbody>
+</table>
+<p>Source-only candidate pending exact-head remote CI and independent review; installed preview remains unchanged. No new registry, defaults or CAS retention policy is introduced.</p>
 
 
 </section>
