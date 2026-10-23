@@ -312,7 +312,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#github-zip-packaging-and-explicit-directory-transfer" id="toc-github-zip-packaging-and-explicit-directory-transfer" class="nav-link" data-scroll-target="#github-zip-packaging-and-explicit-directory-transfer">GitHub ZIP packaging and explicit directory transfer</a></li>
   <li><a href="#explicit-github-asset-replacement" id="toc-explicit-github-asset-replacement" class="nav-link" data-scroll-target="#explicit-github-asset-replacement">Explicit GitHub asset replacement</a></li>
   <li><a href="#configured-single-label-restore" id="toc-configured-single-label-restore" class="nav-link" data-scroll-target="#configured-single-label-restore">Configured single-label restore</a></li>
-  <li><a href="#configured-local-publication-candidate" id="toc-configured-local-publication-candidate" class="nav-link" data-scroll-target="#configured-local-publication-candidate">Configured local publication candidate</a></li>
+  <li><a href="#configured-local-publication-candidate" id="toc-configured-local-publication-candidate" class="nav-link" data-scroll-target="#configured-local-publication-candidate">Configured local publication candidate</a>
+  <ul class="collapse">
+  <li><a href="#no-comparison-during-configured-local-publication" id="toc-no-comparison-during-configured-local-publication" class="nav-link" data-scroll-target="#no-comparison-during-configured-local-publication">No comparison during configured local publication</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -453,8 +456,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 <tr class="odd">
 <td>inspect none</td>
-<td>Selected definitions fail before hooks</td>
-<td>Default upload-all and untrusted-state interactions</td>
+<td>All four strategies and both cues; default upload-all; exact build/store/restore bytes and trust markers</td>
+<td>Other providers/layouts</td>
 </tr>
 <tr class="even">
 <td>upload-all</td>
@@ -478,13 +481,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 </tbody>
 </table>
-<p>if-change and sync-diff remain the existing defaults. The projr default inspection is manifest: until implemented, omitting inspect is an error rather than changing that default to file. Ordinary archive, nonempty get controls, send.conflict and title-level cue are not silently accepted as working policy. path-append-label:false is explicitly deferred here because its full destination contains the shared metadata namespace.</p>
+<p>if-change and sync-diff remain the existing defaults. The projr default inspection is manifest: until implemented, omitting inspect is an error rather than changing that default to file or none. Ordinary archive, nonempty get controls, send.conflict and title-level cue are not silently accepted as working policy. path-append-label:false is explicitly deferred here because its full destination contains the shared metadata namespace.</p>
 <p>History retains prior label/version rows and replaces current label/version rows with the current project CSV rows. Upload modes can intentionally preserve extra or old bytes, so desired-source CSV history is not proof that those bytes equal the remote; the VERSION asterisk discloses untrusted existing state.</p>
 <p>Two source defects are corrected explicitly: newly empty latest labels receive an advertised VERSION entry, and file-equal sync-diff repairs missing/starred label metadata after inspection. Pinned R latest/file returns the project version without checking VERSION (.dsl_gr_gvc_latest_file); its no-change branch can otherwise leave the directory undiscoverable or stale-marked. This is a bounded metadata/discoverability correction, not a new default cue or trust policy.</p>
 <p>Ponytail full shares the existing definition/content parser, numeric version validation, CSV format and four-strategy actions/guarded installer. Snapshots preserve selected source directory modes and all staging trees get explicit cleanup on success/failure. Planned missing-path namespaces use conservative portable case/NFC comparison; actual native spelling is rechecked before installation. No ownership/ACL/xattr, crash atomicity or concurrent-writer isolation claim. No actual GitHub Release test mutation or local heavy testing. Remote exact-head checks and independent review are required before delivery.</p>
 <p>When publishing output-r-data, an existing legacy data/data-empty namespace or data entry in remote VERSION is rejected. Restore can still read legacy data; publication does not rename, delete or migrate it. Choose a separate destination until an explicit migration is supported.</p>
+<section id="no-comparison-during-configured-local-publication" class="level3">
+<h3 class="anchored" data-anchor-id="no-comparison-during-configured-local-publication">No comparison during configured local publication</h3>
+<p>Set send.inspect to none to make planning ignore comparison hashes/history. The default strategy then becomes upload-all; both cues still upload nonempty sources. Explicit upload-missing and sync-diff also blindly overwrite selected filenames and retain remote-only files, matching projr rather than their file-inspected behavior. Existing destinations are marked untrusted with a star.</p>
+<p>Explicit sync-purge replaces the entire file set when the source is nonempty. With an empty source it retains unknown remote extras: without comparison, projr does not discover extras to trigger a purge. New empty destinations are still advertised. These combinations are covered by actual CLI build/store/restore fixtures, including repeated same-byte builds and both cues.</p>
+<p>None controls comparison decisions; guarded path/type checks, source CSV-byte validation, staging and physical installation safety still read files. It is not a promise of zero remote reads or hashing. The shared physical transfer remains guarded and may read destination bytes while installing. Archive and configured GitHub publication remain pending.</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

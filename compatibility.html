@@ -332,7 +332,10 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#configured-single-label-restore" id="toc-configured-single-label-restore" class="nav-link" data-scroll-target="#configured-single-label-restore">Configured single-label restore</a></li>
   <li><a href="#remote-delivery-documentation-reconciliation" id="toc-remote-delivery-documentation-reconciliation" class="nav-link" data-scroll-target="#remote-delivery-documentation-reconciliation">Remote delivery documentation reconciliation</a></li>
   <li><a href="#configured-local-publication-candidate" id="toc-configured-local-publication-candidate" class="nav-link" data-scroll-target="#configured-local-publication-candidate">Configured local publication candidate</a></li>
-  <li><a href="#local-publication-to-restore-acceptance" id="toc-local-publication-to-restore-acceptance" class="nav-link" data-scroll-target="#local-publication-to-restore-acceptance">Local publication-to-restore acceptance</a></li>
+  <li><a href="#local-publication-to-restore-acceptance" id="toc-local-publication-to-restore-acceptance" class="nav-link" data-scroll-target="#local-publication-to-restore-acceptance">Local publication-to-restore acceptance</a>
+  <ul class="collapse">
+  <li><a href="#configured-local-publication-without-comparison" id="toc-configured-local-publication-without-comparison" class="nav-link" data-scroll-target="#configured-local-publication-without-comparison">Configured local publication without comparison</a></li>
+  </ul></li>
   </ul></li>
   </ul>
 </nav>
@@ -969,8 +972,14 @@ ul.task-list li input[type="checkbox"] {
 <p>The configured local latest/file matrix now follows each of the8strategy/cue builds with actual machine CLI restore, using configured destination fallback and VERSION discovery. It deliberately damages local bytes/adds a local-only file, then checks explicit clear restores exactly the strategy’s remote bytes while project CSV/VERSION remain unchanged. An advertised empty snapshot preserves local-only bytes. This is a real local-filesystem round trip, not just upload success, mock transport, or an actual GitHub Release round trip.</p>
 <p>Runtime is unchanged from PR185. Ponytail full extends existing fixtures instead of adding a new driver/framework. Independent exact-head review and remote execution evidence belong to the linked acceptance PR; no local heavy tests.</p>
 <p>Local publication rejects an existing legacy data or data-empty namespace, or a data entry in remote VERSION, when output-r-data is selected. This guard runs before hooks and again while preparing all destinations, before any publication. Legacy restore remains supported; publication does not migrate or delete legacy remote data. Regression fixtures cover directory-only, empty, advertisement-only and combined legacy states. Remote verification is required before delivery. Ponytail full review reuses the existing publication preflight and preparation boundaries; no migration framework or new configuration policy is introduced.</p>
+<section id="configured-local-publication-without-comparison" class="level3">
+<h3 class="anchored" data-anchor-id="configured-local-publication-without-comparison">Configured local publication without comparison</h3>
+<p>Same: pinned projr 90be50132d16aee33e39c0f7f35ef906c35f5397 <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-dest.R#L240">R/yml-dest.R</a> defaults none inspection to upload-all. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send-label.R#L697">R/dest-send-label.R</a> uses an empty destination filename set for none; sync planning treats every source filename as extra. Thus explicit upload-missing and sync-diff overwrite all selected files and retain extras. Sync-purge uploads/purges a nonempty source; an empty source has no known extras and does not purge. Existing non-purged destinations carry an untrusted star when their label version is updated. Cues do not suppress the blind upload of nonempty sources.</p>
+<p>Same/different: no new default policy; file mode still defaults to sync-diff and omitted inspection still means the not-yet-supported manifest mode, which fails before hooks. Existing corrections for newly empty metadata remain. Source CSV capture, guarded path/type checks and the physical installer still validate bytes; none suppresses comparison-based decisions, not all filesystem reads/hashing.</p>
+<p>Tests: all four explicit strategies plus omitted strategy, both cues, repeated same-byte builds, actual configured local restore, exact final bytes/trust markers; existing/new empty sources retain unknown extras or advertise emptiness. Remote exact-head compilation/platform/API/renderer checks and independent review are required before delivery. GitHub publication, manifest comparison and archive history remain pending. Ponytail full reuses the existing action planner and guarded installer; one flag and explicit effective transfer selection avoid a second storage engine or speculative transport abstraction.</p>
 
 
+</section>
 </section>
 </section>
 
