@@ -492,20 +492,23 @@ stream into restorable ZIPs; all targets stage before the first upload. Existing
 CSV/VERSION history is retained. Data precedes manifest.zip, VERSION.zip and an
 existing project CHANGELOG.zip. Metadata ZIPs require exactly the canonical member;
 shared metadata and existing data download/extraction are bounded at 128 MiB
-compressed and expanded per archive; current/newest eligible data is staged privately under that same expanded limit.
-Unselected older archives are not downloaded. These caps fail during preparation
-before remote changes.
+compressed and expanded per downloaded archive. Unselected older archives are
+not downloaded. Generated final ZIPs are checked through the native extractor for
+portable names and its 100,000-member ceiling; the download byte cap does not
+limit generated source ZIPs. Validation fails before remote changes.
 
 Set structure: latest to replace label.zip (or label-empty.zip). Archive remains
 the default and may replace only the exact canonical current-version asset;
 older versions remain untouched. Existing data ZIPs are downloaded and validated,
-then selected CSV bytes overwrite their matching members while remote-only files
-survive. Empty source selection leaves existing data intact; the strategy table below
-explains when label VERSION also advances.
-Upload-all, upload-missing and sync-diff updates to existing targets receive a
-starred VERSION because retained extras are not described by the source inventory.
-A nonempty sync-purge replaces the complete file set and removes that star. Project/history
-metadata still advances. Empty-to-full upload removes the validated obsolete
+then the selected comparison and strategy are applied privately. Upload-all and
+none's blind missing/diff overwrite selected members while retaining extras;
+inspected missing preserves existing matching paths, and sync-diff/purge follow
+their comparison/removal rules. With none, empty selection preserves data; an
+inspected sync may instead finalize an empty target.
+
+Existing upload-all/missing updates are starred, as are none's sync-diff updates.
+Inspected sync-diff and nonempty purge can advertise an unstarred complete decision.
+Project/history metadata still advances. The tables below describe each mode. Empty-to-full upload removes the validated obsolete
 empty variant only after the full upload succeeds.
 
 Catalog case/numeric aliases, simultaneous full/empty assets, malformed ZIPs and
