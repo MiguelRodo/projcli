@@ -1,0 +1,265 @@
+---
+title: "Projr remote compatibility inventory"
+---
+
+Source audit, 23 October 2026. Pinned R source:
+[SATVILab/projr 90be50132d16aee33e39c0f7f35ef906c35f5397][r-root].
+Rust comparison: [41cd7b2f][rust-root], plus the separate [CSV slice PR175][csv-pr].
+This inventory was checked against dispatch, config parsing/defaults, store/restore
+code, shipped template, documentation and test sources. R tests and live provider
+operations were not executed for this audit. A test file is evidence of coverage
+intent, not proof of a passing integration run.
+
+**Current boundary:** local CAS export is implemented in Rust. Ordinary projr
+latest/archive store/restore and GitHub Release-asset transport are still gaps.
+CSV capture does not complete them or M2. CAS is an additional third structure,
+not the replacement manifest format or the only archive layout.
+
+## Providers, layouts and transports
+
+| Surface | Actual pinned projr behaviour | projcli mapping and coverage |
+|---|---|---|
+| Provider/type enum | Only local and github are dispatched and validated. [Options][options], [dispatcher][dispatcher]. | Local CAS provider only; normal local and GitHub parity missing. Existing CAS integrity tests are not ordinary-remote tests. |
+| Local | Plain filesystem directories/files; relative base is project root. No provider credentials. Lookup does not create directories. [Local][local]. | Local CAS path anchoring exists; latest/archive operations missing. |
+| GitHub | GitHub Release assets via direct httr REST, with release tag + asset filename handles. Current implementation does not depend on piggyback despite comments. [GitHub][github], [HTTP][http]. | Missing. Git commit/push is a separate implemented feature, not Release-asset support. |
+| OSF | Not in current enums/dispatch. Removed extra-option helper and explicit unsupported version helper remain. Old vignette mentions are stale. [Removed extras][dest], [OSF stub][versions]. | Do not advertise or implement merely from stale docs. |
+| Other transports | No S3, generic HTTP-storage, SSH/SFTP or DVC provider in the dispatch. A local path can of course point to a mounted filesystem. [Options][options]. | No parity promise for absent providers. Future optional DVC remains separate. |
+| latest hierarchy | Local path[/label]; label append defaults true. New sends update that location. [Layout][layout]. | Missing ordinary layout. |
+| archive hierarchy | Local path[/label]/v&lt;version&gt;; versioned snapshots coexist. The remote pre-root holds shared metadata. [Layout][layout]. | Missing ordinary archive. Existing CAS snapshots do not establish this layout. |
+| GitHub flat layout | Latest assets use path/label-derived flat name; archive adds version; ordinary content is ZIP-packaged. Metadata uses its own ZIP assets. [Flat naming][flat], [GitHub][github]. | Missing, including custom-prefix and append-label combinations. |
+| Empty content | Local final name gets -empty; GitHub name gets -empty.zip and ZIP has projr-empty sentinel. Full/empty variants are reconciled. [Local][local], [store finalisation][store-final]. | CSV blank-filename marker is separate; remote empty representations missing. |
+| CAS addition | Not an R layout. User requires it alongside latest and archive, with content-addressed versioned snapshots. | Existing local CAS objects/JSON/index are bounded groundwork; no new retention, GC or discovery policy adopted. |
+
+## Configuration, defaults, aliases and precedence
+
+R destinations are nested at build.local.&lt;title&gt; or build.github.&lt;title&gt;.
+Directory sources live at directories.&lt;label&gt;.source, keyed by provider/title,
+with string title references or inline mappings understood by restore helpers.
+The source-selection helpers contain defects noted below; not every accepted
+shape has demonstrated end-to-end behaviour. [Destination storage][dest],
+[source getters][source], [restore selection][restore-select].
+
+| Key or entrypoint | Parsed/defaulted/consumed behaviour | Rust status |
+|---|---|---|
+| Title | Named mapping key. Local helper describes title as descriptive; GitHub title becomes release tag. Internal title helper can derive it from content; public wrappers require the title argument. GitHub wrapper replaces spaces with hyphens. | Named CAS entries exist; release-tag resolution missing. |
+| content | Validates allowed labels; send helper treats null/false as none, true as automatic output/raw/docs, vector as selected labels. Boolean helper support and strict validation are not fully consistent. Cache is not in automatic selection. | Explicit declared-label vector only. Boolean auto behaviour missing, subject to settled explicit-directory rules. |
+| Special content | R option lists also mention docs/data/code/package; wrappers differ in their allowed sets, and code has special ZIP branches. This is not proof each implicit role works through all send paths. | Preserve approved output-r-data and explicit paths. Do not add implicit code/package/language roles merely from enum text; verify actual packaging route separately. |
+| structure | archive by default; only archive/latest accepted. The wrapper prose saying version is not a supported alias. | cas only today; ordinary structures missing. |
+| path | Required for local, anchored at project root when relative. Optional prefix for flat GitHub names. | CAS path is explicit/root-anchored; normal prefix rules missing. |
+| path-append-label | Hyphenated YAML key; defaults true. Snake-case path_append_label is an R argument, not evidence of a YAML alias. | Missing. |
+| id | Validator accepts it; completion overwrites local id with path and GitHub id with title. Do not mistake it for a freely configurable independent backend id. | No ordinary-remote id field. |
+| description/id_parent/role | Internal add/check arguments include these legacy fields. Extra-options helper now discards OSF-related extras. No current standalone OSF behaviour follows. | No port required for dead fields without a working source route. |
+| send.cue | if-change by default; enum only if-change/always. never occurs in stale wrapper docs but is rejected by current enum. Title-level cue lookup/setter and nested send.cue differ; see defects. | Missing. |
+| send.inspect | manifest by default; file/manifest/none accepted. | CAS manifest/file checks exist but have different JSON/BLAKE3 meaning; none and ordinary MD5 comparison missing. |
+| send.strategy | sync-diff default, except inspect:none defaults upload-all. Explicit upload-missing/upload-all/sync-purge/sync-diff preserved. | Missing ordinary strategies. |
+| send.conflict | Validator accepts overwrite/skip/error, but no store consumer was found. | Accepted-only R surface, not a functioning conflict-policy requirement. Rust must not silently accept an ineffective control. |
+| get.strategy/get.conflict | Accepted/checked; public destination wrappers comment out get arguments. Restore does not consume these policy fields. | Missing parser shape, but no implemented R policy to reproduce blindly. |
+| source on destination | Restore permits true (preferred), false (exclude), or label vector (preferred for those labels); content must include the label. If absent, first eligible destination is fallback. | Missing ordinary source selection. |
+| Per-directory source | Source lookup precedes destination lookup by default; pos can restrict source/dest, type and .title restrict selection. Inline/reference default paths are not uniformly reliable. | Missing. |
+| Settings granularity | Transfer settings are shared per destination title; content labels inherit them. Per-label source mappings choose their own source entries. | CAS content entries share one inspect mode; ordinary resolved plans missing. |
+| YAML layers | Local overrides active profiles overrides base; earlier listed profiles win; merge recurses, null inherits. R uses _projr base/profile/local names. [Merge][merge]. | Core merge precedence exists. Deliberate primary _proj.yml plus legacy _projr.yml conflict error retained. |
+| Archive function arguments | archive_local/archive_github accept false/null, true or selected labels; create implicit archive destination only when YAML has no archive title. Existing archive title wins; always_archive controls generated cue. [Send dispatch][send]. | Missing compatibility entrypoints. Do not override explicit YAML silently. |
+| Future registry | A separate user-requested registry/source-selection redesign is recorded; its naming remains open. | [Issue706][registry] is design-only; do not implement this new schema as part of parity work yet. |
+
+Actual defaults and checks:
+[destination completion][dest-default], [validation][yml-check],
+[remote add validation][remote-check], [public wrappers][wrappers],
+[enums][options], [shipped template][template].
+
+## Store, inspection and metadata
+
+Production/output builds only enter send; previews skip it. GitHub releases can
+be prepared/created before analysis when configured. Destination parameters and
+YAML are resolved per title, then labels are processed in content order. Source
+files for a send come from the project's current-version manifest, not an
+unqualified directory listing. The last label also triggers changelog writing.
+[Preparation][prepare], [send][send], [planner][store].
+
+| Policy | Implemented operation | Required Rust fixture |
+|---|---|---|
+| upload-all | Add every current source-manifest file; no removal of destination-only names. Existing destinations can be marked untrusted. | Existing extra file retained; source overwrite and empty-label cases. |
+| upload-missing | Add names absent remotely; retain existing remote bytes, including changed same-name content. | Same-name different bytes retained; missing names added. |
+| sync-diff | Add missing/changed files, remove remote-only files; compare via chosen inspection. | Add/change/delete transitions and no-change cue. |
+| sync-purge | Clear/recreate destination content then upload full selected set when plan says needed. | Disposable fixture only; never user dataset destructive tests. |
+| inspect:file | Enumerate/hash remote bytes with legacy MD5, compare to project evidence. | Detect actual byte corruption and ignore mtime/size equivalence. |
+| inspect:manifest | Compare recorded rows/version trust. If unavailable/untrusted, planner may fall back to file hashes. | Matching/missing/stale/corrupt metadata and trust markers. |
+| inspect:none | No comparison evidence; default upload-all and untrusted existing-state handling. | Never label unchecked remote bytes verified. |
+| cue | always or change-driven materialisation/version updates; no trust or no prior destination can force creation. | Unchanged inputs under both cues; empty result snapshots. |
+| Exclusions | Cache inventory excludes projr subtree. File listing includes dotfiles. ZIP helpers accept directory include/exclude and exact filename exclusions; filter implementations differ (pathspec vs regex). | Hidden files, nested names, exclusions and empty-after-exclusion; no regex/pathspec interchange assumption. |
+| Execution | Purge, add, remove, reconcile full/empty, then write manifest, VERSION, and optional changelog. | Failure at each boundary must report partial publication honestly. |
+
+[Plan execution][store-execute], [ZIP helpers][zip], [hashing][hash],
+[listing/path filters][path].
+
+Local metadata is ordinary manifest.csv, VERSION and CHANGELOG.md at the remote
+pre-root. GitHub uses manifest.zip, VERSION.zip and CHANGELOG.zip containing those
+files. VERSION has per-label release entries and optional trailing * indicating
+untrusted state. These files are distinct from CAS JSON and the plural Rust
+.projr/manifests.csv index. [Metadata][metadata].
+
+There is no all-or-nothing remote transaction: local copying/removal can be
+partial, GitHub whole-asset replacement deletes an old asset before uploading,
+and metadata is written after content. Metadata-download failures may become
+empty/unavailable state; some unzip errors are swallowed. Rust should retain
+its approved safety boundaries, surface errors and never claim rollback of
+remote side effects. [HTTP replacement][http-upload], [GitHub transfer][github].
+
+## Versions, listing, downloads and restore
+
+| Operation | Source behaviour | Rust comparison |
+|---|---|---|
+| List final remotes | Local immediate child directories; GitHub assets within one configured release. | Ordinary operations missing. No cross-release catalogue promised by R. |
+| List files | Local recursive listing; GitHub ZIP download/extraction. | CAS manifests can list explicit entries internally; not these operations. |
+| Latest version | latest reads label VERSION entry; archive parses local version-directory/GitHub asset names and selects max semantic version, including empty variants. | Ordinary selection missing; current CAS accepts caller-supplied versions. |
+| Trusted version | Stronger helper checks VERSION/archive agreement and project/remote manifest evidence. Restore bypasses this stronger helper. | Missing; do not describe ordinary restore as cryptographically verified. |
+| Download all | Copy directory tree or download named release asset and unzip. | Missing ordinary download/restore. |
+| Download one | Local and GitHub helpers flatten requested file to its basename at destination. | Missing; basename collision handling needs safe bounded implementation rather than unsafe silent overwrite. |
+| Restore labels | Default declared raw labels; explicit labels supported. Root manifest required; empty/unrecorded labels may be skipped. | CSV prerequisite underway in PR175; restore absent. |
+| Restore source | Source before destination; filter provider/title/content/source eligibility. First suitable selection, not retry across every provider after failure. Legacy fallback GitHub archive then local _archive exists. | Missing. |
+| Restore target | Final declared path, safe=false; optional clear removes current contents before lookup/download. | Missing. Preserve guards; stage/validate before destructive promotion rather than importing unsafe legacy clearing. |
+| Restore result | Per-label errors can yield partial false; clone wrapper can ignore that false and return true. | Must report failures honestly; do not preserve false success. |
+| Clone wrapper | Clone repo, select/change working directory, invoke content update. | Existing Git-backed init is not a restore clone wrapper. |
+| Most recently modified | Explicit unimplemented helpers; OSF variants explicitly unsupported. | Do not advertise working modification-time source selection. |
+
+[Version logic][versions], [restore][restore], [clone wrappers][clone].
+
+## Credentials and dependencies
+
+GitHub lower helpers accept explicit token/api_url. Otherwise token lookup is
+GITHUB_PAT, optional R gh::gh_token, optional gitcreds, GH_TOKEN, GITHUB_TOKEN.
+API base is explicit override, GITHUB_API_URL, public API. Enterprise gitcreds
+lookup strips /api/v3; public lookup uses https://github.com. Requests carry an
+Authorization header and may be unauthenticated without a token. Repository
+inference prefers origin then first Git remote, using available gh R helpers or
+system Git/gert. Explicit Enterprise overrides are not forwarded by every wrapper.
+[Authentication][auth], [repo inference][repo], [HTTP][http].
+
+These are source mechanisms, not authorisation to obtain new credentials, change
+permissions or install dependencies. Rust should use supported existing access,
+mock HTTP for fixtures, redact secrets and never store tokens in CSV/URLs.
+R helper auto-install behaviour is not adopted. Real Git remains an optional
+installed dependency; GitHub CLI is separate and need not be mandatory for an
+API implementation. Optional managed Git is not planned by default.
+
+## Source defects and documentation-only surfaces
+
+These are source-review findings, not executed reproductions or requirements to
+copy bugs. Keep claims bounded until fixture evidence exists.
+
+- Default source selection passes an inner mapping where the next helper expects
+  the provider mapping; explicit provider selection can call a title-specific
+  helper with a null title. [Selection][restore-select].
+- GitHub existence checks hard-code label/version names, ignoring some custom
+  path/append-label settings; local archive discovery assumes a label directory.
+  [GitHub existence][github-exists], [version paths][versions].
+- Title send-check reads top-level cue while defaults populate send.cue; the cue
+  setter also writes a different level. [Send][send], [defaults][dest-default].
+- get/conflict fields are validated but no effective execution consumer was
+  found. wrapper docs mention never/version and OSF, outside actual enums.
+- GitHub unzip failures can be swallowed, clone restore ignores partial failure,
+  and low-level asset deletion can infer the current repo despite a repo argument.
+  [GitHub][github], [HTTP][http], [clone][clone].
+- Content option sets, wrapper checks and boolean auto-content helpers differ;
+  special code/package labels alone do not prove working end-to-end export.
+
+
+## Critical configuration assessment, separate from compatibility
+
+This assessment excludes the agreed temporary CSV choice. Examples use the
+existing R inline build configuration, not a newly approved Rust schema.
+Findings are source-backed; unless stated otherwise they are not executed
+reproductions. Proposed fixes are review candidates, not silent semantic changes.
+
+| Rank/type | Example and user impact | Smallest proposed fix |
+|---|---|---|
+| High: ineffective accepted setting | A destination with send: {conflict: skip} passes allowed-value checks, but store execution never reads conflict. get: {strategy: upload-missing, conflict: error} similarly has no restore consumer. Users can believe a non-overwrite policy is enforced. [Checks][remote-check], [execution][store-execute]. | Reject ineffective combinations until implemented, or implement and test them explicitly. Do not silently ignore a safety control. |
+| High: colliding-target combination | build.local.shared with content: [raw-a, raw-b], structure: latest, path-append-label: false, send: {inspect: file, strategy: sync-diff} gives both labels one physical directory. File inspection can classify the other label's files as extras. Custom archive/pre-root paths also assume layouts not uniformly supported. [Layout][layout], [planner][store], [versions][versions]. | Resolve all target identities before mutation and reject collisions; verify supported custom-prefix/append combinations rather than accepting untested layouts. |
+| High: destructive restore ordering | A normal configured restore source plus projr_content_update(clear=TRUE) clears the destination before source resolution/download. A missing release or failed network call can leave data gone. clear defaults FALSE; this is an unsafe opt-in ordering, not an unsafe default. [Restore][restore]. | Download into private staging, validate, then apply guarded promotion. Preserve current data on lookup/download failure. |
+| Medium: surprising default synchronisation | build.local.shared: {path: backup, structure: latest, content: [output]} defaults to sync-diff, so remote-only files can be removed. A user expecting an additive backup may be surprised. Default archive keeps prior version directories, which narrows the risk. [Defaults][dest-default], [planner][store]. | Clearly expose adds/removes and the resolved strategy before applying; require deliberate review before changing defaults. This is a usability/policy concern, not evidence that sync-diff itself is defective. |
+| Medium: profile cannot disable with null | Base build.github.archive selects output; a local/profile build.github.archive: null inherits the base mapping. Removing one active-profile destination also does not remove its base definition. [Merge][merge]. | Explain merged effective destinations and provide a deliberately designed disabling/empty-selection mechanism. Do not reinterpret null without an approved compatibility change. |
+| Medium: argument precedence surprise | YAML build.local.archive: {content: [raw-a], path: backup} means archive_local=c('raw-b') does not replace that archive definition. always_archive also defers to explicit archive YAML. [Dispatch][send]. | Document this as YAML authority and display the resolved content; avoid presenting these arguments as ordinary overrides. Whether arguments should override is a design choice. |
+| Medium: two cue locations | send: {cue: always} is completed and used per label, while title-level send checking and the setter reference top-level cue. This invites inconsistent getter/setter behaviour; nested cue is not simply unused. [Send][send], [defaults][dest-default]. | Use one canonical nested location and test the public setter through an actual store plan; treat an alias only through explicit conflict rules. |
+| Medium: provider-dependent identity | build.github.nightly: {id: another-tag, content: [output]} validates an id, but completion resets it to nightly. Local id instead becomes path. Title is cosmetic locally and functional on GitHub. [Completion][dest-default]. | Reject or clearly deprecate ignored id values; document title/tag/path meanings. A larger unified identity design is separate. |
+| Medium: source-selection defects | directories.raw-data.source: {github: archive}, as shipped in the template, meets default helper paths that pass the wrong mapping level or an absent title into a title-specific branch. [Template][template], [selection][restore-select]. | Fix source selection with explicit/default provider/title fixtures; do not require users to discover accidental nesting workarounds. |
+| Medium: unsupported documentation | send.cue: never and structure: version are mentioned in wrappers but excluded by current enums; old OSF prose outlives implementation. [Wrappers][wrappers], [enums][options]. | Correct docs and errors. Implement new values only if separately requested, not to make stale prose true. |
+| Already recorded design | Removing a build destination can remove a historical restore source because definitions and upload selection share the same location. | The user-requested registry proposal is already [issue706][registry], design-only. It is not a new discovery here and is not implemented by this audit. |
+| Low: naming preference | dest versus destinations changes readability, not provider or safety behaviour. | Choose during the existing registry discussion; no new alias or migration silently introduced. |
+
+Credential lookup also deserves explicit presentation: ambient R gh/gitcreds
+resolution precedes GH_TOKEN/GITHUB_TOKEN, and repository inference may choose
+origin or the first remote. A supplied environment token or repository can
+therefore differ from a user's expectation. The smallest safe improvement is
+clear resolved host/repository diagnostics without secrets, plus tests for
+explicit overrides; no new credential permissions are implied.
+
+## Test evidence and bounded implementation sequence
+
+[Test sources](https://github.com/SATVILab/projr/tree/90be50132d16aee33e39c0f7f35ef906c35f5397/tests/testthat)
+were inspected without running R. Fixtures must establish behaviour before fixes
+are claimed; a source test title alone is not an acceptance result.
+
+| Source coverage | What it establishes here |
+|---|---|
+| test-yml-dest, test-yml-dest-wrapper, test-yml-remote-check | Parser/default/helper assertions exist, including accepted values. Not run in this audit. |
+| test-dest-send, test-dest-send-label, test-dest-send-prepare | Dispatch/planner/version/empty helper coverage exists. Not whole-provider publication evidence. |
+| test-remote-dispatcher, test-remote-local, test-remote-versions-local | Local dispatcher/layout/transfer/version fixtures exist. Reproduce equivalent Rust fixtures remotely. |
+| test-remote-github | Tests require mutable credentials and explicitly skip GitHub Actions. Presence is not CI coverage. Prefer safe mocked REST/ZIP fixtures for Rust. |
+| test-restore, test-restore-coverage, test-restore-repo | Restore selection/validation/clone test intent; source defects above still require targeted witnesses. |
+| Existing Rust CAS tests | Prove bounded BLAKE3 object/JSON/index behaviour, not ordinary latest/archive parity. |
+| PR175 CSV tests | Production pre/post MD5/history, strict encoding, exclusions and recovery; separate exact-head CI/review evidence on that PR. |
+
+Next slices should remain independently testable:
+
+1. Pure ordinary local latest/archive path/layout and metadata/version fixtures,
+   with explicit paths and empty variants; no new remote registry schema.
+2. Disposable local store plans for the four existing strategies and inspections,
+   then guarded execution/metadata/failure fixtures.
+3. Explicit local list/download/restore with staged validation and honest outcomes.
+4. GitHub REST/ZIP transport behind mock fixtures, existing credential lookup,
+   release/asset/version/metadata behaviour and failure reporting; no live dataset uploads.
+5. Cross-provider source selection and configuration compatibility, preserving
+   confirmed aliases and resolving source bugs with regression evidence.
+6. CAS-specific archive integration only where existing structures do not decide
+   snapshot discovery/retention. Those choices must not block ordinary parity.
+
+The full inventory stays open until implemented and independently reviewed
+evidence maps every supported row. CSV completion alone closes none of the
+broader provenance/remote milestones. The future registry proposal is separate
+planned work; do not silently implement it while porting old inline definitions.
+
+[r-root]: https://github.com/SATVILab/projr/tree/90be50132d16aee33e39c0f7f35ef906c35f5397
+[options]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/misc.R#L713
+[dispatcher]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote.R
+[local]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-local.R#L78
+[github]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github.R
+[http]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github-httr.R#L112
+[versions]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-versions.R
+[dest]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-dest.R
+[layout]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote.R#L463
+[flat]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote.R#L525
+[store-final]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send-label.R#L1792
+[source]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-dir-source.R
+[restore-select]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/restore.R#L325
+[merge]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml.R#L68
+[send]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send.R
+[dest-default]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-dest.R#L197
+[yml-check]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-check.R#L223
+[remote-check]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-remote-check.R
+[wrappers]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-dest-wrapper.R
+[template]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/inst/project_structure/_projr.yml
+[prepare]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send-prepare.R
+[store]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send-label.R
+[store-execute]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send-label.R#L1587
+[zip]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/misc.R#L638
+[hash]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/hash.R
+[path]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/path.R#L135
+[metadata]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-versions.R#L17
+[http-upload]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github-httr.R#L554
+[restore]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/restore.R#L141
+[clone]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/restore-repo.R#L93
+[auth]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/auth.R#L17
+[repo]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-misc.R#L40
+[github-exists]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github.R#L58
+[rust-root]: https://github.com/MiguelRodo/projcli/tree/41cd7b2f59345fa8c545eedcecd16f4636602770
+[csv-pr]: https://github.com/MiguelRodo/projcli/pull/175
+[registry]: https://github.com/MiguelRodo/issues/issues/706
