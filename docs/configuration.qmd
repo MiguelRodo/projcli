@@ -220,7 +220,7 @@ This is newer than installed preview.2. See the compatibility log and PR175 for 
 
 ## Configured restore source fields
 
-The source candidate's explicit remote restore command reads the existing
+The current source's explicit remote restore command reads the existing
 projr directories.LABEL.source and build.local/build.github definitions.
 See the [remote command reference](cli/remote.qmd) for lookup precedence,
 limits and safety. This does not enable automatic ordinary uploads in build;
