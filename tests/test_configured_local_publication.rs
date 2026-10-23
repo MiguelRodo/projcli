@@ -274,7 +274,7 @@ fn late_legacy_advertisement_aborts_all_targets_before_publication() {
         .replace("build:\n","build:\n  hooks: {pre: [start.py]}\n")
         + "    later:\n      path: later-remote\n      structure: latest\n      content: [output-r-data]\n      send: {inspect: file}\n";
     fs::write(root.join("_proj.yml"),config).unwrap();
-    fs::write(root.join("start.py"),"from pathlib import Path\np=Path('later-remote')\np.mkdir()\n(p/'VERSION').write_text('Project: v0.1.0\\ndata: v0.1.0\\n')\n").unwrap();
+    fs::write(root.join("start.py"),"from pathlib import Path\np=Path('later-remote')\np.mkdir()\n(p/'VERSION').write_bytes(b'Project: v0.1.0\\ndata: v0.1.0\\n')\n").unwrap();
     let output=invoke(&root,"build");
     assert!(!output.status.success());
     assert!(String::from_utf8_lossy(&output.stderr).contains("Legacy data"),"{}",String::from_utf8_lossy(&output.stderr));
