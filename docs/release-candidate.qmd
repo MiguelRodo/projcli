@@ -3,27 +3,21 @@ title: "Preview release checks"
 subtitle: "The review and delivery sequence, with verified preview.2 evidence."
 ---
 
-## Preview.3 candidate
+## Verified preview.3
 
-The next candidate is 0.4.0-preview.3, prepared from reviewed main
-28921066c6784b1db76bb98aed68952e707be47d. It combines the ordinary local/GitHub
-latest/archive publication and guarded single-label restore slices with the
-[bounded real GitHub evidence](remote-compatibility.qmd#live-github-fixture-verification).
-This is a coherent remote-workflow preview, not complete projr parity or M2.
-
-The version and release notes are preparation only. Require independent review,
-the complete pinned renderer/combined/recovery gate on the final source and
-host/install/docs checks before tagging. Public installation pins stay on
-preview.2 until draft assets and public bytes are verified; WSL installation
-then preserves the previous user-local binary and checks disposable preview
-success/failure. No new live fixture operations or credential/access changes
-are needed. See [the notes](release-preview-notes.md) for the intended scope and
-remaining limits.
+[0.4.0-preview.3](install.qmd) is published and installed in the verified WSL
+user-local location. Exact source95441429fe0ba6779b831ffdf9ad952136a946d0
+packages the ordinary local/GitHub latest/archive publication and guarded
+single-label restore checkpoint. [Delivery evidence](release-delivery.qmd#verified-preview3-delivery)
+records final-main, tagged assets, public bytes and installation verification.
+Remaining compatibility and M2 limits are explicit in the release notes; this
+is not a complete remote/provenance milestone claim.
 
 ## Verified preview.2
 
-[0.4.0-preview.2](install.qmd) is now published and installed in the checked WSL
-user-local location. Its exact source is
+[0.4.0-preview.2](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.2)
+was published and verified in the WSL user-local location before preview.3.
+Its exact source is
 768da1bf1b83be83b657b36219f299f37130ba03. See
 [delivery evidence](release-delivery.qmd) for actual-main, exact-tag, public-byte
 and installed-binary checks. The sequence below remains the release checklist.

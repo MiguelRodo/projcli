@@ -83,7 +83,7 @@ of treating a failed fallback scan as an empty selection. Errors name whether
 fallback discovery or managed-state capture failed and retain the OS cause.
 The sweep stays shallow, alphabetically ordered within each language, and skips
 linked entries; hidden and Git-ignored regular scripts remain eligible. This
-diagnostic correction is newer than preview.2, whose permission failure may
+diagnostic correction is included in preview.3; preview.2 permission failures may
 appear later as a bare OS error.
 
 Current source also validates every script/hook exclusion pattern before hooks,
@@ -150,7 +150,7 @@ renders, a deliberate later-document failure, then a smaller successful local Gi
 build. It compares committed report bytes with both final and cached files, checks
 the entire commit for failed report artifacts, and preserves retained failed
 scratch. This adds acceptance coverage to the existing lifecycle, not a new retry
-identity or transaction guarantee. It does not update installed preview.2 or
+identity or transaction guarantee. It is included in preview.3 and does not
 complete M2 provenance.
 
 
@@ -181,4 +181,4 @@ filenames, release versions and MD5 values, including earlier versions.
 Git/remotes are optional; preview leaves production history unchanged.
 See [configuration](../configuration.qmd#production-file-inventory)
 and [limits](../storage-design.qmd#compatible-csv-inventory).
-This is newer than preview.2; verification evidence is recorded in the compatibility log and PR175.
+This is included in preview.3; verification evidence is recorded in the compatibility log and PR175.

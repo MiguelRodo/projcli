@@ -13,7 +13,7 @@ Previews are not a security sandbox; code you run can still change files.
 
 ## Choose the preview explicitly
 
-The published [v0.4.0-preview.2](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.2)
+The published [v0.4.0-preview.3](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.3)
 is an early development release. These instructions pin that version.
 The release passed the integrated analysis, renderer and archive checks. Both
 platform downloads were checked against the tagged source and their checksums.
@@ -40,8 +40,8 @@ reports `x86_64` and `getconf GNU_LIBC_VERSION` reports glibc 2.35 or newer.
 ```bash
 mkdir -p "$HOME/.local/bin"
 installer="$(mktemp)"
-curl -fsSL "https://raw.githubusercontent.com/MiguelRodo/projcli/768da1bf1b83be83b657b36219f299f37130ba03/install-local.sh" -o "$installer" &&
-  PROJ_RELEASE_VERSION=0.4.0-preview.2 \
+curl -fsSL "https://raw.githubusercontent.com/MiguelRodo/projcli/95441429fe0ba6779b831ffdf9ad952136a946d0/install-local.sh" -o "$installer" &&
+  PROJ_RELEASE_VERSION=0.4.0-preview.3 \
   PROJ_INSTALL_DIR="$HOME/.local/bin" bash "$installer"
 rm -f "$installer"
 export PATH="$HOME/.local/bin:$PATH"
@@ -49,7 +49,7 @@ hash -r
 proj --version
 ```
 
-Expected version: `proj 0.4.0-preview.2`.
+Expected version: `proj 0.4.0-preview.3`.
 
 The script comes from the reviewed source commit. It downloads the pinned Linux
 binary, checks its SHA256 against the release manifest, and installs it as
@@ -64,8 +64,8 @@ Open **PowerShell 7** (`pwsh`) as your normal user:
 $installDir = Join-Path $env:USERPROFILE ".local\bin"
 New-Item -ItemType Directory -Force -Path $installDir | Out-Null
 $installer = Join-Path ([IO.Path]::GetTempPath()) ("proj-install-" + [guid]::NewGuid() + ".ps1")
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/MiguelRodo/projcli/768da1bf1b83be83b657b36219f299f37130ba03/install.ps1" -OutFile $installer
-$env:PROJ_RELEASE_VERSION = "0.4.0-preview.2"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/MiguelRodo/projcli/95441429fe0ba6779b831ffdf9ad952136a946d0/install.ps1" -OutFile $installer
+$env:PROJ_RELEASE_VERSION = "0.4.0-preview.3"
 $env:PROJ_INSTALL_DIR = $installDir
 & $installer
 Remove-Item -LiteralPath $installer
@@ -73,7 +73,7 @@ $env:Path = "$installDir;$env:Path"
 proj --version
 ```
 
-Expected version: `proj 0.4.0-preview.2`.
+Expected version: `proj 0.4.0-preview.3`.
 
 The script checks the Windows binary's SHA256 before installing
 `proj.exe` in `$HOME\.local\bin`. It does not change system settings or require
@@ -93,7 +93,7 @@ help or results.
 ## What the checksum proves
 
 The installer requires the release's `version.txt` and exactly one matching
-entry in [checksums.txt](https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.2/checksums.txt).
+entry in [checksums.txt](https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.3/checksums.txt).
 A missing or incorrect checksum stops installation before the existing binary is
 replaced. For a manual download, use `sha256sum` on Linux or `Get-FileHash -Algorithm SHA256`
 in PowerShell and compare the result with the manifest's exact filename entry
@@ -102,9 +102,9 @@ before running it.
 The manifest comes from the same GitHub release. Checksums detect corruption and
 mismatches; they are not independent signatures or proof of a reproducible build.
 The release also includes
-[source-commit.txt](https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.2/source-commit.txt)
-and [version.txt](https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.2/version.txt).
-The reviewed source is `768da1bf1b83be83b657b36219f299f37130ba03`.
+[source-commit.txt](https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.3/source-commit.txt)
+and [version.txt](https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.3/version.txt).
+The reviewed source is `95441429fe0ba6779b831ffdf9ad952136a946d0`.
 
 ## Start small
 

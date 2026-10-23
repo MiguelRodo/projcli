@@ -2,7 +2,10 @@
 title: "Inspect local remote versions"
 ---
 
-Current source work: ordinary local latest/archive inspection. This command does
+The remote commands and configured publication described here are included in
+published preview.3; see [delivery evidence](../release-delivery.qmd#verified-preview3-delivery).
+Earlier slice notes retain their original test scope. The command below provides
+ordinary local latest/archive inspection. This command does
 not upload, restore, verify artifact bytes or change configured remote definitions.
 It is separate from CAS and the deferred registry design.
 
@@ -183,8 +186,8 @@ Ponytail full: one ZIP crate with only Deflate enabled, existing MD5 inventory,
 HTTP client and guarded installer. No backend interface, registry or new YAML
 policy. Independent tests cover exact metadata/Unicode/hidden/empty members,
 malicious names, CRC/expanded limits and mocked actual ZIP upload/download
-merge/clear. No local heavy tests; remote lock resolution, exact-head platform/
-pinned/docs acceptance and independent review are pending.
+merge/clear. Remote exact-head platform/pinned/docs acceptance and independent
+review passed for the delivered slices; see [delivery evidence](../release-delivery.qmd#verified-preview3-delivery).
 
 Pinned sources:
 [flat names](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote.R#L525),
@@ -192,9 +195,9 @@ Pinned sources:
 [empty sentinel](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github.R#L350),
 [metadata assets](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-versions.R#L1).
 Configured single-label restore and explicit replacement are described below.
-Historical metadata merging, automatic publication, credential-helper fallback
-and complete CAS-structure integration remain outstanding. This
-source candidate does not update the published/installed preview.
+Historical metadata merging and configured automatic publication are included
+in preview.3. Complete credential-helper fallback and CAS-structure integration
+remain outstanding.
 
 Review amendments share the existing native directory-entry alias guard with
 file-policy transfers, validate empty-directory CRC with a bounded probe, and
@@ -279,12 +282,11 @@ that R's ineffective get.strategy/get.conflict controls work. Send policy is not
 executed by restore. Definitions retain local path versus GitHub title/tag id
 semantics, including spaces and @version tag normalization.
 
-Boundary: ordinary inline remote/source fields are accepted by this command's
-read-only configuration projection only. Normal build validation still rejects
-unsupported ordinary publication fields, preventing silently ignored uploads.
-Configured automatic publication, cue/history policy integration, all-label
-default restore, complete credential-helper fallback and the issue706 registry
-remain subsequent work. Installed preview remains unchanged.
+Restore reads ordinary inline remote/source definitions without executing send
+policies. Normal builds separately validate and execute supported configured
+publication, including cue/history integration. Unsupported controls fail rather
+than silently doing nothing. All-label default restore, complete credential-helper
+fallback and the issue706 registry remain subsequent work.
 
 Pinned comparison:
 [restore gate/selection/download](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/restore.R#L140),
@@ -313,11 +315,11 @@ spelling, including on case-insensitive filesystems. Metadata transfer staging
 also closes explicitly and reports cleanup failure paths.
 
 
-## Configured local publication candidate
+## Configured local publication {#configured-local-publication-candidate}
 
 Current source supports build.local archive (the default) and latest publication with manifest inspection
-by default, explicit file comparison, or explicit none comparison. This is newer than installed preview.2 and is not complete projr remote
-parity. All selected namespace identities are checked before hooks; every current
+by default, explicit file comparison, or explicit none comparison. This is included
+in preview.3 and is not complete projr remote parity. All selected namespace identities are checked before hooks; every current
 CSV-selected snapshot and existing remote metadata is staged/read before the
 first destination changes. Data precedes manifest.csv, VERSION and an existing
 project CHANGELOG.md. The build's existing irreversible publication boundary
@@ -408,8 +410,8 @@ fixtures, including repeated same-byte builds and both cues.
 None controls comparison decisions; guarded path/type checks, source CSV-byte
 validation, staging and physical installation safety still read files. It is not
 a promise of zero remote reads or hashing. The shared physical transfer remains
-guarded and may read destination bytes while installing. Archive and configured
-GitHub publication remain pending.
+guarded and may read destination bytes while installing. The archive and
+configured GitHub variants described below are also included in preview.3.
 
 
 ### Manifest comparison for local latest publication
@@ -431,8 +433,8 @@ promise zero remote reads. Explicit upload-all ignores comparison like projr.
 Projr strips the star before its latest-manifest helper checks history. Rust
 deliberately treats a starred label as untrusted and falls back to file comparison,
 consistent with the stated marker meaning. This is a source bug correction, not
-a new history/authenticity policy. Archive and configured GitHub publication are
-still pending.
+a new history/authenticity policy. Archive and configured GitHub publication
+use this shared planner and are described below.
 
 
 ### Configured ordinary local archives
@@ -597,7 +599,7 @@ ZIPs must contain exactly the native zero-byte sentinel, even when CSV agrees.
 | Live GitHub round-trip | Dedicated synthetic latest file/sync-diff and archive manifest/sync-diff, both if-change, passed below; full matrix remains mocked REST |
 
 Source implementation passed exact-head remote CI and independent review in
-[PR194](https://github.com/MiguelRodo/projcli/pull/194); installed preview remains unchanged. No new registry, defaults or CAS retention
+[PR194](https://github.com/MiguelRodo/projcli/pull/194); preview.3 now packages this source behavior. No new registry, defaults or CAS retention
 policy is introduced.
 
 

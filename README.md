@@ -9,12 +9,14 @@ paths together and explore the documented preview workflow.
 > **Never run production builds on the only copy of important work.**
 > Previews are not a security sandbox; code you run can still change files.
 
-**Status:** [v0.4.0-preview.2](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.2)
-delivers M1: a useful local CLI preview with active project configuration.
+**Status:** [v0.4.0-preview.3](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.3)
+retains M1's useful local CLI workflow and adds ordinary local/GitHub publication and guarded single-label restore.
 It remains a development prerelease. Stable Latest is v0.3.0 and predates these features.
 
 This release includes versioned temporary output paths, explicit R-package data
 management and HTML resource embedding when no embedding option was specified.
+It also supports latest/versioned remote snapshots and explicit upload controls;
+complete projr compatibility and M2 traceability remain unfinished.
 See [what works](docs/features.qmd) for supported workflows and limits.
 
 [Website](https://miguelrodo.github.io/projcli/) ·
@@ -23,7 +25,7 @@ See [what works](docs/features.qmd) for supported workflows and limits.
 
 ## Installation
 
-Use the pinned [v0.4.0-preview.2 development release](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.2).
+Use the pinned [v0.4.0-preview.3 development release](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.3).
 It supplies Linux x86-64 (glibc 2.35 or newer) and Windows x86-64 binaries.
 **No Rust compiler or administrator access is needed.** macOS and ARM binaries
 are not supplied.
@@ -34,8 +36,8 @@ Run this inside Ubuntu:
 ```bash
 mkdir -p "$HOME/.local/bin"
 installer="$(mktemp)"
-curl -fsSL "https://raw.githubusercontent.com/MiguelRodo/projcli/768da1bf1b83be83b657b36219f299f37130ba03/install-local.sh" -o "$installer" &&
-  PROJ_RELEASE_VERSION=0.4.0-preview.2 \
+curl -fsSL "https://raw.githubusercontent.com/MiguelRodo/projcli/95441429fe0ba6779b831ffdf9ad952136a946d0/install-local.sh" -o "$installer" &&
+  PROJ_RELEASE_VERSION=0.4.0-preview.3 \
   PROJ_INSTALL_DIR="$HOME/.local/bin" bash "$installer"
 rm -f "$installer"
 export PATH="$HOME/.local/bin:$PATH"
@@ -43,7 +45,7 @@ hash -r
 proj --version
 ```
 
-Expected version: `proj 0.4.0-preview.2`. The installer verifies SHA256 before
+Expected version: `proj 0.4.0-preview.3`. The installer verifies SHA256 before
 replacing `~/.local/bin/proj`. The PATH change applies to the current terminal.
 The explicit version pin matters: GitHub's stable **Latest** is still v0.3.0.
 
@@ -54,7 +56,7 @@ publisher identity or reproducible builds.
 
 ## Quickstart: a small Python analysis
 
-This example targets `0.4.0-preview.2`. Remote docs checks run it through the
+This example targets `0.4.0-preview.3`. Remote docs checks run it through the
 downloaded release binary and the current PR code. You need Python 3 available
 as `python3`; the shell commands below assume Ubuntu / WSL Ubuntu.
 
@@ -127,5 +129,5 @@ M2, complete input/code/dependency provenance and analysis-free publication
 retry remain unfinished. Preview recovery is bounded and does not isolate every
 write or undo arbitrary external effects.
 
-Current source (newer than preview.2): [projr-compatible CSV inventories](docs/storage-design.qmd#compatible-csv-inventory)
-record declared inputs, outputs and history. Release pins remain unchanged.
+Preview.3 includes [projr-compatible CSV inventories](docs/storage-design.qmd#compatible-csv-inventory)
+for declared inputs, outputs and history.

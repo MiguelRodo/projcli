@@ -66,7 +66,8 @@ archive and project VERSION bytes while retaining the computed cached result.
 The shell resolves the checked user-local command. No local compilation, system
 binary replacement, container operation or R-package change was involved.
 
-Pin PROJ_RELEASE_VERSION=0.4.0-preview.2 and use the [install guide](install.qmd).
+This historical delivery pinned PROJ_RELEASE_VERSION=0.4.0-preview.2.
+The [current install guide](install.qmd) now pins preview.3.
 Linux/Windows x86-64 delivery is verified; macOS/ARM binaries remain unavailable.
 Bookdown site embedding, direct R/IDE parity, linked-output portability and
 M2 records/provenance/retry remain outside the accepted CLI workflow.
@@ -77,3 +78,50 @@ CLI workflow above, including fresh init, ordered explicit file targets and
 bounded preservation. Stronger command schemas/process confinement and broader
 maintenance audits remain follow-ups. No new runtime or binary change was needed
 to reconcile this accepted scope; M2 remains unfinished.
+
+
+## Verified preview.3 delivery {#verified-preview3-delivery}
+
+[0.4.0-preview.3](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.3)
+is published and installed as the checked WSL user-local command. Its exact
+source/tag is95441429fe0ba6779b831ffdf9ad952136a946d0; protocol remains1.
+Stable Latest remains v0.3.0.
+
+Independently reviewed preparation [PR196](https://github.com/MiguelRodo/projcli/pull/196)
+passed all12 exact-head checks. Actual-main
+[platform tests](https://github.com/MiguelRodo/projcli/actions/runs/40002742829),
+[installers](https://github.com/MiguelRodo/projcli/actions/runs/40002742874),
+[site](https://github.com/MiguelRodo/projcli/actions/runs/40002743069) and
+[full pinned acceptance](https://github.com/MiguelRodo/projcli/actions/runs/40002790620)
+passed. Downloaded evidence was checked:26 renderer cases,8 combined workflows,
+2 mixed-render recovery cases and production archive/corruption witnesses.
+
+The [exact-tag workflow](https://github.com/MiguelRodo/projcli/actions/runs/40003709679)
+passed both native binary version/protocol and installer checks. Both artifact
+digests and all five draft assets matched CI binaries and exact source/version/
+checksum metadata; independent asset review cleared publication. All five
+unauthenticated public downloads then matched the verified bytes.
+
+| Platform | SHA256 |
+|---|---|
+| Linux x86-64 | a3e0bed55933e4bd6e2ca9f43045a07aab862bc67f4cb1a6d4decec7829e4789 |
+| Windows x86-64 | ed9f8ff9531fef5a3b90901f0f2eb2bf5a1ffd95d05e83e90326b4ad0d2fcbab |
+
+WSL installation preserved and hash-checked the previous preview.2 binary.
+Installed bytes match the public Linux asset; full-path help/version/protocol,
+fresh login-shell resolution and tiny disposable Python preview success/failure
+checks passed. Exact cached CSV and prior final/archive/project VERSION bytes
+were verified. No local compilation, system binary replacement, R/Quarto build,
+container operation, credential/access change or existing user data test occurred.
+
+This release includes the [ordinary remote workflow](cli/remote.qmd) and interim
+CSV inventories. The [real synthetic GitHub witness](remote-compatibility.qmd#live-github-fixture-verification)
+is distinct from this product release: five builds/two restores cover bounded
+latest/archive controls; the complete matrix and failures use mocked REST.
+
+Remaining work includes default multi-label restore, individual-file/list-files/
+trusted-version conveniences, additional credential/inference parity and local
+configured path-append-label:false. Identity/sealing/full provenance, registry
+design and CAS-specific discovery/retention are unfinished. Preview.3 is not M2
+completion or complete projr compatibility. Existing R package/helpers and thesis
+remain unchanged.

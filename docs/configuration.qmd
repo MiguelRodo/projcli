@@ -97,7 +97,7 @@ The `_proj.yml` file can also contain a `build` block to configure the behavior 
 - **`scripts`**: An optional list of explicit script paths or glob patterns to execute during the build pipeline.
   - Globbing patterns are supported.
   - Prefix a pattern with `!` to exclude matching files from execution.
-  - Current source rejects malformed inclusion or exclusion syntax before execution, including hook patterns. The exclusion correction is newer than preview.2; see the [build reference](cli/build.qmd).
+  - Current source rejects malformed inclusion or exclusion syntax before execution, including hook patterns. The exclusion correction is included in preview.3; see the [build reference](cli/build.qmd).
   - When provided, this selects scripts instead of automatic discovery. Document targets may be grouped for rendering, so mixed script and document targets are not guaranteed to run in the exact listed order.
 - **`hooks`**: An optional map of lifecycle hook scripts to execute.
   - **`pre`**: Scripts executed before the actual build phase.
@@ -216,7 +216,7 @@ directories:
 A successful output-enabled production build writes root manifest.csv, without
 requiring Git or a remote. Preview and build.output_run: false leave that CSV
 alone. See [the inventory notes](storage-design.qmd#compatible-csv-inventory).
-This is newer than installed preview.2. See the compatibility log and PR175 for verification evidence.
+This CSV capture is included in preview.3. See the compatibility log and PR175 for verification evidence.
 
 ## Configured restore source fields
 

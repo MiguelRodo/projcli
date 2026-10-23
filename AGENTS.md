@@ -193,7 +193,8 @@ Script/hook include and exclusion syntax must fail preflight on errors, includin
 exclusion-only selections. Never turn malformed exclusions into silent no-ops or
 shell commands. Reuse the shared resolver and preserve valid first-match order,
 deduplication, explicit-empty semantics and literal root handling. Source fixes
-newer than preview.2 do not update the published/installed binary automatically.
+do not update the published/installed binary automatically; delivery requires
+reviewed release and installation verification.
 
 
 Fallback discovery must propagate root/entry/type-inspection failures instead of
@@ -398,7 +399,8 @@ Defaults remain archive/manifest/sync-diff/if-change; registry706 stays design-o
 The real GitHub witness is docs/github-live-evidence.json and the remote
 compatibility page: source03074c8, exact-main CI artifact/binary hashes, five
 synthetic builds/two restores in a dedicated prerelease. Preserve the distinction
-between that source binary and the installed/released preview.2 despite identical
-package strings. Do not describe mocked full control coverage as live coverage.
+between that witness source binary (whose package string was preview.2) and
+product releases. Published/installed preview.3 packages the subsequent reviewed
+source95441429; its delivery evidence is separate from the synthetic fixture. Do not describe mocked full control coverage as live coverage.
 Keep fixture data distinct from product releases and never use user assets for
 live tests or replay an uncertain mutation without readback.
