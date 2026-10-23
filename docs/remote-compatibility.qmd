@@ -266,3 +266,35 @@ planned work; do not silently implement it while porting old inline definitions.
 [rust-root]: https://github.com/MiguelRodo/projcli/tree/41cd7b2f59345fa8c545eedcecd16f4636602770
 [csv-pr]: https://github.com/MiguelRodo/projcli/pull/175
 [registry]: https://github.com/MiguelRodo/issues/issues/706
+
+
+## Explicit GitHub Release asset transport
+
+The source candidate adds native HTTPS REST asset listing, new uploads and
+staged downloads through remote github assets/upload/download. It preserves
+Enterprise API base paths and exact Release tags, lists paginated assets, and
+strips authentication from binary redirects. Uploads require an existing token;
+duplicate asset names fail without deleting the old asset. Release creation is
+explicit. Downloads require an explicit byte limit and protect project authority
+files, links and special entries, preserving old bytes on incomplete transfers.
+Network failures after upload may leave an uncertain remote result; inspect it
+before retrying. No credential installation or live-data test is authorised.
+
+Tokens use GITHUB_PAT, then GH_TOKEN, then GITHUB_TOKEN. GITHUB_API_URL selects
+the API base. Git credential helpers and gh-token fallback remain unported here.
+Listing/downloading public assets can be anonymous. Literal loopback HTTP is
+accepted for disposable fixtures; ordinary service URLs require HTTPS.
+
+This is the actual transport prerequisite for existing projr GitHub latest/archive
+support, not complete configured publication/restore. ZIPs are opaque in this
+slice; packaging, projr names, VERSION/manifest/CHANGELOG ZIP metadata, replacement
+policy and configured restore remain subsequent work. No registry/CAS redesign.
+Pinned comparison: remote-github-httr.R REST transport and remote-github.R ZIP
+transfer at 90be50132d16aee33e39c0f7f35ef906c35f5397.
+
+Ponytail full: one concrete HTTP client and an established synchronous HTTPS
+crate rather than a provider trait, GitHub CLI dependency or custom TLS. Reuse
+existing path guards and tempfile replacement. Mocked local HTTP fixture tests
+exercise real requests/bodies and CLI JSON without live GitHub writes. No local
+compilation/tests run; remote exact-head compilation, locked/API/docs/acceptance
+and independent review are still required. Source candidate is not installed.

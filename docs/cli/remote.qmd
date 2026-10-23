@@ -120,3 +120,27 @@ are rejected before staging when the planned spelling differs from an existing
 entry. This includes directory components and keeps upload-missing from becoming
 an overwrite. Case-sensitive targets retain distinct names. Case-only migrations
 are not silently inferred by this bounded file-policy command.
+
+
+## Work with explicit GitHub Release assets
+
+The source CLI provides remote github assets, remote github upload and remote
+github download. Each requires --repository owner/repo and --tag RELEASE_TAG.
+Upload also requires --source FILE and --name ASSET_NAME; --create-release
+explicitly permits a missing Release to be created. Existing names are rejected
+without deletion. Download requires --name, --destination FILE and --max-bytes N.
+Source/destination file paths are relative to the selected project root unless
+absolute. The destination parent must already exist.
+
+Use an existing GITHUB_PAT, GH_TOKEN or GITHUB_TOKEN, in that order. Public list
+and download requests can be anonymous. GITHUB_API_URL supports an explicit
+Enterprise API endpoint including /api/v3. Tokens are never command arguments.
+No authentication setup or additional credential helper is installed.
+
+Machine assets returns result.assets; machine upload/download returns completed
+through the existing worker. ZIP creation/extraction, projr metadata ZIP handling
+and configured restore are not yet provided by these explicit asset commands.
+An interrupted upload can have an uncertain remote result: inspect before retry.
+Downloads stage complete bytes before replacement, preserve existing permissions,
+and reject protected project state, links and special files. No archive integrity,
+crash atomicity or concurrent-writer isolation claim follows.

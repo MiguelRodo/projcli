@@ -4,6 +4,7 @@ version = "0.4.0-preview.2"
 edition = "2024"
 
 [dependencies]
+ureq = { version = "3.5.0", default-features = false, features = ["rustls", "json"] }
 csv = "1.4.0"
 md5 = "0.8.0"
 anyhow = "1.0.102"

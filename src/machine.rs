@@ -45,7 +45,7 @@ pub(crate) fn emit_argument_error() -> i32 {
 pub(crate) fn emit_capabilities() -> i32 {
     emit(Ok(json!({
         "capability_version": CAPABILITY_VERSION,
-        "machine_commands": ["capabilities", "remote versions", "remote download", "remote store", "path get", "version get", "version set", "yml read", "init", "ignore add", "ignore remove", "build", "build-dev"],
+        "machine_commands": ["capabilities", "remote versions", "remote download", "remote store", "remote github assets", "remote github upload", "remote github download", "path get", "version get", "version set", "yml read", "init", "ignore add", "ignore remove", "build", "build-dev"],
         "non_interactive": true,
         "path_targets": ["safe", "final"],
         "path_fragments": true,
@@ -68,6 +68,10 @@ pub(crate) fn run(cli: &Cli) -> i32 {
         Err(_) => return emit(Err(failure(ErrorCode::ProjectSelectionFailed, "Cannot select the project directory."))),
     };
     let result = match &cli.command {
+        Commands::Remote { command: RemoteCommands::Github { command: command @ crate::GithubCommands::Assets { .. } } } => {
+            crate::github_assets(&root, command)
+                .map_err(|_| failure(ErrorCode::QueryFailed, "Cannot list the requested GitHub Release assets."))
+        }
         Commands::Remote { command: RemoteCommands::Store { source, destination, strategy, inspect: _, dry_run: true } } => {
             crate::local_store_files(&root, source, destination, strategy, true)
                 .map(|plan| json!({"plan": plan}))
