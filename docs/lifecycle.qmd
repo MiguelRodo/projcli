@@ -488,3 +488,8 @@ Git publication, end hooks, recovery and the next development bump. Normal exits
 release the claim. This does not change the stage order shown above or make
 partial remote publication reversible. Crashes leave a fail-closed claim requiring
 the user to confirm it is stale before removing it.
+
+
+Pre-publication recovery restores the exact captured version authority, including
+development counters greater than one; it does not manufacture dev1. This adds
+regression evidence without moving hooks, publication or the next-dev transition.

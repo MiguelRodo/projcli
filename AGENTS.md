@@ -421,3 +421,9 @@ narrowing the existing whole-repository scope; retained logs must not be hidden.
 This does not implement durable attempt logs, log retention, crash recovery or
 post-Git receipt sequencing. Preserve existing hook semantics; mutation enforcement
 is deferred, not an M2 gate.
+
+
+Pre-distribution failure recovery preserves exact prior VERSION/DESCRIPTION
+bytes and absence, including development counters above one and accepted original
+formatting. Never synthesize dev1 as rollback. Publication-boundary behavior and
+end-hook lifecycle remain unchanged; hook-mutation enforcement is deferred.
