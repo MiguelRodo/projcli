@@ -504,9 +504,17 @@ regression evidence without moving hooks, publication or the next-dev transition
 %%{init: {"htmlLabels": false}}%%
 flowchart TB
   W["Claim one project writer"]
-  S["Capture inputs; existing pre-build,<br/>build, post-build and recovery stages"]
+  S["Captured inputs; existing pre-build,<br/>analysis, promotion and recovery"]
+  P{"Production local success?"}
+  D{"Publication enabled?"}
+  L["End hooks; next dev;<br/>observe outputs; install completed log"]
+  G["Retain snapshot; distribution/Git;<br/>existing finalization; observe outputs;<br/>retain final log or Git receipt"]
   R["Release owned claim on normal exit"]
-  W --> S --> R
+  W --> S --> P
+  P -->|"Preview or earlier failure"| R
+  P -->|"Yes"| D
+  D -->|"No"| L --> R
+  D -->|"Yes"| G --> R
 ```
 
 ## Development source: snapshot and final Git receipt
@@ -520,5 +528,7 @@ commit loop is introduced. Missing receipts after a crash remain unresolved;
 failed requests never promise that remote state was unchanged.
 
 This overlay does not move end hooks, enforce output sealing or change the
-released lifecycle figures. Plain no-publication builds, previews and earlier
-failures remain outside this first durable-log slice.
+released lifecycle figures. Successful plain production builds now install a
+completed record after end hooks/next-dev succeed. Previews and earlier failures
+remain outside durable-log coverage. Final output observation fingerprints the
+post-finalization state; it never silently redefines the bytes already published.

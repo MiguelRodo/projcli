@@ -478,6 +478,13 @@ fn attempt_snapshot_and_receipt_follow_two_normal_commits_without_recursion() {
     assert_eq!(receipt["git"]["push"],"not_requested");
     assert_eq!(receipt["git"]["head"],fixture.text(&["rev-parse","HEAD"]));
     assert_eq!(receipt["version_after"],"v1.2.4.1");
+    let id=receipt["attempt_id"].as_str().unwrap();
+    let snapshot:serde_json::Value=serde_json::from_slice(&fixture.git(&["show",&format!("HEAD:./.proj/log/{id}.json")])).unwrap();
+    assert_eq!(receipt["final_outputs"]["status"],"completed");
+    assert_eq!(receipt["final_outputs"]["inventory"],snapshot["inventory"]["release_outputs"]);
+    let rows=proj::manifest_csv::decode(&fixture.git(&["show","HEAD:./manifest.csv"])).unwrap();
+    let expected=blake3::hash(&proj::manifest_csv::encode(&rows).unwrap()).to_hex().to_string();
+    assert_eq!(snapshot["inventory"]["release_outputs"]["canonical_csv_blake3"],expected);
     let bytes=fs::read(fixture.root.join(".proj/log").join(&name)).unwrap();
     let second=fixture.build(false);
     assert!(second.status.success(),"{}",String::from_utf8_lossy(&second.stderr));
@@ -536,4 +543,27 @@ fn failed_commit_and_failed_receipt_write_preserve_both_diagnostics_and_snapshot
     let snapshot:serde_json::Value=serde_json::from_slice(&fs::read(&logs[0]).unwrap()).unwrap();
     assert_eq!(snapshot["status"],"pre_git_snapshot");
     assert_eq!(snapshot["distribution_may_have_started"],true);
+}
+
+#[test]
+fn git_receipt_observes_post_hook_changes_without_rewriting_the_committed_snapshot() {
+    let fixture=Fixture::new(false);
+    let config=fs::read_to_string(fixture.root.join("_proj.yml")).unwrap();
+    fs::write(fixture.root.join("_proj.yml"),format!("{config}  hooks:\n    post: [end.py]\n")).unwrap();
+    fs::write(fixture.root.join("end.py"),"from pathlib import Path\nPath('released/results.csv').rename('released/renamed.csv')\n").unwrap();
+    fixture.git(&["add","-A"]);fixture.git(&["commit","-m","fixture end hook"]);
+    let output=fixture.build(false);
+    assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
+    let (_,receipt)=fixture.pending_receipt();
+    let id=receipt["attempt_id"].as_str().unwrap();
+    let snapshot:serde_json::Value=serde_json::from_slice(&fixture.git(&["show",&format!("HEAD:./.proj/log/{id}.json")])).unwrap();
+    assert_ne!(receipt["final_outputs"]["inventory"],snapshot["inventory"]["release_outputs"]);
+    assert_eq!(receipt["git"]["commit"],"completed");
+    assert_eq!(fixture.git(&["show","HEAD:released/results.csv"]),b"result\n84\n");
+    assert_eq!(fs::read(fixture.root.join("released/renamed.csv")).unwrap(),b"result\n84\n");
+    assert!(!fixture.root.join("released/results.csv").exists());
+    let released=fixture.root.join("released").canonicalize().unwrap();
+    let rows=proj::manifest::capture_directory("output",camino::Utf8Path::from_path(&released).unwrap(),"v1.2.4",false).unwrap();
+    let expected=blake3::hash(&proj::manifest_csv::encode(&rows).unwrap()).to_hex().to_string();
+    assert_eq!(receipt["final_outputs"]["inventory"]["canonical_csv_blake3"],expected);
 }

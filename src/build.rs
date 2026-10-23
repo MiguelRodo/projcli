@@ -461,6 +461,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         for (path, bytes) in &engine_originals { crate::path_safety::resolve_path(path.as_std_path(), true)?; crate::fs_utils::write_managed_file(path, bytes).with_context(|| format!("Cannot restore exact renderer configuration {path}"))?; }
         Ok(())
     };
+    let mut attempt_inventory = None;
     let mut document_stage = None;
     let mut project_embedding = None;
     let local_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| -> anyhow::Result<()> {
@@ -599,6 +600,10 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         }
         if record_manifest {
             let outputs = crate::manifest::capture_build(project_root, &config, &initial_version.to_string(true), false)?;
+            attempt_inventory=Some(crate::attempt_log::InventoryEvidence {
+                inputs:crate::attempt_log::InventoryFingerprint::capture(&pre_manifest,&initial_version.to_string(true))?,
+                release_outputs:crate::attempt_log::InventoryFingerprint::capture(&outputs,&initial_version.to_string(true))?,
+            });
             let rows = crate::manifest::deduplicate(pre_manifest.into_iter().chain(outputs).chain(previous_manifest.iter().cloned()));
             crate::manifest::write(&project_root.join("manifest.csv"), &rows)?;
         }
@@ -638,10 +643,30 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         }
         Ok(())
     };
+    let prepare_log=||crate::attempt_log::AttemptLog::prepare(project_root,&attempt,
+        crate::profile::parse_active_profiles(&profile_text),version_before.clone(),initial_version.to_string(true),
+        match mode {BuildMode::ProdMajor=>"production_major",BuildMode::ProdMinor=>"production_minor",_=>"production_patch"},
+        config.git.commit,push_target.is_some(),
+        if config.git.commit {crate::git::head_in(project_root,&environment)}else{None},attempt_inventory.clone());
+    let observe_outputs=|| -> anyhow::Result<crate::attempt_log::FinalOutputs> {
+        let inventory=if record_manifest {
+            let rows=crate::manifest::capture_build(project_root,&config,&initial_version.to_string(true),false)?;
+            Some(crate::attempt_log::InventoryFingerprint::capture(&rows,&initial_version.to_string(true))?)
+        }else{None};
+        Ok(crate::attempt_log::FinalOutputs {
+            status:if record_manifest {crate::attempt_log::Status::Completed}else{crate::attempt_log::Status::NotRequested},inventory})
+    };
     let publish = !is_dev && (config.git.commit || !config.dest.is_empty()
         || (config.output_run.unwrap_or(true) && (!ordinary.is_empty()||!github.is_empty())));
     if !publish {
-        let finish = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| end_hooks(None))) {
+        let finish = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            end_hooks(None)?;
+            if !is_dev {
+                let outputs=observe_outputs()?;
+                prepare_log()?.completed_local(version_get_from(project_root).map(|version|version.to_string(true)),outputs)?;
+            }
+            Ok(())
+        })) {
             Ok(result) => result,
             Err(_) => Err(anyhow::anyhow!("End hook panicked unexpectedly")),
         };
@@ -653,11 +678,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     // later publication/end-hook errors preserve it, never claim remote rollback.
     if let Err(error) = version_set_at(project_root, &initial_version.to_string(false)) { return Err(backup.restore(error)); }
     drop(backup);
-    let mut log=crate::attempt_log::AttemptLog::start(project_root,&attempt,crate::profile::parse_active_profiles(&profile_text),
-        version_before,initial_version.to_string(true),
-        match mode {BuildMode::ProdMajor=>"production_major",BuildMode::ProdMinor=>"production_minor",_=>"production_patch"},
-        config.git.commit,push_target.is_some(),
-        if config.git.commit {crate::git::head_in(project_root,&environment)}else{None})
+    let mut log=prepare_log().and_then(|log|log.start())
         .context("Local build succeeded; cannot retain attempt evidence (local release preserved)")?;
     let mut git_outcome=crate::attempt_log::GitOutcome::requested(config.git.commit,push_target.is_some());
     let publication = (|| -> anyhow::Result<()> {
@@ -692,7 +713,13 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         log.finalization()?;
         end_hooks(transition.as_ref())
     })();
-    let evidence=log.finish(publication.is_ok(),git_outcome,version_get_from(project_root).map(|version|version.to_string(true)),
+    let (outputs,observation)=match observe_outputs() {
+        Ok(outputs)=>(outputs,Ok(())),
+        Err(error)=>(crate::attempt_log::FinalOutputs {status:crate::attempt_log::Status::Failed,inventory:None},
+            Err(error).context("Cannot observe final outputs; earlier inventory evidence remains")),
+    };
+    let publication=crate::attempt_log::retain_result(publication,observation);
+    let evidence=log.finish(publication.is_ok(),git_outcome,version_get_from(project_root).map(|version|version.to_string(true)),outputs,
         |id,snapshot,receipt|crate::git::record_pending_receipt_in(project_root,&environment,id,snapshot,receipt))
         .context("Local release preserved; final attempt evidence could not be written, earlier evidence remains");
     crate::attempt_log::retain_result(publication,evidence)

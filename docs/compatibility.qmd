@@ -2763,3 +2763,40 @@ dependency evidence, earlier stage records and pruning policy remain unfinished.
 A failed provider/push return can still have partial effects; pending snapshots
 without final receipts remain unresolved. No M2 completion or preview.3 update
 is claimed, and optional DVC/CAS/registry redesign is outside this slice.
+
+
+## Plain production records and phase inventory fingerprints
+
+**New companion evidence, not a manifest replacement.** Reuse the approved attempt
+log, current manifest.csv capture and canonical CSV codec. Successful no-Git,
+no-remote production builds now install one completed record after end hooks and
+next-dev succeed. Do not choose a pre-distribution failure retention policy;
+previews and earlier failures remain unchanged.
+
+Input/release-output fingerprints bind only current phase rows, not the cumulative
+history table. Counts, labels and BLAKE3 over canonical CSV include version, paths,
+MD5 bytes and empty markers. Final output observation occurs after finalization
+is attempted, in the final local record or post-Git receipt; allowed end-hook
+mutation may differ without invalidating the build. Exclusions/output-disabled
+settings are retained. Existing pending receipts remain readable via optional
+fields. The R CSV and source package are unchanged.
+
+Ponytail full reuses existing inventory/codec, tempfile, BLAKE3 and error-combination
+helpers without dependencies or a new storage abstraction. Review of failure
+paths led to staged exclusive creation of complete evidence and removal only of
+newly created empty log directories; existing records are never truncated or
+discarded. Witness targets cover known MD5 bytes, changed inputs, renamed/added/
+deleted Unicode paths, empty labels, excluded cache/raw roles, preserved prior
+records, actual Git receipt/committed snapshot differences, and exact recovery
+when a plain record destination is invalid. Remote platform/API/docs/pinned
+acceptance and independent review are required; no local tests/compilation ran.
+
+This is not complete M2 provenance. JSON deliberately does not duplicate large
+CSV inventories. Fingerprints cannot reconstruct missing rows or enumerate the
+exact changed post-hook file set. Full source/dirty/config/runner/dependency
+evidence, final-row retention/inspection, human history and earlier failure
+retention remain follow-up work; installed preview.3 remains unchanged.
+
+Remote macOS found a fixture-only /var alias in the direct post-hook inventory
+assertion. The fixture now passes its owned canonical released-directory path;
+production link guards and the exact final digest assertion remain unchanged.
