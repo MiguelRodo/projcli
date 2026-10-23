@@ -122,6 +122,24 @@ pub enum Commands {
 /// Ordinary local inspection/download; does not change the configured remote registry.
 #[derive(Subcommand)]
 pub enum RemoteCommands {
+    /// Apply a file-inspected policy to a concrete local target; no metadata publication.
+    Store {
+        /// Explicit physical source directory.
+        #[arg(long)]
+        source: camino::Utf8PathBuf,
+        /// Concrete target directory whose parent exists.
+        #[arg(long)]
+        destination: camino::Utf8PathBuf,
+        /// Existing projr file transfer strategy.
+        #[arg(long, default_value = "sync-diff", value_parser = ["upload-all", "upload-missing", "sync-diff", "sync-purge"])]
+        strategy: String,
+        /// This bounded command requires explicit file inspection.
+        #[arg(long, value_parser = ["file"])]
+        inspect: String,
+        /// Report actions without creating or modifying files.
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Download an ordinary local version using staged destination replacement.
     Download {
         /// Storage base, relative to the selected project root unless absolute.
@@ -323,6 +341,12 @@ fn main() {
 
     match &cli.command {
         Commands::Capabilities => unreachable!("Capabilities handled before project selection"),
+        Commands::Remote { command: RemoteCommands::Store { source, destination, strategy, inspect: _, dry_run } } => {
+            match local_store_files(&root, source, destination, strategy, *dry_run) {
+                Ok(plan) => println!("{}", serde_json::to_string_pretty(&plan).expect("Store plan is serializable")),
+                Err(error) => fail(format_args!("Cannot transfer local store files: {error:#}")),
+            }
+        },
         Commands::Remote { command: RemoteCommands::Download { path, label, structure, remote_version, destination, path_append_label, clear } } => {
             match download_local_version(&root, path, label, structure, remote_version.as_deref(), destination, *path_append_label, *clear) {
                 Ok(result) => println!("Downloaded {} to {}", result.version, result.destination),
@@ -591,4 +615,17 @@ fn download_local_version(root: &camino::Utf8Path, path: &camino::Utf8Path, labe
     };
     let selected = proj::local_remote::select_version(&base, label, structure, remote_version, append_label)?;
     proj::local_remote::download_version(root, &selected, &destination, clear)
+}
+
+fn local_store_files(root: &camino::Utf8Path, source: &camino::Utf8Path, destination: &camino::Utf8Path, strategy: &str, dry_run: bool) -> anyhow::Result<proj::local_store::FileStorePlan> {
+    let source = if source.is_absolute() { source.to_owned() } else { root.join(source) };
+    let destination = if destination.is_absolute() { destination.to_owned() } else { root.join(destination) };
+    let strategy = match strategy {
+        "upload-all" => proj::local_store::StoreStrategy::UploadAll,
+        "upload-missing" => proj::local_store::StoreStrategy::UploadMissing,
+        "sync-diff" => proj::local_store::StoreStrategy::SyncDiff,
+        "sync-purge" => proj::local_store::StoreStrategy::SyncPurge,
+        _ => anyhow::bail!("Unsupported file transfer strategy"),
+    };
+    proj::local_store::store_files(root, &source, &destination, strategy, dry_run)
 }

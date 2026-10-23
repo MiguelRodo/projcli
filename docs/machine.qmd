@@ -61,3 +61,9 @@ The mutating remote download command follows the existing noninteractive worker
 route, returning completed: true on success and command_failed on failure.
 See its command reference for the explicit destination and bounded recovery
 contract; a failed post-install cleanup is not an instruction to repeat blindly.
+
+Current source adds remote store --dry-run as a read-only plan query. Its result
+contains plan with source, destination, strategy, uploads, overwrites, removals,
+same_bytes and applied=false. Normal remote store uses the existing worker route
+and returns completed:true only after success. This file-policy command does not
+publish remote metadata or load configured source/destination policy.

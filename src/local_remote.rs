@@ -177,7 +177,7 @@ pub struct LocalDownload {
     pub clear: bool,
 }
 
-fn validate_download_destination(root: &Utf8Path, source: &Utf8Path, destination: &Utf8Path) -> anyhow::Result<()> {
+pub(crate) fn validate_download_destination(root: &Utf8Path, source: &Utf8Path, destination: &Utf8Path) -> anyhow::Result<()> {
     crate::path_safety::validate_document_destination(root, source, destination)?;
     crate::path_safety::validate_directory_move(source, destination)?;
     let identity = crate::path_safety::resolve_path(destination.as_std_path(), true)?;
@@ -188,7 +188,7 @@ fn validate_download_destination(root: &Utf8Path, source: &Utf8Path, destination
 }
 
 
-fn download_permissions(path: &Utf8Path, relative: &Utf8Path, permissions: &mut std::collections::BTreeMap<Utf8PathBuf, fs::Permissions>) -> anyhow::Result<()> {
+pub(crate) fn download_permissions(path: &Utf8Path, relative: &Utf8Path, permissions: &mut std::collections::BTreeMap<Utf8PathBuf, fs::Permissions>) -> anyhow::Result<()> {
     let metadata = fs::symlink_metadata(path).with_context(|| format!("Cannot capture download permissions at {path}"))?;
     anyhow::ensure!(metadata.is_dir() || metadata.is_file(), "Download permissions require a real file/directory: {path}");
     permissions.insert(relative.to_owned(), metadata.permissions());
@@ -246,20 +246,26 @@ fn prepare_download_overlay(source: &Utf8Path, staged: &Utf8Path) -> anyhow::Res
 /// No source data, remote metadata, project version or configured paths change.
 pub fn download_version(root: &Utf8Path, version: &LocalVersion, destination: &Utf8Path, clear: bool) -> anyhow::Result<LocalDownload> {
     anyhow::ensure!(version.present && directory_present(&version.path)?, "Selected local remote directory is missing");
-    validate_download_destination(root, &version.path, destination)?;
-    let parent = destination.parent().context("Download destination has no parent")?;
-    anyhow::ensure!(directory_present(parent)?, "Download destination parent must already exist: {parent}");
-    let had_destination = directory_present(destination)?;
     if version.empty {
         anyhow::ensure!(fs::read_dir(&version.path)?.next().transpose()?.is_none(),
             "Empty remote marker contains entries: {}", version.path);
     }
+    install_directory(root, &version.path, destination, clear)?;
+    Ok(LocalDownload { version: version.version.clone(), destination: destination.to_owned(), empty: version.empty, clear })
+}
+
+/// Shared guarded tree installation; callers provide a complete staged source.
+pub(crate) fn install_directory(root: &Utf8Path, source: &Utf8Path, destination: &Utf8Path, clear: bool) -> anyhow::Result<()> {
+    validate_download_destination(root, source, destination)?;
+    let parent = destination.parent().context("Download destination has no parent")?;
+    anyhow::ensure!(directory_present(parent)?, "Download destination parent must already exist: {parent}");
+    let had_destination = directory_present(destination)?;
     let staging = tempfile::Builder::new().prefix(".proj-download-").tempdir_in(parent)?;
     let staged = Utf8PathBuf::try_from(staging.path().join("next"))?;
     let previous = Utf8PathBuf::try_from(staging.path().join("previous"))?;
     fs::create_dir(&staged)?;
     let mut permissions = std::collections::BTreeMap::new();
-    download_permissions(&version.path, Utf8Path::new(""), &mut permissions)?;
+    download_permissions(source, Utf8Path::new(""), &mut permissions)?;
     if had_destination {
         if clear { permissions.insert(Utf8PathBuf::new(), fs::symlink_metadata(destination)?.permissions()); }
         else {
@@ -267,15 +273,13 @@ pub fn download_version(root: &Utf8Path, version: &LocalVersion, destination: &U
             crate::fs_utils::copy_dir_recursive(destination, &staged)?;
         }
     }
-    if !version.empty {
-        prepare_download_overlay(&version.path, &staged)?;
-        crate::fs_utils::copy_dir_recursive(&version.path, &staged)?;
-    }
+    prepare_download_overlay(source, &staged)?;
+    crate::fs_utils::copy_dir_recursive(source, &staged)?;
     // Children first: restrictive parent modes must not block metadata updates.
     let mut permissions: Vec<_> = permissions.into_iter().collect();
     permissions.sort_by_key(|(path, _)| std::cmp::Reverse(path.components().count()));
     for (relative, mode) in permissions { fs::set_permissions(staged.join(relative), mode)?; }
-    validate_download_destination(root, &version.path, destination)?;
+    validate_download_destination(root, source, destination)?;
     anyhow::ensure!(directory_present(destination)? == had_destination, "Download destination presence changed during staging");
     if had_destination {
         fs::rename(destination, &previous).with_context(|| format!("Cannot retain existing download destination {destination}"))?;
@@ -291,7 +295,7 @@ pub fn download_version(root: &Utf8Path, version: &LocalVersion, destination: &U
     }
     let cleanup_path = staging.path().to_owned();
     staging.close().with_context(|| format!("Download installed at {destination}, but private staging cleanup failed at {}", cleanup_path.display()))?;
-    Ok(LocalDownload { version: version.version.clone(), destination: destination.to_owned(), empty: version.empty, clear })
+    Ok(())
 }
 
 #[cfg(test)]

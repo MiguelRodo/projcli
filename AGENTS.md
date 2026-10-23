@@ -282,3 +282,10 @@ destination-only files, explicit clear discards them only after staging succeeds
 Retain original directories if rollback fails and report their path. Preserve
 hard-linked aliases and reject linked/special copied trees. Do not claim CSV
 integrity verification, crash atomicity or concurrent-writer isolation.
+
+Explicit remote store is a file-inspected physical-directory policy layer.
+Require explicit file inspection, preserve sync-diff strategy semantics and
+dry-run no-mutation. Do not imply VERSION/CSV publication, configured cues,
+historical trust or future registry decisions. Share inventory/guarded install
+logic with existing build/download and retain their failure/permission tests.
+Mirror plans describe file actions, not private staging I/O counts.

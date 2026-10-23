@@ -47,3 +47,5 @@ pub mod manifest;
 pub mod manifest_csv;
 
 pub mod local_remote;
+
+pub mod local_store;

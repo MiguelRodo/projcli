@@ -219,8 +219,9 @@ int rename(const char *from, const char *to) {
     let compiled = Command::new("cc").args(["-shared", "-fPIC"]).arg(&shim_source)
         .args(["-ldl", "-o"]).arg(&shim).output().unwrap();
     assert!(compiled.status.success(), "{}", String::from_utf8_lossy(&compiled.stderr));
+    for operation in ["download", "store"] {
     for fail_rollback in [false, true] {
-        let root = physical.join(if fail_rollback { "rollback-error" } else { "install-error" });
+        let root = physical.join(format!("{operation}-{}", if fail_rollback { "rollback-error" } else { "install-error" }));
         fs::create_dir_all(root.join("remote/raw-data/v1.2.3")).unwrap();
         fs::create_dir(root.join("downloaded")).unwrap();
         fs::write(root.join("remote/raw-data/v1.2.3/new"), b"new source bytes").unwrap();
@@ -228,11 +229,16 @@ int rename(const char *from, const char *to) {
         let before = snapshot(&root);
         let mut command = Command::new(env!("CARGO_BIN_EXE_proj"));
         command.args(["--project"]).arg(&root)
-            .args(["remote", "download", "--path", "remote", "--label", "raw-data",
-                "--remote-version", "v1.2.3", "--destination", "downloaded", "--clear"])
             .current_dir(&root).env("LD_PRELOAD", &shim).env("PROJ_TEST_RENAME_ROOT", &root)
             .env_remove("PROJ_TEST_FAIL_ROLLBACK").env_remove(proj::PROJECT_ROOT_ENV)
             .env_remove(proj::RUN_CONTEXT_ENV);
+        if operation == "download" {
+            command.args(["remote","download","--path","remote","--label","raw-data",
+                "--remote-version","v1.2.3","--destination","downloaded","--clear"]);
+        } else {
+            command.args(["remote","store","--source","remote/raw-data/v1.2.3",
+                "--destination","downloaded","--inspect","file","--strategy","sync-diff"]);
+        }
         if fail_rollback { command.env("PROJ_TEST_FAIL_ROLLBACK", "1"); }
         let output = command.output().unwrap();
         assert!(!output.status.success());
@@ -252,5 +258,6 @@ int rename(const char *from, const char *to) {
             assert_eq!(snapshot(&root), before);
             assert!(diagnostic.contains("Cannot install staged local download"), "{diagnostic}");
         }
+    }
     }
 }
