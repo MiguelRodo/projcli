@@ -56,3 +56,8 @@ Present means a real directory exists, not that its contents match metadata.
 Neither false nor null metadata_untrusted proves integrity. Failed queries use
 query_failed without returning the raw path or filesystem error. See the
 [command reference](cli/remote.qmd) for layout and missing-target semantics.
+
+The mutating remote download command follows the existing noninteractive worker
+route, returning completed: true on success and command_failed on failure.
+See its command reference for the explicit destination and bounded recovery
+contract; a failed post-install cleanup is not an instruction to repeat blindly.

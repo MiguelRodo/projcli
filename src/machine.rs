@@ -45,7 +45,7 @@ pub(crate) fn emit_argument_error() -> i32 {
 pub(crate) fn emit_capabilities() -> i32 {
     emit(Ok(json!({
         "capability_version": CAPABILITY_VERSION,
-        "machine_commands": ["capabilities", "remote versions", "path get", "version get", "version set", "yml read", "init", "ignore add", "ignore remove", "build", "build-dev"],
+        "machine_commands": ["capabilities", "remote versions", "remote download", "path get", "version get", "version set", "yml read", "init", "ignore add", "ignore remove", "build", "build-dev"],
         "non_interactive": true,
         "path_targets": ["safe", "final"],
         "path_fragments": true,

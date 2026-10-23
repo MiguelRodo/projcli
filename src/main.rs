@@ -122,6 +122,30 @@ pub enum Commands {
 /// Read-only remote inspection; does not change the configured remote registry.
 #[derive(Subcommand)]
 pub enum RemoteCommands {
+    /// Download an ordinary local version using staged destination replacement.
+    Download {
+        /// Storage base, relative to the selected project root unless absolute.
+        #[arg(long)]
+        path: camino::Utf8PathBuf,
+        /// Existing remote directory label.
+        #[arg(long)]
+        label: String,
+        /// Ordinary remote layout.
+        #[arg(long, default_value = "archive", value_parser = ["latest", "archive"])]
+        structure: String,
+        /// Exact archive version directory spelling; omit for latest.
+        #[arg(long)]
+        remote_version: Option<String>,
+        /// Explicit local destination whose parent already exists.
+        #[arg(long)]
+        destination: camino::Utf8PathBuf,
+        /// Whether the storage layout appends the label to its base.
+        #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
+        path_append_label: bool,
+        /// Discard destination-only files after a successful staged download.
+        #[arg(long)]
+        clear: bool,
+    },
     /// List versions in a local latest/archive layout; does not verify file bytes.
     Versions {
         /// Storage base, relative to the selected project root unless absolute.
@@ -299,6 +323,12 @@ fn main() {
 
     match &cli.command {
         Commands::Capabilities => unreachable!("Capabilities handled before project selection"),
+        Commands::Remote { command: RemoteCommands::Download { path, label, structure, remote_version, destination, path_append_label, clear } } => {
+            match download_local_version(&root, path, label, structure, remote_version.as_deref(), destination, *path_append_label, *clear) {
+                Ok(result) => println!("Downloaded {} to {}", result.version, result.destination),
+                Err(error) => fail(format_args!("Cannot download local remote version: {error:#}")),
+            }
+        },
         Commands::Remote { command: RemoteCommands::Versions { path, label, structure, path_append_label } } => {
             match query_local_versions(&root, path, label, structure, *path_append_label) {
                 Ok(versions) => {
@@ -549,4 +579,16 @@ fn query_local_versions(root: &camino::Utf8Path, path: &camino::Utf8Path, label:
         _ => anyhow::bail!("Unsupported ordinary local remote structure"),
     };
     proj::local_remote::list_versions(&base, label, structure, append_label)
+}
+
+fn download_local_version(root: &camino::Utf8Path, path: &camino::Utf8Path, label: &str, structure: &str, remote_version: Option<&str>, destination: &camino::Utf8Path, append_label: bool, clear: bool) -> anyhow::Result<proj::local_remote::LocalDownload> {
+    let base = if path.is_absolute() { path.to_owned() } else { root.join(path) };
+    let destination = if destination.is_absolute() { destination.to_owned() } else { root.join(destination) };
+    let structure = match structure {
+        "latest" => proj::local_remote::LocalStructure::Latest,
+        "archive" => proj::local_remote::LocalStructure::Archive,
+        _ => anyhow::bail!("Unsupported ordinary local remote structure"),
+    };
+    let selected = proj::local_remote::select_version(&base, label, structure, remote_version, append_label)?;
+    proj::local_remote::download_version(root, &selected, &destination, clear)
 }
