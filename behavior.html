@@ -301,6 +301,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#real-local-git-publication-acceptance" id="toc-real-local-git-publication-acceptance" class="nav-link" data-scroll-target="#real-local-git-publication-acceptance">Real local Git publication acceptance</a></li>
   <li><a href="#inventory-transition-groundwork" id="toc-inventory-transition-groundwork" class="nav-link" data-scroll-target="#inventory-transition-groundwork">Inventory transition groundwork</a></li>
   <li><a href="#temporary-compatible-csv-recording" id="toc-temporary-compatible-csv-recording" class="nav-link" data-scroll-target="#temporary-compatible-csv-recording">Temporary compatible CSV recording</a></li>
+  <li><a href="#cooperative-build-ownership" id="toc-cooperative-build-ownership" class="nav-link" data-scroll-target="#cooperative-build-ownership">Cooperative build ownership</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -473,6 +474,13 @@ ul.task-list li input[type="checkbox"] {
 <section id="temporary-compatible-csv-recording" class="level2">
 <h2 class="anchored" data-anchor-id="temporary-compatible-csv-recording">Temporary compatible CSV recording</h2>
 <p>User-approved projr-style manifest.csv is independent of CAS. Preserve the four-column inventory and production pre/post/history semantics; keep the codec replaceable. This does not decide attempt identity, sealing, retention, remote-only discovery or Git policy. The local candidate and bounded deviations are in <a href="./storage-design.html#compatible-csv-inventory">storage design</a>. CAS is an additional remote structure alongside latest and ordinary archive, with content-addressed versioned snapshots. Provider/store/restore compatibility remains distinct from CSV implementation.</p>
+</section>
+<section id="cooperative-build-ownership" class="level2">
+<h2 class="anchored" data-anchor-id="cooperative-build-ownership">Cooperative build ownership</h2>
+<p>Each build and preview takes an exclusive project-local claim at .proj/build.lock before capturing mutable build inputs. The claim contains only a fresh opaque attempt ID: no hostname, username, credentials or process arguments. A competing build fails before hooks, version changes or managed output writes. Read-only path/configuration queries do not acquire a claim.</p>
+<p>The claim is released after ordinary success, failure and recovery. An existing claim is never stolen. A terminated process or machine failure can leave one: first confirm no build owns the project, then remove only the stale claim and retry. This is cooperative build exclusion, not a filesystem sandbox or a promise of crash recovery. Arbitrary scripts and other tools can still change files.</p>
+<p>Managed caches, output/document destinations and ordinary publication targets cannot replace .proj. Optional Git integration excludes only reserved live .proj/build.lock paths at every repository depth from clean-state checks and staging, preserving the existing whole-repository staging scope. A tracked claim is rejected. This does not exclude .proj/log or choose the still-pending final Git receipt sequence.</p>
+<p>Per-attempt durable JSON logs, their retention and post-commit/push receipts are not implemented by this ownership slice. End-hook mutation enforcement remains deferred; existing hook ordering and failure recovery are unchanged.</p>
 
 
 </section>
