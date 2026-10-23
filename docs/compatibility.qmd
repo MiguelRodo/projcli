@@ -1890,3 +1890,12 @@ filenames now have explicit codec/filesystem roundtrip fixtures. Schema, MD5,
 capture timing, history/deduplication, empty/excluded directories, guarded writes
 and managed rollback were reviewed. Compilation, test execution, comparative R
 execution and Windows behavior remain unverified; review is not executed acceptance.
+
+Remote first-head checks: Linux and Windows suites passed; pinned run
+39909563384 completed Rust tests/API docs, real renderer, combined M1, archive
+object-byte and mixed-document failure/retry acceptance. macOS exposed fixture
+paths retaining its /var alias: direct inventory/read APIs correctly rejected
+that symlink, so fixture roots now use physical canonical paths. Docs browser
+validation found the new seventh lifecycle figure; its exact expected count is
+updated, retaining all SVG shape/size and screenshot assertions. These corrections
+require fresh exact-head remote checks; no path guard or assertion is weakened.

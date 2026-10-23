@@ -24,7 +24,7 @@ fn success(output: std::process::Output) {
 
 #[test]
 fn production_records_md5_pre_inputs_final_outputs_and_exact_history_without_git_or_remotes() {
-    let temporary = tempfile::tempdir().unwrap(); let root = temporary.path();
+    let temporary = tempfile::tempdir().unwrap(); let physical_root = temporary.path().canonicalize().unwrap(); let root = physical_root.as_path();
     fixture(root, "");
     fs::write(root.join("analysis.py"), "import os\nfrom pathlib import Path\nroot = Path(os.environ['PROJ_PROJECT_ROOT'])\n(root / 'input/a.csv').write_bytes(b'changed')\ntarget = root / 'cache/projr/v1.2.4/output/result.csv'\ntarget.parent.mkdir(parents=True, exist_ok=True)\ntarget.write_bytes(b'hello')\n").unwrap();
     let config = fs::read_to_string(root.join("_proj.yml")).unwrap();
@@ -50,7 +50,7 @@ fn production_records_md5_pre_inputs_final_outputs_and_exact_history_without_git
 
 #[test]
 fn configured_hash_flags_and_cache_framework_exclusion_match_projr() {
-    let temporary = tempfile::tempdir().unwrap(); let root = temporary.path();
+    let temporary = tempfile::tempdir().unwrap(); let physical_root = temporary.path().canonicalize().unwrap(); let root = physical_root.as_path();
     fixture(root, "");
     let config = fs::read_to_string(root.join("_proj.yml")).unwrap()
         .replace("raw: {path: input}", "raw: {path: input, hash: false}")
@@ -70,7 +70,7 @@ fn configured_hash_flags_and_cache_framework_exclusion_match_projr() {
 #[test]
 fn preview_disabled_output_and_failed_end_hook_preserve_prior_csv_and_version() {
     for mode in ["build-dev", "disabled", "failed"] {
-        let temporary = tempfile::tempdir().unwrap(); let root = temporary.path();
+        let temporary = tempfile::tempdir().unwrap(); let physical_root = temporary.path().canonicalize().unwrap(); let root = physical_root.as_path();
         fixture(root, "");
         let prior = b"\"label\",\"fn\",\"version\",\"hash\"\n\"raw\",\"\",\"v0.1.0\",\"\"\n";
         fs::write(root.join("manifest.csv"), prior).unwrap();
@@ -97,7 +97,7 @@ fn preview_disabled_output_and_failed_end_hook_preserve_prior_csv_and_version() 
 #[test]
 fn bad_history_and_invalid_layer_hash_fail_before_start_hooks_and_missing_manifest_rolls_back() {
     for kind in ["history", "hash", "absent"] {
-        let temporary = tempfile::tempdir().unwrap(); let root = temporary.path();
+        let temporary = tempfile::tempdir().unwrap(); let physical_root = temporary.path().canonicalize().unwrap(); let root = physical_root.as_path();
         fixture(root, "");
         fs::write(root.join("start.py"), "from pathlib import Path\nPath('start-ran').write_text('yes')\n").unwrap();
         fs::write(root.join("end.py"), "import csv, os\nfrom pathlib import Path\nroot = Path(os.environ['PROJ_PROJECT_ROOT'])\nwith (root / 'manifest.csv').open(encoding='utf-8', newline='') as stream:\n    rows = list(csv.DictReader(stream))\nassert any(row['version'] == 'v1.2.4' and row['label'] == 'raw' and row['fn'] == 'a.csv' for row in rows)\n(root / 'cache/end-ran').write_bytes(b'current release CSV observed')\nraise SystemExit(17)\n").unwrap();
@@ -120,7 +120,7 @@ fn bad_history_and_invalid_layer_hash_fail_before_start_hooks_and_missing_manife
 
 #[test]
 fn standalone_csv_preserves_quoted_names_exact_rows_and_hardlink_aliases() {
-    let temporary = tempfile::tempdir().unwrap(); let root = temporary.path();
+    let temporary = tempfile::tempdir().unwrap(); let physical_root = temporary.path().canonicalize().unwrap(); let root = physical_root.as_path();
     let source = root.join("input"); fs::create_dir(&source).unwrap();
     fs::write(source.join("donn\u{00e9}es,\u{6570}\u{636e}.csv"), b"abc").unwrap();
     fs::create_dir(source.join("empty")).unwrap();
@@ -143,7 +143,7 @@ fn standalone_csv_preserves_quoted_names_exact_rows_and_hardlink_aliases() {
 #[test]
 fn links_and_special_files_fail_without_modifying_history() {
     use std::os::unix::fs::symlink;
-    let temporary = tempfile::tempdir().unwrap(); let root = temporary.path();
+    let temporary = tempfile::tempdir().unwrap(); let physical_root = temporary.path().canonicalize().unwrap(); let root = physical_root.as_path();
     let source = root.join("input"); fs::create_dir(&source).unwrap();
     fs::write(root.join("outside"), b"unchanged").unwrap();
     symlink(root.join("outside"), source.join("link")).unwrap();
@@ -161,7 +161,7 @@ fn links_and_special_files_fail_without_modifying_history() {
 
 #[test]
 fn cache_free_empty_selection_still_records_explicit_inputs() {
-    let temporary = tempfile::tempdir().unwrap(); let root = temporary.path();
+    let temporary = tempfile::tempdir().unwrap(); let physical_root = temporary.path().canonicalize().unwrap(); let root = physical_root.as_path();
     fs::write(root.join("_proj.yml"), "directories:\n  raw: {path: input}\nbuild:\n  scripts: []\n  git: false\n").unwrap();
     fs::write(root.join("VERSION"), "v1.2.3-4\n").unwrap();
     fs::create_dir(root.join("input")).unwrap();
