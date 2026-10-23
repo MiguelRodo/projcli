@@ -111,6 +111,18 @@ fn metadata_upload_failure_preserves_local_release_and_reports_partial_publicati
     assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap().trim(),"Version: v1.2.4");
     assert_eq!(fs::read(root.join("results/result.csv")).unwrap(),b"actual fixture bytes\n");
     {let state=server.state.lock().unwrap();assert!(state.assets.contains_key("output-v1.2.4.zip"));assert!(state.assets.contains_key("manifest.zip"));assert!(!state.assets.contains_key("VERSION.zip"));}
+    let logs:Vec<_>=fs::read_dir(root.join(".proj/log")).unwrap().map(|entry|entry.unwrap().path()).collect();
+    assert_eq!(logs.len(),1);
+    let bytes=fs::read(&logs[0]).unwrap();
+    let record:serde_json::Value=serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(record["status"],"failed");
+    assert_eq!(record["stage"],"distribution");
+    assert_eq!(record["distribution_may_have_started"],true);
+    assert_eq!(record["operations"][0]["provider"],"github_release");
+    assert_eq!(record["operations"][0]["status"],"failed");
+    assert_eq!(record["version_after"],"v1.2.4");
+    assert_eq!(record["git"]["commit"],"not_requested");
+    assert!(!String::from_utf8(bytes).unwrap().contains("http"));
     server.finish();
 }
 #[test]

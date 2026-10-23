@@ -153,7 +153,17 @@ def run_case(binary, workspace, artifacts, project):
     assert git('show', 'HEAD:VERSION') == b'Version: v1.2.4'
     assert (root / 'VERSION').read_bytes() == b'Version: v1.2.4.1'
     status = git('status', '--porcelain').decode().splitlines()
-    assert status == [' M VERSION'], status
+    receipts = list((root / '.proj/log').glob('*.git.json'))
+    assert len(receipts) == 1, receipts
+    receipt_path = receipts[0].relative_to(root).as_posix()
+    receipt = json.loads(receipts[0].read_text())
+    assert receipt['status'] == 'completed'
+    assert receipt['git']['commit'] == 'completed'
+    assert receipt['git']['head'] == committed
+    assert receipt['version_after'] == 'v1.2.4.1'
+    snapshot_path = f".proj/log/{receipt['attempt_id']}.json"
+    assert git('show', f'HEAD:{snapshot_path}') == (root / snapshot_path).read_bytes()
+    assert sorted(status) == sorted([' M VERSION', f'?? {receipt_path}']), status
     shutil.copytree(root / 'published', destination / 'final')
     for path, data in tracked.items():
         target = destination / 'committed' / path

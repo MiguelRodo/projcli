@@ -2,7 +2,7 @@ use anyhow::Context;
 use crate::run_environment::RunEnvironment;
 use std::process::Command;
 
-use std::io::Write;
+use std::io::{Read,Write};
 
 /// Resolve Git explicitly: Windows otherwise may search the parent's PATH.
 pub(crate) fn git_command_in(root: Option<&camino::Utf8Path>, environment: &RunEnvironment) -> anyhow::Result<Command> {
@@ -321,8 +321,19 @@ pub(crate) fn require_clean_git_in(root: &camino::Utf8Path, environment: &RunEnv
         let mut expected_path = b" M ".to_vec();
         expected_path.extend_from_slice(prefix);
         expected_path.extend_from_slice(b"VERSION\0");
-        let expected = output.stdout == expected_path;
-        anyhow::ensure!(expected && owned_dev_transition_matches(root, &git)?,
+        let mut version_dirty=false;
+        let mut allowed=true;
+        for entry in output.stdout.split(|byte|*byte==0).filter(|entry|!entry.is_empty()) {
+            if entry==&expected_path[..expected_path.len()-1] {version_dirty=true;continue;}
+            let receipt=entry.strip_prefix(b"?? ").and_then(|path|path.strip_prefix(prefix))
+                .and_then(|path|std::str::from_utf8(path).ok());
+            let owned=if let Some(relative)=receipt {
+                crate::attempt_log::owned_receipt(root,relative,|object|git_object_bytes(&git,object),
+                    |id,snapshot,receipt|pending_receipt_matches(root,&git,id,snapshot,receipt))?
+            }else{false};
+            if !owned {allowed=false;break;}
+        }
+        anyhow::ensure!(allowed && (!version_dirty||owned_dev_transition_matches(root,&git)?),
             "Git commit requested but the repository already contains changes; resolve them before building");
     }
     Ok(())
@@ -557,11 +568,25 @@ fn transition_path(root: &camino::Utf8Path, git: &SystemGit) -> anyhow::Result<s
     Ok(directory.join("projcli-dev-transition.json"))
 }
 
-fn git_file_bytes(git: &SystemGit) -> anyhow::Result<Vec<u8>> {
-    let output = git_command_in(Some(&git.repo_path), &git.environment)?.current_dir(&git.repo_path)
-        .args(["show", "HEAD:./VERSION"]).output()?;
-    anyhow::ensure!(output.status.success(), "Cannot inspect committed VERSION");
+fn git_object_bytes(git:&SystemGit,object:&str)->anyhow::Result<Vec<u8>> {
+    let output=git_command_in(Some(&git.repo_path),&git.environment)?.current_dir(&git.repo_path)
+        .args(["show",object]).output()?;
+    anyhow::ensure!(output.status.success(),"Cannot inspect committed project evidence");
     Ok(output.stdout)
+}
+
+fn git_file_bytes(git:&SystemGit)->anyhow::Result<Vec<u8>> {
+    git_object_bytes(git,"HEAD:./VERSION").context("Cannot inspect committed VERSION")
+}
+
+/// Read only an object ID, without configuration, identities, credentials or stderr.
+pub(crate) fn head_in(root:&camino::Utf8Path,environment:&RunEnvironment)->Option<String> {
+    let output=git_command_in(Some(root),environment).ok()?.current_dir(root)
+        .args(["rev-parse","HEAD"]).output().ok()?;
+    if !output.status.success(){return None;}
+    let head=std::str::from_utf8(&output.stdout).ok()?.trim();
+    if !matches!(head.len(),40|64)||!head.bytes().all(|byte|byte.is_ascii_hexdigit()){return None;}
+    Some(head.to_owned())
 }
 
 fn owned_dev_transition_matches(root: &camino::Utf8Path, git: &SystemGit) -> anyhow::Result<bool> {
@@ -600,4 +625,51 @@ pub(crate) fn record_dev_transition(root: &camino::Utf8Path, environment: &RunEn
     anyhow::ensure!(record.head == git.run_cmd(&["rev-parse", "HEAD"])? && record.release.as_bytes() == git_file_bytes(&git)?,
         "Git state changed during end hooks; development transition was not applied");
     crate::fs_utils::write_managed_file(transition_path(root, &git)?, serde_json::to_vec(record)?)
+}
+
+#[derive(serde::Serialize,serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ReceiptWitness {schema:u32,project_identity:String,attempt_id:String,snapshot_hash:String,receipt_hash:String}
+
+fn receipt_witness_path(root:&camino::Utf8Path,git:&SystemGit,id:&str)->anyhow::Result<std::path::PathBuf> {
+    anyhow::ensure!(id.starts_with("attempt-")&&id.len()==32
+        &&id.bytes().all(|byte|byte.is_ascii_alphanumeric()||byte==b'-'),"Invalid attempt identity");
+    let control=transition_path(root,git)?;
+    let parent=control.parent().context("Missing Git metadata directory")?;
+    let parent=camino::Utf8Path::from_path(parent).context("Git metadata path must be UTF-8")?;
+    crate::path_safety::validate_native_names(parent,&format!("projcli-attempt-receipts/{id}.json"),false)?;
+    let path=parent.join("projcli-attempt-receipts").join(format!("{id}.json")).into_std_path_buf();
+    crate::path_safety::resolve_path(&path,true)?;
+    Ok(path)
+}
+
+/// Store one immutable local ownership witness outside Git staging, not a catalogue.
+pub(crate) fn record_pending_receipt_in(root:&camino::Utf8Path,environment:&RunEnvironment,
+    id:&str,snapshot:&str,receipt:&str)->anyhow::Result<()> {
+    let git=SystemGit {repo_path:root.to_owned(),environment:environment.clone()};
+    let path=receipt_witness_path(root,&git,id)?;
+    std::fs::create_dir_all(path.parent().unwrap())?;
+    crate::path_safety::resolve_path(&path,true)?;
+    let witness=ReceiptWitness {schema:1,project_identity:blake3::hash(root.as_str().as_bytes()).to_hex().to_string(),
+        attempt_id:id.into(),snapshot_hash:snapshot.into(),receipt_hash:receipt.into()};
+    let mut file=std::fs::OpenOptions::new().write(true).create_new(true).open(path)
+        .context("Cannot create pending Git receipt ownership witness")?;
+    file.write_all(&serde_json::to_vec(&witness)?)?;
+    file.sync_all()?;
+    Ok(())
+}
+
+fn pending_receipt_matches(root:&camino::Utf8Path,git:&SystemGit,id:&str,snapshot:&str,receipt:&str)->anyhow::Result<bool> {
+    let path=receipt_witness_path(root,git,id)?;
+    let metadata=match std::fs::symlink_metadata(&path) {
+        Ok(metadata)=>metadata,
+        Err(error) if error.kind()==std::io::ErrorKind::NotFound=>return Ok(false),
+        Err(error)=>return Err(error).context("Cannot inspect pending Git receipt witness"),
+    };
+    if !metadata.is_file()||metadata.len()>8192{return Ok(false);}
+    let mut bytes=Vec::new();std::fs::File::open(path)?.take(8193).read_to_end(&mut bytes)?;
+    if bytes.len()>8192{return Ok(false);}
+    let witness:ReceiptWitness=match serde_json::from_slice(&bytes){Ok(witness)=>witness,Err(_)=>return Ok(false)};
+    Ok(witness.schema==1&&witness.project_identity==blake3::hash(root.as_str().as_bytes()).to_hex().as_str()
+        &&witness.attempt_id==id&&witness.snapshot_hash==snapshot&&witness.receipt_hash==receipt)
 }

@@ -543,3 +543,50 @@ fn historical_empty_archive_comparison_must_be_empty_even_when_manifest_agrees()
         assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap().trim(),"Version: v1.2.5");
     }
 }
+
+#[test]
+fn standalone_publication_logs_versions_and_outcomes_without_git_or_environment_dumping() {
+    let (_temporary,root)=setup("sync-diff","always","[output]");
+    let output=Command::new(env!("CARGO_BIN_EXE_proj")).current_dir(&root)
+        .args(["build","--non-interactive","--project"]).arg(&root)
+        .env("PATH","").env("GH_TOKEN","DO-NOT-RECORD-TOKEN")
+        .env("PROJCLI_TEST_PRIVATE_URL","https://user:password@example.test/private?token=secret")
+        .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
+        .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
+    success(output);
+    let logs:Vec<_>=fs::read_dir(root.join(".proj/log")).unwrap().map(|entry|entry.unwrap().path()).collect();
+    assert_eq!(logs.len(),1);
+    let text=fs::read_to_string(&logs[0]).unwrap();
+    for secret in ["DO-NOT-RECORD-TOKEN","user:password","example.test","token=secret","PROJCLI_TEST_PRIVATE_URL"] {
+        assert!(!text.contains(secret),"{secret}");
+    }
+    let record:serde_json::Value=serde_json::from_str(&text).unwrap();
+    assert_eq!(record["status"],"completed");
+    assert_eq!(record["version_before"],"v1.2.3");
+    assert_eq!(record["release_version"],"v1.2.4");
+    assert_eq!(record["version_after"],"v1.2.4.1");
+    assert_eq!(record["git"]["commit"],"not_requested");
+    assert_eq!(record["git"]["push"],"not_requested");
+    assert_eq!(record["source_head"],serde_json::Value::Null);
+    assert_eq!(record["operations"][0]["provider"],"ordinary_local");
+    assert_eq!(record["operations"][0]["status"],"completed");
+    assert_eq!(record["distribution_may_have_started"],true);
+    assert!(!root.join(".proj/build.lock").exists());
+}
+
+#[cfg(unix)]
+#[test]
+fn final_record_replacement_preserves_an_existing_hardlinked_alias() {
+    let (_temporary,root)=setup("sync-diff","always","[output]");
+    let mut config=fs::read_to_string(root.join("_proj.yml")).unwrap();
+    config.push_str("  hooks:\n    post: [hook.py]\n");
+    fs::write(root.join("_proj.yml"),config).unwrap();
+    fs::write(root.join("hook.py"),"from pathlib import Path\nimport os\nrecord=next(Path('.proj/log').glob('*.json'))\nPath('saved-log-bytes').write_bytes(record.read_bytes())\nos.link(record, 'log-hardlink.json')\n").unwrap();
+    success(invoke(&root,"build"));
+    let record=fs::read_dir(root.join(".proj/log")).unwrap().next().unwrap().unwrap().path();
+    let saved=fs::read(root.join("saved-log-bytes")).unwrap();
+    assert_eq!(fs::read(root.join("log-hardlink.json")).unwrap(),saved);
+    assert_ne!(fs::read(&record).unwrap(),saved);
+    let final_record:serde_json::Value=serde_json::from_slice(&fs::read(record).unwrap()).unwrap();
+    assert_eq!(final_record["status"],"completed");
+}

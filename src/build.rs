@@ -66,12 +66,27 @@ fn post_build_sync_in(config: &GlobalConfig, root: &camino::Utf8Path, inherited:
 }
 
 fn publish_git_in(root: &camino::Utf8Path, environment: &RunEnvironment, engine: crate::yml::GitEngine, message: &str, target: Option<&crate::git::PushTarget>) -> anyhow::Result<()> {
+    publish_git_recorded_in(root, environment, engine, message, target, None)
+}
+
+fn publish_git_recorded_in(root: &camino::Utf8Path, environment: &RunEnvironment, engine: crate::yml::GitEngine, message: &str,
+    target: Option<&crate::git::PushTarget>, mut outcome: Option<&mut crate::attempt_log::GitOutcome>) -> anyhow::Result<()> {
+    use crate::attempt_log::Status;
     let provider = create_git_provider_in(engine, root.to_owned(), environment)?;
     if let Some(target) = target { crate::git::validate_push_target_in(root, environment, target)?; }
-    provider.commit_all(message)?;
+    if let Some(outcome)=outcome.as_deref_mut() {outcome.commit=Status::Started;}
+    let committed=provider.commit_all(message);
+    if let Some(outcome)=outcome.as_deref_mut() {
+        outcome.commit=if committed.is_ok(){Status::Completed}else{Status::Failed};
+        if committed.is_ok(){outcome.head=crate::git::head_in(root,environment);}
+    }
+    committed?;
     if let Some(target) = target {
         crate::git::validate_push_target_in(root, environment, target)?;
-        provider.push(&target.remote, &format!("HEAD:{}", target.reference))?;
+        if let Some(outcome)=outcome.as_deref_mut() {outcome.push=Status::Started;}
+        let pushed=provider.push(&target.remote, &format!("HEAD:{}", target.reference));
+        if let Some(outcome)=outcome.as_deref_mut(){outcome.push=if pushed.is_ok(){Status::Completed}else{Status::Failed};}
+        pushed?;
     }
     Ok(())
 }
@@ -100,7 +115,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     let caller_directory = std::env::current_dir().context("Cannot capture invocation working directory")?;
     let resolved_root = crate::project::resolve_project_root(Some(project_root))?;
     let project_root = resolved_root.as_path();
-    let _attempt = crate::attempt::Attempt::acquire(project_root)
+    let attempt = crate::attempt::Attempt::acquire(project_root)
         .with_context(|| format!("Cannot acquire build writer ownership at {project_root}"))?;
     let is_dev = mode == BuildMode::Dev;
     let is_prod_run = matches!(mode, BuildMode::ProdMajor | BuildMode::ProdMinor | BuildMode::ProdPatch);
@@ -289,6 +304,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         anyhow::bail!("VERSION exists but is invalid");
     }
 
+    let version_before=original_version.to_string(true);
     let (initial_version, next_version) = crate::run_context::version_plan(original_version, mode)?;
     let github=if !is_dev&&config.output_run.unwrap_or(true) {crate::github_publication::capture(project_root,github_specs,&environment,&initial_version.to_string(true))?}else{Vec::new()};
     let run_context = crate::run_context::ContextFile::capture(project_root, &config, profiles, directory_order, initial_version.clone(), is_dev)?;
@@ -637,10 +653,20 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     // later publication/end-hook errors preserve it, never claim remote rollback.
     if let Err(error) = version_set_at(project_root, &initial_version.to_string(false)) { return Err(backup.restore(error)); }
     drop(backup);
+    let mut log=crate::attempt_log::AttemptLog::start(project_root,&attempt,crate::profile::parse_active_profiles(&profile_text),
+        version_before,initial_version.to_string(true),
+        match mode {BuildMode::ProdMajor=>"production_major",BuildMode::ProdMinor=>"production_minor",_=>"production_patch"},
+        config.git.commit,push_target.is_some(),
+        if config.git.commit {crate::git::head_in(project_root,&environment)}else{None})
+        .context("Local build succeeded; cannot retain attempt evidence (local release preserved)")?;
+    let mut git_outcome=crate::attempt_log::GitOutcome::requested(config.git.commit,push_target.is_some());
     let publication = (|| -> anyhow::Result<()> {
         if config.output_run.unwrap_or(true) {
-            crate::publication::publish_local(project_root, &ordinary, &initial_version.to_string(true))?;
-            crate::github_publication::publish(project_root,&github,&initial_version.to_string(true))?;
+            log.operation("ordinary_local",ordinary.len(),
+                ||crate::publication::publish_local(project_root,&ordinary,&initial_version.to_string(true)),
+                |effects|Some(effects.len()))?;
+            log.operation("github_release",github.len(),
+                ||crate::github_publication::publish(project_root,&github,&initial_version.to_string(true)),|_|None)?;
         }
         if let Some(remotes) = &config.remotes.local {
             for target in &config.dest {
@@ -648,7 +674,8 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
                 for label in &remote.content {
                     let source = config.get_path(project_root, label)?;
                     if !source.is_dir() { anyhow::bail!("Publication source is not a directory: {source}"); }
-                    crate::cas::ingest_directory(project_root, &remote.path, label, &source, &initial_version.to_string(false))?;
+                    log.operation("cas",1,
+                        ||crate::cas::ingest_directory(project_root,&remote.path,label,&source,&initial_version.to_string(false)),|_|None)?;
                 }
             }
         }
@@ -658,12 +685,18 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
                 Some(description) if !description.trim().is_empty() => format!("Build v{version}: {}", description.trim()),
                 _ => format!("Build v{version}"),
             };
-            publish_git_in(project_root, &environment, config.config.git.engine, &message, push_target.as_ref())?;
+            log.seal_git()?;
+            publish_git_recorded_in(project_root,&environment,config.config.git.engine,&message,push_target.as_ref(),Some(&mut git_outcome))?;
             crate::git::capture_dev_transition(project_root, &environment, &initial_version, &next_version)?
         } else { None };
+        log.finalization()?;
         end_hooks(transition.as_ref())
     })();
-    publication.context("Local build succeeded; publication or end-hook finalization failed (local release preserved)")
+    let evidence=log.finish(publication.is_ok(),git_outcome,version_get_from(project_root).map(|version|version.to_string(true)),
+        |id,snapshot,receipt|crate::git::record_pending_receipt_in(project_root,&environment,id,snapshot,receipt))
+        .context("Local release preserved; final attempt evidence could not be written, earlier evidence remains");
+    crate::attempt_log::retain_result(publication,evidence)
+        .context("Local build succeeded; publication or end-hook finalization failed (local release preserved)")
 
 }
 

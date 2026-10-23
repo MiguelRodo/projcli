@@ -54,7 +54,8 @@ elif action == 'remote':
  else: print('https://other.example/changed.git' if changed and os.environ.get('TEST_MUTATE_ENDPOINT') == '1' else os.environ.get('TEST_REMOTE_URL', 'https://github.com/example/repo.git'))
  if os.environ.get('TEST_MULTIPLE_URLS') == '1': print('https://other.example/second.git')
 elif action == 'ls-files': raise SystemExit(1)
-elif action == 'rev-parse': pass
+elif action == 'rev-parse':
+ if '--absolute-git-dir' in args: print(root / '.git')
 elif action == 'status':
  if os.environ.get('TEST_DIRTY') == '1': print(' M unrelated.txt')
  elif os.environ.get('TEST_HIDDEN_UNTRACKED') == '1' and '--untracked-files=all' in args: print('?? private.txt')

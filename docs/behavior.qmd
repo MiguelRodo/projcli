@@ -527,3 +527,37 @@ not exclude .proj/log or choose the still-pending final Git receipt sequence.
 Per-attempt durable JSON logs, their retention and post-commit/push receipts are
 not implemented by this ownership slice. End-hook mutation enforcement remains
 deferred; existing hook ordering and failure recovery are unchanged.
+
+## Development source: publication-attempt evidence
+
+Production builds with enabled ordinary/CAS publication or optional Git retain
+one JSON snapshot per attempt under .proj/log. The snapshot records the opaque
+attempt ID, UTC times, selected profiles, logical version transition, local-release
+completion and provider operation outcomes. It is a companion to the existing
+four-column CSV; it does not replace CSV or choose a new archive/CAS identity.
+
+The framework records that distribution may have started before entering a
+provider or Git operation. A returned failure may have partial effects, including
+an uncertain push; it never means the remote remained unchanged. Once this
+boundary is reached, framework error handling retains the earlier evidence.
+A crash with only a pending snapshot remains unresolved, without automatic retry.
+
+With Git enabled, the normal build commit includes the pre-Git snapshot. Final
+Git/end-hook/next-dev results go to a separate local outcome receipt, included in
+the next ordinary commit. There is no recursive log-only commit. Only an exact
+pending receipt, its unchanged snapshot in HEAD and its local ownership witness
+qualify for the narrowly scoped clean-worktree exception. Other dirty files,
+edited receipts and unowned version changes remain errors. Explicit user Git
+ignore rules still apply; managed ignore generation does not exclude these logs.
+
+Normal standalone publication requires neither Git nor a cloud account.
+Records omit raw configuration, environment, URLs, credentials, command arguments
+and subprocess output. IDs are random rather than host/user names. Worktree-local
+Git witnesses contain opaque control hashes and never enter Git history.
+
+This first slice starts at the successful local-release/publication boundary.
+Plain builds with no publication, previews and earlier failed builds still have
+no durable attempt record. Complete source/runner/dependency provenance, earlier
+stage records and cleanup/retention policy remain M2 follow-up work. End-hook
+mutation enforcement stays deferred; these records do not authenticate arbitrary
+scripts or provide a filesystem sandbox. The installed preview.3 is unchanged.
