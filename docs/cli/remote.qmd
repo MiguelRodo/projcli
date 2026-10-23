@@ -114,3 +114,9 @@ VERSION, manifest.csv, configured remotes, cue selection, historical comparison,
 empty remote naming and GitHub/CAS structures are untouched. Use the concrete
 version directory as destination; this command does not publish a complete
 discoverable remote snapshot by itself.
+
+Native filename aliases (for example A.csv/a.csv on a case-insensitive target)
+are rejected before staging when the planned spelling differs from an existing
+entry. This includes directory components and keeps upload-missing from becoming
+an overwrite. Case-sensitive targets retain distinct names. Case-only migrations
+are not silently inferred by this bounded file-policy command.

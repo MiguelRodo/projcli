@@ -145,3 +145,47 @@ fn mirror_keeps_private_modes_and_hardlink_alias_bytes_and_rejects_links() {
     assert!(!invoke(&root,"sync-purge",false).status.success());
     assert_eq!(files(&root.join("destination")),before);
 }
+
+#[test]
+fn native_filename_aliases_cannot_overwrite_missing_uploads_or_hide_overwrites() {
+    for strategy in ["upload-missing", "upload-all", "sync-diff", "sync-purge"] {
+        let temp = tempfile::tempdir().unwrap(); let root = temp.path().canonicalize().unwrap();
+        fs::create_dir(root.join("source")).unwrap(); fs::create_dir(root.join("destination")).unwrap();
+        fs::write(root.join("source/A.csv"), b"new bytes").unwrap();
+        fs::write(root.join("destination/a.csv"), b"existing bytes").unwrap();
+        let alias = root.join("destination/A.csv").exists();
+        let before = files(&root);
+        let dry = invoke(&root,strategy,true);
+        if alias {
+            assert!(!dry.status.success());
+            assert!(!invoke(&root,strategy,false).status.success());
+            assert_eq!(files(&root),before);
+        } else {
+            let plan = json(&dry);
+            assert_eq!(plan["result"]["plan"]["uploads"],serde_json::json!(["A.csv"]));
+            json(&invoke(&root,strategy,false));
+            assert_eq!(fs::read(root.join("destination/A.csv")).unwrap(),b"new bytes");
+            if strategy.starts_with("upload-") {
+                assert_eq!(fs::read(root.join("destination/a.csv")).unwrap(),b"existing bytes");
+            }
+        }
+    }
+}
+#[test]
+fn native_parent_directory_alias_is_rejected_without_loosening_existing_tree() {
+    let temp = tempfile::tempdir().unwrap(); let root = temp.path().canonicalize().unwrap();
+    fs::create_dir_all(root.join("source/Private")).unwrap();
+    fs::create_dir_all(root.join("destination/private")).unwrap();
+    fs::write(root.join("source/Private/new"),b"new").unwrap();
+    fs::write(root.join("destination/private/old"),b"old").unwrap();
+    let before = files(&root);
+    if root.join("destination/Private").exists() {
+        assert!(!invoke(&root,"upload-all",true).status.success());
+        assert!(!invoke(&root,"upload-all",false).status.success());
+        assert_eq!(files(&root),before);
+    } else {
+        json(&invoke(&root,"upload-all",false));
+        assert_eq!(fs::read(root.join("destination/private/old")).unwrap(),b"old");
+        assert_eq!(fs::read(root.join("destination/Private/new")).unwrap(),b"new");
+    }
+}

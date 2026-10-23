@@ -2015,3 +2015,11 @@ set, equal-length/equal-mtime changes, empty/Unicode inputs, no metadata writes,
 type collisions, permissions, hard-link aliases and unsafe paths. The existing
 Linux rename-fault witness now exercises both installer consumers. Tests remain
 remote-only; independent review and exact-head host/pinned/API/docs are gates.
+
+Independent review found logical case-sensitive names could misclassify an
+existing native alias as an upload-missing addition (and under-report upload-all
+overwrites). Preflight now compares native directory entries and rejects an
+existing alias before staging, including parent components, without writing probe
+files. Filesystem-sensitive CLI fixtures exercise all four policies and nested
+names; case-sensitive filesystems retain distinct-name behaviour. Exact-head
+remote verification and re-review remain required.
