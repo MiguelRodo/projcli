@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.19">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Projr remote compatibility inventory – projcli</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-sidebar docked nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">projcli</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./install.html"> 
+<span class="menu-text">Install</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./tutorial.html"> 
+<span class="menu-text">Get started</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./features.html"> 
+<span class="menu-text">What works</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/MiguelRodo/projcli"> <i class="bi bi-github" role="img" aria-label="GitHub repository">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./behavior.html">Design and progress</a></li><li class="breadcrumb-item"><a href="./remote-compatibility.html">Projr remote compatibility inventory</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Reference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./configuration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Configuration <code>_proj.yml</code></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cli/build.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><code>proj build</code></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./lifecycle.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Build lifecycle</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cli/version.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><code>proj version get</code></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cli/yml.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><code>proj yml read</code></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cli/path.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><code>proj path get</code></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cli/ignore.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><code>proj ignore</code></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cli/errors.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Command exit status</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Design and progress</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./behavior.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Project and execution behavior</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./compatibility.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">projr compatibility and change log</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./flow.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Build execution flow</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./remote-compatibility.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Projr remote compatibility inventory</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./r-wrapper-cran.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Future R wrapper: CLI installation and CRAN checks</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./storage-design.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Storage and release catalogue design</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#providers-layouts-and-transports" id="toc-providers-layouts-and-transports" class="nav-link active" data-scroll-target="#providers-layouts-and-transports">Providers, layouts and transports</a></li>
+  <li><a href="#configuration-defaults-aliases-and-precedence" id="toc-configuration-defaults-aliases-and-precedence" class="nav-link" data-scroll-target="#configuration-defaults-aliases-and-precedence">Configuration, defaults, aliases and precedence</a></li>
+  <li><a href="#store-inspection-and-metadata" id="toc-store-inspection-and-metadata" class="nav-link" data-scroll-target="#store-inspection-and-metadata">Store, inspection and metadata</a></li>
+  <li><a href="#versions-listing-downloads-and-restore" id="toc-versions-listing-downloads-and-restore" class="nav-link" data-scroll-target="#versions-listing-downloads-and-restore">Versions, listing, downloads and restore</a></li>
+  <li><a href="#credentials-and-dependencies" id="toc-credentials-and-dependencies" class="nav-link" data-scroll-target="#credentials-and-dependencies">Credentials and dependencies</a></li>
+  <li><a href="#source-defects-and-documentation-only-surfaces" id="toc-source-defects-and-documentation-only-surfaces" class="nav-link" data-scroll-target="#source-defects-and-documentation-only-surfaces">Source defects and documentation-only surfaces</a></li>
+  <li><a href="#critical-configuration-assessment-separate-from-compatibility" id="toc-critical-configuration-assessment-separate-from-compatibility" class="nav-link" data-scroll-target="#critical-configuration-assessment-separate-from-compatibility">Critical configuration assessment, separate from compatibility</a></li>
+  <li><a href="#test-evidence-and-bounded-implementation-sequence" id="toc-test-evidence-and-bounded-implementation-sequence" class="nav-link" data-scroll-target="#test-evidence-and-bounded-implementation-sequence">Test evidence and bounded implementation sequence</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./behavior.html">Design and progress</a></li><li class="breadcrumb-item"><a href="./remote-compatibility.html">Projr remote compatibility inventory</a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title">Projr remote compatibility inventory</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>Source audit, 23 October 2026. Pinned R source: <a href="https://github.com/SATVILab/projr/tree/90be50132d16aee33e39c0f7f35ef906c35f5397">SATVILab/projr 90be50132d16aee33e39c0f7f35ef906c35f5397</a>. Rust comparison: <a href="https://github.com/MiguelRodo/projcli/tree/41cd7b2f59345fa8c545eedcecd16f4636602770">41cd7b2f</a>, plus the separate <a href="https://github.com/MiguelRodo/projcli/pull/175">CSV slice PR175</a>. This inventory was checked against dispatch, config parsing/defaults, store/restore code, shipped template, documentation and test sources. R tests and live provider operations were not executed for this audit. A test file is evidence of coverage intent, not proof of a passing integration run.</p>
+<p><strong>Current boundary:</strong> local CAS export is implemented in Rust. Ordinary projr latest/archive store/restore and GitHub Release-asset transport are still gaps. CSV capture does not complete them or M2. CAS is an additional third structure, not the replacement manifest format or the only archive layout.</p>
+<section id="providers-layouts-and-transports" class="level2">
+<h2 class="anchored" data-anchor-id="providers-layouts-and-transports">Providers, layouts and transports</h2>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Surface</th>
+<th>Actual pinned projr behaviour</th>
+<th>projcli mapping and coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Provider/type enum</td>
+<td>Only local and github are dispatched and validated. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/misc.R#L713">Options</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote.R">dispatcher</a>.</td>
+<td>Local CAS provider only; normal local and GitHub parity missing. Existing CAS integrity tests are not ordinary-remote tests.</td>
+</tr>
+<tr class="even">
+<td>Local</td>
+<td>Plain filesystem directories/files; relative base is project root. No provider credentials. Lookup does not create directories. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-local.R#L78">Local</a>.</td>
+<td>Local CAS path anchoring exists; latest/archive operations missing.</td>
+</tr>
+<tr class="odd">
+<td>GitHub</td>
+<td>GitHub Release assets via direct httr REST, with release tag + asset filename handles. Current implementation does not depend on piggyback despite comments. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github.R">GitHub</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github-httr.R#L112">HTTP</a>.</td>
+<td>Missing. Git commit/push is a separate implemented feature, not Release-asset support.</td>
+</tr>
+<tr class="even">
+<td>OSF</td>
+<td>Not in current enums/dispatch. Removed extra-option helper and explicit unsupported version helper remain. Old vignette mentions are stale. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-dest.R">Removed extras</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-versions.R">OSF stub</a>.</td>
+<td>Do not advertise or implement merely from stale docs.</td>
+</tr>
+<tr class="odd">
+<td>Other transports</td>
+<td>No S3, generic HTTP-storage, SSH/SFTP or DVC provider in the dispatch. A local path can of course point to a mounted filesystem. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/misc.R#L713">Options</a>.</td>
+<td>No parity promise for absent providers. Future optional DVC remains separate.</td>
+</tr>
+<tr class="even">
+<td>latest hierarchy</td>
+<td>Local path[/label]; label append defaults true. New sends update that location. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote.R#L463">Layout</a>.</td>
+<td>Missing ordinary layout.</td>
+</tr>
+<tr class="odd">
+<td>archive hierarchy</td>
+<td>Local path[/label]/v&lt;version&gt;; versioned snapshots coexist. The remote pre-root holds shared metadata. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote.R#L463">Layout</a>.</td>
+<td>Missing ordinary archive. Existing CAS snapshots do not establish this layout.</td>
+</tr>
+<tr class="even">
+<td>GitHub flat layout</td>
+<td>Latest assets use path/label-derived flat name; archive adds version; ordinary content is ZIP-packaged. Metadata uses its own ZIP assets. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote.R#L525">Flat naming</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github.R">GitHub</a>.</td>
+<td>Missing, including custom-prefix and append-label combinations.</td>
+</tr>
+<tr class="odd">
+<td>Empty content</td>
+<td>Local final name gets -empty; GitHub name gets -empty.zip and ZIP has projr-empty sentinel. Full/empty variants are reconciled. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-local.R#L78">Local</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send-label.R#L1792">store finalisation</a>.</td>
+<td>CSV blank-filename marker is separate; remote empty representations missing.</td>
+</tr>
+<tr class="even">
+<td>CAS addition</td>
+<td>Not an R layout. User requires it alongside latest and archive, with content-addressed versioned snapshots.</td>
+<td>Existing local CAS objects/JSON/index are bounded groundwork; no new retention, GC or discovery policy adopted.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="configuration-defaults-aliases-and-precedence" class="level2">
+<h2 class="anchored" data-anchor-id="configuration-defaults-aliases-and-precedence">Configuration, defaults, aliases and precedence</h2>
+<p>R destinations are nested at build.local.&lt;title&gt; or build.github.&lt;title&gt;. Directory sources live at directories.&lt;label&gt;.source, keyed by provider/title, with string title references or inline mappings understood by restore helpers. The source-selection helpers contain defects noted below; not every accepted shape has demonstrated end-to-end behaviour. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-dest.R">Destination storage</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-dir-source.R">source getters</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/restore.R#L325">restore selection</a>.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Key or entrypoint</th>
+<th>Parsed/defaulted/consumed behaviour</th>
+<th>Rust status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Title</td>
+<td>Named mapping key. Local helper describes title as descriptive; GitHub title becomes release tag. Internal title helper can derive it from content; public wrappers require the title argument. GitHub wrapper replaces spaces with hyphens.</td>
+<td>Named CAS entries exist; release-tag resolution missing.</td>
+</tr>
+<tr class="even">
+<td>content</td>
+<td>Validates allowed labels; send helper treats null/false as none, true as automatic output/raw/docs, vector as selected labels. Boolean helper support and strict validation are not fully consistent. Cache is not in automatic selection.</td>
+<td>Explicit declared-label vector only. Boolean auto behaviour missing, subject to settled explicit-directory rules.</td>
+</tr>
+<tr class="odd">
+<td>Special content</td>
+<td>R option lists also mention docs/data/code/package; wrappers differ in their allowed sets, and code has special ZIP branches. This is not proof each implicit role works through all send paths.</td>
+<td>Preserve approved output-r-data and explicit paths. Do not add implicit code/package/language roles merely from enum text; verify actual packaging route separately.</td>
+</tr>
+<tr class="even">
+<td>structure</td>
+<td>archive by default; only archive/latest accepted. The wrapper prose saying version is not a supported alias.</td>
+<td>cas only today; ordinary structures missing.</td>
+</tr>
+<tr class="odd">
+<td>path</td>
+<td>Required for local, anchored at project root when relative. Optional prefix for flat GitHub names.</td>
+<td>CAS path is explicit/root-anchored; normal prefix rules missing.</td>
+</tr>
+<tr class="even">
+<td>path-append-label</td>
+<td>Hyphenated YAML key; defaults true. Snake-case path_append_label is an R argument, not evidence of a YAML alias.</td>
+<td>Missing.</td>
+</tr>
+<tr class="odd">
+<td>id</td>
+<td>Validator accepts it; completion overwrites local id with path and GitHub id with title. Do not mistake it for a freely configurable independent backend id.</td>
+<td>No ordinary-remote id field.</td>
+</tr>
+<tr class="even">
+<td>description/id_parent/role</td>
+<td>Internal add/check arguments include these legacy fields. Extra-options helper now discards OSF-related extras. No current standalone OSF behaviour follows.</td>
+<td>No port required for dead fields without a working source route.</td>
+</tr>
+<tr class="odd">
+<td>send.cue</td>
+<td>if-change by default; enum only if-change/always. never occurs in stale wrapper docs but is rejected by current enum. Title-level cue lookup/setter and nested send.cue differ; see defects.</td>
+<td>Missing.</td>
+</tr>
+<tr class="even">
+<td>send.inspect</td>
+<td>manifest by default; file/manifest/none accepted.</td>
+<td>CAS manifest/file checks exist but have different JSON/BLAKE3 meaning; none and ordinary MD5 comparison missing.</td>
+</tr>
+<tr class="odd">
+<td>send.strategy</td>
+<td>sync-diff default, except inspect:none defaults upload-all. Explicit upload-missing/upload-all/sync-purge/sync-diff preserved.</td>
+<td>Missing ordinary strategies.</td>
+</tr>
+<tr class="even">
+<td>send.conflict</td>
+<td>Validator accepts overwrite/skip/error, but no store consumer was found.</td>
+<td>Accepted-only R surface, not a functioning conflict-policy requirement. Rust must not silently accept an ineffective control.</td>
+</tr>
+<tr class="odd">
+<td>get.strategy/get.conflict</td>
+<td>Accepted/checked; public destination wrappers comment out get arguments. Restore does not consume these policy fields.</td>
+<td>Missing parser shape, but no implemented R policy to reproduce blindly.</td>
+</tr>
+<tr class="even">
+<td>source on destination</td>
+<td>Restore permits true (preferred), false (exclude), or label vector (preferred for those labels); content must include the label. If absent, first eligible destination is fallback.</td>
+<td>Missing ordinary source selection.</td>
+</tr>
+<tr class="odd">
+<td>Per-directory source</td>
+<td>Source lookup precedes destination lookup by default; pos can restrict source/dest, type and .title restrict selection. Inline/reference default paths are not uniformly reliable.</td>
+<td>Missing.</td>
+</tr>
+<tr class="even">
+<td>Settings granularity</td>
+<td>Transfer settings are shared per destination title; content labels inherit them. Per-label source mappings choose their own source entries.</td>
+<td>CAS content entries share one inspect mode; ordinary resolved plans missing.</td>
+</tr>
+<tr class="odd">
+<td>YAML layers</td>
+<td>Local overrides active profiles overrides base; earlier listed profiles win; merge recurses, null inherits. R uses _projr base/profile/local names. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml.R#L68">Merge</a>.</td>
+<td>Core merge precedence exists. Deliberate primary _proj.yml plus legacy _projr.yml conflict error retained.</td>
+</tr>
+<tr class="even">
+<td>Archive function arguments</td>
+<td>archive_local/archive_github accept false/null, true or selected labels; create implicit archive destination only when YAML has no archive title. Existing archive title wins; always_archive controls generated cue. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send.R">Send dispatch</a>.</td>
+<td>Missing compatibility entrypoints. Do not override explicit YAML silently.</td>
+</tr>
+<tr class="odd">
+<td>Future registry</td>
+<td>A separate user-requested registry/source-selection redesign is recorded; its naming remains open.</td>
+<td><a href="https://github.com/MiguelRodo/issues/issues/706">Issue706</a> is design-only; do not implement this new schema as part of parity work yet.</td>
+</tr>
+</tbody>
+</table>
+<p>Actual defaults and checks: <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-dest.R#L197">destination completion</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-check.R#L223">validation</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-remote-check.R">remote add validation</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-dest-wrapper.R">public wrappers</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/misc.R#L713">enums</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/inst/project_structure/_projr.yml">shipped template</a>.</p>
+</section>
+<section id="store-inspection-and-metadata" class="level2">
+<h2 class="anchored" data-anchor-id="store-inspection-and-metadata">Store, inspection and metadata</h2>
+<p>Production/output builds only enter send; previews skip it. GitHub releases can be prepared/created before analysis when configured. Destination parameters and YAML are resolved per title, then labels are processed in content order. Source files for a send come from the project’s current-version manifest, not an unqualified directory listing. The last label also triggers changelog writing. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send-prepare.R">Preparation</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send.R">send</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send-label.R">planner</a>.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Policy</th>
+<th>Implemented operation</th>
+<th>Required Rust fixture</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>upload-all</td>
+<td>Add every current source-manifest file; no removal of destination-only names. Existing destinations can be marked untrusted.</td>
+<td>Existing extra file retained; source overwrite and empty-label cases.</td>
+</tr>
+<tr class="even">
+<td>upload-missing</td>
+<td>Add names absent remotely; retain existing remote bytes, including changed same-name content.</td>
+<td>Same-name different bytes retained; missing names added.</td>
+</tr>
+<tr class="odd">
+<td>sync-diff</td>
+<td>Add missing/changed files, remove remote-only files; compare via chosen inspection.</td>
+<td>Add/change/delete transitions and no-change cue.</td>
+</tr>
+<tr class="even">
+<td>sync-purge</td>
+<td>Clear/recreate destination content then upload full selected set when plan says needed.</td>
+<td>Disposable fixture only; never user dataset destructive tests.</td>
+</tr>
+<tr class="odd">
+<td>inspect:file</td>
+<td>Enumerate/hash remote bytes with legacy MD5, compare to project evidence.</td>
+<td>Detect actual byte corruption and ignore mtime/size equivalence.</td>
+</tr>
+<tr class="even">
+<td>inspect:manifest</td>
+<td>Compare recorded rows/version trust. If unavailable/untrusted, planner may fall back to file hashes.</td>
+<td>Matching/missing/stale/corrupt metadata and trust markers.</td>
+</tr>
+<tr class="odd">
+<td>inspect:none</td>
+<td>No comparison evidence; default upload-all and untrusted existing-state handling.</td>
+<td>Never label unchecked remote bytes verified.</td>
+</tr>
+<tr class="even">
+<td>cue</td>
+<td>always or change-driven materialisation/version updates; no trust or no prior destination can force creation.</td>
+<td>Unchanged inputs under both cues; empty result snapshots.</td>
+</tr>
+<tr class="odd">
+<td>Exclusions</td>
+<td>Cache inventory excludes projr subtree. File listing includes dotfiles. ZIP helpers accept directory include/exclude and exact filename exclusions; filter implementations differ (pathspec vs regex).</td>
+<td>Hidden files, nested names, exclusions and empty-after-exclusion; no regex/pathspec interchange assumption.</td>
+</tr>
+<tr class="even">
+<td>Execution</td>
+<td>Purge, add, remove, reconcile full/empty, then write manifest, VERSION, and optional changelog.</td>
+<td>Failure at each boundary must report partial publication honestly.</td>
+</tr>
+</tbody>
+</table>
+<p><a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send-label.R#L1587">Plan execution</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/misc.R#L638">ZIP helpers</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/hash.R">hashing</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/path.R#L135">listing/path filters</a>.</p>
+<p>Local metadata is ordinary manifest.csv, VERSION and CHANGELOG.md at the remote pre-root. GitHub uses manifest.zip, VERSION.zip and CHANGELOG.zip containing those files. VERSION has per-label release entries and optional trailing * indicating untrusted state. These files are distinct from CAS JSON and the plural Rust .projr/manifests.csv index. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-versions.R#L17">Metadata</a>.</p>
+<p>There is no all-or-nothing remote transaction: local copying/removal can be partial, GitHub whole-asset replacement deletes an old asset before uploading, and metadata is written after content. Metadata-download failures may become empty/unavailable state; some unzip errors are swallowed. Rust should retain its approved safety boundaries, surface errors and never claim rollback of remote side effects. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github-httr.R#L554">HTTP replacement</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github.R">GitHub transfer</a>.</p>
+</section>
+<section id="versions-listing-downloads-and-restore" class="level2">
+<h2 class="anchored" data-anchor-id="versions-listing-downloads-and-restore">Versions, listing, downloads and restore</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Operation</th>
+<th>Source behaviour</th>
+<th>Rust comparison</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>List final remotes</td>
+<td>Local immediate child directories; GitHub assets within one configured release.</td>
+<td>Ordinary operations missing. No cross-release catalogue promised by R.</td>
+</tr>
+<tr class="even">
+<td>List files</td>
+<td>Local recursive listing; GitHub ZIP download/extraction.</td>
+<td>CAS manifests can list explicit entries internally; not these operations.</td>
+</tr>
+<tr class="odd">
+<td>Latest version</td>
+<td>latest reads label VERSION entry; archive parses local version-directory/GitHub asset names and selects max semantic version, including empty variants.</td>
+<td>Ordinary selection missing; current CAS accepts caller-supplied versions.</td>
+</tr>
+<tr class="even">
+<td>Trusted version</td>
+<td>Stronger helper checks VERSION/archive agreement and project/remote manifest evidence. Restore bypasses this stronger helper.</td>
+<td>Missing; do not describe ordinary restore as cryptographically verified.</td>
+</tr>
+<tr class="odd">
+<td>Download all</td>
+<td>Copy directory tree or download named release asset and unzip.</td>
+<td>Missing ordinary download/restore.</td>
+</tr>
+<tr class="even">
+<td>Download one</td>
+<td>Local and GitHub helpers flatten requested file to its basename at destination.</td>
+<td>Missing; basename collision handling needs safe bounded implementation rather than unsafe silent overwrite.</td>
+</tr>
+<tr class="odd">
+<td>Restore labels</td>
+<td>Default declared raw labels; explicit labels supported. Root manifest required; empty/unrecorded labels may be skipped.</td>
+<td>CSV prerequisite underway in PR175; restore absent.</td>
+</tr>
+<tr class="even">
+<td>Restore source</td>
+<td>Source before destination; filter provider/title/content/source eligibility. First suitable selection, not retry across every provider after failure. Legacy fallback GitHub archive then local _archive exists.</td>
+<td>Missing.</td>
+</tr>
+<tr class="odd">
+<td>Restore target</td>
+<td>Final declared path, safe=false; optional clear removes current contents before lookup/download.</td>
+<td>Missing. Preserve guards; stage/validate before destructive promotion rather than importing unsafe legacy clearing.</td>
+</tr>
+<tr class="even">
+<td>Restore result</td>
+<td>Per-label errors can yield partial false; clone wrapper can ignore that false and return true.</td>
+<td>Must report failures honestly; do not preserve false success.</td>
+</tr>
+<tr class="odd">
+<td>Clone wrapper</td>
+<td>Clone repo, select/change working directory, invoke content update.</td>
+<td>Existing Git-backed init is not a restore clone wrapper.</td>
+</tr>
+<tr class="even">
+<td>Most recently modified</td>
+<td>Explicit unimplemented helpers; OSF variants explicitly unsupported.</td>
+<td>Do not advertise working modification-time source selection.</td>
+</tr>
+</tbody>
+</table>
+<p><a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-versions.R">Version logic</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/restore.R#L141">restore</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/restore-repo.R#L93">clone wrappers</a>.</p>
+</section>
+<section id="credentials-and-dependencies" class="level2">
+<h2 class="anchored" data-anchor-id="credentials-and-dependencies">Credentials and dependencies</h2>
+<p>GitHub lower helpers accept explicit token/api_url. Otherwise token lookup is GITHUB_PAT, optional R gh::gh_token, optional gitcreds, GH_TOKEN, GITHUB_TOKEN. API base is explicit override, GITHUB_API_URL, public API. Enterprise gitcreds lookup strips /api/v3; public lookup uses https://github.com. Requests carry an Authorization header and may be unauthenticated without a token. Repository inference prefers origin then first Git remote, using available gh R helpers or system Git/gert. Explicit Enterprise overrides are not forwarded by every wrapper. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/auth.R#L17">Authentication</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-misc.R#L40">repo inference</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github-httr.R#L112">HTTP</a>.</p>
+<p>These are source mechanisms, not authorisation to obtain new credentials, change permissions or install dependencies. Rust should use supported existing access, mock HTTP for fixtures, redact secrets and never store tokens in CSV/URLs. R helper auto-install behaviour is not adopted. Real Git remains an optional installed dependency; GitHub CLI is separate and need not be mandatory for an API implementation. Optional managed Git is not planned by default.</p>
+</section>
+<section id="source-defects-and-documentation-only-surfaces" class="level2">
+<h2 class="anchored" data-anchor-id="source-defects-and-documentation-only-surfaces">Source defects and documentation-only surfaces</h2>
+<p>These are source-review findings, not executed reproductions or requirements to copy bugs. Keep claims bounded until fixture evidence exists.</p>
+<ul>
+<li>Default source selection passes an inner mapping where the next helper expects the provider mapping; explicit provider selection can call a title-specific helper with a null title. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/restore.R#L325">Selection</a>.</li>
+<li>GitHub existence checks hard-code label/version names, ignoring some custom path/append-label settings; local archive discovery assumes a label directory. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github.R#L58">GitHub existence</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-versions.R">version paths</a>.</li>
+<li>Title send-check reads top-level cue while defaults populate send.cue; the cue setter also writes a different level. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send.R">Send</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-dest.R#L197">defaults</a>.</li>
+<li>get/conflict fields are validated but no effective execution consumer was found. wrapper docs mention never/version and OSF, outside actual enums.</li>
+<li>GitHub unzip failures can be swallowed, clone restore ignores partial failure, and low-level asset deletion can infer the current repo despite a repo argument. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github.R">GitHub</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github-httr.R#L112">HTTP</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/restore-repo.R#L93">clone</a>.</li>
+<li>Content option sets, wrapper checks and boolean auto-content helpers differ; special code/package labels alone do not prove working end-to-end export.</li>
+</ul>
+</section>
+<section id="critical-configuration-assessment-separate-from-compatibility" class="level2">
+<h2 class="anchored" data-anchor-id="critical-configuration-assessment-separate-from-compatibility">Critical configuration assessment, separate from compatibility</h2>
+<p>This assessment excludes the agreed temporary CSV choice. Examples use the existing R inline build configuration, not a newly approved Rust schema. Findings are source-backed; unless stated otherwise they are not executed reproductions. Proposed fixes are review candidates, not silent semantic changes.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Rank/type</th>
+<th>Example and user impact</th>
+<th>Smallest proposed fix</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>High: ineffective accepted setting</td>
+<td>A destination with send: {conflict: skip} passes allowed-value checks, but store execution never reads conflict. get: {strategy: upload-missing, conflict: error} similarly has no restore consumer. Users can believe a non-overwrite policy is enforced. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-remote-check.R">Checks</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send-label.R#L1587">execution</a>.</td>
+<td>Reject ineffective combinations until implemented, or implement and test them explicitly. Do not silently ignore a safety control.</td>
+</tr>
+<tr class="even">
+<td>High: colliding-target combination</td>
+<td>build.local.shared with content: [raw-a, raw-b], structure: latest, path-append-label: false, send: {inspect: file, strategy: sync-diff} gives both labels one physical directory. File inspection can classify the other label’s files as extras. Custom archive/pre-root paths also assume layouts not uniformly supported. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote.R#L463">Layout</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send-label.R">planner</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-versions.R">versions</a>.</td>
+<td>Resolve all target identities before mutation and reject collisions; verify supported custom-prefix/append combinations rather than accepting untested layouts.</td>
+</tr>
+<tr class="odd">
+<td>High: destructive restore ordering</td>
+<td>A normal configured restore source plus projr_content_update(clear=TRUE) clears the destination before source resolution/download. A missing release or failed network call can leave data gone. clear defaults FALSE; this is an unsafe opt-in ordering, not an unsafe default. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/restore.R#L141">Restore</a>.</td>
+<td>Download into private staging, validate, then apply guarded promotion. Preserve current data on lookup/download failure.</td>
+</tr>
+<tr class="even">
+<td>Medium: surprising default synchronisation</td>
+<td>build.local.shared: {path: backup, structure: latest, content: [output]} defaults to sync-diff, so remote-only files can be removed. A user expecting an additive backup may be surprised. Default archive keeps prior version directories, which narrows the risk. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-dest.R#L197">Defaults</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send-label.R">planner</a>.</td>
+<td>Clearly expose adds/removes and the resolved strategy before applying; require deliberate review before changing defaults. This is a usability/policy concern, not evidence that sync-diff itself is defective.</td>
+</tr>
+<tr class="odd">
+<td>Medium: profile cannot disable with null</td>
+<td>Base build.github.archive selects output; a local/profile build.github.archive: null inherits the base mapping. Removing one active-profile destination also does not remove its base definition. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml.R#L68">Merge</a>.</td>
+<td>Explain merged effective destinations and provide a deliberately designed disabling/empty-selection mechanism. Do not reinterpret null without an approved compatibility change.</td>
+</tr>
+<tr class="even">
+<td>Medium: argument precedence surprise</td>
+<td>YAML build.local.archive: {content: [raw-a], path: backup} means archive_local=c(‘raw-b’) does not replace that archive definition. always_archive also defers to explicit archive YAML. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send.R">Dispatch</a>.</td>
+<td>Document this as YAML authority and display the resolved content; avoid presenting these arguments as ordinary overrides. Whether arguments should override is a design choice.</td>
+</tr>
+<tr class="odd">
+<td>Medium: two cue locations</td>
+<td>send: {cue: always} is completed and used per label, while title-level send checking and the setter reference top-level cue. This invites inconsistent getter/setter behaviour; nested cue is not simply unused. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send.R">Send</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-dest.R#L197">defaults</a>.</td>
+<td>Use one canonical nested location and test the public setter through an actual store plan; treat an alias only through explicit conflict rules.</td>
+</tr>
+<tr class="even">
+<td>Medium: provider-dependent identity</td>
+<td>build.github.nightly: {id: another-tag, content: [output]} validates an id, but completion resets it to nightly. Local id instead becomes path. Title is cosmetic locally and functional on GitHub. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-dest.R#L197">Completion</a>.</td>
+<td>Reject or clearly deprecate ignored id values; document title/tag/path meanings. A larger unified identity design is separate.</td>
+</tr>
+<tr class="odd">
+<td>Medium: source-selection defects</td>
+<td>directories.raw-data.source: {github: archive}, as shipped in the template, meets default helper paths that pass the wrong mapping level or an absent title into a title-specific branch. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/inst/project_structure/_projr.yml">Template</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/restore.R#L325">selection</a>.</td>
+<td>Fix source selection with explicit/default provider/title fixtures; do not require users to discover accidental nesting workarounds.</td>
+</tr>
+<tr class="even">
+<td>Medium: unsupported documentation</td>
+<td>send.cue: never and structure: version are mentioned in wrappers but excluded by current enums; old OSF prose outlives implementation. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/yml-dest-wrapper.R">Wrappers</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/misc.R#L713">enums</a>.</td>
+<td>Correct docs and errors. Implement new values only if separately requested, not to make stale prose true.</td>
+</tr>
+<tr class="odd">
+<td>Already recorded design</td>
+<td>Removing a build destination can remove a historical restore source because definitions and upload selection share the same location.</td>
+<td>The user-requested registry proposal is already <a href="https://github.com/MiguelRodo/issues/issues/706">issue706</a>, design-only. It is not a new discovery here and is not implemented by this audit.</td>
+</tr>
+<tr class="even">
+<td>Low: naming preference</td>
+<td>dest versus destinations changes readability, not provider or safety behaviour.</td>
+<td>Choose during the existing registry discussion; no new alias or migration silently introduced.</td>
+</tr>
+</tbody>
+</table>
+<p>Credential lookup also deserves explicit presentation: ambient R gh/gitcreds resolution precedes GH_TOKEN/GITHUB_TOKEN, and repository inference may choose origin or the first remote. A supplied environment token or repository can therefore differ from a user’s expectation. The smallest safe improvement is clear resolved host/repository diagnostics without secrets, plus tests for explicit overrides; no new credential permissions are implied.</p>
+</section>
+<section id="test-evidence-and-bounded-implementation-sequence" class="level2">
+<h2 class="anchored" data-anchor-id="test-evidence-and-bounded-implementation-sequence">Test evidence and bounded implementation sequence</h2>
+<p><a href="https://github.com/SATVILab/projr/tree/90be50132d16aee33e39c0f7f35ef906c35f5397/tests/testthat">Test sources</a> were inspected without running R. Fixtures must establish behaviour before fixes are claimed; a source test title alone is not an acceptance result.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Source coverage</th>
+<th>What it establishes here</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>test-yml-dest, test-yml-dest-wrapper, test-yml-remote-check</td>
+<td>Parser/default/helper assertions exist, including accepted values. Not run in this audit.</td>
+</tr>
+<tr class="even">
+<td>test-dest-send, test-dest-send-label, test-dest-send-prepare</td>
+<td>Dispatch/planner/version/empty helper coverage exists. Not whole-provider publication evidence.</td>
+</tr>
+<tr class="odd">
+<td>test-remote-dispatcher, test-remote-local, test-remote-versions-local</td>
+<td>Local dispatcher/layout/transfer/version fixtures exist. Reproduce equivalent Rust fixtures remotely.</td>
+</tr>
+<tr class="even">
+<td>test-remote-github</td>
+<td>Tests require mutable credentials and explicitly skip GitHub Actions. Presence is not CI coverage. Prefer safe mocked REST/ZIP fixtures for Rust.</td>
+</tr>
+<tr class="odd">
+<td>test-restore, test-restore-coverage, test-restore-repo</td>
+<td>Restore selection/validation/clone test intent; source defects above still require targeted witnesses.</td>
+</tr>
+<tr class="even">
+<td>Existing Rust CAS tests</td>
+<td>Prove bounded BLAKE3 object/JSON/index behaviour, not ordinary latest/archive parity.</td>
+</tr>
+<tr class="odd">
+<td>PR175 CSV tests</td>
+<td>Production pre/post MD5/history, strict encoding, exclusions and recovery; separate exact-head CI/review evidence on that PR.</td>
+</tr>
+</tbody>
+</table>
+<p>Next slices should remain independently testable:</p>
+<ol type="1">
+<li>Pure ordinary local latest/archive path/layout and metadata/version fixtures, with explicit paths and empty variants; no new remote registry schema.</li>
+<li>Disposable local store plans for the four existing strategies and inspections, then guarded execution/metadata/failure fixtures.</li>
+<li>Explicit local list/download/restore with staged validation and honest outcomes.</li>
+<li>GitHub REST/ZIP transport behind mock fixtures, existing credential lookup, release/asset/version/metadata behaviour and failure reporting; no live dataset uploads.</li>
+<li>Cross-provider source selection and configuration compatibility, preserving confirmed aliases and resolving source bugs with regression evidence.</li>
+<li>CAS-specific archive integration only where existing structures do not decide snapshot discovery/retention. Those choices must not block ordinary parity.</li>
+</ol>
+<p>The full inventory stays open until implemented and independently reviewed evidence maps every supported row. CSV completion alone closes none of the broader provenance/remote milestones. The future registry proposal is separate planned work; do not silently implement it while porting old inline definitions.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/miguelrodo\.github\.io\/projcli\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>projcli · research builds, one project at a time</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item">
+    <a class="nav-link" href="https://github.com/MiguelRodo/projcli">
+<p>Source and releases</p>
+</a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+
+</body></html>
