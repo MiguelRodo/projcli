@@ -319,6 +319,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#local-git-success-and-a-rejected-push" id="toc-local-git-success-and-a-rejected-push" class="nav-link" data-scroll-target="#local-git-success-and-a-rejected-push">Local Git success and a rejected push</a></li>
   <li><a href="#inspect-the-production-inventory" id="toc-inspect-the-production-inventory" class="nav-link" data-scroll-target="#inspect-the-production-inventory">Inspect the production inventory</a></li>
   <li><a href="#additional-real-git-failure-boundary-witnesses" id="toc-additional-real-git-failure-boundary-witnesses" class="nav-link" data-scroll-target="#additional-real-git-failure-boundary-witnesses">Additional real Git failure-boundary witnesses</a></li>
+  <li><a href="#exact-development-version-recovery" id="toc-exact-development-version-recovery" class="nav-link" data-scroll-target="#exact-development-version-recovery">Exact development-version recovery</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -413,6 +414,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="additional-real-git-failure-boundary-witnesses">Additional real Git failure-boundary witnesses</h2>
 <p>A regression candidate exercises repositories with no remote/upstream: local commit remains available when push is disabled; explicit push without tracking configuration must fail preflight before analysis or managed writes. A real rejecting pre-commit hook separately checks that the computed local release and CSV survive while HEAD/upstream remain unchanged and the next-dev bump is skipped. Git’s index may already contain the staged release; no index rollback or successful publication is claimed.</p>
 <p>These are tests of existing behavior, not new attempt identities, sealing rules or retry guarantees. Exact-head remote verification and independent review are required before treating this candidate as delivered evidence.</p>
+</section>
+<section id="exact-development-version-recovery" class="level2">
+<h2 class="anchored" data-anchor-id="exact-development-version-recovery">Exact development-version recovery</h2>
+<p>Before the irreversible publication boundary, supported failure recovery restores the original VERSION/DESCRIPTION files byte for byte, including prior absence. A project starting at dev7 or dev19 must not be reset to dev1. The regression matrix deliberately overwrites both authority files before hook/analysis failures and checks the complete recovered managed state. This does not change the existing rule that failure after publication begins preserves the successful local release.</p>
 
 
 </section>

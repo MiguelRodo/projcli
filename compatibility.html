@@ -346,6 +346,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#preview.3-release-preparation" id="toc-preview.3-release-preparation" class="nav-link" data-scroll-target="#preview.3-release-preparation">Preview.3 release preparation</a></li>
   <li><a href="#preview.3-public-delivery-and-installation-pins" id="toc-preview.3-public-delivery-and-installation-pins" class="nav-link" data-scroll-target="#preview.3-public-delivery-and-installation-pins">Preview.3 public delivery and installation pins</a></li>
   <li><a href="#m2-optional-git-and-commit-failure-regression-candidate" id="toc-m2-optional-git-and-commit-failure-regression-candidate" class="nav-link" data-scroll-target="#m2-optional-git-and-commit-failure-regression-candidate">M2 optional-Git and commit-failure regression candidate</a></li>
+  <li><a href="#m2-exact-previous-development-version-recovery" id="toc-m2-exact-previous-development-version-recovery" class="nav-link" data-scroll-target="#m2-exact-previous-development-version-recovery">M2 exact previous development-version recovery</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -1103,6 +1104,16 @@ ul.task-list li input[type="checkbox"] {
 <li><strong>Candidate:</strong> extend the isolated real-Git fixture for no-remote local commits, early explicitly requested push failure and a real rejecting pre-commit hook. Check exact local/cache/CSV bytes, VERSION, HEAD, staged index and both bare upstream refs. Reuse per-command environment/credential/file-protocol isolation.</li>
 <li><strong>Ponytail full:</strong> reuse the existing fixture and split its byte assertion from the committed-HEAD assertion; no new provider, dependency or runtime policy.</li>
 <li><strong>Verification:</strong> not run locally; exact-head remote tests and independent review are required. No source defect, completed M2, durable record/seal, index rollback, remote transaction or installed-binary update is claimed.</li>
+</ul>
+</section>
+<section id="m2-exact-previous-development-version-recovery" class="level2">
+<h2 class="anchored" data-anchor-id="m2-exact-previous-development-version-recovery">M2 exact previous development-version recovery</h2>
+<ul>
+<li><strong>Relationship: expanded acceptance of the approved Rust exact-byte rollback contract; comparative R failure runtime is unverified.</strong> Reference projr 90be50132d16aee33e39c0f7f35ef906c35f5397 build-pre.R443-456 sets the planned run version and ensures a development version with dev_force. Those helpers are source evidence, not proof that every R failure boundary restores prior files.</li>
+<li><strong>Approved behavior:</strong> pre-distribution failures retain the exact old development version, including counters above one; never reset to dev1. Existing irreversible publication behavior and hook ordering stay intact.</li>
+<li><strong>Coverage:</strong> reuse the hook/analysis restoration fixture across absent authority, release VERSION, dev7 with CRLF, distinct VERSION/DESCRIPTION dev7/dev42 and DESCRIPTION-only dev19. Fault scripts overwrite both authority files; snapshot assertions require exact original bytes/absence and managed outputs.</li>
+<li><strong>Ponytail full:</strong> extend the existing fixture and recovery engine; no new version rollback algorithm, record schema, dependency or hook enforcement.</li>
+<li><strong>Verification:</strong> remote exact-head tests and independent review required; no local Rust/R/Quarto execution and no complete M2 claim.</li>
 </ul>
 
 
