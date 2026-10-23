@@ -152,7 +152,7 @@ if os.environ['PROJCLI_TEST_FAIL_ANALYSIS']=='1':
         if version_dirty {expected.push(" M VERSION".into());}
         expected.sort();
         // Preserve initial whitespace in exact porcelain records.
-        let mut actual=String::from_utf8(self.git(&["status","--porcelain","--untracked-files=all"])).unwrap()
+        let mut actual:Vec<String>=String::from_utf8(self.git(&["status","--porcelain","--untracked-files=all"])).unwrap()
             .lines().map(str::to_owned).collect();
         actual.sort();
         assert_eq!(actual,expected);
