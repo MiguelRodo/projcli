@@ -2448,3 +2448,9 @@ legacy/canonical stems before treating prior prefixed append-label:false R-data
 archives as legacy; reject all-space Release titles before hooks. Fixtures preserve
 alias bytes/no-POST/no-DELETE and complete two such R-data builds. Cleanup failures
 include the private retained path. Public helper credentials never cross API origins.
+
+
+Public gh credential fallback explicitly requests --hostname github.com, so an
+inherited GH_HOST cannot select Enterprise credentials for the public API.
+Numeric archive alias checks remove exactly one generated .zip suffix, preserving
+valid prefixes/labels that themselves end in .zip. Regression fixtures cover both.

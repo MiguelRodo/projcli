@@ -367,3 +367,9 @@ Non-public API origins require an explicit environment token. Default github.com
 Git/gh credential helpers are only used for the standard HTTPS api.github.com
 origin (port443), never forwarded to Enterprise/custom hosts. A regression uses
 a fake public helper and verifies it is not invoked for a loopback API.
+
+
+Public gh credential fallback explicitly requests --hostname github.com, so an
+inherited GH_HOST cannot select Enterprise credentials for the public API.
+Numeric archive alias checks remove exactly one generated .zip suffix, preserving
+valid prefixes/labels that themselves end in .zip. Regression fixtures cover both.

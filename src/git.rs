@@ -190,7 +190,7 @@ pub(crate) fn get_github_token_in(environment: &RunEnvironment) -> anyhow::Resul
     }
 
     // Track C: GitHub CLI Engine Query
-    if let Ok(output) = environment.command("gh").args(["auth", "token"]).output() {
+    if let Ok(output) = environment.command("gh").args(["auth", "token", "--hostname", "github.com"]).output() {
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             let trimmed = stdout.trim();

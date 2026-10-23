@@ -110,7 +110,7 @@ fn metadata(client:&GithubReleaseClient,tag:&str,kind:MetadataKind,stage:&Utf8Pa
 }
 fn current_archive(spec:&Spec,label:&str,current:&str,asset:&str)->anyhow::Result<bool> {
     let stem=crate::github_zip::directory_asset_name(spec.prefix.as_deref(),spec.append,label,GithubStructure::Latest,None,false)?;
-    let prefix=folded(&(stem.trim_end_matches(".zip").to_owned()+"-v"));
+    let prefix=folded(&(stem.strip_suffix(".zip").unwrap().to_owned()+"-v"));
     let asset=folded(asset);
     let Some(version)=asset.strip_prefix(&prefix).and_then(|value|value.strip_suffix(".ZIP")) else{return Ok(false)};
     let version=version.strip_suffix("-EMPTY").unwrap_or(version);
@@ -147,7 +147,7 @@ pub(crate) fn publish(root:&Utf8Path,targets:&[Target],version:&str)->anyhow::Re
                 let legacy=crate::github_zip::directory_asset_name(target.spec.prefix.as_deref(),target.spec.append,"data",GithubStructure::Latest,None,false)?;
                 let canonical=crate::github_zip::directory_asset_name(target.spec.prefix.as_deref(),target.spec.append,label,GithubStructure::Latest,None,false)?;
                 if folded(&legacy)!=folded(&canonical) {
-                    let prefix=legacy.trim_end_matches(".zip").to_owned()+"-v";
+                    let prefix=legacy.strip_suffix(".zip").unwrap().to_owned()+"-v";
                     anyhow::ensure!(!actual.iter().any(|name|folded(name).starts_with(&folded(&prefix))),"Legacy GitHub data namespace requires explicit migration");
                 }
             }

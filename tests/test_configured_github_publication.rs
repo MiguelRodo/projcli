@@ -212,3 +212,32 @@ fn all_space_release_title_fails_before_hooks_and_network() {
     assert!(!root.join("hook-ran").exists());assert!(!root.join("manifest.csv").exists());
     assert!(!server.state.lock().unwrap().exists);server.finish();
 }
+
+#[test]
+fn repeated_zip_suffix_prefix_cannot_hide_a_numeric_current_archive_alias() {
+    let server=Server::start();let (_temporary,root)=setup(&server);
+    let config=fs::read_to_string(root.join("_proj.yml")).unwrap()
+        .replace("      content:","      path: bundle.zip\n      path-append-label: false\n      content:");
+    fs::write(root.join("_proj.yml"),config).unwrap();
+    {let mut data=server.state.lock().unwrap();data.exists=true;data.assets.insert("bundle.zip-v01.2.4.zip".into(),(1,b"preserve alias".to_vec()));}
+    let output=invoke(&server,&root,&["build","--non-interactive"]);assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("Current GitHub archive already exists"));
+    let data=server.state.lock().unwrap();assert!(data.uploads.is_empty());assert!(data.deleted.is_empty());assert_eq!(data.assets["bundle.zip-v01.2.4.zip"].1,b"preserve alias");drop(data);server.finish();
+}
+#[cfg(unix)]
+#[test]
+fn public_gh_fallback_pins_hostname_despite_an_inherited_enterprise_host() {
+    use std::os::unix::fs::PermissionsExt;
+    let server=Server::start();let (_temporary,root)=setup(&server);
+    assert!(command(&root,"git").args(["remote","set-url","origin","https://github.com/owner/repo.git"]).output().unwrap().status.success());
+    let bin=root.join("bin");fs::create_dir(&bin).unwrap();
+    let gh=bin.join("gh");fs::write(&gh,"#!/bin/sh\nprintf '%s\\n' \"$@\" > \"$GH_ARGS_FILE\"\nexit 17\n").unwrap();
+    fs::set_permissions(&gh,fs::Permissions::from_mode(0o755)).unwrap();
+    let path=std::env::join_paths(std::iter::once(bin).chain(std::env::split_paths(&std::env::var_os("PATH").unwrap()))).unwrap();
+    let output=command(&root,env!("CARGO_BIN_EXE_proj")).env("GITHUB_API_URL","https://api.github.com")
+        .env("GH_HOST","enterprise.example").env("GH_ARGS_FILE",root.join("gh-args")).env("PATH",path)
+        .args(["--project"]).arg(&root).args(["build","--non-interactive"]).output().unwrap();
+    assert!(!output.status.success(),"fake helper intentionally returns no token, so no network request is made");
+    assert_eq!(fs::read_to_string(root.join("gh-args")).unwrap(),"auth\ntoken\n--hostname\ngithub.com\n");
+    assert!(!server.state.lock().unwrap().exists);server.finish();
+}
