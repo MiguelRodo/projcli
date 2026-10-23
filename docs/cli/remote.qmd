@@ -144,3 +144,9 @@ An interrupted upload can have an uncertain remote result: inspect before retry.
 Downloads stage complete bytes before replacement, preserve existing permissions,
 and reject protected project state, links and special files. No archive integrity,
 crash atomicity or concurrent-writer isolation claim follows.
+
+The CLI does not initialise HTTP wire logging and its own error messages omit
+tokens, response bodies and signed redirect URLs. Library embedders must avoid
+ureq DEBUG/TRACE logging for sensitive requests because dependency logging is
+not redacted. Redirects remove Authorization but do not confine network access
+to a provider host; this transport is not a network sandbox.

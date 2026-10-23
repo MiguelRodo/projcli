@@ -19,10 +19,13 @@ pub struct ReleaseAsset {
 struct Release { id: u64, tag_name: String, upload_url: Option<String> }
 
 /// GitHub REST client with streaming file bodies and no automatic redirects.
-/// Tokens are private, never included in errors, and never sent on a download
+/// Tokens are private, omitted from this client's errors, and never sent on a download
 /// redirect. HTTPS is required except for literal loopback fixture endpoints.
 /// Listing/download can be anonymous; upload requires an existing token.
 /// No credential installation, asset deletion or implicit overwrite occurs.
+/// Embedders must not enable ureq DEBUG/TRACE logging for sensitive requests:
+/// dependency wire/URI logging is not redacted. Redirect targets are not a
+/// network sandbox; caller-selected HTTPS services can redirect to other hosts.
 pub struct GithubReleaseClient {
     agent: ureq::Agent,
     api: String,

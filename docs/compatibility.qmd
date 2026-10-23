@@ -2055,3 +2055,9 @@ existing path guards and tempfile replacement. Mocked local HTTP fixture tests
 exercise real requests/bodies and CLI JSON without live GitHub writes. No local
 compilation/tests run; remote exact-head compilation, locked/API/docs/acceptance
 and independent review are still required. Source candidate is not installed.
+
+The CLI does not initialise HTTP wire logging and its own error messages omit
+tokens, response bodies and signed redirect URLs. Library embedders must avoid
+ureq DEBUG/TRACE logging for sensitive requests because dependency logging is
+not redacted. Redirects remove Authorization but do not confine network access
+to a provider host; this transport is not a network sandbox.

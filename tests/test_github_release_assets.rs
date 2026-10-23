@@ -213,7 +213,7 @@ fn windows_authority_aliases_fail_before_network() {
     for name in ["VERSION.","_projr-local.yml "] {
         let alias=root.join(name);
         // A non-verbatim path exercises Win32 trailing-dot/space normalisation.
-        let text=alias.as_str().strip_prefix(r"\\\\?\").unwrap_or(alias.as_str());
+        let text=alias.as_str().strip_prefix(r"\\?\").unwrap_or(alias.as_str());
         let error=client.download_asset(&root,"data","data.zip",camino::Utf8Path::new(text),100).unwrap_err();
         assert!(error.to_string().contains("protected"),"{error:#}");
     }
