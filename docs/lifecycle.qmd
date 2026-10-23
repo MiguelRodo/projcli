@@ -110,11 +110,11 @@ flowchart TB
   dependencies and explicitly enabled Git actions before controlled build writes.
   Probes can have their own effects: this is not a blanket read-only/environment
   sanitization guarantee.
-  The malformed-exclusion correction is current-source work newer than preview.2;
+  The malformed-exclusion correction is included in preview.3;
   it fails in this preflight stage, without changing stage order or recovery scope.
-  Current-source fallback directory/entry errors also stop here. The recovery
+  Fallback directory/entry errors also stop here. The recovery
   capture stage reports its own enumeration phase and OS cause before controlled
-  project writes. These diagnostics are newer than preview.2; ordering is unchanged.
+  project writes. These diagnostics are included in preview.3; ordering is unchanged.
 - Start/end refer to the existing pre/both and post/both hook sets, not new
   hook types. Their placement follows the controlled lifecycle shown here.
 - Recovery capture must precede hooks and managed mutations. Cache/staging setup,

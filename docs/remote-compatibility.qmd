@@ -301,16 +301,14 @@ CSV/version selection is not a byte-integrity guarantee.
 
 
 
-## Configured local publication candidate
+## Configured local publication
 
-The next bounded slice integrates build.local latest/file with the build's
-existing release boundary: current CSV-selected staging, all four file strategies,
-both cues, namespace preflight and shared CSV/VERSION/changelog updates.
-See the [control matrix](cli/remote.qmd#configured-local-publication-candidate).
-[PR185](https://github.com/MiguelRodo/projcli/pull/185) records exact-head
-independent review and remote verification. File and none inspection are delivered in PR185/188; the current manifest slice
-adds the existing default comparison and fallback. Archive comparison selection
-and configured GitHub publication remain pending.
+Configured local latest/archive publication includes all four strategies, both
+cues and file/manifest/none inspection, namespace preflight and shared
+CSV/VERSION/changelog updates. The [control matrix](cli/remote.qmd#configured-local-publication-candidate)
+describes delivered behavior. [PR185](https://github.com/MiguelRodo/projcli/pull/185)
+and subsequent reviewed slices record the incremental evidence; the complete
+preview.3 delivery and remaining limits are linked above.
 
 Pinned R comparison: dest-send-label.R355,854-1560,1587-1788 and manifest.R67-75,192-225
 in the source revision linked above. New empty labels and file-equal missing/starred
@@ -319,10 +317,10 @@ differences rather than claims that the pinned R no-change path already repairs
 them. No registry or unresolved retention/default policy is adopted.
 
 
-Local archive publication is the current incremental slice: complete versioned
-snapshots, historical reuse eligibility and actual build/store/restore matrix.
-Its PR records exact-head review/CI evidence. Configured GitHub publication and
-configured append-label:false remain pending; no full remote-completion claim.
+Local archive publication includes complete versioned snapshots, historical
+reuse eligibility and actual build/store/restore coverage. Configured GitHub
+publication is delivered as described below. Local configured
+path-append-label:false remains pending; no full remote-completion claim.
 
 
 Configured GitHub latest/archive publication supports file/manifest/none inspection and all four strategies,
