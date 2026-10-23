@@ -216,7 +216,8 @@ Next slices should remain independently testable:
    and independent review are required before merge.
 2. Disposable local store plans for the four existing strategies and inspections,
    then guarded execution/metadata/failure fixtures.
-3. Explicit local list/download/restore with staged validation and honest outcomes.
+3. Explicit local download is the next bounded source slice, using staged
+   destination replacement and honest outcomes; configured restore remains open.
 4. GitHub REST/ZIP transport behind mock fixtures, existing credential lookup,
    release/asset/version/metadata behaviour and failure reporting; no live dataset uploads.
 5. Cross-provider source selection and configuration compatibility, preserving

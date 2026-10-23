@@ -274,3 +274,11 @@ registry changes. Distinguish advertised latest metadata from present directorie
 and verified bytes; never turn an untrusted-marker absence into a trust guarantee.
 Archive numeric ordering must not be lexical or assume exactly four components.
 Retain hard-link/symlink/special-file guards and no-mutation fixtures.
+
+Ordinary local download uses explicit version/source and destination arguments;
+do not silently adopt the future registry design or configured restore fallback.
+Stage all copies before replacing an existing destination; default preserves
+destination-only files, explicit clear discards them only after staging succeeds.
+Retain original directories if rollback fails and report their path. Preserve
+hard-linked aliases and reject linked/special copied trees. Do not claim CSV
+integrity verification, crash atomicity or concurrent-writer isolation.

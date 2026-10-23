@@ -131,6 +131,169 @@ pub fn list_versions(base: &Utf8Path, label: &str, structure: LocalStructure, ap
     }
 }
 
+
+/// Resolves one explicit ordinary local source without creating it.
+/// Latest requires no archive version and uses its advertised VERSION entry.
+/// Archive requires the exact numeric directory spelling (with optional leading
+/// v); a full directory wins over its -empty variant. No automatic historical
+/// version selection, byte verification or configured-source lookup is implied.
+pub fn select_version(base: &Utf8Path, label: &str, structure: LocalStructure, archive_version: Option<&str>, append_label: bool) -> anyhow::Result<LocalVersion> {
+    crate::path_safety::validate_directory_label(label)?;
+    match structure {
+        LocalStructure::Latest => {
+            anyhow::ensure!(archive_version.is_none(), "Latest layout does not accept an archive version");
+            let entry = list_versions(base, label, structure, append_label)?.into_iter().next()
+                .context("Latest remote has no advertised version for the requested label")?;
+            anyhow::ensure!(entry.present, "Advertised latest remote target is missing: {}", entry.path);
+            Ok(entry)
+        }
+        LocalStructure::Archive => {
+            let spelling = archive_version.context("Archive download requires an explicit remote version")?;
+            let numbers = version_numbers(spelling).context("Invalid explicit archive version")?;
+            anyhow::ensure!(directory_present(base)?, "Local remote base is missing: {base}");
+            let target = if append_label { base.join(label) } else { base.to_owned() };
+            let full = target.join(spelling);
+            let (path, empty) = if directory_present(&full)? { (full, false) } else {
+                let marker = target.join(format!("{spelling}-empty"));
+                anyhow::ensure!(directory_present(&marker)?, "Requested local archive version is missing: {spelling}");
+                (marker, true)
+            };
+            Ok(LocalVersion { version: format!("v{}", numbers.iter().map(u64::to_string).collect::<Vec<_>>().join(".")),
+                path, empty, present: true, metadata_untrusted: None })
+        }
+    }
+}
+
+/// Outcome of a completed local download, independent of remote integrity trust.
+#[derive(Debug, Serialize)]
+pub struct LocalDownload {
+    /// Normalized advertised/selected version, not a verified content identity.
+    pub version: String,
+    /// Explicit destination receiving the staged tree.
+    pub destination: Utf8PathBuf,
+    /// Whether the source was the ordinary empty-directory marker variant.
+    pub empty: bool,
+    /// Whether destination-only files were explicitly discarded.
+    pub clear: bool,
+}
+
+fn validate_download_destination(root: &Utf8Path, source: &Utf8Path, destination: &Utf8Path) -> anyhow::Result<()> {
+    crate::path_safety::validate_document_destination(root, source, destination)?;
+    crate::path_safety::validate_directory_move(source, destination)?;
+    let identity = crate::path_safety::resolve_path(destination.as_std_path(), true)?;
+    let state = crate::path_safety::resolve_path(root.join(".projr").as_std_path(), true)?;
+    anyhow::ensure!(!identity.starts_with(&state) && !state.starts_with(&identity),
+        "Download destination overlaps protected project state: {destination}");
+    Ok(())
+}
+
+
+fn download_permissions(path: &Utf8Path, relative: &Utf8Path, permissions: &mut std::collections::BTreeMap<Utf8PathBuf, fs::Permissions>) -> anyhow::Result<()> {
+    let metadata = fs::symlink_metadata(path).with_context(|| format!("Cannot capture download permissions at {path}"))?;
+    anyhow::ensure!(metadata.is_dir() || metadata.is_file(), "Download permissions require a real file/directory: {path}");
+    permissions.insert(relative.to_owned(), metadata.permissions());
+    if metadata.is_dir() {
+        for entry in fs::read_dir(path)? {
+            let path = Utf8PathBuf::try_from(entry?.path())?;
+            download_permissions(&path, &relative.join(path.file_name().context("Download entry has no filename")?), permissions)?;
+        }
+    }
+    Ok(())
+}
+
+// Existing staged files may be read-only. Remove matching private-stage files
+// before the source copy; final captured permissions are applied after merging.
+fn prepare_download_overlay(source: &Utf8Path, staged: &Utf8Path) -> anyhow::Result<()> {
+    for entry in fs::read_dir(source)? {
+        let entry = entry?;
+        let path = Utf8PathBuf::try_from(entry.path())?;
+        let target = staged.join(path.file_name().context("Download entry has no filename")?);
+        let kind = entry.file_type()?;
+        if kind.is_dir() && target.is_dir() { prepare_download_overlay(&path, &target)?; }
+        else if kind.is_file() {
+            match fs::symlink_metadata(&target) {
+                Ok(metadata) if metadata.is_file() => {
+                    #[cfg(windows)]
+                    if metadata.permissions().readonly() {
+                        let mut permissions = metadata.permissions();
+                        permissions.set_readonly(false);
+                        fs::set_permissions(&target, permissions)?;
+                    }
+                    fs::remove_file(&target)?;
+                }
+                Ok(_) => {}
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                Err(error) => return Err(error.into()),
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Downloads an already selected ordinary local version through private staging.
+/// The destination parent must already exist. Existing destination-only files
+/// survive unless clear is true; matching files receive source bytes. Empty
+/// markers must contain no entries. Linked/special trees and overlapping paths,
+/// project-root/ancestor and VCS/framework-state destinations fail closed.
+///
+/// All copying finishes before renaming an existing destination aside. A failed
+/// install attempts to restore that original directory; a failed rollback retains
+/// it at the reported private path. Hard-linked external aliases are not edited.
+/// This is bounded recovery, not crash atomicity or concurrent-writer isolation.
+/// Existing destination root permissions survive even with clear; merge mode
+/// preserves existing file/directory permissions, and new entries retain source
+/// permission flags. Ownership, ACLs and extended attributes are not preserved.
+/// No source data, remote metadata, project version or configured paths change.
+pub fn download_version(root: &Utf8Path, version: &LocalVersion, destination: &Utf8Path, clear: bool) -> anyhow::Result<LocalDownload> {
+    anyhow::ensure!(version.present && directory_present(&version.path)?, "Selected local remote directory is missing");
+    validate_download_destination(root, &version.path, destination)?;
+    let parent = destination.parent().context("Download destination has no parent")?;
+    anyhow::ensure!(directory_present(parent)?, "Download destination parent must already exist: {parent}");
+    let had_destination = directory_present(destination)?;
+    if version.empty {
+        anyhow::ensure!(fs::read_dir(&version.path)?.next().transpose()?.is_none(),
+            "Empty remote marker contains entries: {}", version.path);
+    }
+    let staging = tempfile::Builder::new().prefix(".proj-download-").tempdir_in(parent)?;
+    let staged = Utf8PathBuf::try_from(staging.path().join("next"))?;
+    let previous = Utf8PathBuf::try_from(staging.path().join("previous"))?;
+    fs::create_dir(&staged)?;
+    let mut permissions = std::collections::BTreeMap::new();
+    download_permissions(&version.path, Utf8Path::new(""), &mut permissions)?;
+    if had_destination {
+        if clear { permissions.insert(Utf8PathBuf::new(), fs::symlink_metadata(destination)?.permissions()); }
+        else {
+            download_permissions(destination, Utf8Path::new(""), &mut permissions)?;
+            crate::fs_utils::copy_dir_recursive(destination, &staged)?;
+        }
+    }
+    if !version.empty {
+        prepare_download_overlay(&version.path, &staged)?;
+        crate::fs_utils::copy_dir_recursive(&version.path, &staged)?;
+    }
+    // Children first: restrictive parent modes must not block metadata updates.
+    let mut permissions: Vec<_> = permissions.into_iter().collect();
+    permissions.sort_by_key(|(path, _)| std::cmp::Reverse(path.components().count()));
+    for (relative, mode) in permissions { fs::set_permissions(staged.join(relative), mode)?; }
+    validate_download_destination(root, &version.path, destination)?;
+    anyhow::ensure!(directory_present(destination)? == had_destination, "Download destination presence changed during staging");
+    if had_destination {
+        fs::rename(destination, &previous).with_context(|| format!("Cannot retain existing download destination {destination}"))?;
+    }
+    if let Err(error) = fs::rename(&staged, destination) {
+        if had_destination {
+            if let Err(rollback) = fs::rename(&previous, destination) {
+                let retained = staging.keep();
+                anyhow::bail!("Cannot install local download: {error}; rollback failed: {rollback}; original destination retained at {}/previous", retained.display());
+            }
+        }
+        return Err(error).with_context(|| format!("Cannot install staged local download at {destination}"));
+    }
+    let cleanup_path = staging.path().to_owned();
+    staging.close().with_context(|| format!("Download installed at {destination}, but private staging cleanup failed at {}", cleanup_path.display()))?;
+    Ok(LocalDownload { version: version.version.clone(), destination: destination.to_owned(), empty: version.empty, clear })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
