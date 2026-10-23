@@ -15,6 +15,8 @@ target=resource('output','result.csv')
 target.parent.mkdir(parents=True,exist_ok=True)
 target.write_bytes(('value\\n'+str(value*factor)+'\\n').encode())
 if os.environ.get('PROJCLI_M2_FAIL')=='1':
+    target.write_bytes(b'failed-only-output\\n')
+    Path(os.environ['PROJCLI_M2_FAILURE_WITNESS']).write_bytes(b'analysis reached exit17 after output overwrite')
     raise SystemExit(17)
 """
 def invoke(binary,root,env,*args):
@@ -97,8 +99,14 @@ def main():
             before={name:(root/name).read_bytes() for name in ['VERSION','DESCRIPTION','manifest.csv','released/result.csv']}
             logs=snapshot(root/'.proj/log')
             failure_env=env.copy();failure_env['PROJCLI_M2_FAIL']='1'
+            failure_witness=base/'failed-analysis-ran';failure_env['PROJCLI_M2_FAILURE_WITNESS']=str(failure_witness)
             result,failure=invoke(binary,root,failure_env,'build','--patch')
             assert result.returncode!=0 and failure['error']['code']=='command_failed'
+            assert failure_witness.read_bytes()==b'analysis reached exit17 after output overwrite'
+            failed_cache=root/'cache/projr/v1.2.6/output/result.csv'
+            assert failed_cache.read_bytes()==b'failed-only-output\n'
+            shutil.copyfile(failed_cache,args.artifacts/'failed-cache-result.csv')
+            shutil.copyfile(failure_witness,args.artifacts/'failure-witness.txt')
             assert {name:(root/name).read_bytes() for name in before}==before
             assert snapshot(root/'.proj/log')==logs
             assert not (root/'.proj/build.lock').exists()

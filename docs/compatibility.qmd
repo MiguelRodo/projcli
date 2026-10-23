@@ -2905,3 +2905,9 @@ This addresses bounded local traceability. Full environment reproduction,
 frozen transitive imports and remote availability are outside the M2 local gate;
 pre-distribution failure-log retention remains undecided and unchanged. Existing
 R package, hook order, CSV and snapshot/receipt sequencing remain unchanged.
+
+Independent review strengthened the integrated failure witness: the selected
+analysis writes distinct failure-only cache bytes and an external fixture marker
+before exit17. The gate checks both, exact unchanged last-good managed bytes,
+and replacement with correct computed bytes on retry; command failure alone is
+not treated as proof of the intended fault.
