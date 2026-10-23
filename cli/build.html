@@ -318,6 +318,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#failed-reports-and-a-smaller-retry" id="toc-failed-reports-and-a-smaller-retry" class="nav-link" data-scroll-target="#failed-reports-and-a-smaller-retry">Failed reports and a smaller retry</a></li>
   <li><a href="#local-git-success-and-a-rejected-push" id="toc-local-git-success-and-a-rejected-push" class="nav-link" data-scroll-target="#local-git-success-and-a-rejected-push">Local Git success and a rejected push</a></li>
   <li><a href="#inspect-the-production-inventory" id="toc-inspect-the-production-inventory" class="nav-link" data-scroll-target="#inspect-the-production-inventory">Inspect the production inventory</a></li>
+  <li><a href="#additional-real-git-failure-boundary-witnesses" id="toc-additional-real-git-failure-boundary-witnesses" class="nav-link" data-scroll-target="#additional-real-git-failure-boundary-witnesses">Additional real Git failure-boundary witnesses</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -407,6 +408,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="inspect-the-production-inventory" class="level2">
 <h2 class="anchored" data-anchor-id="inspect-the-production-inventory">Inspect the production inventory</h2>
 <p>Current source adds root manifest.csv after successful output-enabled production builds. Open it in a text editor/spreadsheet to inspect directory labels, relative filenames, release versions and MD5 values, including earlier versions. Git/remotes are optional; preview leaves production history unchanged. See <a href="../configuration.html#production-file-inventory">configuration</a> and <a href="../storage-design.html#compatible-csv-inventory">limits</a>. This is included in preview.3; verification evidence is recorded in the compatibility log and PR175.</p>
+</section>
+<section id="additional-real-git-failure-boundary-witnesses" class="level2">
+<h2 class="anchored" data-anchor-id="additional-real-git-failure-boundary-witnesses">Additional real Git failure-boundary witnesses</h2>
+<p>A regression candidate exercises repositories with no remote/upstream: local commit remains available when push is disabled; explicit push without tracking configuration must fail preflight before analysis or managed writes. A real rejecting pre-commit hook separately checks that the computed local release and CSV survive while HEAD/upstream remain unchanged and the next-dev bump is skipped. Git’s index may already contain the staged release; no index rollback or successful publication is claimed.</p>
+<p>These are tests of existing behavior, not new attempt identities, sealing rules or retry guarantees. Exact-head remote verification and independent review are required before treating this candidate as delivered evidence.</p>
 
 
 </section>
