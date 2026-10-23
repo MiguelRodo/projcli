@@ -499,7 +499,8 @@ Set structure: latest to replace label.zip (or label-empty.zip). Archive remains
 the default and may replace only the exact canonical current-version asset;
 older versions remain untouched. Existing data ZIPs are downloaded and validated,
 then selected CSV bytes overwrite their matching members while remote-only files
-survive. Empty source selection leaves existing data and its label VERSION intact.
+survive. Empty source selection leaves existing data intact; the strategy table below
+explains when label VERSION also advances.
 Upload-all, upload-missing and sync-diff updates to existing targets receive a
 starred VERSION because retained extras are not described by the source inventory.
 A nonempty sync-purge replaces the complete file set and removes that star. Project/history
