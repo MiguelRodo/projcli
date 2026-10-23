@@ -348,7 +348,7 @@ ul.task-list li input[type="checkbox"] {
 <tr class="even">
 <td>latest hierarchy</td>
 <td>Local path[/label]; label append defaults true. New sends update that location. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote.R#L463">Layout</a>.</td>
-<td>Configured local latest publication, inspection/download/restore and finalisation execute; configured GitHub publication remains pending.</td>
+<td>Configured local latest publication, inspection/download/restore and finalisation execute; configured GitHub archive/none/upload-all is a candidate; other combinations remain pending.</td>
 </tr>
 <tr class="odd">
 <td>archive hierarchy</td>
@@ -358,12 +358,12 @@ ul.task-list li input[type="checkbox"] {
 <tr class="even">
 <td>GitHub flat layout</td>
 <td>Latest assets use path/label-derived flat name; archive adds version; ordinary content is ZIP-packaged. Metadata uses its own ZIP assets. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote.R#L525">Flat naming</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-github.R">GitHub</a>.</td>
-<td>Compatible flat names, prefix/append-label options and ZIP transfer exist. Configured restore uses them; configured GitHub publication remains missing.</td>
+<td>Compatible flat names, prefix/append-label options and ZIP transfer exist. Configured restore uses them; Configured GitHub archive/none/upload-all is now a bounded candidate; remaining decision combinations are missing.</td>
 </tr>
 <tr class="odd">
 <td>Empty content</td>
 <td>Local final name gets -empty; GitHub name gets -empty.zip and ZIP has projr-empty sentinel. Full/empty variants are reconciled. <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-local.R#L78">Local</a>, <a href="https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/dest-send-label.R#L1792">store finalisation</a>.</td>
-<td>ZIP sentinel/names and local empty variants are supported. Configured restore skips advertised empty labels without clearing. Configured local latest publication reconciles full/empty variants; configured GitHub publication remains pending.</td>
+<td>ZIP sentinel/names and local empty variants are supported. Configured restore skips advertised empty labels without clearing. Configured local latest publication reconciles full/empty variants; configured GitHub archive/none/upload-all is a candidate; other combinations remain pending.</td>
 </tr>
 <tr class="even">
 <td>CAS addition</td>
@@ -403,7 +403,7 @@ ul.task-list li input[type="checkbox"] {
 <tr class="even">
 <td>structure</td>
 <td>archive by default; only archive/latest accepted. The wrapper prose saying version is not a supported alias.</td>
-<td>Explicit local/GitHub operations and restore support latest/archive. Configured local latest publication executes; ordinary local archive publication now executes; configured GitHub publication remains pending.</td>
+<td>Explicit local/GitHub operations and restore support latest/archive. Configured local latest publication executes; ordinary local archive publication now executes; configured GitHub archive/none/upload-all is a candidate; other combinations remain pending.</td>
 </tr>
 <tr class="odd">
 <td>path</td>
@@ -793,6 +793,7 @@ ul.task-list li input[type="checkbox"] {
 <p>The next bounded slice integrates build.local latest/file with the build’s existing release boundary: current CSV-selected staging, all four file strategies, both cues, namespace preflight and shared CSV/VERSION/changelog updates. See the <a href="./cli/remote.html#configured-local-publication-candidate">control matrix</a>. <a href="https://github.com/MiguelRodo/projcli/pull/185">PR185</a> records exact-head independent review and remote verification. File and none inspection are delivered in PR185/188; the current manifest slice adds the existing default comparison and fallback. Archive comparison selection and configured GitHub publication remain pending.</p>
 <p>Pinned R comparison: dest-send-label.R355,854-1560,1587-1788 and manifest.R67-75,192-225 in the source revision linked above. New empty labels and file-equal missing/starred metadata receive explicit discoverability corrections; these are documented differences rather than claims that the pinned R no-change path already repairs them. No registry or unresolved retention/default policy is adopted.</p>
 <p>Local archive publication is the current incremental slice: complete versioned snapshots, historical reuse eligibility and actual build/store/restore matrix. Its PR records exact-head review/CI evidence. Configured GitHub publication and configured append-label:false remain pending; no full remote-completion claim.</p>
+<p>Configured GitHub archive upload is now a candidate for explicit none/upload-all, including missing Release creation, CSV data ZIPs and shared metadata history. Its PR records mocked REST CLI round-trip evidence. Latest, configured current-data replacement, other strategies and file/manifest comparison remain pending.</p>
 
 
 </section>
