@@ -289,6 +289,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#source-csv-inventory-additional-capture-points" id="toc-source-csv-inventory-additional-capture-points" class="nav-link" data-scroll-target="#source-csv-inventory-additional-capture-points">Source CSV inventory: additional capture points</a></li>
   <li><a href="#configured-ordinary-publication-in-preview.3" id="toc-configured-ordinary-publication-in-preview.3" class="nav-link" data-scroll-target="#configured-ordinary-publication-in-preview.3">Configured ordinary publication in preview.3</a></li>
   <li><a href="#development-source-writer-ownership-around-the-staged-lifecycle" id="toc-development-source-writer-ownership-around-the-staged-lifecycle" class="nav-link" data-scroll-target="#development-source-writer-ownership-around-the-staged-lifecycle">Development source: writer ownership around the staged lifecycle</a></li>
+  <li><a href="#development-source-snapshot-and-final-git-receipt" id="toc-development-source-snapshot-and-final-git-receipt" class="nav-link" data-scroll-target="#development-source-snapshot-and-final-git-receipt">Development source: snapshot and final Git receipt</a></li>
   </ul>
 </nav>
     </div>
@@ -781,6 +782,11 @@ Figure&nbsp;8: Development-source ownership surrounds the existing lifecycle; pr
 </div>
 </div>
 </div>
+</section>
+<section id="development-source-snapshot-and-final-git-receipt" class="level2">
+<h2 class="anchored" data-anchor-id="development-source-snapshot-and-final-git-receipt">Development source: snapshot and final Git receipt</h2>
+<p>Publication-attempt evidence starts at the successful local-release boundary. The snapshot records possible distribution before provider calls and survives later failure. Immediately before optional Git, the framework freezes that snapshot. The normal commit includes it; a later local receipt records actual Git and end-hook/next-dev outcomes for the next ordinary commit. No bookkeeping commit loop is introduced. Missing receipts after a crash remain unresolved; failed requests never promise that remote state was unchanged.</p>
+<p>This overlay does not move end hooks, enforce output sealing or change the released lifecycle figures. Plain no-publication builds, previews and earlier failures remain outside this first durable-log slice.</p>
 
 
 </section>

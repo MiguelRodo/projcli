@@ -302,6 +302,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#inventory-transition-groundwork" id="toc-inventory-transition-groundwork" class="nav-link" data-scroll-target="#inventory-transition-groundwork">Inventory transition groundwork</a></li>
   <li><a href="#temporary-compatible-csv-recording" id="toc-temporary-compatible-csv-recording" class="nav-link" data-scroll-target="#temporary-compatible-csv-recording">Temporary compatible CSV recording</a></li>
   <li><a href="#cooperative-build-ownership" id="toc-cooperative-build-ownership" class="nav-link" data-scroll-target="#cooperative-build-ownership">Cooperative build ownership</a></li>
+  <li><a href="#development-source-publication-attempt-evidence" id="toc-development-source-publication-attempt-evidence" class="nav-link" data-scroll-target="#development-source-publication-attempt-evidence">Development source: publication-attempt evidence</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -481,6 +482,14 @@ ul.task-list li input[type="checkbox"] {
 <p>The claim is released after ordinary success, failure and recovery. An existing claim is never stolen. A terminated process or machine failure can leave one: first confirm no build owns the project, then remove only the stale claim and retry. This is cooperative build exclusion, not a filesystem sandbox or a promise of crash recovery. Arbitrary scripts and other tools can still change files.</p>
 <p>Managed caches, output/document destinations and ordinary publication targets cannot replace .proj. Optional Git integration excludes only reserved live .proj/build.lock paths at every repository depth from clean-state checks and staging, preserving the existing whole-repository staging scope. A tracked claim is rejected. This does not exclude .proj/log or choose the still-pending final Git receipt sequence.</p>
 <p>Per-attempt durable JSON logs, their retention and post-commit/push receipts are not implemented by this ownership slice. End-hook mutation enforcement remains deferred; existing hook ordering and failure recovery are unchanged.</p>
+</section>
+<section id="development-source-publication-attempt-evidence" class="level2">
+<h2 class="anchored" data-anchor-id="development-source-publication-attempt-evidence">Development source: publication-attempt evidence</h2>
+<p>Production builds with enabled ordinary/CAS publication or optional Git retain one JSON snapshot per attempt under .proj/log. The snapshot records the opaque attempt ID, UTC times, selected profiles, logical version transition, local-release completion and provider operation outcomes. It is a companion to the existing four-column CSV; it does not replace CSV or choose a new archive/CAS identity.</p>
+<p>The framework records that distribution may have started before entering a provider or Git operation. A returned failure may have partial effects, including an uncertain push; it never means the remote remained unchanged. Once this boundary is reached, framework error handling retains the earlier evidence. A crash with only a pending snapshot remains unresolved, without automatic retry.</p>
+<p>With Git enabled, the normal build commit includes the pre-Git snapshot. Final Git/end-hook/next-dev results go to a separate local outcome receipt, included in the next ordinary commit. There is no recursive log-only commit. Only an exact pending receipt, its unchanged snapshot in HEAD and its local ownership witness qualify for the narrowly scoped clean-worktree exception. Other dirty files, edited receipts and unowned version changes remain errors. Explicit user Git ignore rules still apply; managed ignore generation does not exclude these logs.</p>
+<p>Normal standalone publication requires neither Git nor a cloud account. Records omit raw configuration, environment, URLs, credentials, command arguments and subprocess output. IDs are random rather than host/user names. Worktree-local Git witnesses contain opaque control hashes and never enter Git history.</p>
+<p>This first slice starts at the successful local-release/publication boundary. Plain builds with no publication, previews and earlier failed builds still have no durable attempt record. Complete source/runner/dependency provenance, earlier stage records and cleanup/retention policy remain M2 follow-up work. End-hook mutation enforcement stays deferred; these records do not authenticate arbitrary scripts or provide a filesystem sandbox. The installed preview.3 is unchanged.</p>
 
 
 </section>
