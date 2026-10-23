@@ -2800,3 +2800,38 @@ retention remain follow-up work; installed preview.3 remains unchanged.
 Remote macOS found a fixture-only /var alias in the direct post-hook inventory
 assertion. The fixture now passes its owned canonical released-directory path;
 production link guards and the exact final digest assertion remain unchanged.
+
+
+## Bounded startup source, policy, runner and dependency evidence
+
+**New companion metadata; not R schema parity or complete reproducibility.**
+Keep the existing CSV/MD5 capture and approved attempt/Git receipt sequence.
+Observe selected code and root dependency declarations before start hooks,
+with explicit source/count/byte limits and unknown states. Use the physical
+identity when classifying paths so ../external.py is redacted like an absolute
+external source. Preserve supported execution and path guards.
+
+The R reference is
+[projr90be501 buildlog.R](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/buildlog.R).
+Its effective-configuration/session logging is not copied as a redaction
+guarantee. The Rust projection contains validated flags/counts only, omitting
+arbitrary parameters, paths, remotes and environment. Existing preflight probes
+supply recognised numeric runner versions without additional runner commands or raw output.
+The 16 KiB cap limits accepted metadata, not existing child-output buffering.
+
+Ponytail full reuses BLAKE3 streaming, path guards, existing version probes and
+optional attempt fields, with no dependency or catalogue. Early independent
+review found a lexical-prefix leak for parent-relative external sources; resolved
+physical classification and an actual CLI witness correct it. Fixed root
+declarations are not installed dependency inventories; unknown/limit cases
+remain nonfatal. No frozen executed-code claim, manifest replacement or new
+failure-retention policy follows.
+
+Remote fixture targets include actual Python/source/declaration changes, startup
+timing before a mutating hook, fixed policy fingerprints, secret/URL omission,
+standalone empty PATH, over-limit/symlink/FIFO declarations and early Git revision
+binding. Exact-head platform/API/docs/pinned acceptance and independent review
+are required; no local compilation or tests ran. Implicit renderer sources,
+complete configuration/parameters, installed package state, final-row inspection
+and generated human history remain unfinished. Preview.3 and the existing R
+package remain unchanged.

@@ -504,7 +504,7 @@ regression evidence without moving hooks, publication or the next-dev transition
 %%{init: {"htmlLabels": false}}%%
 flowchart TB
   W["Claim one project writer"]
-  S["Captured inputs; existing pre-build,<br/>analysis, promotion and recovery"]
+  S["Preflight; bounded startup observations;<br/>existing pre-build, analysis,<br/>promotion and recovery"]
   P{"Production local success?"}
   D{"Publication enabled?"}
   L["End hooks; next dev;<br/>observe outputs; install completed log"]
@@ -532,3 +532,10 @@ released lifecycle figures. Successful plain production builds now install a
 completed record after end hooks/next-dev succeed. Previews and earlier failures
 remain outside durable-log coverage. Final output observation fingerprints the
 post-finalization state; it never silently redefines the bytes already published.
+
+
+The development-source ownership overlay now observes selected sources, root
+dependency declarations and a safe policy summary after preflight, before start
+hooks. It reuses existing runner version responses. No hook or version adjacency
+moves; startup observations are not immutable executed-code evidence. Earlier
+failed-build retention and output-mutation enforcement remain unchanged.

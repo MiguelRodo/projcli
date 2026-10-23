@@ -144,15 +144,15 @@ pub(crate) fn individual_output_options(content: &str, is_rmd: bool) -> anyhow::
 }
 
 pub fn find_python_command() -> Option<String> {
-    find_python_command_in(&RunEnvironment::inherited())
+    find_python_command_in(&RunEnvironment::inherited()).map(|(command,_)|command)
 }
 
-fn find_python_command_in(environment: &RunEnvironment) -> Option<String> {
+fn find_python_command_in(environment: &RunEnvironment) -> Option<(String,crate::provenance::RunnerEvidence)> {
     let variants = ["python3", "python"];
     for cmd in variants {
         if let Ok(output) = environment.command(cmd).arg("--version").output() {
             if output.status.success() {
-                return Some(cmd.to_string());
+                return Some((cmd.to_string(),crate::provenance::RunnerEvidence::from_probe(cmd,&output)));
             }
         }
     }
@@ -169,7 +169,7 @@ pub fn run_pre_flight_checks(
     quarto_exists: bool,
     bookdown_exists: bool,
 ) -> anyhow::Result<(Option<String>, Option<String>)> {
-    run_pre_flight_checks_in(project_root, config, is_prod_run, resolved_files, quarto_exists, bookdown_exists, &RunEnvironment::inherited())
+    run_pre_flight_checks_in(project_root, config, is_prod_run, resolved_files, quarto_exists, bookdown_exists, &RunEnvironment::inherited()).map(|(token,python,_)|(token,python))
 }
 
 pub(crate) fn run_pre_flight_checks_in(
@@ -180,7 +180,8 @@ pub(crate) fn run_pre_flight_checks_in(
     quarto_exists: bool,
     bookdown_exists: bool,
     environment: &RunEnvironment,
-) -> anyhow::Result<(Option<String>, Option<String>)> {
+) -> anyhow::Result<(Option<String>, Option<String>,Vec<crate::provenance::RunnerEvidence>)> {
+    let mut runners=Vec::new();
     let resolved_token = None; // Authentication uses native Git or explicitly enabled environment data.
     if is_prod_run {
         let restrictions = &config.restrictions;
@@ -238,9 +239,9 @@ pub(crate) fn run_pre_flight_checks_in(
 
     // A. R Validation
     if r_needed {
-        if environment.command("Rscript").arg("--version").output().is_err() {
-            anyhow::bail!("'Rscript' executable not found on the system PATH. A working R installation is required to build this project");
-        }
+        let probe=environment.command("Rscript").arg("--version").output()
+            .map_err(|_|anyhow::anyhow!("'Rscript' executable not found on the system PATH. A working R installation is required to build this project"))?;
+        runners.push(crate::provenance::RunnerEvidence::from_probe("Rscript",&probe));
 
         let mut required_packages = Vec::new();
         if bookdown_exists {
@@ -322,17 +323,20 @@ pub(crate) fn run_pre_flight_checks_in(
 
     // B. Quarto Validation
     if quarto_needed {
-        if environment.command("quarto").arg("--version").output().is_err() {
+        let probe=environment.command("quarto").arg("--version").output();
+        if probe.is_err() {
             anyhow::bail!("'quarto' binary not found on the system PATH. \n\
                         Please download and install Quarto before proceeding: https://quarto.org/docs/get-started/");
         }
+        runners.push(crate::provenance::RunnerEvidence::from_probe("quarto",&probe?));
     }
 
     // C. Python Validation
     let mut resolved_python_cmd = None;
     if python_needed {
         match find_python_command_in(environment) {
-            Some(cmd) => {
+            Some((cmd,evidence)) => {
+                runners.push(evidence);
                 resolved_python_cmd = Some(cmd);
             }
             None => {
@@ -342,7 +346,7 @@ pub(crate) fn run_pre_flight_checks_in(
         }
     }
 
-    Ok((resolved_token, resolved_python_cmd))
+    Ok((resolved_token, resolved_python_cmd,runners))
 }
 
 #[cfg(test)]
