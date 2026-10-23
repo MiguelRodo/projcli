@@ -57,6 +57,8 @@ struct Record {
     git: GitOutcome,
     source_head: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    startup_provenance: Option<crate::provenance::Snapshot>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     inventory: Option<InventoryEvidence>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     final_outputs: Option<FinalOutputs>,
@@ -151,7 +153,7 @@ fn create(path: &Utf8Path, bytes: &[u8]) -> anyhow::Result<()> {
 impl AttemptLog {
     /// Prepare evidence without installing a record until start or completed_local succeeds.
     pub(crate) fn prepare(root:&Utf8Path, attempt:&crate::attempt::Attempt, profiles:Vec<String>,
-        before:String, release:String, mode:&str, git:bool, push:bool, source_head:Option<String>, inventory:Option<InventoryEvidence>) -> anyhow::Result<Self> {
+        before:String, release:String, mode:&str, git:bool, push:bool, source_head:Option<String>, inventory:Option<InventoryEvidence>, startup:Option<crate::provenance::Snapshot>) -> anyhow::Result<Self> {
         let directory=root.join(".proj/log");
         crate::path_safety::validate_native_names(root,".proj/log",false)?;
         crate::path_safety::resolve_path(directory.as_std_path(),true)?;
@@ -168,7 +170,7 @@ impl AttemptLog {
             started_at:attempt.started_at().to_owned(),recorded_at:timestamp(),profiles,build_mode:mode.into(),version_after:None,
             version_before:before,release_version:release,local_build:"completed".into(),
             stage:"local_release".into(),status:"in_progress".into(),distribution_may_have_started:false,
-            operations:Vec::new(),git:GitOutcome::requested(git,push),source_head,inventory,final_outputs:None};
+            operations:Vec::new(),git:GitOutcome::requested(git,push),source_head,startup_provenance:startup,inventory,final_outputs:None};
         Ok(Self {path,record,sealed_hash:None,created_directory})
     }
 

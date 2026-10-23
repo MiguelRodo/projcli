@@ -593,3 +593,41 @@ needed for the final observation. Fingerprints alone cannot reconstruct missing
 CSV rows or list changed post-hook paths; complete source/config/runner/dependency
 provenance, inspectable final-row retention and human-history generation remain
 unfinished M2 work. The installed preview.3 remains unchanged.
+
+
+## Development source: bounded startup provenance
+
+Production attempt records now include a startup observation captured after
+preflight and before start hooks:
+
+- Selected script/hook file names, observed byte lengths and BLAKE3 fingerprints.
+  Names are relative to the physical project root; external, overlong or URL-like names
+  are replaced with opaque ordinal names and explicitly marked redacted.
+- A Git revision when Git integration is enabled, with a state saying that its
+  preflight gate was accepted. With Git disabled, Git is not queried and the
+  revision is unknown. Neither state proves an unchanged execution tree.
+- A safe configuration projection of validated execution/path/clear flags, Git
+  and output toggles, directory counts and whether a safe cache was selected.
+  It deliberately excludes paths, arbitrary parameters, environment, credentials
+  and remote definitions. Its fingerprint covers only this projection.
+- Numeric Python/Rscript/Quarto versions recognised from existing preflight
+  responses. No extra runner probe is launched; raw vendor output is not retained.
+- Fingerprints of fixed root dependency declarations: renv.lock, DESCRIPTION,
+  pyproject.toml, requirements.txt, requirements-dev.txt, poetry.lock, uv.lock,
+  Pipfile.lock, Project.toml, Manifest.toml, Cargo.lock, environment.yml and
+  environment.yaml. These are declarations, not proof of installed packages.
+
+File observation limits are 256 selected unique source entries, 8 MiB per file
+and a shared 64 MiB read budget, with at most one lookahead byte. Missing,
+unavailable, linked/special and over-limit declarations have explicit states;
+they do not make a previously supported build fail. Long source names are capped
+at 256 UTF-8 bytes before redaction. The 16 KiB runner-response cap controls what
+metadata is accepted; existing preflight subprocess output buffering is unchanged.
+
+These are startup observations, not frozen source bytes: a start hook can change
+a later script or dependency declaration. Implicit renderer-project source sets,
+imported code, effective renderer configuration, arbitrary parameters and installed
+dependency state are not fully captured. Unknown states must not be presented as
+complete provenance. Detailed final rows and generated human history remain
+separate M2 work. CSV/MD5 and failure-retention behavior are unchanged, as is the
+installed preview.3.

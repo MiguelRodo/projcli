@@ -344,7 +344,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         }
     }
 
-    let (_resolved_token, resolved_python_cmd) = run_pre_flight_checks_in(
+    let (_resolved_token, resolved_python_cmd,runner_evidence) = run_pre_flight_checks_in(
         project_root,
         &config,
         is_prod_run,
@@ -354,6 +354,13 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         &environment,
     )?;
 
+    let startup_provenance=if !is_dev {
+        Some(crate::provenance::Snapshot::capture(project_root,&validation_files,
+            (quarto_exists||bookdown_exists)&&build_scripts.is_none(),
+            if config.git.commit {crate::git::head_in(project_root,&environment)}else{None},
+            config.git.commit,runner_evidence,
+            crate::provenance::ConfigurationEvidence::capture(&config,execution,clear_stage,selected_cache.is_some())))
+    }else{None};
     // Parse existing history before hooks or any managed mutation. Preview and
     // disabled output builds neither read nor write the production CSV.
     let record_manifest = !is_dev && config.output_run.unwrap_or(true);
@@ -647,7 +654,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         crate::profile::parse_active_profiles(&profile_text),version_before.clone(),initial_version.to_string(true),
         match mode {BuildMode::ProdMajor=>"production_major",BuildMode::ProdMinor=>"production_minor",_=>"production_patch"},
         config.git.commit,push_target.is_some(),
-        if config.git.commit {crate::git::head_in(project_root,&environment)}else{None},attempt_inventory.clone());
+        if config.git.commit {crate::git::head_in(project_root,&environment)}else{None},attempt_inventory.clone(),startup_provenance.clone());
     let observe_outputs=|| -> anyhow::Result<crate::attempt_log::FinalOutputs> {
         let inventory=if record_manifest {
             let rows=crate::manifest::capture_build(project_root,&config,&initial_version.to_string(true),false)?;

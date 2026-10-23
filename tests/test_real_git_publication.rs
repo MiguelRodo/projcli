@@ -482,6 +482,9 @@ fn attempt_snapshot_and_receipt_follow_two_normal_commits_without_recursion() {
     let snapshot:serde_json::Value=serde_json::from_slice(&fixture.git(&["show",&format!("HEAD:./.proj/log/{id}.json")])).unwrap();
     assert_eq!(receipt["final_outputs"]["status"],"completed");
     assert_eq!(receipt["final_outputs"]["inventory"],snapshot["inventory"]["release_outputs"]);
+    assert_eq!(snapshot["startup_provenance"]["source_head"],initial);
+    assert_eq!(snapshot["startup_provenance"]["source_state"],"git_preflight_accepted");
+    assert_eq!(snapshot["startup_provenance"]["configuration"]["policy"]["git_commit"],true);
     let rows=proj::manifest_csv::decode(&fixture.git(&["show","HEAD:./manifest.csv"])).unwrap();
     let expected=blake3::hash(&proj::manifest_csv::encode(&rows).unwrap()).to_hex().to_string();
     assert_eq!(snapshot["inventory"]["release_outputs"]["canonical_csv_blake3"],expected);

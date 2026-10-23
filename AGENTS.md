@@ -457,3 +457,16 @@ Output mutation by hooks remains allowed, not an M2 enforcement gate. Fingerprin
 cannot recover missing CSV or enumerate changed final rows; keep these limitations
 and the remaining full provenance/human-history work explicit. New optional
 record fields must still decode earlier pending development receipts.
+
+
+Startup provenance is an explicit observation before start hooks, not proof of an
+immutable execution tree. Reuse preflight runner responses without extra probes;
+retain only recognised numeric versions, not vendor output/paths. The probe cap
+bounds retained metadata, not existing subprocess buffering. Never serialize raw
+configuration, environment, remote locations or arbitrary parameters. The policy
+projection records validated flags/counts only. Resolve physical identities before
+classifying relative-parent sources as internal; redact external/overlong names.
+Fingerprint only guarded regular files within the source/count/byte limits, with
+explicit unknown/limit states. Root dependency declarations are not installed
+package fingerprints. Do not infer full environment reproducibility or select
+failure-retention policy from this bounded companion evidence.
