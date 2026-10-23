@@ -403,7 +403,7 @@ ul.task-list li input[type="checkbox"] {
 <tr class="even">
 <td>structure</td>
 <td>archive by default; only archive/latest accepted. The wrapper prose saying version is not a supported alias.</td>
-<td>Explicit local/GitHub operations and restore support latest/archive. Configured local latest publication executes; ordinary archive and GitHub publication remain pending.</td>
+<td>Explicit local/GitHub operations and restore support latest/archive. Configured local latest publication executes; ordinary local archive publication now executes; configured GitHub publication remains pending.</td>
 </tr>
 <tr class="odd">
 <td>path</td>
@@ -433,7 +433,7 @@ ul.task-list li input[type="checkbox"] {
 <tr class="even">
 <td>send.inspect</td>
 <td>manifest by default; file/manifest/none accepted.</td>
-<td>Configured local latest supports ordinary MD5 file, default manifest-history comparison/fallback, and none planning. CAS JSON/BLAKE3 checks remain distinct. Archive/GitHub publication pending.</td>
+<td>Configured local latest supports ordinary MD5 file, default manifest-history comparison/fallback, and none planning. CAS JSON/BLAKE3 checks remain distinct. Ordinary local archive comparison is implemented; configured GitHub publication pending.</td>
 </tr>
 <tr class="odd">
 <td>send.strategy</td>
@@ -792,6 +792,7 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="configured-local-publication-candidate">Configured local publication candidate</h2>
 <p>The next bounded slice integrates build.local latest/file with the build’s existing release boundary: current CSV-selected staging, all four file strategies, both cues, namespace preflight and shared CSV/VERSION/changelog updates. See the <a href="./cli/remote.html#configured-local-publication-candidate">control matrix</a>. <a href="https://github.com/MiguelRodo/projcli/pull/185">PR185</a> records exact-head independent review and remote verification. File and none inspection are delivered in PR185/188; the current manifest slice adds the existing default comparison and fallback. Archive comparison selection and configured GitHub publication remain pending.</p>
 <p>Pinned R comparison: dest-send-label.R355,854-1560,1587-1788 and manifest.R67-75,192-225 in the source revision linked above. New empty labels and file-equal missing/starred metadata receive explicit discoverability corrections; these are documented differences rather than claims that the pinned R no-change path already repairs them. No registry or unresolved retention/default policy is adopted.</p>
+<p>Local archive publication is the current incremental slice: complete versioned snapshots, historical reuse eligibility and actual build/store/restore matrix. Its PR records exact-head review/CI evidence. Configured GitHub publication and configured append-label:false remain pending; no full remote-completion claim.</p>
 
 
 </section>
