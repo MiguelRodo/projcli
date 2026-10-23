@@ -373,6 +373,7 @@ changing clear/analysis adjacency; preview skips CSV capture.
 %%| label: fig-lifecycle-local-csv
 %%| fig-cap: "Local candidate: production CSV capture within managed recovery."
 %%| fig-alt: "Validate history before hooks, capture inputs after preparation, execute existing analysis and promotion, then capture outputs and replace CSV before publication and end hooks."
+%%{init: {"htmlLabels": false}}%%
 flowchart TB
   A["Validate existing CSV history"] --> B["Start hooks and preparation"]
   B --> C["Capture raw / opted-in cache<br/>Save pre snapshot in selected cache when present"]
