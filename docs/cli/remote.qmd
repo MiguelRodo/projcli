@@ -71,3 +71,8 @@ choose configured restore sources or change local VERSION/manifest/configuration
 A latest untrusted marker does not prevent this explicitly requested download;
 it remains a warning about metadata, not a verified-content claim.
 Machine mode returns completed: true only after successful completion.
+
+Permission flags are preserved for newly downloaded entries. Merge mode retains
+existing file/directory permission flags, and an existing destination root keeps
+its flags even with --clear. Ownership, ACLs and extended attributes are outside
+this bounded guarantee; replacing a tree is not a full metadata-preserving backup.

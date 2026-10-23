@@ -119,7 +119,7 @@ pub enum Commands {
     },
 }
 
-/// Read-only remote inspection; does not change the configured remote registry.
+/// Ordinary local inspection/download; does not change the configured remote registry.
 #[derive(Subcommand)]
 pub enum RemoteCommands {
     /// Download an ordinary local version using staged destination replacement.

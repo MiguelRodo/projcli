@@ -1981,3 +1981,11 @@ merge/clear, missing/latest/empty sources, nested/hidden/Unicode bytes, failed
 staging, protected paths, links/FIFOs and external hard-link aliases. No tests
 run locally; exact-head remote host/pinned/API/docs and independent review
 are required before merge. No runtime parity is claimed before those pass.
+
+Independent review found staged directory replacement could loosen private
+permissions. The amendment retains existing root permissions in both modes,
+existing entry permissions on merge, and source permissions for new entries.
+Read-only staged files are replaced before overlay; final modes apply deepest
+first. Ownership/ACL/xattr parity is not claimed. Review also requires actual
+installation/rollback failure witnesses; no recovery completion claim follows
+from source inspection alone.

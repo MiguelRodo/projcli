@@ -148,3 +148,109 @@ fn links_special_entries_and_external_hardlink_aliases_are_preserved() {
     assert!(!invoke(&root, "archive", Some("v1.2.3"), false).status.success());
     assert_eq!(fs::read(root.join("external")).unwrap(), b"external original");
 }
+
+#[cfg(unix)]
+#[test]
+fn download_preserves_private_and_readonly_permission_flags() {
+    use std::os::unix::fs::PermissionsExt;
+    let temp = tempfile::tempdir().unwrap(); let root = temp.path().canonicalize().unwrap();
+    let source = root.join("remote/raw-data/v1.2.3");
+    fs::create_dir_all(source.join("new-private")).unwrap();
+    fs::create_dir(source.join("retained-private")).unwrap();
+    fs::write(source.join("shared"), b"new").unwrap();
+    fs::write(source.join("new-private/data"), b"private source").unwrap();
+    fs::set_permissions(&source, fs::Permissions::from_mode(0o750)).unwrap();
+    fs::set_permissions(source.join("new-private"), fs::Permissions::from_mode(0o700)).unwrap();
+    fs::set_permissions(source.join("shared"), fs::Permissions::from_mode(0o644)).unwrap();
+    fs::create_dir_all(root.join("downloaded/retained-private")).unwrap();
+    fs::write(root.join("downloaded/shared"), b"old").unwrap();
+    fs::write(root.join("downloaded/retained-private/local"), b"retained").unwrap();
+    fs::set_permissions(root.join("downloaded"), fs::Permissions::from_mode(0o700)).unwrap();
+    fs::set_permissions(root.join("downloaded/retained-private"), fs::Permissions::from_mode(0o700)).unwrap();
+    fs::set_permissions(root.join("downloaded/shared"), fs::Permissions::from_mode(0o400)).unwrap();
+    assert_success(&invoke(&root, "archive", Some("v1.2.3"), false));
+    let mode = |path: &Path| fs::metadata(path).unwrap().permissions().mode() & 0o777;
+    assert_eq!(mode(&root.join("downloaded")), 0o700);
+    assert_eq!(mode(&root.join("downloaded/retained-private")), 0o700);
+    assert_eq!(mode(&root.join("downloaded/new-private")), 0o700);
+    assert_eq!(mode(&root.join("downloaded/shared")), 0o400);
+    assert_eq!(fs::read(root.join("downloaded/shared")).unwrap(), b"new");
+    assert_success(&invoke(&root, "archive", Some("v1.2.3"), true));
+    assert_eq!(mode(&root.join("downloaded")), 0o700);
+    assert!(!root.join("downloaded/retained-private/local").exists());
+    let root_utf8 = Utf8Path::from_path(&root).unwrap();
+    let selected = select_version(&root_utf8.join("remote"), "raw-data", LocalStructure::Archive, Some("v1.2.3"), true).unwrap();
+    download_version(root_utf8, &selected, &root_utf8.join("new-download"), false).unwrap();
+    assert_eq!(mode(&root.join("new-download")), 0o750);
+    assert_eq!(mode(&root.join("new-download/new-private")), 0o700);
+}
+
+// This fixture interposes only rename calls inside its own temporary project.
+// It adds no production test hooks, process-global environment mutation or API.
+#[cfg(target_os = "linux")]
+#[test]
+fn install_failure_restores_original_and_rollback_failure_retains_original_with_path() {
+    let temp = tempfile::tempdir().unwrap(); let physical = temp.path().canonicalize().unwrap();
+    let shim_source = physical.join("rename-fault.c");
+    let shim = physical.join("rename-fault.so");
+    fs::write(&shim_source, r#"
+#define _GNU_SOURCE
+#include <dlfcn.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+static int ends(const char *text, const char *suffix) {
+    size_t n = strlen(text), m = strlen(suffix);
+    return n >= m && strcmp(text + n - m, suffix) == 0;
+}
+int rename(const char *from, const char *to) {
+    const char *root = getenv("PROJ_TEST_RENAME_ROOT");
+    if (root && strncmp(from, root, strlen(root)) == 0 &&
+        from[strlen(root)] == '/' && strstr(from, "/.proj-download-") &&
+        (ends(from, "/next") ||
+         (getenv("PROJ_TEST_FAIL_ROLLBACK") && ends(from, "/previous")))) {
+        errno = EIO;
+        return -1;
+    }
+    int (*real_rename)(const char *, const char *) = dlsym(RTLD_NEXT, "rename");
+    return real_rename(from, to);
+}
+"#).unwrap();
+    let compiled = Command::new("cc").args(["-shared", "-fPIC"]).arg(&shim_source)
+        .args(["-ldl", "-o"]).arg(&shim).output().unwrap();
+    assert!(compiled.status.success(), "{}", String::from_utf8_lossy(&compiled.stderr));
+    for fail_rollback in [false, true] {
+        let root = physical.join(if fail_rollback { "rollback-error" } else { "install-error" });
+        fs::create_dir_all(root.join("remote/raw-data/v1.2.3")).unwrap();
+        fs::create_dir(root.join("downloaded")).unwrap();
+        fs::write(root.join("remote/raw-data/v1.2.3/new"), b"new source bytes").unwrap();
+        fs::write(root.join("downloaded/original"), b"original bytes").unwrap();
+        let before = snapshot(&root);
+        let mut command = Command::new(env!("CARGO_BIN_EXE_proj"));
+        command.args(["--project"]).arg(&root)
+            .args(["remote", "download", "--path", "remote", "--label", "raw-data",
+                "--remote-version", "v1.2.3", "--destination", "downloaded", "--clear"])
+            .current_dir(&root).env("LD_PRELOAD", &shim).env("PROJ_TEST_RENAME_ROOT", &root)
+            .env_remove("PROJ_TEST_FAIL_ROLLBACK").env_remove(proj::PROJECT_ROOT_ENV)
+            .env_remove(proj::RUN_CONTEXT_ENV);
+        if fail_rollback { command.env("PROJ_TEST_FAIL_ROLLBACK", "1"); }
+        let output = command.output().unwrap();
+        assert!(!output.status.success());
+        let diagnostic = String::from_utf8_lossy(&output.stderr);
+        assert!(diagnostic.contains("Cannot install"), "{diagnostic}");
+        if fail_rollback {
+            assert!(!root.join("downloaded").exists());
+            let staging: Vec<_> = fs::read_dir(&root).unwrap().map(|e| e.unwrap().path())
+                .filter(|p| p.file_name().unwrap().to_string_lossy().starts_with(".proj-download-")).collect();
+            assert_eq!(staging.len(), 1);
+            let previous = staging[0].join("previous");
+            assert_eq!(fs::read(previous.join("original")).unwrap(), b"original bytes");
+            assert!(diagnostic.contains(previous.to_str().unwrap()), "{diagnostic}");
+            assert!(diagnostic.contains("rollback failed"), "{diagnostic}");
+            assert_eq!(fs::read(root.join("remote/raw-data/v1.2.3/new")).unwrap(), b"new source bytes");
+        } else {
+            assert_eq!(snapshot(&root), before);
+            assert!(diagnostic.contains("Cannot install staged local download"), "{diagnostic}");
+        }
+    }
+}
