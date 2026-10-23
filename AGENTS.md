@@ -268,3 +268,9 @@ path guards and honest publication failures. CAS is additional; no retention/GC
 or discovery policy follows. The future registry proposal remains issue-only.
 Never use user datasets or destructive live-provider operations for fixtures;
 remote heavy tests and mocked/disposable transports are the default.
+
+Ordinary local version inspection is read-only and independent of CAS/config
+registry changes. Distinguish advertised latest metadata from present directories
+and verified bytes; never turn an untrusted-marker absence into a trust guarantee.
+Archive numeric ordering must not be lexical or assume exactly four components.
+Retain hard-link/symlink/special-file guards and no-mutation fixtures.

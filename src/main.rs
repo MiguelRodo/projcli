@@ -47,6 +47,11 @@ pub struct Cli {
 pub enum Commands {
     /// Report the CLI and machine protocol capabilities without loading a project.
     Capabilities,
+    /// Inspect ordinary local remote storage without publishing or restoring.
+    Remote {
+        #[command(subcommand)]
+        command: RemoteCommands,
+    },
     /// Init related operations
     Init {
         #[command(subcommand)]
@@ -111,6 +116,26 @@ pub enum Commands {
         /// Clear final output immediately before/after analysis; preview never clears it.
         #[arg(long, value_parser = ["none", "pre", "post"])]
         output_clear_stage: Option<String>,
+    },
+}
+
+/// Read-only remote inspection; does not change the configured remote registry.
+#[derive(Subcommand)]
+pub enum RemoteCommands {
+    /// List versions in a local latest/archive layout; does not verify file bytes.
+    Versions {
+        /// Storage base, relative to the selected project root unless absolute.
+        #[arg(long)]
+        path: camino::Utf8PathBuf,
+        /// Existing remote directory label.
+        #[arg(long)]
+        label: String,
+        /// Ordinary remote layout (CAS is separate).
+        #[arg(long, default_value = "archive", value_parser = ["latest", "archive"])]
+        structure: String,
+        /// Whether the storage layout appends the label to its base.
+        #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
+        path_append_label: bool,
     },
 }
 
@@ -274,6 +299,19 @@ fn main() {
 
     match &cli.command {
         Commands::Capabilities => unreachable!("Capabilities handled before project selection"),
+        Commands::Remote { command: RemoteCommands::Versions { path, label, structure, path_append_label } } => {
+            match query_local_versions(&root, path, label, structure, *path_append_label) {
+                Ok(versions) => {
+                    for entry in versions {
+                        println!("{} {}{}{}{}", entry.version, entry.path,
+                            if entry.empty { " [empty marker]" } else { "" },
+                            if !entry.present { " [missing target]" } else { "" },
+                            if entry.metadata_untrusted == Some(true) { " [metadata untrusted]" } else { "" });
+                    }
+                }
+                Err(error) => fail(format_args!("Cannot list local remote versions: {error:#}")),
+            }
+        },
         Commands::Yml { command } => match command {
             YmlCommands::Read => {
                 // Pass false for is_dev as this is just a read check
@@ -501,4 +539,14 @@ fn query_path(root: &camino::Utf8Path, label: &str, target: &str, parts: &[camin
 
 fn execution_mode(value: Option<&str>) -> Option<proj::ExecutionDirectory> {
     value.map(|value| if value == "project" { proj::ExecutionDirectory::Project } else { proj::ExecutionDirectory::Native })
+}
+
+fn query_local_versions(root: &camino::Utf8Path, path: &camino::Utf8Path, label: &str, structure: &str, append_label: bool) -> anyhow::Result<Vec<proj::local_remote::LocalVersion>> {
+    let base = if path.is_absolute() { path.to_owned() } else { root.join(path) };
+    let structure = match structure {
+        "latest" => proj::local_remote::LocalStructure::Latest,
+        "archive" => proj::local_remote::LocalStructure::Archive,
+        _ => anyhow::bail!("Unsupported ordinary local remote structure"),
+    };
+    proj::local_remote::list_versions(&base, label, structure, append_label)
 }

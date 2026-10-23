@@ -1923,3 +1923,39 @@ Its separate configuration assessment excludes the approved CSV choice and does
 not silently redesign policy. R and thesis stay read-only; no live remote upload,
 new credentials or local heavy execution. Independent source review and remote
 docs validation are required. Ordinary remote compatibility remains incomplete.
+
+## Read-only ordinary local remote version inspection
+
+Pinned projr 90be50132d16aee33e39c0f7f35ef906c35f5397 remote-versions.R
+lines473-639 lists ordinary archive names and reads exact latest VERSION label
+entries, stripping a trailing untrusted marker. New source adds a library/CLI
+consumer for that read-only surface, including numeric version ordering, empty
+variants and explicit existing paths, independent of CAS and remote configuration.
+
+Differences are explicit: malformed numeric candidates, linked/special entries
+and duplicate latest labels fail closed; absent targets are disclosed, not called
+verified. Numeric components have no fixed count and missing trailing components
+compare as zero. Archive variants remain visible; no restore-selection or CAS
+discovery policy is inferred. The append-label=false argument inspects the
+supplied physical layout without copying R's hard-coded label-discovery bug.
+No uploads, downloads, restore, registry redesign, credentials or live datasets.
+
+Ponytail full: one module, existing stdlib/serde/path guards, no backend trait or
+new dependency. Pure numeric and filesystem/CLI fixtures are added for sort,
+empty/missing state, labels, Unicode, read-only snapshots, trust-marker disclosure,
+duplicate/invalid metadata, links and FIFOs. Tests are not run locally. Required
+verification is remote locked/pinned and host suites, API/docs checks, followed
+by independent review. Broader ordinary remote compatibility remains incomplete.
+
+Source self-review removed an unnecessary reserved-suffix restriction: an
+explicit label ending in -empty is valid under the shared label contract.
+A regression distinguishes that label's full directory from an empty variant.
+The read-only command does not invent a new configured-label policy.
+Pinned comparison:
+[local/archive and VERSION discovery](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/remote-versions.R#L473).
+
+Independent source review cleared fc2559c for the bounded read-only scope with
+no blockers. Its two follow-ups are included: the machine result fields are
+documented and a fixture demonstrates latest/no-label-appending reports the
+base's presence rather than selecting a sibling empty marker. No runtime
+semantics changed in this review delta. Exact final-head CI/review remain gates.
