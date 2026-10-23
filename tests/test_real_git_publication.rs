@@ -205,7 +205,7 @@ fn rejecting_real_pre_commit_hook_preserves_local_release_without_commit_or_push
     let fixture = Fixture::new(true);
     let initial = fixture.text(&["rev-parse", "HEAD"]);
     let hook = fixture.root.join(".git/hooks/pre-commit");
-    fs::write(&hook, "#!/bin/sh\necho DELIBERATE-PRE-COMMIT-REJECTION >&2\nexit 17\n").unwrap();
+    fs::write(&hook, "#!/bin/sh\nprintf rejected > .git/pre-commit-witness\nexit 17\n").unwrap();
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -214,7 +214,8 @@ fn rejecting_real_pre_commit_hook_preserves_local_release_without_commit_or_push
     let result = fixture.build(false);
     assert!(!result.status.success());
     let diagnostic = String::from_utf8_lossy(&result.stderr);
-    assert!(diagnostic.contains("DELIBERATE-PRE-COMMIT-REJECTION"), "{diagnostic}");
+    assert_eq!(fs::read(fixture.root.join(".git/pre-commit-witness")).unwrap(), b"rejected");
+    assert!(diagnostic.contains("Git operation failed"), "{diagnostic}");
     assert!(diagnostic.contains("Local build succeeded"), "{diagnostic}");
     assert!(diagnostic.contains("local release preserved"), "{diagnostic}");
     fixture.assert_release_files();
