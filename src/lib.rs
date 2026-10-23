@@ -45,3 +45,5 @@ mod embedding;
 
 pub mod manifest;
 pub mod manifest_csv;
+
+pub mod local_remote;

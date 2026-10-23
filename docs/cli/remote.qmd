@@ -1,0 +1,36 @@
+---
+title: "Inspect local remote versions"
+---
+
+Current source work: ordinary local latest/archive inspection. This command does
+not upload, restore, verify artifact bytes or change configured remote definitions.
+It is separate from CAS and the deferred registry design.
+
+```bash
+proj --project . remote versions --path /physical/path/to/archive --label raw-data
+proj --machine --project . remote versions --path /physical/path/to/latest --label raw-data --structure latest
+```
+
+Paths relative to the command's selected project root are supported. Use physical
+paths: symlinked parents, candidate directories and VERSION files are rejected.
+No active project config, Git credentials or remote account are required.
+
+Archive is the default layout: base/label/version directories. Numeric versions
+sort newest first, including empty variants. The actual directory path is retained
+even when version spellings differ. Multiple spellings or full/empty variants
+remain visible rather than silently selecting one for restore. Unrelated names
+are skipped; malformed numeric-looking version names and special candidates fail.
+
+Latest reads the exact label entry from base/VERSION. It reports the trailing
+asterisk as metadata_untrusted, plus present and empty fields. A missing target is
+reported explicitly; an absent asterisk is **not proof of verified content**.
+Archive results do not infer trust from metadata and return null for that field.
+An absent base or VERSION yields no entries and creates nothing. Duplicate label
+entries and malformed advertised versions are errors.
+
+Use --path-append-label false only when version directories or latest contents
+are directly at the supplied base. VERSION remains at that explicit base.
+This makes the inspected path explicit; it is not a new remote registry format.
+
+Machine output retains protocol v1 and adds a versions query result. No byte
+verification, latest-source selection, credential discovery or publication occurs.

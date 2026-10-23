@@ -2,7 +2,7 @@
 use serde::Serialize;
 use serde_json::{Value, json};
 use std::{io::{self, Write}, process::{Command, Stdio}};
-use crate::{Cli, Commands, PathCommands, VersionCommands, YmlCommands};
+use crate::{Cli, Commands, PathCommands, RemoteCommands, VersionCommands, YmlCommands};
 
 const PROTOCOL_VERSION: u32 = 1;
 const CAPABILITY_VERSION: u32 = 1;
@@ -45,7 +45,7 @@ pub(crate) fn emit_argument_error() -> i32 {
 pub(crate) fn emit_capabilities() -> i32 {
     emit(Ok(json!({
         "capability_version": CAPABILITY_VERSION,
-        "machine_commands": ["capabilities", "path get", "version get", "version set", "yml read", "init", "ignore add", "ignore remove", "build", "build-dev"],
+        "machine_commands": ["capabilities", "remote versions", "path get", "version get", "version set", "yml read", "init", "ignore add", "ignore remove", "build", "build-dev"],
         "non_interactive": true,
         "path_targets": ["safe", "final"],
         "path_fragments": true,
@@ -54,7 +54,7 @@ pub(crate) fn emit_capabilities() -> i32 {
         "default_path_target": "safe",
         "default_path_format": "auto",
         "logs": "stderr",
-        "queries": {"path get": "path", "version get": "version", "yml read": "validated"},
+        "queries": {"remote versions": "versions", "path get": "path", "version get": "version", "yml read": "validated"},
         "preview_output_isolation": false,
         "attempt_release_records": false,
         "direct_r_ide_parity": false
@@ -68,6 +68,11 @@ pub(crate) fn run(cli: &Cli) -> i32 {
         Err(_) => return emit(Err(failure(ErrorCode::ProjectSelectionFailed, "Cannot select the project directory."))),
     };
     let result = match &cli.command {
+        Commands::Remote { command: RemoteCommands::Versions { path, label, structure, path_append_label } } => {
+            crate::query_local_versions(&root, path, label, structure, *path_append_label)
+                .map(|versions| json!({"versions": versions}))
+                .map_err(|_| failure(ErrorCode::QueryFailed, "Cannot inspect the requested local remote versions."))
+        }
         Commands::Path { command: PathCommands::Get { label, target, parts, format, relative_to } } => {
             crate::query_path(&root, label, target, parts, format.as_deref(), relative_to.as_deref())
                 .map(|path| json!({"path": path}))
