@@ -351,7 +351,7 @@ output_run:false skip publication.
 | cue if-change / always | Both against each strategy; repeated identical sync-diff tests label-version retention/advance | Archive comparison-version selection |
 | inspect file | Shared MD5 byte inspection, current CSV snapshots, exact source-byte validation | GitHub configured inspection |
 | inspect manifest | Selected definitions fail before hooks; no silent file-mode downgrade | Trusted history comparison and fallback |
-| inspect none | Selected definitions fail before hooks | Default upload-all and untrusted-state interactions |
+| inspect none | All four strategies and both cues; default upload-all; exact build/store/restore bytes and trust markers | Other providers/layouts |
 | upload-all | Upload all selected files, retain extras; existing remote marked untrusted | Other inspection modes |
 | upload-missing | Preserve existing names/bytes, add missing; changes to existing remote marked untrusted | Other inspection modes |
 | sync-diff | Add/change/remove; no-change cue fixture | Archive/history interaction |
@@ -359,7 +359,7 @@ output_run:false skip publication.
 
 if-change and sync-diff remain the existing defaults. The projr default
 inspection is manifest: until implemented, omitting inspect is an error rather
-than changing that default to file. Ordinary archive, nonempty get controls,
+than changing that default to file or none. Ordinary archive, nonempty get controls,
 send.conflict and title-level cue are not silently accepted as working policy.
 path-append-label:false is explicitly deferred here because its full destination
 contains the shared metadata namespace.
@@ -390,3 +390,24 @@ When publishing output-r-data, an existing legacy data/data-empty namespace or
 data entry in remote VERSION is rejected. Restore can still read legacy data;
 publication does not rename, delete or migrate it. Choose a separate destination
 until an explicit migration is supported.
+
+
+### No comparison during configured local publication
+
+Set send.inspect to none to make planning ignore comparison hashes/history.
+The default strategy then becomes upload-all; both cues still upload nonempty
+sources. Explicit upload-missing and sync-diff also blindly overwrite selected
+filenames and retain remote-only files, matching projr rather than their
+file-inspected behavior. Existing destinations are marked untrusted with a star.
+
+Explicit sync-purge replaces the entire file set when the source is nonempty.
+With an empty source it retains unknown remote extras: without comparison, projr
+does not discover extras to trigger a purge. New empty destinations are still
+advertised. These combinations are covered by actual CLI build/store/restore
+fixtures, including repeated same-byte builds and both cues.
+
+None controls comparison decisions; guarded path/type checks, source CSV-byte
+validation, staging and physical installation safety still read files. It is not
+a promise of zero remote reads or hashing. The shared physical transfer remains
+guarded and may read destination bytes while installing. Archive and configured
+GitHub publication remain pending.

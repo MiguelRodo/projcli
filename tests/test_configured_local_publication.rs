@@ -124,7 +124,7 @@ fn preview_and_output_disabled_do_not_publish() {
 }
 #[test]
 fn collisions_and_unsupported_inspection_fail_before_hooks_or_any_remote_write() {
-    for edit in ["collision","append-false","overlap","manifest","none","archive","conflict"] {
+    for edit in ["collision","append-false","overlap","manifest","invalid-inspect","archive","conflict"] {
         let (_temporary,root)=setup("sync-diff","always","[output]");
         fs::write(root.join("start.py"),"from pathlib import Path\nPath('hook-ran').write_text('bad')\n").unwrap();
         let mut config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("build:\n","build:\n  hooks: {pre: [start.py]}\n");
@@ -133,7 +133,7 @@ fn collisions_and_unsupported_inspection_fail_before_hooks_or_any_remote_write()
             "append-false"=>config.replace("structure: latest","structure: latest\n      path-append-label: false"),
             "overlap"=>config.replace("path: remote","path: results"),
             "manifest"=>config.replace("inspect: file","inspect: manifest"),
-            "none"=>config.replace("inspect: file","inspect: none"),
+            "invalid-inspect"=>config.replace("inspect: file","inspect: invalid"),
             "archive"=>config.replace("structure: latest","structure: archive"),
             _=>config.replace("inspect: file","inspect: file\n        conflict: overwrite"),
         };
@@ -283,4 +283,60 @@ fn late_legacy_advertisement_aborts_all_targets_before_publication() {
     assert_eq!(fs::read_to_string(root.join("later-remote/VERSION")).unwrap(),"Project: v0.1.0\ndata: v0.1.0\n");
     assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap().trim(),"Version: v1.2.4");
     assert!(root.join("manifest.csv").is_file(),"successful local release is preserved");
+}
+
+#[test]
+fn no_inspection_all_strategies_and_cues_preserve_source_planning_semantics() {
+    for strategy in ["upload-all","upload-missing","sync-diff","sync-purge","default"] {
+        for cue in ["always","if-change"] {
+            let (_temporary,root)=setup(if strategy=="default" {"upload-all"}else{strategy},cue,"[output]");
+            let mut config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("inspect: file","inspect: none");
+            if strategy=="default" {config=config.replace("        strategy: upload-all\n","");}
+            fs::write(root.join("_proj.yml"),config).unwrap();
+            fs::create_dir_all(root.join("remote/output")).unwrap();
+            fs::write(root.join("remote/output/changed"),"old").unwrap();
+            fs::write(root.join("remote/output/extra"),"keep unless nonempty purge").unwrap();
+            fs::write(root.join("remote/VERSION"),"Project: v0.1.0\noutput: v0.1.0\n").unwrap();
+            success(invoke(&root,"build"));
+            let mut expected=files(&root.join("results"));
+            if strategy!="sync-purge" {expected.insert("extra".into(),b"keep unless nonempty purge".to_vec());}
+            assert_eq!(files(&root.join("remote/output")),expected);
+            let star=if strategy=="sync-purge" {""}else{"*"};
+            assert!(fs::read_to_string(root.join("remote/VERSION")).unwrap().contains(&format!("output: v1.2.4{star}\n")));
+            // Equal source bytes are still selected blindly on the next build.
+            success(invoke(&root,"build"));
+            assert!(fs::read_to_string(root.join("remote/VERSION")).unwrap().contains(&format!("output: v1.2.5{star}\n")));
+            fs::write(root.join("results/changed"),"damaged").unwrap();
+            fs::write(root.join("results/local-only"),"remove").unwrap();
+            let restored=restore(&root);
+            assert_eq!(restored["result"]["restored"],true);
+            assert_eq!(files(&root.join("results")),expected);
+        }
+    }
+}
+#[test]
+fn no_inspection_empty_source_retains_unknown_extras_even_for_purge() {
+    for strategy in ["upload-all","upload-missing","sync-diff","sync-purge"] {
+        for existing in [false,true] {
+            let (_temporary,root)=setup(strategy,"if-change","[output]");
+            let config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("inspect: file","inspect: none");
+            fs::write(root.join("_proj.yml"),config).unwrap();
+            for name in ["same","changed","new"] {fs::remove_file(root.join("results").join(name)).unwrap();}
+            if existing {
+                fs::create_dir_all(root.join("remote/output")).unwrap();
+                fs::write(root.join("remote/output/unknown"),"preserve without comparison").unwrap();
+                fs::write(root.join("remote/VERSION"),"Project: v0.1.0\noutput: v0.1.0\n").unwrap();
+            }
+            success(invoke(&root,"build"));
+            let version=fs::read_to_string(root.join("remote/VERSION")).unwrap();
+            if existing {
+                assert_eq!(fs::read(root.join("remote/output/unknown")).unwrap(),b"preserve without comparison");
+                assert!(!root.join("remote/output-empty").exists());
+                assert!(version.contains(if strategy=="sync-diff" {"output: v1.2.4*\n"}else{"output: v0.1.0\n"}),"{version}");
+            } else {
+                assert!(root.join("remote/output-empty").is_dir());
+                assert!(version.contains("output: v1.2.4\n"),"{version}");
+            }
+        }
+    }
 }

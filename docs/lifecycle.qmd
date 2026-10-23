@@ -415,3 +415,9 @@ flowchart TB
   D -->|Failure| G["Preserve release; skip later stages"]
   E -->|Failure| G
 ~~~
+
+
+The ordinary-local publication stage also supports explicit none comparison:
+source filenames are uploaded blindly according to the documented strategy
+interaction, after all-target staging and before CAS/Git. This does not change
+the staged lifecycle diagram or the release-preserving failure boundary.
