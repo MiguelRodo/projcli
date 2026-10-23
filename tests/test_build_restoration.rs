@@ -33,7 +33,7 @@ fn failure_at_each_hook_and_analysis_restores_exact_version_authorities_and_dev_
             fs::write(root.join(".gitignore"), "# exact prior ignore\nmanual\n").unwrap();
             fs::write(root.join(".Rbuildignore"), "^manual$\n").unwrap();
             fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('output/new').write_text('new')\n").unwrap();
-            fs::write(root.join("fail.py"), "from pathlib import Path\nPath('output').mkdir(exist_ok=True)\nPath('output/partial').write_text('partial')\nPath('published/old.html').write_text('changed')\nPath('VERSION').write_text('Version: v9.9.9.1')\nif Path('DESCRIPTION').exists():\n    Path('DESCRIPTION').write_text('Package: fixture\\nVersion: 9.9.9.1\\n')\nraise SystemExit(17)\n").unwrap();
+            fs::write(root.join("fail.py"), "from pathlib import Path\nPath('output').mkdir(exist_ok=True)\nPath('output/partial').write_text('partial')\nPath('published/old.html').write_text('changed')\nPath('VERSION').write_text('Version: v9.9.9.1')\nPath('DESCRIPTION').write_text('Package: fixture\\nVersion: 9.9.9.1\\n')\nraise SystemExit(17)\n").unwrap();
             fs::create_dir_all(root.join("output/empty")).unwrap();
             fs::create_dir(root.join("published")).unwrap();
             fs::write(root.join("output/previous"), b"old\0output").unwrap();
