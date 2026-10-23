@@ -2654,7 +2654,7 @@ exclusion or exact byte recovery. Existing R package files remain untouched.
 
 Ponytail full review reuses atomic create-new ownership, tempfile random identities and existing path
 guards rather than adding a lock service, database or dependency. Git exclusion
-is limited to the ephemeral claim; it does not decide durable log receipts.
+is limited to ephemeral claims at every repository depth; it does not decide durable log receipts.
 Crash-stale claims require confirmed manual removal, without automatic stealing.
 Arbitrary scripts are outside this cooperative exclusion guarantee.
 
@@ -2699,3 +2699,13 @@ phase, selected-root path and underlying permission error, for both explicit
 empty selection and fallback discovery. All prior byte-preservation assertions
 remain, and absent coordination state must remain absent. Source discovery is
 never reached when ownership cannot safely inspect native coordination names.
+
+A final shared-repository review found that excluding only the current project's
+claim could stage another project's transient claim during whole-repository Git
+publication. The exclusion and tracked-claim check now match the exact reserved
+.proj/build.lock name at every repository depth, using Git's native top/glob
+pathspec. No log directory is excluded. New real-Git witnesses preserve a sibling
+claim created during analysis while excluding it from the commit, retain ordinary
+sibling outputs, and reject a previously tracked sibling claim before analysis.
+This avoids a repository lock service or changes to existing whole-repository
+staging semantics; it does not promise isolation of unrelated Git writers.

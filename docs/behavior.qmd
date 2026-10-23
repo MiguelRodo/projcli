@@ -519,8 +519,8 @@ retry. This is cooperative build exclusion, not a filesystem sandbox or a promis
 of crash recovery. Arbitrary scripts and other tools can still change files.
 
 Managed caches, output/document destinations and ordinary publication targets
-cannot replace .proj. Optional Git integration excludes only the live
-.proj/build.lock path from clean-state checks and staging, preserving the
+cannot replace .proj. Optional Git integration excludes only reserved live
+.proj/build.lock paths at every repository depth from clean-state checks and staging, preserving the
 existing whole-repository staging scope. A tracked claim is rejected. This does
 not exclude .proj/log or choose the still-pending final Git receipt sequence.
 

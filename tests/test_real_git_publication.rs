@@ -397,3 +397,35 @@ fn nested_project_claim_exclusion_is_literal_and_keeps_whole_repository_scope() 
     assert!(paths.lines().any(|path| path == " child[1]/.proj/log/retained.json"), "{paths}");
     assert!(!paths.lines().any(|path| path.ends_with(".proj/build.lock")), "{paths}");
 }
+
+#[test]
+fn sibling_project_claims_are_preserved_but_never_staged() {
+    let fixture = Fixture::new(false);
+    let analysis = fs::read_to_string(fixture.root.join("analysis.py")).unwrap();
+    fs::write(fixture.root.join("analysis.py"), analysis + "\nPath('sibling/.proj').mkdir(parents=True)\nPath('sibling/.proj/build.lock').write_bytes(b'other active attempt')\nPath('sibling/result').write_bytes(b'whole repository scope')\n").unwrap();
+    fixture.git(&["add", "-A"]);
+    fixture.git(&["commit", "-m", "sibling ownership fixture"]);
+    let result = fixture.build(false);
+    assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+    let paths = fixture.text(&["ls-tree", "--full-tree", "-r", "--name-only", "HEAD"]);
+    assert!(!paths.lines().any(|path| path.ends_with(".proj/build.lock")), "{paths}");
+    assert!(paths.lines().any(|path| path == "sibling/result"), "{paths}");
+    assert_eq!(fs::read(fixture.root.join("sibling/.proj/build.lock")).unwrap(), b"other active attempt");
+}
+
+#[test]
+fn tracked_sibling_claim_is_rejected_before_analysis() {
+    let fixture = Fixture::new(false);
+    fs::create_dir_all(fixture.root.join("sibling/.proj")).unwrap();
+    fs::write(fixture.root.join("sibling/.proj/build.lock"), b"tracked reserved claim").unwrap();
+    fixture.git(&["add", "-A"]);
+    fixture.git(&["commit", "-m", "invalid tracked claim"]);
+    let before = fs::read(fixture.root.join("VERSION")).unwrap();
+    let result = fixture.build(false);
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("must not be tracked"));
+    assert_eq!(fs::read(fixture.root.join("VERSION")).unwrap(), before);
+    assert_eq!(fs::read(fixture.root.join("sibling/.proj/build.lock")).unwrap(), b"tracked reserved claim");
+    assert!(!fixture.root.join(".proj/build.lock").exists());
+    assert!(!fixture.root.join("released/results.csv").exists());
+}

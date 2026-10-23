@@ -206,7 +206,7 @@ error; read-only queries remain available. The claim uses a fresh opaque attempt
 ID and is removed on normal completion. A crashed process may leave a stale claim:
 confirm the project has no active build before removing that single file.
 Do not delete a claim merely because another build is taking longer than expected.
-Managed destinations cannot overlap .proj; the live claim is never committed
+Managed destinations cannot overlap .proj; reserved live claims at every repository depth are never committed
 by the build's optional Git integration. Durable attempt logs remain separate work.
 
 

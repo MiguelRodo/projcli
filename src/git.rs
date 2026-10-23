@@ -60,18 +60,14 @@ impl SystemGit {
         }
     }
 
-    // Keep whole-repository scope while excluding only this project's live claim.
-    fn writer_exclusion(&self) -> anyhow::Result<String> {
+    // Keep whole-repository scope, excluding reserved live claims at every depth.
+    fn writer_exclusion(&self) -> anyhow::Result<&'static str> {
         let tracked = git_command_in(Some(&self.repo_path), &self.environment)?
             .current_dir(&self.repo_path)
-            .args(["ls-files", "--error-unmatch", "--", ".proj/build.lock"]).output()?;
+            .args(["ls-files", "--error-unmatch", "--", ":(top,glob)**/.proj/build.lock"]).output()?;
         anyhow::ensure!(tracked.status.code() == Some(1),
-            "Build writer claim must not be tracked by Git");
-        let prefix = git_command_in(Some(&self.repo_path), &self.environment)?
-            .current_dir(&self.repo_path).args(["rev-parse", "--show-prefix"]).output()?;
-        anyhow::ensure!(prefix.status.success(), "Cannot resolve project path within Git repository");
-        let prefix = std::str::from_utf8(&prefix.stdout)?.trim_end_matches(['\r', '\n']);
-        Ok(format!(":(top,exclude,literal){prefix}.proj/build.lock"))
+            "Build writer claims must not be tracked by Git");
+        Ok(":(top,exclude,glob)**/.proj/build.lock")
     }
 
     fn network_command(&self, action: &str, remote: &str, reference: Option<&str>) -> anyhow::Result<()> {
