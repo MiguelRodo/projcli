@@ -304,7 +304,7 @@ impl Wire {
             anyhow::ensure!(entry.file_id>0&&dictionary.insert(entry.file_id,entry.hash.clone()).is_none()
                 &&hashes.insert(entry.hash),"Duplicate/invalid dictionary ID or digest");
         }
-        let mut records=Vec::new();
+        let mut records=Vec::new();let mut decoded_path_work=0usize;
         for record in self.records {
             let inventory=match record.inventory {
                 WireInventory::Reference {ref_version}=>Inventory::Reference {ref_version},
@@ -321,7 +321,9 @@ impl Wire {
                         };
                         resolved.push(FileRecord {path:file.path,hash});
                     }
-                    let canonical=canonical_directory(FlatDirectory {label:record.label.clone(),files:resolved,empty_directories})?;
+                    let input=FlatDirectory {label:record.label.clone(),files:resolved,empty_directories};
+                    crate::snapshot_format::validate_inventory_paths(&input,&mut decoded_path_work)?;
+                    let canonical=canonical_directory(input)?;
                     Inventory::Complete {files:canonical.files,empty_directories:canonical.empty_directories}
                 },
             };
@@ -587,6 +589,10 @@ mod tests {
         let base=Catalogue::default().with_snapshot(&snapshot("v1",directory)).unwrap().records.remove(0);
         let value=Catalogue {records:(0..40).map(|n|{let mut record=base.clone();record.version=format!("v{n}");record}).collect()};
         let error=value.validate().unwrap_err();
+        assert!(format!("{error:#}").contains("path-work budget"));
+        let document=serde_json::json!({"schema":SCHEMA,"format":"json","hash_algorithm":ALGORITHM,"records":value.records});
+        let bytes=serde_json::to_vec(&document).unwrap();assert!(bytes.len()<MAX_METADATA_BYTES);
+        let error=Catalogue::parse(&bytes,Format::Json).unwrap_err();
         assert!(format!("{error:#}").contains("path-work budget"));
     }
     #[test]
