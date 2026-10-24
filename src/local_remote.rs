@@ -256,6 +256,12 @@ pub fn download_version(root: &Utf8Path, version: &LocalVersion, destination: &U
 
 /// Shared guarded tree installation; callers provide a complete staged source.
 pub(crate) fn install_directory(root: &Utf8Path, source: &Utf8Path, destination: &Utf8Path, clear: bool) -> anyhow::Result<()> {
+    install_directory_checked(root,source,destination,clear,|_|Ok(()))
+}
+
+/// Complete private-stage verification before retaining or replacing the destination.
+pub(crate) fn install_directory_checked(root:&Utf8Path,source:&Utf8Path,destination:&Utf8Path,clear:bool,
+    verify:impl FnOnce(&Utf8Path)->anyhow::Result<()>)->anyhow::Result<()> {
     validate_download_destination(root, source, destination)?;
     let parent = destination.parent().context("Download destination has no parent")?;
     anyhow::ensure!(directory_present(parent)?, "Download destination parent must already exist: {parent}");
@@ -279,6 +285,7 @@ pub(crate) fn install_directory(root: &Utf8Path, source: &Utf8Path, destination:
     let mut permissions: Vec<_> = permissions.into_iter().collect();
     permissions.sort_by_key(|(path, _)| std::cmp::Reverse(path.components().count()));
     for (relative, mode) in permissions { fs::set_permissions(staged.join(relative), mode)?; }
+    verify(&staged)?;
     validate_download_destination(root, source, destination)?;
     anyhow::ensure!(directory_present(destination)? == had_destination, "Download destination presence changed during staging");
     if had_destination {

@@ -556,3 +556,13 @@ hash dictionary. CSV repeats label/version on membership rows for filtering and
 uses explicit record_index to survive row sorting. Do not silently replace the
 ordinary projr CSV or old CAS readers, claim CSV references auto-expand in Excel,
 or promote codec-only groundwork to active remote support.
+
+
+## CAS materialisation boundary
+
+Reuse the ordinary guarded installer; CAS adds private-stage byte/membership
+verification before replacement. Explicit clear=false preserves destination-only
+entries; clear=true requires exact selected membership. Never restore into CAS
+namespaces or project authority/control paths, mutate file aliases in place,
+require the local ledger for explicit remote recovery, or claim crash atomicity,
+permissions restoration or active CLI/config wiring from the library alone.

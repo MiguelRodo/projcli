@@ -3048,3 +3048,19 @@ No filesystem, credentials or process environment are used by these tests.
 This does not yet implement catalogue publication ordering, runtime format
 selection or a legacy conversion tool. Do not infer physical content integrity
 from a metadata-only round trip.
+
+
+## Explicit CAS tree recovery API slice
+
+**New:** recursive CAS recovery shares the previously delivered ordinary staged
+installer; ordinary latest/archive paths are not reimplemented. A checked-stage
+callback verifies actual CAS-selected bytes before destination replacement.
+Root ordinary manifest.csv and legacy flat readers/IDs remain unchanged.
+
+Filesystem fixtures exercise project-loss recovery from remote metadata, exact
+Unicode/empty-file membership, merge/clear, external hard-link preservation,
+missing/corrupt/unknown selection preservation, authority/store overlap guards,
+empty snapshots without objects, project-side metadata, linked/special entries,
+and staging failures where native permissions enforce them. Execution is pending
+remote CI. Unix-only and permission-dependent cases are explicit. CLI/configured
+restore and registry/catalogue integration remain pending; no complete M3 claim.
