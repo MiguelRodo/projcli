@@ -3281,3 +3281,24 @@ mocked GitHub suite. A retained named-registry fixture still expected only legac
 assets; it now requires the new bundle last and verifies its file path/hash,
 while preserving all no-upload-after-disabling and restore-byte assertions.
 No production behavior was relaxed to satisfy the outdated expectation.
+
+
+## Configured flat CAS placement continuity
+
+New correctness fix beyond projr's ordinary metadata: configured flat CAS uses both
+fixed known metadata locations for compatible history, independently of selected
+write placement. This closes the same project-to-remote-to-both split-history
+defect fixed for ordinary local/GitHub histories. Public explicit-bases API scope,
+legacy IDs/root MD5 CSV and tree behavior remain unchanged.
+
+Ponytail full reuses existing prefix validation, codecs, path/source guards,
+writer claim, immutable references and verified restore. Two actual CLI regressions
+check three-build cross-placement/format continuity, unchanged old/unselected
+files, direct references, every old ID verify/restore, and divergent unselected
+history failing before a real prehook without store/CSV/VERSION mutation.
+Remote exact-head checks and independent review are pending; no local tests ran.
+
+
+Independent early runtime review found no safety blocker; the new verify witness
+uses the existing machine envelope's result.snapshot.snapshot_kind field. The
+development-source lifecycle overlay now names the known-history checks.
