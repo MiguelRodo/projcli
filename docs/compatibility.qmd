@@ -3413,3 +3413,14 @@ Its assertion names the observation/depth guard, not Forest's record limit.
 Pure record-budget and graph-depth tests remain on every host. Existing bytes,
 history, sampled directories and claim cleanup are asserted. No production bound
 or path guard changes; exact-head remote checks remain required.
+
+The unchanged compact Windows witness then exposed a real CLI stack overflow,
+rather than the expected structured depth error (run40115027597). Source review
+found a 64KiB hashing buffer declared in recursive manifest::inventory_directory
+visit frames, reachable while inventorying the retained destination before
+staging. Allocate that buffer once on the heap per inventory and pass its slice
+through recursion, retaining every path/type/read guard, MD5 chunk size and sort.
+This is the shared source-backed root-cause fix; the same 65-directory fixture
+remains strict, and remote execution must confirm the result. No stack-size
+increase or relaxed depth/record guard. Broader recursion/performance redesign
+is not part of this fix.
