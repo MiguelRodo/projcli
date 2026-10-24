@@ -606,7 +606,7 @@ hooks, next-dev or the existing partial-distribution boundary.
 %%| fig-alt: "Selected local folders retain actual payload histories. GitHub prepares exact ZIP history and publishes all HTTP and full project copies before references. Selected CAS style then saves content and required metadata before its reference. Failures preserve evidence."
 %%{init: {"htmlLabels": false}}%%
 flowchart TB
-  A["Frozen selected destinations"] --> B["Read-only preparation"]
+  A["Frozen selected destinations"] --> B["Read-only preparation and known-history checks"]
   B --> C["Retain possible distribution evidence on provider entry"]
   C --> L{"Ordinary local selected?"}
   L -->|Yes| LP["Apply transfer policy; record actual final bytes"]
@@ -678,3 +678,9 @@ asset identity before deletion. After every target's required HTTP succeeds, wri
 all selected project full histories, then small project references. Failures report
 partial remote/local effects and retain the local release. Later CAS/Git/end-hook
 ordering is unchanged; no atomic multi-target transaction is implied.
+
+
+Configured flat CAS checks both fixed known history copies in the existing
+pre-build validation phase, before hooks. It rereads compatible histories under
+the existing store claim during publication. Only selected full copies change;
+provider order and the explicit verification/recovery path remain unchanged.

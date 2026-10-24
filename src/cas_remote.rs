@@ -75,6 +75,7 @@ pub(crate) struct Target {
     pub(crate) base:Utf8PathBuf,
     project_metadata:Utf8PathBuf,
     metadata:Vec<Utf8PathBuf>,
+    history:Vec<Utf8PathBuf>,
     labels:Vec<(String,Utf8PathBuf)>,
     style:Style,
     format:Format,
@@ -135,14 +136,17 @@ pub(crate) fn configured(root:&Utf8Path,selections:&[Selection],config:&crate::y
             Placement::Project=>vec![project_metadata.clone()],
             Placement::Both=>vec![base.clone(),project_metadata.clone()],
         };
-        for location in &metadata {
+        let history=vec![base.clone(),project_metadata.clone()];
+        let locations=if selection.definition.manifest_style==Style::Flat {&history}else{&metadata};
+        for location in locations {
             crate::cas_tree::preflight_storage(&root,&base,location,&sources)?;
             if selection.definition.manifest_style==Style::Flat {crate::cas_flat::preflight(&root,&base,location)?;}
         }
         if selection.definition.manifest_style==Style::Flat {
+            crate::cas_flat::load_history(&history)?;
             crate::cas_flat::preflight_project_reference(&root,&project_metadata)?;
         }else{crate::cas_tree::preflight_project_reference(&root,&project_metadata)?;}
-        targets.push(Target {base,project_metadata,metadata,labels,style:selection.definition.manifest_style,
+        targets.push(Target {base,project_metadata,metadata,history,labels,style:selection.definition.manifest_style,
             format:selection.definition.manifest_format.unwrap_or(if selection.definition.manifest_style==Style::Flat {Format::Csv}else{Format::Json})});
     }
     Ok(targets)
@@ -154,7 +158,7 @@ pub(crate) fn prepare(root:&Utf8Path,target:&Target,version:&str)->Result<()> {
     if target.style==Style::Flat {
         let directories=target.labels.iter().map(|(label,path)|crate::cas_tree::observe_flat_directory(root,&target.base,path,label)).collect::<Result<_>>()?;
         let snapshot=FlatSnapshot::new(version.into(),None,directories)?;
-        crate::cas_flat::prepare(root,&target.base,&target.metadata,&snapshot,target.format)?;
+        crate::cas_flat::prepare(root,&target.base,&target.metadata,&target.history,&snapshot,target.format)?;
     }
     Ok(())
 }
@@ -170,7 +174,7 @@ pub(crate) fn publish(root:&Utf8Path,target:&Target,version:&str)->Result<String
         let directories=target.labels.iter().map(|(label,path)|
             crate::cas_tree::ingest_flat_directory(root,&target.base,path,label)).collect::<Result<_>>()?;
         let snapshot=FlatSnapshot::new(version.into(),None,directories)?;
-        return crate::cas_flat::publish_snapshot(root,&target.base,&target.metadata,Some(&target.project_metadata),&snapshot,target.format);
+        return crate::cas_flat::publish_with_history(root,&target.base,&target.metadata,&target.history,Some(&target.project_metadata),&snapshot,target.format);
     }
     let primary=&target.metadata[0];let mut roots=Vec::new();
     for (label,path) in &target.labels {

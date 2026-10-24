@@ -625,3 +625,9 @@ limits, and round-trip generated bundles through the native reader. Build catalo
 indexes once per bundle. Stage records before HTTP; all required target HTTP and
 project full metadata writes precede small project references. Replace new history
 only against its originally observed asset ID; no automatic retry/lock/transaction.
+
+
+Configured flat CAS must read/guard both fixed known metadata histories while
+writing only selected full copies. Reject divergence before hooks and recheck
+under the store claim. Preserve explicit-bases public API scope and existing IDs;
+placement continuity is not discovery or automatic migration.

@@ -583,3 +583,12 @@ Every required HTTP write and full project copy precedes small project reference
 Original asset-ID checks protect against replacing an already changed history;
 they do not establish cross-writer or crash atomicity. No CAS objects, new
 credential mechanism, live user-data test or broad snapshot discovery is introduced.
+
+
+### Flat CAS placement continuity
+
+Configured flat CAS separates known history read locations from selected full-copy
+destinations. Project/store histories must be compatible prefixes before hooks,
+and publication rereads them under the existing store claim. Only selected copies
+change; old files/IDs remain. The public explicit-bases flat publication API keeps
+its signature/scope. Tree and legacy formats are unchanged.

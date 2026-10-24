@@ -288,3 +288,55 @@ fn failed_flat_publication_preserves_local_release_and_distribution_evidence() {
         &&value["operations"].as_array().is_some_and(|operations|operations.iter().any(|operation|
             operation["provider"]=="cas_flat"&&operation["status"]=="failed"))));
 }
+
+#[test]
+fn configured_placement_switches_keep_complete_history_and_every_old_snapshot_recoverable() {
+    let (_temp,root,mut config)=flat("csv","project");
+    let store=root.parent().unwrap().join("store");let project=metadata(&root);let expected=files(&root.join("input"));
+    success(command(&root).arg("build").output().unwrap());
+    let old_project=fs::read(catalogue_path(&project,"csv")).unwrap();
+    assert!(!catalogue_path(&store,"csv").exists());
+    config["remotes"]["local"]["snapshots"]["manifest"]=json!("remote");
+    config["remotes"]["local"]["snapshots"]["manifest-format"]=json!("json");save(&root,&config);
+    success(command(&root).arg("build").output().unwrap());
+    assert_eq!(fs::read(catalogue_path(&project,"csv")).unwrap(),old_project);
+    assert!(!catalogue_path(&project,"json").exists());
+    let second=history(&store,"json");assert_eq!(second.records.len(),4);
+    assert!(second.records.iter().filter(|row|row.version=="v1.2.5").all(|row|
+        matches!(&row.inventory,Inventory::Reference {ref_version} if ref_version=="v1.2.4")));
+    let old_remote=fs::read(catalogue_path(&store,"json")).unwrap();
+    config["remotes"]["local"]["snapshots"]["manifest"]=json!("both");
+    config["remotes"]["local"]["snapshots"]["manifest-format"]=json!("csv-dedupe-file");save(&root,&config);
+    success(command(&root).arg("build").output().unwrap());
+    assert_eq!(history(&project,"csv-dedupe-file"),history(&store,"csv-dedupe-file"));
+    assert_eq!(history(&store,"csv-dedupe-file").records.len(),6);
+    assert_eq!(fs::read(catalogue_path(&project,"csv")).unwrap(),old_project);
+    assert_eq!(fs::read(catalogue_path(&store,"json")).unwrap(),old_remote);
+    let saved=ids(&project,"references/flat-v1");assert_eq!(saved.len(),3);
+    let version=fs::read(root.join("VERSION")).unwrap();let csv=fs::read(root.join("manifest.csv")).unwrap();
+    for id in saved {
+        let verified=success(command(&root).args(["remote","verify","--title","snapshots","--snapshot",&id]).output().unwrap());
+        assert_eq!(verified["result"]["snapshot"]["snapshot_kind"],"flat-catalogue-v1");
+        fs::write(root.join("input/value.txt"),b"damage").unwrap();fs::write(root.join("input/extra"),b"remove").unwrap();
+        success(command(&root).args(["remote","restore","--title","snapshots","--snapshot",&id,"--label","raw","--clear"]).output().unwrap());
+        assert_eq!(files(&root.join("input")),expected);
+        assert_eq!(fs::read(root.join("VERSION")).unwrap(),version);assert_eq!(fs::read(root.join("manifest.csv")).unwrap(),csv);
+    }
+}
+#[test]
+fn conflicting_unselected_known_history_fails_before_hooks_without_store_changes() {
+    let (_temp,root,mut config)=flat("csv","project");let store=root.parent().unwrap().join("store");let project=metadata(&root);
+    success(command(&root).arg("build").output().unwrap());
+    config["remotes"]["local"]["snapshots"]["manifest"]=json!("remote");
+    config["remotes"]["local"]["snapshots"]["manifest-format"]=json!("json");save(&root,&config);
+    success(command(&root).arg("build").output().unwrap());
+    let mut hostile=history(&project,"csv");for row in &mut hostile.records {row.version="v9.0.0".into();}
+    fs::write(catalogue_path(&project,"csv"),hostile.encode(Format::Csv).unwrap()).unwrap();
+    fs::write(root.join("start.py"),"from pathlib import Path\nPath('hook-ran').write_text('bad')\n").unwrap();
+    config["build"]["hooks"]=json!({"pre":["start.py"]});save(&root,&config);
+    let before=files(&store);let version=fs::read(root.join("VERSION")).unwrap();let csv=fs::read(root.join("manifest.csv")).unwrap();
+    let output=command(&root).arg("build").output().unwrap();assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("histories diverge"));
+    assert!(!root.join("hook-ran").exists());assert_eq!(files(&store),before);
+    assert_eq!(fs::read(root.join("VERSION")).unwrap(),version);assert_eq!(fs::read(root.join("manifest.csv")).unwrap(),csv);
+}

@@ -599,3 +599,15 @@ not distributed locking or a remote transaction. All required target HTTP writes
 and project full metadata writes precede small project references. Later failures
 preserve local release and honest partial-publication evidence, without automatic
 rollback or retry. Ordinary restore continues the compatible metadata path.
+
+
+### Changing local CAS flat-history placement
+
+For configured flat CAS, both fixed known metadata locations are guarded/read
+regardless of selected write placement. Changing project to remote to both, even
+while switching CSV/JSON modes, preserves the longest compatible complete history.
+Only selected full locations are written; old unselected files remain intact.
+A conflicting known copy fails before hooks rather than silently discarding it.
+Reads are rechecked under the store writer claim before publication. Existing
+exact-ID snapshots remain recoverable. This is fixed-location continuity, not
+automatic snapshot discovery or a migration.

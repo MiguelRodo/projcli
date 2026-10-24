@@ -124,7 +124,7 @@ pub(crate) fn append_idempotent(history:&Catalogue,snapshot:&FlatSnapshot)->Resu
     history.with_snapshot(&FlatSnapshot::new(snapshot.version,snapshot.created_at,pending)?)
 }
 /// Read and bound possible encoded history before provider entry. Locked publication rechecks it.
-pub(crate) fn prepare(root:&Utf8Path,content:&Utf8Path,bases:&[Utf8PathBuf],snapshot:&FlatSnapshot,format:Format)->Result<()> {
+pub(crate) fn prepare(root:&Utf8Path,content:&Utf8Path,bases:&[Utf8PathBuf],history_bases:&[Utf8PathBuf],snapshot:&FlatSnapshot,format:Format)->Result<()> {
     anyhow::ensure!(!bases.is_empty()&&bases.len()<=2,"Flat publication requires one or two full metadata locations");
     let snapshot=FlatSnapshot::parse(&snapshot.readable_json()?)?;
     anyhow::ensure!(!snapshot.directories.is_empty(),"Flat publication requires selected artefacts");
@@ -134,7 +134,15 @@ pub(crate) fn prepare(root:&Utf8Path,content:&Utf8Path,bases:&[Utf8PathBuf],snap
         anyhow::ensure!(unique.insert(crate::path_safety::portable_path_key(&physical)),"Flat metadata locations alias each other");
         preflight(root,content,base)?;
     }
-    append_idempotent(&load_history(bases)?,&snapshot)?.encode(format)?;Ok(())
+    anyhow::ensure!(!history_bases.is_empty()&&history_bases.len()<=2,"Flat publication requires one or two known history locations");
+    let mut known=std::collections::HashSet::new();
+    for base in history_bases {
+        let physical=Utf8PathBuf::try_from(crate::path_safety::resolve_path(base.as_std_path(),true)?)?;
+        anyhow::ensure!(known.insert(crate::path_safety::portable_path_key(&physical)),"Flat history locations alias each other");
+        preflight(root,content,base)?;
+    }
+    anyhow::ensure!(unique.is_subset(&known),"Every selected metadata destination must have its history read");
+    append_idempotent(&load_history(history_bases)?,&snapshot)?.encode(format)?;Ok(())
 }
 /// Validate a small project-reference namespace, without claiming complete backup metadata.
 pub(crate) fn preflight_project_reference(root:&Utf8Path,base:&Utf8Path)->Result<()> {
@@ -157,12 +165,18 @@ fn write_reference(base:&Utf8Path,reference:&FlatReference,project:bool)->Result
 /// Later failure may leave partial metadata/objects; no cross-location rollback or GC.
 pub fn publish_snapshot(root:&Utf8Path,content:&Utf8Path,bases:&[Utf8PathBuf],project_reference:Option<&Utf8Path>,
     snapshot:&FlatSnapshot,format:Format)->Result<String> {
+    publish_with_history(root,content,bases,bases,project_reference,snapshot,format)
+}
+/// Configured fixed-location history reads are independent of selected full-copy writes.
+/// The public explicit-bases API retains its existing scope and signature.
+pub(crate) fn publish_with_history(root:&Utf8Path,content:&Utf8Path,bases:&[Utf8PathBuf],history_bases:&[Utf8PathBuf],
+    project_reference:Option<&Utf8Path>,snapshot:&FlatSnapshot,format:Format)->Result<String> {
     let snapshot=FlatSnapshot::parse(&snapshot.readable_json()?)?;
-    prepare(root,content,bases,&snapshot,format)?;
+    prepare(root,content,bases,history_bases,&snapshot,format)?;
     if let Some(base)=project_reference {preflight_project_reference(root,base)?;}
     crate::path_safety::resolve_path(content.as_std_path(),true)?;fs::create_dir_all(content)?;
     let _writer=crate::attempt::Attempt::acquire(content)?;
-    let history=append_idempotent(&load_history(bases)?,&snapshot)?;
+    let history=append_idempotent(&load_history(history_bases)?,&snapshot)?;
     let bytes=history.encode(format)?;let reference=FlatReference::from_history(&history,&snapshot)?;let id=reference.identity()?;
     crate::cas_tree::verify_flat_inventory(content,&bases[0],&snapshot)?;
     let result=(||->Result<()> {
