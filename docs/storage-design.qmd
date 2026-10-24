@@ -342,3 +342,9 @@ Documents cap at 16 MiB, text at 8 MiB, and complete membership/history/dictiona
 rows at 100,000; existing path/depth/alias checks still apply. No size or speed
 advantage is claimed. Catalogue publication dependency ordering, immutable remote
 integration and no-code expanded listing remain integration work.
+
+Independent review tightened the catalogue-wide limits: dictionary plus membership
+rows count before JSON expansion, derived path-prefix work shares one 16 MiB
+budget across history, and CSV/JSON output stops at the byte limit while writing.
+A transient earliest-complete lookup avoids rescanning all history for each new
+selected label; it adds no persistent index.

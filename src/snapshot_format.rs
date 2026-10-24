@@ -215,6 +215,11 @@ fn flat_paths(directory:&FlatDirectory,budget:&mut Budget,work:&mut usize)->Resu
     Ok(())
 }
 
+/// Charge derived prefix validation against a caller's shared catalogue budget.
+pub(crate) fn validate_inventory_paths(directory:&FlatDirectory,work:&mut usize)->Result<()> {
+    flat_paths(directory,&mut Budget(0),work)
+}
+
 impl FlatSnapshot {
     /// Build complete metadata; input order is canonicalized and no time is inferred.
     pub fn new(version:String,created_at:Option<String>,directories:Vec<FlatDirectory>)->Result<Self> {

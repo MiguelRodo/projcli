@@ -9,7 +9,7 @@
 //! assert_eq!(Catalogue::parse(&csv,Format::Csv)?,catalogue);
 //! # Ok::<(),anyhow::Error>(())
 //! ```
-use std::collections::{BTreeMap,HashMap,HashSet};
+use std::{collections::{BTreeMap,HashMap,HashSet},io::Write};
 use anyhow::{Context,Result};
 use serde::{Serialize,Deserialize};
 use crate::snapshot_format::{FlatSnapshot,FlatDirectory,FileRecord,MAX_METADATA_BYTES,MAX_RECORDS};
@@ -80,8 +80,26 @@ pub struct Catalogue {
     pub records:Vec<ArtefactVersion>,
 }
 
-fn bounded(bytes:Vec<u8>)->Result<Vec<u8>> {
-    anyhow::ensure!(bytes.len()<=MAX_METADATA_BYTES,"Catalogue exceeds metadata byte limit");Ok(bytes)
+#[derive(Default)]
+struct BoundedBytes(Vec<u8>);
+impl Write for BoundedBytes {
+    fn write(&mut self,bytes:&[u8])->std::io::Result<usize> {
+        let length=self.0.len().checked_add(bytes.len())
+            .filter(|&length|length<=MAX_METADATA_BYTES)
+            .ok_or_else(||std::io::Error::other("Catalogue exceeds metadata byte limit"))?;
+        if length>self.0.capacity() {
+            let capacity=MAX_METADATA_BYTES.min(length.max(self.0.capacity().saturating_mul(2)).max(128));
+            self.0.try_reserve_exact(capacity-self.0.len()).map_err(std::io::Error::other)?;
+        }
+        self.0.extend_from_slice(bytes);Ok(bytes.len())
+    }
+    fn flush(&mut self)->std::io::Result<()> {Ok(())}
+}
+fn json_bytes(value:&impl Serialize,pretty:bool)->Result<Vec<u8>> {
+    let mut writer=BoundedBytes::default();
+    if pretty {serde_json::to_writer_pretty(&mut writer,value)?;writer.write_all(b"\n")?;}
+    else {serde_json::to_writer(&mut writer,value)?;}
+    Ok(writer.0)
 }
 fn canonical_directory(directory:FlatDirectory)->Result<FlatDirectory> {
     Ok(FlatSnapshot::new("inventory".into(),None,vec![directory])?.directories.remove(0))
@@ -89,7 +107,7 @@ fn canonical_directory(directory:FlatDirectory)->Result<FlatDirectory> {
 fn inventory_id(directory:&FlatDirectory)->Result<String> {
     #[derive(Serialize)]
     struct Content<'a> {files:&'a [FileRecord],empty_directories:&'a [String]}
-    let bytes=bounded(serde_json::to_vec(&Content {files:&directory.files,empty_directories:&directory.empty_directories})?)?;
+    let bytes=json_bytes(&Content {files:&directory.files,empty_directories:&directory.empty_directories},false)?;
     let mut hash=blake3::Hasher::new_derive_key("projcli.artefact-inventory.v1");hash.update(&bytes);
     Ok(hash.finalize().to_hex().to_string())
 }
@@ -102,7 +120,7 @@ impl Catalogue {
     /// Complete targets must precede references and be for the same exact logical label.
     pub fn validate(&self)->Result<()> {
         anyhow::ensure!(self.records.len()<=MAX_RECORDS,"Catalogue exceeds record limit");
-        let mut rows=0usize;let mut text=0usize;let mut labels=HashMap::<String,String>::new();
+        let mut rows=0usize;let mut text=0usize;let mut path_work=0usize;let mut labels=HashMap::<String,String>::new();
         let mut previous=HashMap::<(&str,&str),&ArtefactVersion>::new();
         for record in &self.records {
             rows=rows.checked_add(1).context("Catalogue row budget overflow")?;
@@ -127,8 +145,9 @@ impl Catalogue {
                 "Duplicate artefact/version record");
             match &record.inventory {
                 Inventory::Complete {files,empty_directories}=>{
-                    let directory=canonical_directory(FlatDirectory {label:record.label.clone(),
-                        files:files.clone(),empty_directories:empty_directories.clone()})?;
+                    let input=FlatDirectory {label:record.label.clone(),files:files.clone(),empty_directories:empty_directories.clone()};
+                    crate::snapshot_format::validate_inventory_paths(&input,&mut path_work)?;
+                    let directory=canonical_directory(input)?;
                     anyhow::ensure!(inventory_id(&directory)?==record.inventory_hash,"Corrupt complete inventory digest");
                 },
                 Inventory::Reference {ref_version}=>{
@@ -149,12 +168,19 @@ impl Catalogue {
     pub fn with_snapshot(&self,snapshot:&FlatSnapshot)->Result<Self> {
         self.validate()?;
         let snapshot=FlatSnapshot::parse(&snapshot.readable_json()?)?;
+        anyhow::ensure!(self.records.len().checked_add(snapshot.directories.len())
+            .is_some_and(|n|n<=MAX_RECORDS),"Catalogue exceeds record limit");
+        let mut complete=HashMap::new();
+        for record in &self.records {
+            if matches!(&record.inventory,Inventory::Complete {..}) {
+                complete.entry((record.label.as_str(),record.inventory_hash.as_str())).or_insert(record.version.as_str());
+            }
+        }
         let mut result=self.clone();
         for directory in snapshot.directories {
             let hash=inventory_id(&directory)?;
-            let target=self.records.iter().find(|r|r.label==directory.label&&r.inventory_hash==hash
-                &&matches!(&r.inventory,Inventory::Complete {..}));
-            let inventory=if let Some(target)=target {Inventory::Reference {ref_version:target.version.clone()}}
+            let target=complete.get(&(directory.label.as_str(),hash.as_str()));
+            let inventory=if let Some(target)=target {Inventory::Reference {ref_version:(*target).into()}}
                 else {Inventory::Complete {files:directory.files,empty_directories:directory.empty_directories}};
             result.records.push(ArtefactVersion {label:directory.label,version:snapshot.version.clone(),
                 created_at:snapshot.created_at.clone(),inventory_hash:hash,inventory});
@@ -179,9 +205,7 @@ impl Catalogue {
     /// CSV index columns preserve history order even after Excel sorts rows.
     pub fn encode(&self,format:Format)->Result<Vec<u8>> {
         let wire=Wire::from_catalogue(self,format)?;
-        if format.csv(){wire.csv()}else{
-            let mut bytes=serde_json::to_vec_pretty(&wire)?;bytes.push(b'\n');bounded(bytes)
-        }
+        if format.csv(){wire.csv()}else{json_bytes(&wire,true)}
     }
     /// Parse an explicit v1 CSV/JSON catalogue, validating all dictionary and inventory references.
     /// Existing projr CSV and legacy flat CAS readers remain separate and unchanged.
@@ -256,17 +280,21 @@ impl Wire {
             records.push(WireRecord {label:record.label.clone(),version:record.version.clone(),
                 created_at:record.created_at.clone(),inventory_hash:record.inventory_hash.clone(),inventory});
         }
-        let rows=records.iter().try_fold(1+dictionary.len(),|sum,record| {
+        let result=Self {schema:SCHEMA.into(),format,hash_algorithm:ALGORITHM.into(),dictionary,records};
+        result.validate_rows()?;Ok(result)
+    }
+    fn validate_rows(&self)->Result<()> {
+        let rows=self.records.iter().try_fold(1+self.dictionary.len(),|sum,record| {
             let count=match &record.inventory {
                 WireInventory::Complete {files,empty_directories}=>1+files.len()+empty_directories.len(),
                 WireInventory::Reference {..}=>1,
             };
             sum.checked_add(count).context("Catalogue wire-row budget overflow")
         })?;
-        anyhow::ensure!(rows<=MAX_RECORDS,"Catalogue exceeds wire-row limit");
-        Ok(Self {schema:SCHEMA.into(),format,hash_algorithm:ALGORITHM.into(),dictionary,records})
+        anyhow::ensure!(rows<=MAX_RECORDS,"Catalogue exceeds wire-row limit");Ok(())
     }
     fn catalogue(self)->Result<Catalogue> {
+        self.validate_rows()?;
         anyhow::ensure!(self.schema==SCHEMA&&self.hash_algorithm==ALGORITHM,"Unsupported catalogue schema/hash algorithm");
         anyhow::ensure!(self.records.len()+self.dictionary.len()<=MAX_RECORDS,"Catalogue exceeds record limit");
         anyhow::ensure!(self.format.dictionary()||self.dictionary.is_empty(),"Unexpected file dictionary in ordinary mode");
@@ -304,7 +332,7 @@ impl Wire {
         let result=Catalogue {records};result.validate()?;Ok(result)
     }
     fn csv(&self)->Result<Vec<u8>> {
-        let mut writer=csv::WriterBuilder::new().terminator(csv::Terminator::CRLF).from_writer(Vec::new());
+        let mut writer=csv::WriterBuilder::new().terminator(csv::Terminator::CRLF).from_writer(BoundedBytes::default());
         writer.write_record(HEADER)?;
         let base=||vec![self.schema.clone(),self.format.name().into(),self.hash_algorithm.clone(),
             String::new(),String::new(),String::new(),String::new(),String::new(),String::new(),
@@ -334,7 +362,7 @@ impl Wire {
                 },
             }
         }
-        writer.flush()?;bounded(writer.into_inner().map_err(|error|error.into_error())?)
+        writer.flush()?;Ok(writer.into_inner().map_err(|error|error.into_error())?.0)
     }
     fn from_csv(bytes:&[u8])->Result<Self> {
         let mut reader=csv::ReaderBuilder::new().from_reader(bytes);
@@ -531,5 +559,47 @@ mod tests {
         assert!(Catalogue::parse(b"dir,file,hash\noutput,a,123\n",Format::Csv).is_err());
         let mut broken=history();broken.records[1].label="RAW-DATA".into();assert!(broken.validate().is_err());
         assert!(Catalogue::parse(&vec![b' ';MAX_METADATA_BYTES+1],Format::Json).is_err());
+    }
+
+    #[test]
+    fn json_and_csv_share_the_wire_row_bound_before_dictionary_expansion() {
+        let files:Vec<_>=(0..50_000).map(|n|FileRecord {path:format!("f{n}"),hash:format!("{n:064x}")}).collect();
+        let directory=canonical_directory(FlatDirectory {label:"output".into(),files,empty_directories:vec![]}).unwrap();
+        let hash=inventory_id(&directory).unwrap();
+        let wire=Wire {schema:SCHEMA.into(),format:Format::JsonDedupeFile,hash_algorithm:ALGORITHM.into(),
+            dictionary:directory.files.iter().enumerate().map(|(i,file)|Dictionary {file_id:(i+1) as u32,hash:file.hash.clone()}).collect(),
+            records:vec![WireRecord {label:"output".into(),version:"v1".into(),created_at:None,inventory_hash:hash,
+                inventory:WireInventory::Complete {files:directory.files.iter().enumerate().map(|(i,file)|WireFile {
+                    path:file.path.clone(),hash:None,file_id:Some((i+1) as u32)}).collect(),empty_directories:vec![]}}]};
+        let bytes=serde_json::to_vec(&wire).unwrap();assert!(bytes.len()<MAX_METADATA_BYTES);
+        let error=Catalogue::parse(&bytes,Format::JsonDedupeFile).unwrap_err();
+        assert!(format!("{error:#}").contains("wire-row limit"));
+        let value=Catalogue::default().with_snapshot(&snapshot("v1",directory)).unwrap();
+        for mode in [Format::CsvDedupeFile,Format::JsonDedupeFile] {
+            assert!(format!("{:#}",value.encode(mode).unwrap_err()).contains("wire-row limit"));
+        }
+    }
+    #[test]
+    fn prefix_work_is_shared_across_history_inventories() {
+        let parent=(0..24).map(|n|format!("a{n:02}")).collect::<Vec<_>>().join("/");
+        let directory=FlatDirectory {label:"output".into(),files:(0..400).map(|n|
+            FileRecord {path:format!("{parent}/file{n}"),hash:"0".repeat(64)}).collect(),empty_directories:vec![]};
+        let base=Catalogue::default().with_snapshot(&snapshot("v1",directory)).unwrap().records.remove(0);
+        let value=Catalogue {records:(0..40).map(|n|{let mut record=base.clone();record.version=format!("v{n}");record}).collect()};
+        let error=value.validate().unwrap_err();
+        assert!(format!("{error:#}").contains("path-work budget"));
+    }
+    #[test]
+    fn repeated_csv_metadata_is_stopped_during_writing_at_the_document_limit() {
+        let directory=FlatDirectory {label:"a".repeat(1024),files:(0..19_000).map(|n|
+            FileRecord {path:format!("f{n}"),hash:"0".repeat(64)}).collect(),empty_directories:vec![]};
+        let value=Catalogue::default().with_snapshot(&snapshot("v1",directory)).unwrap();
+        let error=value.encode(Format::Csv).unwrap_err();
+        assert!(format!("{error:#}").contains("metadata byte limit"));
+        assert!(value.encode(Format::Json).unwrap().len()<MAX_METADATA_BYTES);
+        let mut output=BoundedBytes::default();
+        output.write_all(b"unchanged").unwrap();
+        assert!(output.write(&vec![0;MAX_METADATA_BYTES+1]).is_err());
+        assert_eq!(output.0,b"unchanged");
     }
 }
