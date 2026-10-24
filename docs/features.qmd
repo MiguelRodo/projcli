@@ -119,7 +119,7 @@ your project, or in both. It always keeps a small project record identifying
 the saved folders. That small record alone cannot restore files if the storage
 content or required full listings are lost.
 
-These additions are not in installed preview.3. Automatic version selection for CAS restore, ordinary tree listings and GitHub formatting
+These additions are not in installed preview.3. Automatic version selection for CAS restore, ordinary tree listings
 remain pending; local CAS CSV/JSON history is described below. Explicit named-ID tree recovery is described below. Ordinary local and GitHub Release upload/restore behavior
 remains available as described in the [remote guide](remote-compatibility.qmd).
 
@@ -170,3 +170,20 @@ contains the bytes. Keeping the latest folder replaces its older contents; a
 historical list does not recreate bytes that have since been overwritten.
 See [the configuration example](configuration.qmd#ordinary-local-flat-history).
 This source addition is not in installed preview.3.
+
+
+## Keep a readable file history with GitHub backups
+
+In development source, GitHub backups can also keep CSV or JSON file lists.
+Choose which folders to upload, save a complete listing in the project, on GitHub,
+or both, and retain a small project record pointing to the saved files.
+An unchanged folder can point to an earlier complete listing; optional file
+dictionaries still keep every filename.
+
+The list describes the ZIP actually prepared for upload. If an archived folder
+is reused, its record names that older ZIP. A failed upload keeps the local
+release and reports that some files may already have been sent. The tool avoids
+replacing a history bundle that another writer changed while the build ran.
+See [the copyable example and limits](configuration.qmd#github-flat-history).
+This source addition is not in installed preview.3. HTTP transport tests use
+synthetic local servers; they are not a new live GitHub round-trip claim.

@@ -855,7 +855,7 @@ variants use the same raw stored bytes and stable snapshot bindings.
 Full history placement and small project references follow the existing approved
 policy. Earlier decoded records remain immutable; retries preserve them and later
 copy failures retain honest partial-publication evidence. Existing ordinary
-root CSV and old flat/tree snapshots remain unchanged. Ordinary local flat history is described below; ordinary tree/GitHub formatting
+root CSV and old flat/tree snapshots remain unchanged. Ordinary local flat history is described below; ordinary tree formatting
 and automatic snapshot lookup remain pending.
 
 
@@ -871,6 +871,22 @@ conflicts are checked on the complete private installation stage before replacin
 data. Required histories precede full bindings and small project references; failures
 report partial effects, without cross-location rollback.
 
-Ordinary tree and GitHub new-format metadata remain pending. The ordinary restore
+Ordinary tree metadata remains pending. The ordinary restore
 command continues its existing CSV/VERSION behavior; no new automatic snapshot
 selection or historical latest-data recovery is claimed.
+
+
+## Actual GitHub flat histories (development source)
+
+Named GitHub destinations default to flat CSV with both new full metadata copies;
+all four flat formats and placement controls execute. Legacy inline definitions
+without new policy retain behavior. Complete inventories describe exact prepared
+ZIPs or physically downloaded reused assets, with immutable frozen repository/tag/
+asset bindings. Catalog-only placeholders cannot supply recorded bytes.
+
+All required target HTTP writes precede all project full metadata writes, then
+small project references. New history bundles are uploaded last and require the
+originally observed asset identity before deletion. Changed assets fail safely;
+no distributed locking, remote transaction or automatic retry is claimed.
+The ordinary CSV/VERSION restore path and root MD5 compatibility CSV remain.
+Ordinary tree metadata remains pending.

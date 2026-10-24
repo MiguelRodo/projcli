@@ -17,10 +17,11 @@ pub(crate) struct Spec {
     inspection:String,
     always:bool,
     labels:Vec<(String,Utf8PathBuf)>,
+    metadata:Option<crate::ordinary_manifest::Policy>,
 }
 /// Frozen repository, API origin, token and tag selected before hooks.
 /// Deliberately has no Debug implementation: the client may contain credentials.
-pub(crate) struct Target {spec:Spec,client:GithubReleaseClient,tag:String}
+pub(crate) struct Target {spec:Spec,client:GithubReleaseClient,tag:String,repository:String}
 fn folded(value:&str)->String {
     icu_normalizer::ComposingNormalizer::new_nfc().normalize(&value.to_uppercase()).into_owned()
 }
@@ -31,12 +32,11 @@ fn name(spec:&Spec,label:&str,version:&str,empty:bool)->anyhow::Result<String> {
 pub(crate) fn validate(root:&Utf8Path,raw:Option<&Map<String,Value>>,config:&crate::yml::ValidatedConfig)->anyhow::Result<Vec<Spec>> {
     let declared:Map<String,Value>=config.directories.keys().map(|key|(key.clone(),Value::Null)).collect();
     let context=serde_json::json!({"directories":declared});
-    let mut specs=Vec::new();
+    let mut specs=Vec::new();let mut metadata_paths:Vec<Utf8PathBuf>=Vec::new();
     for (title,value) in raw.into_iter().flatten() {
         anyhow::ensure!(!title.trim_matches(' ').is_empty()&&!title.chars().any(char::is_control),"Invalid GitHub destination title");
         let definition=crate::restore::definition(value)?;
-        anyhow::ensure!(crate::ordinary_manifest::Policy::parse(&definition)?.is_none(),
-            "GitHub manifest placement/style/format integration is not implemented yet");
+        let metadata=crate::ordinary_manifest::Policy::parse(&definition)?;
         let mut labels=if let Some(Value::Array(values))=&definition.content {
             values.iter().map(|value|value.as_str().map(str::to_owned).context("Content labels must be strings")).collect::<anyhow::Result<Vec<_>>>()?
         }else{
@@ -65,10 +65,23 @@ pub(crate) fn validate(root:&Utf8Path,raw:Option<&Map<String,Value>>,config:&cra
             let path=Utf8PathBuf::try_from(crate::path_safety::resolve_path(config.get_path(root,&label)?.as_std_path(),true)?)?;
             selected.push((label,path));
         }
-        let spec=Spec{title:title.clone(),prefix:definition.path,append:definition.path_append_label.unwrap_or(true),latest:matches!(definition.structure,Some(crate::restore::Layout::Latest)),strategy,inspection:inspection.into(),always:send.cue.as_deref()==Some("always"),labels:selected};
+        if metadata.is_some() {
+            let project=crate::ordinary_manifest::project_metadata(root,"github",title)?;
+            crate::github_manifest::project_preflight(root,&project)?;
+            for previous in &metadata_paths {
+                anyhow::ensure!(!crate::path_safety::portable_paths_overlap(previous,&project),"GitHub manifest namespaces overlap");
+            }
+            for label in config.directories.keys() {
+                let source=Utf8PathBuf::try_from(crate::path_safety::resolve_path(config.get_path(root,label)?.as_std_path(),true)?)?;
+                anyhow::ensure!(!crate::path_safety::portable_paths_overlap(&source,&project),"GitHub manifest metadata overlaps a declared resource");
+            }
+            metadata_paths.push(project);
+        }
+        let spec=Spec{metadata,title:title.clone(),prefix:definition.path,append:definition.path_append_label.unwrap_or(true),latest:matches!(definition.structure,Some(crate::restore::Layout::Latest)),strategy,inspection:inspection.into(),always:send.cue.as_deref()==Some("always"),labels:selected};
         // Version suffix is constant across selected labels, so this catches
         // planned namespace aliases before the actual release version is known.
         let mut names=BTreeSet::from([folded("manifest.zip"),folded("VERSION.zip"),folded("CHANGELOG.zip")]);
+        if spec.metadata.is_some(){names.insert(folded(crate::github_manifest::ASSET));}
         for (label,_) in &spec.labels {for empty in [false,true] {
             anyhow::ensure!(names.insert(folded(&name(&spec,label,"v0.0.1",empty)?)),"Configured GitHub asset namespace collision");
         }}
@@ -96,7 +109,7 @@ pub(crate) fn capture(root:&Utf8Path,specs:Vec<Spec>,environment:&crate::run_env
         let tag=if spec.title=="@version" {version.into()}else{spec.title.trim_matches(' ').replace(' ',"-")};
         anyhow::ensure!(tags.insert(tag.clone()),"Configured GitHub titles resolve to the same Release tag");
         let client=GithubReleaseClient::new(&repository,api,Some(token.clone()))?;
-        targets.push(Target{spec,client,tag});
+        targets.push(Target{spec,client,tag,repository:repository.clone()});
     }
     Ok(targets)
 }
@@ -172,12 +185,15 @@ pub(crate) fn publish(root:&Utf8Path,targets:&[Target],version:&str)->anyhow::Re
     if targets.is_empty(){return Ok(());}
     let history=crate::manifest::read(&root.join("manifest.csv"))?;
     let mut prepared:Vec<Vec<(String,Option<tempfile::NamedTempFile>,bool)>>=Vec::new();
+    let mut records:Vec<Option<crate::github_manifest::Prepared>>=Vec::new();
+    let mut metadata_ids:Vec<Option<u64>>=Vec::new();
     let result=(||->anyhow::Result<()> {
     for target in targets {
         let catalog=target.client.assets_if_exists(&target.tag)?.unwrap_or_default();
         let mut actual=BTreeSet::new();
         for asset in &catalog {anyhow::ensure!(actual.insert(asset.name.clone()),"GitHub asset catalog contains duplicate names");}
         let mut expected=vec!["manifest.zip".to_owned(),"VERSION.zip".to_owned(),"CHANGELOG.zip".to_owned()];
+        if target.spec.metadata.is_some(){expected.push(crate::github_manifest::ASSET.into());}
         for (label,_) in &target.spec.labels {
             expected.push(name(&target.spec,label,version,false)?);expected.push(name(&target.spec,label,version,true)?);
         }
@@ -203,10 +219,19 @@ pub(crate) fn publish(root:&Utf8Path,targets:&[Target],version:&str)->anyhow::Re
             }
         }
         let temporary=tempfile::Builder::new().prefix("proj-github-publication-").tempdir_in(fs::canonicalize(std::env::temp_dir())?)?;
-        let stage=Utf8Path::from_path(temporary.path()).context("GitHub staging path must be UTF-8")?;
-        prepared.push(Vec::new());
+        let owner=Utf8Path::from_path(temporary.path()).context("GitHub staging path must be UTF-8")?;
+        let stage_path=owner.join("mirror");fs::create_dir(&stage_path)?;let stage=stage_path.as_path();
+        let bundle=owner.join("bundle");
+        prepared.push(Vec::new());records.push(None);
+        metadata_ids.push(catalog.iter().find(|asset|asset.name==crate::github_manifest::ASSET).map(|asset|asset.id));
         let uploads=prepared.last_mut().unwrap();
         let result=(||->anyhow::Result<()> {
+            if target.spec.metadata.is_some() {
+                if actual.contains(crate::github_manifest::ASSET) {
+                    crate::github_manifest::download(&target.client,&target.tag,owner,&bundle)?;
+                }else{fs::create_dir(&bundle)?;}
+            }
+            let mut materialized=BTreeSet::new();
             metadata(&target.client,&target.tag,MetadataKind::Manifest,stage,&actual)?;
             metadata(&target.client,&target.tag,MetadataKind::Version,stage,&actual)?;
             let rows=crate::manifest::read(&stage.join("manifest.csv"))?;
@@ -219,8 +244,9 @@ pub(crate) fn publish(root:&Utf8Path,targets:&[Target],version:&str)->anyhow::Re
                 let exists=actual.contains(&full)||actual.contains(&empty);
                 if exists {
                     let is_empty=actual.contains(&empty);
-                    download_data(target,stage,if is_empty {&empty}else{&full},
-                        &mirror_path(stage,&target.spec,label,version,is_empty),is_empty)?;
+                    let path=mirror_path(stage,&target.spec,label,version,is_empty);
+                    download_data(target,stage,if is_empty {&empty}else{&full},&path,is_empty)?;
+                    materialized.insert(path);
                 }
                 if !target.spec.latest {
                     if let Some((latest,empty,asset))=newest_archive(&target.spec,label,&actual)? {
@@ -229,7 +255,7 @@ pub(crate) fn publish(root:&Utf8Path,targets:&[Target],version:&str)->anyhow::Re
                             let eligible=target.spec.inspection!="none"&&!matches!(target.spec.strategy,StoreStrategy::UploadAll)
                                 &&!(target.spec.always&&!exists)
                                 &&crate::publication::archive_history(&rows,&versions,&history,label,version,&latest).is_some();
-                            if eligible {download_data(target,stage,&asset,&path,empty)?;}
+                            if eligible {download_data(target,stage,&asset,&path,empty)?;materialized.insert(path.clone());}
                             else {
                                 // Catalog-only placeholder: the shared eligibility
                                 // check must reject it before reading its bytes.
@@ -242,7 +268,7 @@ pub(crate) fn publish(root:&Utf8Path,targets:&[Target],version:&str)->anyhow::Re
             let mirror=crate::publication::staging_target(stage.into(),target.spec.labels.clone(),
                 !target.spec.latest,target.spec.strategy,target.spec.always,&target.spec.inspection);
             let effects=crate::publication::publish_local(root,&[mirror],version)?;
-            for label in effects {
+            for label in &effects {
                 let full=mirror_path(stage,&target.spec,&label,version,false);
                 let empty_path=mirror_path(stage,&target.spec,&label,version,true);
                 let empty=empty_path.try_exists()?;
@@ -257,11 +283,53 @@ pub(crate) fn publish(root:&Utf8Path,targets:&[Target],version:&str)->anyhow::Re
                 let obsolete=name(&target.spec,&label,version,!empty)?;
                 if actual.contains(&obsolete) {uploads.push((obsolete,None,false));}
             }
+            if let Some(policy)=&target.spec.metadata {
+                let versions=crate::publication::version_entries(&stage.join("VERSION"))?;
+                let mut directories=Vec::new();let mut payloads=Vec::new();
+                for (label,_) in &target.spec.labels {
+                    let full=mirror_path(stage,&target.spec,label,version,false);
+                    let empty=mirror_path(stage,&target.spec,label,version,true);
+                    let advertised=versions.iter().find(|(key,_)|key==label).map(|(_,value)|value.clone());
+                    let (data,empty,data_version)=if full.try_exists()? {(full,false,version.to_owned())}
+                        else if empty.try_exists()? {(empty,true,version.to_owned())}
+                        else {
+                            anyhow::ensure!(!target.spec.latest,"Latest GitHub payload is missing after preparation");
+                            let selected=advertised.as_deref().context("Reused GitHub archive has no data version")?.trim_end_matches('*');
+                            let selected=crate::local_remote::select_version(stage,label,crate::local_remote::LocalStructure::Archive,Some(selected),true)?;
+                            (selected.path,selected.empty,selected.version)
+                        };
+                    let asset=name(&target.spec,label,&data_version,empty)?;
+                    // A catalog-only directory is never evidence of payload bytes.
+                    if !effects.contains(label)&&!materialized.contains(&data) {
+                        anyhow::ensure!(actual.contains(&asset),"Reused GitHub payload asset is missing");
+                        download_data(target,stage,&asset,&data,empty)?;materialized.insert(data.clone());
+                    }
+                    let directory=if effects.contains(label) {
+                        let zip=uploads.iter().find(|(name,_,_)|name==&asset).and_then(|(_,zip,_)|zip.as_ref())
+                            .context("Prepared GitHub payload ZIP is missing")?;
+                        crate::github_manifest::observe_zip(zip,label,empty)?
+                    }else{crate::ordinary_manifest::observe(&data,label)?};
+                    directories.push(directory);
+                    payloads.push(crate::github_manifest::Payload {label:label.clone(),inventory_hash:String::new(),
+                        asset,empty,advertised_version:advertised});
+                }
+                let project=crate::ordinary_manifest::project_metadata(root,"github",&target.spec.title)?;
+                let (record,zip)=crate::github_manifest::prepare(root,&project,&bundle,policy,&target.repository,
+                    &target.tag,version,target.spec.latest,directories,payloads)?;
+                *records.last_mut().unwrap()=Some(record);
+                // Enqueued below legacy metadata, after all data ZIPs.
+                if let Some(zip)=zip {uploads.push((crate::github_manifest::ASSET.into(),Some(zip),true));}
+            }
             for kind in [MetadataKind::Manifest,MetadataKind::Version] {
                 uploads.push((kind.names().0.into(),Some(crate::github_zip::metadata_zip(stage,kind)?),true));
             }
             if stage.join("CHANGELOG.md").try_exists()? {
                 uploads.push(("CHANGELOG.zip".into(),Some(crate::github_zip::metadata_zip(stage,MetadataKind::Changelog)?),true));
+            }
+            if target.spec.metadata.is_some() {
+                if let Some(position)=uploads.iter().position(|(name,_,_)|name==crate::github_manifest::ASSET) {
+                    let bundle=uploads.remove(position);uploads.push(bundle);
+                }
             }
             Ok(())
         })();
@@ -275,14 +343,23 @@ pub(crate) fn publish(root:&Utf8Path,targets:&[Target],version:&str)->anyhow::Re
             (Err(error),Ok(()))=>return Err(error),(Ok(()),Err(error))=>return Err(error.into()),(Ok(()),Ok(()))=>{}
         }
     }
-        for (target,uploads) in targets.iter().zip(&prepared) {
+        for (index,(target,uploads)) in targets.iter().zip(&prepared).enumerate() {
             for (name,zip,replace) in uploads {
                 let result=if let Some(zip)=zip {
                     let source=Utf8Path::from_path(zip.path()).context("ZIP staging path must be UTF-8")?;
-                    if *replace {target.client.replace_asset(&target.tag,name,source,true)}else{target.client.upload_asset(&target.tag,name,source,true)}.map(|_|())
+                    if target.spec.metadata.is_some()&&name==crate::github_manifest::ASSET {
+                        target.client.replace_observed_asset(&target.tag,name,source,metadata_ids[index])
+                    }else if *replace {target.client.replace_asset(&target.tag,name,source,true)}
+                    else{target.client.upload_asset(&target.tag,name,source,true)}.map(|_|())
                 }else{target.client.delete_asset(&target.tag,name)};
                 result.with_context(||format!("GitHub Release {} may be partially published; inspect before retry",target.tag))?;
             }
+        }
+        for record in records.iter().flatten() {
+            record.finish_full(root).context("GitHub remote writes completed, but project full history may be incomplete; inspect before retry")?;
+        }
+        for record in records.iter().flatten() {
+            record.finish_reference(root).context("GitHub full metadata completed, but project references may be incomplete; inspect before retry")?;
         }
         Ok(())
     })();
@@ -293,6 +370,9 @@ pub(crate) fn publish(root:&Utf8Path,targets:&[Target],version:&str)->anyhow::Re
             if let Err(error)=zip.close(){failures.push(format!("{}: {error}",path.display()));}
         }
     }}
+    for record in records.into_iter().flatten() {
+        if let Err(error)=record.close(){failures.push(format!("Private GitHub record cleanup: {error:#}"));}
+    }
     if !failures.is_empty() {return Err(result.err().unwrap_or_else(||anyhow::anyhow!("GitHub publication completed")).context(format!("ZIP cleanup failed: {}",failures.join("; "))));}
     result
 }

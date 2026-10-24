@@ -151,7 +151,7 @@ impl GithubReleaseClient {
     /// deleting anything. Creating a missing Release requires create_release.
     /// Publication is not rolled back on a later protocol/network failure.
     pub fn upload_asset(&self, tag: &str, name: &str, source: &Utf8Path, create_release: bool) -> anyhow::Result<ReleaseAsset> {
-        self.upload_asset_impl(tag,name,source,create_release,false)
+        self.upload_asset_impl(tag,name,source,create_release,false,None)
     }
     /// Explicitly replaces a matching asset using projr's delete-then-upload
     /// sequence, or uploads normally if absent. Stages the full local file and
@@ -159,9 +159,15 @@ impl GithubReleaseClient {
     /// failed delete/upload can leave the old asset absent or the outcome
     /// uncertain. Errors state that boundary; no automatic retry/rollback occurs.
     pub fn replace_asset(&self, tag: &str, name: &str, source: &Utf8Path, create_release: bool) -> anyhow::Result<ReleaseAsset> {
-        self.upload_asset_impl(tag,name,source,create_release,true)
+        self.upload_asset_impl(tag,name,source,create_release,true,None)
     }
-    fn upload_asset_impl(&self, tag: &str, name: &str, source: &Utf8Path, create_release: bool, replace: bool) -> anyhow::Result<ReleaseAsset> {
+    /// Replace only the exact metadata asset observed while preparing history.
+    /// A changed/new asset fails without deleting it; no automatic retry or lock claim.
+    pub(crate) fn replace_observed_asset(&self,tag:&str,name:&str,source:&Utf8Path,expected:Option<u64>)->anyhow::Result<ReleaseAsset> {
+        self.upload_asset_impl(tag,name,source,true,true,Some(expected))
+    }
+    fn upload_asset_impl(&self, tag: &str, name: &str, source: &Utf8Path, create_release: bool, replace: bool,
+        expected:Option<Option<u64>>) -> anyhow::Result<ReleaseAsset> {
         asset_name(name)?;
         crate::path_safety::resolve_path(source.as_std_path(), true)?;
         anyhow::ensure!(fs::symlink_metadata(source)?.is_file(), "Asset source must be a regular file");
@@ -182,6 +188,10 @@ impl GithubReleaseClient {
         let release = self.release(tag, create_release)?;
         let matches:Vec<_>=self.assets_for_release(release.id)?.into_iter().filter(|asset|asset.name==name).collect();
         anyhow::ensure!(matches.len()<=1,"Asset name is ambiguous; no deletion performed");
+        if let Some(expected)=expected {
+            anyhow::ensure!(matches.first().map(|asset|asset.id)==expected,
+                "GitHub metadata asset changed during preparation; no deletion performed; inspect before retry");
+        }
         anyhow::ensure!(replace||matches.is_empty(),"GitHub asset already exists; no overwrite or deletion performed");
         let template = release.upload_url.context("GitHub Release has no upload endpoint")?;
         let upload = template.split('{').next().context("Invalid GitHub upload endpoint")?;

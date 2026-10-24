@@ -8,7 +8,7 @@ const SCHEMA:&str="projcli.ordinary-local-snapshot.v1";
 
 /// Explicit ordinary metadata policy; absent inline policies preserve legacy behavior.
 #[derive(Clone)]
-pub(crate) struct Policy {placement:Placement,format:Format}
+pub(crate) struct Policy {pub(crate) placement:Placement,pub(crate) format:Format}
 impl Policy {
     pub(crate) fn parse(definition:&crate::restore::Definition)->Result<Option<Self>> {
         if definition.manifest.is_none()&&definition.manifest_style.is_none()&&definition.manifest_format.is_none(){return Ok(None)}
@@ -19,10 +19,7 @@ impl Policy {
     }
     /// Resolve only new metadata; legacy root CSV and VERSION remain compatibility metadata.
     pub(crate) fn locations(&self,root:&Utf8Path,base:&Utf8Path,title:&str)->Result<Locations> {
-        let title=icu_normalizer::ComposingNormalizer::new_nfc().normalize(&title.to_uppercase()).into_owned();
-        let mut hash=blake3::Hasher::new_derive_key("projcli.ordinary-remote-name.v1");
-        hash.update(&serde_json::to_vec(&("local",title))?);let key=hash.finalize().to_hex().to_string();
-        let project=root.join(".proj/remotes").join(&key[..2]).join(&key[2..]);
+        let project=project_metadata(root,"local",title)?;
         let remote=base.join(".projcli-manifests");
         let bases=match self.placement {
             Placement::Project=>vec![project.clone()],Placement::Remote=>vec![remote],
@@ -117,4 +114,12 @@ pub(crate) fn observe(path:&Utf8Path,label:&str)->Result<FlatDirectory> {
     let mut directory=crate::cas_tree::observe_directory(path,label)?;
     if directory.files.is_empty(){directory.empty_directories.clear();}
     Ok(directory)
+}
+
+/// Provider-separated fixed project location; titles are text, never filesystem paths.
+pub(crate) fn project_metadata(root:&Utf8Path,provider:&str,title:&str)->Result<Utf8PathBuf> {
+    let title=icu_normalizer::ComposingNormalizer::new_nfc().normalize(&title.to_uppercase()).into_owned();
+    let mut hash=blake3::Hasher::new_derive_key("projcli.ordinary-remote-name.v1");
+    hash.update(&serde_json::to_vec(&(provider,title))?);let key=hash.finalize().to_hex().to_string();
+    Ok(root.join(".proj/remotes").join(&key[..2]).join(&key[2..]))
 }

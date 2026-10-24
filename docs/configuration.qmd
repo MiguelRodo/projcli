@@ -341,7 +341,7 @@ The new registry also accepts an ordinary name list for all eligible content,
 while mapping form is required for per-build label subsets.
 
 Named ordinary local destinations now support flat CSV/JSON history and metadata
-placement, described below. Ordinary tree and GitHub formatting fields still fail
+placement, described below. Ordinary tree formatting still fails
 until implemented; they are never accepted and ignored. Configured CAS tree mapping
 publication is described below. The existing CAS
 name-list route retains its legacy flat encoding when using legacy definitions.
@@ -533,7 +533,7 @@ compatibility metadata regardless of the new manifest placement.
 
 Pure legacy inline build.local definitions keep their old behavior unless an
 explicit manifest/style/format field opts in. Null or unknown options fail.
-Ordinary tree-style metadata and GitHub format integration remain pending.
+Ordinary tree-style metadata remains pending; GitHub flat formatting is described below.
 Switching formats retains old files and reads compatible earlier history;
 conflicting retries or histories fail rather than overwrite recorded inventory.
 
@@ -547,3 +547,55 @@ Changing ordinary local placement reads compatible history from both fixed known
 locations, but writes complete history only to the newly selected locations.
 Old unselected files remain intact; changing placement or format cannot silently
 start a disconnected history.
+
+
+## File lists for GitHub Release destinations {#github-flat-history}
+
+Development source uses flat CSV by default for named GitHub Release destinations:
+
+~~~yaml
+remotes:
+  github:
+    analysis-files:
+      structure: archive
+      manifest: both
+      manifest-format: json
+build:
+  dest:
+    analysis-files:
+      content: [raw, output]
+~~~
+
+The same four flat formats and auto/project/remote/both placements as ordinary
+local destinations apply. auto means both. The format default remains csv;
+tree is explicitly unsupported for ordinary/GitHub destinations until implemented.
+Legacy inline build.github without new metadata fields retains its old behavior.
+
+Complete new remote history is a separate projcli-manifests-v1.zip Release asset,
+containing versioned catalogue files and immutable snapshot bindings. Existing
+manifest.zip, VERSION.zip and CHANGELOG.zip retain their compatibility purpose.
+Project full history, when selected, lives under the provider-separated
+.proj/remotes name; a small project binding is always kept. Names, not upload
+selection, still determine which registered remotes remain available sources.
+
+Recorded inventories describe exact prepared ZIP payloads or a physically
+downloaded reused archive. They never describe an empty catalog placeholder.
+Bindings retain the frozen repository/tag, actual asset filename, empty variant,
+inventory hash and existing VERSION advertisement separately from the build
+version. The ZIP writer's omitted empty child folders are not falsely recorded.
+Legacy root MD5 manifest.csv and VERSION* meanings remain unchanged.
+
+History is read from the two fixed known locations across format/placement changes.
+Old files remain readable and are not silently migrated or deleted. Bundles reject
+unknown members, conflicting/corrupt histories and unsafe paths; compressed and
+expanded limits are 128 MiB, individual metadata files 16 MiB, and native ZIP
+member count at most 100,000 including directory entries. Generated bundles must
+pass the same reader before uploads.
+
+All targets prepare before HTTP writes. Data and legacy metadata precede each
+new bundle. Replacing a bundle requires its asset identity to match the original
+observation; a newer asset fails without deleting it. This is optimistic protection,
+not distributed locking or a remote transaction. All required target HTTP writes
+and project full metadata writes precede small project references. Later failures
+preserve local release and honest partial-publication evidence, without automatic
+rollback or retry. Ordinary restore continues the compatible metadata path.

@@ -415,7 +415,7 @@ flowchart TB
   C --> D["Stage all selected local CSV bytes"]
   D --> E["Local data; opted-in final-byte histories; full metadata then project reference"]
   E --> H["Validate catalog/history; stage comparison and ZIP effects"]
-  H --> I["GitHub latest/archive replacements, then metadata ZIPs"]
+  H --> I["GitHub data / legacy metadata / new bundle; all full copies, then project refs"]
   I --> F["Selected CAS, Git, end hooks, next-dev"]
   D -->|Failure| G["Preserve release; skip later stages"]
   E -->|Failure| G
@@ -650,4 +650,15 @@ before replacement. It records actual final bytes and their physical location,
 then writes legacy compatibility metadata, new complete history copies, full
 snapshot bindings and the small project reference. Failed copies retain honest
 partial effects. This addition does not change preview.3 or the later Git/end-hook
-ordering; ordinary tree/GitHub formatting remains pending.
+ordering; ordinary tree formatting remains pending.
+
+
+### GitHub file history in development source
+
+After private mirror planning, observe each exact prepared data ZIP or an actually
+downloaded retained archive. Stage bounded history/bindings before any HTTP mutation.
+Upload data, legacy metadata and the new bundle, checking its originally observed
+asset identity before deletion. After every target's required HTTP succeeds, write
+all selected project full histories, then small project references. Failures report
+partial remote/local effects and retain the local release. Later CAS/Git/end-hook
+ordering is unchanged; no atomic multi-target transaction is implied.

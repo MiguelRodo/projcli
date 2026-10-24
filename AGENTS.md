@@ -616,3 +616,12 @@ legacy VERSION* trust markers and latest overwrite limits. New registry defaults
 must not silently opt legacy inline builds into metadata. Guard final private-stage
 same-version conflicts before replacement, and reject overlapping metadata namespaces.
 Ordinary data stays outside CAS objects; GitHub/tree integration remains separate.
+
+
+GitHub flat histories must observe exact prepared ZIPs or explicitly materialized
+reused archives, never catalogue placeholders or ZIP-omitted empty folders.
+Reserve new metadata assets, validate allowed members/per-file/aggregate/member
+limits, and round-trip generated bundles through the native reader. Build catalogue
+indexes once per bundle. Stage records before HTTP; all required target HTTP and
+project full metadata writes precede small project references. Replace new history
+only against its originally observed asset ID; no automatic retry/lock/transaction.

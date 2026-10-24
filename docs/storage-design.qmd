@@ -568,3 +568,18 @@ empty flag and existing VERSION advertisement. Its ID is a snapshot binding,
 not a pure content root. Small project references persist with remote-only full
 metadata. One archive payload may serve several build-version observations.
 Mutable latest storage cannot promise recovery of older overwritten content.
+
+
+## GitHub flat history integration (development source)
+
+GitHub full catalogue/history and snapshot bindings share the versioned
+projcli-manifests-v1.zip asset; data stays in the ordinary ZIP layout. Bindings
+include frozen repository/tag and the actual payload asset, separate from the
+build-version inventory. Exact prepared ZIP observations preserve existing
+packaging semantics rather than inventing empty directories. Disk-backed private
+records avoid retaining full metadata buffers for every target at once.
+
+Every required HTTP write and full project copy precedes small project references.
+Original asset-ID checks protect against replacing an already changed history;
+they do not establish cross-writer or crash atomicity. No CAS objects, new
+credential mechanism, live user-data test or broad snapshot discovery is introduced.
