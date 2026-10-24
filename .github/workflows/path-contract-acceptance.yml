@@ -56,6 +56,12 @@ jobs:
       - name: Validate M2 record source and exact inventory bytes
         shell: bash
         run: runuser -u rstudio -- env CARGO_HOME="$RUNNER_TEMP/projcli-cargo" RUSTUP_AUTO_INSTALL=0 PROJCLI_M2_EVIDENCE="$GITHUB_WORKSPACE/m2-acceptance-artifacts" cargo test --locked --test test_m2_contract_witness -- --ignored
+      - name: Integrated M3 build archive verify and fresh-project recovery
+        shell: bash
+        run: runuser -u rstudio -- python3 tests/acceptance/m3_contract.py target/debug/proj --evidence m3-contract-evidence.json --artifacts m3-acceptance-artifacts
+      - name: Validate M3 stored and recovered byte membership independently
+        shell: bash
+        run: runuser -u rstudio -- env CARGO_HOME="$RUNNER_TEMP/projcli-cargo" RUSTUP_AUTO_INSTALL=0 PROJCLI_M3_EVIDENCE="$GITHUB_WORKSPACE/m3-acceptance-artifacts" cargo test --locked --test test_m3_contract_witness -- --ignored
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -89,4 +95,13 @@ jobs:
           path: |
             m2-contract-evidence.json
             m2-acceptance-artifacts
+          if-no-files-found: warn
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: m3-contract-evidence
+          path: |
+            m3-contract-evidence.json
+            m3-acceptance-artifacts
           if-no-files-found: warn

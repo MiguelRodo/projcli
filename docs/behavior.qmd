@@ -922,3 +922,22 @@ all required HTTP and full project copies precede small project references.
 Partial failures remain visible, with local release/evidence preserved.
 Tree style is fixed JSON; ordinary/GitHub defaults and compatible restore are
 unchanged. This is mocked REST/actual CLI scope, not a new live Release claim.
+
+
+## Integrated M3 acceptance scope
+
+The pinned remote gate combines actual Python analysis, ordinary local tree
+backup and native CAS snapshots with optional Git disabled. It exercises tree,
+flat CSV and opt-in JSON file-dictionary modes; earlier objects/snapshots survive
+a second build. A fresh disposable project then verifies/restores both labels by
+explicit snapshot ID without the old project CSV, ledger or small references.
+Object corruption, missing objects and malformed snapshot metadata must produce
+structured failures while preserving good destinations and damaged store bytes.
+A separate Rust witness connects retained store membership to recovered bytes.
+
+Existing complete platform suites cover publication interruption, cooperative
+writer exclusion/idempotency, path/link guards, all formats/placements, ordinary
+and mocked GitHub transitions. No automatic latest/discovery, permission/ownership
+restoration, live consistent dataset, performance or new live GitHub claim is
+added. These checks await exact-head remote execution; installed preview.3 is
+unchanged until a separately reviewed release/install.

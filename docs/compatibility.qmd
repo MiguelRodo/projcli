@@ -3378,3 +3378,20 @@ Final source review also caught two accidentally literal newline escapes in the
 test helper and existing development diagram, and two stale-claim replacements
 that had dropped the deferred automatic-discovery qualifier. Corrected before
 final compilation evidence; hash path placeholders now render literally.
+
+
+## Integrated M3 local recovery gate (24 October)
+
+**Acceptance, without runtime policy changes:** combine a real analysis, ordinary
+tree backup and native CAS tree/flat storage; discard only the owned project and
+recover exact earlier raw/output bytes from full remote metadata by explicit ID.
+Three cases retain stores/recovered bytes and nine structured corruption probes.
+An ignored Rust witness independently verifies snapshot membership, object bytes,
+recovered membership and ordinary CSV hashes on those retained artifacts.
+
+**Ponytail full:** reuse current CLI contracts, pinned workflow, JSON evidence
+style and public verifiers; no new snapshot selector, schema, retention rule or
+implementation abstraction. Existing platform suites supply interruption,
+concurrency/retry, all-mode/placement and mocked GitHub coverage. This is a final
+bounded M3 gate, not a new discovery/performance milestone. Remote checks and
+independent final review are pending; no local heavy test executed.

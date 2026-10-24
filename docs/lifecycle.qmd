@@ -708,3 +708,11 @@ prepared before HTTP mutation; downloaded bundles validate graph/inventory
 agreement first. Full metadata uses the same HTTP-before-project-copy ordering,
 with small references last. This adds a metadata style to the existing development
 overlay, without changing the released historical figures or provider/hook order.
+
+
+The integrated M3 fixture observes this existing ordering end to end: actual
+analysis and ordinary backup, native CAS publication, completed attempt record,
+then a second unchanged build and explicit read-only verification/fresh-project
+recovery. Corruption probes require no destination replacement or store repair.
+It adds retained release evidence rather than another build stage or native
+figure.

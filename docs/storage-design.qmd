@@ -625,3 +625,15 @@ disk-backed graphs are prepared before uploads and copied to selected full
 project locations only after all required HTTP succeeds. Small references remain
 last. Flat IDs and earlier nodes survive style changes. No compression/performance,
 multi-target atomicity or new snapshot-discovery guarantee is implied.
+
+
+## Bounded M3 release evidence
+
+The final pinned gate retains actual native CAS stores and exact recovered
+files after a two-build analysis plus ordinary backup. It recovers by explicit
+snapshot ID into a fresh project, then probes missing/corrupt content and malformed
+metadata without modifying good targets. A separate Rust witness checks retained
+snapshots against recovered bytes and ordinary CSV hashes. Broader discovery and
+performance work remains deferred; complete platform suites cover writer,
+interruption, retry and all format/placement boundaries. Passing this gate is
+source evidence; release/install verification remains separate.
