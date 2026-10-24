@@ -3108,3 +3108,19 @@ override a remote exclusion. Failure witnesses retain the approved local-only
 diagnostic and static machine error envelope; detailed text remains on stderr.
 Registry/inline name conflicts also fail in read-only restore projection before
 destination clearing.
+
+## Configured CAS tree publisher
+
+New capability: named modern local CAS targets use existing immutable tree APIs,
+with auto/project/remote/both metadata placement and a small project reference.
+Legacy exact content/inspect definitions retain old flat serialization and IDs;
+ordinary root manifest.csv and latest/archive/GitHub behavior are unchanged.
+This is a deliberate extension beyond projr, not remote parity completion.
+
+Ponytail full review reuses the existing scanner, tree verifier, immutable writer,
+attempt evidence and preview recovery. No additional database, mutable index,
+dependencies, garbage collector or filesystem metadata guarantee was introduced.
+Filesystem fixtures exercise all placements, shared roots/objects, library
+materialisation, subsets/null, legacy list/mapping history, preview preservation,
+namespace preflight and corrupt/partially published metadata. These fixtures have
+not yet run; remote exact-head execution and final independent review are pending.

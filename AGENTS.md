@@ -578,3 +578,11 @@ references but do not activate automatic build-time restore. Reuse existing
 ordinary provider validators/engines. Reject unsupported placement/style/format
 fields until implemented; do not accept them as ignored options or call the
 ordinary registry slice complete tree-aware M3 integration.
+
+
+Modern configured local CAS publication keeps file objects in the store, full
+metadata per placement and a small project reference last. Retain the separate
+legacy content/inspect parser and old IDs/ledger; never migrate in place. Prepare
+sources before actual provider entry. Once entry is recorded, preserve release
+and honest partial effects. No atomic both-copy/GC/discovery claim follows.
+Flat catalogue options and configured recovery remain separate reviewed slices.

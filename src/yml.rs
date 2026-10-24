@@ -28,7 +28,7 @@ pub struct RemotesConfig {
     /// Legacy flat CAS definitions; their accepted execution behavior is preserved.
     pub local: Option<HashMap<String, LocalRemoteConfig>>,
     /// Ordinary named definitions are available independently of upload selection.
-    pub registry: crate::remote_registry::OrdinaryRegistry,
+    pub registry: crate::remote_registry::Registry,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -461,6 +461,11 @@ impl ProjConfig {
 
         // Normalize explicit storage locations against this captured project root.
         let mut remotes = self.remotes.clone();
+        if let Some(local)=&mut remotes.local {
+            for (name,content) in &destinations.legacy_content {
+                local.get_mut(name).context("Selected legacy CAS target disappeared")?.content=content.clone();
+            }
+        }
         if let Some(local) = &mut remotes.local {
             for (name, remote) in local {
                 if remote.path.as_str().trim().is_empty() { anyhow::bail!("Remote '{name}' requires an explicit nonempty path"); }
@@ -518,8 +523,9 @@ impl ProjConfig {
             old_dev_remove: self.dev.old_dev_remove,
             parameters: self.parameters.clone(),
         };
-        crate::publication::configured(project_root, destinations.local.as_ref(), &validated)?;
+        let ordinary=crate::publication::configured(project_root,destinations.local.as_ref(),&validated)?;
         crate::github_publication::validate(project_root,destinations.github.as_ref(),&validated)?;
+        crate::cas_remote::configured(project_root,&destinations.cas,&validated,&ordinary)?;
         Ok(validated)
     }
 }

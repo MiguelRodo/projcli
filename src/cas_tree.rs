@@ -193,12 +193,8 @@ fn store_plan(store:&Layout,plan:&Plan)->Result<String> {
 /// Inputs are observations, not an atomic consistent snapshot of a concurrently edited dataset.
 pub fn ingest_directory(project_root:&Utf8Path,content:&Utf8Path,metadata:&Utf8Path,source:&Utf8Path)->Result<String> {
     let store=layout(content,metadata)?;writer_paths(project_root,&store)?;
-    let source=physical(source)?;
+    let source=source_path(project_root,&store,source)?;
     anyhow::ensure!(source.is_dir(),"CAS source must be an existing directory");
-    for target in [&store.objects,&store.trees,&store.snapshots,
-        &physical(&project_root.join(".proj"))?,&physical(&project_root.join(".projr"))?] {
-        anyhow::ensure!(!overlaps(&source,target),"CAS source overlaps storage or project metadata");
-    }
     let plan=scan(&source,"",&mut Expansion::default())?;
     store_plan(&store,&plan)
 }
@@ -272,7 +268,7 @@ impl VerifiedSnapshot {
         FlatSnapshot::new(self.snapshot.version.clone(),self.snapshot.created_at.clone(),self.directories.clone())?.readable_json()
     }
 }
-fn verify_roots(store:&Layout,snapshot:&TreeSnapshot)->Result<Vec<FlatDirectory>> {
+fn verified_graph(store:&Layout,snapshot:&TreeSnapshot)->Result<(Graph,Vec<FlatDirectory>)> {
     // Validate supplied metadata as well as loaded references before graph traversal.
     let snapshot=TreeSnapshot::parse(&snapshot.readable_json()?)?;
     let mut graph=Graph::default();let mut directories=Vec::new();
@@ -282,7 +278,11 @@ fn verify_roots(store:&Layout,snapshot:&TreeSnapshot)->Result<Vec<FlatDirectory>
         files.sort_by(|a,b|a.path.as_bytes().cmp(b.path.as_bytes()));empty.sort();
         directories.push(FlatDirectory {label:root.label,files,empty_directories:empty});
     }
-    Ok(directories)
+    Ok((graph,directories))
+}
+
+fn verify_roots(store:&Layout,snapshot:&TreeSnapshot)->Result<Vec<FlatDirectory>> {
+    verified_graph(store,snapshot).map(|(_,directories)|directories)
 }
 
 /// Publish one immutable remote/project snapshot reference only after its complete graph verifies.
@@ -446,4 +446,65 @@ pub fn restore_label(project_root:&Utf8Path,content:&Utf8Path,metadata:&Utf8Path
         (Ok(_),Err(cleanup))=>Err(cleanup.context(format!("CAS destination installed at {destination}, but source staging cleanup failed"))),
         (Ok(result),Ok(()))=>Ok(result),
     }
+}
+
+
+fn source_path(root:&Utf8Path,store:&Layout,source:&Utf8Path)->Result<Utf8PathBuf> {
+    let source=physical(source)?;
+    for target in [&store.objects,&store.trees,&store.snapshots,
+        &physical(&root.join(".proj"))?,&physical(&root.join(".projr"))?] {
+        anyhow::ensure!(!overlaps(&source,target),"CAS source overlaps storage or project metadata");
+    }
+    Ok(source)
+}
+/// Read-only routing validation allows source directories produced later by analysis.
+pub(crate) fn preflight_storage(root:&Utf8Path,content:&Utf8Path,metadata:&Utf8Path,sources:&[Utf8PathBuf])->Result<()> {
+    let store=layout(content,metadata)?;writer_paths(root,&store)?;
+    for source in sources {source_path(root,&store,source)?;}Ok(())
+}
+/// Validate all selected source names/types and the aggregate graph expansion budget
+/// before entering this target's distribution. No source bytes or store paths are written.
+pub(crate) fn validate_sources(root:&Utf8Path,content:&Utf8Path,metadata:&Utf8Path,sources:&[Utf8PathBuf])->Result<()> {
+    let store=layout(content,metadata)?;writer_paths(root,&store)?;let mut work=Expansion::default();
+    for source in sources {
+        let source=source_path(root,&store,source)?;
+        anyhow::ensure!(source.is_dir(),"CAS source must be an existing directory");
+        scan(&source,"",&mut work)?;
+    }
+    Ok(())
+}
+/// Copy verified immutable tree metadata only; raw blobs stay in their common content base.
+/// Snapshot references are not published here, so callers can finish all required copies first.
+pub(crate) fn copy_graph(root:&Utf8Path,content:&Utf8Path,from:&Utf8Path,to:&Utf8Path,snapshot:&TreeSnapshot)->Result<()> {
+    let source=layout(content,from)?;let target=layout(content,to)?;writer_paths(root,&target)?;
+    let (graph,_)=verified_graph(&source,snapshot)?;
+    let mut trees:Vec<_>=graph.trees.into_iter().collect();trees.sort_by(|a,b|a.0.cmp(&b.0));
+    for (id,tree) in trees {
+        anyhow::ensure!(publish_tree(&target,&tree)?==id,"Copied CAS directory identity changed");
+    }
+    Ok(())
+}
+fn project_reference_namespace(root:&Utf8Path,metadata:&Utf8Path)->Result<Utf8PathBuf> {
+    let root=physical(root)?;
+    let relative=metadata.strip_prefix(&root).context("Project CAS references must be inside the selected project")?;
+    anyhow::ensure!(relative.starts_with(".proj/remotes"),"Project CAS references require the managed remotes metadata namespace");
+    crate::path_safety::validate_native_names(&root,relative.as_str(),false)?;
+    let namespace=physical(metadata)?.join("references/v1");
+    project_target(&root,&namespace,true)?;crate::cas::checked_directory(&namespace)?;
+    crate::path_safety::validate_native_names(metadata,"references/v1",false)?;
+    Ok(namespace)
+}
+/// Check the project reference namespace without creating directories or claiming an archive.
+pub(crate) fn preflight_project_reference(root:&Utf8Path,metadata:&Utf8Path)->Result<()> {
+    project_reference_namespace(root,metadata)?;Ok(())
+}
+/// Persist a lightweight Git-eligible root reference after required publication succeeds.
+/// This reference alone is not a complete archive and does not copy the remote tree graph.
+pub(crate) fn write_project_reference(root:&Utf8Path,metadata:&Utf8Path,snapshot:&TreeSnapshot)->Result<String> {
+    anyhow::ensure!(!snapshot.directories.is_empty(),"CAS root reference requires selected directory roots");
+    let namespace=project_reference_namespace(root,metadata)?;let id=snapshot.identity()?;
+    let path=native(&namespace,&format!("{}/{}.json",&id[..2],&id[2..]))?;
+    publish_metadata(&path,&snapshot.readable_json()?,|bytes| {
+        anyhow::ensure!(TreeSnapshot::parse(bytes)?.identity()?==id,"Project CAS reference conflicts with its canonical identity");Ok(())
+    })?;Ok(id)
 }
