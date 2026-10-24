@@ -887,8 +887,12 @@ flowchart TB
   A["Frozen selected destinations"] --&gt; B["Read-only preparation and known-history checks"]
   B --&gt; C["Retain possible distribution evidence on provider entry"]
   C --&gt; L{"Ordinary local selected?"}
-  L --&gt;|Yes| LP["Apply transfer policy; record actual final bytes"]
-  LP --&gt; LR["Required full local histories and bindings; then project references"]
+  L --&gt;|Yes| LP["Prepare final folder; check metadata limits"]
+  LP --&gt; LA["Apply existing folder transfer policy"]
+  LA --&gt; LS{"Local history style"}
+  LS --&gt;|Flat| LR["Required full copies; then project references"]
+  LS --&gt;|Tree| LT["Directory nodes plus readable file history"]
+  LT --&gt; LR
   L --&gt;|No| J{"GitHub selected?"}
   LR --&gt; J
   J --&gt;|Yes| JP["Prepare exact data ZIPs or download retained archive bytes"]
@@ -904,6 +908,8 @@ flowchart TB
   E --&gt; F["Write lightweight project root reference"]
   F --&gt; G
   LP --&gt; X["On failure: preserve local release and possible partial effects"]
+  LA --&gt; X
+  LT --&gt; X
   LR --&gt; X
   JW --&gt; X
   JF --&gt; X
@@ -930,12 +936,13 @@ Figure&nbsp;11: Development source: ordinary and content-addressed storage metad
 <p>Flat publication prepares bounded history early, copies raw objects, then holds the store claim through its authoritative history read/replacement and required references. All selected raw bytes and inventory bindings verify. Existing partial-distribution, optional Git, end-hook and next-dev boundaries are unchanged. The eleven-figure native browser witness remains required.</p>
 <section id="ordinary-local-file-lists-in-development-source" class="level3">
 <h3 class="anchored" data-anchor-id="ordinary-local-file-lists-in-development-source">Ordinary local file lists in development source</h3>
-<p>For named ordinary local destinations, the publisher owns a destination writer claim, reads the authoritative history, and checks the complete staged payload before replacement. It records actual final bytes and their physical location, then writes legacy compatibility metadata, new complete history copies, full snapshot bindings and the small project reference. Failed copies retain honest partial effects. This addition does not change preview.3 or the later Git/end-hook ordering; ordinary tree formatting remains pending.</p>
+<p>For named ordinary local destinations, the publisher owns a destination writer claim, reads the authoritative history, and checks the complete staged payload before replacement. It records actual final bytes and their physical location, then writes legacy compatibility metadata, new complete history copies, full snapshot bindings and the small project reference. Failed copies retain honest partial effects. This addition does not change preview.3 or the later Git/end-hook ordering; GitHub tree formatting remains pending.</p>
 </section>
 <section id="github-file-history-in-development-source" class="level3">
 <h3 class="anchored" data-anchor-id="github-file-history-in-development-source">GitHub file history in development source</h3>
 <p>After private mirror planning, observe each exact prepared data ZIP or an actually downloaded retained archive. Stage bounded history/bindings before any HTTP mutation. Upload data, legacy metadata and the new bundle, checking its originally observed asset identity before deletion. After every target’s required HTTP succeeds, write all selected project full histories, then small project references. Failures report partial remote/local effects and retain the local release. Later CAS/Git/end-hook ordering is unchanged; no atomic multi-target transaction is implied.</p>
 <p>Configured flat CAS checks both fixed known history copies in the existing pre-build validation phase, before hooks. It rereads compatible histories under the existing store claim during publication. Only selected full copies change; provider order and the explicit verification/recovery path remain unchanged.</p>
+<p>For ordinary local tree style, final private payload validation includes inferred directory limits before replacement. Actual stored membership then determines v1 directory objects and a cross-checked readable history. Required objects and full copies precede references. Provider ordering and released historical figures are unchanged; the existing development overlay shows this added local style branch.</p>
 
 
 </section>
