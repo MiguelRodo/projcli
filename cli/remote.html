@@ -332,6 +332,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#recover-existing-flat-cas-snapshots" id="toc-recover-existing-flat-cas-snapshots" class="nav-link" data-scroll-target="#recover-existing-flat-cas-snapshots">Recover existing flat CAS snapshots</a></li>
   <li><a href="#verify-and-restore-new-flat-csvjson-snapshots" id="toc-verify-and-restore-new-flat-csvjson-snapshots" class="nav-link" data-scroll-target="#verify-and-restore-new-flat-csvjson-snapshots">Verify and restore new flat CSV/JSON snapshots</a></li>
   <li><a href="#ordinary-local-file-list-history" id="toc-ordinary-local-file-list-history" class="nav-link" data-scroll-target="#ordinary-local-file-list-history">Ordinary local file-list history</a></li>
+  <li><a href="#github-file-list-history" id="toc-github-file-list-history" class="nav-link" data-scroll-target="#github-file-list-history">GitHub file-list history</a></li>
   </ul>
 </nav>
     </div>
@@ -659,6 +660,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="ordinary-local-file-list-history" class="level2">
 <h2 class="anchored" data-anchor-id="ordinary-local-file-list-history">Ordinary local file-list history</h2>
 <p>Configured local latest/archive builds can write flat CSV/JSON history; see <a href="../configuration.html#ordinary-local-flat-history">placement, defaults and examples</a>. These lists describe actual uploaded folders, including retained remote-only files, and preserve the physical location of reused archive data. Existing ordinary remote restore remains unchanged. Exact-ID CAS verify/restore does not interpret ordinary bindings as content-addressed file objects.</p>
+</section>
+<section id="github-file-list-history" class="level2">
+<h2 class="anchored" data-anchor-id="github-file-list-history">GitHub file-list history</h2>
+<p>Named GitHub destinations support the same flat CSV/JSON modes and metadata placement choices as local ordinary backups. See <a href="../configuration.html#github-flat-history">examples and exact limits</a>. Existing ordinary restore uses compatible manifest.zip/VERSION.zip; new metadata does not change clear/skip/version selection. Existing CAS exact-ID commands do not reinterpret ordinary GitHub bindings as CAS objects.</p>
 
 
 </section>

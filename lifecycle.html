@@ -293,15 +293,16 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#maintaining-this-figure" id="toc-maintaining-this-figure" class="nav-link" data-scroll-target="#maintaining-this-figure">Maintaining this figure</a></li>
   <li><a href="#failure-followed-by-a-smaller-build" id="toc-failure-followed-by-a-smaller-build" class="nav-link" data-scroll-target="#failure-followed-by-a-smaller-build">Failure followed by a smaller build</a></li>
   <li><a href="#source-csv-inventory-additional-capture-points" id="toc-source-csv-inventory-additional-capture-points" class="nav-link" data-scroll-target="#source-csv-inventory-additional-capture-points">Source CSV inventory: additional capture points</a></li>
-  <li><a href="#configured-ordinary-publication-in-preview.3" id="toc-configured-ordinary-publication-in-preview.3" class="nav-link" data-scroll-target="#configured-ordinary-publication-in-preview.3">Configured ordinary publication in preview.3</a></li>
+  <li><a href="#configured-ordinary-publication" id="toc-configured-ordinary-publication" class="nav-link" data-scroll-target="#configured-ordinary-publication">Configured ordinary publication</a></li>
   <li><a href="#development-source-writer-ownership-around-the-staged-lifecycle" id="toc-development-source-writer-ownership-around-the-staged-lifecycle" class="nav-link" data-scroll-target="#development-source-writer-ownership-around-the-staged-lifecycle">Development source: writer ownership around the staged lifecycle</a></li>
   <li><a href="#development-source-snapshot-and-final-git-receipt" id="toc-development-source-snapshot-and-final-git-receipt" class="nav-link" data-scroll-target="#development-source-snapshot-and-final-git-receipt">Development source: snapshot and final Git receipt</a></li>
   <li><a href="#development-source-local-only-failure-branch" id="toc-development-source-local-only-failure-branch" class="nav-link" data-scroll-target="#development-source-local-only-failure-branch">Development source: local-only failure branch</a></li>
   <li><a href="#development-source-registry-overlay" id="toc-development-source-registry-overlay" class="nav-link" data-scroll-target="#development-source-registry-overlay">Development-source registry overlay</a></li>
-  <li><a href="#development-source-configured-cas-overlay" id="toc-development-source-configured-cas-overlay" class="nav-link" data-scroll-target="#development-source-configured-cas-overlay">Development-source configured CAS overlay</a></li>
+  <li><a href="#development-source-storage-metadata-overlay" id="toc-development-source-storage-metadata-overlay" class="nav-link" data-scroll-target="#development-source-storage-metadata-overlay">Development-source storage metadata overlay</a></li>
   <li><a href="#explicit-snapshot-verification-and-recovery" id="toc-explicit-snapshot-verification-and-recovery" class="nav-link" data-scroll-target="#explicit-snapshot-verification-and-recovery">Explicit snapshot verification and recovery</a>
   <ul class="collapse">
   <li><a href="#ordinary-local-file-lists-in-development-source" id="toc-ordinary-local-file-lists-in-development-source" class="nav-link" data-scroll-target="#ordinary-local-file-lists-in-development-source">Ordinary local file lists in development source</a></li>
+  <li><a href="#github-file-history-in-development-source" id="toc-github-file-history-in-development-source" class="nav-link" data-scroll-target="#github-file-history-in-development-source">GitHub file history in development source</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -339,7 +340,7 @@ ul.task-list li input[type="checkbox"] {
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The core figures describe the reviewed lifecycle introduced in 0.4.0-preview.2 and retained in preview.3. The ordinary-publication overlay below is released in preview.3. The exact source and executed acceptance are linked below. This is a bounded managed-path workflow, not whole-project rollback or a security sandbox. Use sample data or a disposable project copy.</p>
+<p>The core figures describe the reviewed lifecycle introduced in 0.4.0-preview.2 and retained in preview.3. The historical ordinary-publication figure below is released in preview.3. The separate development-source storage overlay describes new file-history additions; those are not in installed preview.3. The exact source and executed acceptance are linked below. This is a bounded managed-path workflow, not whole-project rollback or a security sandbox. Use sample data or a disposable project copy.</p>
 </div>
 </div>
 <section id="read-the-figures" class="level2">
@@ -754,9 +755,9 @@ Figure&nbsp;7: Current source: production CSV capture within managed recovery.
 <p>CSV replacement remains inside managed local recovery. Publication failure preserves local release CSV; no remote rollback is implied. Later end-hook changes are outside inventory, so these records are not sealing.</p>
 <p>Configured remote restore is a separate explicit operation, not an automatic stage in the build lifecycle above. It selects a source, stages a complete download and then invokes guarded merge/clear installation.</p>
 </section>
-<section id="configured-ordinary-publication-in-preview.3" class="level2">
-<h2 class="anchored" data-anchor-id="configured-ordinary-publication-in-preview.3">Configured ordinary publication in preview.3</h2>
-<p>Preview.3 publishes ordinary local archive/latest targets, then the bounded GitHub latest/archive publication path, before selected CAS export, Git publication, end hooks and next-dev bump. Configuration/planned names are checked and GitHub routing is frozen before hooks. Each provider stages every selected CSV snapshot before its first remote mutation; GitHub preparation additionally checks the remote catalog and shared metadata. This is not a transaction across providers. Failure preserves the local release and skips later stages, without rolling back already published destinations. Preview skips publication. Released diagrams above retain their version meaning.</p>
+<section id="configured-ordinary-publication" class="level2">
+<h2 class="anchored" data-anchor-id="configured-ordinary-publication">Configured ordinary publication</h2>
+<p>Preview.3 publishes ordinary local archive/latest targets, then the bounded GitHub latest/archive publication path, before selected CAS export, Git publication, end hooks and next-dev bump. Configuration/planned names are checked and GitHub routing is frozen before hooks. Each provider stages every selected CSV snapshot before its first remote mutation; GitHub preparation additionally checks the remote catalog and shared metadata. This is not a transaction across providers. Failure preserves the local release and skips later stages, without rolling back already published destinations. Preview skips publication. The historical overlay below retains its preview.3 meaning; development-source metadata additions appear in the separate storage overlay at the end of this page.</p>
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div id="fig-lifecycle-ordinary-publication" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -767,7 +768,7 @@ Figure&nbsp;7: Current source: production CSV capture within managed recovery.
   A["Validate planned namespaces / freeze routing"] --&gt; B["Existing analysis / promotion / CSV"]
   B --&gt; C["Keep local release"]
   C --&gt; D["Stage all selected local CSV bytes"]
-  D --&gt; E["Local data; opted-in final-byte histories; full metadata then project reference"]
+  D --&gt; E["Local archive/latest data, then metadata"]
   E --&gt; H["Validate catalog/history; stage comparison and ZIP effects"]
   H --&gt; I["GitHub latest/archive replacements, then metadata ZIPs"]
   I --&gt; F["Selected CAS, Git, end hooks, next-dev"]
@@ -870,10 +871,10 @@ Figure&nbsp;10: Development source: production failure evidence follows the exis
 <section id="development-source-registry-overlay" class="level2">
 <h2 class="anchored" data-anchor-id="development-source-registry-overlay">Development-source registry overlay</h2>
 <p>The released figures keep their preview.2/preview.3 labels. In development source, named destination and source-reference validation extends node C in the pre-build figure, and selected registered/legacy target resolution extends node A in the ordinary-publication figure. Both occur before hooks or publication effects; the controlled stage order remains the same.</p>
-<p>Registry membership alone neither uploads nor loads credentials. The existing provider engines receive only selected definitions. Configured restore remains an explicit separate operation, and registry sources remain available after removal from the current upload set. Configured local CAS tree publication adds the provider overlay below. Flat format publication and automatic CAS snapshot selection remain pending; explicit verification/recovery is described below.</p>
+<p>Registry membership alone neither uploads nor loads credentials. The existing provider engines receive only selected definitions. Configured restore remains an explicit separate operation, and registry sources remain available after removal from the current upload set. Configured local CAS tree publication adds the provider overlay below. Flat CSV/JSON publication is implemented below; automatic CAS snapshot selection remains deferred; explicit verification/recovery is described below.</p>
 </section>
-<section id="development-source-configured-cas-overlay" class="level2">
-<h2 class="anchored" data-anchor-id="development-source-configured-cas-overlay">Development-source configured CAS overlay</h2>
+<section id="development-source-storage-metadata-overlay" class="level2">
+<h2 class="anchored" data-anchor-id="development-source-storage-metadata-overlay">Development-source storage metadata overlay</h2>
 <p>Configured local trees add a selected provider at the existing publication phase, after ordinary/legacy targets and before optional Git. This does not move end hooks, next-dev or the existing partial-distribution boundary.</p>
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">
@@ -883,16 +884,30 @@ Figure&nbsp;10: Development source: production failure evidence follows the exis
 <div>
 <pre class="mermaid mermaid-js" data-label="fig-lifecycle-configured-cas">%%{init: {"htmlLabels": false}}%%
 flowchart TB
-  A["Frozen selected CAS targets"] --&gt; B["Read-only source preparation"]
-  B --&gt; C["Retain distribution-start evidence"]
-  C --&gt; D{"Selected manifest style"}
+  A["Frozen selected destinations"] --&gt; B["Read-only preparation"]
+  B --&gt; C["Retain possible distribution evidence on provider entry"]
+  C --&gt; L{"Ordinary local selected?"}
+  L --&gt;|Yes| LP["Apply transfer policy; record actual final bytes"]
+  LP --&gt; LR["Required full local histories and bindings; then project references"]
+  L --&gt;|No| J{"GitHub selected?"}
+  LR --&gt; J
+  J --&gt;|Yes| JP["Prepare exact data ZIPs or download retained archive bytes"]
+  JP --&gt; JW["All target HTTP writes: data, legacy metadata, new bundle last"]
+  JW --&gt; JF["All full project histories; then project references"]
+  J --&gt;|No| D{"Selected CAS manifest style"}
+  JF --&gt; D
   D --&gt;|Tree| T["Save file bytes and directory fingerprints"]
-  D --&gt;|Flat| H["Save file bytes; claim history writer and preserve earlier rows"]
+  D --&gt;|Flat| H["Save file bytes; claim writer and preserve earlier rows"]
+  D --&gt;|No CAS| G["Existing optional Git and finalization"]
   T --&gt; E["Save required full metadata, then snapshot records"]
   H --&gt; E
   E --&gt; F["Write lightweight project root reference"]
-  F --&gt; G["Existing optional Git and finalization"]
-  T --&gt; X["On failure: preserve local release and possible partial effects"]
+  F --&gt; G
+  LP --&gt; X["On failure: preserve local release and possible partial effects"]
+  LR --&gt; X
+  JW --&gt; X
+  JF --&gt; X
+  T --&gt; X
   H --&gt; X
   E --&gt; X
   F --&gt; X
@@ -900,7 +915,7 @@ flowchart TB
 </div>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-lifecycle-configured-cas-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;11: Development source: save a selected directory snapshot before Git finalization.
+Figure&nbsp;11: Development source: ordinary and content-addressed storage metadata before Git finalization.
 </figcaption>
 </figure>
 </div>
@@ -915,7 +930,11 @@ Figure&nbsp;11: Development source: save a selected directory snapshot before Gi
 <p>Flat publication prepares bounded history early, copies raw objects, then holds the store claim through its authoritative history read/replacement and required references. All selected raw bytes and inventory bindings verify. Existing partial-distribution, optional Git, end-hook and next-dev boundaries are unchanged. The eleven-figure native browser witness remains required.</p>
 <section id="ordinary-local-file-lists-in-development-source" class="level3">
 <h3 class="anchored" data-anchor-id="ordinary-local-file-lists-in-development-source">Ordinary local file lists in development source</h3>
-<p>For named ordinary local destinations, the publisher owns a destination writer claim, reads the authoritative history, and checks the complete staged payload before replacement. It records actual final bytes and their physical location, then writes legacy compatibility metadata, new complete history copies, full snapshot bindings and the small project reference. Failed copies retain honest partial effects. This addition does not change preview.3 or the later Git/end-hook ordering; ordinary tree/GitHub formatting remains pending.</p>
+<p>For named ordinary local destinations, the publisher owns a destination writer claim, reads the authoritative history, and checks the complete staged payload before replacement. It records actual final bytes and their physical location, then writes legacy compatibility metadata, new complete history copies, full snapshot bindings and the small project reference. Failed copies retain honest partial effects. This addition does not change preview.3 or the later Git/end-hook ordering; ordinary tree formatting remains pending.</p>
+</section>
+<section id="github-file-history-in-development-source" class="level3">
+<h3 class="anchored" data-anchor-id="github-file-history-in-development-source">GitHub file history in development source</h3>
+<p>After private mirror planning, observe each exact prepared data ZIP or an actually downloaded retained archive. Stage bounded history/bindings before any HTTP mutation. Upload data, legacy metadata and the new bundle, checking its originally observed asset identity before deletion. After every target’s required HTTP succeeds, write all selected project full histories, then small project references. Failures report partial remote/local effects and retain the local release. Later CAS/Git/end-hook ordering is unchanged; no atomic multi-target transaction is implied.</p>
 
 
 </section>
