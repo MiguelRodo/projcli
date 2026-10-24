@@ -296,6 +296,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#configured-ordinary-publication-in-preview.3" id="toc-configured-ordinary-publication-in-preview.3" class="nav-link" data-scroll-target="#configured-ordinary-publication-in-preview.3">Configured ordinary publication in preview.3</a></li>
   <li><a href="#development-source-writer-ownership-around-the-staged-lifecycle" id="toc-development-source-writer-ownership-around-the-staged-lifecycle" class="nav-link" data-scroll-target="#development-source-writer-ownership-around-the-staged-lifecycle">Development source: writer ownership around the staged lifecycle</a></li>
   <li><a href="#development-source-snapshot-and-final-git-receipt" id="toc-development-source-snapshot-and-final-git-receipt" class="nav-link" data-scroll-target="#development-source-snapshot-and-final-git-receipt">Development source: snapshot and final Git receipt</a></li>
+  <li><a href="#development-source-local-only-failure-branch" id="toc-development-source-local-only-failure-branch" class="nav-link" data-scroll-target="#development-source-local-only-failure-branch">Development source: local-only failure branch</a></li>
   </ul>
 </nav>
     </div>
@@ -750,7 +751,34 @@ Figure&nbsp;7: Current source: production CSV capture within managed recovery.
 <section id="configured-ordinary-publication-in-preview.3" class="level2">
 <h2 class="anchored" data-anchor-id="configured-ordinary-publication-in-preview.3">Configured ordinary publication in preview.3</h2>
 <p>Preview.3 publishes ordinary local archive/latest targets, then the bounded GitHub latest/archive publication path, before selected CAS export, Git publication, end hooks and next-dev bump. Configuration/planned names are checked and GitHub routing is frozen before hooks. Each provider stages every selected CSV snapshot before its first remote mutation; GitHub preparation additionally checks the remote catalog and shared metadata. This is not a transaction across providers. Failure preserves the local release and skips later stages, without rolling back already published destinations. Preview skips publication. Released diagrams above retain their version meaning.</p>
-<p><sub></sub>~{mermaid} %%| label: fig-lifecycle-ordinary-publication %%| fig-cap: “Preview.3: ordinary local and bounded GitHub publication.” %%| fig-alt: “Validate configuration and planned names and freeze GitHub routing before hooks. After local success and CSV capture, keep the local release, stage local targets and publish local data then metadata. Prepare all GitHub ZIPs and validate their remote catalog, upload data then metadata, then continue CAS, Git, end hooks and next development version. Failure preserves the release and reports partial effects.” flowchart TB A[“Validate planned namespaces / freeze routing”] –&gt; B[“Existing analysis / promotion / CSV”] B –&gt; C[“Keep local release”] C –&gt; D[“Stage all selected local CSV bytes”] D –&gt; E[“Local archive/latest data, then metadata”] E –&gt; H[“Validate catalog/history; stage comparison and ZIP effects”] H –&gt; I[“GitHub latest/archive replacements, then metadata ZIPs”] I –&gt; F[“Selected CAS, Git, end hooks, next-dev”] D –&gt;|Failure| G[“Preserve release; skip later stages”] E –&gt;|Failure| G H –&gt;|Failure| G I –&gt;|Failure| G <sub></sub>~</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div id="fig-lifecycle-ordinary-publication" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-lifecycle-ordinary-publication-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<pre class="mermaid mermaid-js" data-label="fig-lifecycle-ordinary-publication">flowchart TB
+  A["Validate planned namespaces / freeze routing"] --&gt; B["Existing analysis / promotion / CSV"]
+  B --&gt; C["Keep local release"]
+  C --&gt; D["Stage all selected local CSV bytes"]
+  D --&gt; E["Local archive/latest data, then metadata"]
+  E --&gt; H["Validate catalog/history; stage comparison and ZIP effects"]
+  H --&gt; I["GitHub latest/archive replacements, then metadata ZIPs"]
+  I --&gt; F["Selected CAS, Git, end hooks, next-dev"]
+  D --&gt;|Failure| G["Preserve release; skip later stages"]
+  E --&gt;|Failure| G
+  H --&gt;|Failure| G
+  I --&gt;|Failure| G
+</pre>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-lifecycle-ordinary-publication-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;8: Preview.3: ordinary local and bounded GitHub publication.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
 <p>The ordinary-local publication stage also supports explicit none comparison: source filenames are uploaded blindly according to the documented strategy interaction, after all-target staging and before CAS/Git. This does not change the staged lifecycle diagram or the release-preserving failure boundary.</p>
 <p>Ordinary-local latest publication can use the default manifest comparison. History eligibility is resolved from the already captured metadata and project CSV; the staged publication position and failure boundary remain unchanged.</p>
 <p>The ordinary-local publication stage now finalises archive or latest targets. Archive comparison eligibility is frozen during all-target preparation; old versions remain untouched and new versions are complete snapshots. Publication ordering and the release-preserving failure branch are unchanged.</p>
@@ -790,7 +818,7 @@ flowchart TB
 </div>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-lifecycle-writer-ownership-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;8: Development-source ownership surrounds the existing lifecycle; preview.3 remains unchanged.
+Figure&nbsp;9: Development-source ownership surrounds the existing lifecycle; preview.3 remains unchanged.
 </figcaption>
 </figure>
 </div>
@@ -804,6 +832,34 @@ Figure&nbsp;8: Development-source ownership surrounds the existing lifecycle; pr
 <p>The development-source ownership overlay now observes selected sources, root dependency declarations and a safe policy summary after preflight, before start hooks. It reuses existing runner version responses. No hook or version adjacency moves; startup observations are not immutable executed-code evidence. Earlier failed-build retention and output-mutation enforcement remain unchanged.</p>
 <p>Final observed rows are retained in a checksum-bound per-attempt CSV; the <a href="./cli/history.html">history command</a> reads these alongside terminal records or Git receipts. This adds evidence without moving hooks, promotion or Git commits.</p>
 <p>The existing pre-start-hook startup observation now also binds merged framework analysis configuration and effective policy using bounded, redacted fingerprints. This adds evidence at the existing startup node; no hook/version/distribution ordering changes. The integrated M2 fixture checks success/change/failure/retry.</p>
+</section>
+<section id="development-source-local-only-failure-branch" class="level2">
+<h2 class="anchored" data-anchor-id="development-source-local-only-failure-branch">Development source: local-only failure branch</h2>
+<p>This overlay adds evidence after existing production failure recovery; it does not move hooks, output clearing, promotion, publication or version transitions.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div id="fig-lifecycle-local-diagnostics" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-lifecycle-local-diagnostics-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<pre class="mermaid mermaid-js" data-label="fig-lifecycle-local-diagnostics">%%{init: {"htmlLabels": false}}%%
+flowchart TB
+  A["Owned production attempt fails"] --&gt; B{"Distribution may have started?"}
+  B --&gt;|"Yes"| C["Preserve ordinary attempt / Git receipt evidence"]
+  B --&gt;|"No"| D["Restore captured managed state before action entry"]
+  D --&gt; E["Retain local-only diagnostic; no successful release claim"]
+  E --&gt; F["History: failed, local_only; Git excludes only diagnostics"]
+</pre>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-lifecycle-local-diagnostics-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;10: Development source: production failure evidence follows the existing distribution boundary.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Diagnostics use opaque IDs and coarse stages, never copied exception text or credentials. Rejected ownership creates no competing log. Previews are unchanged. Successful and distributed-failure Git history stays enabled as agreed. No automatic pruning, stronger hook enforcement or crash recovery is introduced. The integrated M2 driver checks visible local diagnostics and exact last-good state; real repository tests check Git exclusion and successful-record tracking.</p>
 
 
 </section>
