@@ -340,7 +340,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#changing-local-cas-flat-history-placement" id="toc-changing-local-cas-flat-history-placement" class="nav-link" data-scroll-target="#changing-local-cas-flat-history-placement">Changing local CAS flat-history placement</a></li>
   </ul></li>
   <li><a href="#ordinary-local-tree-history" id="toc-ordinary-local-tree-history" class="nav-link" data-scroll-target="#ordinary-local-tree-history">Tree metadata for ordinary local backups</a></li>
-  <li><a href="#github-tree-history" id="toc-github-tree-history" class="nav-link" data-scroll-target="#github-tree-history">Tree metadata for GitHub Release backups</a></li>
+  <li><a href="#github-tree-history" id="toc-github-tree-history" class="nav-link" data-scroll-target="#github-tree-history">Tree metadata for GitHub Release backups</a>
+  <ul class="collapse">
+  <li><a href="#preserved-legacy-cas-writer" id="toc-preserved-legacy-cas-writer" class="nav-link" data-scroll-target="#preserved-legacy-cas-writer">Preserved legacy CAS writer</a></li>
+  </ul></li>
   </ul></li>
   </ul>
 </nav>
@@ -671,8 +674,12 @@ build:
 <p>Roots depend only on names, kinds and file hashes of the exact prepared or downloaded retained data ZIP. Build version, label, Release repository/tag/asset and legacy VERSION advertisement bind separately in projcli.github-tree-snapshot.v1. No ordinary file data is stored as CAS objects. The complete readable history is deliberately retained beside the graph; this is a metadata trade-off, without a size or speed claim.</p>
 <p>All bundle members are bounded and allowlisted. Every directory object’s ID is verified, and each tree binding must reconstruct the recorded inventory hash. Missing/corrupt nodes fail before HTTP publication. Existing flat bindings remain readable with unchanged IDs; switching styles retains compatible history and old nodes. New snapshots never destructively reinterpret an earlier format.</p>
 <p>Prepare required graphs, history, bindings and data ZIPs before HTTP writes. Upload data and compatibility metadata, then the new metadata bundle. After all required target HTTP operations succeed, write all selected project full copies, then small references. Failures may leave earlier remote/full metadata effects; there is no atomic multi-target transaction. Ordinary restore still uses its compatible CSV/VERSION path and data ZIP, rather than treating these bindings as native CAS snapshots.</p>
+<section id="preserved-legacy-cas-writer" class="level3">
+<h3 class="anchored" data-anchor-id="preserved-legacy-cas-writer">Preserved legacy CAS writer</h3>
+<p>Legacy CAS name-list definitions keep their existing encoding and index schema. Their writer now claims the store and the separate project .projr lookup scope. Exact repeated version/label/digest rows are not appended again; earlier bytes and differing rows remain intact. No new configuration key, same-version conflict rule or automatic migration is introduced. Busy/stale claims fail rather than guessing ownership. Modern named format/placement defaults are unchanged.</p>
 
 
+</section>
 </section>
 </section>
 

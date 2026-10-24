@@ -336,6 +336,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#ordinary-local-tree-history" id="toc-ordinary-local-tree-history" class="nav-link" data-scroll-target="#ordinary-local-tree-history">Ordinary local tree history</a>
   <ul class="collapse">
   <li><a href="#github-directory-fingerprints" id="toc-github-directory-fingerprints" class="nav-link" data-scroll-target="#github-directory-fingerprints">GitHub directory fingerprints</a></li>
+  <li><a href="#legacy-cas-publication-retries" id="toc-legacy-cas-publication-retries" class="nav-link" data-scroll-target="#legacy-cas-publication-retries">Legacy CAS publication retries</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -675,6 +676,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="github-directory-fingerprints" class="level3">
 <h3 class="anchored" data-anchor-id="github-directory-fingerprints">GitHub directory fingerprints</h3>
 <p>Configured GitHub publication accepts manifest-style: tree with fixed JSON metadata and the same placement options. Flat remains the default. Ordinary data ZIPs and remote restore commands keep their existing meanings. The <a href="../configuration.html#github-tree-history">configuration reference</a> describes the versioned tree bundle and small project reference; it is not a native CAS object store or a new automatic restore selector.</p>
+</section>
+<section id="legacy-cas-publication-retries" class="level3">
+<h3 class="anchored" data-anchor-id="legacy-cas-publication-retries">Legacy CAS publication retries</h3>
+<p>Existing legacy name-list builds retain raw-JSON IDs and the old project lookup CSV. Repeating the same version/label/digest no longer appends another row. Store and shared-ledger ownership prevent cooperative callers from losing lookup updates; busy/stale claims return an error without overwriting their owner. Explicit verification/recovery remains read-only and does not create writer claims. This changes no command or configuration spelling.</p>
 
 
 </section>

@@ -327,6 +327,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#ordinary-local-tree-metadata-development-source" id="toc-ordinary-local-tree-metadata-development-source" class="nav-link" data-scroll-target="#ordinary-local-tree-metadata-development-source">Ordinary local tree metadata (development source)</a></li>
   <li><a href="#github-directory-metadata-development-source" id="toc-github-directory-metadata-development-source" class="nav-link" data-scroll-target="#github-directory-metadata-development-source">GitHub directory metadata (development source)</a></li>
   <li><a href="#integrated-m3-acceptance-scope" id="toc-integrated-m3-acceptance-scope" class="nav-link" data-scroll-target="#integrated-m3-acceptance-scope">Integrated M3 acceptance scope</a></li>
+  <li><a href="#legacy-cas-publication-safety" id="toc-legacy-cas-publication-safety" class="nav-link" data-scroll-target="#legacy-cas-publication-safety">Legacy CAS publication safety</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -621,6 +622,11 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="integrated-m3-acceptance-scope">Integrated M3 acceptance scope</h2>
 <p>The pinned remote gate combines actual Python analysis, ordinary local tree backup and native CAS snapshots with optional Git disabled. It exercises tree, flat CSV and opt-in JSON file-dictionary modes; earlier objects/snapshots survive a second build. A fresh disposable project then verifies/restores both labels by explicit snapshot ID without the old project CSV, ledger or small references. Object corruption, missing objects and malformed snapshot metadata must produce structured failures while preserving good destinations and damaged store bytes. A separate Rust witness connects retained store membership to recovered bytes.</p>
 <p>Existing complete platform suites cover publication interruption, cooperative writer exclusion/idempotency, path/link guards, all formats/placements, ordinary and mocked GitHub transitions. No automatic latest/discovery, permission/ownership restoration, live consistent dataset, performance or new live GitHub claim is added. These checks await exact-head remote execution; installed preview.3 is unchanged until a separately reviewed release/install.</p>
+</section>
+<section id="legacy-cas-publication-safety" class="level2">
+<h2 class="anchored" data-anchor-id="legacy-cas-publication-safety">Legacy CAS publication safety</h2>
+<p>The retained legacy name-list route now claims its physical store and the shared project .projr ledger root in fixed order, after rejecting invalid source trees. This coordinates public callers writing different stores without reacquiring an already-held project build claim. The authoritative four-column lookup is read and updated while both claims remain held. Existing busy/stale claims fail closed; no process is killed and stale ownership is not guessed.</p>
+<p>An exact version/label/raw-manifest-digest retry preserves the index bytes and timestamp. Other rows, raw JSON IDs, content hashes and differing same-version digests retain their previous meaning. Malformed indexes fail before new references. Complete unreferenced metadata can remain after a later error; this does not add a multi-location transaction, distributed locking or new version policy. Ordinary root manifest.csv and new flat/tree catalogues are separate.</p>
 
 
 </section>
