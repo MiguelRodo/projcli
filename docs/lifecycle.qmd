@@ -10,8 +10,8 @@ format:
 ## Released workflow, bounded recovery
 The core figures describe the reviewed lifecycle introduced in 0.4.0-preview.2
 and retained in preview.3. The historical ordinary-publication figure below is
-released in preview.3. The separate development-source storage overlay describes
-new file-history additions; those are not in installed preview.3.
+released in preview.3. The later storage overlays describe the file-history and ownership additions
+included in preview.4; their historical source-stage labels are retained.
 The exact source and executed acceptance are linked below. This is a bounded
 managed-path workflow, not whole-project rollback or a security sandbox.
 Use sample data or a disposable project copy.
@@ -484,7 +484,7 @@ next-dev. It does not change stage order, invent a seal or promise index rollbac
 
 ## Development source: writer ownership around the staged lifecycle
 
-This ownership overlay is not part of the installed preview.3 binary.
+This ownership overlay is included in preview.4.
 
 A build now claims one project writer before input capture and keeps ownership
 through validation, hooks, analysis, local finalization, enabled distribution,
@@ -501,7 +501,7 @@ regression evidence without moving hooks, publication or the next-dev transition
 
 ```{mermaid}
 %%| label: fig-lifecycle-writer-ownership
-%%| fig-cap: "Development-source ownership surrounds the existing lifecycle; preview.3 remains unchanged."
+%%| fig-cap: "Preview.4 ownership surrounds the existing lifecycle."
 %%| fig-alt: "Claim one project writer before captured inputs, retain ownership through existing stages and recovery, then release the claim on normal exit."
 %%{init: {"htmlLabels": false}}%%
 flowchart TB
@@ -668,7 +668,7 @@ partial-distribution, optional Git, end-hook and next-dev boundaries are unchang
 The eleven-figure native browser witness remains required.
 
 
-### Ordinary local file lists in development source
+### Ordinary local file lists in preview.4
 
 For named ordinary local destinations, the publisher owns a destination writer
 claim, reads the authoritative history, and checks the complete staged payload
@@ -679,7 +679,7 @@ partial effects. This addition does not change preview.3 or the later Git/end-ho
 ordering; GitHub tree metadata is described below.
 
 
-### GitHub file history in development source
+### GitHub file history in preview.4
 
 After private mirror planning, observe each exact prepared data ZIP or an actually
 downloaded retained archive. Stage bounded history/bindings before any HTTP mutation.
@@ -703,7 +703,7 @@ copies precede references. Provider ordering and released historical figures are
 unchanged; the existing development overlay shows this added local style branch.
 
 
-### GitHub tree history in development source
+### GitHub tree history in preview.4
 
 Exact ZIP observation now also derives pure directory roots when tree style is
 selected. Required bounded directory graphs, readable histories and bindings are

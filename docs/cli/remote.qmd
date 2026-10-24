@@ -3,11 +3,12 @@ title: "Inspect local remote versions"
 ---
 
 The remote commands and configured publication described here are included in
-published preview.3; see [delivery evidence](../release-delivery.qmd#verified-preview3-delivery).
+published preview.4; see [delivery evidence](../release-delivery.qmd#verified-preview4-delivery).
 Earlier slice notes retain their original test scope. The command below provides
 ordinary local latest/archive inspection. This command does
 not upload, restore, verify artifact bytes or change configured remote definitions.
-It is separate from CAS and the deferred registry design.
+It is separate from the explicit CAS snapshot commands below. Named remotes
+remain available as restore sources independently of build destinations.
 
 ```bash
 proj --project . remote versions --path /physical/path/to/archive --label raw-data

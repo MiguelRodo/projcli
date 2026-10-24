@@ -5,13 +5,13 @@ subtitle: "A clear view of the release, the development preview and the work ahe
 
 ## Available development release
 
-[**v0.4.0-preview.3**](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.3)
+[**v0.4.0-preview.4**](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.4)
 provides checked Linux x86-64 (glibc 2.35+) and Windows x86-64 binaries.
 No Rust compilation is needed. [Install that explicit version](install.qmd);
 GitHub's stable Latest remains the older v0.3.0.
 
-This development prerelease retains M1's useful local CLI preview and adds the
-ordinary remote workflow described below.
+This development prerelease includes local builds, inspectable build records,
+readable backup histories and verified recovery of saved local folders.
 The table summarizes supported Rust CLI behavior; it does not establish R/IDE parity. See the
 [detailed status](preview-status.qmd) and [delivery evidence](release-delivery.qmd)
 for exact verification and limits. Newer changes on main need their own evidence.
@@ -59,9 +59,9 @@ repository, but new R, Python and Julia frontend integrations are separate work.
 
 ## Planned work
 
-M2 and later milestones remain unfinished. Complete input/code/config/dependency
-provenance, durable attempt/release records and analysis-free publication retry
-are separate work. General command/argv steps and stronger execution policies
+M2 build records and the agreed M3 local recovery scope are included. Full
+environment reproduction, automatic snapshot discovery and analysis-free
+publication retry remain separate work. General command/argv steps and stronger execution policies
 remain follow-ups; they are not silently interpreted from missing script paths.
 
 For the detailed evidence, scope and decisions, see the
@@ -100,13 +100,14 @@ restore sequence, including reuse of an unchanged archive and preservation of
 older snapshots. See the [remote verification](remote-compatibility.qmd#live-github-fixture-verification)
 and [command reference](cli/remote.qmd) for the tested scope and limits.
 
-These additions are included in the published preview.3 installation described
-above. The separate test prerelease holds sample data, not an installer. Complete projr
-compatibility, the future remote registry and broader M2 work remain unfinished.
+These ordinary remote additions were introduced in preview.3 and remain in
+preview.4. The separate test prerelease holds sample data, not an installer. Complete projr
+compatibility remains unproved. Preview.4 adds the named locations and file
+histories below.
 
 ## Choose where a build saves its results
 
-In development source, name each available storage destination once under
+In preview.4, name each available storage destination once under
 remotes, then select where this build sends its results with build.dest. A named
 location remains available for restoring earlier data after you stop uploading
 to it. The [configuration reference](configuration.qmd) has copyable examples
@@ -119,12 +120,12 @@ your project, or in both. It always keeps a small project record identifying
 the saved folders. That small record alone cannot restore files if the storage
 content or required full listings are lost.
 
-These additions are not in installed preview.3. Automatic version selection for CAS restore remains deferred; local CAS CSV/JSON history is described below. Explicit named-ID tree recovery is described below. Ordinary local and GitHub Release upload/restore behavior
+These additions are included in preview.4. Automatic version selection for CAS restore remains deferred; local CAS CSV/JSON history is described below. Explicit named-ID tree recovery is described below. Ordinary local and GitHub Release upload/restore behavior
 remains available as described in the [remote guide](remote-compatibility.qmd).
 
 ## Check and recover a saved folder
 
-In development source, you can check the exact file bytes in a local tree
+In preview.4, you can check the exact file bytes in a local tree
 snapshot, then restore a selected folder. Choose its configured storage name and
 snapshot ID explicitly; this first command slice does not find a version for you.
 The [remote reference](cli/remote.qmd#verify-or-restore-an-exact-local-cas-tree-snapshot-development-source)
@@ -134,7 +135,7 @@ Restoring an older folder still works after you stop uploading that folder.
 A complete snapshot saved remotely can recover files into a fresh configured
 project. The command leaves your project version and stored snapshot unchanged.
 It checks the data before replacing files; choose --clear only when you want to
-remove destination-only files as well. Installed preview.3 is unchanged.
+remove destination-only files as well. This is included in preview.4.
 
 
 Existing flat CAS snapshots can also be checked and restored by exact ID without
@@ -144,7 +145,7 @@ from that format. Local CAS CSV/JSON history is described below; ordinary/GitHub
 
 ## Keep a readable history of saved files
 
-In development source, a local store can keep a CSV history you can filter in
+In preview.4, a local store can keep a CSV history you can filter in
 Excel, or a JSON history you can open as text. When a folder has not changed,
 a later version points directly to its earlier complete listing. Changed versions
 still list every current file. The [configuration example](configuration.qmd#flat-history-in-local-cas)
@@ -153,12 +154,12 @@ shows how to choose the format and where to keep the full history.
 You can optionally shorten repeated hashes using a file dictionary. That adds
 indirection, so it is off by default. File-byte storage already avoids duplicate
 content independently of these choices. The existing project manifest.csv remains
-unchanged. These source additions are not yet in installed preview.3.
+unchanged. These additions are included in preview.4.
 
 
 ## See which files reached a local backup
 
-In development source, local folder backups can keep readable CSV or JSON lists
+In preview.4, local folder backups can keep readable CSV or JSON lists
 for each build. The list describes files actually stored, including older files
 your upload settings deliberately keep. An unchanged folder points to its earlier
 complete listing. CSV stays suitable for filtering in Excel: a reference row tells
@@ -168,12 +169,12 @@ For archived backups, the record also tells you which physical version folder
 contains the bytes. Keeping the latest folder replaces its older contents; a
 historical list does not recreate bytes that have since been overwritten.
 See [the configuration example](configuration.qmd#ordinary-local-flat-history).
-This source addition is not in installed preview.3.
+This addition is included in preview.4.
 
 
 ## Keep a readable file history with GitHub backups
 
-In development source, GitHub backups can also keep CSV or JSON file lists.
+In preview.4, GitHub backups can also keep CSV or JSON file lists.
 Choose which folders to upload, save a complete listing in the project, on GitHub,
 or both, and retain a small project record pointing to the saved files.
 An unchanged folder can point to an earlier complete listing. Optional formats
@@ -184,20 +185,20 @@ is reused, its record names that older ZIP. A failed upload keeps the local
 release and reports that some files may already have been sent. The tool avoids
 replacing a history bundle that another writer changed while the build ran.
 See [the copyable example and limits](configuration.qmd#github-flat-history).
-This source addition is not in installed preview.3. HTTP transport tests use
+This addition is included in preview.4. HTTP transport tests use
 synthetic local servers; they are not a new live GitHub round-trip claim.
 
 
 ## Keep folder fingerprints with local backups
 
-Development source can give each saved folder a code based on its filenames and
+Preview.4 can give each saved folder a code based on its filenames and
 contents. Unchanged subfolders keep the same codes across builds. Backups retain
 their normal versioned folders, and a readable JSON history still shows the
 complete file lists or points to the earlier unchanged listing.
 
 Choose tree style in [this local-backup example](configuration.qmd#ordinary-local-tree-history).
 The small project record keeps the folder code even when complete metadata stays
-with the backup. This source addition is not in installed preview.3.
+with the backup. This addition is included in preview.4.
 
 ## Keep folder fingerprints with GitHub backups {#github-tree-backups}
 
@@ -211,5 +212,4 @@ The saved file list describes what actually reached the ZIP, including retained
 older files when your upload settings request them. Identical folder contents
 have the same fingerprint across versions. A small project record identifies
 the saved root even when full listings live on GitHub. Earlier flat records
-remain readable when you change this setting. This development-source feature
-is not yet in installed preview.3.
+remain readable when you change this setting. This feature is included in preview.4.

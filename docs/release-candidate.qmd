@@ -3,14 +3,15 @@ title: "Preview release checks"
 subtitle: "The review and delivery sequence, with verified preview.2 evidence."
 ---
 
-## Preview.4 candidate
+## Verified preview.4
 
-The current candidate packages the reviewed M2 build records and agreed M3
-remote/file-history/local-recovery scope. Its notes are prepared in
-release-preview-notes.md. Public installation commands remain pinned to
-published preview.3 until the exact tagged assets are built, reviewed, published
-and checked. Source completion, a draft release and verified installation are
-separate checkpoints.
+[Preview.4](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.4)
+packages reviewed M2 build records and the agreed M3 remote/file-history/local-recovery
+scope. Source f6f4510a806ea302a2ceee5177707fbde9bed5bf passed review and remote checks; tagged assets,
+public bytes and WSL installation were verified. Installation commands now pin
+this release. See [delivery evidence](release-delivery.qmd#verified-preview4-delivery).
+Source completion, a draft release and verified installation remain separate
+checkpoints for future releases.
 
 Require the existing full pinned gate, including integrated M1/M2/M3 evidence
 and independent byte witnesses, plus host, installer and website checks on the

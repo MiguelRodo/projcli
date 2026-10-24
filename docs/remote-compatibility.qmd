@@ -377,11 +377,11 @@ The fixture's package version string is also preview.2, so identify the tested
 source by its commit and binary hash, not that string alone.
 
 
-## Current development delivery {#current-remote-delivery}
+## Current preview.4 delivery {#current-remote-delivery}
 
 The original source audit and historical rollout notes below remain useful
-compatibility evidence. The current reviewed M3 source adds the following;
-installed preview.3 is unchanged until the separate preview.4 delivery checks.
+compatibility evidence. Preview.4 includes the following reviewed M3 features and is installed in WSL;
+see [verified release evidence](release-delivery.qmd#verified-preview4-delivery).
 
 Defaults below apply to named top-level remote definitions. Legacy inline
 ordinary definitions without new metadata fields retain their opt-in behavior;
