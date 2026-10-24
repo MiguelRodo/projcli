@@ -333,7 +333,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#verify-and-restore-new-flat-csvjson-snapshots" id="toc-verify-and-restore-new-flat-csvjson-snapshots" class="nav-link" data-scroll-target="#verify-and-restore-new-flat-csvjson-snapshots">Verify and restore new flat CSV/JSON snapshots</a></li>
   <li><a href="#ordinary-local-file-list-history" id="toc-ordinary-local-file-list-history" class="nav-link" data-scroll-target="#ordinary-local-file-list-history">Ordinary local file-list history</a></li>
   <li><a href="#github-file-list-history" id="toc-github-file-list-history" class="nav-link" data-scroll-target="#github-file-list-history">GitHub file-list history</a></li>
-  <li><a href="#ordinary-local-tree-history" id="toc-ordinary-local-tree-history" class="nav-link" data-scroll-target="#ordinary-local-tree-history">Ordinary local tree history</a></li>
+  <li><a href="#ordinary-local-tree-history" id="toc-ordinary-local-tree-history" class="nav-link" data-scroll-target="#ordinary-local-tree-history">Ordinary local tree history</a>
+  <ul class="collapse">
+  <li><a href="#github-directory-fingerprints" id="toc-github-directory-fingerprints" class="nav-link" data-scroll-target="#github-directory-fingerprints">GitHub directory fingerprints</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -669,8 +672,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="ordinary-local-tree-history" class="level2">
 <h2 class="anchored" data-anchor-id="ordinary-local-tree-history">Ordinary local tree history</h2>
 <p>Ordinary local backups can write tree-style directory metadata while retaining the same CSV/VERSION restore command and physical data folders. See <a href="../configuration.html#ordinary-local-tree-history">configuration, limits and readable companion history</a>. These are metadata integrity checks during publication, not a new ordinary exact-ID verify/restore command. Existing CAS exact-ID recovery remains separate.</p>
+<section id="github-directory-fingerprints" class="level3">
+<h3 class="anchored" data-anchor-id="github-directory-fingerprints">GitHub directory fingerprints</h3>
+<p>Configured GitHub publication accepts manifest-style: tree with fixed JSON metadata and the same placement options. Flat remains the default. Ordinary data ZIPs and remote restore commands keep their existing meanings. The <a href="../configuration.html#github-tree-history">configuration reference</a> describes the versioned tree bundle and small project reference; it is not a native CAS object store or a new automatic restore selector.</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

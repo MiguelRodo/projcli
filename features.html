@@ -291,6 +291,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#see-which-files-reached-a-local-backup" id="toc-see-which-files-reached-a-local-backup" class="nav-link" data-scroll-target="#see-which-files-reached-a-local-backup">See which files reached a local backup</a></li>
   <li><a href="#keep-a-readable-file-history-with-github-backups" id="toc-keep-a-readable-file-history-with-github-backups" class="nav-link" data-scroll-target="#keep-a-readable-file-history-with-github-backups">Keep a readable file history with GitHub backups</a></li>
   <li><a href="#keep-folder-fingerprints-with-local-backups" id="toc-keep-folder-fingerprints-with-local-backups" class="nav-link" data-scroll-target="#keep-folder-fingerprints-with-local-backups">Keep folder fingerprints with local backups</a></li>
+  <li><a href="#github-tree-backups" id="toc-github-tree-backups" class="nav-link" data-scroll-target="#github-tree-backups">Keep folder fingerprints with GitHub backups</a></li>
   </ul>
 </nav>
     </div>
@@ -407,13 +408,13 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="choose-where-a-build-saves-its-results">Choose where a build saves its results</h2>
 <p>In development source, name each available storage destination once under remotes, then select where this build sends its results with build.dest. A named location remains available for restoring earlier data after you stop uploading to it. The <a href="./configuration.html">configuration reference</a> has copyable examples and explains how to select only particular folders.</p>
 <p>For local content-addressed storage (CAS), identical file bytes are stored once and folders receive fingerprints based on their names and contents. The new tree writer can keep the complete folder listing in the storage location, in your project, or in both. It always keeps a small project record identifying the saved folders. That small record alone cannot restore files if the storage content or required full listings are lost.</p>
-<p>These additions are not in installed preview.3. Automatic version selection for CAS restore, GitHub tree listings remain pending; local CAS CSV/JSON history is described below. Explicit named-ID tree recovery is described below. Ordinary local and GitHub Release upload/restore behavior remains available as described in the <a href="./remote-compatibility.html">remote guide</a>.</p>
+<p>These additions are not in installed preview.3. Automatic version selection for CAS restore remains deferred; local CAS CSV/JSON history is described below. Explicit named-ID tree recovery is described below. Ordinary local and GitHub Release upload/restore behavior remains available as described in the <a href="./remote-compatibility.html">remote guide</a>.</p>
 </section>
 <section id="check-and-recover-a-saved-folder" class="level2">
 <h2 class="anchored" data-anchor-id="check-and-recover-a-saved-folder">Check and recover a saved folder</h2>
 <p>In development source, you can check the exact file bytes in a local tree snapshot, then restore a selected folder. Choose its configured storage name and snapshot ID explicitly; this first command slice does not find a version for you. The <a href="./cli/remote.html#verify-or-restore-an-exact-local-cas-tree-snapshot-development-source">remote reference</a> shows both commands.</p>
 <p>Restoring an older folder still works after you stop uploading that folder. A complete snapshot saved remotely can recover files into a fresh configured project. The command leaves your project version and stored snapshot unchanged. It checks the data before replacing files; choose –clear only when you want to remove destination-only files as well. Installed preview.3 is unchanged.</p>
-<p>Existing flat CAS snapshots can also be checked and restored by exact ID without converting them. See the <a href="./cli/remote.html#recover-existing-flat-cas-snapshots">remote reference</a>. Their older file lists do not record empty folders, so those cannot be restored from that format. Local CAS CSV/JSON history is described below; ordinary/GitHub flat publication is also implemented below; GitHub tree metadata remains pending; ordinary local trees are implemented below.</p>
+<p>Existing flat CAS snapshots can also be checked and restored by exact ID without converting them. See the <a href="./cli/remote.html#recover-existing-flat-cas-snapshots">remote reference</a>. Their older file lists do not record empty folders, so those cannot be restored from that format. Local CAS CSV/JSON history is described below; ordinary/GitHub flat publication is also implemented below; Ordinary local and GitHub tree metadata are described below.</p>
 </section>
 <section id="keep-a-readable-history-of-saved-files" class="level2">
 <h2 class="anchored" data-anchor-id="keep-a-readable-history-of-saved-files">Keep a readable history of saved files</h2>
@@ -434,6 +435,11 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="keep-folder-fingerprints-with-local-backups">Keep folder fingerprints with local backups</h2>
 <p>Development source can give each saved folder a code based on its filenames and contents. Unchanged subfolders keep the same codes across builds. Backups retain their normal versioned folders, and a readable JSON history still shows the complete file lists or points to the earlier unchanged listing.</p>
 <p>Choose tree style in <a href="./configuration.html#ordinary-local-tree-history">this local-backup example</a>. The small project record keeps the folder code even when complete metadata stays with the backup. This source addition is not in installed preview.3.</p>
+</section>
+<section id="github-tree-backups" class="level2">
+<h2 class="anchored" data-anchor-id="github-tree-backups">Keep folder fingerprints with GitHub backups</h2>
+<p>GitHub backups normally keep a flat file list. You can also save fingerprints for each folder and its children, while keeping the same downloadable data ZIPs. Set manifest-style: tree on that remote; the <a href="./configuration.html#github-tree-history">configuration reference</a> gives a complete example and explains where the listings are saved.</p>
+<p>The saved file list describes what actually reached the ZIP, including retained older files when your upload settings request them. Identical folder contents have the same fingerprint across versions. A small project record identifies the saved root even when full listings live on GitHub. Earlier flat records remain readable when you change this setting. This development-source feature is not yet in installed preview.3.</p>
 
 
 </section>

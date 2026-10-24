@@ -303,6 +303,7 @@ ul.task-list li input[type="checkbox"] {
   <ul class="collapse">
   <li><a href="#ordinary-local-file-lists-in-development-source" id="toc-ordinary-local-file-lists-in-development-source" class="nav-link" data-scroll-target="#ordinary-local-file-lists-in-development-source">Ordinary local file lists in development source</a></li>
   <li><a href="#github-file-history-in-development-source" id="toc-github-file-history-in-development-source" class="nav-link" data-scroll-target="#github-file-history-in-development-source">GitHub file history in development source</a></li>
+  <li><a href="#github-tree-history-in-development-source" id="toc-github-tree-history-in-development-source" class="nav-link" data-scroll-target="#github-tree-history-in-development-source">GitHub tree history in development source</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -896,8 +897,9 @@ flowchart TB
   L --&gt;|No| J{"GitHub selected?"}
   LR --&gt; J
   J --&gt;|Yes| JP["Prepare exact data ZIPs or download retained archive bytes"]
-  JP --&gt; JW["All target HTTP writes: data, legacy metadata, new bundle last"]
-  JW --&gt; JF["All full project histories; then project references"]
+  JP --&gt; JM["Prepare flat history or tree nodes plus readable history"]
+  JM --&gt; JW["All target HTTP writes: data, legacy metadata, new bundle last"]
+  JW --&gt; JF["All full project nodes and histories; then project references"]
   J --&gt;|No| D{"Selected CAS manifest style"}
   JF --&gt; D
   D --&gt;|Tree| T["Save file bytes and directory fingerprints"]
@@ -936,13 +938,17 @@ Figure&nbsp;11: Development source: ordinary and content-addressed storage metad
 <p>Flat publication prepares bounded history early, copies raw objects, then holds the store claim through its authoritative history read/replacement and required references. All selected raw bytes and inventory bindings verify. Existing partial-distribution, optional Git, end-hook and next-dev boundaries are unchanged. The eleven-figure native browser witness remains required.</p>
 <section id="ordinary-local-file-lists-in-development-source" class="level3">
 <h3 class="anchored" data-anchor-id="ordinary-local-file-lists-in-development-source">Ordinary local file lists in development source</h3>
-<p>For named ordinary local destinations, the publisher owns a destination writer claim, reads the authoritative history, and checks the complete staged payload before replacement. It records actual final bytes and their physical location, then writes legacy compatibility metadata, new complete history copies, full snapshot bindings and the small project reference. Failed copies retain honest partial effects. This addition does not change preview.3 or the later Git/end-hook ordering; GitHub tree formatting remains pending.</p>
+<p>For named ordinary local destinations, the publisher owns a destination writer claim, reads the authoritative history, and checks the complete staged payload before replacement. It records actual final bytes and their physical location, then writes legacy compatibility metadata, new complete history copies, full snapshot bindings and the small project reference. Failed copies retain honest partial effects. This addition does not change preview.3 or the later Git/end-hook ordering; GitHub tree metadata is described below.</p>
 </section>
 <section id="github-file-history-in-development-source" class="level3">
 <h3 class="anchored" data-anchor-id="github-file-history-in-development-source">GitHub file history in development source</h3>
 <p>After private mirror planning, observe each exact prepared data ZIP or an actually downloaded retained archive. Stage bounded history/bindings before any HTTP mutation. Upload data, legacy metadata and the new bundle, checking its originally observed asset identity before deletion. After every target’s required HTTP succeeds, write all selected project full histories, then small project references. Failures report partial remote/local effects and retain the local release. Later CAS/Git/end-hook ordering is unchanged; no atomic multi-target transaction is implied.</p>
 <p>Configured flat CAS checks both fixed known history copies in the existing pre-build validation phase, before hooks. It rereads compatible histories under the existing store claim during publication. Only selected full copies change; provider order and the explicit verification/recovery path remain unchanged.</p>
 <p>For ordinary local tree style, final private payload validation includes inferred directory limits before replacement. Actual stored membership then determines v1 directory objects and a cross-checked readable history. Required objects and full copies precede references. Provider ordering and released historical figures are unchanged; the existing development overlay shows this added local style branch.</p>
+</section>
+<section id="github-tree-history-in-development-source" class="level3">
+<h3 class="anchored" data-anchor-id="github-tree-history-in-development-source">GitHub tree history in development source</h3>
+<p>Exact ZIP observation now also derives pure directory roots when tree style is selected. Required bounded directory graphs, readable histories and bindings are prepared before HTTP mutation; downloaded bundles validate graph/inventory agreement first. Full metadata uses the same HTTP-before-project-copy ordering, with small references last. This adds a metadata style to the existing development overlay, without changing the released historical figures or provider/hook order.</p>
 
 
 </section>
