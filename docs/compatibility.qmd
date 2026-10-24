@@ -3346,6 +3346,39 @@ directories and100,000 final-stage children. This reduces repeated native-ancest
 checks while keeping every guard/assertion. Excessive graph depth is independently
 checked by a small pure65-level metadata chain, without deep filesystem copies.
 
+## GitHub tree metadata integration (24 October)
+
+**New intentional capability:** ordinary GitHub data ZIPs can now carry the same
+DirectoryTree v1 metadata already supported for local ordinary/CAS destinations.
+The binding schema is explicitly separate from legacy flat IDs and pure roots
+exclude labels/version/Release context. The readable JSON history remains a
+deliberate companion; no size/speed claim. Existing source-backed projr ZIP names,
+legacy CSV/VERSION/changelog and ordinary restore are unchanged.
+
+**Ponytail full:** reuse Forest/Verification, the existing disk-backed Prepared
+record, bundle ZIP transport and isolated mocked REST harness. No new dependency,
+CAS file store, selection index or migration framework. Full project graph copies
+are deferred until all required HTTP succeeds; small references remain last.
+Flat defaults and old binding bytes are preserved.
+
+**Verification:** six new CLI groups cover a 16-case tree layout/placement/cue
+matrix, exact ZIP membership/pure roots, compatible style switches, missing or
+corrupt nodes before HTTP writes, later-target failure without false project
+references, explicit format validation and compatible restore. Runtime and tests
+await remote exact-head checks and final independent review. No local heavy
+testing or live GitHub asset mutation. Installed preview.3 unchanged.
+
+
+Independent review corrected project tree reuse to compare canonical directory
+identity rather than cosmetic JSON bytes. A compact-node reuse regression keeps
+the original bytes after a successful second build. Negative graph/format/failure
+fixtures require a structured machine error, so a panic cannot count as success.
+
+Final source review also caught two accidentally literal newline escapes in the
+test helper and existing development diagram, and two stale-claim replacements
+that had dropped the deferred automatic-discovery qualifier. Corrected before
+final compilation evidence; hash path placeholders now render literally.
+
 The 100,001-record filesystem witness is retained on Unix/pinned Linux, avoiding
 100,000-directory copies on every Windows test/release run. Every host now also
 uses a compact owned 65-component retained-directory fixture with a shallow

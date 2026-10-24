@@ -5,8 +5,7 @@ title: "Storage and release catalogue design"
 Current development source includes named remotes, local tree/flat CAS and
 explicit verified recovery. The final sections describe implemented local
 CSV/JSON history. Earlier dated codec sections record the initial library slices.
-Automatic snapshot lookup, GitHub tree metadata and optional DVC remain separate
-work. Ordinary local/GitHub flat history is implemented in the final sections. Installed preview.3 is unchanged.
+Automatic snapshot lookup and optional DVC remain separate work. Ordinary local/GitHub flat history is implemented in the final sections. Installed preview.3 is unchanged.
 
 ## Standalone ordinary use
 
@@ -448,7 +447,7 @@ local CAS flat CSV/JSON histories are described below. Automatic snapshot lookup
 remains deferred. Legacy inspect belongs only to the old definition; new
 manifest-format choices are validated against style. Ordinary local/GitHub flat
 histories are also implemented below, alongside compatible CSV/VERSION metadata;
-GitHub tree metadata remains pending; ordinary local trees are implemented below.
+Ordinary local and GitHub tree metadata are described below.
 
 ## Explicit configured tree readers
 
@@ -460,7 +459,7 @@ do not need the old project ledger, root CSV or small project reference.
 
 Selection remains exact title/ID/label, not an automatic newest-version policy.
 Existing graph limits and guarded installation are reused. Legacy flat IDs are not recast as v1 tree IDs; the compatibility reader below
-restores their original format. Local CAS flat runtime is described below; ordinary/GitHub flat histories are implemented below; GitHub tree metadata remains pending; ordinary local trees are implemented below.
+restores their original format. Local CAS flat runtime is described below; ordinary/GitHub flat histories are implemented below; Ordinary local and GitHub tree metadata are described below.
 
 
 ## Recover existing flat CAS snapshots
@@ -481,7 +480,7 @@ missing content and conflicting same-ID namespace entries fail explicitly before
 destination changes. Metadata is bounded at 16 MiB and 100,000 file entries, with
 the existing portable path bounds. Ordinary root manifest.csv remains separate.
 
-Automatic snapshot discovery and GitHub tree metadata remains pending; ordinary local trees are implemented below; ordinary/GitHub flat formats are implemented below; this is compatibility recovery, not a format conversion or migration.
+Automatic snapshot discovery remains deferred; ordinary local and GitHub tree metadata are described below; ordinary/GitHub flat formats are implemented below; this is compatibility recovery, not a format conversion or migration.
 
 
 ## Flat history in local CAS
@@ -609,3 +608,20 @@ tree binding schema carries tree alongside the distinct inventory_hash, physical
 path, empty flag and existing VERSION advertisement. Earlier flat bindings do not
 gain fields or change IDs. No legacy reinterpretation, GC or raw object-store
 conversion is performed.
+
+## GitHub tree metadata integration
+
+Ordinary GitHub data remains latest/archive ZIP assets. Tree metadata reuses the
+v1 pure directory codec and first-two/rest sharding, with a distinct
+projcli.github-tree-snapshot.v1 binding. A readable JSON catalogue deliberately
+duplicates membership for inspection and existing immutable-version lookup;
+its inventory hash must equal the graph's expanded membership. No raw CAS object
+path is followed for ordinary payload bytes.
+
+The existing bounded metadata bundle now allowlists directory objects as well as
+histories/bindings. Validate all object identities before controlled graph reads;
+missing, corrupt or contradictory metadata fails before HTTP mutation. Private
+disk-backed graphs are prepared before uploads and copied to selected full
+project locations only after all required HTTP succeeds. Small references remain
+last. Flat IDs and earlier nodes survive style changes. No compression/performance,
+multi-target atomicity or new snapshot-discovery guarantee is implied.

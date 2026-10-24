@@ -639,5 +639,8 @@ root identity. Charge inferred keys/nodes/prefixes globally before allocation.
 Validate final-private-stage representability before replacement; cross-check
 graph membership/projection and validate every node ID before traversal. Full
 objects/history/bindings precede references. Keep flat bytes/IDs and ordinary
-restore unchanged; never route file hashes through CAS objects here or silently
-accept pending GitHub tree writes.
+restore unchanged; never route ordinary file hashes through CAS objects.
+GitHub tree writes reuse this graph codec with bounded allowlisted bundle reads,
+a separate binding domain and disk-backed preparation. Check graph/projection
+agreement before any HTTP write. All required HTTP and full project copies must
+precede small references; defaults remain flat and old flat IDs stay unchanged.

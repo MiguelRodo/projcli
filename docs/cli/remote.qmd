@@ -719,3 +719,12 @@ the same CSV/VERSION restore command and physical data folders. See
 [configuration, limits and readable companion history](../configuration.qmd#ordinary-local-tree-history).
 These are metadata integrity checks during publication, not a new ordinary
 exact-ID verify/restore command. Existing CAS exact-ID recovery remains separate.
+
+### GitHub directory fingerprints
+
+Configured GitHub publication accepts manifest-style: tree with fixed JSON
+metadata and the same placement options. Flat remains the default. Ordinary data
+ZIPs and remote restore commands keep their existing meanings. The
+[configuration reference](../configuration.qmd#github-tree-history) describes the
+versioned tree bundle and small project reference; it is not a native CAS object
+store or a new automatic restore selector.
