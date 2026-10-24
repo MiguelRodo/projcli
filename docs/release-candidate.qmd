@@ -3,6 +3,21 @@ title: "Preview release checks"
 subtitle: "The review and delivery sequence, with verified preview.2 evidence."
 ---
 
+## Preview.4 candidate
+
+The current candidate packages the reviewed M2 build records and agreed M3
+remote/file-history/local-recovery scope. Its notes are prepared in
+release-preview-notes.md. Public installation commands remain pinned to
+published preview.3 until the exact tagged assets are built, reviewed, published
+and checked. Source completion, a draft release and verified installation are
+separate checkpoints.
+
+Require the existing full pinned gate, including integrated M1/M2/M3 evidence
+and independent byte witnesses, plus host, installer and website checks on the
+exact candidate. The M3 gate uses explicit snapshot IDs and a one-project store;
+automatic discovery and performance work stay deferred. Record final run/source
+links and remaining limits before claiming delivery.
+
 ## Verified preview.3
 
 [0.4.0-preview.3](install.qmd) is published and installed in the verified WSL
@@ -38,7 +53,7 @@ The selected R/Python/report example has a verified order. A renderer can handle
 several documents as one project; this does not promise arbitrary mixed-language
 targets always execute one by one in the order written.
 
-## Limits that stay in place
+## Historical preview.2 limits
 
 - The existing R package and its helpers are unchanged. The acceptance examples
   call the CLI through small test adapters; they do not prove RStudio, Knit or

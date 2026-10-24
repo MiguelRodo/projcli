@@ -3395,3 +3395,12 @@ implementation abstraction. Existing platform suites supply interruption,
 concurrency/retry, all-mode/placement and mocked GitHub coverage. This is a final
 bounded M3 gate, not a new discovery/performance milestone. Remote checks and
 independent final review are pending; no local heavy test executed.
+
+## Preview.4 packaging candidate (24 October)
+
+Packaging-only version change to0.4.0-preview.4 in Cargo.toml and the root lockfile
+entry, with plain-language notes for the agreed M2/M3 scope. Public install pins
+remain at verified preview.3 through draft/asset/public-byte verification. No
+analysis-project VERSION, provider policy, R package or thesis change. Candidate
+CI/review, tag/assets, public delivery and user-local installation are separate
+pending gates; no delivery or full-parity claim.
