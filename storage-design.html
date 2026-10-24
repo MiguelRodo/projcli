@@ -287,6 +287,8 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#approved-m3-direction-and-current-source-boundary" id="toc-approved-m3-direction-and-current-source-boundary" class="nav-link" data-scroll-target="#approved-m3-direction-and-current-source-boundary">Approved M3 direction and current source boundary</a></li>
   <li><a href="#versioned-codecs-in-development-source" id="toc-versioned-codecs-in-development-source" class="nav-link" data-scroll-target="#versioned-codecs-in-development-source">Versioned codecs in development source</a></li>
   <li><a href="#targeted-lessons-without-importing-another-tools-contract" id="toc-targeted-lessons-without-importing-another-tools-contract" class="nav-link" data-scroll-target="#targeted-lessons-without-importing-another-tools-contract">Targeted lessons, without importing another tool’s contract</a></li>
+  <li><a href="#local-tree-object-apis-in-development-source" id="toc-local-tree-object-apis-in-development-source" class="nav-link" data-scroll-target="#local-tree-object-apis-in-development-source">Local tree-object APIs in development source</a></li>
+  <li><a href="#revised-flat-catalogue-direction-csv-and-json" id="toc-revised-flat-catalogue-direction-csv-and-json" class="nav-link" data-scroll-target="#revised-flat-catalogue-direction-csv-and-json">Revised flat catalogue direction: CSV and JSON</a></li>
   </ul>
 </nav>
     </div>
@@ -407,6 +409,52 @@ ul.task-list li input[type="checkbox"] {
 <p><a href="https://git-scm.com/book/en/v2/Git-Internals-Git-Objects">Git’s objects documentation</a> illustrates the separation between file contents, named tree edges and commit metadata. This is an engineering lesson, not Git-object-format compatibility: proj’s algorithms, encoding and filesystem metadata scope are stated above.</p>
 <p><a href="https://doc.dvc.org/user-guide/project-structure/internal-files">DVC’s cache documentation</a> shows content deduplication and a directory descriptor containing relative path/hash entries. Deduplication is independent of whether a manifest is flat or recursive; grouped JSON alone is not a recursive tree. DVC remains optional future integration, not a runtime dependency.</p>
 <p><a href="https://github.com/mrc-ide/packit">Packit’s primary description of outpack packets</a> separates analysis files from associated metadata. Existing M2 attempt/provenance records serve that different purpose; a content root is not a scientific result, a complete run catalogue or proof of reproducibility.</p>
+</section>
+<section id="local-tree-object-apis-in-development-source" class="level2">
+<h2 class="anchored" data-anchor-id="local-tree-object-apis-in-development-source">Local tree-object APIs in development source</h2>
+<p>The cas_tree library now connects the codecs to explicit local storage roots. This is not new configuration activation or a claim that the CLI can restore tree snapshots yet. Callers choose a file-content base and a metadata base; equal bases keep recovery metadata with the content, while different bases permit project-side metadata without changing content-root IDs.</p>
+<p>For a 64-character digest beginning ab, paths are:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Object</th>
+<th>Path below its selected base</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Raw file bytes, shared with the old CAS</td>
+<td>objects/ab/remaining-62-hex</td>
+</tr>
+<tr class="even">
+<td>V1 directory object</td>
+<td>trees/v1/ab/remaining-62-hex.json</td>
+</tr>
+<tr class="odd">
+<td>V1 snapshot reference</td>
+<td>tree-snapshots/v1/ab/remaining-62-hex.json</td>
+</tr>
+<tr class="even">
+<td>Existing legacy flat manifest</td>
+<td>manifests/full-64-hex.json, unchanged</td>
+</tr>
+</tbody>
+</table>
+<p>The legacy flat lookup ledger is still project .projr/manifests.csv. New explicit tree reads do not require it or a working project copy: remote references and their tree graph contain version/label/name/hash information. The old public flat verifier remains a separate legacy reader. A missing/empty legacy manifest directory now fails rather than claiming an archive was verified; an explicit empty snapshot is valid. Deep legacy errors distinguish missing/nonregular objects from corrupt bytes.</p>
+<p>ingest_directory pre-scans the selected source and rejects links, special files, unsafe names, source/storage overlap and project control aliases before store publication. It rechecks each file at open and hashes the same stream that is copied. It returns an immutable content root, not a published successful snapshot. It does not silently filter hidden files or produce an atomic consistent image of a concurrently edited dataset.</p>
+<p>publish_snapshot verifies every referenced directory ID and actual file bytes before atomically installing the immutable reference. Identical supplied metadata is idempotent. Existing JSON with harmless formatting differences is validated against the same canonical ID and reused without rewriting it. Concurrent equal references may converge safely; there is no mutable latest index or implicit clock in these APIs. Errors can leave unreferenced immutable objects, not a successful reference to an incomplete graph. No cleanup/GC or cross-location transaction is promised.</p>
+<p>verify_snapshot is read-only and takes an explicit snapshot ID. It checks typed schemas, object identity, regular/no-link paths and file hashes, and returns complete observed file/empty-directory membership per label. A small reference file alone is not sufficient proof that an archive is intact. Metadata is bounded to 16 MiB per object and 64 MiB unique graph metadata; traversal also caps depth 64, expanded entries 100,000 and expanded path text 16 MiB. DAG reuse does not bypass the expanded-output limits. Permission/ownership/timestamp restoration and live-dataset consistency are outside this byte/name observation.</p>
+<p>A caller can request a complete readable JSON inventory export, subject to the separate flat-view bounds. It never substitutes a truncated list. This export does not select the stored flat catalogue policy.</p>
+</section>
+<section id="revised-flat-catalogue-direction-csv-and-json" class="level2">
+<h2 class="anchored" data-anchor-id="revised-flat-catalogue-direction-csv-and-json">Revised flat catalogue direction: CSV and JSON</h2>
+<p>The later user decision keeps <strong>both</strong> CSV and JSON. Default csv/json catalogues will deduplicate complete inventories at the logical artefact/version level: an unchanged later version directly references an earlier complete inventory. This is distinct from flat/tree structure and raw file-object CAS deduplication.</p>
+<p>Optional csv-dedupe-file and json-dedupe-file modes are off by default. Their dictionary representation must retain every current path membership, resolve to full verified hashes, and not become omitted-file deltas. CSV must remain a rectangular Excel-filter-friendly table. A reference row will identify the earlier complete version; filtering only that later row does not magically expand the earlier file list.</p>
+<p>Those catalogue serializers/reference rules are not wired by this tree-object slice. The existing complete JSON codec is a full inventory/view primitive; it is not a JSON-only default or a decision to drop legacy CSV. Existing root ordinary manifest.csv, old flat CAS data and their readers remain compatible.</p>
 
 
 </section>
