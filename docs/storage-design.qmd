@@ -376,8 +376,9 @@ before retaining the previous destination. Existing ordinary local/GitHub paths
 use the same installer with their previous behavior. No hard-linked external
 file inode is edited in place.
 
-This remains an explicit library slice: CLI/configured source selection, registry,
-manifest placement/defaults and catalogue publication integration are pending.
+The recovery API remains explicitly selected. Named registry and configured tree
+publication/placement are described below; configured recovery, CLI verification
+and flat catalogue publication integration remain pending.
 It is not a crash-atomic transaction or arbitrary concurrent-writer sandbox.
 Permissions/ownership restoration is not a CAS guarantee. As with the ordinary
 installer, cleanup failure can report an installed destination and retained private

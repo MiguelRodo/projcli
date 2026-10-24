@@ -3095,10 +3095,12 @@ unknown-reference failure before hooks/version changes with only the approved lo
 GitHub definitions without credentials. An existing loopback REST fixture
 covers registered GitHub build/assets/metadata plus restore after uploads are
 disabled; this is mocked transport, not another live GitHub round-trip.
-Remote execution and independent review are pending for this slice.
+The ordinary registry slice passed independent exact-head review, all twelve
+checks, all-platform fixtures, pinned acceptance and actual-main/deployed checks
+in PR211 (a56b42ba97f660c19c430d18c6652365eb4b85a0).
 
-Manifest placement/style/serialization and configured CAS tree operations are
-not activated by this ordinary registry slice. Existing root manifest.csv,
+That ordinary registry slice did not activate manifest placement/style/serialization
+or configured CAS trees; the subsequent configured-publication slice is below. Existing root manifest.csv,
 legacy CAS and their stored identities/readers are unchanged.
 
 

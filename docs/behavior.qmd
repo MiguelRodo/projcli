@@ -798,56 +798,27 @@ registry preferred sources, legacy fallback and registry fallback. A newly
 registered unpreferred definition does not displace an existing legacy fallback.
 
 Registry/build.dest mapping integration currently covers ordinary latest/archive
-and GitHub Release operations. New placement/style/format policies and tree-aware
-configured CAS publication/restore remain pending; no ignored-option success is
-substituted. Legacy inline and CAS-list behavior is preserved.
+and GitHub Release operations. Configured tree publication and placement are described below. Flat format
+publication and configured CAS restore remain pending; unsupported options fail. Legacy inline and CAS-list behavior is preserved.
 
 
 ## Configured local CAS tree publication (unreleased)
 
-New local CAS definitions can select recursive tree publication through the named
-registry. Directory selection is independent of full metadata placement:
+A new local CAS destination saves identical file bytes once and represents each
+folder by a content fingerprint. Builds can send selected declared folders and
+keep the complete folder listings remotely, in the project, or in both places.
+A small project record identifying the saved folders is always written last.
 
-~~~yaml
-remotes:
-  local:
-    snapshots:
-      path: ../snapshot-store
-      structure: cas
-      manifest: auto
-      manifest-style: tree
-build:
-  dest:
-    snapshots:
-      content: [raw, output]
-~~~
+auto chooses remote listings for the new tree writer. both requires both copies,
+but is not a transaction across locations: a later failure may leave published
+data or references. The build preserves its local release and records possible
+distribution rather than claiming everything was rolled back. Preview restores
+the captured store and project remote metadata.
 
-Omitted content selects eligible non-cache declared labels. Explicit null, false
-or an empty list selects none; build subsets cannot enable excluded labels.
-auto means remote for this CAS writer. remote stores complete tree objects and
-snapshot metadata beside file objects; project stores that metadata under the
-project; both requires both copies. File objects always remain in the configured
-store. A small project reference is retained for every successful publication,
-including remote placement. That reference is not itself a complete archive.
+Previously accepted content/inspect CAS definitions keep their existing flat
+format and history. Nothing is silently converted. Ordinary latest/archive
+storage, GitHub Releases and the root manifest.csv remain unchanged.
 
-Raw objects, directory objects and snapshot/reference records use first-two-
-characters/rest-of-hash fan-out. Identical directory contents share a root across
-labels and versions. Snapshot version associations are separate immutable records.
-There is no inferred timestamp or mutable discovery index. Existing blobs are
-verified before reuse. Required graphs precede full references; the small project
-reference is written last. Errors after provider entry retain the local release
-and distribution evidence. both is not a cross-location atomic transaction:
-partial references/objects may remain and errors say so. Nothing is garbage-
-collected or rolled back from a published store automatically.
-
-Previously accepted path/structure/content/inspect CAS definitions keep their
-legacy flat JSON identities and plural .projr/manifests.csv ledger. Name-list
-selection still works; mapping subsets preserve legacy label spelling. To opt
-into new trees, remove the legacy inspect field and explicitly select tree if
-desired. No old manifest is reinterpreted or moved.
-
-This slice implements tree publication and library recovery. Configured CAS
-restore/selection and flat CSV/JSON catalogue publication are still pending.
-manifest-format and legacy inspect on modern policies fail rather than silently
-doing something else. The ordinary latest/archive and GitHub writers retain
-their current policy support; new placement/style options are not claimed there.
+See the [configuration reference](configuration.qmd#configured-local-cas-tree-publication-unreleased)
+for the exact fields and example. Configured CAS restore and publishing the new
+CSV/JSON history formats remain pending; unsupported options fail explicitly.
