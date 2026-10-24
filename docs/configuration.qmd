@@ -342,8 +342,8 @@ while mapping form is required for per-build label subsets.
 
 This slice deliberately does **not** activate per-remote manifest placement,
 flat/tree policy or CSV/JSON format fields. Such fields fail rather than being
-accepted and ignored. Tree-aware configured CAS mapping publication is still
-pending; the existing CAS name-list route keeps its legacy flat encoding.
+accepted and ignored. Configured CAS tree mapping publication is described below. The existing CAS
+name-list route retains its legacy flat encoding when using legacy definitions.
 Previously stored snapshots and the explicit tree APIs remain unchanged.
 
 
