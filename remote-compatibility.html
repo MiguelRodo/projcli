@@ -288,6 +288,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#current-command-reference" id="toc-current-command-reference" class="nav-link" data-scroll-target="#current-command-reference">Current command reference</a></li>
   <li><a href="#configured-local-publication" id="toc-configured-local-publication" class="nav-link" data-scroll-target="#configured-local-publication">Configured local publication</a></li>
   <li><a href="#live-github-fixture-verification" id="toc-live-github-fixture-verification" class="nav-link" data-scroll-target="#live-github-fixture-verification">Live GitHub fixture verification</a></li>
+  <li><a href="#current-remote-delivery" id="toc-current-remote-delivery" class="nav-link" data-scroll-target="#current-remote-delivery">Current development delivery</a></li>
   <li><a href="#current-development-extensions-beyond-the-original-audit" id="toc-current-development-extensions-beyond-the-original-audit" class="nav-link" data-scroll-target="#current-development-extensions-beyond-the-original-audit">Current development extensions beyond the original audit</a></li>
   </ul>
 </nav>
@@ -484,9 +485,9 @@ ul.task-list li input[type="checkbox"] {
 <td>Missing compatibility entrypoints. Do not override explicit YAML silently.</td>
 </tr>
 <tr class="odd">
-<td>Future registry</td>
-<td>A separate user-requested registry/source-selection redesign is recorded; its naming remains open.</td>
-<td><a href="https://github.com/MiguelRodo/issues/issues/706">Issue706</a> is design-only; do not implement this new schema as part of parity work yet.</td>
+<td>Named remote extension</td>
+<td>Subsequently approved user design, separate from the original R source behavior.</td>
+<td><a href="https://github.com/MiguelRodo/issues/issues/706">Issue706</a> is implemented as top-level remotes plus build.dest, preserving named restore sources and explicit upload label subsets. New style/format/placement behavior is summarized below; legacy inline definitions remain supported.</td>
 </tr>
 </tbody>
 </table>
@@ -614,7 +615,7 @@ ul.task-list li input[type="checkbox"] {
 <tr class="odd">
 <td>Restore labels</td>
 <td>Default declared raw labels; explicit labels supported. Root manifest required; empty/unrecorded labels may be skipped.</td>
-<td>Root CSV prerequisite and explicit single-label restore exist. Default multi-label raw restore remains missing.</td>
+<td>Ordinary restore retains its root CSV prerequisite and explicit single-label interface. Explicit-ID native CAS verification/recovery does not require the old project CSV/index. Default multi-label raw restore remains missing.</td>
 </tr>
 <tr class="even">
 <td>Restore source</td>
@@ -727,12 +728,12 @@ ul.task-list li input[type="checkbox"] {
 <tr class="odd">
 <td>Already recorded design</td>
 <td>Removing a build destination can remove a historical restore source because definitions and upload selection share the same location.</td>
-<td>The original registry proposal is <a href="https://github.com/MiguelRodo/issues/issues/706">issue706</a>. Named definitions and independent ordinary upload/source lookup are now implemented in PR211; further per-remote format integration remains in progress. The source audit itself did not implement it.</td>
+<td>The original registry proposal is <a href="https://github.com/MiguelRodo/issues/issues/706">issue706</a>. Named definitions and independent ordinary upload/source lookup are now implemented in PR211; per-remote placement, flat/tree style and CSV/JSON format integration are now included in the development extension below. The source audit itself did not implement it.</td>
 </tr>
 <tr class="even">
 <td>Low: naming preference</td>
 <td>dest versus destinations changes readability, not provider or safety behaviour.</td>
-<td>Choose during the existing registry discussion; no new alias or migration silently introduced.</td>
+<td>The approved selection key is build.dest. No destinations alias or silent legacy migration was introduced.</td>
 </tr>
 </tbody>
 </table>
@@ -787,9 +788,9 @@ ul.task-list li input[type="checkbox"] {
 <ol type="1">
 <li>Remaining ordinary publication compatibility, including local configured path-append-label:false. Latest/archive cue/inspection/strategy planning, metadata history, empty variants and namespace preflight are delivered; preserve that complete tested matrix while filling the bounded gaps.</li>
 <li>Remaining restore conveniences and compatibility: default multi-label raw restore, individual-file extraction, credential-helper fallback and repository inference beyond origin. Retain source-first selection and guarded installation.</li>
-<li>CAS-specific archive integration where the existing structures do not decide snapshot discovery/retention. Isolate those decisions from ordinary parity; issue706’s future registry remains design-only.</li>
+<li>CAS-specific archive integration where the existing structures do not decide snapshot discovery/retention. Isolate those decisions from ordinary parity; issue706’s named remote definitions/upload selection are now implemented; broader discovery/retention remains deferred.</li>
 </ol>
-<p>The full inventory stays open until implemented and independently reviewed evidence maps every supported row. CSV completion alone closes none of the broader provenance/remote milestones. The future registry proposal is separate planned work; do not silently implement it while porting old inline definitions.</p>
+<p>The full inventory stays open until implemented and independently reviewed evidence maps every supported row. CSV completion alone closes none of the broader provenance/remote milestones. The subsequently approved registry is documented below. It is an intentional extension, not an accidental reinterpretation of old inline definitions.</p>
 </section>
 <section id="current-command-reference" class="level2">
 <h2 class="anchored" data-anchor-id="current-command-reference">Current command reference</h2>
@@ -845,11 +846,50 @@ ul.task-list li input[type="checkbox"] {
 <p>Checks compared exact ZIP members, remote CSV serialization and complete project history rows, VERSION and file bytes. Restore preserved project CSV/VERSION and remote asset identities/hashes. The Release identity, tag commit, prerelease status and fixture-only asset names were checked throughout. No Git commits/push, existing user assets, credentials or permissions were changed.</p>
 <p>This real witness covers file/sync-diff/latest and manifest/sync-diff/archive with if-change. The full inspection/strategy/cue/layout and failure matrix is tested separately with mocked REST; it is not a live test of every combination. The published preview.3 packages these source changes and is now installed in the verified WSL location; see <a href="./release-delivery.html#verified-preview3-delivery">delivery evidence</a>. The fixture’s package version string is also preview.2, so identify the tested source by its commit and binary hash, not that string alone.</p>
 </section>
+<section id="current-remote-delivery" class="level2">
+<h2 class="anchored" data-anchor-id="current-remote-delivery">Current development delivery</h2>
+<p>The original source audit and historical rollout notes below remain useful compatibility evidence. The current reviewed M3 source adds the following; installed preview.3 is unchanged until the separate preview.4 delivery checks.</p>
+<p>Defaults below apply to named top-level remote definitions. Legacy inline ordinary definitions without new metadata fields retain their opt-in behavior; legacy CAS name-list definitions keep their old flat encoding. Stored snapshots remain readable independently of the current write style.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Destination/data layout</th>
+<th>File-list choices</th>
+<th>Recovery boundary</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Native local content-addressed archive</td>
+<td>Tree JSON by default; flat CSV/JSON and optional file dictionaries.</td>
+<td>Explicit snapshot-ID verification and staged single-label recovery; full remote metadata can recover without the old project. Legacy flat IDs remain readable.</td>
+</tr>
+<tr class="even">
+<td>Ordinary local latest/archive folders</td>
+<td>Flat CSV by default; all four flat formats or explicit tree JSON.</td>
+<td>Existing compatible CSV/VERSION restore and physical folders; do not interpret ordinary bindings as native CAS snapshots.</td>
+</tr>
+<tr class="odd">
+<td>GitHub Release latest/archive ZIPs</td>
+<td>Flat CSV by default; all four flat formats or explicit tree JSON in a bounded metadata ZIP.</td>
+<td>Existing compatible ZIP/CSV/VERSION restore. New format coverage is mocked REST with actual CLI execution, not a new live-format round-trip.</td>
+</tr>
+</tbody>
+</table>
+<p>Named top-level remotes remain available as sources after removal from build.dest. Build selection may limit logical folder labels without deleting definitions. Per-remote manifest placement chooses project/remote/both full metadata copies; auto uses remote for native CAS and both for ordinary layouts. Small project references remain even with remote full listings. Existing root ordinary manifest.csv and compatible transport metadata retain their separate meanings.</p>
+<p>Plain csv/json deduplicate unchanged artefact versions by direct references to earlier complete inventories. Optional csv-dedupe-file/json-dedupe-file also use file dictionaries while retaining every path row. Tree style is fixed JSON, with pure directory identities independent of label/version/physical location. Old snapshots and compatible histories survive style/format changes.</p>
+<p>See the <a href="./configuration.html">configuration reference</a>, <a href="./cli/remote.html">remote commands</a>, <a href="./features.html">practical guide</a> and <a href="./lifecycle.html">lifecycle</a>. The integrated local M3 gate retains actual archives/recovered bytes and corruption failures, verified by a separate Rust witness; exact release gates and installation are separate. Default multi-label restore, individual-file/list/trusted-version conveniences, additional credential inference, automatic CAS discovery and performance work remain follow-ups. The unchanged R package is the source comparison, not an implementation target for these new configuration/metadata choices.</p>
+</section>
 <section id="current-development-extensions-beyond-the-original-audit" class="level2">
 <h2 class="anchored" data-anchor-id="current-development-extensions-beyond-the-original-audit">Current development extensions beyond the original audit</h2>
 <p>PR211 added named ordinary definitions and upload subsets independently of restore sources. PR212 added configured local recursive-tree publication and metadata placement, preserving legacy flat CAS identities. These extend projr; they do not establish complete parity with every convenience wrapper or option.</p>
-<p>The following explicit named-ID CAS recovery/verification slice reuses the tree verifier and guarded installer without root CSV, current upload selection or a project ledger. Ordinary restore still uses its documented CSV/version/source selection. Legacy flat CAS compatibility recovery is described in the current command reference; runtime flat CSV/JSON publication remains pending. The <a href="./configuration.html">configuration</a>, <a href="./cli/remote.html">remote commands</a> and <a href="./compatibility.html">compatibility log</a> distinguish implemented and pending work.</p>
-<p>The local CAS flat catalogue extension now connects CSV/JSON and optional file dictionaries to publication/recovery. It does not yet change ordinary local or GitHub Release metadata; broader new-format provider integration remains pending. See the <a href="./configuration.html#flat-history-in-local-cas">configuration reference</a>.</p>
+<p>The following explicit named-ID CAS recovery/verification slice reuses the tree verifier and guarded installer without root CSV, current upload selection or a project ledger. Ordinary restore still uses its documented CSV/version/source selection. Legacy flat CAS compatibility recovery is described in the current command reference. Runtime flat CSV/JSON publication is now implemented as described below. The <a href="./configuration.html">configuration</a>, <a href="./cli/remote.html">remote commands</a> and <a href="./compatibility.html">compatibility log</a> distinguish implemented and pending work.</p>
+<p>The local CAS flat catalogue extension now connects CSV/JSON and optional file dictionaries to publication/recovery. Ordinary local and GitHub Release format integration is also implemented in the current development extension below. See the <a href="./configuration.html#flat-history-in-local-cas">configuration reference</a>.</p>
 
 
 </section>

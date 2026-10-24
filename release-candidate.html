@@ -277,10 +277,11 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#verified-preview.3" id="toc-verified-preview.3" class="nav-link active" data-scroll-target="#verified-preview.3">Verified preview.3</a></li>
+  <li><a href="#preview.4-candidate" id="toc-preview.4-candidate" class="nav-link active" data-scroll-target="#preview.4-candidate">Preview.4 candidate</a></li>
+  <li><a href="#verified-preview.3" id="toc-verified-preview.3" class="nav-link" data-scroll-target="#verified-preview.3">Verified preview.3</a></li>
   <li><a href="#verified-preview.2" id="toc-verified-preview.2" class="nav-link" data-scroll-target="#verified-preview.2">Verified preview.2</a></li>
   <li><a href="#what-preview.2-adds" id="toc-what-preview.2-adds" class="nav-link" data-scroll-target="#what-preview.2-adds">What preview.2 adds</a></li>
-  <li><a href="#limits-that-stay-in-place" id="toc-limits-that-stay-in-place" class="nav-link" data-scroll-target="#limits-that-stay-in-place">Limits that stay in place</a></li>
+  <li><a href="#historical-preview.2-limits" id="toc-historical-preview.2-limits" class="nav-link" data-scroll-target="#historical-preview.2-limits">Historical preview.2 limits</a></li>
   <li><a href="#review-status-and-evidence" id="toc-review-status-and-evidence" class="nav-link" data-scroll-target="#review-status-and-evidence">Review status and evidence</a></li>
   <li><a href="#final-integrated-acceptance" id="toc-final-integrated-acceptance" class="nav-link" data-scroll-target="#final-integrated-acceptance">Final integrated acceptance</a></li>
   <li><a href="#release-and-wsl-installation-sequence" id="toc-release-and-wsl-installation-sequence" class="nav-link" data-scroll-target="#release-and-wsl-installation-sequence">Release and WSL installation sequence</a></li>
@@ -310,6 +311,11 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
+<section id="preview.4-candidate" class="level2">
+<h2 class="anchored" data-anchor-id="preview.4-candidate">Preview.4 candidate</h2>
+<p>The current candidate packages the reviewed M2 build records and agreed M3 remote/file-history/local-recovery scope. Its notes are prepared in release-preview-notes.md. Public installation commands remain pinned to published preview.3 until the exact tagged assets are built, reviewed, published and checked. Source completion, a draft release and verified installation are separate checkpoints.</p>
+<p>Require the existing full pinned gate, including integrated M1/M2/M3 evidence and independent byte witnesses, plus host, installer and website checks on the exact candidate. The M3 gate uses explicit snapshot IDs and a one-project store; automatic discovery and performance work stay deferred. Record final run/source links and remaining limits before claiming delivery.</p>
+</section>
 <section id="verified-preview.3" class="level2">
 <h2 class="anchored" data-anchor-id="verified-preview.3">Verified preview.3</h2>
 <p><a href="./install.html">0.4.0-preview.3</a> is published and installed in the verified WSL user-local location. Exact source95441429fe0ba6779b831ffdf9ad952136a946d0 packages the ordinary local/GitHub latest/archive publication and guarded single-label restore checkpoint. <a href="./release-delivery.html#verified-preview3-delivery">Delivery evidence</a> records final-main, tagged assets, public bytes and installation verification. Remaining compatibility and M2 limits are explicit in the release notes; this is not a complete remote/provenance milestone claim.</p>
@@ -364,8 +370,8 @@ ul.task-list li input[type="checkbox"] {
 </table>
 <p>The selected R/Python/report example has a verified order. A renderer can handle several documents as one project; this does not promise arbitrary mixed-language targets always execute one by one in the order written.</p>
 </section>
-<section id="limits-that-stay-in-place" class="level2">
-<h2 class="anchored" data-anchor-id="limits-that-stay-in-place">Limits that stay in place</h2>
+<section id="historical-preview.2-limits" class="level2">
+<h2 class="anchored" data-anchor-id="historical-preview.2-limits">Historical preview.2 limits</h2>
 <ul>
 <li>The existing R package and its helpers are unchanged. The acceptance examples call the CLI through small test adapters; they do not prove RStudio, Knit or direct R API parity.</li>
 <li>Bookdown’s site renderer keeps its native resource policy. This slice does not add its embedding fallback. Do not treat its linked site as a portable single-file HTML report.</li>
