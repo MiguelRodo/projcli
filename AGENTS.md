@@ -651,3 +651,11 @@ recovers explicit snapshots into a fresh configured project without old indexes,
 and checks corruption failures preserve destinations/store bytes. Retain its
 artifacts and independent Rust byte witness; automatic discovery/performance and
 permission restoration remain outside this gate.
+
+
+Legacy CAS ingestion must coordinate both its physical object store and the
+shared project .projr lookup ledger, including public API calls to different
+stores. Use distinct ledger ownership rather than reacquiring the build's project
+claim. Preserve raw JSON IDs and index bytes; skip only exact version/label/digest
+repeats, retaining differing digests and historical opaque rows. Do not silently
+turn legacy same-version content changes into a new conflict policy.

@@ -728,3 +728,13 @@ ZIPs and remote restore commands keep their existing meanings. The
 [configuration reference](../configuration.qmd#github-tree-history) describes the
 versioned tree bundle and small project reference; it is not a native CAS object
 store or a new automatic restore selector.
+
+
+### Legacy CAS publication retries
+
+Existing legacy name-list builds retain raw-JSON IDs and the old project lookup
+CSV. Repeating the same version/label/digest no longer appends another row.
+Store and shared-ledger ownership prevent cooperative callers from losing lookup
+updates; busy/stale claims return an error without overwriting their owner.
+Explicit verification/recovery remains read-only and does not create writer
+claims. This changes no command or configuration spelling.

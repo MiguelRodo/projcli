@@ -3,8 +3,8 @@ use std::{fs, io::Write, path::PathBuf};
 use anyhow::Context;
 
 /// Owns a cooperative claim for its coordination root (project or mutable remote store).
-/// Project callers retain ownership through build finalization/recovery; flat CAS callers
-/// retain ownership through authoritative history reads and snapshot publication.
+/// Project callers retain ownership through build finalization/recovery; CAS callers
+/// retain ownership through authoritative history/index reads and publication.
 /// A crash leaves a claim: fail closed rather than guessing whether its owner died.
 pub(crate) struct Attempt {
     id: String,

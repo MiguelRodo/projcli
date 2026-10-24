@@ -27,7 +27,8 @@ downloads by checksums.txt.
 - Verify and restore an explicitly selected local snapshot after losing its
   working project. Required metadata and bytes are checked before replacing
   a good destination. Earlier flat CAS IDs remain readable; no destructive
-  conversion occurs.
+  conversion occurs. Older lookup records keep their original bytes on exact
+  retries, and shared lookup updates are coordinated across stores.
 - Keep useful per-attempt records, source/configuration/dependency fingerprints,
   inspectable final file rows and human-readable history. Failed builds restore
   the exact prior development version where rollback applies. Failures with
@@ -63,7 +64,9 @@ A failure can leave earlier uploads or complete metadata copies; diagnostics
 preserve the local release and possible distribution evidence. Do not infer
 full rollback or automatically retry an ambiguous failed publication. Existing
 Windows backup-cleanup and arbitrary-script/power-loss limitations remain.
-Concurrent cooperative writers are excluded; this is not a distributed lock.
+Project builds and content-addressed publishers use cooperative writer claims;
+standalone ordinary file-copy operations keep their documented concurrency limits.
+This is not a distributed lock.
 
 The existing R package, helpers and thesis are unchanged. Language wrappers,
 R/IDE parity, richer initialisation, Bookdown site embedding and linked-resource
