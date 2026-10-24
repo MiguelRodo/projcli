@@ -3229,3 +3229,11 @@ selected no upload. It now explicitly enables content, checks a real prehook mar
 remains absent, and permits only the already-approved local preflight diagnostic.
 The oversized-binding witness also requires the bounded-read diagnostic. Production
 behavior and safety assertions are unchanged.
+
+
+Final review also identified a project-to-remote placement switch could start a
+disjoint history. Ordinary local history now reads both fixed known metadata
+locations, independently of selected write placement. A three-build
+project-to-remote-to-both fixture with format changes checks complete earlier
+history, direct references, and unchanged old/unselected files. This is bounded
+fixed-location compatibility, not snapshot discovery.

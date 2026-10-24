@@ -541,3 +541,9 @@ A cooperative destination claim covers history reads through publication.
 Required full catalogues precede immutable full bindings and the small project
 binding. Multiple copies are not a transaction: failure may leave earlier data
 or metadata installed, and is reported as partial publication.
+
+
+Changing ordinary local placement reads compatible history from both fixed known
+locations, but writes complete history only to the newly selected locations.
+Old unselected files remain intact; changing placement or format cannot silently
+start a disconnected history.

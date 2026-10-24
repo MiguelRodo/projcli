@@ -286,3 +286,24 @@ fn native_metadata_base_aliases_fail_on_case_folding_filesystems() {
     }else{success(output);}
     assert_eq!(fs::read(store.join(".PROJCLI-MANIFESTS/sentinel")).unwrap(),b"preserved");
 }
+
+#[test]
+fn placement_and_format_changes_preserve_known_history_without_rewriting_unselected_copies() {
+    let (_temp,root,mut config)=setup("csv","project","latest","sync-diff");build(&root);
+    let project=project_metadata(&root);let store=root.parent().unwrap().join("store");let remote=store.join(".projcli-manifests");
+    let old_project=fs::read(project.join("catalogues/v1/manifest.csv")).unwrap();assert!(!remote.exists());
+    config["remotes"]["local"]["delivery"]["manifest"]=json!("remote");
+    config["remotes"]["local"]["delivery"]["manifest-format"]=json!("json");save(&root,&config);build(&root);
+    assert_eq!(fs::read(project.join("catalogues/v1/manifest.csv")).unwrap(),old_project);
+    assert!(!project.join("catalogues/v1/manifest.json").exists());
+    let history=catalogue(&remote,"json");assert_eq!(history.records.len(),2);
+    assert!(matches!(&history.records[1].inventory,Inventory::Reference{ref_version} if ref_version=="v1.2.4"));
+    let old_remote=fs::read(remote.join("catalogues/v1/manifest.json")).unwrap();
+    config["remotes"]["local"]["delivery"]["manifest"]=json!("both");
+    config["remotes"]["local"]["delivery"]["manifest-format"]=json!("csv-dedupe-file");save(&root,&config);build(&root);
+    assert_eq!(catalogue(&project,"csv-dedupe-file").records.len(),3);
+    assert_eq!(catalogue(&remote,"csv-dedupe-file"),catalogue(&project,"csv-dedupe-file"));
+    assert_eq!(fs::read(project.join("catalogues/v1/manifest.csv")).unwrap(),old_project);
+    assert_eq!(fs::read(remote.join("catalogues/v1/manifest.json")).unwrap(),old_remote);
+    assert_eq!(bindings(&project,"references/v1").len(),3);
+}

@@ -28,12 +28,13 @@ impl Policy {
             Placement::Project=>vec![project.clone()],Placement::Remote=>vec![remote],
             Placement::Auto|Placement::Both=>vec![project.clone(),remote],
         };
-        let result=Locations {bases,project,format:self.format};result.preflight(root)?;Ok(result)
+        let history_bases=vec![project.clone(),base.join(".projcli-manifests")];
+        let result=Locations {bases,history_bases,project,format:self.format};result.preflight(root)?;Ok(result)
     }
 }
 /// Selected complete history locations and the always-small project binding.
 #[derive(Clone)]
-pub(crate) struct Locations {bases:Vec<Utf8PathBuf>,project:Utf8PathBuf,format:Format}
+pub(crate) struct Locations {bases:Vec<Utf8PathBuf>,history_bases:Vec<Utf8PathBuf>,project:Utf8PathBuf,format:Format}
 /// One actual payload location, relative to the configured remote base.
 #[derive(Serialize,Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -49,7 +50,7 @@ pub(crate) struct Payload {
 struct Binding<'a> {schema:&'static str,hash_algorithm:&'static str,version:&'a str,layout:&'static str,payloads:&'a [Payload]}
 impl Locations {
     pub(crate) fn preflight(&self,root:&Utf8Path)->Result<()> {
-        for base in self.bases.iter().chain(std::iter::once(&self.project)) {
+        for base in &self.history_bases {
             let anchor=base.ancestors().last().context("Ordinary metadata has no filesystem anchor")?;
             crate::path_safety::validate_native_names(anchor,base.strip_prefix(anchor)?.as_str(),false)?;
             crate::cas_tree::project_target(root,base,true)?;
@@ -66,9 +67,9 @@ impl Locations {
         self.history()?;Ok(())
     }
     pub(crate) fn paths(&self)->impl Iterator<Item=&Utf8Path> {
-        self.bases.iter().chain(std::iter::once(&self.project)).map(Utf8PathBuf::as_path)
+        self.history_bases.iter().map(Utf8PathBuf::as_path)
     }
-    pub(crate) fn history(&self)->Result<Catalogue> {crate::cas_flat::load_history(&self.bases)}
+    pub(crate) fn history(&self)->Result<Catalogue> {crate::cas_flat::load_history(&self.history_bases)}
     /// Reject conflicting retries against final private-stage membership, before installation.
     pub(crate) fn check(&self,history:&Catalogue,version:&str,directory:FlatDirectory)->Result<()> {
         crate::cas_flat::append_idempotent(history,&FlatSnapshot::new(version.into(),None,vec![directory])?)?.encode(self.format)?;
