@@ -237,8 +237,19 @@ Preserve the files and resolve the unexpected changes before another build.
 No tokens, environment dumps, remote URLs, command arguments or subprocess output
 are copied into these records. Production records include publication-enabled
 builds and successful plain local builds without Git or publication.
-Previews and earlier failures are unchanged. Successful plain production builds
-also retain a completed record after hooks and the next-dev transition.
+Successful plain production builds retain a completed record after hooks and the
+next-dev transition. Earlier owned production failures retain local-only JSON
+diagnostics in .proj/log/local-failures/, visible through proj history as failed
+attempts with no successful release. Only that reserved directory is ignored by
+Git; successful and distributed-failure records retain their normal Git behaviour.
+Raw error text is not copied into diagnostics. Previews and failed writer
+acquisition remain unchanged; no automatic diagnostic pruning is introduced.
+
+Recovery remains available through publication preparation and saved intent.
+Before any provider/Git action is entered, failures restore the exact captured
+VERSION/DESCRIPTION, CSV and managed outputs. After entry, failures preserve the
+local release and truthful evidence of possible partial distribution, rather
+than claiming remote rollback.
 These features are development-source behavior; preview.3 has not been updated.
 
 

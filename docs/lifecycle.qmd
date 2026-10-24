@@ -405,7 +405,7 @@ This is not a transaction across providers. Failure preserves the local release
 and skips later stages, without rolling back already published destinations.
 Preview skips publication. Released diagrams above retain their version meaning.
 
-~~~{mermaid}
+```{mermaid}
 %%| label: fig-lifecycle-ordinary-publication
 %%| fig-cap: "Preview.3: ordinary local and bounded GitHub publication."
 %%| fig-alt: "Validate configuration and planned names and freeze GitHub routing before hooks. After local success and CSV capture, keep the local release, stage local targets and publish local data then metadata. Prepare all GitHub ZIPs and validate their remote catalog, upload data then metadata, then continue CAS, Git, end hooks and next development version. Failure preserves the release and reports partial effects."
@@ -421,7 +421,7 @@ flowchart TB
   E -->|Failure| G
   H -->|Failure| G
   I -->|Failure| G
-~~~
+```
 
 
 The ordinary-local publication stage also supports explicit none comparison:
@@ -549,3 +549,29 @@ The existing pre-start-hook startup observation now also binds merged framework
 analysis configuration and effective policy using bounded, redacted fingerprints.
 This adds evidence at the existing startup node; no hook/version/distribution
 ordering changes. The integrated M2 fixture checks success/change/failure/retry.
+
+
+## Development source: local-only failure branch
+
+This overlay adds evidence after existing production failure recovery; it does
+not move hooks, output clearing, promotion, publication or version transitions.
+
+```{mermaid}
+%%| label: fig-lifecycle-local-diagnostics
+%%| fig-cap: "Development source: production failure evidence follows the existing distribution boundary."
+%%| fig-alt: "After an owned production failure, possible distribution keeps ordinary Git evidence. Earlier failures retain a local-only diagnostic after recovery."
+%%{init: {"htmlLabels": false}}%%
+flowchart TB
+  A["Owned production attempt fails"] --> B{"Distribution may have started?"}
+  B -->|"Yes"| C["Preserve ordinary attempt / Git receipt evidence"]
+  B -->|"No"| D["Restore captured managed state before action entry"]
+  D --> E["Retain local-only diagnostic; no successful release claim"]
+  E --> F["History: failed, local_only; Git excludes only diagnostics"]
+```
+
+Diagnostics use opaque IDs and coarse stages, never copied exception text or
+credentials. Rejected ownership creates no competing log. Previews are unchanged.
+Successful and distributed-failure Git history stays enabled as agreed. No
+automatic pruning, stronger hook enforcement or crash recovery is introduced.
+The integrated M2 driver checks visible local diagnostics and exact last-good
+state; real repository tests check Git exclusion and successful-record tracking.

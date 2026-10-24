@@ -417,9 +417,9 @@ build/preview function, before input capture and through recovery/finalization.
 Never steal an existing claim or treat its timestamp as proof its owner died.
 Protect .proj from managed cleanup/publication destinations. The live claim is
 excluded from Git staging/status by an exact reserved-name pathspec at every repository depth without
-narrowing the existing whole-repository scope; retained logs must not be hidden.
+narrowing the existing whole-repository scope; successful/distributed-failure logs must not be hidden.
 The ownership guard is separate from publication-attempt evidence below;
-crash recovery and pre-distribution failure retention remain separate work. Preserve existing hook semantics; mutation enforcement
+crash recovery remains separate work; approved local-only failure diagnostics are described below. Preserve existing hook semantics; mutation enforcement
 is deferred, not an M2 gate.
 
 
@@ -444,13 +444,13 @@ Do not hide modified/tracked receipts, arbitrary neighbouring files or unowned
 VERSION edits. Keep snapshots/receipts under normal Git staging; never stage the
 claim or ownership witness. Do not serialize raw environment, credentials,
 remote URLs, command arguments, descriptions or subprocess output.
-Successful plain production records are covered below. Previews and failures
-before local release retain existing behavior; do not claim full M2 provenance.
+Successful plain production records and approved local-only production failures
+are covered below. Previews remain unchanged; retain bounded provenance claims.
 
 
 Successful plain production builds retain completed attempt evidence after all
-recoverable work succeeds. Do not introduce failed/pre-distribution retention or
-preview records implicitly. Bind current input/release-output inventory evidence
+recoverable work succeeds. Failed production attempts follow the approved local-only
+policy below; do not introduce preview records implicitly. Bind current input/release-output inventory evidence
 to the existing canonical CSV codec; keep large per-file rows out of JSON.
 Observe final outputs separately and preserve the immutable pre-Git snapshot.
 Output mutation by hooks remains allowed, not an M2 enforcement gate. Fingerprints
@@ -489,7 +489,27 @@ consumed or changed, then bind effective CLI/merged policy. Canonical maps sort
 keys; arrays and directory declaration order stay ordered. Use typed redactions
 before hashing and expose omissions/limits; never retain raw parameters/URLs.
 Keep bounded-out evidence nonfatal with no prefix digest. The recognizer is not
-universal secret detection. Preserve CSV, hooks, receipt timing and undecided
-failure retention. Run tests/acceptance/m2_contract.py plus its independent Rust
+universal secret detection. Preserve CSV, hooks, receipt timing and the approved
+local-only pre-distribution failure policy below. Run tests/acceptance/m2_contract.py plus its independent Rust
 byte witness remotely alongside the existing pinned matrix. Assess readiness
 against actual M2 criteria; do not add full environment/transitive freezing gates.
+
+
+## Local pre-distribution failure diagnostics
+Production failures after acquiring writer ownership now retain a bounded,
+allowlisted diagnostic under .proj/log/local-failures/ after ordinary recovery.
+The directory's own exact '*' ignore policy and framework Git pathspecs exclude
+only these local diagnostics, including at nested project depths. Reject
+force-tracked claims or diagnostics rather than hiding tracked changes.
+Successful records and failures after possible distribution remain normal Git
+evidence. Never serialize raw errors, argv, parameters, URLs or personal identity.
+Version observation must reject linked, special and oversized files. Keep one
+record per attempt when publication preparation fails without provider entry.
+History distinguishes local failed attempts from successful releases. Do not
+invent pruning, crash recovery, preview retention or new hook semantics.
+
+Hold managed recovery until provider/Git action entry, including failure to save
+pre-entry evidence. Saved intent/configured empty targets are not action entry.
+Pre-entry preparation/end-hook/observation/evidence failures restore exact prior
+managed state before local diagnostics observe after-version. After entry,
+preserve local release/partial-distribution evidence and never fabricate rollback.

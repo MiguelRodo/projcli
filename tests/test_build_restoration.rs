@@ -13,6 +13,38 @@ fn snapshot(root: &Path) -> BTreeMap<PathBuf, Option<Vec<u8>>> {
     let mut map = BTreeMap::new(); walk(root, root, &mut map); map
 }
 
+// Compare every prior byte/presence exactly; permit only the one new approved local diagnostic.
+fn recovered_snapshot(root:&Path,before:&BTreeMap<PathBuf,Option<Vec<u8>>>)->BTreeMap<PathBuf,Option<Vec<u8>>> {
+    let mut after=snapshot(root);
+    let directory=Path::new(".proj/log/local-failures");
+    let added:Vec<_>=after.keys().filter(|p|p.starts_with(directory)&&!before.contains_key(*p)).cloned().collect();
+    let mut diagnostics=0;
+    for path in added {
+        let bytes=after.remove(&path).unwrap();
+        if path==directory {assert!(bytes.is_none());continue;}
+        let file=path.strip_prefix(directory).unwrap();
+        assert_eq!(file.components().count(),1,"unexpected diagnostic subtree");
+        let bytes=bytes.expect("unexpected diagnostic subdirectory");
+        if file==Path::new(".gitignore") {assert_eq!(bytes,b"*\n");continue;}
+        assert!(bytes.len()<=1_048_576);
+        let value:serde_json::Value=serde_json::from_slice(&bytes).unwrap();
+        let id=value["attempt_id"].as_str().unwrap();
+        assert!(id.starts_with("attempt-")&&id.len()==32&&id.bytes().all(|b|b.is_ascii_alphanumeric()||b==b'-'));
+        assert_eq!(file,Path::new(&format!("{id}.json")));
+        assert_eq!(value["schema_version"],1);
+        assert_eq!(value["status"],"failed");
+        assert_eq!(value["distribution_may_have_started"],false);
+        diagnostics+=1;
+    }
+    assert_eq!(diagnostics,1);
+    for parent in [".proj",".proj/log"] {
+        let parent=Path::new(parent);
+        if !before.contains_key(parent){assert_eq!(after.remove(parent),Some(None));}
+    }
+    assert!(!root.join(".proj/build.lock").exists());
+    after
+}
+
 #[test]
 fn failure_at_each_hook_and_analysis_restores_exact_version_authorities_and_dev_counters() {
     let authorities: [(&str, Option<&[u8]>, Option<&[u8]>); 5] = [
@@ -40,6 +72,8 @@ fn failure_at_each_hook_and_analysis_restores_exact_version_authorities_and_dev_
             fs::write(root.join("published/old.html"), "old docs").unwrap();
             if let Some(bytes) = version_bytes { fs::write(root.join("VERSION"), bytes).unwrap(); }
             if let Some(bytes) = description_bytes { fs::write(root.join("DESCRIPTION"), bytes).unwrap(); }
+            fs::create_dir_all(root.join(".proj/log")).unwrap();
+            fs::write(root.join(".proj/log/keep-prior-evidence"),b"preserve unrelated evidence").unwrap();
             let before = snapshot(root);
             let result = Command::new(env!("CARGO_BIN_EXE_proj"))
                 .args(["build", "--patch", "--non-interactive", "--project"]).arg(root).current_dir(root)
@@ -47,7 +81,7 @@ fn failure_at_each_hook_and_analysis_restores_exact_version_authorities_and_dev_
                 .env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
             assert!(!result.status.success(), "{phase}");
             assert!(String::from_utf8_lossy(&result.stderr).contains("17"), "{}", String::from_utf8_lossy(&result.stderr));
-            assert_eq!(snapshot(root), before, "{phase}, authority={authority}");
+            assert_eq!(recovered_snapshot(root,&before), before, "{phase}, authority={authority}");
         }
     }
 }
@@ -101,7 +135,7 @@ fn missing_renderer_promotion_is_a_failure_and_restores_exact_project_config() {
             .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
             .env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
         assert!(!result.status.success(), "missing render output must not report success");
-        assert_eq!(snapshot(&root), before, "mode={mode}: {}", String::from_utf8_lossy(&result.stderr));
+        assert_eq!(recovered_snapshot(&root,&before), before, "mode={mode}: {}", String::from_utf8_lossy(&result.stderr));
         assert_eq!(fs::read_to_string(root.join("_quarto.yml")).unwrap(), original);
     }
 }
@@ -123,7 +157,7 @@ fn version_write_failure_restores_files_after_successful_analysis_and_post_hook(
         .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
         .env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
     assert!(!result.status.success());
-    assert_eq!(snapshot(root), before);
+    assert_eq!(recovered_snapshot(root,&before), before);
 }
 
 #[cfg(unix)]
@@ -220,7 +254,7 @@ fn purging_disposable_cache_cannot_destroy_recovery_or_the_previous_release() {
         .env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
     assert!(!result.status.success());
     assert!(String::from_utf8_lossy(&result.stderr).contains("17"));
-    assert_eq!(snapshot(root), before);
+    assert_eq!(recovered_snapshot(root,&before), before);
 }
 
 #[cfg(unix)]
@@ -251,7 +285,7 @@ fn no_op_renderer_cannot_promote_a_stale_individual_document() {
         .env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
     assert!(!result.status.success());
     assert!(String::from_utf8_lossy(&result.stderr).contains("missing"));
-    assert_eq!(snapshot(&root), before);
+    assert_eq!(recovered_snapshot(&root,&before), before);
 }
 
 
@@ -367,6 +401,50 @@ fn bookdown_native_assets_restore_after_post_promotion_hook_failure() {
             .env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
         assert!(!result.status.success());
         assert!(String::from_utf8_lossy(&result.stderr).contains("17"), "{}", String::from_utf8_lossy(&result.stderr));
-        assert_eq!(snapshot(&root), before, "book_filename={name}");
+        assert_eq!(recovered_snapshot(&root,&before), before, "book_filename={name}");
+    }
+}
+
+
+#[test]
+fn no_distribution_cas_preparation_failures_retain_one_local_diagnostic() {
+    for case in ["missing-source","end-hook","observation"] {
+        let empty_content=case!="missing-source";
+        let temporary=tempfile::tempdir().unwrap();
+        let root=temporary.path().canonicalize().unwrap();
+        fs::write(root.join("VERSION"),b"v1.2.3-7\r\n").unwrap();
+        fs::write(root.join("DESCRIPTION"),b"Package: fixture\nVersion: 1.2.3.42\n").unwrap();
+        fs::write(root.join("manifest.csv"),b"label,fn,version,hash\noutput,,v0.1.0,\n").unwrap();
+        if empty_content {
+            fs::create_dir(root.join("missing-output")).unwrap();
+            fs::write(root.join("missing-output/previous.csv"),b"prior final bytes").unwrap();
+        }
+        fs::write(root.join("fail.py"),if case=="observation" {
+            "import shutil\nfrom pathlib import Path\nshutil.rmtree('missing-output')\nPath('missing-output').write_bytes(b'not a directory')\n"
+        } else {"raise SystemExit(17)\n"}).unwrap();
+        let content=if empty_content {"[]"}else{"[output]"};
+        let hook=if empty_content {"  hooks: {post: [fail.py]}\n"}else{""};
+        fs::write(root.join("_proj.yml"),format!("directories:\n  output: {{path: missing-output}}\nremotes:\n  local:\n    archive:\n      path: archives\n      structure: cas\n      inspect: manifest\n      content: {content}\nbuild:\n  scripts: []\n  git: false\n  dest: [archive]\n{hook}  restrictions:\n    not_behind: false\n")).unwrap();
+        let before=snapshot(&root);
+        let result=std::process::Command::new(env!("CARGO_BIN_EXE_proj"))
+            .current_dir(&root).args(["--machine","--non-interactive","--project"]).arg(&root).arg("build")
+            .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
+            .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").env_remove("PROJR_CLEAR_OUTPUT")
+            .output().unwrap();
+        assert!(!result.status.success(),"case {empty_content}");
+        assert_eq!(recovered_snapshot(&root,&before),before,"case {case}: {}",String::from_utf8_lossy(&result.stderr));
+        let root_json=fs::read_dir(root.join(".proj/log")).unwrap()
+            .filter(|entry|entry.as_ref().unwrap().path().extension().is_some_and(|e|e=="json")).count();
+        assert_eq!(root_json,0,"duplicate ordinary record in case {empty_content}");
+        let diagnostics:Vec<_>=fs::read_dir(root.join(".proj/log/local-failures")).unwrap()
+            .map(|e|e.unwrap().path()).filter(|p|p.extension().is_some_and(|e|e=="json")).collect();
+        assert_eq!(diagnostics.len(),1);
+        let history=std::process::Command::new(env!("CARGO_BIN_EXE_proj"))
+            .args(["--machine","--project"]).arg(&root).arg("history").output().unwrap();
+        assert!(history.status.success(),"{}",String::from_utf8_lossy(&history.stderr));
+        let value:serde_json::Value=serde_json::from_slice(&history.stdout).unwrap();
+        assert_eq!(value["result"]["history"]["entries"].as_array().unwrap().len(),1);
+        assert_eq!(value["result"]["history"]["entries"][0]["local_only"],true);
+        assert!(!root.join("archives").exists());
     }
 }

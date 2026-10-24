@@ -116,3 +116,88 @@ fn history_limits_and_unknown_project_are_read_only() {
     for limit in ["0","101"]{assert!(!command(&root,&["history","--limit",limit]).status.success());}
     assert_eq!(fs::read_dir(root).unwrap().count(),0);
 }
+
+
+#[test]
+fn failed_preflight_is_local_visible_and_secret_safe_without_a_false_release() {
+    let (_temp,root)=setup();
+    let version=fs::read(root.join("VERSION")).unwrap();
+    fs::write(root.join("_proj.yml"),b"broken: [PRIVATE-SECRET-URL").unwrap();
+    let result=command(&root,&["--machine","build"]);
+    assert!(!result.status.success());
+    let entries=history(&root,None)["entries"].as_array().unwrap().clone();
+    assert_eq!(entries.len(),1);
+    let entry=&entries[0];
+    assert_eq!(entry["status"],"failed");
+    assert_eq!(entry["stage"],"preflight");
+    assert_eq!(entry["local_only"],true);
+    assert_eq!(entry["release_version"],Value::Null);
+    assert_eq!(entry["distribution_may_have_started"],false);
+    let id=entry["attempt_id"].as_str().unwrap();
+    let path=root.join(format!(".proj/log/local-failures/{id}.json"));
+    let bytes=fs::read(&path).unwrap();
+    let text=String::from_utf8(bytes.clone()).unwrap();
+    assert!(!text.contains("PRIVATE")&&!text.contains(root.to_str().unwrap()));
+    assert_eq!(history(&root,Some(id))["entries"][0],*entry);
+    assert_eq!(fs::read(root.join("VERSION")).unwrap(),version);
+    assert!(!root.join(".proj/build.lock").exists());
+    assert_eq!(fs::read(root.join(".proj/log/local-failures/.gitignore")).unwrap(),b"*\n");
+    // Diagnostics are evidence too: corrupt/linked records must fail closed without rewriting them.
+    fs::write(&path,b"{}").unwrap();
+    assert!(!command(&root,&["history"]).status.success());
+    fs::write(&path,&bytes).unwrap();
+    #[cfg(unix)] {
+        fs::remove_file(&path).unwrap();
+        std::os::unix::fs::symlink(root.join("VERSION"),&path).unwrap();
+        assert!(!command(&root,&["history"]).status.success());
+        fs::remove_file(&path).unwrap();fs::write(&path,&bytes).unwrap();
+    }
+    fs::write(root.join("_proj.yml"),"directories:\n  output: {path: released}\nbuild:\n  scripts: []\n  git: false\n").unwrap();
+    build(&root);
+    assert_eq!(fs::read(&path).unwrap(),bytes);
+    let entries=history(&root,None)["entries"].as_array().unwrap().clone();
+    assert_eq!(entries.len(),2);
+    assert_eq!(entries.iter().filter(|e|e["status"]=="completed").count(),1);
+    assert_eq!(entries.iter().filter(|e|e["local_only"]==true).count(),1);
+}
+
+
+#[test]
+fn invalid_version_special_file_and_link_are_not_read_by_diagnostic_capture() {
+    let (_temp,root)=setup();
+    fs::write(root.join("_proj.yml"),b"broken: [").unwrap();
+    fs::remove_file(root.join("VERSION")).unwrap();
+    fs::create_dir(root.join("VERSION")).unwrap();
+    assert!(!command(&root,&["build"]).status.success());
+    fs::remove_dir(root.join("VERSION")).unwrap();
+    #[cfg(unix)] {
+        std::os::unix::fs::symlink(root.join("released"),root.join("VERSION")).unwrap();
+        assert!(!command(&root,&["build"]).status.success());
+        fs::remove_file(root.join("VERSION")).unwrap();
+    }
+    for entry in fs::read_dir(root.join(".proj/log/local-failures")).unwrap() {
+        let path=entry.unwrap().path();
+        if path.extension().is_some_and(|e|e=="json") {
+            let record:Value=serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
+            assert!(record["version_before"].is_null()&&record["version_after"].is_null());
+        }
+    }
+}
+
+#[test]
+fn linked_diagnostics_directory_preserves_external_bytes_and_primary_failure() {
+    #[cfg(unix)] {
+        let (_temp,root)=setup();
+        let external=tempfile::tempdir().unwrap();
+        fs::write(external.path().join("sentinel"),b"external").unwrap();
+        fs::create_dir_all(root.join(".proj/log")).unwrap();
+        std::os::unix::fs::symlink(external.path(),root.join(".proj/log/local-failures")).unwrap();
+        fs::write(root.join("_proj.yml"),b"broken: [").unwrap();
+        let result=command(&root,&["build"]);
+        assert!(!result.status.success());
+        let error=String::from_utf8_lossy(&result.stderr);
+        assert!(error.contains("Local failure diagnostic could not be retained"),"{error}");
+        assert_eq!(fs::read(external.path().join("sentinel")).unwrap(),b"external");
+        assert_eq!(fs::read_dir(external.path()).unwrap().count(),1);
+    }
+}

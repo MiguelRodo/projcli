@@ -117,13 +117,18 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     let project_root = resolved_root.as_path();
     let attempt = crate::attempt::Attempt::acquire(project_root)
         .with_context(|| format!("Cannot acquire build writer ownership at {project_root}"))?;
+    let diagnostic_before=crate::attempt_log::diagnostic_version(project_root);
+    let mut diagnostic_stage="preflight";
+    let mut distribution_started=false;
+    let mut diagnostic_allowed=true;
+    let result=(|| -> anyhow::Result<()> {
     let is_dev = mode == BuildMode::Dev;
     let is_prod_run = matches!(mode, BuildMode::ProdMajor | BuildMode::ProdMinor | BuildMode::ProdPatch);
 
     // ==========================================
     // STEP A: Resolve Per-Run Environment
     // ==========================================
-    // Load inputs without writing ignores; configuration errors must stay read-only.
+    // Configuration errors preserve project inputs; owned production failures retain local diagnostics.
     let profiles = crate::run_context::select_profiles(cli_profile, project_root)?;
     let profile_text = profiles.join(",");
     let mut environment = RunEnvironment::resolve(Some(&profile_text), project_root)
@@ -469,6 +474,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         for (path, bytes) in &engine_originals { crate::path_safety::resolve_path(path.as_std_path(), true)?; crate::fs_utils::write_managed_file(path, bytes).with_context(|| format!("Cannot restore exact renderer configuration {path}"))?; }
         Ok(())
     };
+    diagnostic_stage="local_build";
     let mut attempt_inventory = None;
     let mut document_stage = None;
     let mut project_embedding = None;
@@ -635,6 +641,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         }
         return Err(backup.restore(error));
     }
+    diagnostic_stage="finalization";
     let end_hooks = |transition: Option<&crate::git::DevTransition>| -> anyhow::Result<()> {
         for hooks in [&hooks_config.post, &hooks_config.both] {
             if let Some(hooks) = hooks {
@@ -680,20 +687,29 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
             match finish { Ok(()) => Ok(()), Err(error) => Err(backup.restore(error)) }
         };
     }
-    // Publication is irreversible. Make the successful local release explicit;
-    // later publication/end-hook errors preserve it, never claim remote rollback.
+    // Keep recovery until provider/Git entry. Later errors preserve the local release;
+    // a configured target or saved intent alone does not mean distribution began.
     if let Err(error) = version_set_at(project_root, &initial_version.to_string(false)) { return Err(backup.restore(error)); }
-    drop(backup);
+    let mut publication_backup=Some(backup);
+    diagnostic_stage="publication_preparation";
+    let publication_result=(|| -> anyhow::Result<()> {
     let mut log=prepare_log().and_then(|log|log.start())
-        .context("Local build succeeded; cannot retain attempt evidence (local release preserved)")?;
+        .context("Cannot retain attempt evidence before distribution")?;
+    diagnostic_allowed=false;
     let mut git_outcome=crate::attempt_log::GitOutcome::requested(config.git.commit,push_target.is_some());
     let publication = (|| -> anyhow::Result<()> {
         if config.output_run.unwrap_or(true) {
             log.operation("ordinary_local",ordinary.len(),
-                ||crate::publication::publish_local(project_root,&ordinary,&initial_version.to_string(true)),
+                ||{
+                    if !ordinary.is_empty(){distribution_started=true;drop(publication_backup.take());}
+                    crate::publication::publish_local(project_root,&ordinary,&initial_version.to_string(true))
+                },
                 |effects|Some(effects.len()))?;
             log.operation("github_release",github.len(),
-                ||crate::github_publication::publish(project_root,&github,&initial_version.to_string(true)),|_|None)?;
+                ||{
+                    if !github.is_empty(){distribution_started=true;drop(publication_backup.take());}
+                    crate::github_publication::publish(project_root,&github,&initial_version.to_string(true))
+                },|_|None)?;
         }
         if let Some(remotes) = &config.remotes.local {
             for target in &config.dest {
@@ -702,7 +718,8 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
                     let source = config.get_path(project_root, label)?;
                     if !source.is_dir() { anyhow::bail!("Publication source is not a directory: {source}"); }
                     log.operation("cas",1,
-                        ||crate::cas::ingest_directory(project_root,&remote.path,label,&source,&initial_version.to_string(false)),|_|None)?;
+                        ||{distribution_started=true;drop(publication_backup.take());
+                            crate::cas::ingest_directory(project_root,&remote.path,label,&source,&initial_version.to_string(false))},|_|None)?;
                 }
             }
         }
@@ -713,6 +730,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
                 _ => format!("Build v{version}"),
             };
             log.seal_git()?;
+            distribution_started=true;drop(publication_backup.take());
             publish_git_recorded_in(project_root,&environment,config.config.git.engine,&message,push_target.as_ref(),Some(&mut git_outcome))?;
             crate::git::capture_dev_transition(project_root, &environment, &initial_version, &next_version)?
         } else { None };
@@ -725,12 +743,36 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
             Err(error).context("Cannot observe final outputs; earlier inventory evidence remains")),
     };
     let publication=crate::attempt_log::retain_result(publication,observation);
+    if publication.is_err() && !distribution_started {
+        let cleanup=log.discard_before_distribution();
+        diagnostic_allowed=cleanup.is_ok();
+        return crate::attempt_log::retain_result(publication,cleanup);
+    }
     let evidence=log.finish(publication.is_ok(),git_outcome,version_get_from(project_root).map(|version|version.to_string(true)),outputs,
         |id,snapshot,receipt|crate::git::record_pending_receipt_in(project_root,&environment,id,snapshot,receipt))
-        .context("Local release preserved; final attempt evidence could not be written, earlier evidence remains");
-    crate::attempt_log::retain_result(publication,evidence)
-        .context("Local build succeeded; publication or end-hook finalization failed (local release preserved)")
-
+        .context("Final attempt evidence could not be written; earlier evidence remains");
+    let result=crate::attempt_log::retain_result(publication,evidence);
+    if result.is_err() && !distribution_started {
+        let cleanup=log.discard_before_distribution();
+        diagnostic_allowed=cleanup.is_ok();
+        return crate::attempt_log::retain_result(result,cleanup);
+    }
+    result
+    })();
+    if let Some(backup)=publication_backup {
+        return match publication_result {Ok(())=>Ok(()),Err(error)=>Err(backup.restore(error))};
+    }
+    publication_result.context("Local build succeeded; publication or end-hook finalization failed (local release preserved)")
+    })();
+    if result.is_err() && mode!=BuildMode::Dev && !distribution_started && diagnostic_allowed {
+        let evidence=crate::attempt_log::retain_local_failure(project_root,&attempt,diagnostic_stage,
+            diagnostic_before,crate::attempt_log::diagnostic_version(project_root));
+        return match (result,evidence) {
+            (Err(primary),Err(secondary))=>Err(primary.context(format!("Local failure diagnostic could not be retained: {secondary:#}"))),
+            (result,_)=>result,
+        };
+    }
+    result
 }
 
 fn execute_build_pipeline(
@@ -1433,7 +1475,7 @@ case "$1" in
 --version) exit 0 ;;
 symbolic-ref) echo feature ;;
 check-ref-format) exit 0 ;;
-ls-files) exit 1 ;;
+ls-files) exit 0 ;;
 rev-parse) exit 0 ;;
 config)
  for key do :; done

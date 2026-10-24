@@ -79,7 +79,8 @@ fn stale_claim_and_invalid_configuration_preserve_exact_prior_state() {
     fs::remove_dir(root.join(".proj")).unwrap();
     fs::write(root.join("_proj.yml"), b"broken: [").unwrap();
     assert!(!command(&root).output().unwrap().status.success());
-    assert!(!root.join(".proj").exists());
+    assert!(!root.join(".proj/build.lock").exists());
+    assert_eq!(fs::read_dir(root.join(".proj/log/local-failures")).unwrap().count(),2);
     assert_eq!(fs::read(root.join("VERSION")).unwrap(), before);
 }
 
@@ -95,7 +96,8 @@ fn managed_outputs_cannot_replace_coordination_state() {
     assert!(!result.status.success());
     assert!(String::from_utf8_lossy(&result.stderr).contains("protected project metadata"));
     assert_eq!(fs::read(root.join("VERSION")).unwrap(), b"v1.2.3-7\n");
-    assert!(!root.join(".proj").exists());
+    assert!(!root.join(".proj/build.lock").exists());
+    assert_eq!(fs::read_dir(root.join(".proj/log/local-failures")).unwrap().count(),2);
 }
 
 #[cfg(unix)]

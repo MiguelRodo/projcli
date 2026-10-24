@@ -53,7 +53,7 @@ elif action == 'remote':
  if '--push' in args and os.environ.get('TEST_PUSH_INSTEADOF') == '1': print('https://other.example/redirected.git')
  else: print('https://other.example/changed.git' if changed and os.environ.get('TEST_MUTATE_ENDPOINT') == '1' else os.environ.get('TEST_REMOTE_URL', 'https://github.com/example/repo.git'))
  if os.environ.get('TEST_MULTIPLE_URLS') == '1': print('https://other.example/second.git')
-elif action == 'ls-files': raise SystemExit(1)
+elif action == 'ls-files': pass
 elif action == 'rev-parse':
  if '--absolute-git-dir' in args: print(root / '.git')
 elif action == 'status':

@@ -152,6 +152,48 @@ impl FinalOutputs {
     }
 }
 
+/// Local-only failed attempt diagnostic: no raw error, configuration, host or command data.
+#[derive(Serialize,Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct LocalFailure {
+    pub(crate) schema_version:u32,
+    pub(crate) attempt_id:String,
+    pub(crate) started_at:String,
+    pub(crate) recorded_at:String,
+    pub(crate) stage:String,
+    pub(crate) status:String,
+    pub(crate) distribution_may_have_started:bool,
+    pub(crate) version_before:Option<String>,
+    pub(crate) version_after:Option<String>,
+}
+
+/// Best-effort numeric version evidence: reject links, special files and oversized input.
+pub(crate) fn diagnostic_version(root:&Utf8Path)->Option<String> {
+    let bytes=read_bounded(&root.join("VERSION"),4096).ok()?;
+    let text=std::str::from_utf8(&bytes).ok()?;
+    crate::version::ProjVersion::parse(text).map(|v|v.to_string(true))
+}
+
+/// Retain an owned production failure after ordinary recovery; never replace prior diagnostics.
+/// Only this reserved directory is excluded from framework Git staging/status.
+pub(crate) fn retain_local_failure(root:&Utf8Path,attempt:&crate::attempt::Attempt,stage:&str,
+    version_before:Option<String>,version_after:Option<String>)->anyhow::Result<()> {
+    let directory=root.join(".proj/log/local-failures");
+    crate::path_safety::validate_native_names(root,".proj/log/local-failures",false)?;
+    crate::path_safety::resolve_path(directory.as_std_path(),true)?;
+    fs::create_dir_all(&directory).context("Cannot create local failure diagnostics directory")?;
+    crate::path_safety::resolve_path(directory.as_std_path(),true)?;
+    let ignore=directory.join(".gitignore");
+    if crate::yml::configuration_entry_exists(&ignore)? {
+        anyhow::ensure!(read(&ignore)?==b"*\n","Local diagnostic ignore policy changed; preserved");
+    } else {create(&ignore,b"*\n")?;}
+    let record=LocalFailure {schema_version:1,attempt_id:attempt.id().into(),
+        started_at:attempt.started_at().into(),recorded_at:timestamp(),stage:stage.into(),
+        status:"failed".into(),distribution_may_have_started:false,version_before,version_after};
+    create(&directory.join(format!("{}.json",attempt.id())),&serde_json::to_vec_pretty(&record)?)
+        .context("Cannot retain local failed-attempt diagnostic")
+}
+
 /// The snapshot is mutable until Git starts, then immutable; the outcome is a new file.
 pub(crate) struct AttemptLog {
     path: Utf8PathBuf,
@@ -218,6 +260,26 @@ impl AttemptLog {
     pub(crate) fn start(self) -> anyhow::Result<Self> {
         create(&self.path,&serde_json::to_vec_pretty(&self.record)?)?;
         Ok(self)
+    }
+
+    /// Remove only our intact unsealed snapshot when the caller has not entered distribution.
+    /// An intent may have been saved, but no provider/Git action was invoked. Never call after entry.
+    pub(crate) fn discard_before_distribution(&self)->anyhow::Result<()> {
+        anyhow::ensure!(self.sealed_hash.is_none(),"Cannot discard a snapshot already offered to Git");
+        anyhow::ensure!(read(&self.path)?==serde_json::to_vec_pretty(&self.record)?,
+            "Undistributed attempt evidence changed; preserved");
+        if let Some(outputs)=&self.record.final_outputs {
+            if let Some(reference)=&outputs.rows {
+                let root=self.path.parent().and_then(|p|p.parent()).and_then(|p|p.parent())
+                    .context("Attempt evidence has no project root")?;
+                final_rows(root,&self.record.attempt_id,outputs,&self.record.release_version)?;
+                let csv=self.path.with_file_name(&reference.file);
+                crate::path_safety::resolve_path(csv.as_std_path(),true)?;
+                fs::remove_file(&csv)?;
+            }
+        }
+        crate::path_safety::resolve_path(self.path.as_std_path(),true)?;
+        fs::remove_file(&self.path).context("Cannot remove owned undistributed snapshot")
     }
 
     fn retain_rows(&self,outputs:&mut FinalOutputs)->anyhow::Result<Option<(Utf8PathBuf,String)>> {
