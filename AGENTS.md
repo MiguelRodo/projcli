@@ -507,3 +507,9 @@ Version observation must reject linked, special and oversized files. Keep one
 record per attempt when publication preparation fails without provider entry.
 History distinguishes local failed attempts from successful releases. Do not
 invent pruning, crash recovery, preview retention or new hook semantics.
+
+Hold managed recovery until provider/Git action entry, including failure to save
+pre-entry evidence. Saved intent/configured empty targets are not action entry.
+Pre-entry preparation/end-hook/observation/evidence failures restore exact prior
+managed state before local diagnostics observe after-version. After entry,
+preserve local release/partial-distribution evidence and never fabricate rollback.

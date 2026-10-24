@@ -299,7 +299,13 @@ fn plain_record_install_failure_removes_only_its_new_csv_and_restores_exact_vers
     assert_eq!(fs::read(root.join("released/result.csv")).unwrap(),b"hello");
     assert!(!root.join("manifest.csv").exists());
     let paths:Vec<_>=fs::read_dir(root.join(".proj/log")).unwrap().map(|entry|entry.unwrap().path()).collect();
-    assert_eq!(paths.len(),2);assert!(paths.iter().all(|path|path.is_dir()||path.file_name().unwrap()=="unrelated.txt"));
+    assert_eq!(paths.len(),3);assert!(paths.iter().all(|path|path.is_dir()||path.file_name().unwrap()=="unrelated.txt"));
+    let diagnostic:Vec<_>=fs::read_dir(root.join(".proj/log/local-failures")).unwrap()
+        .map(|entry|entry.unwrap().path()).filter(|path|path.extension().is_some_and(|e|e=="json")).collect();
+    assert_eq!(diagnostic.len(),1);
+    let diagnostic:serde_json::Value=serde_json::from_slice(&fs::read(&diagnostic[0]).unwrap()).unwrap();
+    assert_eq!(diagnostic["stage"],"finalization");
+    assert_eq!(diagnostic["distribution_may_have_started"],false);
     assert_eq!(fs::read(root.join(".proj/log/unrelated.txt")).unwrap(),b"preserved");
     assert!(!root.join(".proj/build.lock").exists());
 }

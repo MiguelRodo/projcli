@@ -710,9 +710,11 @@ is acquired do not create diagnostics.
 
 History lists these attempts as failed/local_only, with a null release_version
 and their coarse stage. They are not successful releases and have no final file
-rows. Existing publication-preparation boundaries remain truthful: a local release
-already preserved by that boundary is not claimed rolled back merely because no
-provider was entered. Version observations report the actual recognised state.
+rows. Recovery remains available until the first provider/Git action is entered,
+including preparation, no-action end-hook, observation and evidence failures.
+Saved intent alone does not release recovery. After action entry, retain the
+local release and truthful evidence of possible partial effects. Version
+observations report the actual recognised state after ordinary recovery.
 Guarded reads reject links/special files; inability to observe a numeric version
 is explicit null. Duplicate normal/local records for an owned attempt are avoided
 without discarding evidence after distribution may have started.

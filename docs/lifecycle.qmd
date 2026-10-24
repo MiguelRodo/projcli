@@ -564,7 +564,7 @@ not move hooks, output clearing, promotion, publication or version transitions.
 flowchart TB
   A["Owned production attempt fails"] --> B{"Distribution may have started?"}
   B -->|"Yes"| C["Preserve ordinary attempt / Git receipt evidence"]
-  B -->|"No"| D["Existing recovery / preserved local-release boundary"]
+  B -->|"No"| D["Restore captured managed state before action entry"]
   D --> E["Retain local-only diagnostic; no successful release claim"]
   E --> F["History: failed, local_only; Git excludes only diagnostics"]
 ```

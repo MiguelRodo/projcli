@@ -262,11 +262,10 @@ impl AttemptLog {
         Ok(self)
     }
 
-    /// Remove only our intact unsealed snapshot when no distribution was entered.
-    /// The caller then writes one local-only diagnostic after recovery/finalization.
-    pub(crate) fn discard_undistributed(&self)->anyhow::Result<()> {
-        anyhow::ensure!(self.sealed_hash.is_none()&&!self.record.distribution_may_have_started
-            &&self.record.operations.is_empty(),"Cannot discard distribution evidence");
+    /// Remove only our intact unsealed snapshot when the caller has not entered distribution.
+    /// An intent may have been saved, but no provider/Git action was invoked. Never call after entry.
+    pub(crate) fn discard_before_distribution(&self)->anyhow::Result<()> {
+        anyhow::ensure!(self.sealed_hash.is_none(),"Cannot discard a snapshot already offered to Git");
         anyhow::ensure!(read(&self.path)?==serde_json::to_vec_pretty(&self.record)?,
             "Undistributed attempt evidence changed; preserved");
         if let Some(outputs)=&self.record.final_outputs {

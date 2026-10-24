@@ -2952,3 +2952,12 @@ new ancestor directories; every prior byte/presence, including unrelated .proj
 evidence, remains compared exactly. The same full 20 authority/phase cases and
 renderer recovery assertions remain. Native rendering also exposes the older
 authored ordinary-publication overlay, so the browser witness requires ten SVGs.
+
+
+The zero-action regression exposed premature recovery-backup release at configured
+publication, before any provider/Git entry. Recovery is now held until the action
+closure starts (after intent persistence), or immediately before Git publication
+after sealing. Earlier preparation, no-action end-hook, final observation and
+evidence failures restore exact prior VERSION/DESCRIPTION/CSV/final-output state.
+The three no-action cases assert all those bytes and absence, not just log count.
+Post-entry partial-failure behaviour and hook/provider ordering are unchanged.

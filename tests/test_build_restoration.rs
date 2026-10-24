@@ -412,19 +412,27 @@ fn no_distribution_cas_preparation_failures_retain_one_local_diagnostic() {
         let empty_content=case!="missing-source";
         let temporary=tempfile::tempdir().unwrap();
         let root=temporary.path().canonicalize().unwrap();
-        fs::write(root.join("VERSION"),b"v1.2.3-7\n").unwrap();
+        fs::write(root.join("VERSION"),b"v1.2.3-7\r\n").unwrap();
+        fs::write(root.join("DESCRIPTION"),b"Package: fixture\nVersion: 1.2.3.42\n").unwrap();
+        fs::write(root.join("manifest.csv"),b"label,fn,version,hash\noutput,,v0.1.0,\n").unwrap();
+        if empty_content {
+            fs::create_dir(root.join("missing-output")).unwrap();
+            fs::write(root.join("missing-output/previous.csv"),b"prior final bytes").unwrap();
+        }
         fs::write(root.join("fail.py"),if case=="observation" {
-            "from pathlib import Path\nPath('missing-output').write_bytes(b'not a directory')\n"
+            "import shutil\nfrom pathlib import Path\nshutil.rmtree('missing-output')\nPath('missing-output').write_bytes(b'not a directory')\n"
         } else {"raise SystemExit(17)\n"}).unwrap();
         let content=if empty_content {"[]"}else{"[output]"};
         let hook=if empty_content {"  hooks: {post: [fail.py]}\n"}else{""};
         fs::write(root.join("_proj.yml"),format!("directories:\n  output: {{path: missing-output}}\nremotes:\n  local:\n    archive:\n      path: archives\n      structure: cas\n      inspect: manifest\n      content: {content}\nbuild:\n  scripts: []\n  git: false\n  dest: [archive]\n{hook}  restrictions:\n    not_behind: false\n")).unwrap();
+        let before=snapshot(&root);
         let result=std::process::Command::new(env!("CARGO_BIN_EXE_proj"))
             .current_dir(&root).args(["--machine","--non-interactive","--project"]).arg(&root).arg("build")
             .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
             .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").env_remove("PROJR_CLEAR_OUTPUT")
             .output().unwrap();
         assert!(!result.status.success(),"case {empty_content}");
+        assert_eq!(recovered_snapshot(&root,&before),before,"case {case}: {}",String::from_utf8_lossy(&result.stderr));
         let root_json=fs::read_dir(root.join(".proj/log")).unwrap()
             .filter(|entry|entry.as_ref().unwrap().path().extension().is_some_and(|e|e=="json")).count();
         assert_eq!(root_json,0,"duplicate ordinary record in case {empty_content}");
