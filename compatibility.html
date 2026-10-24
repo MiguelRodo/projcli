@@ -363,6 +363,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#m3-versioned-manifest-codecs" id="toc-m3-versioned-manifest-codecs" class="nav-link" data-scroll-target="#m3-versioned-manifest-codecs">M3 versioned manifest codecs</a></li>
   <li><a href="#explicit-local-tree-object-ingestion-and-verification" id="toc-explicit-local-tree-object-ingestion-and-verification" class="nav-link" data-scroll-target="#explicit-local-tree-object-ingestion-and-verification">Explicit local tree-object ingestion and verification</a></li>
   <li><a href="#version-reference-catalogue-codec-slice" id="toc-version-reference-catalogue-codec-slice" class="nav-link" data-scroll-target="#version-reference-catalogue-codec-slice">Version-reference catalogue codec slice</a></li>
+  <li><a href="#explicit-cas-tree-recovery-api-slice" id="toc-explicit-cas-tree-recovery-api-slice" class="nav-link" data-scroll-target="#explicit-cas-tree-recovery-api-slice">Explicit CAS tree recovery API slice</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -1210,6 +1211,12 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="version-reference-catalogue-codec-slice">Version-reference catalogue codec slice</h2>
 <p><strong>New, not projr parity:</strong> projr’s ordinary root manifest.csv and legacy CAS ledger/manifests remain unchanged. New explicit codecs retain CSV and JSON, deduplicate unchanged logical artefact inventories by direct complete-version reference, and optionally dictionary-deduplicate file hashes without omitting any current path memberships. JSON grouping alone is not recursive tree storage.</p>
 <p>Pure tests cover changed/renamed/added/deleted files, ordering/date independence, reversions, empty catalogues/roots, four-mode equivalence, malformed references and dictionaries, CSV quoting/Unicode, rectangular Excel-style filtering and row sorting, duplicate/path/schema/size rejection. They are pending remote execution. No filesystem, credentials or process environment are used by these tests. This does not yet implement catalogue publication ordering, runtime format selection or a legacy conversion tool. Do not infer physical content integrity from a metadata-only round trip.</p>
+</section>
+<section id="explicit-cas-tree-recovery-api-slice" class="level2">
+<h2 class="anchored" data-anchor-id="explicit-cas-tree-recovery-api-slice">Explicit CAS tree recovery API slice</h2>
+<p><strong>New:</strong> recursive CAS recovery shares the previously delivered ordinary staged installer; ordinary latest/archive paths are not reimplemented. A checked-stage callback verifies actual CAS-selected bytes before destination replacement. Root ordinary manifest.csv and legacy flat readers/IDs remain unchanged.</p>
+<p>Filesystem fixtures exercise project-loss recovery from remote metadata, exact Unicode/empty-file membership, merge/clear, external hard-link preservation, missing/corrupt/unknown selection preservation, authority/store overlap guards, empty snapshots without objects, project-side metadata, linked/special entries, and staging failures where native permissions enforce them. Execution is pending remote CI. Unix-only and permission-dependent cases are explicit. CLI/configured restore and registry/catalogue integration remain pending; no complete M3 claim.</p>
+<p>Restore source review found and fixed legacy-manifest destination overlap, native-case empty-directory alias acceptance, and silent TempDir cleanup failure. Regression fixtures cover mixed old/new store preservation, unchanged private directory modes and removal of restrictive copied stages after verification failure. Root/privileged permission behavior remains explicitly conditional.</p>
 
 
 </section>
