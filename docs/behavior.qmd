@@ -823,7 +823,7 @@ format and history. Nothing is silently converted. Ordinary latest/archive
 storage, GitHub Releases and the root manifest.csv remain unchanged.
 
 See the [configuration reference](configuration.qmd#configured-local-cas-tree-publication-unreleased)
-for the exact fields and example. Automatic CAS snapshot selection and ordinary/GitHub formatting remain pending;
+for the exact fields and example. Automatic CAS snapshot selection and ordinary tree metadata remains pending; ordinary/GitHub flat formats are implemented below;
 local CAS CSV/JSON publication is described below. Explicit verification/recovery is described below;
 unsupported options fail explicitly.
 
@@ -843,7 +843,7 @@ or update project versions. See the [remote command reference](cli/remote.qmd).
 Existing flat CAS snapshots can also be checked and restored by exact ID without
 converting them. See the [remote reference](cli/remote.qmd#recover-existing-flat-cas-snapshots).
 Their older file lists do not record empty folders, so those cannot be restored
-from that format. Local CAS CSV/JSON history is described below; other provider formatting remains pending.
+from that format. Local CAS CSV/JSON history is described below; ordinary/GitHub flat publication is also implemented below; ordinary tree metadata remains pending.
 
 ## Readable local snapshot history (development source)
 

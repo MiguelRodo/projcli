@@ -5,8 +5,8 @@ title: "Storage and release catalogue design"
 Current development source includes named remotes, local tree/flat CAS and
 explicit verified recovery. The final sections describe implemented local
 CSV/JSON history. Earlier dated codec sections record the initial library slices.
-Automatic snapshot lookup, ordinary/GitHub new-format integration and optional
-DVC remain separate work. Installed preview.3 is unchanged.
+Automatic snapshot lookup, ordinary tree metadata and optional DVC remain separate
+work. Ordinary local/GitHub flat history is implemented in the final sections. Installed preview.3 is unchanged.
 
 ## Standalone ordinary use
 
@@ -445,7 +445,7 @@ desired. No old manifest is reinterpreted or moved.
 
 The first publication slice added tree storage. Explicit named-ID recovery and
 local CAS flat CSV/JSON histories are described below. Automatic snapshot lookup
-and other-provider formatting remain pending. Legacy inspect belongs only to the
+remain deferred; ordinary/GitHub flat formatting is implemented below. Legacy inspect belongs only to the
 old definition; new manifest-format choices are validated against style. Ordinary
 latest/archive and GitHub retain their current metadata policy until separately
 integrated; new formatting options are not claimed there.
@@ -481,7 +481,7 @@ missing content and conflicting same-ID namespace entries fail explicitly before
 destination changes. Metadata is bounded at 16 MiB and 100,000 file entries, with
 the existing portable path bounds. Ordinary root manifest.csv remains separate.
 
-Automatic snapshot discovery and ordinary/GitHub formatting remain pending; this is compatibility recovery, not a format conversion or migration.
+Automatic snapshot discovery and ordinary tree metadata remains pending; ordinary/GitHub flat formats are implemented below; this is compatibility recovery, not a format conversion or migration.
 
 
 ## Flat history in local CAS
@@ -552,9 +552,9 @@ reports snapshot_kind: flat-catalogue-v1. Old tree and legacy-flat IDs stay dist
 and readable, regardless of the current write style. A small binding alone is not
 a backup. Empty directories are recorded by this new format, unlike legacy flat.
 
-These new manifest-format controls currently apply to local CAS. Ordinary local
-latest/archive and GitHub Release providers retain their existing metadata path;
-their new-format integration is still pending. Trees default to fixed v1 JSON;
+These manifest-format controls apply to local CAS and the ordinary local/GitHub
+flat histories described below. Ordinary providers retain compatible CSV/VERSION
+metadata alongside the new histories. CAS trees default to fixed v1 JSON;
 explicit manifest-format: json is valid there, while CSV/dictionary choices require
 flat style. Null/unknown modes fail instead of silently choosing a default.
 

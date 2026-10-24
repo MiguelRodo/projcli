@@ -141,7 +141,7 @@ remove destination-only files as well. Installed preview.3 is unchanged.
 Existing flat CAS snapshots can also be checked and restored by exact ID without
 converting them. See the [remote reference](cli/remote.qmd#recover-existing-flat-cas-snapshots).
 Their older file lists do not record empty folders, so those cannot be restored
-from that format. Local CAS CSV/JSON history is described below; other provider formatting remains pending.
+from that format. Local CAS CSV/JSON history is described below; ordinary/GitHub flat publication is also implemented below; ordinary tree metadata remains pending.
 
 ## Keep a readable history of saved files
 

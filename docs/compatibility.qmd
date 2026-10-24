@@ -3267,3 +3267,10 @@ Windows and canonicalizes the owned member-limit ZIP path on macOS. Production
 path guards and extractor assertions are unchanged. The ordinary lifecycle overlay
 now explicitly labels development-source history additions rather than implying
 they shipped in preview.3.
+
+
+Historical preview.3 diagram nodes are retained. The existing development-source
+storage overlay now shows the new ordinary local/GitHub metadata phases alongside
+CAS, preserving eleven native-browser figures. Stale pending-format statements
+now distinguish implemented flat histories from deferred ordinary tree metadata
+and automatic snapshot lookup.
