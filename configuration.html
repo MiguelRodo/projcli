@@ -550,6 +550,7 @@ build:
 <section id="restore-from-a-saved-tree-after-changing-upload-choices" class="level2">
 <h2 class="anchored" data-anchor-id="restore-from-a-saved-tree-after-changing-upload-choices">Restore from a saved tree after changing upload choices</h2>
 <p>The explicit <a href="./cli/remote.html#verify-or-restore-an-exact-local-cas-tree-snapshot-development-source">CAS restore/verify commands</a> use a named remotes.local definition and saved snapshot ID. They do not run build.dest selection or require the current write style/placement to match the older snapshot. The destination label must still be declared. Existing full remote and project metadata are checked; no root manifest.csv or mutable index is required. Normal directory-source preference remains the ordinary restore selection contract when no snapshot ID is supplied.</p>
+<p>Existing flat CAS snapshots can also be checked and restored by exact ID without converting them. See the <a href="./cli/remote.html#recover-existing-flat-cas-snapshots">remote reference</a>. Their older file lists do not record empty folders, so those cannot be restored from that format. New CSV/JSON history publication remains pending.</p>
 
 
 </section>

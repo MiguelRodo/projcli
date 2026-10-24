@@ -328,6 +328,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#verified-local-tree-recovery-apis" id="toc-verified-local-tree-recovery-apis" class="nav-link" data-scroll-target="#verified-local-tree-recovery-apis">Verified local tree recovery APIs</a></li>
   <li><a href="#configured-local-cas-tree-publication-unreleased" id="toc-configured-local-cas-tree-publication-unreleased" class="nav-link" data-scroll-target="#configured-local-cas-tree-publication-unreleased">Configured local CAS tree publication (unreleased)</a></li>
   <li><a href="#explicit-configured-tree-readers" id="toc-explicit-configured-tree-readers" class="nav-link" data-scroll-target="#explicit-configured-tree-readers">Explicit configured tree readers</a></li>
+  <li><a href="#recover-existing-flat-cas-snapshots" id="toc-recover-existing-flat-cas-snapshots" class="nav-link" data-scroll-target="#recover-existing-flat-cas-snapshots">Recover existing flat CAS snapshots</a></li>
   </ul>
 </nav>
     </div>
@@ -540,7 +541,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="explicit-configured-tree-readers" class="level2">
 <h2 class="anchored" data-anchor-id="explicit-configured-tree-readers">Explicit configured tree readers</h2>
 <p>Named v1 snapshot verification and single-label restore now consider the full remote and project metadata namespaces independently of current write placement or style. Current upload content does not hide an explicit historical snapshot. All present full copies must verify; absence is distinct from corruption. Readers do not need the old project ledger, root CSV or small project reference.</p>
-<p>Selection remains exact title/ID/label, not an automatic newest-version policy. Existing graph limits and guarded installation are reused. Legacy flat IDs are not recast as v1 tree IDs; flat recovery and catalogue runtime remain pending.</p>
+<p>Selection remains exact title/ID/label, not an automatic newest-version policy. Existing graph limits and guarded installation are reused. Legacy flat IDs are not recast as v1 tree IDs; the compatibility reader below restores their original format. New flat catalogue runtime remains pending.</p>
+</section>
+<section id="recover-existing-flat-cas-snapshots" class="level2">
+<h2 class="anchored" data-anchor-id="recover-existing-flat-cas-snapshots">Recover existing flat CAS snapshots</h2>
+<p>The explicit remote verify / remote restore –snapshot commands also read the original flat JSON snapshots in <code>manifests/&lt;id&gt;.json</code>. Their IDs remain BLAKE3 of the original JSON bytes; they are never reinterpreted as pure content-tree IDs. Responses identify snapshot_kind as legacy-flat or tree-v1.</p>
+<p>The reader validates metadata, portable names and every referenced object before using the same guarded staging/installer as trees. Old snapshots remain usable after the remote’s current write style changes, without a project CSV or legacy ledger. Stored metadata, IDs, objects, VERSION and history are never rewritten.</p>
+<p>Legacy snapshots record files but not empty directories or permissions. Recovery does not invent that missing history. Unsafe path aliases, traversal, corrupt or missing content and conflicting same-ID namespace entries fail explicitly before destination changes. Metadata is bounded at 16 MiB and 100,000 file entries, with the existing portable path bounds. Ordinary root manifest.csv remains separate.</p>
+<p>Automatic snapshot discovery and new flat CSV/JSON catalogue publication remain pending; this is compatibility recovery, not a format conversion or migration.</p>
 
 
 </section>

@@ -409,6 +409,7 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="check-and-recover-a-saved-folder">Check and recover a saved folder</h2>
 <p>In development source, you can check the exact file bytes in a local tree snapshot, then restore a selected folder. Choose its configured storage name and snapshot ID explicitly; this first command slice does not find a version for you. The <a href="./cli/remote.html#verify-or-restore-an-exact-local-cas-tree-snapshot-development-source">remote reference</a> shows both commands.</p>
 <p>Restoring an older folder still works after you stop uploading that folder. A complete snapshot saved remotely can recover files into a fresh configured project. The command leaves your project version and stored snapshot unchanged. It checks the data before replacing files; choose –clear only when you want to remove destination-only files as well. Installed preview.3 is unchanged.</p>
+<p>Existing flat CAS snapshots can also be checked and restored by exact ID without converting them. See the <a href="./cli/remote.html#recover-existing-flat-cas-snapshots">remote reference</a>. Their older file lists do not record empty folders, so those cannot be restored from that format. New CSV/JSON history publication remains pending.</p>
 
 
 </section>

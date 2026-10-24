@@ -329,6 +329,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#real-github-verification" id="toc-real-github-verification" class="nav-link" data-scroll-target="#real-github-verification">Real GitHub verification</a></li>
   </ul></li>
   <li><a href="#verify-or-restore-an-exact-local-cas-tree-snapshot-development-source" id="toc-verify-or-restore-an-exact-local-cas-tree-snapshot-development-source" class="nav-link" data-scroll-target="#verify-or-restore-an-exact-local-cas-tree-snapshot-development-source">Verify or restore an exact local CAS tree snapshot (development source)</a></li>
+  <li><a href="#recover-existing-flat-cas-snapshots" id="toc-recover-existing-flat-cas-snapshots" class="nav-link" data-scroll-target="#recover-existing-flat-cas-snapshots">Recover existing flat CAS snapshots</a></li>
   </ul>
 </nav>
     </div>
@@ -640,7 +641,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Both full remote and project metadata locations are checked independently of the current manifest placement/style. Every present copy must verify; a corrupt present copy is not silently skipped in favour of another. Missing copies may be absent by design. A small project reference alone cannot reconstruct missing full metadata or missing file objects. A remote full snapshot can recover data into a fresh configured project without root manifest.csv or the project ledger. Project-only metadata must still exist to recover its snapshots.</p>
 <p>Queries/restores do not change VERSION, root CSV, attempt evidence or store metadata, and do not contact GitHub, Git or a credential helper. The existing guarded installer stages and checks bytes before replacing a destination. Permissions and live consistency are not restoration guarantees. The ordinary installer’s documented post-install backup-cleanup limitation still applies.</p>
 <p>For snapshot mode, ordinary archive download byte-limit flags are unnecessary; the tree reader retains its existing metadata/graph/entry bounds. GitHub repository and source/destination-position filters are rejected in this explicit mode, as are archive byte-limit flags. Ordinary restore without –snapshot retains its existing controls and required archive limits.</p>
-<p>These commands read v1 trees; they do not reinterpret legacy flat manifest IDs. Legacy flat recovery, automatic CAS discovery, and publishing the new flat CSV/JSON formats remain separately tracked work.</p>
+<p>The initial command slice read v1 trees. Support for original flat snapshots is described below; their IDs are never reinterpreted as trees. Automatic CAS discovery and new flat CSV/JSON publication remain separately tracked work.</p>
+</section>
+<section id="recover-existing-flat-cas-snapshots" class="level2">
+<h2 class="anchored" data-anchor-id="recover-existing-flat-cas-snapshots">Recover existing flat CAS snapshots</h2>
+<p>The explicit remote verify / remote restore –snapshot commands also read the original flat JSON snapshots in <code>manifests/&lt;id&gt;.json</code>. Their IDs remain BLAKE3 of the original JSON bytes; they are never reinterpreted as pure content-tree IDs. Responses identify snapshot_kind as legacy-flat or tree-v1.</p>
+<p>The reader validates metadata, portable names and every referenced object before using the same guarded staging/installer as trees. Old snapshots remain usable after the remote’s current write style changes, without a project CSV or legacy ledger. Stored metadata, IDs, objects, VERSION and history are never rewritten.</p>
+<p>Legacy snapshots record files but not empty directories or permissions. Recovery does not invent that missing history. Unsafe path aliases, traversal, corrupt or missing content and conflicting same-ID namespace entries fail explicitly before destination changes. Metadata is bounded at 16 MiB and 100,000 file entries, with the existing portable path bounds. Ordinary root manifest.csv remains separate.</p>
+<p>Automatic snapshot discovery and new flat CSV/JSON catalogue publication remain pending; this is compatibility recovery, not a format conversion or migration.</p>
 
 
 </section>

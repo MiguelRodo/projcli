@@ -571,7 +571,7 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="ordinary-registry-selection-and-restore-sources">Ordinary registry selection and restore sources</h2>
 <p>Named ordinary remotes now remain restore sources independently of current build upload selection. The existing provider cue/inspection/strategy engines execute only selected targets; registered but unselected GitHub definitions do not load credentials or contact a provider. Existing per-directory source references can coexist with normal build configuration and are validated without auto-restore.</p>
 <p>Directory references retain priority, followed by legacy preferred sources, registry preferred sources, legacy fallback and registry fallback. A newly registered unpreferred definition does not displace an existing legacy fallback.</p>
-<p>Registry/build.dest mapping integration currently covers ordinary latest/archive and GitHub Release operations. Configured tree publication and placement are described below. Flat format publication, automatic CAS selection and legacy flat recovery remain pending; explicit tree verification/recovery is described below. Unsupported options fail. Legacy inline and CAS-list behavior is preserved.</p>
+<p>Registry/build.dest mapping integration currently covers ordinary latest/archive and GitHub Release operations. Configured tree publication and placement are described below. Flat format publication and automatic CAS selection remain pending; legacy flat recovery is described below; explicit tree verification/recovery is described below. Unsupported options fail. Legacy inline and CAS-list behavior is preserved.</p>
 </section>
 <section id="configured-local-cas-tree-publication-unreleased" class="level2">
 <h2 class="anchored" data-anchor-id="configured-local-cas-tree-publication-unreleased">Configured local CAS tree publication (unreleased)</h2>
@@ -584,6 +584,7 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="explicit-saved-folder-recovery-development-source">Explicit saved-folder recovery (development source)</h2>
 <p>You can now verify or restore one named local tree snapshot by its exact ID. This works after removing the folder from current uploads, and can recover a remote snapshot into a newly configured project. It verifies saved file bytes before changing the declared destination and retains existing merge/clear controls. It never treats the small project record as a complete backup.</p>
 <p>The explicit snapshot mode leaves ordinary restore selection unchanged. It does not infer the newest snapshot, reinterpret old flat IDs, create build logs or update project versions. See the <a href="./cli/remote.html">remote command reference</a>.</p>
+<p>Existing flat CAS snapshots can also be checked and restored by exact ID without converting them. See the <a href="./cli/remote.html#recover-existing-flat-cas-snapshots">remote reference</a>. Their older file lists do not record empty folders, so those cannot be restored from that format. New CSV/JSON history publication remains pending.</p>
 
 
 </section>

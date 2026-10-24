@@ -904,6 +904,7 @@ Figure&nbsp;11: Development source: save a selected directory snapshot before Gi
 <section id="explicit-snapshot-verification-and-recovery" class="level2">
 <h2 class="anchored" data-anchor-id="explicit-snapshot-verification-and-recovery">Explicit snapshot verification and recovery</h2>
 <p>The separate remote verify / remote restore –snapshot operations do not enter the build lifecycle, run hooks, create attempt logs, distribute data or bump a version. They select a named store and exact saved snapshot, validate bytes, and use the existing guarded directory installer only for an explicit restore. The eleven build-stage figures retain their existing order.</p>
+<p>Legacy-flat verification/recovery follows the same separate, explicit path as tree recovery. Stored-format selection changes no build stage or figure; both formats use the existing guarded installer and leave project/store history alone.</p>
 
 
 </section>
