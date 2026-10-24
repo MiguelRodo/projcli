@@ -3168,6 +3168,6 @@ continues fresh-copy/hash verification and original-preserving cleanup.
 
 Ponytail full review reused bounded managed reads, portable inventory validation,
 object verification and the existing installer. No new database, identity,
-writer policy or migration. Five CLI fixture groups cover exact bytes, Unicode,
+writer policy or migration. Six CLI fixture groups cover empty roots/bounded reads, exact bytes, Unicode,
 fresh-project recovery, corruption, unsafe inventories and format coexistence.
 Remote tests and independent exact-head review remain pending.

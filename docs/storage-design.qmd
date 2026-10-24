@@ -463,7 +463,7 @@ restores their original format. New flat catalogue runtime remains pending.
 ## Recover existing flat CAS snapshots
 
 The explicit remote verify / remote restore --snapshot commands also read the
-original flat JSON snapshots in manifests/<id>.json. Their IDs remain BLAKE3 of
+original flat JSON snapshots in `manifests/<id>.json`. Their IDs remain BLAKE3 of
 the original JSON bytes; they are never reinterpreted as pure content-tree IDs.
 Responses identify snapshot_kind as legacy-flat or tree-v1.
 

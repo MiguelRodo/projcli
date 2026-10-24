@@ -163,3 +163,26 @@ fn old_and_tree_formats_coexist_and_report_their_actual_identity_kind() {
     failed(command(&root).args(["remote","verify","--title","snapshots","--snapshot",&tree]).output().unwrap(),"query_failed");
     assert_eq!(files(&root),before);assert_eq!(files(&store),stored);
 }
+
+#[test]
+fn empty_legacy_snapshot_without_objects_restores_an_empty_root_and_metadata_reads_are_bounded() {
+    let (_temp,root,mut config)=setup("auto");
+    fs::remove_dir_all(root.join("input")).unwrap();fs::create_dir(root.join("input")).unwrap();
+    config["remotes"]["local"]["snapshots"]=json!({"path":"../store","structure":"cas","content":["RAW"],"inspect":"manifest"});
+    config["build"]["dest"]=json!(["snapshots"]);save(&root,&config);
+    success(command(&root).arg("build").output().unwrap());let store=root.parent().unwrap().join("store");
+    let manifests=files(&store.join("manifests"));let id=manifests.keys().next().unwrap().strip_suffix(".json").unwrap();
+    assert!(!store.join("objects").exists());
+    let result=success(command(&root).args(["remote","verify","--title","snapshots","--snapshot",id]).output().unwrap());
+    assert!(result["result"]["snapshot"]["inventory"]["files"].as_array().unwrap().is_empty());
+    fs::write(root.join("input/extra"),b"remove only after validation").unwrap();
+    success(command(&root).args(["remote","restore","--title","snapshots","--snapshot",id,"--label","raw","--clear"]).output().unwrap());
+    assert!(fs::read_dir(root.join("input")).unwrap().next().is_none());
+    let before=files(&root);let oversized="0".repeat(64);
+    let path=store.join("manifests").join(format!("{oversized}.json"));
+    let length=proj::snapshot_format::MAX_METADATA_BYTES as u64+1;
+    fs::File::create(&path).unwrap().set_len(length).unwrap();
+    let output=command(&root).args(["remote","verify","--title","snapshots","--snapshot",&oversized]).output().unwrap();
+    assert!(String::from_utf8_lossy(&output.stderr).contains("bounded regular file"));
+    failed(output,"query_failed");assert_eq!(files(&root),before);assert_eq!(fs::metadata(&path).unwrap().len(),length);
+}
