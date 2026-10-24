@@ -3024,3 +3024,9 @@ and JSON, default per-artefact VERSION-level deduplication and optional file
 dictionaries; complete JSON remains a human/export primitive rather than an
 exclusive stored format. No destructive migration, GC, network packing, live
 consistent-dataset guarantee, permissions restoration or speed/size claim.
+
+Remote validation of the tree-store candidate exposed an exact-name enumeration
+race during concurrent identical reference publication. The native-name guard
+now rereads the parent once only when metadata appeared after its first scan,
+requiring the exact spelling. A differently spelled native alias still fails;
+the existing native-alias reader/producer fixture remains in place.

@@ -234,7 +234,18 @@ pub(crate) fn validate_native_names(base: &Utf8Path, relative: &str, mirror: boo
         current.push(component);
         if !exact {
             match fs::symlink_metadata(&current) {
-                Ok(_) => anyhow::bail!("Ambiguous native filesystem alias in store destination: {current}"),
+                Ok(_) => {
+                    // An immutable publisher can install the exact requested entry
+                    // between the first enumeration and metadata lookup. Recheck
+                    // spelling once; an alias still has no exact directory entry.
+                    let parent=current.parent().context("Native store entry has no parent")?;
+                    let mut appeared=false;
+                    for entry in fs::read_dir(parent).with_context(||format!("Cannot recheck native store names at {parent}"))? {
+                        appeared |= entry.with_context(||format!("Cannot reread native store name at {parent}"))?
+                            .file_name()==std::ffi::OsStr::new(component);
+                    }
+                    anyhow::ensure!(appeared,"Ambiguous native filesystem alias in store destination: {current}");
+                },
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
                 Err(error) => return Err(error).with_context(|| format!("Cannot inspect native store destination {current}")),
             }
