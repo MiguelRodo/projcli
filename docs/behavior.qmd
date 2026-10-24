@@ -723,3 +723,20 @@ This source change does not update installed preview.3. The integrated M2 gate
 now checks durable local failure visibility, exact last-good recovery and retry,
 alongside separate real-Git witnesses for diagnostic exclusion and continued
 tracking of successful/distributed records.
+
+
+## M2 source complete; M3 codecs are a separate slice
+
+M2 source completion is recorded in reviewed PR206 at
+36abed1d75cb91898981a1d615633e7612b8ce59, with final pinned acceptance and actual-main
+platform, installer and deployed documentation checks. Local failed diagnostics,
+last-good recovery, inspectable final rows/history and bounded provenance are
+implemented. Installed preview.3 has not acquired these later source changes.
+
+M3's approved remote registry, manifest location/style and recursive content
+trees are now active development scope. The initial snapshot_format library
+codecs describe versioned readable complete flat snapshots, content-only directory
+trees and separate small snapshot/root metadata. They do not activate new config
+keys, publish objects, select snapshots or restore data yet. Existing ordinary
+CSV, latest/archive transfers and old flat CAS encodings remain unchanged.
+See [storage design](storage-design.qmd) for the exact current boundary and limits.

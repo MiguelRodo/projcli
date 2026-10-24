@@ -9,6 +9,7 @@ pub mod build;
 pub mod git;
 pub mod clear;
 pub mod cas;
+pub mod snapshot_format;
 pub mod env;
 
 pub use version::*;

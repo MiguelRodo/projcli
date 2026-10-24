@@ -127,7 +127,8 @@ use crate::yml::{ValidatedConfig, InspectStrategy};
 ///
 /// # Errors
 /// Returns an `io::Error` if the remote isn't found, manifest lacks files, or an integrity constraint fails.
-fn validate_digest(digest: &str) -> Result<()> {
+/// Validate the shared legacy/new BLAKE3 digest spelling without resolving a path.
+pub(crate) fn validate_digest(digest: &str) -> Result<()> {
     if digest.len() != 64 || !digest.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)) {
         anyhow::bail!("CAS digest must be 64 lowercase hexadecimal ASCII characters");
     }

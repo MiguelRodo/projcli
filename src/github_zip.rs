@@ -61,19 +61,7 @@ impl MetadataKind {
 }
 
 fn portable_member(name:&str)->anyhow::Result<Utf8PathBuf> {
-    anyhow::ensure!(!name.is_empty() && !name.starts_with('/') && !name.contains('\\'),
-        "ZIP member must be a relative portable path");
-    let name=name.strip_suffix('/').unwrap_or(name);
-    for part in name.split('/') {
-        crate::path_safety::validate_directory_label(part)?;
-        let stem=part.split('.').next().unwrap().to_ascii_uppercase();
-        anyhow::ensure!(!matches!(stem.as_str(),"CON"|"PRN"|"AUX"|"NUL"|"CONIN$"|"CONOUT$"|"CLOCK$")
-            && !(stem.len()==4 && (stem.starts_with("COM")||stem.starts_with("LPT"))
-                && matches!(stem.as_bytes()[3],b'1'..=b'9'))
-            && !["COM","LPT"].iter().any(|prefix| matches!(stem.strip_prefix(prefix),Some("\u{b9}"|"\u{b2}"|"\u{b3}"))),
-            "ZIP member contains a reserved native device name");
-    }
-    Ok(name.into())
+    crate::path_safety::portable_relative(name).context("Invalid ZIP member")
 }
 
 fn write_members(source:&Utf8Path, members:&[(String,String)], empty:bool)->anyhow::Result<tempfile::NamedTempFile> {
