@@ -348,3 +348,49 @@ rows count before JSON expansion, derived path-prefix work shares one 16 MiB
 budget across history, and CSV/JSON output stops at the byte limit while writing.
 A transient earliest-complete lookup avoids rescanning all history for each new
 selected label; it adds no persistent index.
+
+
+## Verified local tree recovery APIs
+
+The restore_label library API accepts explicit content/metadata bases, a v1
+snapshot ID, one exact logical label and an absolute destination whose parent
+already exists. It does not infer latest/history candidates or require the old
+project ledger. It deeply verifies the full snapshot, materialises selected bytes
+into owned private staging, hashes the copied stream and verifies actual private
+stage bytes/membership again before replacing the destination.
+
+Recovery reuses the ordinary guarded directory installer and its bounded rollback.
+With clear=false, destination-only files survive; matching selected files receive
+the selected bytes, and selected empty directories may retain destination-only
+children. With clear=true, final membership matches the selected inventory,
+including explicit empty directories. The result reports clear and the selected
+snapshot/version/label. No project VERSION or source/store bytes are updated.
+
+Project authorities/control aliases, linked/special destinations and overlap with
+CAS objects/tree/reference namespaces fail. Empty snapshots need no objects
+directory. Remote metadata supports recovery into a fresh empty working project;
+project-side metadata remains supported when that metadata still exists.
+
+A new internal installer verification callback runs on its private next-stage
+before retaining the previous destination. Existing ordinary local/GitHub paths
+use the same installer with their previous behavior. No hard-linked external
+file inode is edited in place.
+
+This remains an explicit library slice: CLI/configured source selection, registry,
+manifest placement/defaults and catalogue publication integration are pending.
+It is not a crash-atomic transaction or arbitrary concurrent-writer sandbox.
+Permissions/ownership restoration is not a CAS guarantee. As with the ordinary
+installer, cleanup failure can report an installed destination and retained private
+backup rather than pretending rollback after successful installation.
+
+
+Source review added explicit legacy manifests namespace protection: a tree restore
+cannot target the old flat manifests directory either. Merge validation compares
+actual directory-entry spelling, including selected empty directories, so native
+case aliases cannot widen an existing private directory's modes.
+
+Both private staging levels are explicitly closed. If a pre-replacement callback
+rejects a copied tree, cleanup may unlock only owned copies, never the installed
+destination or a retained previous original. Primary and cleanup failures remain
+visible together; a tree that cannot be safely removed is retained with its path.
+The ordinary installer's existing post-install backup-cleanup limitation remains.

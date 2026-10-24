@@ -37,27 +37,31 @@ fn control_name(name:&str)->bool {
             &&[".yml",".yaml",".yml.local",".yaml.local"].iter().any(|suffix|name.ends_with(suffix)))
         ||name=="_environment"||name.starts_with("_environment.")||name.starts_with("_environment-")
 }
-fn writer_paths(root:&Utf8Path,store:&Layout)->Result<()> {
+fn project_target(root:&Utf8Path,target:&Utf8Path,allow_metadata:bool)->Result<()> {
     let root=physical(root)?;let root_key=portable_path_key(&root);
     anyhow::ensure!(root.is_dir(),"CAS project root must be an existing directory");
-    for namespace in [&store.objects,&store.trees,&store.snapshots] {
-        let key=portable_path_key(namespace);
-        anyhow::ensure!(!root_key.starts_with(&key),"CAS namespace contains the project root");
-        if key.starts_with(&root_key) {
-            let relative=namespace.strip_prefix(&root)
-                .context("CAS namespace aliases the project root through a planned portable spelling")?;
-            let first=relative.iter().next().context("CAS namespace is the project root")?;
-            anyhow::ensure!(!control_name(first),"CAS namespace overlaps project authority/control path: {first}");
-            if first.eq_ignore_ascii_case(".proj") {
-                anyhow::ensure!(first==".proj","CAS namespace uses a native alias of .proj");
-                for reserved in [".proj/log",".proj/build.lock"] {
-                    anyhow::ensure!(!overlaps(namespace,&root.join(reserved)),
-                        "CAS namespace overlaps project attempt control state");
-                }
+    let key=portable_path_key(target);
+    anyhow::ensure!(!root_key.starts_with(&key),"CAS target contains the project root");
+    if key.starts_with(&root_key) {
+        let relative=target.strip_prefix(&root)
+            .context("CAS target aliases the project root through a planned portable spelling")?;
+        let first=relative.iter().next().context("CAS target is the project root")?;
+        anyhow::ensure!(!control_name(first),"CAS target overlaps project authority/control path: {first}");
+        if portable_path_key(Utf8Path::new(first)).as_str()==".PROJ" {
+            anyhow::ensure!(allow_metadata&&first==".proj","CAS target overlaps project control state");
+            for reserved in [".proj/log",".proj/build.lock"] {
+                anyhow::ensure!(!overlaps(target,&root.join(reserved)),
+                    "CAS target overlaps project attempt control state");
             }
         }
     }
-    anyhow::ensure!(!overlaps(&store.objects,&root.join(".proj")),
+    Ok(())
+}
+fn writer_paths(root:&Utf8Path,store:&Layout)->Result<()> {
+    for namespace in [&store.objects,&store.trees,&store.snapshots] {
+        project_target(root,namespace,true)?;
+    }
+    anyhow::ensure!(!overlaps(&store.objects,&physical(&root.join(".proj"))?),
         "CAS file storage overlaps project control state");
     Ok(())
 }
@@ -315,4 +319,131 @@ pub fn verify_snapshot(content:&Utf8Path,metadata:&Utf8Path,id:&str)->Result<Ver
     let snapshot=read_snapshot(content,metadata,id)?;
     let directories=verify_roots(&store,&snapshot)?;
     Ok(VerifiedSnapshot {snapshot_id:id.into(),snapshot,directories})
+}
+
+
+/// Outcome of verified single-label materialisation, not a remote mutation.
+#[derive(Clone,Debug,serde::Serialize)]
+pub struct TreeRestore {
+    /// Explicit v1 snapshot reference selected by the caller.
+    pub snapshot_id:String,
+    /// Exact logical label restored from that snapshot.
+    pub label:String,
+    /// Snapshot version metadata, separate from the content root.
+    pub version:String,
+    /// Installed destination directory.
+    pub destination:Utf8PathBuf,
+    /// Whether destination-only entries were explicitly discarded.
+    pub clear:bool,
+    /// Number of selected file membership rows, including repeated content.
+    pub files:usize,
+}
+fn restore_destination(root:&Utf8Path,store:&Layout,destination:&Utf8Path)->Result<Utf8PathBuf> {
+    anyhow::ensure!(destination.is_absolute(),"CAS restore destination must be an absolute anchored path");
+    let anchor=destination.ancestors().last().context("CAS destination has no anchor")?;
+    crate::path_safety::validate_native_names(anchor,destination.strip_prefix(anchor)?.as_str(),false)?;
+    let destination=physical(destination)?;project_target(root,&destination,false)?;
+    let legacy=store.objects.parent().context("CAS objects have no store base")?.join("manifests");
+    for namespace in [&store.objects,store.trees.parent().context("CAS trees have no namespace parent")?,
+        store.snapshots.parent().context("CAS snapshots have no namespace parent")?,&legacy] {
+        anyhow::ensure!(!overlaps(&destination,namespace),"CAS restore destination overlaps storage");
+    }
+    let parent=destination.parent().context("CAS restore destination has no parent")?;
+    anyhow::ensure!(fs::symlink_metadata(parent)?.is_dir(),"CAS restore destination parent must already exist");
+    if crate::yml::configuration_entry_exists(&destination)? {
+        anyhow::ensure!(fs::symlink_metadata(&destination)?.is_dir(),"CAS restore destination is not a directory");
+    }
+    Ok(destination)
+}
+fn copy_object(store:&Layout,id:&str,target:&Utf8Path)->Result<()> {
+    use std::io::{Read,Write};
+    let source=file_path(store,id)?;
+    anyhow::ensure!(fs::symlink_metadata(&source)?.is_file(),"CAS source object is not regular");
+    let mut input=fs::File::open(source).context("Cannot open CAS restore object")?;
+    anyhow::ensure!(input.metadata()?.is_file(),"CAS source object handle is not regular");
+    let parent=target.parent().context("Materialised CAS file has no parent")?;
+    fs::create_dir_all(parent)?;
+    let mut output=fs::OpenOptions::new().write(true).create_new(true).open(target)?;
+    let mut digest=blake3::Hasher::new();let mut buffer=[0u8;65536];
+    loop {
+        let count=input.read(&mut buffer)?;if count==0 {break;}
+        digest.update(&buffer[..count]);output.write_all(&buffer[..count])?;
+    }
+    output.flush()?;output.sync_all()?;
+    anyhow::ensure!(digest.finalize().to_hex().as_str()==id,"CAS object changed while materialising expected digest {id}");
+    Ok(())
+}
+fn observed(plan:&Plan,prefix:&str,files:&mut Vec<FileRecord>,empty:&mut Vec<String>,directories:&mut HashSet<String>)->Result<()> {
+    if !prefix.is_empty(){directories.insert(prefix.into());}
+    if plan.entries.is_empty()&&!prefix.is_empty(){empty.push(prefix.into());}
+    for entry in &plan.entries {
+        let name=if prefix.is_empty(){entry.name.clone()}else{format!("{prefix}/{}",entry.name)};
+        match &entry.content {
+            PlannedContent::File(path)=>files.push(FileRecord {path:name,hash:crate::cas::hash_file(path)?}),
+            PlannedContent::Tree(child)=>observed(child,&name,files,empty,directories)?,
+        }
+    }
+    Ok(())
+}
+fn verify_materialised(stage:&Utf8Path,expected:&FlatDirectory,clear:bool)->Result<()> {
+    let plan=scan(stage,"",&mut Expansion::default())?;
+    let mut files=Vec::new();let mut empty=Vec::new();let mut directories=HashSet::new();
+    observed(&plan,"",&mut files,&mut empty,&mut directories)?;
+    // scan validates each actual directory's names/types under the graph's
+    // expanded limits. Do not impose the optional flat-export prefix-work bound.
+    files.sort_by(|left,right|left.path.as_bytes().cmp(right.path.as_bytes()));empty.sort();
+    let actual=FlatDirectory {label:expected.label.clone(),files,empty_directories:empty};
+    if clear {anyhow::ensure!(&actual==expected,"Materialised CAS membership or bytes differ from selected inventory");}
+    else {
+        let files:HashMap<_,_>=actual.files.iter().map(|file|(&file.path,&file.hash)).collect();
+        for file in &expected.files {
+            anyhow::ensure!(files.get(&file.path).copied()==Some(&file.hash),"Materialised CAS file is missing or corrupt: {}",file.path);
+        }
+        for path in &expected.empty_directories {
+            anyhow::ensure!(directories.contains(path),"Materialised CAS directory is missing or has a native name alias: {path}");
+        }
+    }
+    Ok(())
+}
+
+/// Recover one explicit logical label through verified private staging and the existing installer.
+/// The complete selected snapshot is deeply verified before destination work. No project ledger
+/// or working source copy is needed. The destination is absolute, its parent must already exist,
+/// and it cannot overlap project controls or the CAS namespaces. No source/store bytes change.
+///
+/// With clear=false, destination-only entries survive; selected files still receive exact bytes.
+/// With clear=true, final membership matches the selected inventory, including empty directories.
+/// Actual private-stage bytes are checked again before any existing destination is renamed.
+/// Recovery uses the ordinary installer's bounded rollback/cleanup behavior, not crash atomicity,
+/// distributed locking, permission restoration or protection against arbitrary concurrent writers.
+pub fn restore_label(project_root:&Utf8Path,content:&Utf8Path,metadata:&Utf8Path,
+    snapshot_id:&str,label:&str,destination:&Utf8Path,clear:bool)->Result<TreeRestore> {
+    crate::path_safety::validate_directory_label(label)?;
+    let store=layout(content,metadata)?;
+    let destination=restore_destination(project_root,&store,destination)?;
+    let verified=verify_snapshot(content,metadata,snapshot_id)?;
+    let selected=verified.directories.iter().find(|directory|directory.label==label)
+        .context("Selected CAS snapshot has no requested logical label")?;
+    let parent=destination.parent().context("CAS destination has no parent")?;
+    let staging=tempfile::Builder::new().prefix(".proj-cas-restore-").tempdir_in(parent)?;
+    let source=Utf8PathBuf::try_from(staging.path().join("selected"))?;
+    let execution=(||->Result<TreeRestore> {
+    fs::create_dir(&source)?;
+    for directory in &selected.empty_directories {fs::create_dir_all(source.join(directory))?;}
+    for file in &selected.files {copy_object(&store,&file.hash,&source.join(&file.path))?;}
+    verify_materialised(&source,selected,true)?;
+    crate::local_remote::install_directory_checked(project_root,&source,&destination,clear,|stage| {
+        restore_destination(project_root,&store,&destination)?;
+        verify_materialised(stage,selected,clear)
+    })?;
+    Ok(TreeRestore {snapshot_id:snapshot_id.into(),label:label.into(),version:verified.snapshot.version,
+        destination:destination.clone(),clear,files:selected.files.len()})
+    })();
+    let cleanup=crate::fs_utils::close_owned_staging(staging);
+    match (execution,cleanup) {
+        (Err(error),Err(cleanup))=>Err(error.context(format!("CAS source staging cleanup also failed: {cleanup:#}"))),
+        (Err(error),Ok(()))=>Err(error),
+        (Ok(_),Err(cleanup))=>Err(cleanup.context(format!("CAS destination installed at {destination}, but source staging cleanup failed"))),
+        (Ok(result),Ok(()))=>Ok(result),
+    }
 }

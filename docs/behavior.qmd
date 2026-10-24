@@ -774,3 +774,12 @@ of flat/tree structure, manifest placement and content-object deduplication.
 Active remote configuration/publication/restore still use their existing paths;
 no CSV replacement or store migration is implied. See the storage-design page
 for schema, Excel filtering behavior, bounds and pending integration.
+
+
+## Verified explicit CAS materialisation in development source
+
+The tree restore_label API recovers one label from an explicit v1 snapshot using
+deep graph verification, fresh private files and the existing guarded installer.
+Explicit clear controls destination-only files. Store/project controls and source
+metadata remain unchanged. This does not activate configured CAS restore or new
+CLI commands; selection/registry wiring is still M3 work.
