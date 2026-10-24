@@ -46,7 +46,7 @@ verification is recorded below.
 | archive hierarchy | Local path[/label]/v&lt;version&gt;; versioned snapshots coexist. The remote pre-root holds shared metadata. [Layout][layout]. | Configured ordinary local/GitHub archive publication, inspection/download/restore and unchanged-history reuse exist. Existing CAS snapshots remain a distinct layout. |
 | GitHub flat layout | Latest assets use path/label-derived flat name; archive adds version; ordinary content is ZIP-packaged. Metadata uses its own ZIP assets. [Flat naming][flat], [GitHub][github]. | Compatible flat names, prefix/append-label options and ZIP transfer exist. Configured restore uses them; Configured GitHub latest/archive publication and history comparison cover the complete mocked control matrix; bounded live verification is below. |
 | Empty content | Local final name gets -empty; GitHub name gets -empty.zip and ZIP has projr-empty sentinel. Full/empty variants are reconciled. [Local][local], [store finalisation][store-final]. | ZIP sentinel/names and local empty variants are supported. Configured restore skips advertised empty labels without clearing. Configured local latest publication reconciles full/empty variants; configured GitHub latest/archive covers all inspection/strategy/cue combinations in mocked CLI fixtures, with bounded live verification below. |
-| CAS addition | Not an R layout. User requires it alongside latest and archive, with content-addressed versioned snapshots. | Existing local CAS objects/JSON/index are bounded groundwork; no new retention, GC or discovery policy adopted. |
+| CAS addition | Not an R layout. User requires it alongside latest and archive, with content-addressed versioned snapshots. | Modern local CAS tree publication and placement are implemented in PR212; explicit named-ID tree recovery/verification is the following development slice. Legacy objects/flat JSON/index remain distinct. No retention, GC or automatic discovery policy is adopted. |
 
 ## Configuration, defaults, aliases and precedence
 
@@ -204,7 +204,7 @@ reproductions. Proposed fixes are review candidates, not silent semantic changes
 | Medium: provider-dependent identity | build.github.nightly: {id: another-tag, content: [output]} validates an id, but completion resets it to nightly. Local id instead becomes path. Title is cosmetic locally and functional on GitHub. [Completion][dest-default]. | Reject or clearly deprecate ignored id values; document title/tag/path meanings. A larger unified identity design is separate. |
 | Medium: source-selection defects | directories.raw-data.source: {github: archive}, as shipped in the template, meets default helper paths that pass the wrong mapping level or an absent title into a title-specific branch. [Template][template], [selection][restore-select]. | Fix source selection with explicit/default provider/title fixtures; do not require users to discover accidental nesting workarounds. |
 | Medium: unsupported documentation | send.cue: never and structure: version are mentioned in wrappers but excluded by current enums; old OSF prose outlives implementation. [Wrappers][wrappers], [enums][options]. | Correct docs and errors. Implement new values only if separately requested, not to make stale prose true. |
-| Already recorded design | Removing a build destination can remove a historical restore source because definitions and upload selection share the same location. | The user-requested registry proposal is already [issue706][registry], design-only. It is not a new discovery here and is not implemented by this audit. |
+| Already recorded design | Removing a build destination can remove a historical restore source because definitions and upload selection share the same location. | The original registry proposal is [issue706][registry]. Named definitions and independent ordinary upload/source lookup are now implemented in PR211; further per-remote format integration remains in progress. The source audit itself did not implement it. |
 | Low: naming preference | dest versus destinations changes readability, not provider or safety behaviour. | Choose during the existing registry discussion; no new alias or migration silently introduced. |
 
 Credential lookup also deserves explicit presentation: ambient R gh/gitcreds
@@ -314,7 +314,7 @@ Pinned R comparison: dest-send-label.R355,854-1560,1587-1788 and manifest.R67-75
 in the source revision linked above. New empty labels and file-equal missing/starred
 metadata receive explicit discoverability corrections; these are documented
 differences rather than claims that the pinned R no-change path already repairs
-them. No registry or unresolved retention/default policy is adopted.
+them. The original publication slices did not adopt registry or unresolved policy changes. The subsequent registry/tree work is recorded below.
 
 
 Local archive publication includes complete versioned snapshots, historical
@@ -376,3 +376,18 @@ published preview.3 packages these source changes and is now installed in the
 verified WSL location; see [delivery evidence](release-delivery.qmd#verified-preview3-delivery).
 The fixture's package version string is also preview.2, so identify the tested
 source by its commit and binary hash, not that string alone.
+
+
+## Current development extensions beyond the original audit
+
+PR211 added named ordinary definitions and upload subsets independently of
+restore sources. PR212 added configured local recursive-tree publication and
+metadata placement, preserving legacy flat CAS identities. These extend projr;
+they do not establish complete parity with every convenience wrapper or option.
+
+The following explicit named-ID CAS recovery/verification slice reuses the tree
+verifier and guarded installer without root CSV, current upload selection or a
+project ledger. Ordinary restore still uses its documented CSV/version/source
+selection. Legacy flat CAS recovery and runtime flat CSV/JSON formats remain
+pending. The [configuration](configuration.qmd), [remote commands](cli/remote.qmd)
+and [compatibility log](compatibility.qmd) distinguish implemented and pending work.

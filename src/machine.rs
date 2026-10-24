@@ -45,7 +45,7 @@ pub(crate) fn emit_argument_error() -> i32 {
 pub(crate) fn emit_capabilities() -> i32 {
     emit(Ok(json!({
         "capability_version": CAPABILITY_VERSION,
-        "machine_commands": ["capabilities", "history", "remote restore", "remote versions", "remote download", "remote store", "remote github assets", "remote github upload", "remote github download", "remote github upload-directory", "remote github upload-metadata", "remote github download-directory", "path get", "version get", "version set", "yml read", "init", "ignore add", "ignore remove", "build", "build-dev"],
+        "machine_commands": ["capabilities", "history", "remote restore", "remote verify", "remote versions", "remote download", "remote store", "remote github assets", "remote github upload", "remote github download", "remote github upload-directory", "remote github upload-metadata", "remote github download-directory", "path get", "version get", "version set", "yml read", "init", "ignore add", "ignore remove", "build", "build-dev"],
         "non_interactive": true,
         "path_targets": ["safe", "final"],
         "path_fragments": true,
@@ -55,7 +55,7 @@ pub(crate) fn emit_capabilities() -> i32 {
         "default_path_format": "auto",
         "logs": "stderr",
         "attempt_history": true,
-        "queries": {"history": "history","remote github assets": "assets", "remote store --dry-run": "plan", "remote versions": "versions", "path get": "path", "version get": "version", "yml read": "validated"},
+        "queries": {"remote verify": "snapshot","history": "history","remote github assets": "assets", "remote store --dry-run": "plan", "remote versions": "versions", "path get": "path", "version get": "version", "yml read": "validated"},
         "preview_output_isolation": false,
         "attempt_release_records": false,
         "direct_r_ide_parity": false
@@ -72,6 +72,13 @@ pub(crate) fn run(cli: &Cli) -> i32 {
         Commands::History {attempt,limit} => proj::history::read(&root,attempt.as_deref(),*limit)
             .map(|history|json!({"history":history}))
             .map_err(|_|failure(ErrorCode::QueryFailed,"Cannot inspect the requested build history.")),
+        Commands::Remote {command:RemoteCommands::Verify {title,snapshot,profile}} =>
+            proj::configured_cas::verify(&root,title,snapshot,profile.as_deref())
+                .map(|result|json!({"snapshot":result}))
+                .map_err(|error|{
+                    eprintln!("CAS verification failed: {error:#}");
+                    failure(ErrorCode::QueryFailed,"Cannot verify the requested CAS snapshot; inspect stderr.")
+                }),
         Commands::Remote {command:command @ RemoteCommands::Restore {..}} => {
             crate::configured_restore(&root,command)
                 .map(|result|serde_json::to_value(result).expect("Restore result is serializable"))

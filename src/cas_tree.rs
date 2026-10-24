@@ -252,7 +252,7 @@ impl Graph {
 }
 
 /// Fully verified graph observation, not a guarantee against later out-of-band mutation.
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,serde::Serialize)]
 pub struct VerifiedSnapshot {
     /// Canonical v1 snapshot identity.
     pub snapshot_id:String,
@@ -298,6 +298,13 @@ pub fn publish_snapshot(project_root:&Utf8Path,content:&Utf8Path,metadata:&Utf8P
         anyhow::ensure!(existing.identity()?==id,"CAS snapshot conflicts with its canonical identity");Ok(())
     })?;
     Ok(id)
+}
+
+/// Check exact full-reference presence using the same guarded namespace as the reader.
+/// Only absence is false; malformed paths, links and access errors remain errors.
+pub(crate) fn snapshot_exists(content:&Utf8Path,metadata:&Utf8Path,id:&str)->Result<bool> {
+    let store=layout(content,metadata)?;
+    crate::yml::configuration_entry_exists(&snapshot_path(&store,id)?)
 }
 
 /// Read an explicit v1 reference and validate its canonical ID; does not infer a legacy format.

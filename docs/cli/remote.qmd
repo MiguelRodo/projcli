@@ -611,3 +611,51 @@ unchanged-history reuse and changed-snapshot restore using an isolated CI binary
 Exact ZIP/data/CSV/VERSION checks and preservation witnesses passed. This is a
 source-build verification, not a new CLI release; do not install the fixture
 prerelease. The full control/failure matrix above still uses mocked REST.
+
+
+## Verify or restore an exact local CAS tree snapshot (development source)
+
+These commands select a registered local CAS remote and an exact v1 snapshot ID:
+
+~~~bash
+proj remote verify --title snapshots --snapshot SNAPSHOT_ID
+proj remote restore --title snapshots --snapshot SNAPSHOT_ID --label raw --clear
+~~~
+
+Replace SNAPSHOT_ID with the full 64-character snapshot ID. Automatic snapshot
+discovery/version selection is not part of this explicit command slice. verify
+returns the complete observed file paths/hashes and folder roots; it deeply
+checks metadata identities and file bytes without writing anything.
+
+Snapshot restore requires a declared destination label and --title. It uses the
+exact saved label membership, not current build.dest/content upload choices or
+automatic source preferences. This lets an older saved raw folder be restored
+after uploads for raw have been disabled. Omit --clear to preserve destination-
+only files; with --clear, the selected folder has exactly the saved names/bytes,
+including a genuinely empty root. An optional --remote-version is a guard that
+must match the selected snapshot, rather than another selection mechanism.
+
+Both full remote and project metadata locations are checked independently of the
+current manifest placement/style. Every present copy must verify; a corrupt
+present copy is not silently skipped in favour of another. Missing copies may
+be absent by design. A small project reference alone cannot reconstruct missing
+full metadata or missing file objects. A remote full snapshot can recover data
+into a fresh configured project without root manifest.csv or the project ledger.
+Project-only metadata must still exist to recover its snapshots.
+
+Queries/restores do not change VERSION, root CSV, attempt evidence or store
+metadata, and do not contact GitHub, Git or a credential helper. The existing
+guarded installer stages and checks bytes before replacing a destination.
+Permissions and live consistency are not restoration guarantees. The ordinary
+installer's documented post-install backup-cleanup limitation still applies.
+
+For snapshot mode, ordinary archive download byte-limit flags are unnecessary;
+the tree reader retains its existing metadata/graph/entry bounds. GitHub
+repository and source/destination-position filters are rejected in this explicit
+mode, as are nonzero archive byte-limit flags. Ordinary restore without
+--snapshot retains its existing controls and
+required archive limits.
+
+These commands read v1 trees; they do not reinterpret legacy flat manifest IDs.
+Legacy flat recovery, automatic CAS discovery, and publishing the new flat
+CSV/JSON formats remain separately tracked work.

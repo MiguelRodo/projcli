@@ -119,7 +119,20 @@ your project, or in both. It always keeps a small project record identifying
 the saved folders. That small record alone cannot restore files if the storage
 content or required full listings are lost.
 
-These additions are not in installed preview.3. Automatic selection of an older
-CAS snapshot for restore and the new CSV/JSON history options are still being
-connected to commands. Ordinary local and GitHub Release upload/restore behavior
+These additions are not in installed preview.3. Automatic version selection for CAS restore and the new CSV/JSON history
+options remain pending. Explicit named-ID tree recovery is described below. Ordinary local and GitHub Release upload/restore behavior
 remains available as described in the [remote guide](remote-compatibility.qmd).
+
+## Check and recover a saved folder
+
+In development source, you can check the exact file bytes in a local tree
+snapshot, then restore a selected folder. Choose its configured storage name and
+snapshot ID explicitly; this first command slice does not find a version for you.
+The [remote reference](cli/remote.qmd#verify-or-restore-an-exact-local-cas-tree-snapshot-development-source)
+shows both commands.
+
+Restoring an older folder still works after you stop uploading that folder.
+A complete snapshot saved remotely can recover files into a fresh configured
+project. The command leaves your project version and stored snapshot unchanged.
+It checks the data before replacing files; choose --clear only when you want to
+remove destination-only files as well. Installed preview.3 is unchanged.

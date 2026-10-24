@@ -52,6 +52,9 @@ pub struct RestoreResult {
     pub restored:bool,
     /// no-recorded-files or empty-remote, otherwise None.
     pub skipped:Option<String>,
+    /// Exact content-addressed snapshot for explicit CAS recovery; absent for ordinary layouts.
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub snapshot_id:Option<String>,
 }
 #[derive(Clone,Copy,Deserialize)]
 #[serde(rename_all="lowercase")]
@@ -194,7 +197,7 @@ fn select_source(raw:&Value,label:&str,request:&RestoreRequest)->anyhow::Result<
     if let Some(source)=fallback.or(registry_fallback){return Ok(source)}
     anyhow::bail!("No configured restore source matches the requested label and filters")
 }
-fn projected_config(raw:&Value,root:&Utf8Path)->anyhow::Result<crate::yml::ValidatedConfig> {
+pub(crate) fn projected_config(raw:&Value,root:&Utf8Path)->anyhow::Result<crate::yml::ValidatedConfig> {
     let mut projection=raw.clone();
     if let Some(build)=projection.get_mut("build").and_then(Value::as_object_mut) {
         // Upload selection must not disable a registered restore source.
@@ -323,7 +326,7 @@ pub fn restore_label(root:&Utf8Path,request:&RestoreRequest)->anyhow::Result<Res
     let manifest_path=root.join("manifest.csv");
     anyhow::ensure!(fs::symlink_metadata(&manifest_path)?.is_file(),"Restore requires a regular root manifest.csv");
     let rows=crate::manifest::read(&manifest_path)?;
-    let mut result=RestoreResult {label:label.clone(),destination:destination.clone(),provider:None,title:None,version:None,restored:false,skipped:None};
+    let mut result=RestoreResult {label:label.clone(),destination:destination.clone(),provider:None,title:None,version:None,restored:false,skipped:None,snapshot_id:None};
     if !rows.iter().any(|row|(row.label==label||(label=="output-r-data"&&row.label.eq_ignore_ascii_case("data")))&&!row.r#fn.is_empty()) {
         result.skipped=Some("no-recorded-files".into());return Ok(result);
     }

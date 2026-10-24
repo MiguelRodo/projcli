@@ -820,5 +820,18 @@ format and history. Nothing is silently converted. Ordinary latest/archive
 storage, GitHub Releases and the root manifest.csv remain unchanged.
 
 See the [configuration reference](configuration.qmd#configured-local-cas-tree-publication-unreleased)
-for the exact fields and example. Configured CAS restore and publishing the new
-CSV/JSON history formats remain pending; unsupported options fail explicitly.
+for the exact fields and example. Automatic CAS snapshot selection and publishing the new CSV/JSON history
+formats remain pending. Explicit verification/recovery is described below;
+unsupported options fail explicitly.
+
+## Explicit saved-folder recovery (development source)
+
+You can now verify or restore one named local tree snapshot by its exact ID.
+This works after removing the folder from current uploads, and can recover a
+remote snapshot into a newly configured project. It verifies saved file bytes
+before changing the declared destination and retains existing merge/clear
+controls. It never treats the small project record as a complete backup.
+
+The explicit snapshot mode leaves ordinary restore selection unchanged. It
+does not infer the newest snapshot, reinterpret old flat IDs, create build logs
+or update project versions. See the [remote command reference](cli/remote.qmd).

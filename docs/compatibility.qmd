@@ -3133,3 +3133,19 @@ filesystem checks for an empty selection, preserving unrelated configuration
 queries. Existing path guards remain in force for selected targets. The native
 browser diagram check now requires all eleven figures, including the new
 configured-publication overlay.
+
+## Explicit named CAS snapshot recovery
+
+New beyond projr: local CAS v1 snapshot verification and configured single-label
+recovery select an exact registered title/ID, without root manifest.csv or legacy
+ledger. Current write placement/style/upload content does not remove historical
+explicit recovery. Ordinary automatic source preferences and CSV semantics remain
+unchanged. Every present full metadata copy verifies; corrupt copies do not
+silently fall back, and lightweight root references alone are not archives.
+
+Ponytail full review reuses projected read-only configuration, deep tree checks,
+safe destination selection and the existing staged installer. No new persistence
+format, index, latest-selection rule, credential lookup or network backend.
+Real CLI fixtures cover all placements, lost project recovery, changed write
+policy, empty roots, read-only failure preservation and version mismatch. Remote
+tests and independent exact-head review are pending for this slice.
