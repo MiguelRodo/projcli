@@ -457,7 +457,7 @@ do not need the old project ledger, root CSV or small project reference.
 
 Selection remains exact title/ID/label, not an automatic newest-version policy.
 Existing graph limits and guarded installation are reused. Legacy flat IDs are not recast as v1 tree IDs; the compatibility reader below
-restores their original format. New flat catalogue runtime remains pending.
+restores their original format. Local CAS flat runtime is described below; ordinary/GitHub formatting remains pending.
 
 
 ## Recover existing flat CAS snapshots
@@ -478,5 +478,79 @@ missing content and conflicting same-ID namespace entries fail explicitly before
 destination changes. Metadata is bounded at 16 MiB and 100,000 file entries, with
 the existing portable path bounds. Ordinary root manifest.csv remains separate.
 
-Automatic snapshot discovery and new flat CSV/JSON catalogue publication remain
-pending; this is compatibility recovery, not a format conversion or migration.
+Automatic snapshot discovery and ordinary/GitHub formatting remain pending; this is compatibility recovery, not a format conversion or migration.
+
+
+## Flat history in local CAS
+
+New local CAS remotes can save a readable CSV or JSON history instead of a
+directory-tree manifest:
+
+~~~yaml
+remotes:
+  local:
+    snapshots:
+      path: ../snapshot-store
+      structure: cas
+      manifest-style: flat
+      manifest-format: csv
+      manifest: remote
+build:
+  dest:
+    snapshots:
+      content: [raw, output]
+~~~
+
+The labels must already be declared. For flat style, csv is the default;
+json is also available. Both automatically reuse an earlier complete inventory
+for the **same logical folder** when later contents are identical, including a
+reversion to older contents. The later version points directly to that earlier
+complete version, never a chain. A changed version records all current file
+memberships, including additions, removals and renamed paths.
+
+CSV is one rectangular table with a header and repeated label/version columns.
+In Excel, filtering a reference version shows the earlier ref_version to inspect;
+it does not automatically expand that earlier listing. All earlier complete rows
+remain in the same history file. Plain CSV/JSON retains literal full file hashes.
+Optional csv-dedupe-file/json-dedupe-file modes replace repeated hashes with a
+bundled file dictionary while retaining every file path. These modes are off by
+default. They are not omitted-file deltas, and no size/speed advantage is promised.
+
+Files are stored once by their BLAKE3 content hash regardless of manifest format.
+Full history files live under catalogues/v1/manifest.csv or manifest.json;
+opt-in dictionary files use manifest-dedupe-file.csv/json. Existing root
+manifest.csv keeps its separate projr-compatible MD5 schema and is unchanged.
+
+auto means remote for CAS. project/remote/both selects full history placement;
+a small project snapshot binding is always retained. Flat bindings connect the
+version and selected labels to inventory hashes, independently of serialization
+or dictionary IDs. They are not directory-tree object IDs. Full immutable refs
+use `flat-snapshots/v1/<first2>/<rest62>.json`; small project refs use
+`references/flat-v1/<first2>/<rest62>.json`. No unnecessary tree objects are written.
+
+History replacement is atomic per file. Decoded previous label/version contents
+are never overwritten; divergent histories or conflicting same-version retries
+fail. Identical per-label retries do not duplicate rows, and missing labels can
+resume a partial write. Switching format preserves older files/readability and
+uses the longest compatible decoded history; dictionary IDs do not define it.
+Codec limits fail explicitly rather than truncating history.
+
+The authoritative history read through replacement/reference publication holds
+the existing cooperative claim at `<store>/.proj/build.lock`. Unknown/stale claims
+fail closed and only an owned claim is removed; there is no automatic process
+killing or stale-claim cleanup. Raw immutable objects may be copied before that
+claim. Required history copies precede full snapshot refs, then the small project
+ref. both is not a cross-location transaction: errors can leave objects or an
+updated first history copy. Retry can finish the remaining copy.
+
+Explicit verify/restore resolves version references/dictionaries, checks inventory
+hashes and actual raw bytes, and uses the existing guarded installer. The result
+reports snapshot_kind: flat-catalogue-v1. Old tree and legacy-flat IDs stay distinct
+and readable, regardless of the current write style. A small binding alone is not
+a backup. Empty directories are recorded by this new format, unlike legacy flat.
+
+These new manifest-format controls currently apply to local CAS. Ordinary local
+latest/archive and GitHub Release providers retain their existing metadata path;
+their new-format integration is still pending. Trees default to fixed v1 JSON;
+explicit manifest-format: json is valid there, while CSV/dictionary choices require
+flat style. Null/unknown modes fail instead of silently choosing a default.

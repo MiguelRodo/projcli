@@ -681,3 +681,12 @@ the existing portable path bounds. Ordinary root manifest.csv remains separate.
 
 Automatic snapshot discovery and new flat CSV/JSON catalogue publication remain
 pending; this is compatibility recovery, not a format conversion or migration.
+
+## Verify and restore new flat CSV/JSON snapshots
+
+The same named-store and exact-ID verify/restore commands now read the new
+flat-catalogue-v1 binding as well as tree-v1 and legacy-flat. They resolve complete
+version inventories, check all referenced bytes and keep VERSION, root CSV and
+store history unchanged. Current write format does not hide older snapshots.
+See the [format/placement reference](../configuration.qmd#flat-history-in-local-cas).
+Automatic snapshot selection is still separate; no newest-version policy is added.

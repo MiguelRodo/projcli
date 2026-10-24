@@ -599,3 +599,12 @@ Legacy CAS recovery preserves raw JSON IDs and the original namespace. Never
 relabel them as tree roots. Reuse bounded reads, portable path checks and the
 shared private installer; do not invent empty-directory history. Format selection
 must reject ambiguous same-ID namespace presence and never write during verify.
+
+Local CAS flat runtime must preserve ordinary root MD5 CSV and legacy/tree IDs.
+Keep style, serialization/dictionary mode, placement and raw object dedup distinct.
+Only decoded compatible history prefixes may merge; prior label/version inventory
+is immutable. Existing store Attempt claim protects authoritative history reads
+through atomic replacements and refs. Unknown claims fail closed; no auto cleanup.
+Required histories then full refs then project binding. No cross-location rollback,
+history truncation, GC, unnecessary tree-object intermediate or performance claim.
+Other provider formatting remains explicitly pending until implemented/tested.

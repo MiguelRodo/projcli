@@ -37,7 +37,7 @@ fn control_name(name:&str)->bool {
             &&[".yml",".yaml",".yml.local",".yaml.local"].iter().any(|suffix|name.ends_with(suffix)))
         ||name=="_environment"||name.starts_with("_environment.")||name.starts_with("_environment-")
 }
-fn project_target(root:&Utf8Path,target:&Utf8Path,allow_metadata:bool)->Result<()> {
+pub(crate) fn project_target(root:&Utf8Path,target:&Utf8Path,allow_metadata:bool)->Result<()> {
     let root=physical(root)?;let root_key=portable_path_key(&root);
     anyhow::ensure!(root.is_dir(),"CAS project root must be an existing directory");
     let key=portable_path_key(target);
@@ -66,7 +66,7 @@ fn writer_paths(root:&Utf8Path,store:&Layout)->Result<()> {
     Ok(())
 }
 
-fn native(base:&Utf8Path,relative:&str)->Result<Utf8PathBuf> {
+pub(crate) fn native(base:&Utf8Path,relative:&str)->Result<Utf8PathBuf> {
     let path=base.join(relative);
     crate::path_safety::resolve_path(path.as_std_path(),true)?;
     crate::path_safety::validate_native_names(base,relative,false)?;
@@ -100,7 +100,7 @@ fn read_tree(store:&Layout,id:&str)->Result<(DirectoryTree,usize)> {
     anyhow::ensure!(actual==id,"Corrupt CAS directory-object identity: expected {id}, observed {actual}");
     Ok((tree,bytes.len()))
 }
-fn publish_metadata(path:&Utf8Path,bytes:&[u8],validate:impl Fn(&[u8])->Result<()>)->Result<()> {
+pub(crate) fn publish_metadata(path:&Utf8Path,bytes:&[u8],validate:impl Fn(&[u8])->Result<()>)->Result<()> {
     if crate::yml::configuration_entry_exists(path)? {
         return validate(&metadata_bytes(path,"metadata object")?)
             .context("Existing immutable CAS metadata is invalid; preserved");
@@ -168,22 +168,67 @@ fn scan(directory:&Utf8Path,relative:&str,work:&mut Expansion)->Result<Plan> {
     entries.sort_by(|a,b|a.name.as_bytes().cmp(b.name.as_bytes()));
     Ok(Plan {entries})
 }
+fn store_file(store:&Layout,path:&Utf8Path)->Result<String> {
+    crate::path_safety::resolve_path(path.as_std_path(),true)?;
+    anyhow::ensure!(fs::symlink_metadata(path)?.is_file(),"CAS source file changed type");
+    let mut file=fs::File::open(path).context("Cannot open current CAS source file")?;
+    anyhow::ensure!(file.metadata()?.is_file(),"CAS source handle is not regular");
+    crate::cas::store_object(&mut file,&store.objects)
+}
 fn store_plan(store:&Layout,plan:&Plan)->Result<String> {
     let mut entries=Vec::new();
     for entry in &plan.entries {
         let (kind,hash)=match &entry.content {
             PlannedContent::Tree(child)=>(EntryKind::Tree,store_plan(store,child)?),
-            PlannedContent::File(path)=>{
-                crate::path_safety::resolve_path(path.as_std_path(),true)?;
-                anyhow::ensure!(fs::symlink_metadata(path)?.is_file(),"CAS source file changed type");
-                let mut file=fs::File::open(path).context("Cannot open current CAS source file")?;
-                anyhow::ensure!(file.metadata()?.is_file(),"CAS source handle is not regular");
-                (EntryKind::File,crate::cas::store_object(&mut file,&store.objects)?)
-            }
+            PlannedContent::File(path)=>(EntryKind::File,store_file(store,path)?),
         };
         entries.push(TreeEntry {name:entry.name.clone(),kind,hash});
     }
     publish_tree(store,&DirectoryTree::new(entries)?)
+}
+fn store_flat_plan(store:Option<&Layout>,plan:&Plan,prefix:&str,files:&mut Vec<FileRecord>,empty:&mut Vec<String>)->Result<()> {
+    if plan.entries.is_empty()&&!prefix.is_empty(){empty.push(prefix.into());}
+    for entry in &plan.entries {
+        let name=if prefix.is_empty(){entry.name.clone()}else{format!("{prefix}/{}",entry.name)};
+        match &entry.content {
+            PlannedContent::File(path)=>files.push(FileRecord {path:name,hash:match store {Some(store)=>store_file(store,path)?,None=>"0".repeat(64)}}),
+            PlannedContent::Tree(child)=>store_flat_plan(store,child,&name,files,empty)?,
+        }
+    }Ok(())
+}
+/// Copy/hash raw objects without publishing directory-tree objects; return complete membership.
+pub fn ingest_flat_directory(project_root:&Utf8Path,content:&Utf8Path,source:&Utf8Path,label:&str)->Result<FlatDirectory> {
+    let store=layout(content,content)?;writer_paths(project_root,&store)?;
+    let source=source_path(project_root,&store,source)?;
+    anyhow::ensure!(source.is_dir(),"CAS source must be an existing directory");
+    let plan=scan(&source,"",&mut Expansion::default())?;
+    let mut shape_files=Vec::new();let mut shape_empty=Vec::new();
+    store_flat_plan(None,&plan,"",&mut shape_files,&mut shape_empty)?;
+    FlatSnapshot::new("inventory".into(),None,vec![FlatDirectory {label:label.into(),files:shape_files,empty_directories:shape_empty}])?;
+    let mut files=Vec::new();let mut empty=Vec::new();
+    store_flat_plan(Some(&store),&plan,"",&mut files,&mut empty)?;
+    Ok(FlatSnapshot::new("inventory".into(),None,vec![FlatDirectory {label:label.into(),files,empty_directories:empty}])?.directories.remove(0))
+}
+/// Read-only complete source observation, for bounded metadata preparation before provider entry.
+pub(crate) fn observe_flat_directory(project_root:&Utf8Path,content:&Utf8Path,source:&Utf8Path,label:&str)->Result<FlatDirectory> {
+    let store=layout(content,content)?;let source=source_path(project_root,&store,source)?;
+    anyhow::ensure!(source.is_dir(),"CAS source must be an existing directory");
+    let plan=scan(&source,"",&mut Expansion::default())?;
+    let mut files=Vec::new();let mut empty=Vec::new();let mut dirs=HashSet::new();
+    observed(&plan,"",&mut files,&mut empty,&mut dirs)?;
+    Ok(FlatSnapshot::new("inventory".into(),None,vec![FlatDirectory {label:label.into(),files,empty_directories:empty}])?.directories.remove(0))
+}
+/// Verify all selected flat raw objects under one shared digest cache; no metadata writes.
+pub(crate) fn verify_flat_inventory(content:&Utf8Path,metadata:&Utf8Path,snapshot:&FlatSnapshot)->Result<()> {
+    let store=layout(content,metadata)?;let mut graph=Graph::default();
+    for directory in &snapshot.directories {for file in &directory.files {graph.file(&store,&file.hash)?;}}
+    Ok(())
+}
+/// Install a verified flat inventory with the existing guarded private staging/installer.
+pub(crate) fn restore_flat_inventory(project_root:&Utf8Path,content:&Utf8Path,metadata:&Utf8Path,
+    id:&str,version:&str,inventory:&FlatDirectory,destination:&Utf8Path,clear:bool)->Result<TreeRestore> {
+    let store=layout(content,metadata)?;
+    install_inventory(project_root,&store,id,version,inventory,destination,clear)
 }
 
 /// Copy/hash selected bytes and publish immutable directory objects; return the content root.
@@ -355,6 +400,12 @@ fn restore_destination(root:&Utf8Path,store:&Layout,destination:&Utf8Path)->Resu
         store.snapshots.parent().context("CAS snapshots have no namespace parent")?,&legacy] {
         anyhow::ensure!(!overlaps(&destination,namespace),"CAS restore destination overlaps storage");
     }
+    for base in [store.objects.parent().context("CAS objects have no base")?,
+        store.trees.parent().and_then(Utf8Path::parent).context("CAS trees have no base")?] {
+        for relative in ["catalogues","flat-snapshots",".proj"] {
+            anyhow::ensure!(!overlaps(&destination,&base.join(relative)),"CAS restore destination overlaps flat metadata");
+        }
+    }
     let parent=destination.parent().context("CAS restore destination has no parent")?;
     anyhow::ensure!(fs::symlink_metadata(parent)?.is_dir(),"CAS restore destination parent must already exist");
     if crate::yml::configuration_entry_exists(&destination)? {
@@ -507,6 +558,12 @@ fn source_path(root:&Utf8Path,store:&Layout,source:&Utf8Path)->Result<Utf8PathBu
     for target in [&store.objects,&store.trees,&store.snapshots,
         &physical(&root.join(".proj"))?,&physical(&root.join(".projr"))?] {
         anyhow::ensure!(!overlaps(&source,target),"CAS source overlaps storage or project metadata");
+    }
+    for base in [store.objects.parent().context("CAS objects have no base")?,
+        store.trees.parent().and_then(Utf8Path::parent).context("CAS trees have no base")?] {
+        for relative in ["catalogues","flat-snapshots",".proj"] {
+            anyhow::ensure!(!overlaps(&source,&base.join(relative)),"CAS source overlaps flat metadata");
+        }
     }
     Ok(source)
 }

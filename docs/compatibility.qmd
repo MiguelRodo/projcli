@@ -3171,3 +3171,25 @@ object verification and the existing installer. No new database, identity,
 writer policy or migration. Six CLI fixture groups cover empty roots/bounded reads, exact bytes, Unicode,
 fresh-project recovery, corruption, unsafe inventories and format coexistence.
 Remote tests and independent exact-head review remain pending.
+
+## Local CAS flat catalogue runtime
+
+New beyond projr: local CAS publishes validated CSV/JSON version-level dedupe and
+opt-in file dictionaries, with metadata placement and explicit verified recovery.
+Ordinary MD5 root CSV, latest/archive/GitHub metadata and old CAS IDs/readers are
+preserved. New flat reference hashes bind selected label/version inventory IDs;
+they never masquerade as tree objects or dictionary IDs.
+
+Ponytail full design review reused Catalogue resolution/encoding, managed reads,
+raw blob copying, Attempt ownership and the guarded inventory installer. Decoded
+histories must be compatible prefixes, same-version retries compare complete
+inventories, and encoded bounds never silently truncate. Mutable full tables use
+fresh-inode atomic replacement; small snapshot refs remain immutable and last.
+
+Fixtures cover four formats/placements, Excel membership, version references and
+reversion, format switching, idempotent/partial retries, stale claims, corruption,
+and Unix second-copy permission failure with hard-link preservation. Remote
+checks and exact-head independent final review remain pending.
+
+The Unix second-copy permission witness runs under the existing unprivileged
+host/pinned CI users; it must not be run as root. No local heavy tests ran.
