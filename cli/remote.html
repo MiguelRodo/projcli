@@ -330,6 +330,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </ul></li>
   <li><a href="#verify-or-restore-an-exact-local-cas-tree-snapshot-development-source" id="toc-verify-or-restore-an-exact-local-cas-tree-snapshot-development-source" class="nav-link" data-scroll-target="#verify-or-restore-an-exact-local-cas-tree-snapshot-development-source">Verify or restore an exact local CAS tree snapshot (development source)</a></li>
   <li><a href="#recover-existing-flat-cas-snapshots" id="toc-recover-existing-flat-cas-snapshots" class="nav-link" data-scroll-target="#recover-existing-flat-cas-snapshots">Recover existing flat CAS snapshots</a></li>
+  <li><a href="#verify-and-restore-new-flat-csvjson-snapshots" id="toc-verify-and-restore-new-flat-csvjson-snapshots" class="nav-link" data-scroll-target="#verify-and-restore-new-flat-csvjson-snapshots">Verify and restore new flat CSV/JSON snapshots</a></li>
   </ul>
 </nav>
     </div>
@@ -649,6 +650,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>The reader validates metadata, portable names and every referenced object before using the same guarded staging/installer as trees. Old snapshots remain usable after the remote’s current write style changes, without a project CSV or legacy ledger. Stored metadata, IDs, objects, VERSION and history are never rewritten.</p>
 <p>Legacy snapshots record files but not empty directories or permissions. Recovery does not invent that missing history. Unsafe path aliases, traversal, corrupt or missing content and conflicting same-ID namespace entries fail explicitly before destination changes. Metadata is bounded at 16 MiB and 100,000 file entries, with the existing portable path bounds. Ordinary root manifest.csv remains separate.</p>
 <p>Automatic snapshot discovery and new flat CSV/JSON catalogue publication remain pending; this is compatibility recovery, not a format conversion or migration.</p>
+</section>
+<section id="verify-and-restore-new-flat-csvjson-snapshots" class="level2">
+<h2 class="anchored" data-anchor-id="verify-and-restore-new-flat-csvjson-snapshots">Verify and restore new flat CSV/JSON snapshots</h2>
+<p>The same named-store and exact-ID verify/restore commands now read the new flat-catalogue-v1 binding as well as tree-v1 and legacy-flat. They resolve complete version inventories, check all referenced bytes and keep VERSION, root CSV and store history unchanged. Current write format does not hide older snapshots. See the <a href="../configuration.html#flat-history-in-local-cas">format/placement reference</a>. Automatic snapshot selection is still separate; no newest-version policy is added.</p>
 
 
 </section>

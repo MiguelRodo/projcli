@@ -368,6 +368,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#configured-cas-tree-publisher" id="toc-configured-cas-tree-publisher" class="nav-link" data-scroll-target="#configured-cas-tree-publisher">Configured CAS tree publisher</a></li>
   <li><a href="#explicit-named-cas-snapshot-recovery" id="toc-explicit-named-cas-snapshot-recovery" class="nav-link" data-scroll-target="#explicit-named-cas-snapshot-recovery">Explicit named CAS snapshot recovery</a></li>
   <li><a href="#legacy-flat-cas-verified-recovery" id="toc-legacy-flat-cas-verified-recovery" class="nav-link" data-scroll-target="#legacy-flat-cas-verified-recovery">Legacy flat CAS verified recovery</a></li>
+  <li><a href="#local-cas-flat-catalogue-runtime" id="toc-local-cas-flat-catalogue-runtime" class="nav-link" data-scroll-target="#local-cas-flat-catalogue-runtime">Local CAS flat catalogue runtime</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -1246,6 +1247,14 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="legacy-flat-cas-verified-recovery">Legacy flat CAS verified recovery</h2>
 <p>The original flat manifest namespace and raw-JSON BLAKE3 identity are read directly, with no conversion. Configured verification/restore now distinguish legacy-flat from tree-v1, while existing tree result fields remain present. Legacy ASCII-insensitive label matching is preserved. The shared installer continues fresh-copy/hash verification and original-preserving cleanup.</p>
 <p>Ponytail full review reused bounded managed reads, portable inventory validation, object verification and the existing installer. No new database, identity, writer policy or migration. Six CLI fixture groups cover empty roots/bounded reads, exact bytes, Unicode, fresh-project recovery, corruption, unsafe inventories and format coexistence. Remote tests and independent exact-head review remain pending.</p>
+</section>
+<section id="local-cas-flat-catalogue-runtime" class="level2">
+<h2 class="anchored" data-anchor-id="local-cas-flat-catalogue-runtime">Local CAS flat catalogue runtime</h2>
+<p>New beyond projr: local CAS publishes validated CSV/JSON version-level dedupe and opt-in file dictionaries, with metadata placement and explicit verified recovery. Ordinary MD5 root CSV, latest/archive/GitHub metadata and old CAS IDs/readers are preserved. New flat reference hashes bind selected label/version inventory IDs; they never masquerade as tree objects or dictionary IDs.</p>
+<p>Ponytail full design review reused Catalogue resolution/encoding, managed reads, raw blob copying, Attempt ownership and the guarded inventory installer. Decoded histories must be compatible prefixes, same-version retries compare complete inventories, and encoded bounds never silently truncate. Mutable full tables use fresh-inode atomic replacement; small snapshot refs remain immutable and last.</p>
+<p>Fixtures cover four formats/placements, Excel membership, version references and reversion, format switching, idempotent/partial retries, stale claims, corruption, and Unix second-copy permission failure with hard-link preservation. Remote checks and exact-head independent final review remain pending.</p>
+<p>The Unix second-copy permission witness runs under the existing unprivileged host/pinned CI users; it must not be run as root. No local heavy tests ran.</p>
+<p>Remote execution caught an assertion expecting an unquoted root CSV header. Production correctly retained its existing QUOTE_ALL codec. The fixture now parses the four column names while retaining exact root-CSV byte comparisons around recovery; production serialization is unchanged.</p>
 
 
 </section>

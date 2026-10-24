@@ -321,6 +321,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#ordinary-registry-selection-and-restore-sources" id="toc-ordinary-registry-selection-and-restore-sources" class="nav-link" data-scroll-target="#ordinary-registry-selection-and-restore-sources">Ordinary registry selection and restore sources</a></li>
   <li><a href="#configured-local-cas-tree-publication-unreleased" id="toc-configured-local-cas-tree-publication-unreleased" class="nav-link" data-scroll-target="#configured-local-cas-tree-publication-unreleased">Configured local CAS tree publication (unreleased)</a></li>
   <li><a href="#explicit-saved-folder-recovery-development-source" id="toc-explicit-saved-folder-recovery-development-source" class="nav-link" data-scroll-target="#explicit-saved-folder-recovery-development-source">Explicit saved-folder recovery (development source)</a></li>
+  <li><a href="#readable-local-snapshot-history-development-source" id="toc-readable-local-snapshot-history-development-source" class="nav-link" data-scroll-target="#readable-local-snapshot-history-development-source">Readable local snapshot history (development source)</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -578,13 +579,18 @@ ul.task-list li input[type="checkbox"] {
 <p>A new local CAS destination saves identical file bytes once and represents each folder by a content fingerprint. Builds can send selected declared folders and keep the complete folder listings remotely, in the project, or in both places. A small project record identifying the saved folders is always written last.</p>
 <p>auto chooses remote listings for the new tree writer. both requires both copies, but is not a transaction across locations: a later failure may leave published data or references. The build preserves its local release and records possible distribution rather than claiming everything was rolled back. Preview restores the captured store and project remote metadata.</p>
 <p>Previously accepted content/inspect CAS definitions keep their existing flat format and history. Nothing is silently converted. Ordinary latest/archive storage, GitHub Releases and the root manifest.csv remain unchanged.</p>
-<p>See the <a href="./configuration.html#configured-local-cas-tree-publication-unreleased">configuration reference</a> for the exact fields and example. Automatic CAS snapshot selection and publishing the new CSV/JSON history formats remain pending. Explicit verification/recovery is described below; unsupported options fail explicitly.</p>
+<p>See the <a href="./configuration.html#configured-local-cas-tree-publication-unreleased">configuration reference</a> for the exact fields and example. Automatic CAS snapshot selection and ordinary/GitHub formatting remain pending; local CAS CSV/JSON publication is described below. Explicit verification/recovery is described below; unsupported options fail explicitly.</p>
 </section>
 <section id="explicit-saved-folder-recovery-development-source" class="level2">
 <h2 class="anchored" data-anchor-id="explicit-saved-folder-recovery-development-source">Explicit saved-folder recovery (development source)</h2>
 <p>You can now verify or restore one named local tree snapshot by its exact ID. This works after removing the folder from current uploads, and can recover a remote snapshot into a newly configured project. It verifies saved file bytes before changing the declared destination and retains existing merge/clear controls. It never treats the small project record as a complete backup.</p>
 <p>The explicit snapshot mode leaves ordinary restore selection unchanged. It does not infer the newest snapshot, reinterpret old flat IDs, create build logs or update project versions. See the <a href="./cli/remote.html">remote command reference</a>.</p>
-<p>Existing flat CAS snapshots can also be checked and restored by exact ID without converting them. See the <a href="./cli/remote.html#recover-existing-flat-cas-snapshots">remote reference</a>. Their older file lists do not record empty folders, so those cannot be restored from that format. New CSV/JSON history publication remains pending.</p>
+<p>Existing flat CAS snapshots can also be checked and restored by exact ID without converting them. See the <a href="./cli/remote.html#recover-existing-flat-cas-snapshots">remote reference</a>. Their older file lists do not record empty folders, so those cannot be restored from that format. Local CAS CSV/JSON history is described below; other provider formatting remains pending.</p>
+</section>
+<section id="readable-local-snapshot-history-development-source" class="level2">
+<h2 class="anchored" data-anchor-id="readable-local-snapshot-history-development-source">Readable local snapshot history (development source)</h2>
+<p>Local CAS flat style now publishes CSV/JSON histories, with unchanged versions pointing directly to earlier complete folder listings. Optional file dictionaries keep every path but shorten repeated hashes. Both plain formats and dictionary variants use the same raw stored bytes and stable snapshot bindings.</p>
+<p>Full history placement and small project references follow the existing approved policy. Earlier decoded records remain immutable; retries preserve them and later copy failures retain honest partial-publication evidence. Existing ordinary root CSV and old flat/tree snapshots remain unchanged. Other provider formatting and automatic snapshot lookup remain pending.</p>
 
 
 </section>

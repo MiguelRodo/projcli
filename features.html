@@ -287,6 +287,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#remote-work-in-preview.3" id="toc-remote-work-in-preview.3" class="nav-link" data-scroll-target="#remote-work-in-preview.3">Remote work in preview.3</a></li>
   <li><a href="#choose-where-a-build-saves-its-results" id="toc-choose-where-a-build-saves-its-results" class="nav-link" data-scroll-target="#choose-where-a-build-saves-its-results">Choose where a build saves its results</a></li>
   <li><a href="#check-and-recover-a-saved-folder" id="toc-check-and-recover-a-saved-folder" class="nav-link" data-scroll-target="#check-and-recover-a-saved-folder">Check and recover a saved folder</a></li>
+  <li><a href="#keep-a-readable-history-of-saved-files" id="toc-keep-a-readable-history-of-saved-files" class="nav-link" data-scroll-target="#keep-a-readable-history-of-saved-files">Keep a readable history of saved files</a></li>
   </ul>
 </nav>
     </div>
@@ -403,13 +404,18 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="choose-where-a-build-saves-its-results">Choose where a build saves its results</h2>
 <p>In development source, name each available storage destination once under remotes, then select where this build sends its results with build.dest. A named location remains available for restoring earlier data after you stop uploading to it. The <a href="./configuration.html">configuration reference</a> has copyable examples and explains how to select only particular folders.</p>
 <p>For local content-addressed storage (CAS), identical file bytes are stored once and folders receive fingerprints based on their names and contents. The new tree writer can keep the complete folder listing in the storage location, in your project, or in both. It always keeps a small project record identifying the saved folders. That small record alone cannot restore files if the storage content or required full listings are lost.</p>
-<p>These additions are not in installed preview.3. Automatic version selection for CAS restore and the new CSV/JSON history options remain pending. Explicit named-ID tree recovery is described below. Ordinary local and GitHub Release upload/restore behavior remains available as described in the <a href="./remote-compatibility.html">remote guide</a>.</p>
+<p>These additions are not in installed preview.3. Automatic version selection for CAS restore and ordinary/GitHub formatting remain pending; local CAS CSV/JSON history is described below. Explicit named-ID tree recovery is described below. Ordinary local and GitHub Release upload/restore behavior remains available as described in the <a href="./remote-compatibility.html">remote guide</a>.</p>
 </section>
 <section id="check-and-recover-a-saved-folder" class="level2">
 <h2 class="anchored" data-anchor-id="check-and-recover-a-saved-folder">Check and recover a saved folder</h2>
 <p>In development source, you can check the exact file bytes in a local tree snapshot, then restore a selected folder. Choose its configured storage name and snapshot ID explicitly; this first command slice does not find a version for you. The <a href="./cli/remote.html#verify-or-restore-an-exact-local-cas-tree-snapshot-development-source">remote reference</a> shows both commands.</p>
 <p>Restoring an older folder still works after you stop uploading that folder. A complete snapshot saved remotely can recover files into a fresh configured project. The command leaves your project version and stored snapshot unchanged. It checks the data before replacing files; choose –clear only when you want to remove destination-only files as well. Installed preview.3 is unchanged.</p>
-<p>Existing flat CAS snapshots can also be checked and restored by exact ID without converting them. See the <a href="./cli/remote.html#recover-existing-flat-cas-snapshots">remote reference</a>. Their older file lists do not record empty folders, so those cannot be restored from that format. New CSV/JSON history publication remains pending.</p>
+<p>Existing flat CAS snapshots can also be checked and restored by exact ID without converting them. See the <a href="./cli/remote.html#recover-existing-flat-cas-snapshots">remote reference</a>. Their older file lists do not record empty folders, so those cannot be restored from that format. Local CAS CSV/JSON history is described below; other provider formatting remains pending.</p>
+</section>
+<section id="keep-a-readable-history-of-saved-files" class="level2">
+<h2 class="anchored" data-anchor-id="keep-a-readable-history-of-saved-files">Keep a readable history of saved files</h2>
+<p>In development source, a local store can keep a CSV history you can filter in Excel, or a JSON history you can open as text. When a folder has not changed, a later version points directly to its earlier complete listing. Changed versions still list every current file. The <a href="./configuration.html#flat-history-in-local-cas">configuration example</a> shows how to choose the format and where to keep the full history.</p>
+<p>You can optionally shorten repeated hashes using a file dictionary. That adds indirection, so it is off by default. File-byte storage already avoids duplicate content independently of these choices. The existing project manifest.csv remains unchanged. These source additions are not yet in installed preview.3.</p>
 
 
 </section>

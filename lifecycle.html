@@ -882,13 +882,17 @@ Figure&nbsp;10: Development source: production failure evidence follows the exis
 flowchart TB
   A["Frozen selected CAS targets"] --&gt; B["Read-only source preparation"]
   B --&gt; C["Retain distribution-start evidence"]
-  C --&gt; D["Publish verified file and tree objects"]
-  D --&gt; E["Publish required complete snapshot references"]
+  C --&gt; D{"Selected manifest style"}
+  D --&gt;|Tree| T["Save file bytes and directory fingerprints"]
+  D --&gt;|Flat| H["Save file bytes; claim history writer and preserve earlier rows"]
+  T --&gt; E["Save required full metadata, then snapshot records"]
+  H --&gt; E
   E --&gt; F["Write lightweight project root reference"]
   F --&gt; G["Existing optional Git and finalization"]
-  D --&gt; H["On failure: preserve local release and possible partial effects"]
-  E --&gt; H
-  F --&gt; H
+  T --&gt; X["On failure: preserve local release and possible partial effects"]
+  H --&gt; X
+  E --&gt; X
+  F --&gt; X
 </pre>
 </div>
 </div>
@@ -905,6 +909,7 @@ Figure&nbsp;11: Development source: save a selected directory snapshot before Gi
 <h2 class="anchored" data-anchor-id="explicit-snapshot-verification-and-recovery">Explicit snapshot verification and recovery</h2>
 <p>The separate remote verify / remote restore –snapshot operations do not enter the build lifecycle, run hooks, create attempt logs, distribute data or bump a version. They select a named store and exact saved snapshot, validate bytes, and use the existing guarded directory installer only for an explicit restore. The eleven build-stage figures retain their existing order.</p>
 <p>Legacy-flat verification/recovery follows the same separate, explicit path as tree recovery. Stored-format selection changes no build stage or figure; both formats use the existing guarded installer and leave project/store history alone.</p>
+<p>Flat publication prepares bounded history early, copies raw objects, then holds the store claim through its authoritative history read/replacement and required references. All selected raw bytes and inventory bindings verify. Existing partial-distribution, optional Git, end-hook and next-dev boundaries are unchanged. The eleven-figure native browser witness remains required.</p>
 
 
 </section>
