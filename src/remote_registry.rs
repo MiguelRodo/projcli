@@ -322,7 +322,7 @@ mod tests {
     #[test]
     fn unsupported_new_policy_values_fail_instead_of_activating_silent_defaults() {
         for remote in [serde_json::json!({"path":"../A","manifest":"unsupported"}),
-            serde_json::json!({"path":"../A","manifest-style":"tree"}),
+            serde_json::json!({"path":"../A","manifest-style":"unknown"}),
             serde_json::json!({"path":"../A","manifest-format":null})] {
             assert!(serde_json::from_value::<ProjConfig>(serde_json::json!({"remotes":{"local":{"A":remote}}})).is_err());
         }

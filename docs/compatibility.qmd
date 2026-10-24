@@ -3302,3 +3302,30 @@ Remote exact-head checks and independent review are pending; no local tests ran.
 Independent early runtime review found no safety blocker; the new verify witness
 uses the existing machine envelope's result.snapshot.snapshot_kind field. The
 development-source lifecycle overlay now names the known-history checks.
+
+
+## Ordinary local tree metadata
+
+New beyond projr: per-remote tree metadata over ordinary local latest/archive
+payloads, using existing v1 pure directory identities and sharding. Actual transfer
+strategy/cue/inspection, normal data layout, root MD5 CSV and compatible restore
+remain unchanged. No raw CAS objects are added to ordinary stores.
+
+The JSON companion preserves readable file membership, direct version references
+and immutable history without inventing another index. Tree roots exclude this
+projection/version/locator and are independently cross-checked. This duplicates
+metadata; size/speed benefits remain unverified. Flat snapshot bytes/IDs are
+preserved; a distinct tree binding schema adds roots. GitHub tree metadata stays
+explicitly rejected pending its reviewed integration.
+
+Ponytail full reused the core directory codec, existing counters/guards, history
+codecs, final-stage callback and immutable writer. Early independent review moved
+Tree representability checks into the final private-stage validation before
+replacement. Inferred keys/nodes are charged before allocation and referenced
+digests verified before traversal.
+
+Remote-only checks include pure context-independent roots/global inferred bounds/
+bad-node guards; a 16-case CLI layout/placement/cue matrix with native-CAS root
+equality; style-switch preservation; corruption; JSON validation; linked namespace;
+and an owned 100,000-child private-stage rejection preserving prior backup/history.
+No local heavy tests ran; exact-head CI and final independent review are pending.

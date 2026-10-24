@@ -47,6 +47,8 @@ pub(crate) fn validate(root:&Utf8Path,raw:Option<&Map<String,Value>>,config:&cra
         for label in &labels {crate::restore::content_has(definition.content.as_ref(),label,&context)?;}
         crate::path_safety::validate_directory_labels(labels.iter().map(String::as_str))?;
         if labels.is_empty(){continue;}
+        anyhow::ensure!(metadata.as_ref().is_none_or(|policy|policy.style==crate::cas_remote::Style::Flat),
+            "GitHub tree metadata is not implemented yet");
         anyhow::ensure!(definition.cue.is_none(),"Use send.cue, not a title-level cue");
         let send:crate::publication::Send=serde_json::from_value(definition.send.unwrap_or(serde_json::json!({})))?;
         let inspection=send.inspect.as_deref().unwrap_or("manifest");

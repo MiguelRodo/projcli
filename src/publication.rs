@@ -492,7 +492,7 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
                     directories.push(directory);
                     payloads.push(crate::ordinary_manifest::Payload {label:label.clone(),inventory_hash:String::new(),
                         path:path.strip_prefix(&target.base)?.as_str().replace(std::path::MAIN_SEPARATOR,"/"),
-                        empty:is_empty,advertised_version:advertised});
+                        empty:is_empty,advertised_version:advertised,tree:None});
                 }
                 item.rows.retain(|row|!(row.label==*label&&row.version==version));
                 item.rows.extend(history.iter().filter(|row|row.label==*label&&row.version==version).cloned());

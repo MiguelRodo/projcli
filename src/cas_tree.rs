@@ -7,8 +7,10 @@ use crate::path_safety::{portable_paths_overlap as overlaps,portable_path_key};
 use crate::snapshot_format::{DirectoryTree,TreeEntry,EntryKind,TreeSnapshot,FlatDirectory,FileRecord,
     FlatSnapshot,MAX_METADATA_BYTES,MAX_RECORDS,MAX_PATH_WORK};
 
-const GRAPH_METADATA_BYTES:usize=64*1024*1024;
-const MAX_DEPTH:usize=64;
+/// Shared per-operation directory-metadata byte budget.
+pub(crate) const GRAPH_METADATA_BYTES:usize=64*1024*1024;
+/// Shared portable graph path-depth bound.
+pub(crate) const MAX_DEPTH:usize=64;
 
 struct Layout {objects:Utf8PathBuf,trees:Utf8PathBuf,snapshots:Utf8PathBuf}
 fn physical(path:&Utf8Path)->Result<Utf8PathBuf> {

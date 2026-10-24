@@ -211,7 +211,7 @@ fn registry_defaults_enable_csv_but_legacy_inline_remains_unchanged_and_invalid_
     config.as_object_mut().unwrap().remove("remotes");config["build"].as_object_mut().unwrap().remove("dest");
     config["build"]["local"]=json!({"delivery":definition});save(&root,&config);build(&root);
     let store=root.parent().unwrap().join("store");assert!(!store.join(".projcli-manifests").exists());assert!(!project_metadata(&root).exists());
-    for (key,value) in [("manifest",Value::Null),("manifest-style",json!("tree")),("manifest-format",json!("unknown"))] {
+    for (key,value) in [("manifest",Value::Null),("manifest-style",json!("unknown")),("manifest-format",json!("unknown"))] {
         config["build"]["local"]["delivery"][key]=value;save(&root,&config);
         let before=files(&store);assert!(!command(&root).arg("build").output().unwrap().status.success());assert_eq!(files(&store),before);
         config["build"]["local"]["delivery"].as_object_mut().unwrap().remove(key);

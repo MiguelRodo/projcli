@@ -609,8 +609,12 @@ flowchart TB
   A["Frozen selected destinations"] --> B["Read-only preparation and known-history checks"]
   B --> C["Retain possible distribution evidence on provider entry"]
   C --> L{"Ordinary local selected?"}
-  L -->|Yes| LP["Apply transfer policy; record actual final bytes"]
-  LP --> LR["Required full local histories and bindings; then project references"]
+  L -->|Yes| LP["Prepare final folder; check metadata limits"]
+  LP --> LA["Apply existing folder transfer policy"]
+  LA --> LS{"Local history style"}
+  LS -->|Flat| LR["Required full copies; then project references"]
+  LS -->|Tree| LT["Directory nodes plus readable file history"]
+  LT --> LR
   L -->|No| J{"GitHub selected?"}
   LR --> J
   J -->|Yes| JP["Prepare exact data ZIPs or download retained archive bytes"]
@@ -626,6 +630,8 @@ flowchart TB
   E --> F["Write lightweight project root reference"]
   F --> G
   LP --> X["On failure: preserve local release and possible partial effects"]
+  LA --> X
+  LT --> X
   LR --> X
   JW --> X
   JF --> X
@@ -666,7 +672,7 @@ before replacement. It records actual final bytes and their physical location,
 then writes legacy compatibility metadata, new complete history copies, full
 snapshot bindings and the small project reference. Failed copies retain honest
 partial effects. This addition does not change preview.3 or the later Git/end-hook
-ordering; ordinary tree formatting remains pending.
+ordering; GitHub tree formatting remains pending.
 
 
 ### GitHub file history in development source
@@ -684,3 +690,10 @@ Configured flat CAS checks both fixed known history copies in the existing
 pre-build validation phase, before hooks. It rereads compatible histories under
 the existing store claim during publication. Only selected full copies change;
 provider order and the explicit verification/recovery path remain unchanged.
+
+
+For ordinary local tree style, final private payload validation includes inferred
+directory limits before replacement. Actual stored membership then determines v1
+directory objects and a cross-checked readable history. Required objects and full
+copies precede references. Provider ordering and released historical figures are
+unchanged; the existing development overlay shows this added local style branch.

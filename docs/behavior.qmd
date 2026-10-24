@@ -823,7 +823,7 @@ format and history. Nothing is silently converted. Ordinary latest/archive
 storage, GitHub Releases and the root manifest.csv remain unchanged.
 
 See the [configuration reference](configuration.qmd#configured-local-cas-tree-publication-unreleased)
-for the exact fields and example. Automatic CAS snapshot selection and ordinary tree metadata remains pending; ordinary/GitHub flat formats are implemented below;
+for the exact fields and example. Automatic CAS snapshot selection and GitHub tree metadata remains pending; ordinary local trees are implemented below; ordinary/GitHub flat formats are implemented below;
 local CAS CSV/JSON publication is described below. Explicit verification/recovery is described below;
 unsupported options fail explicitly.
 
@@ -843,7 +843,7 @@ or update project versions. See the [remote command reference](cli/remote.qmd).
 Existing flat CAS snapshots can also be checked and restored by exact ID without
 converting them. See the [remote reference](cli/remote.qmd#recover-existing-flat-cas-snapshots).
 Their older file lists do not record empty folders, so those cannot be restored
-from that format. Local CAS CSV/JSON history is described below; ordinary/GitHub flat publication is also implemented below; ordinary tree metadata remains pending.
+from that format. Local CAS CSV/JSON history is described below; ordinary/GitHub flat publication is also implemented below; GitHub tree metadata remains pending; ordinary local trees are implemented below.
 
 ## Readable local snapshot history (development source)
 
@@ -855,7 +855,7 @@ variants use the same raw stored bytes and stable snapshot bindings.
 Full history placement and small project references follow the existing approved
 policy. Earlier decoded records remain immutable; retries preserve them and later
 copy failures retain honest partial-publication evidence. Existing ordinary
-root CSV and old flat/tree snapshots remain unchanged. Ordinary local flat history is described below; ordinary tree formatting
+root CSV and old flat/tree snapshots remain unchanged. Ordinary local flat history is described below; GitHub tree formatting
 and automatic snapshot lookup remain pending.
 
 
@@ -871,7 +871,7 @@ conflicts are checked on the complete private installation stage before replacin
 data. Required histories precede full bindings and small project references; failures
 report partial effects, without cross-location rollback.
 
-Ordinary tree metadata remains pending. The ordinary restore
+Ordinary local trees are implemented below; GitHub tree metadata remains pending. The ordinary restore
 command continues its existing CSV/VERSION behavior; no new automatic snapshot
 selection or historical latest-data recovery is claimed.
 
@@ -889,10 +889,26 @@ small project references. New history bundles are uploaded last and require the
 originally observed asset identity before deletion. Changed assets fail safely;
 no distributed locking, remote transaction or automatic retry is claimed.
 The ordinary CSV/VERSION restore path and root MD5 compatibility CSV remain.
-Ordinary tree metadata remains pending.
+Ordinary local trees are implemented below; GitHub tree metadata remains pending.
 
 
 Configured flat CAS placement changes retain compatible history from both known
 project/store locations while writing only selected destinations. Divergent known
 copies fail before hooks; locked publication rechecks current history. No automatic
 snapshot search, cross-location rollback or legacy-format migration is added.
+
+
+## Ordinary local tree metadata (development source)
+
+Explicit ordinary local tree style publishes existing v1 directory objects over
+actual final payload membership, without changing latest/archive transfer policy
+or data layout. Pure roots exclude label/version/locator; a separately versioned
+ordinary tree binding includes the root and physical destination information.
+Flat binding bytes/IDs remain unchanged.
+
+A readable JSON companion retains version-level references and immutable history.
+Directory graphs and projections are cross-checked before references publish.
+Each final private payload must be Tree-representable before replacement.
+Required full metadata copies precede small project references; later failures
+retain honest partial evidence. Ordinary restore remains compatible; GitHub tree
+metadata is a separate pending integration.
