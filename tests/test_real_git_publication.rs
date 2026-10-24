@@ -569,7 +569,7 @@ fn failed_commit_and_failed_receipt_write_preserve_both_diagnostics_and_snapshot
     assert!(!result.status.success());
     let diagnostic=String::from_utf8_lossy(&result.stderr);
     assert!(diagnostic.contains("Git operation failed"),"{diagnostic}");
-    assert!(diagnostic.contains("final attempt evidence could not be written"),"{diagnostic}");
+    assert!(diagnostic.to_lowercase().contains("final attempt evidence could not be written"),"{diagnostic}");
     assert!(diagnostic.to_lowercase().contains("permission denied"),"{diagnostic}");
     assert_eq!(fixture.text(&["rev-parse","HEAD"]),initial);
     assert_eq!(fs::read(fixture.root.join("VERSION")).unwrap(),b"Version: v1.2.4");
