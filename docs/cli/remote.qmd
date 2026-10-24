@@ -710,3 +710,12 @@ placement choices as local ordinary backups. See
 Existing ordinary restore uses compatible manifest.zip/VERSION.zip; new metadata
 does not change clear/skip/version selection. Existing CAS exact-ID commands do
 not reinterpret ordinary GitHub bindings as CAS objects.
+
+
+## Ordinary local tree history
+
+Ordinary local backups can write tree-style directory metadata while retaining
+the same CSV/VERSION restore command and physical data folders. See
+[configuration, limits and readable companion history](../configuration.qmd#ordinary-local-tree-history).
+These are metadata integrity checks during publication, not a new ordinary
+exact-ID verify/restore command. Existing CAS exact-ID recovery remains separate.

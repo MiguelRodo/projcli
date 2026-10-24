@@ -5,17 +5,20 @@ use camino::{Utf8Path,Utf8PathBuf};
 use serde::{Serialize,Deserialize};
 use crate::{catalogue::{Catalogue,Format},cas_remote::{Placement,Style},snapshot_format::{FlatDirectory,FlatSnapshot}};
 const SCHEMA:&str="projcli.ordinary-local-snapshot.v1";
+const TREE_SCHEMA:&str="projcli.ordinary-local-tree-snapshot.v1";
 
 /// Explicit ordinary metadata policy; absent inline policies preserve legacy behavior.
 #[derive(Clone)]
-pub(crate) struct Policy {pub(crate) placement:Placement,pub(crate) format:Format}
+pub(crate) struct Policy {pub(crate) placement:Placement,pub(crate) format:Format,pub(crate) style:Style}
 impl Policy {
+    /// Parse explicit ordinary opt-in: flat defaults to CSV and tree uses fixed JSON.
     pub(crate) fn parse(definition:&crate::restore::Definition)->Result<Option<Self>> {
         if definition.manifest.is_none()&&definition.manifest_style.is_none()&&definition.manifest_format.is_none(){return Ok(None)}
-        anyhow::ensure!(definition.manifest_style.unwrap_or(Style::Flat)==Style::Flat,
-            "Ordinary tree manifests are not implemented yet; use manifest-style: flat");
-        Ok(Some(Self {placement:definition.manifest.unwrap_or(Placement::Auto),
-            format:definition.manifest_format.unwrap_or(Format::Csv)}))
+        let style=definition.manifest_style.unwrap_or(Style::Flat);
+        anyhow::ensure!(style==Style::Flat||definition.manifest_format.is_none_or(|format|format==Format::Json),
+            "Tree metadata uses fixed v1 JSON; CSV/dictionary formats require flat style");
+        Ok(Some(Self {placement:definition.manifest.unwrap_or(Placement::Auto),style,
+            format:definition.manifest_format.unwrap_or(if style==Style::Tree{Format::Json}else{Format::Csv})}))
     }
     /// Resolve only new metadata; legacy root CSV and VERSION remain compatibility metadata.
     pub(crate) fn locations(&self,root:&Utf8Path,base:&Utf8Path,title:&str)->Result<Locations> {
@@ -26,12 +29,12 @@ impl Policy {
             Placement::Auto|Placement::Both=>vec![project.clone(),remote],
         };
         let history_bases=vec![project.clone(),base.join(".projcli-manifests")];
-        let result=Locations {bases,history_bases,project,format:self.format};result.preflight(root)?;Ok(result)
+        let result=Locations {bases,history_bases,project,format:self.format,style:self.style};result.preflight(root)?;Ok(result)
     }
 }
 /// Selected complete history locations and the always-small project binding.
 #[derive(Clone)]
-pub(crate) struct Locations {bases:Vec<Utf8PathBuf>,history_bases:Vec<Utf8PathBuf>,project:Utf8PathBuf,format:Format}
+pub(crate) struct Locations {bases:Vec<Utf8PathBuf>,history_bases:Vec<Utf8PathBuf>,project:Utf8PathBuf,format:Format,style:Style}
 /// One actual payload location, relative to the configured remote base.
 #[derive(Serialize,Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -42,6 +45,9 @@ pub(crate) struct Payload {
     pub(crate) empty:bool,
     /// Verbatim legacy VERSION entry; an asterisk still means source agreement is untrusted.
     pub(crate) advertised_version:Option<String>,
+    /// Pure directory root only for the separately versioned tree binding.
+    #[serde(default,skip_serializing_if="Option::is_none")]
+    pub(crate) tree:Option<String>,
 }
 #[derive(Serialize)]
 struct Binding<'a> {schema:&'static str,hash_algorithm:&'static str,version:&'a str,layout:&'static str,payloads:&'a [Payload]}
@@ -53,6 +59,9 @@ impl Locations {
             crate::cas_tree::project_target(root,base,true)?;
             for relative in ["catalogues/v1","snapshots/v1","references/v1"] {
                 crate::cas::checked_directory(&crate::cas_tree::native(base,relative)?)?;
+            }
+            if self.style==Style::Tree {
+                crate::cas::checked_directory(&crate::cas_tree::native(base,"trees/v1")?)?;
             }
             for format in [Format::Csv,Format::Json,Format::CsvDedupeFile,Format::JsonDedupeFile] {
                 let path=crate::cas_tree::native(base,crate::cas_flat::filename(format))?;
@@ -69,7 +78,9 @@ impl Locations {
     pub(crate) fn history(&self)->Result<Catalogue> {crate::cas_flat::load_history(&self.history_bases)}
     /// Reject conflicting retries against final private-stage membership, before installation.
     pub(crate) fn check(&self,history:&Catalogue,version:&str,directory:FlatDirectory)->Result<()> {
-        crate::cas_flat::append_idempotent(history,&FlatSnapshot::new(version.into(),None,vec![directory])?)?.encode(self.format)?;
+        let snapshot=FlatSnapshot::new(version.into(),None,vec![directory])?;
+        if self.style==Style::Tree {crate::ordinary_tree::Forest::build(&snapshot)?;}
+        crate::cas_flat::append_idempotent(history,&snapshot)?.encode(self.format)?;
         Ok(())
     }
     /// Write complete catalogue copies, then immutable full bindings, then project reference.
@@ -79,18 +90,26 @@ impl Locations {
         self.preflight(root)?;
         let snapshot=FlatSnapshot::new(version.into(),None,directories)?;
         let updated=crate::cas_flat::append_idempotent(history,&snapshot)?;
+        let forest=if self.style==Style::Tree{Some(crate::ordinary_tree::Forest::build(&snapshot)?)}else{None};
         payloads.sort_by(|a,b|a.label.as_bytes().cmp(b.label.as_bytes()));
         for payload in &mut payloads {
             payload.inventory_hash=updated.records.iter().find(|row|row.label==payload.label&&row.version==version)
                 .context("Published inventory is missing")?.inventory_hash.clone();
+            if let Some(forest)=&forest {
+                let (tree,hash)=forest.roots.get(&payload.label).context("Prepared directory root is missing")?;
+                anyhow::ensure!(hash==&payload.inventory_hash,"Tree and readable inventory disagree");
+                payload.tree=Some(tree.clone());
+            }
         }
-        let binding=Binding {schema:SCHEMA,hash_algorithm:"blake3",version,
+        let schema=if self.style==Style::Tree{TREE_SCHEMA}else{SCHEMA};
+        let binding=Binding {schema,hash_algorithm:"blake3",version,
             layout:if archive{"archive"}else{"latest"},payloads:&payloads};
         let canonical=serde_json::to_vec(&binding)?;
-        let mut hash=blake3::Hasher::new_derive_key(SCHEMA);hash.update(&canonical);let id=hash.finalize().to_hex().to_string();
+        let mut hash=blake3::Hasher::new_derive_key(schema);hash.update(&canonical);let id=hash.finalize().to_hex().to_string();
         let binding=serde_json::to_vec_pretty(&binding)?;
         anyhow::ensure!(binding.len()<=crate::snapshot_format::MAX_METADATA_BYTES,"Ordinary binding exceeds metadata limit");
         let bytes=updated.encode(self.format)?;
+        if let Some(forest)=&forest {for base in &self.bases{forest.publish(root,base)?;}}
         for base in &self.bases {
             let path=crate::cas_tree::native(base,crate::cas_flat::filename(self.format))?;
             if crate::yml::configuration_entry_exists(&path)?
@@ -122,4 +141,21 @@ pub(crate) fn project_metadata(root:&Utf8Path,provider:&str,title:&str)->Result<
     let mut hash=blake3::Hasher::new_derive_key("projcli.ordinary-remote-name.v1");
     hash.update(&serde_json::to_vec(&(provider,title))?);let key=hash.finalize().to_hex().to_string();
     Ok(root.join(".proj/remotes").join(&key[..2]).join(&key[2..]))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn ordinary_style_defaults_and_tree_json_validation_are_explicit() {
+        assert!(Policy::parse(&crate::restore::definition(&serde_json::json!({})).unwrap()).unwrap().is_none());
+        for (style,expected) in [("flat",Format::Csv),("tree",Format::Json)] {
+            let definition=crate::restore::definition(&serde_json::json!({"manifest-style":style})).unwrap();
+            assert_eq!(Policy::parse(&definition).unwrap().unwrap().format,expected);
+        }
+        for format in ["csv","csv-dedupe-file","json-dedupe-file"] {
+            assert!(crate::restore::definition(&serde_json::json!({"manifest-style":"tree","manifest-format":format})).is_err());
+        }
+        assert!(crate::restore::definition(&serde_json::json!({"manifest-style":"tree","manifest-format":"json"})).is_ok());
+    }
 }

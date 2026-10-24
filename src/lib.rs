@@ -90,3 +90,5 @@ pub mod cas_flat;
 pub(crate) mod ordinary_manifest;
 
 pub(crate) mod github_manifest;
+
+pub(crate) mod ordinary_tree;

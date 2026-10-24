@@ -631,3 +631,13 @@ Configured flat CAS must read/guard both fixed known metadata histories while
 writing only selected full copies. Reject divergence before hooks and recheck
 under the store claim. Preserve explicit-bases public API scope and existing IDs;
 placement continuity is not discovery or automatic migration.
+
+
+Ordinary local tree style keeps data in ordinary folders and uses the existing
+DirectoryTree v1 identity, with a readable Catalogue companion excluded from pure
+root identity. Charge inferred keys/nodes/prefixes globally before allocation.
+Validate final-private-stage representability before replacement; cross-check
+graph membership/projection and validate every node ID before traversal. Full
+objects/history/bindings precede references. Keep flat bytes/IDs and ordinary
+restore unchanged; never route file hashes through CAS objects here or silently
+accept pending GitHub tree writes.

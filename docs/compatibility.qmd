@@ -3302,3 +3302,66 @@ Remote exact-head checks and independent review are pending; no local tests ran.
 Independent early runtime review found no safety blocker; the new verify witness
 uses the existing machine envelope's result.snapshot.snapshot_kind field. The
 development-source lifecycle overlay now names the known-history checks.
+
+
+## Ordinary local tree metadata
+
+New beyond projr: per-remote tree metadata over ordinary local latest/archive
+payloads, using existing v1 pure directory identities and sharding. Actual transfer
+strategy/cue/inspection, normal data layout, root MD5 CSV and compatible restore
+remain unchanged. No raw CAS objects are added to ordinary stores.
+
+The JSON companion preserves readable file membership, direct version references
+and immutable history without inventing another index. Tree roots exclude this
+projection/version/locator and are independently cross-checked. This duplicates
+metadata; size/speed benefits remain unverified. Flat snapshot bytes/IDs are
+preserved; a distinct tree binding schema adds roots. GitHub tree metadata stays
+explicitly rejected pending its reviewed integration.
+
+Ponytail full reused the core directory codec, existing counters/guards, history
+codecs, final-stage callback and immutable writer. Early independent review moved
+Tree representability checks into the final private-stage validation before
+replacement. Inferred keys/nodes are charged before allocation and referenced
+digests verified before traversal.
+
+Remote-only checks include pure context-independent roots/global inferred bounds/
+bad-node guards; a 16-case CLI layout/placement/cue matrix with native-CAS root
+equality; style-switch preservation; corruption; JSON validation; linked namespace;
+and an owned 100,000-child private-stage rejection preserving prior backup/history.
+No local heavy tests ran; exact-head CI and final independent review are pending.
+
+
+The first Windows boundary fixture failed before its intended diagnostic and
+could not display the actual error. The owned regression now retains a small
+project source and seeds the same100,000 final-stage child boundary using empty
+folders in the owned backup; upload-missing must retain them. This avoids a large
+project provenance record and an extra full source-stage copy while keeping the
+production threshold/path guards and prior-backup/history assertions unchanged.
+Unexpected fixture errors now include bounded diagnostic text. No local test ran.
+
+
+The exact-limit filesystem fixture now uses a shallow balanced six-level topology
+(11,110 parents +80,000 children +8,885 leaves), retaining the same99,995 extra
+directories and100,000 final-stage children. This reduces repeated native-ancestor
+checks while keeping every guard/assertion. Excessive graph depth is independently
+checked by a small pure65-level metadata chain, without deep filesystem copies.
+
+The 100,001-record filesystem witness is retained on Unix/pinned Linux, avoiding
+100,000-directory copies on every Windows test/release run. Every host now also
+uses a compact owned 65-component retained-directory fixture with a shallow
+source/new file, forcing private-stage depth rejection before replacement.
+Its assertion names the observation/depth guard, not Forest's record limit.
+Pure record-budget and graph-depth tests remain on every host. Existing bytes,
+history, sampled directories and claim cleanup are asserted. No production bound
+or path guard changes; exact-head remote checks remain required.
+
+The unchanged compact Windows witness then exposed a real CLI stack overflow,
+rather than the expected structured depth error (run40115027597). Source review
+found a 64KiB hashing buffer declared in recursive manifest::inventory_directory
+visit frames, reachable while inventorying the retained destination before
+staging. Allocate that buffer once on the heap per inventory and pass its slice
+through recursion, retaining every path/type/read guard, MD5 chunk size and sort.
+This is the shared source-backed root-cause fix; the same 65-directory fixture
+remains strict, and remote execution must confirm the result. No stack-size
+increase or relaxed depth/record guard. Broader recursion/performance redesign
+is not part of this fix.

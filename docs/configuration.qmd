@@ -341,7 +341,7 @@ The new registry also accepts an ordinary name list for all eligible content,
 while mapping form is required for per-build label subsets.
 
 Named ordinary local destinations now support flat CSV/JSON history and metadata
-placement, described below. Ordinary tree formatting still fails
+placement, described below. GitHub tree formatting still fails
 until implemented; they are never accepted and ignored. Configured CAS tree mapping
 publication is described below. The existing CAS
 name-list route retains its legacy flat encoding when using legacy definitions.
@@ -396,7 +396,7 @@ local CAS flat CSV/JSON histories are described below. Automatic snapshot lookup
 remains deferred. Legacy inspect belongs only to the old definition; new
 manifest-format choices are validated against style. Ordinary local/GitHub flat
 histories are also implemented below, alongside compatible CSV/VERSION metadata;
-ordinary tree metadata remains pending.
+GitHub tree metadata remains pending; ordinary local trees are implemented below.
 
 ## Restore from a saved tree after changing upload choices
 
@@ -412,7 +412,7 @@ selection contract when no snapshot ID is supplied.
 Existing flat CAS snapshots can also be checked and restored by exact ID without
 converting them. See the [remote reference](cli/remote.qmd#recover-existing-flat-cas-snapshots).
 Their older file lists do not record empty folders, so those cannot be restored
-from that format. Local CAS CSV/JSON history is described below; ordinary/GitHub flat publication is also implemented below; ordinary tree metadata remains pending.
+from that format. Local CAS CSV/JSON history is described below; ordinary/GitHub flat publication is also implemented below; GitHub tree metadata remains pending; ordinary local trees are implemented below.
 
 
 ## Flat history in local CAS
@@ -533,7 +533,7 @@ compatibility metadata regardless of the new manifest placement.
 
 Pure legacy inline build.local definitions keep their old behavior unless an
 explicit manifest/style/format field opts in. Null or unknown options fail.
-Ordinary tree-style metadata remains pending; GitHub flat formatting is described below.
+Ordinary local tree metadata and GitHub flat formatting are described below; GitHub tree metadata remains pending.
 Switching formats retains old files and reads compatible earlier history;
 conflicting retries or histories fail rather than overwrite recorded inventory.
 
@@ -568,7 +568,7 @@ build:
 
 The same four flat formats and auto/project/remote/both placements as ordinary
 local destinations apply. auto means both. The format default remains csv;
-tree is explicitly unsupported for ordinary/GitHub destinations until implemented.
+Tree style is available for ordinary local destinations; GitHub tree style remains pending.
 Legacy inline build.github without new metadata fields retains its old behavior.
 
 Complete new remote history is a separate projcli-manifests-v1.zip Release asset,
@@ -611,3 +611,61 @@ A conflicting known copy fails before hooks rather than silently discarding it.
 Reads are rechecked under the store writer claim before publication. Existing
 exact-ID snapshots remain recoverable. This is fixed-location continuity, not
 automatic snapshot discovery or a migration.
+
+
+## Tree metadata for ordinary local backups {#ordinary-local-tree-history}
+
+Ordinary local data keeps its latest/archive folder layout while directory
+metadata can use the same v1 content identities as native CAS:
+
+~~~yaml
+remotes:
+  local:
+    backup:
+      path: ../backup
+      structure: archive
+      manifest-style: tree
+      manifest: remote
+      # Optional for tree style; JSON is the fixed representation.
+      manifest-format: json
+build:
+  dest:
+    backup:
+      content: [raw, output]
+~~~
+
+Defaults remain flat for ordinary local/GitHub destinations and tree for modern
+local CAS. Ordinary local tree metadata uses JSON; CSV/file-dictionary choices
+require flat style. GitHub tree metadata remains explicitly unsupported in this
+slice. Legacy inline definitions opt in by specifying new metadata fields.
+
+Directory objects live at `trees/v1/<first2>/<remaining62>.json` inside the selected
+full metadata location. Each child's name/type/content hash determines its
+directory ID; labels, build versions, physical paths and catalogue serialization
+are excluded. No ordinary data is copied into a CAS objects directory.
+
+The complete JSON catalogue remains a readable companion and immutable-version
+lookup, with the existing direct references to earlier complete inventories.
+Tree roots are derived independently and checked against that exact membership.
+This duplicates some metadata deliberately; neither reduced size nor speed has
+been established. Old flat bindings remain unchanged; a distinct
+projcli.ordinary-local-tree-snapshot.v1 binding adds each payload's tree root,
+separate from inventory_hash and its physical data location.
+
+Placement chooses full directory-object/history/binding copies. A small project
+reference still records the root when full metadata is remote. Required directory
+objects and full histories precede full bindings and the small project reference.
+Changing style/format preserves old files and compatible history.
+
+Each final private payload is checked before replacing its existing directory,
+including Tree representability; the complete selected forest is checked again
+at metadata publication. Bounds include 100,000 inferred records including roots,
+64 path components, 4,096 path bytes, 16 MiB cumulative expanded path work and
+64 MiB unique directory metadata per forest. Each object retains the existing
+16 MiB document bound. Node IDs are checked before following them; links and
+special files fail. Multi-label/multi-location publication is not a transaction:
+later failure may leave earlier effects and preserves local release/evidence.
+
+Ordinary restore remains the compatible CSV/VERSION operation. Its file data is
+still the normal backup folder. The separate exact-ID CAS recovery commands do
+not reinterpret these ordinary bindings as CAS file-object snapshots.

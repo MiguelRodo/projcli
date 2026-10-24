@@ -91,7 +91,7 @@ pub fn deduplicate(rows: impl IntoIterator<Item = ManifestRow>) -> Vec<ManifestR
 
 // Shared physical file inventory; no version/label or persistence policy.
 pub(crate) fn inventory_directory(directory: &Utf8Path, cache: bool) -> anyhow::Result<Vec<(String, String)>> {
-    fn visit(root: &Utf8Path, path: &Utf8Path, cache: bool, files: &mut Vec<(String, String)>) -> anyhow::Result<()> {
+    fn visit(root: &Utf8Path, path: &Utf8Path, cache: bool, files: &mut Vec<(String, String)>, buffer: &mut [u8]) -> anyhow::Result<()> {
         crate::path_safety::resolve_path(path.as_std_path(), true)?;
         let metadata = match fs::symlink_metadata(path) {
             Ok(metadata) => metadata,
@@ -105,15 +105,14 @@ pub(crate) fn inventory_directory(directory: &Utf8Path, cache: bool) -> anyhow::
             let relative = child.strip_prefix(root)?.as_str().replace(std::path::MAIN_SEPARATOR, "/");
             if cache && relative.split('/').next() == Some("projr") { continue; }
             let ty = entry.file_type().with_context(|| format!("Cannot inspect manifest source type {child}"))?;
-            if ty.is_dir() { visit(root, &child, cache, files)?; }
+            if ty.is_dir() { visit(root, &child, cache, files, buffer)?; }
             else {
                 anyhow::ensure!(ty.is_file(), "Manifest source must contain only real files/directories: {child}");
                 crate::path_safety::resolve_path(child.as_std_path(), true)?;
                 let mut file = fs::File::open(&child).with_context(|| format!("Cannot open manifest source {child}"))?;
                 let mut digest = md5::Context::new();
-                let mut buffer = [0u8; 65536];
                 loop {
-                    let n = file.read(&mut buffer).with_context(|| format!("Cannot hash manifest source {child}"))?;
+                    let n = file.read(buffer).with_context(|| format!("Cannot hash manifest source {child}"))?;
                     if n == 0 { break; }
                     digest.consume(&buffer[..n]);
                 }
@@ -123,7 +122,9 @@ pub(crate) fn inventory_directory(directory: &Utf8Path, cache: bool) -> anyhow::
         Ok(())
     }
     let mut files = Vec::new();
-    visit(directory, directory, cache, &mut files)?;
+    // Reuse one heap buffer: a large local in recursive visit reserves it at every depth.
+    let mut buffer = vec![0u8; 65536];
+    visit(directory, directory, cache, &mut files, &mut buffer)?;
     files.sort();
     Ok(files)
 }

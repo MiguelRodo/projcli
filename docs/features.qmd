@@ -119,7 +119,7 @@ your project, or in both. It always keeps a small project record identifying
 the saved folders. That small record alone cannot restore files if the storage
 content or required full listings are lost.
 
-These additions are not in installed preview.3. Automatic version selection for CAS restore, ordinary tree listings
+These additions are not in installed preview.3. Automatic version selection for CAS restore, GitHub tree listings
 remain pending; local CAS CSV/JSON history is described below. Explicit named-ID tree recovery is described below. Ordinary local and GitHub Release upload/restore behavior
 remains available as described in the [remote guide](remote-compatibility.qmd).
 
@@ -141,7 +141,7 @@ remove destination-only files as well. Installed preview.3 is unchanged.
 Existing flat CAS snapshots can also be checked and restored by exact ID without
 converting them. See the [remote reference](cli/remote.qmd#recover-existing-flat-cas-snapshots).
 Their older file lists do not record empty folders, so those cannot be restored
-from that format. Local CAS CSV/JSON history is described below; ordinary/GitHub flat publication is also implemented below; ordinary tree metadata remains pending.
+from that format. Local CAS CSV/JSON history is described below; ordinary/GitHub flat publication is also implemented below; GitHub tree metadata remains pending; ordinary local trees are implemented below.
 
 ## Keep a readable history of saved files
 
@@ -187,3 +187,15 @@ replacing a history bundle that another writer changed while the build ran.
 See [the copyable example and limits](configuration.qmd#github-flat-history).
 This source addition is not in installed preview.3. HTTP transport tests use
 synthetic local servers; they are not a new live GitHub round-trip claim.
+
+
+## Keep folder fingerprints with local backups
+
+Development source can give each saved folder a code based on its filenames and
+contents. Unchanged subfolders keep the same codes across builds. Backups retain
+their normal versioned folders, and a readable JSON history still shows the
+complete file lists or points to the earlier unchanged listing.
+
+Choose tree style in [this local-backup example](configuration.qmd#ordinary-local-tree-history).
+The small project record keeps the folder code even when complete metadata stays
+with the backup. This source addition is not in installed preview.3.
