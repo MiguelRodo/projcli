@@ -262,7 +262,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./storage-design.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Storage and release catalogue design</span></a>
+ <span class="menu-text">title: “Storage and release catalogue design”</span></a>
   </div>
 </li>
       </ul>
@@ -320,8 +320,8 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="available-development-release" class="level2">
 <h2 class="anchored" data-anchor-id="available-development-release">Available development release</h2>
-<p><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.3"><strong>v0.4.0-preview.3</strong></a> provides checked Linux x86-64 (glibc 2.35+) and Windows x86-64 binaries. No Rust compilation is needed. <a href="./install.html">Install that explicit version</a>; GitHub’s stable Latest remains the older v0.3.0.</p>
-<p>This development prerelease retains M1’s useful local CLI preview and adds the ordinary remote workflow described below. The table summarizes supported Rust CLI behavior; it does not establish R/IDE parity. See the <a href="./preview-status.html">detailed status</a> and <a href="./release-delivery.html">delivery evidence</a> for exact verification and limits. Newer changes on main need their own evidence.</p>
+<p><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.4"><strong>v0.4.0-preview.4</strong></a> provides checked Linux x86-64 (glibc 2.35+) and Windows x86-64 binaries. No Rust compilation is needed. <a href="./install.html">Install that explicit version</a>; GitHub’s stable Latest remains the older v0.3.0.</p>
+<p>This development prerelease includes local builds, inspectable build records, readable backup histories and verified recovery of saved local folders. The table summarizes supported Rust CLI behavior; it does not establish R/IDE parity. See the <a href="./preview-status.html">detailed status</a> and <a href="./release-delivery.html">delivery evidence</a> for exact verification and limits. Newer changes on main need their own evidence.</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 50%">
@@ -388,7 +388,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="planned-work" class="level2">
 <h2 class="anchored" data-anchor-id="planned-work">Planned work</h2>
-<p>M2 and later milestones remain unfinished. Complete input/code/config/dependency provenance, durable attempt/release records and analysis-free publication retry are separate work. General command/argv steps and stronger execution policies remain follow-ups; they are not silently interpreted from missing script paths.</p>
+<p>M2 build records and the agreed M3 local recovery scope are included. Full environment reproduction, automatic snapshot discovery and analysis-free publication retry remain separate work. General command/argv steps and stronger execution policies remain follow-ups; they are not silently interpreted from missing script paths.</p>
 <p>For the detailed evidence, scope and decisions, see the <a href="./behavior.html">behavior contract</a> and <a href="./compatibility.html">compatibility log</a>.</p>
 </section>
 <section id="included-in-preview.2" class="level2">
@@ -402,44 +402,44 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="remote-work-in-preview.3">Remote work in preview.3</h2>
 <p>Preview.3 can upload selected outputs to ordinary local folders or GitHub Releases, keep versioned snapshots and restore files. It supports comparison by files or recorded history, with explicit controls for what gets uploaded.</p>
 <p>A small synthetic project has completed a real GitHub upload, replacement and restore sequence, including reuse of an unchanged archive and preservation of older snapshots. See the <a href="./remote-compatibility.html#live-github-fixture-verification">remote verification</a> and <a href="./cli/remote.html">command reference</a> for the tested scope and limits.</p>
-<p>These additions are included in the published preview.3 installation described above. The separate test prerelease holds sample data, not an installer. Complete projr compatibility, the future remote registry and broader M2 work remain unfinished.</p>
+<p>These ordinary remote additions were introduced in preview.3 and remain in preview.4. The separate test prerelease holds sample data, not an installer. Complete projr compatibility remains unproved. Preview.4 adds the named locations and file histories below.</p>
 </section>
 <section id="choose-where-a-build-saves-its-results" class="level2">
 <h2 class="anchored" data-anchor-id="choose-where-a-build-saves-its-results">Choose where a build saves its results</h2>
-<p>In development source, name each available storage destination once under remotes, then select where this build sends its results with build.dest. A named location remains available for restoring earlier data after you stop uploading to it. The <a href="./configuration.html">configuration reference</a> has copyable examples and explains how to select only particular folders.</p>
+<p>In preview.4, name each available storage destination once under remotes, then select where this build sends its results with build.dest. A named location remains available for restoring earlier data after you stop uploading to it. The <a href="./configuration.html">configuration reference</a> has copyable examples and explains how to select only particular folders.</p>
 <p>For local content-addressed storage (CAS), identical file bytes are stored once and folders receive fingerprints based on their names and contents. The new tree writer can keep the complete folder listing in the storage location, in your project, or in both. It always keeps a small project record identifying the saved folders. That small record alone cannot restore files if the storage content or required full listings are lost.</p>
-<p>These additions are not in installed preview.3. Automatic version selection for CAS restore remains deferred; local CAS CSV/JSON history is described below. Explicit named-ID tree recovery is described below. Ordinary local and GitHub Release upload/restore behavior remains available as described in the <a href="./remote-compatibility.html">remote guide</a>.</p>
+<p>These additions are included in preview.4. Automatic version selection for CAS restore remains deferred; local CAS CSV/JSON history is described below. Explicit named-ID tree recovery is described below. Ordinary local and GitHub Release upload/restore behavior remains available as described in the <a href="./remote-compatibility.html">remote guide</a>.</p>
 </section>
 <section id="check-and-recover-a-saved-folder" class="level2">
 <h2 class="anchored" data-anchor-id="check-and-recover-a-saved-folder">Check and recover a saved folder</h2>
-<p>In development source, you can check the exact file bytes in a local tree snapshot, then restore a selected folder. Choose its configured storage name and snapshot ID explicitly; this first command slice does not find a version for you. The <a href="./cli/remote.html#verify-or-restore-an-exact-local-cas-tree-snapshot-development-source">remote reference</a> shows both commands.</p>
-<p>Restoring an older folder still works after you stop uploading that folder. A complete snapshot saved remotely can recover files into a fresh configured project. The command leaves your project version and stored snapshot unchanged. It checks the data before replacing files; choose –clear only when you want to remove destination-only files as well. Installed preview.3 is unchanged.</p>
+<p>In preview.4, you can check the exact file bytes in a local tree snapshot, then restore a selected folder. Choose its configured storage name and snapshot ID explicitly; this first command slice does not find a version for you. The <a href="./cli/remote.html#verify-or-restore-an-exact-local-cas-tree-snapshot-development-source">remote reference</a> shows both commands.</p>
+<p>Restoring an older folder still works after you stop uploading that folder. A complete snapshot saved remotely can recover files into a fresh configured project. The command leaves your project version and stored snapshot unchanged. It checks the data before replacing files; choose –clear only when you want to remove destination-only files as well. This is included in preview.4.</p>
 <p>Existing flat CAS snapshots can also be checked and restored by exact ID without converting them. See the <a href="./cli/remote.html#recover-existing-flat-cas-snapshots">remote reference</a>. Their older file lists do not record empty folders, so those cannot be restored from that format. Local CAS CSV/JSON history is described below; ordinary/GitHub flat publication is also implemented below; Ordinary local and GitHub tree metadata are described below.</p>
 </section>
 <section id="keep-a-readable-history-of-saved-files" class="level2">
 <h2 class="anchored" data-anchor-id="keep-a-readable-history-of-saved-files">Keep a readable history of saved files</h2>
-<p>In development source, a local store can keep a CSV history you can filter in Excel, or a JSON history you can open as text. When a folder has not changed, a later version points directly to its earlier complete listing. Changed versions still list every current file. The <a href="./configuration.html#flat-history-in-local-cas">configuration example</a> shows how to choose the format and where to keep the full history.</p>
-<p>You can optionally shorten repeated hashes using a file dictionary. That adds indirection, so it is off by default. File-byte storage already avoids duplicate content independently of these choices. The existing project manifest.csv remains unchanged. These source additions are not yet in installed preview.3.</p>
+<p>In preview.4, a local store can keep a CSV history you can filter in Excel, or a JSON history you can open as text. When a folder has not changed, a later version points directly to its earlier complete listing. Changed versions still list every current file. The <a href="./configuration.html#flat-history-in-local-cas">configuration example</a> shows how to choose the format and where to keep the full history.</p>
+<p>You can optionally shorten repeated hashes using a file dictionary. That adds indirection, so it is off by default. File-byte storage already avoids duplicate content independently of these choices. The existing project manifest.csv remains unchanged. These additions are included in preview.4.</p>
 </section>
 <section id="see-which-files-reached-a-local-backup" class="level2">
 <h2 class="anchored" data-anchor-id="see-which-files-reached-a-local-backup">See which files reached a local backup</h2>
-<p>In development source, local folder backups can keep readable CSV or JSON lists for each build. The list describes files actually stored, including older files your upload settings deliberately keep. An unchanged folder points to its earlier complete listing. CSV stays suitable for filtering in Excel: a reference row tells you which earlier version to filter.</p>
-<p>For archived backups, the record also tells you which physical version folder contains the bytes. Keeping the latest folder replaces its older contents; a historical list does not recreate bytes that have since been overwritten. See <a href="./configuration.html#ordinary-local-flat-history">the configuration example</a>. This source addition is not in installed preview.3.</p>
+<p>In preview.4, local folder backups can keep readable CSV or JSON lists for each build. The list describes files actually stored, including older files your upload settings deliberately keep. An unchanged folder points to its earlier complete listing. CSV stays suitable for filtering in Excel: a reference row tells you which earlier version to filter.</p>
+<p>For archived backups, the record also tells you which physical version folder contains the bytes. Keeping the latest folder replaces its older contents; a historical list does not recreate bytes that have since been overwritten. See <a href="./configuration.html#ordinary-local-flat-history">the configuration example</a>. This addition is included in preview.4.</p>
 </section>
 <section id="keep-a-readable-file-history-with-github-backups" class="level2">
 <h2 class="anchored" data-anchor-id="keep-a-readable-file-history-with-github-backups">Keep a readable file history with GitHub backups</h2>
-<p>In development source, GitHub backups can also keep CSV or JSON file lists. Choose which folders to upload, save a complete listing in the project, on GitHub, or both, and retain a small project record pointing to the saved files. An unchanged folder can point to an earlier complete listing. Optional formats can reduce repeated file information while retaining every filename.</p>
-<p>The list describes the ZIP actually prepared for upload. If an archived folder is reused, its record names that older ZIP. A failed upload keeps the local release and reports that some files may already have been sent. The tool avoids replacing a history bundle that another writer changed while the build ran. See <a href="./configuration.html#github-flat-history">the copyable example and limits</a>. This source addition is not in installed preview.3. HTTP transport tests use synthetic local servers; they are not a new live GitHub round-trip claim.</p>
+<p>In preview.4, GitHub backups can also keep CSV or JSON file lists. Choose which folders to upload, save a complete listing in the project, on GitHub, or both, and retain a small project record pointing to the saved files. An unchanged folder can point to an earlier complete listing. Optional formats can reduce repeated file information while retaining every filename.</p>
+<p>The list describes the ZIP actually prepared for upload. If an archived folder is reused, its record names that older ZIP. A failed upload keeps the local release and reports that some files may already have been sent. The tool avoids replacing a history bundle that another writer changed while the build ran. See <a href="./configuration.html#github-flat-history">the copyable example and limits</a>. This addition is included in preview.4. HTTP transport tests use synthetic local servers; they are not a new live GitHub round-trip claim.</p>
 </section>
 <section id="keep-folder-fingerprints-with-local-backups" class="level2">
 <h2 class="anchored" data-anchor-id="keep-folder-fingerprints-with-local-backups">Keep folder fingerprints with local backups</h2>
-<p>Development source can give each saved folder a code based on its filenames and contents. Unchanged subfolders keep the same codes across builds. Backups retain their normal versioned folders, and a readable JSON history still shows the complete file lists or points to the earlier unchanged listing.</p>
-<p>Choose tree style in <a href="./configuration.html#ordinary-local-tree-history">this local-backup example</a>. The small project record keeps the folder code even when complete metadata stays with the backup. This source addition is not in installed preview.3.</p>
+<p>Preview.4 can give each saved folder a code based on its filenames and contents. Unchanged subfolders keep the same codes across builds. Backups retain their normal versioned folders, and a readable JSON history still shows the complete file lists or points to the earlier unchanged listing.</p>
+<p>Choose tree style in <a href="./configuration.html#ordinary-local-tree-history">this local-backup example</a>. The small project record keeps the folder code even when complete metadata stays with the backup. This addition is included in preview.4.</p>
 </section>
 <section id="github-tree-backups" class="level2">
 <h2 class="anchored" data-anchor-id="github-tree-backups">Keep folder fingerprints with GitHub backups</h2>
 <p>GitHub backups normally keep a flat file list. You can also save fingerprints for each folder and its children, while keeping the same downloadable data ZIPs. Set manifest-style: tree on that remote; the <a href="./configuration.html#github-tree-history">configuration reference</a> gives a complete example and explains where the listings are saved.</p>
-<p>The saved file list describes what actually reached the ZIP, including retained older files when your upload settings request them. Identical folder contents have the same fingerprint across versions. A small project record identifies the saved root even when full listings live on GitHub. Earlier flat records remain readable when you change this setting. This development-source feature is not yet in installed preview.3.</p>
+<p>The saved file list describes what actually reached the ZIP, including retained older files when your upload settings request them. Identical folder contents have the same fingerprint across versions. A small project record identifies the saved root even when full listings live on GitHub. Earlier flat records remain readable when you change this setting. This feature is included in preview.4.</p>
 
 
 </section>

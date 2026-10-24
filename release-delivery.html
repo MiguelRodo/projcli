@@ -262,7 +262,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./storage-design.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Storage and release catalogue design</span></a>
+ <span class="menu-text">title: “Storage and release catalogue design”</span></a>
   </div>
 </li>
       </ul>
@@ -281,6 +281,7 @@ ul.task-list li input[type="checkbox"] {
   <ul class="collapse">
   <li><a href="#verified-preview.2-delivery" id="toc-verified-preview.2-delivery" class="nav-link" data-scroll-target="#verified-preview.2-delivery">Verified preview.2 delivery</a></li>
   <li><a href="#verified-preview3-delivery" id="toc-verified-preview3-delivery" class="nav-link" data-scroll-target="#verified-preview3-delivery">Verified preview.3 delivery</a></li>
+  <li><a href="#verified-preview4-delivery" id="toc-verified-preview4-delivery" class="nav-link" data-scroll-target="#verified-preview4-delivery">Verified preview.4 delivery</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -297,7 +298,7 @@ ul.task-list li input[type="checkbox"] {
 <p>Remote locked tests/builds produce Linux x86-64 and Windows x86-64 binaries. Linux uses Ubuntu 22.04 (glibc 2.35 or newer); the initial user-local WSL installation target is Ubuntu 24.04 x86-64. macOS/ARM delivery is not verified or supplied by this pipeline. Each asset is named <code>proj_&lt;version&gt;_&lt;os&gt;_&lt;arch&gt;[.exe]</code>, with matching <code>version.txt</code> and <code>checksums.txt</code>. Exact-tag help/version/protocol smokes and actual installer tests must pass before assets enter the draft. Checksums detect corruption and mismatches; they are not independent signatures or reproducible-build attestations.</p>
 <p>Installers default to MiguelRodo/projcli, require version metadata and exactly one matching SHA256 entry, and verify downloaded bytes before replacement. They stage on the installation filesystem and need only an existing user-writable directory. <code>PROJ_RELEASE_VERSION</code> pins a release (with optional <code>v</code>); preview releases should always be pinned because GitHub’s latest URL normally selects stable releases. <code>PROJ_INSTALL_DIR</code> selects an existing absolute user directory without changing PATH or system settings. Existing older releases lacking the new metadata fail closed instead of installing an unverified fallback binary.</p>
 <p>Before publication: reconcile reviewed supported behavior and limits, update the Cargo/Cargo.lock preview version in a reviewed change, verify required checks, then create the exact reviewed tag. Inspect the resulting draft assets/version/ checksums and retain disposable-project warnings. Publish only after those checks. For WSL, download the pinned binary/manifest, verify SHA256, preserve any existing user-local binary, install into the chosen user-local directory and smoke help, version, capabilities and a disposable configured preview. No local compilation, sudo, persistent authentication change or R package modification is needed.</p>
-<p>Known limits include bounded captured-state recovery, arbitrary external script effects, incomplete direct R/IDE parity, incomplete attempt/release records and analysis-free publication retry. This is a development preview, not M2 completion.</p>
+<p>Known limits include bounded captured-state recovery, arbitrary external script effects, incomplete direct R/IDE parity, analysis-free publication retry and broader environment reproduction. Preview.4 includes the agreed M2/M3 scope described below.</p>
 <section id="verified-preview.2-delivery" class="level2">
 <h2 class="anchored" data-anchor-id="verified-preview.2-delivery">Verified preview.2 delivery</h2>
 <p><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.2">0.4.0-preview.2</a> is published as a prerelease; stable Latest remains v0.3.0. The exact tag/source is 768da1bf1b83be83b657b36219f299f37130ba03. Cargo.toml and the root Cargo.lock package agree with the CLI’s reported version; protocol version is 1. An analysis project’s VERSION remains a separate value.</p>
@@ -326,7 +327,7 @@ ul.task-list li input[type="checkbox"] {
 </tbody>
 </table>
 <p>The WSL user-local binary was backed up before replacement. Installed bytes match the public Linux asset; full-path help/version/capabilities passed. Tiny disposable Python preview success and deliberate structured failure preserved prior final, archive and project VERSION bytes while retaining the computed cached result. The shell resolves the checked user-local command. No local compilation, system binary replacement, container operation or R-package change was involved.</p>
-<p>This historical delivery pinned PROJ_RELEASE_VERSION=0.4.0-preview.2. The <a href="./install.html">current install guide</a> now pins preview.3. Linux/Windows x86-64 delivery is verified; macOS/ARM binaries remain unavailable. Bookdown site embedding, direct R/IDE parity, linked-output portability and M2 records/provenance/retry remain outside the accepted CLI workflow.</p>
+<p>This historical delivery pinned PROJ_RELEASE_VERSION=0.4.0-preview.2. The <a href="./install.html">current install guide</a> now pins preview.4. Linux/Windows x86-64 delivery is verified; macOS/ARM binaries remain unavailable. Bookdown site embedding, direct R/IDE parity, linked-output portability and M2 records/provenance/retry remain outside the accepted CLI workflow.</p>
 <p>The <a href="./release-candidate.html">release checklist</a> preserves the review and delivery sequence for future candidates. The delivered M1 boundary is the configured local CLI workflow above, including fresh init, ordered explicit file targets and bounded preservation. Stronger command schemas/process confinement and broader maintenance audits remain follow-ups. No new runtime or binary change was needed to reconcile this accepted scope; M2 remains unfinished.</p>
 </section>
 <section id="verified-preview3-delivery" class="level2">
@@ -359,6 +360,36 @@ ul.task-list li input[type="checkbox"] {
 <p>WSL installation preserved and hash-checked the previous preview.2 binary. Installed bytes match the public Linux asset; full-path help/version/protocol, fresh login-shell resolution and tiny disposable Python preview success/failure checks passed. Exact cached CSV and prior final/archive/project VERSION bytes were verified. No local compilation, system binary replacement, R/Quarto build, container operation, credential/access change or existing user data test occurred.</p>
 <p>This release includes the <a href="./cli/remote.html">ordinary remote workflow</a> and interim CSV inventories. The <a href="./remote-compatibility.html#live-github-fixture-verification">real synthetic GitHub witness</a> is distinct from this product release: five builds/two restores cover bounded latest/archive controls; the complete matrix and failures use mocked REST.</p>
 <p>Remaining work includes default multi-label restore, individual-file/list-files/ trusted-version conveniences, additional credential/inference parity and local configured path-append-label:false. Identity/sealing/full provenance, registry design and CAS-specific discovery/retention are unfinished. Preview.3 is not M2 completion or complete projr compatibility. Existing R package/helpers and thesis remain unchanged.</p>
+</section>
+<section id="verified-preview4-delivery" class="level2">
+<h2 class="anchored" data-anchor-id="verified-preview4-delivery">Verified preview.4 delivery</h2>
+<p><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.4">0.4.0-preview.4</a> is published as a development prerelease and installed in the checked WSL user-local location. Exact source/tag: f6f4510a806ea302a2ceee5177707fbde9bed5bf. The CLI reports preview.4 and protocol1. Stable Latest remains v0.3.0.</p>
+<p>Independently reviewed <a href="https://github.com/MiguelRodo/projcli/pull/222">PR222</a> passed all twelve checks. Its <a href="https://github.com/MiguelRodo/projcli/actions/runs/40122746225">full pinned acceptance</a> used the identical final release tree: native renderer policies, M1/M2 workflows, M3 real analysis/backup/recovery and independent Rust byte checks passed. M3 covers three tree/flat-format recovery cases and nine corruption probes after removing only disposable working projects. <a href="https://github.com/MiguelRodo/projcli/pull/223">PR223</a> adds same-project legacy lookup coordination and exact retry preservation; no multi-project shared-store upload model was introduced.</p>
+<p>Final-main <a href="https://github.com/MiguelRodo/projcli/actions/runs/40123605850">platform tests</a>, <a href="https://github.com/MiguelRodo/projcli/actions/runs/40123605837">installers</a> and <a href="https://github.com/MiguelRodo/projcli/actions/runs/40123605832">site</a> passed. The <a href="https://github.com/MiguelRodo/projcli/actions/runs/40124525153">exact-tag workflow</a> passed Linux/Windows locked tests, actual binary help/version/protocol and installers. Both binary bytes match tagged artifacts. All five public downloads match the independently reviewed draft, including four unique checksum entries.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Platform</th>
+<th>SHA256</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Linux x86-64</td>
+<td>31ffa1732f8ee4da9bcf15540a53abeee741a8aca23eeca26f5a94ac6aa8a7f0</td>
+</tr>
+<tr class="even">
+<td>Windows x86-64</td>
+<td>92a5b7626a39f09d78b0661b43e183d8c87c4b382f7e13616bd228121b43a378</td>
+</tr>
+</tbody>
+</table>
+<p>The old WSL user-local binary was copied to a unique backup before replacement. Installed bytes match the public Linux asset; help/version/capabilities and fresh login-shell resolution passed. Tiny Python preview success and deliberate exit17 preserved project VERSION and prior final output while retaining the computed cache result. No local compilation, container operation, system binary overwrite, R-package or thesis change was involved.</p>
+<p>This completes the agreed M2 and M3 scope, not full projr parity or later milestones. Stores currently belong to one project. Recovery selects an explicit stored ID; automatic discovery, GC, performance redesign, permissions restoration, multi-location transactions and full environment reproduction remain outside this claim. New GitHub metadata formats have real CLI/mocked REST coverage, not a new live format round-trip. Ordinary restore remains single-label. Wrappers/IDE parity and richer initialisation remain separate work. Implementation stops after this M3 delivery.</p>
 
 
 </section>

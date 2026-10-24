@@ -265,7 +265,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./storage-design.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Storage and release catalogue design</span></a>
+ <span class="menu-text">title: “Storage and release catalogue design”</span></a>
   </div>
 </li>
       </ul>
@@ -301,9 +301,9 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#development-source-storage-metadata-overlay" id="toc-development-source-storage-metadata-overlay" class="nav-link" data-scroll-target="#development-source-storage-metadata-overlay">Development-source storage metadata overlay</a></li>
   <li><a href="#explicit-snapshot-verification-and-recovery" id="toc-explicit-snapshot-verification-and-recovery" class="nav-link" data-scroll-target="#explicit-snapshot-verification-and-recovery">Explicit snapshot verification and recovery</a>
   <ul class="collapse">
-  <li><a href="#ordinary-local-file-lists-in-development-source" id="toc-ordinary-local-file-lists-in-development-source" class="nav-link" data-scroll-target="#ordinary-local-file-lists-in-development-source">Ordinary local file lists in development source</a></li>
-  <li><a href="#github-file-history-in-development-source" id="toc-github-file-history-in-development-source" class="nav-link" data-scroll-target="#github-file-history-in-development-source">GitHub file history in development source</a></li>
-  <li><a href="#github-tree-history-in-development-source" id="toc-github-tree-history-in-development-source" class="nav-link" data-scroll-target="#github-tree-history-in-development-source">GitHub tree history in development source</a></li>
+  <li><a href="#ordinary-local-file-lists-in-preview.4" id="toc-ordinary-local-file-lists-in-preview.4" class="nav-link" data-scroll-target="#ordinary-local-file-lists-in-preview.4">Ordinary local file lists in preview.4</a></li>
+  <li><a href="#github-file-history-in-preview.4" id="toc-github-file-history-in-preview.4" class="nav-link" data-scroll-target="#github-file-history-in-preview.4">GitHub file history in preview.4</a></li>
+  <li><a href="#github-tree-history-in-preview.4" id="toc-github-tree-history-in-preview.4" class="nav-link" data-scroll-target="#github-tree-history-in-preview.4">GitHub tree history in preview.4</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -341,7 +341,7 @@ ul.task-list li input[type="checkbox"] {
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The core figures describe the reviewed lifecycle introduced in 0.4.0-preview.2 and retained in preview.3. The historical ordinary-publication figure below is released in preview.3. The separate development-source storage overlay describes new file-history additions; those are not in installed preview.3. The exact source and executed acceptance are linked below. This is a bounded managed-path workflow, not whole-project rollback or a security sandbox. Use sample data or a disposable project copy.</p>
+<p>The core figures describe the reviewed lifecycle introduced in 0.4.0-preview.2 and retained in preview.3. The historical ordinary-publication figure below is released in preview.3. The later storage overlays describe the file-history and ownership additions included in preview.4; their historical source-stage labels are retained. The exact source and executed acceptance are linked below. This is a bounded managed-path workflow, not whole-project rollback or a security sandbox. Use sample data or a disposable project copy.</p>
 </div>
 </div>
 <section id="read-the-figures" class="level2">
@@ -799,7 +799,7 @@ Figure&nbsp;8: Preview.3: ordinary local and bounded GitHub publication.
 </section>
 <section id="development-source-writer-ownership-around-the-staged-lifecycle" class="level2">
 <h2 class="anchored" data-anchor-id="development-source-writer-ownership-around-the-staged-lifecycle">Development source: writer ownership around the staged lifecycle</h2>
-<p>This ownership overlay is not part of the installed preview.3 binary.</p>
+<p>This ownership overlay is included in preview.4.</p>
 <p>A build now claims one project writer before input capture and keeps ownership through validation, hooks, analysis, local finalization, enabled distribution, Git publication, end hooks, recovery and the next development bump. Normal exits release the claim. This does not change the stage order shown above or make partial remote publication reversible. Crashes leave a fail-closed claim requiring the user to confirm it is stale before removing it.</p>
 <p>Pre-publication recovery restores the exact captured version authority, including development counters greater than one; it does not manufacture dev1. This adds regression evidence without moving hooks, publication or the next-dev transition.</p>
 <div class="cell" data-layout-align="default">
@@ -826,7 +826,7 @@ flowchart TB
 </div>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-lifecycle-writer-ownership-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;9: Development-source ownership surrounds the existing lifecycle; preview.3 remains unchanged.
+Figure&nbsp;9: Preview.4 ownership surrounds the existing lifecycle.
 </figcaption>
 </figure>
 </div>
@@ -939,18 +939,18 @@ Figure&nbsp;11: Development source: ordinary and content-addressed storage metad
 <p>The separate remote verify / remote restore –snapshot operations do not enter the build lifecycle, run hooks, create attempt logs, distribute data or bump a version. They select a named store and exact saved snapshot, validate bytes, and use the existing guarded directory installer only for an explicit restore. The eleven build-stage figures retain their existing order.</p>
 <p>Legacy-flat verification/recovery follows the same separate, explicit path as tree recovery. Stored-format selection changes no build stage or figure; both formats use the existing guarded installer and leave project/store history alone.</p>
 <p>Flat publication prepares bounded history early, copies raw objects, then holds the store claim through its authoritative history read/replacement and required references. All selected raw bytes and inventory bindings verify. Existing partial-distribution, optional Git, end-hook and next-dev boundaries are unchanged. The eleven-figure native browser witness remains required.</p>
-<section id="ordinary-local-file-lists-in-development-source" class="level3">
-<h3 class="anchored" data-anchor-id="ordinary-local-file-lists-in-development-source">Ordinary local file lists in development source</h3>
+<section id="ordinary-local-file-lists-in-preview.4" class="level3">
+<h3 class="anchored" data-anchor-id="ordinary-local-file-lists-in-preview.4">Ordinary local file lists in preview.4</h3>
 <p>For named ordinary local destinations, the publisher owns a destination writer claim, reads the authoritative history, and checks the complete staged payload before replacement. It records actual final bytes and their physical location, then writes legacy compatibility metadata, new complete history copies, full snapshot bindings and the small project reference. Failed copies retain honest partial effects. This addition does not change preview.3 or the later Git/end-hook ordering; GitHub tree metadata is described below.</p>
 </section>
-<section id="github-file-history-in-development-source" class="level3">
-<h3 class="anchored" data-anchor-id="github-file-history-in-development-source">GitHub file history in development source</h3>
+<section id="github-file-history-in-preview.4" class="level3">
+<h3 class="anchored" data-anchor-id="github-file-history-in-preview.4">GitHub file history in preview.4</h3>
 <p>After private mirror planning, observe each exact prepared data ZIP or an actually downloaded retained archive. Stage bounded history/bindings before any HTTP mutation. Upload data, legacy metadata and the new bundle, checking its originally observed asset identity before deletion. After every target’s required HTTP succeeds, write all selected project full histories, then small project references. Failures report partial remote/local effects and retain the local release. Later CAS/Git/end-hook ordering is unchanged; no atomic multi-target transaction is implied.</p>
 <p>Configured flat CAS checks both fixed known history copies in the existing pre-build validation phase, before hooks. It rereads compatible histories under the existing store claim during publication. Only selected full copies change; provider order and the explicit verification/recovery path remain unchanged.</p>
 <p>For ordinary local tree style, final private payload validation includes inferred directory limits before replacement. Actual stored membership then determines v1 directory objects and a cross-checked readable history. Required objects and full copies precede references. Provider ordering and released historical figures are unchanged; the existing development overlay shows this added local style branch.</p>
 </section>
-<section id="github-tree-history-in-development-source" class="level3">
-<h3 class="anchored" data-anchor-id="github-tree-history-in-development-source">GitHub tree history in development source</h3>
+<section id="github-tree-history-in-preview.4" class="level3">
+<h3 class="anchored" data-anchor-id="github-tree-history-in-preview.4">GitHub tree history in preview.4</h3>
 <p>Exact ZIP observation now also derives pure directory roots when tree style is selected. Required bounded directory graphs, readable histories and bindings are prepared before HTTP mutation; downloaded bundles validate graph/inventory agreement first. Full metadata uses the same HTTP-before-project-copy ordering, with small references last. This adds a metadata style to the existing development overlay, without changing the released historical figures or provider/hook order.</p>
 <p>The integrated M3 fixture observes this existing ordering end to end: actual analysis and ordinary backup, native CAS publication, completed attempt record, then a second unchanged build and explicit read-only verification/fresh-project recovery. Corruption probes require no destination replacement or store repair. It adds retained release evidence rather than another build stage or native figure.</p>
 <p>The preserved legacy raw-JSON branch acquires store and shared-lookup ownership inside the existing CAS publication phase. Exact repeated lookup rows keep their original bytes. This adds no build/hook/Git stage: ordinary providers still run first, legacy CAS precedes modern configured CAS, and failure retains possible distribution evidence. The existing development overlay includes the legacy ownership branch; released historical figures remain unchanged.</p>

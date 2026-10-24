@@ -297,7 +297,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../storage-design.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Storage and release catalogue design</span></a>
+ <span class="menu-text">title: “Storage and release catalogue design”</span></a>
   </div>
 </li>
       </ul>
@@ -363,7 +363,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>The remote commands and configured publication described here are included in published preview.3; see <a href="../release-delivery.html#verified-preview3-delivery">delivery evidence</a>. Earlier slice notes retain their original test scope. The command below provides ordinary local latest/archive inspection. This command does not upload, restore, verify artifact bytes or change configured remote definitions. It is separate from CAS and the deferred registry design.</p>
+<p>The remote commands and configured publication described here are included in published preview.4; see <a href="../release-delivery.html#verified-preview4-delivery">delivery evidence</a>. Earlier slice notes retain their original test scope. The command below provides ordinary local latest/archive inspection. This command does not upload, restore, verify artifact bytes or change configured remote definitions. It is separate from the explicit CAS snapshot commands below. Named remotes remain available as restore sources independently of build destinations.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> <span class="at">--project</span> . remote versions <span class="at">--path</span> /physical/path/to/archive <span class="at">--label</span> raw-data</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> <span class="at">--machine</span> <span class="at">--project</span> . remote versions <span class="at">--path</span> /physical/path/to/latest <span class="at">--label</span> raw-data <span class="at">--structure</span> latest</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Paths relative to the command’s selected project root are supported. Use physical paths: symlinked parents, candidate directories and VERSION files are rejected. No active project config, Git credentials or remote account are required.</p>

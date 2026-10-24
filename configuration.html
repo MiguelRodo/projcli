@@ -297,7 +297,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./storage-design.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Storage and release catalogue design</span></a>
+ <span class="menu-text">title: “Storage and release catalogue design”</span></a>
   </div>
 </li>
       </ul>
@@ -330,8 +330,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#production-file-inventory" id="toc-production-file-inventory" class="nav-link" data-scroll-target="#production-file-inventory">Production file inventory</a></li>
   <li><a href="#configured-restore-source-fields" id="toc-configured-restore-source-fields" class="nav-link" data-scroll-target="#configured-restore-source-fields">Configured restore source fields</a></li>
   <li><a href="#configured-local-publication-candidate" id="toc-configured-local-publication-candidate" class="nav-link" data-scroll-target="#configured-local-publication-candidate">Configured local publication candidate</a></li>
-  <li><a href="#ordinary-named-remotes-and-upload-selection-in-development-source" id="toc-ordinary-named-remotes-and-upload-selection-in-development-source" class="nav-link" data-scroll-target="#ordinary-named-remotes-and-upload-selection-in-development-source">Ordinary named remotes and upload selection in development source</a></li>
-  <li><a href="#configured-local-cas-tree-publication-unreleased" id="toc-configured-local-cas-tree-publication-unreleased" class="nav-link" data-scroll-target="#configured-local-cas-tree-publication-unreleased">Configured local CAS tree publication (unreleased)</a></li>
+  <li><a href="#ordinary-named-remotes-and-upload-selection-in-development-source" id="toc-ordinary-named-remotes-and-upload-selection-in-development-source" class="nav-link" data-scroll-target="#ordinary-named-remotes-and-upload-selection-in-development-source">Ordinary named remotes and upload selection</a></li>
+  <li><a href="#configured-local-cas-tree-publication-unreleased" id="toc-configured-local-cas-tree-publication-unreleased" class="nav-link" data-scroll-target="#configured-local-cas-tree-publication-unreleased">Configured local CAS tree publication</a></li>
   <li><a href="#restore-from-a-saved-tree-after-changing-upload-choices" id="toc-restore-from-a-saved-tree-after-changing-upload-choices" class="nav-link" data-scroll-target="#restore-from-a-saved-tree-after-changing-upload-choices">Restore from a saved tree after changing upload choices</a></li>
   <li><a href="#flat-history-in-local-cas" id="toc-flat-history-in-local-cas" class="nav-link" data-scroll-target="#flat-history-in-local-cas">Flat history in local CAS</a></li>
   <li><a href="#ordinary-local-flat-history" id="toc-ordinary-local-flat-history" class="nav-link" data-scroll-target="#ordinary-local-flat-history">File lists for ordinary local destinations</a></li>
@@ -356,6 +356,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="configuration-_proj.yml" class="level1">
 <h1>Configuration <code>_proj.yml</code></h1>
+<p>Preview.4 includes the named remote definitions, file-history formats and explicit local snapshot recovery documented below. Historical slice notes retain their original verification scope. See <a href="./release-delivery.html#verified-preview4-delivery">verified delivery</a>.</p>
 <p>The <code>_proj.yml</code> file dictates the structural map of your project. It configures the foundational paths and mapping logic used by the CLI.</p>
 <section id="schema-rules-and-foundational-prefixes" class="level2">
 <h2 class="anchored" data-anchor-id="schema-rules-and-foundational-prefixes">Schema Rules and Foundational Prefixes</h2>
@@ -507,7 +508,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>The first build.github upload subset requires explicit send.inspect: none and upload-all (the none default), with archive as the existing structure default. Other decision combinations and existing current-version data fail explicitly. See the remote CLI page for credentials, metadata bounds and partial failure.</p>
 </section>
 <section id="ordinary-named-remotes-and-upload-selection-in-development-source" class="level2">
-<h2 class="anchored" data-anchor-id="ordinary-named-remotes-and-upload-selection-in-development-source">Ordinary named remotes and upload selection in development source</h2>
+<h2 class="anchored" data-anchor-id="ordinary-named-remotes-and-upload-selection-in-development-source">Ordinary named remotes and upload selection</h2>
 <p>Ordinary local latest/archive and GitHub Release definitions can now live under top-level remotes rather than build. A definition remains available to restore even when the build no longer uploads to it. These use the same executable definition/send fields already accepted by inline ordinary publication.</p>
 <pre><code>remotes:
   local:
@@ -540,7 +541,7 @@ build:
 <p>Named ordinary local destinations now support flat CSV/JSON history and metadata placement, described below. GitHub flat/tree metadata is also implemented below. Configured CAS tree mapping publication is described below. The existing CAS name-list route retains its legacy flat encoding when using legacy definitions. Previously stored snapshots and the explicit tree APIs remain unchanged.</p>
 </section>
 <section id="configured-local-cas-tree-publication-unreleased" class="level2">
-<h2 class="anchored" data-anchor-id="configured-local-cas-tree-publication-unreleased">Configured local CAS tree publication (unreleased)</h2>
+<h2 class="anchored" data-anchor-id="configured-local-cas-tree-publication-unreleased">Configured local CAS tree publication</h2>
 <p>New local CAS definitions can select recursive tree publication through the named registry. Directory selection is independent of full metadata placement:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">remotes</span><span class="kw">:</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">local</span><span class="kw">:</span></span>

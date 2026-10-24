@@ -262,7 +262,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./storage-design.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Storage and release catalogue design</span></a>
+ <span class="menu-text">title: “Storage and release catalogue design”</span></a>
   </div>
 </li>
       </ul>
@@ -377,6 +377,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#integrated-m3-local-recovery-gate-24-october" id="toc-integrated-m3-local-recovery-gate-24-october" class="nav-link" data-scroll-target="#integrated-m3-local-recovery-gate-24-october">Integrated M3 local recovery gate (24 October)</a></li>
   <li><a href="#preview.4-packaging-candidate-24-october" id="toc-preview.4-packaging-candidate-24-october" class="nav-link" data-scroll-target="#preview.4-packaging-candidate-24-october">Preview.4 packaging candidate (24 October)</a></li>
   <li><a href="#legacy-cas-ledger-safety-completion-24-october" id="toc-legacy-cas-ledger-safety-completion-24-october" class="nav-link" data-scroll-target="#legacy-cas-ledger-safety-completion-24-october">Legacy CAS ledger safety completion (24 October)</a></li>
+  <li><a href="#preview.4-verified-release-and-installation-24-october-2026" id="toc-preview.4-verified-release-and-installation-24-october-2026" class="nav-link" data-scroll-target="#preview.4-verified-release-and-installation-24-october-2026">Preview.4 verified release and installation (24 October 2026)</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -1322,6 +1323,11 @@ ul.task-list li input[type="checkbox"] {
 <p><strong>Fix:</strong> reuse Attempt claims for sorted/deduplicated physical store and .projr ledger roots, distinct from the build’s held project claim. Reject linked/special sources before creating coordination roots. Read/parse the authoritative four-column index under ownership; preserve raw bytes and append only for a new exact version/label/digest tuple. Raw JSON/object IDs and differing-digest legacy version behavior remain unchanged. Early review caught that checked_directory does not create first-ingest roots; guarded creation now precedes canonicalization.</p>
 <p><strong>Ponytail full:</strong> one shared ingestion function, existing claims/CSV reader and seven focused filesystem groups (six on Windows). No new dependency, lock engine, schema, migration, same-version conflict rule or background cleanup. Existing immutable-manifest fixture uses valid historical lookup CSV so it still reaches the intended conflict guard, now checked explicitly. Remote tests/review pending; no local compilation or heavy test. Release packaging stays held until verified.</p>
 <p>Claims remain non-reentrant. Configured builds already reject stores overlapping their project .proj state; standalone callers already holding the exact store claim receive a conservative busy error. No ownership inference or bypass is added. The coarse legacy critical section favors correctness; narrow it only after measured contention. The old/raw and new/tree identities remain distinct.</p>
+</section>
+<section id="preview.4-verified-release-and-installation-24-october-2026" class="level2">
+<h2 class="anchored" data-anchor-id="preview.4-verified-release-and-installation-24-october-2026">Preview.4 verified release and installation (24 October 2026)</h2>
+<p>Same/new: the reviewed M2/M3 source is packaged without runtime changes. Public Linux/Windows assets, source metadata, checksums and WSL user-local installation are verified in <a href="./release-delivery.html#verified-preview4-delivery">delivery evidence</a>. Public install commands and remote documentation checks move together to the published version. Historical preview.2/3 evidence remains historical. One project per store is unchanged; legacy ledger coordination is same-project only.</p>
+<p>Ponytail full: reuse the existing exact-tag pipeline, installers and independent review; no new release framework, runtime abstraction or redundant heavy local test. Public pin checks execute both platform install examples remotely. Full projr parity, discovery/performance and later milestones are not claimed. Stop implementation/reviews after M3 delivery as requested.</p>
 
 
 </section>

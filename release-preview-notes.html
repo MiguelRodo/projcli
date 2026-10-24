@@ -262,7 +262,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./storage-design.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Storage and release catalogue design</span></a>
+ <span class="menu-text">title: “Storage and release catalogue design”</span></a>
   </div>
 </li>
       </ul>
@@ -293,7 +293,7 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="projcli-0.4.0-preview.4" class="level1">
 <h1>projcli 0.4.0-preview.4</h1>
-<p>This development preview adds inspectable build records and verified local recovery, including the approved remote configuration and file-list choices. These notes are prepared before publication; they do not claim installation. The tagged source will be identified by source-commit.txt and both platform downloads by checksums.txt.</p>
+<p>This development preview adds inspectable build records and verified local recovery, including the approved remote configuration and file-list choices. Exact source: f6f4510a806ea302a2ceee5177707fbde9bed5bf. Both platform downloads are identified by checksums.txt; source-commit.txt binds them to this source.</p>
 <section id="what-changed-since-preview.3" class="level2">
 <h2 class="anchored" data-anchor-id="what-changed-since-preview.3">What changed since preview.3</h2>
 <ul>
@@ -307,13 +307,15 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="verification-and-boundaries" class="level2">
 <h2 class="anchored" data-anchor-id="verification-and-boundaries">Verification and boundaries</h2>
-<p>The candidate is checked remotely with all-platform Rust suites, API examples, installers, native browser documentation and actual R/Python/HTML analysis. The bounded M3 gate combines an actual analysis, ordinary backup and native local archive, removes only a disposable working project, then restores both selected labels by explicit snapshot ID. Retained bytes and corruption failures have a separate Rust verification step. These notes alone are not evidence of a passed gate; exact source/run links belong in the delivery record after verification.</p>
+<p>The exact release source was checked remotely with all-platform Rust suites, API examples, installers, native browser documentation and actual R/Python/HTML analysis. The bounded M3 gate combines an actual analysis, ordinary backup and native local archive, removes only a disposable working project, then restores both selected labels by explicit snapshot ID. Retained bytes and corruption failures have a separate Rust verification step. The integrated gate and its independent byte checks passed.</p>
 <p>New GitHub listing/tree formats use actual CLI commands against mocked REST. The earlier synthetic real GitHub transport round-trip remains evidence for its tested latest/archive operations, not a new live test of every metadata format. Ordinary data ZIP names, CSV/VERSION metadata, transfer decisions and guarded single-label restore retain their documented compatibility behavior.</p>
 <p>A remote store currently belongs to one project. Automatic snapshot discovery, garbage collection, retention redesign, chunking, network packing and performance optimisation are deferred. Hashing guarantees observed bytes/membership, not a live consistent dataset or ownership/permission restoration. No size or speed saving is promised for JSON or tree metadata. Full metadata is still needed for recovery; a small root reference alone is insufficient.</p>
-<p>Publication is not an atomic transaction across locations or GitHub assets. A failure can leave earlier uploads or complete metadata copies; diagnostics preserve the local release and possible distribution evidence. Do not infer full rollback or automatically retry an ambiguous failed publication. Existing Windows backup-cleanup and arbitrary-script/power-loss limitations remain. Project builds and content-addressed publishers use cooperative writer claims; standalone ordinary file-copy operations keep their documented concurrency limits. This is not a distributed lock.</p>
+<p>Publication is not an atomic transaction across locations or GitHub assets. A failure can leave earlier uploads or complete metadata copies; diagnostics preserve the local release and possible distribution evidence. Do not infer full rollback or automatically retry an ambiguous failed publication. Existing Windows backup-cleanup and arbitrary-script/power-loss limitations remain. Project builds and mutable CAS history/lookup updates use cooperative writer claims; standalone ordinary file-copy operations keep their documented concurrency limits. This is not a distributed lock.</p>
 <p>The existing R package, helpers and thesis are unchanged. Language wrappers, R/IDE parity, richer initialisation, Bookdown site embedding and linked-resource portability remain separate work. Ordinary restore is still single-label. Individual-file/listing/trusted-version conveniences and additional credential inference remain follow-ups. Git is optional for ordinary local work and is not bundled; no credentials or permissions are installed. DVC is not required.</p>
 <p>Linux/WSL x86-64 and Windows x86-64 binaries are supplied. Linux requires glibc 2.35 or newer; macOS/ARM binaries are not supplied. Installation needs no Rust compiler or administrator access. Evaluate with sample data or a backed-up copy.</p>
 <p>Reference and delivery checks: https://miguelrodo.github.io/projcli/release-candidate.html</p>
+<p>Exact-tag Linux/Windows tests, binary version/protocol and installer checks: https://github.com/MiguelRodo/projcli/actions/runs/40124525153</p>
+<p>Full pinned acceptance on the identical reviewed release tree: https://github.com/MiguelRodo/projcli/actions/runs/40122746225</p>
 
 
 </section>

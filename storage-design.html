@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Storage and release catalogue design – projcli</title>
+<title>storage-design – projcli</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -164,7 +164,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./behavior.html">Design and progress</a></li><li class="breadcrumb-item"><a href="./storage-design.html">Storage and release catalogue design</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./behavior.html">Design and progress</a></li><li class="breadcrumb-item"><a href="./storage-design.html">title: “Storage and release catalogue design”</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -297,7 +297,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./storage-design.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text">Storage and release catalogue design</span></a>
+ <span class="menu-text">title: “Storage and release catalogue design”</span></a>
   </div>
 </li>
       </ul>
@@ -312,7 +312,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#standalone-ordinary-use" id="toc-standalone-ordinary-use" class="nav-link active" data-scroll-target="#standalone-ordinary-use">Standalone ordinary use</a></li>
+  <li><a href="#title-storage-and-release-catalogue-design" id="toc-title-storage-and-release-catalogue-design" class="nav-link active" data-scroll-target="#title-storage-and-release-catalogue-design">title: “Storage and release catalogue design”</a></li>
+  <li><a href="#standalone-ordinary-use" id="toc-standalone-ordinary-use" class="nav-link" data-scroll-target="#standalone-ordinary-use">Standalone ordinary use</a></li>
   <li><a href="#optional-dvc-backed-directories" id="toc-optional-dvc-backed-directories" class="nav-link" data-scroll-target="#optional-dvc-backed-directories">Optional DVC-backed directories</a></li>
   <li><a href="#a-curated-release-catalogue" id="toc-a-curated-release-catalogue" class="nav-link" data-scroll-target="#a-curated-release-catalogue">A curated release catalogue</a></li>
   <li><a href="#compatible-csv-inventory" id="toc-compatible-csv-inventory" class="nav-link" data-scroll-target="#compatible-csv-inventory">Compatible CSV inventory</a>
@@ -343,28 +344,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content">
-
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./behavior.html">Design and progress</a></li><li class="breadcrumb-item"><a href="./storage-design.html">Storage and release catalogue design</a></li></ol></nav>
-<div class="quarto-title">
-<h1 class="title">Storage and release catalogue design</h1>
-</div>
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./behavior.html">Design and progress</a></li><li class="breadcrumb-item"><a href="./storage-design.html">title: “Storage and release catalogue design”</a></li></ol></nav></header>
 
 
 
-<div class="quarto-title-meta">
 
-    
-  
-    
-  </div>
-  
-
-
-</header>
-
-
-<p>Current development source includes named remotes, local tree/flat CAS and explicit verified recovery. The final sections describe implemented local CSV/JSON history. Earlier dated codec sections record the initial library slices. Automatic snapshot lookup and optional DVC remain separate work. Ordinary local/GitHub flat history is implemented in the final sections. Installed preview.3 is unchanged.</p>
+<hr>
+<section id="title-storage-and-release-catalogue-design" class="level2">
+<h2 class="anchored" data-anchor-id="title-storage-and-release-catalogue-design">title: “Storage and release catalogue design”</h2>
+<p>Preview.4 includes the named remote definitions, file-history formats and explicit local snapshot recovery documented below. Historical slice notes retain their original verification scope. See <a href="./release-delivery.html#verified-preview4-delivery">verified delivery</a>.</p>
+<p>Preview.4 includes named remotes, local tree/flat CAS and explicit verified recovery. The final sections describe implemented local CSV/JSON history. Earlier dated codec sections record the initial library slices. Automatic snapshot lookup and optional DVC remain separate work. Ordinary local/GitHub flat history is implemented in the final sections. These additions are included in preview.4.</p>
+</section>
 <section id="standalone-ordinary-use" class="level2">
 <h2 class="anchored" data-anchor-id="standalone-ordinary-use">Standalone ordinary use</h2>
 <p>proj must work with its own native backend without installing DVC. DVC must not become the mandatory manifest engine or a dependency of ordinary proj use. Existing interpreter and renderer requirements still apply to selected analyses.</p>

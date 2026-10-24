@@ -262,7 +262,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./storage-design.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Storage and release catalogue design</span></a>
+ <span class="menu-text">title: “Storage and release catalogue design”</span></a>
   </div>
 </li>
       </ul>
@@ -289,7 +289,7 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="preview-feature-status" class="level1">
 <h1>Preview feature status</h1>
-<p>The published development release is <a href="./install.html">0.4.0-preview.3</a>. The verified WSL user-local command also reports that version. See <a href="./release-delivery.html">release evidence</a> for the exact source and checks.</p>
+<p>The published development release is <a href="./install.html">0.4.0-preview.4</a>. The verified WSL user-local command also reports that version. See <a href="./release-delivery.html">release evidence</a> for the exact source and checks.</p>
 <p>This is an early Rust CLI for disposable analysis projects. A development preview does not mean the complete roadmap is finished. Use independent backups and sample data while evaluating it. The existing projr R package and thesis remain unchanged.</p>
 <table class="caption-top table">
 <thead>
@@ -318,7 +318,7 @@ ul.task-list li input[type="checkbox"] {
 <tr class="even">
 <td>Automation</td>
 <td>Opt-in protocol-v1 JSON, capability version, typed queries, noninteractive command worker, nonzero failures; child logs on stderr.</td>
-<td>Cross-platform machine tests. Static coarse error codes; no invented attempt/release record on success.</td>
+<td>Cross-platform machine tests. Structured results and unique attempt records; optional Git outcomes use a pre-commit snapshot and later local receipt.</td>
 </tr>
 <tr class="odd">
 <td>Preview preservation</td>
@@ -328,23 +328,23 @@ ul.task-list li input[type="checkbox"] {
 <tr class="even">
 <td>Production safety groundwork</td>
 <td>Path guards, bounded local failure recovery, optional checked Git publication and verified CAS bytes.</td>
-<td>Focused fixtures and reviews; incomplete release identity/provenance/retry model. This page is not an invitation to run on valuable production data.</td>
+<td>Focused fixtures, integrated M2/M3 gates and independent byte checks; no whole-project or cross-location transaction. This page is not an invitation to run on valuable production data.</td>
 </tr>
 <tr class="odd">
 <td>Ordinary remotes</td>
 <td>Local/GitHub latest/archive publication and guarded single-label restore; file/manifest/none inspection, four strategies and both supported cues.</td>
-<td>Full mocked CLI matrix; bounded real latest/archive round-trip. Complete option parity and M2 remain unfinished.</td>
+<td>Full mocked CLI matrix; bounded real latest/archive round-trip. The reviewed remote registry, histories and M2 records are included; convenience option parity remains incomplete.</td>
 </tr>
 <tr class="even">
 <td>Binary delivery</td>
-<td><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.3">Development prerelease 0.4.0-preview.3</a> supplies versioned Linux/Windows x86-64 assets with mandatory checksums.</td>
+<td><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.4">Development prerelease 0.4.0-preview.4</a> supplies versioned Linux/Windows x86-64 assets with mandatory checksums.</td>
 <td>Exact-tag workflow, uploaded/public asset hashes and both native binary smokes passed. WSL user-local installation and tiny success/failure Python previews passed. Other platforms are not supplied.</td>
 </tr>
 </tbody>
 </table>
-<p>Still unfinished: direct projr/quarto R API/RStudio parity, existing R helper integration, automatic isolation of every script write, durable attempt/release identifiers, complete input/code/config/dependency provenance, multi-writer/crash atomicity and analysis-free publication retry. Capture/recovery cannot undo arbitrary external script effects or guarantee concurrent readers never observe temporary changes. User/third-party logs are not automatically secret-redacted.</p>
+<p>Still unfinished: direct projr/quarto R API/RStudio parity, existing R helper integration, automatic isolation of every script write, full environment reproduction, automatic snapshot discovery, distributed/crash atomicity and analysis-free publication retry. Attempt IDs, bounded source/configuration/dependency fingerprints and final file rows are included; these do not freeze every transitive import. Capture/recovery cannot undo arbitrary external script effects or guarantee concurrent readers never observe temporary changes. User/third-party logs are not automatically secret-redacted.</p>
 <p>M1 is delivered as the useful local CLI preview in 0.4.0-preview.2. It requires active root configuration; initialization is optional. Explicit file-based R/Python/report steps, captured context, inspectable cached results and honest structured failures work without Git credentials. Supported previews preserve recorded final/archive/version state on success and failure. Runtime path guards and preflight remain essential; arbitrary child code is not sandboxed.</p>
-<p>General command/argv forms, stronger process confinement and broader maintenance audits remain follow-ups. M2 records/provenance/retry and later frontend work are not completed by M1. See <a href="./release-delivery.html">delivery boundaries</a>, <a href="./behavior.html">behavior</a> and the <a href="./compatibility.html">compatibility log</a> for supported details and remaining gaps.</p>
+<p>General command/argv forms, stronger process confinement and broader maintenance audits remain follow-ups. M2 records and the agreed M3 local recovery scope are delivered in preview.4; analysis-free publication retry and later frontend work remain separate. See <a href="./release-delivery.html">delivery boundaries</a>, <a href="./behavior.html">behavior</a> and the <a href="./compatibility.html">compatibility log</a> for supported details and remaining gaps.</p>
 
 
 </section>
