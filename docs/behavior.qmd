@@ -764,3 +764,13 @@ and optional file dictionaries are now approved integration scope. The complete
 JSON view codec does not silently choose that evolving storage policy. M3,
 configured build integration, tree restore and release/install remain unfinished;
 installed preview.3 is unchanged.
+
+
+## Flat catalogue serialization groundwork
+
+The catalogue library now has explicit CSV/JSON codecs with direct same-artefact
+version references and optional bundled file dictionaries. This is independent
+of flat/tree structure, manifest placement and content-object deduplication.
+Active remote configuration/publication/restore still use their existing paths;
+no CSV replacement or store migration is implied. See the storage-design page
+for schema, Excel filtering behavior, bounds and pending integration.

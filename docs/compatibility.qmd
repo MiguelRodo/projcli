@@ -3030,3 +3030,21 @@ race during concurrent identical reference publication. The native-name guard
 now rereads the parent once only when metadata appeared after its first scan,
 requiring the exact spelling. A differently spelled native alias still fails;
 the existing native-alias reader/producer fixture remains in place.
+
+
+## Version-reference catalogue codec slice
+
+**New, not projr parity:** projr's ordinary root manifest.csv and legacy CAS
+ledger/manifests remain unchanged. New explicit codecs retain CSV and JSON,
+deduplicate unchanged logical artefact inventories by direct complete-version
+reference, and optionally dictionary-deduplicate file hashes without omitting
+any current path memberships. JSON grouping alone is not recursive tree storage.
+
+Pure tests cover changed/renamed/added/deleted files, ordering/date independence,
+reversions, empty catalogues/roots, four-mode equivalence, malformed references
+and dictionaries, CSV quoting/Unicode, rectangular Excel-style filtering and row
+sorting, duplicate/path/schema/size rejection. They are pending remote execution.
+No filesystem, credentials or process environment are used by these tests.
+This does not yet implement catalogue publication ordering, runtime format
+selection or a legacy conversion tool. Do not infer physical content integrity
+from a metadata-only round trip.
