@@ -3221,3 +3221,11 @@ older upload-missing bytes, Unicode membership, direct version references,
 archive physical reuse, changes, same-version preservation, format switches,
 empty markers, stale claims, corrupt/linked/oversized metadata and aliased titles.
 Remote compilation/tests and exact-head independent final review are pending.
+
+
+The first remote Linux run compiled successfully and passed nine new groups.
+The alias fixture had omitted content on a legacy inline definition, which correctly
+selected no upload. It now explicitly enables content, checks a real prehook marker
+remains absent, and permits only the already-approved local preflight diagnostic.
+The oversized-binding witness also requires the bounded-read diagnostic. Production
+behavior and safety assertions are unchanged.

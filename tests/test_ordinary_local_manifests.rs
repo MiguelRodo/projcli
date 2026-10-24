@@ -38,6 +38,44 @@ fn files(root:&Path)->BTreeMap<String,Vec<u8>> {
 
 
 use proj::catalogue::{Catalogue,Format,Inventory};
+fn snapshot(root:&Path)->BTreeMap<String,Option<Vec<u8>>> {
+    fn collect(root:&Path,path:&Path,rows:&mut BTreeMap<String,Option<Vec<u8>>>) {
+        for entry in fs::read_dir(path).unwrap() {
+            let entry=entry.unwrap();let path=entry.path();let kind=entry.file_type().unwrap();
+            let name=path.strip_prefix(root).unwrap().to_string_lossy().replace(std::path::MAIN_SEPARATOR,"/");
+            if kind.is_dir(){rows.insert(name,None);collect(root,&path,rows);}
+            else {assert!(kind.is_file());rows.insert(name,Some(fs::read(path).unwrap()));}
+        }
+    }
+    let mut rows=BTreeMap::new();collect(root,root,&mut rows);rows
+}
+fn recovered_snapshot(root:&Path,before:&BTreeMap<String,Option<Vec<u8>>>)->BTreeMap<String,Option<Vec<u8>>> {
+    let mut after=snapshot(root);let directory=".proj/log/local-failures";let prefix=format!("{directory}/");
+    let added:Vec<_>=after.keys().filter(|path|path.starts_with(prefix.as_str())&&!before.contains_key(*path)).cloned().collect();
+    let mut diagnostics=0;let mut ignores=0;
+    for path in added {
+        let relative=path.strip_prefix(prefix.as_str()).unwrap();
+        assert!(!relative.contains('/'),"unexpected diagnostic subtree");
+        let bytes=after.remove(&path).unwrap().expect("unexpected diagnostic directory");
+        if relative==".gitignore" {assert_eq!(bytes,b"*\n");ignores+=1;continue;}
+        assert!(bytes.len()<=1_048_576);
+        let value:Value=serde_json::from_slice(&bytes).unwrap();let id=value["attempt_id"].as_str().unwrap();
+        assert!(id.starts_with("attempt-")&&id.len()==32&&id.bytes().all(|byte|byte.is_ascii_alphanumeric()||byte==b'-'));
+        assert_eq!(relative,format!("{id}.json"));assert_eq!(value["schema_version"],1);
+        assert_eq!(value["status"],"failed");assert_eq!(value["stage"],"preflight");
+        assert_eq!(value["distribution_may_have_started"],false);
+        assert_eq!(value["version_before"],"v1.2.3");assert_eq!(value["version_after"],"v1.2.3");
+        let keys:std::collections::BTreeSet<_>=value.as_object().unwrap().keys().map(String::as_str).collect();
+        assert_eq!(keys,std::collections::BTreeSet::from(["schema_version","attempt_id","started_at","recorded_at",
+            "stage","status","distribution_may_have_started","version_before","version_after"]));
+        diagnostics+=1;
+    }
+    assert_eq!(diagnostics,1);assert_eq!(ignores,1);
+    for parent in [".proj",".proj/log",directory] {
+        if !before.contains_key(parent){assert_eq!(after.remove(parent),Some(None));}
+    }
+    assert!(!root.join(".proj/build.lock").exists());after
+}
 fn setup(mode:&str,placement:&str,layout:&str,strategy:&str)->(tempfile::TempDir,PathBuf,Value) {
     let temp=tempfile::tempdir().unwrap();let root=temp.path().canonicalize().unwrap().join("project");
     for name in ["input","home"] {fs::create_dir_all(root.join(name)).unwrap();}
@@ -194,13 +232,18 @@ fn linked_metadata_is_rejected_before_any_target_bytes_change() {
 #[test]
 fn aliased_inline_metadata_titles_fail_before_hooks_or_external_writes() {
     let (_temp,root,mut config)=setup("json","project","latest","sync-diff");
-    let definition=config["remotes"]["local"]["delivery"].take();
+    let mut definition=config["remotes"]["local"]["delivery"].take();
+    definition["content"]=json!(true);
     let mut second=definition.clone();second["path"]=json!("../second");
     config.as_object_mut().unwrap().remove("remotes");
     config["build"].as_object_mut().unwrap().remove("dest");
-    config["build"]["local"]=json!({"A":definition,"a":second});save(&root,&config);
-    let before=files(&root);assert!(!command(&root).arg("build").output().unwrap().status.success());
-    assert_eq!(files(&root),before);assert!(!root.parent().unwrap().join("store").exists());
+    config["build"]["local"]=json!({"A":definition,"a":second});
+    config["build"]["hooks"]=json!({"pre":["start.py"]});
+    fs::write(root.join("start.py"),"from pathlib import Path\nPath('hook-ran').write_text('bad')\n").unwrap();
+    save(&root,&config);
+    let before=snapshot(&root);assert!(!command(&root).arg("build").output().unwrap().status.success());
+    assert_eq!(recovered_snapshot(&root,&before),before);assert!(!root.join("hook-ran").exists());
+    assert!(!root.parent().unwrap().join("store").exists());
     assert!(!root.parent().unwrap().join("second").exists());
 }
 #[test]
@@ -227,6 +270,7 @@ fn oversized_existing_binding_fails_bounded_and_preserves_it() {
     assert!(!output.status.success());assert_eq!(files(&store.join("raw")),data);
     assert_eq!(fs::metadata(binding).unwrap().len(),(proj::snapshot_format::MAX_METADATA_BYTES+1) as u64);
     let response:Value=serde_json::from_slice(&output.stdout).unwrap();assert_eq!(response["error"]["code"],"command_failed");
+    assert!(String::from_utf8_lossy(&output.stderr).contains("bounded regular file"));
 }
 
 #[test]
