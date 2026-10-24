@@ -644,3 +644,10 @@ GitHub tree writes reuse this graph codec with bounded allowlisted bundle reads,
 a separate binding domain and disk-backed preparation. Check graph/projection
 agreement before any HTTP write. All required HTTP and full project copies must
 precede small references; defaults remain flat and old flat IDs stay unchanged.
+
+
+The integrated M3 remote gate builds with ordinary tree and native CAS targets,
+recovers explicit snapshots into a fresh configured project without old indexes,
+and checks corruption failures preserve destinations/store bytes. Retain its
+artifacts and independent Rust byte witness; automatic discovery/performance and
+permission restoration remain outside this gate.
