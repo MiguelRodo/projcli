@@ -299,6 +299,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#development-source-local-only-failure-branch" id="toc-development-source-local-only-failure-branch" class="nav-link" data-scroll-target="#development-source-local-only-failure-branch">Development source: local-only failure branch</a></li>
   <li><a href="#development-source-registry-overlay" id="toc-development-source-registry-overlay" class="nav-link" data-scroll-target="#development-source-registry-overlay">Development-source registry overlay</a></li>
   <li><a href="#development-source-configured-cas-overlay" id="toc-development-source-configured-cas-overlay" class="nav-link" data-scroll-target="#development-source-configured-cas-overlay">Development-source configured CAS overlay</a></li>
+  <li><a href="#explicit-snapshot-verification-and-recovery" id="toc-explicit-snapshot-verification-and-recovery" class="nav-link" data-scroll-target="#explicit-snapshot-verification-and-recovery">Explicit snapshot verification and recovery</a></li>
   </ul>
 </nav>
     </div>
@@ -866,7 +867,7 @@ Figure&nbsp;10: Development source: production failure evidence follows the exis
 <section id="development-source-registry-overlay" class="level2">
 <h2 class="anchored" data-anchor-id="development-source-registry-overlay">Development-source registry overlay</h2>
 <p>The released figures keep their preview.2/preview.3 labels. In development source, named destination and source-reference validation extends node C in the pre-build figure, and selected registered/legacy target resolution extends node A in the ordinary-publication figure. Both occur before hooks or publication effects; the controlled stage order remains the same.</p>
-<p>Registry membership alone neither uploads nor loads credentials. The existing provider engines receive only selected definitions. Configured restore remains an explicit separate operation, and registry sources remain available after removal from the current upload set. Configured local CAS tree publication adds the provider overlay below. Flat format publication and configured CAS recovery remain pending.</p>
+<p>Registry membership alone neither uploads nor loads credentials. The existing provider engines receive only selected definitions. Configured restore remains an explicit separate operation, and registry sources remain available after removal from the current upload set. Configured local CAS tree publication adds the provider overlay below. Flat format publication and automatic CAS snapshot selection remain pending; explicit verification/recovery is described below.</p>
 </section>
 <section id="development-source-configured-cas-overlay" class="level2">
 <h2 class="anchored" data-anchor-id="development-source-configured-cas-overlay">Development-source configured CAS overlay</h2>
@@ -899,6 +900,10 @@ Figure&nbsp;11: Development source: save a selected directory snapshot before Gi
 </div>
 </div>
 <p>Preparation errors before any provider entry retain the pre-distribution recovery contract. Once a provider may have changed state, no cross-location rollback is claimed. Preview captures selected local stores and project remote metadata.</p>
+</section>
+<section id="explicit-snapshot-verification-and-recovery" class="level2">
+<h2 class="anchored" data-anchor-id="explicit-snapshot-verification-and-recovery">Explicit snapshot verification and recovery</h2>
+<p>The separate remote verify / remote restore –snapshot operations do not enter the build lifecycle, run hooks, create attempt logs, distribute data or bump a version. They select a named store and exact saved snapshot, validate bytes, and use the existing guarded directory installer only for an explicit restore. The eleven build-stage figures retain their existing order.</p>
 
 
 </section>

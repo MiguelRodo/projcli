@@ -366,6 +366,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#explicit-cas-tree-recovery-api-slice" id="toc-explicit-cas-tree-recovery-api-slice" class="nav-link" data-scroll-target="#explicit-cas-tree-recovery-api-slice">Explicit CAS tree recovery API slice</a></li>
   <li><a href="#ordinary-registrysource-selection-slice" id="toc-ordinary-registrysource-selection-slice" class="nav-link" data-scroll-target="#ordinary-registrysource-selection-slice">Ordinary registry/source-selection slice</a></li>
   <li><a href="#configured-cas-tree-publisher" id="toc-configured-cas-tree-publisher" class="nav-link" data-scroll-target="#configured-cas-tree-publisher">Configured CAS tree publisher</a></li>
+  <li><a href="#explicit-named-cas-snapshot-recovery" id="toc-explicit-named-cas-snapshot-recovery" class="nav-link" data-scroll-target="#explicit-named-cas-snapshot-recovery">Explicit named CAS snapshot recovery</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -1233,6 +1234,12 @@ ul.task-list li input[type="checkbox"] {
 <p>New capability: named modern local CAS targets use existing immutable tree APIs, with auto/project/remote/both metadata placement and a small project reference. Legacy exact content/inspect definitions retain old flat serialization and IDs; ordinary root manifest.csv and latest/archive/GitHub behavior are unchanged. This is a deliberate extension beyond projr, not remote parity completion.</p>
 <p>Ponytail full review reuses the existing scanner, tree verifier, immutable writer, attempt evidence and preview recovery. No additional database, mutable index, dependencies, garbage collector or filesystem metadata guarantee was introduced. Filesystem fixtures exercise all placements, shared roots/objects, library materialisation, subsets/null, legacy list/mapping history, preview preservation, namespace preflight and corrupt/partially published metadata. These fixtures have not yet run; remote exact-head execution and final independent review are pending.</p>
 <p>Remote macOS execution found that the new CAS routing validator resolved the project path even when no modern CAS target was selected. It now returns before filesystem checks for an empty selection, preserving unrelated configuration queries. Existing path guards remain in force for selected targets. The native browser diagram check now requires all eleven figures, including the new configured-publication overlay.</p>
+</section>
+<section id="explicit-named-cas-snapshot-recovery" class="level2">
+<h2 class="anchored" data-anchor-id="explicit-named-cas-snapshot-recovery">Explicit named CAS snapshot recovery</h2>
+<p>New beyond projr: local CAS v1 snapshot verification and configured single-label recovery select an exact registered title/ID, without root manifest.csv or legacy ledger. Current write placement/style/upload content does not remove historical explicit recovery. Ordinary automatic source preferences and CSV semantics remain unchanged. Every present full metadata copy verifies; corrupt copies do not silently fall back, and lightweight root references alone are not archives.</p>
+<p>Ponytail full review reuses projected read-only configuration, deep tree checks, safe destination selection and the existing staged installer. No new persistence format, index, latest-selection rule, credential lookup or network backend. Real CLI fixtures cover all placements, lost project recovery, changed write policy, empty roots, read-only failure preservation, version mismatch and actual parser/help construction with ordinary-limit requirements. Remote tests and independent exact-head review are pending for this slice.</p>
+<p>Remote fixture execution found a Clap derive conflict between inferred required numeric arguments and conditional required-unless-snapshot rules. The CLI now uses optional parsed values with the existing ordinary required-unless controls; snapshot mode rejects archive flags by presence, and ordinary mode still requires both. Negative witnesses require exact structured failure codes so a parser panic can never count as successful rejection.</p>
 
 
 </section>

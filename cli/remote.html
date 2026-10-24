@@ -328,6 +328,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#github-filemanifest-comparison-and-archive-history" id="toc-github-filemanifest-comparison-and-archive-history" class="nav-link" data-scroll-target="#github-filemanifest-comparison-and-archive-history">GitHub file/manifest comparison and archive history</a></li>
   <li><a href="#real-github-verification" id="toc-real-github-verification" class="nav-link" data-scroll-target="#real-github-verification">Real GitHub verification</a></li>
   </ul></li>
+  <li><a href="#verify-or-restore-an-exact-local-cas-tree-snapshot-development-source" id="toc-verify-or-restore-an-exact-local-cas-tree-snapshot-development-source" class="nav-link" data-scroll-target="#verify-or-restore-an-exact-local-cas-tree-snapshot-development-source">Verify or restore an exact local CAS tree snapshot (development source)</a></li>
   </ul>
 </nav>
     </div>
@@ -627,9 +628,21 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="real-github-verification" class="level3">
 <h3 class="anchored" data-anchor-id="real-github-verification">Real GitHub verification</h3>
 <p>A <a href="../remote-compatibility.html#live-github-fixture-verification">dedicated synthetic fixture</a> passed actual GitHub latest upload/replacement/restore, archive creation, unchanged-history reuse and changed-snapshot restore using an isolated CI binary. Exact ZIP/data/CSV/VERSION checks and preservation witnesses passed. This is a source-build verification, not a new CLI release; do not install the fixture prerelease. The full control/failure matrix above still uses mocked REST.</p>
-
-
 </section>
+</section>
+<section id="verify-or-restore-an-exact-local-cas-tree-snapshot-development-source" class="level2">
+<h2 class="anchored" data-anchor-id="verify-or-restore-an-exact-local-cas-tree-snapshot-development-source">Verify or restore an exact local CAS tree snapshot (development source)</h2>
+<p>These commands select a registered local CAS remote and an exact v1 snapshot ID:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> remote verify <span class="at">--title</span> snapshots <span class="at">--snapshot</span> SNAPSHOT_ID</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> remote restore <span class="at">--title</span> snapshots <span class="at">--snapshot</span> SNAPSHOT_ID <span class="at">--label</span> raw <span class="at">--clear</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Replace SNAPSHOT_ID with the full 64-character snapshot ID. Automatic snapshot discovery/version selection is not part of this explicit command slice. verify returns the complete observed file paths/hashes and folder roots; it deeply checks metadata identities and file bytes without writing anything.</p>
+<p>Snapshot restore requires a declared destination label and –title. It uses the exact saved label membership, not current build.dest/content upload choices or automatic source preferences. This lets an older saved raw folder be restored after uploads for raw have been disabled. Omit –clear to preserve destination- only files; with –clear, the selected folder has exactly the saved names/bytes, including a genuinely empty root. An optional –remote-version is a guard that must match the selected snapshot, rather than another selection mechanism.</p>
+<p>Both full remote and project metadata locations are checked independently of the current manifest placement/style. Every present copy must verify; a corrupt present copy is not silently skipped in favour of another. Missing copies may be absent by design. A small project reference alone cannot reconstruct missing full metadata or missing file objects. A remote full snapshot can recover data into a fresh configured project without root manifest.csv or the project ledger. Project-only metadata must still exist to recover its snapshots.</p>
+<p>Queries/restores do not change VERSION, root CSV, attempt evidence or store metadata, and do not contact GitHub, Git or a credential helper. The existing guarded installer stages and checks bytes before replacing a destination. Permissions and live consistency are not restoration guarantees. The ordinary installer’s documented post-install backup-cleanup limitation still applies.</p>
+<p>For snapshot mode, ordinary archive download byte-limit flags are unnecessary; the tree reader retains its existing metadata/graph/entry bounds. GitHub repository and source/destination-position filters are rejected in this explicit mode, as are archive byte-limit flags. Ordinary restore without –snapshot retains its existing controls and required archive limits.</p>
+<p>These commands read v1 trees; they do not reinterpret legacy flat manifest IDs. Legacy flat recovery, automatic CAS discovery, and publishing the new flat CSV/JSON formats remain separately tracked work.</p>
+
+
 </section>
 
 </main> <!-- /main -->
