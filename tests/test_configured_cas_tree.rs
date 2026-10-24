@@ -133,7 +133,7 @@ fn preview_restores_selected_store_and_project_metadata_bytes_without_publicatio
 }
 
 #[test]
-fn both_copy_failure_reports_partial_publication_and_never_writes_a_successful_project_reference() {
+fn second_full_reference_failure_reports_partial_publication_without_a_project_success_reference() {
     let (_temp,root,_config)=setup("both");let store=root.parent().unwrap().join("store");let project=metadata(&root);
     // Derive the explicit expected snapshot using the public codec/store in a separate owned namespace.
     let calculation=root.parent().unwrap().join("calculation");
@@ -183,4 +183,39 @@ fn unsupported_or_overlapping_targets_fail_before_hooks_and_preserve_exact_versi
         assert_eq!(fs::read(root.join("VERSION")).unwrap(),before);assert!(!root.join("unexpected-hook").exists());
         assert!(!root.parent().unwrap().join("store").exists());assert!(!root.join(".proj/remotes").exists());
     }
+}
+
+#[test]
+fn corrupt_second_tree_copy_fails_before_publishing_any_full_snapshot_reference() {
+    let (_temp,root,_config)=setup("both");let store=root.parent().unwrap().join("store");let project=metadata(&root);
+    let calculation=root.parent().unwrap().join("calculation");
+    let tree=cas_tree::ingest_directory(upath(&root),upath(&calculation),upath(&calculation),upath(&root.join("input"))).unwrap();
+    let conflict=project.join("trees/v1").join(&tree[..2]).join(format!("{}.json",&tree[2..]));
+    fs::create_dir_all(conflict.parent().unwrap()).unwrap();fs::write(&conflict,b"bad previous tree").unwrap();
+    let output=command(&root).arg("build").output().unwrap();assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("partially published"));
+    assert_eq!(fs::read(&conflict).unwrap(),b"bad previous tree");
+    assert!(ids(&store,"tree-snapshots/v1").is_empty());assert!(ids(&project,"tree-snapshots/v1").is_empty());
+    assert!(ids(&project,"references/v1").is_empty());
+    assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap().trim(),"Version: v1.2.4");
+}
+#[cfg(unix)]
+#[test]
+fn late_special_source_fails_before_cas_entry_and_restores_exact_development_version() {
+    let (_temp,root,mut config)=setup("remote");
+    fs::write(root.join("VERSION"),b"Version: v1.2.3.7\n").unwrap();
+    let previous_version=fs::read(root.join("VERSION")).unwrap();let previous_outputs=files(&root.join("results"));
+    config["build"]["scripts"]=json!(["analysis.py"]);
+    fs::write(root.join("analysis.py"),b"import os\nos.mkfifo('input/late-fifo')\n").unwrap();save(&root,&config);
+    let output=command(&root).arg("build").output().unwrap();assert!(!output.status.success());
+    assert_eq!(fs::read(root.join("VERSION")).unwrap(),previous_version);
+    assert_eq!(files(&root.join("results")),previous_outputs);
+    assert!(!root.parent().unwrap().join("store").exists());assert!(!root.join(".proj/remotes").exists());
+    let diagnostics=files(&root.join(".proj/log/local-failures"));
+    let rows:Vec<Value>=diagnostics.values().filter_map(|bytes|serde_json::from_slice(bytes).ok()).collect();
+    assert_eq!(rows.len(),1);assert_eq!(rows[0]["stage"],"publication_preparation");
+    assert_eq!(rows[0]["distribution_may_have_started"],false);
+    assert_eq!(rows[0]["version_before"],"v1.2.3.7");assert_eq!(rows[0]["version_after"],"v1.2.3.7");
+    // The arbitrary analysis script owns this input mutation; no script sandbox is promised.
+    fs::remove_file(root.join("input/late-fifo")).unwrap();
 }
