@@ -618,7 +618,8 @@ flowchart TB
   L -->|No| J{"GitHub selected?"}
   LR --> J
   J -->|Yes| JP["Prepare exact data ZIPs or download retained archive bytes"]
-  JP --> JM["Prepare flat history or tree nodes plus readable history"]\n  JM --> JW["All target HTTP writes: data, legacy metadata, new bundle last"]
+  JP --> JM["Prepare flat history or tree nodes plus readable history"]
+  JM --> JW["All target HTTP writes: data, legacy metadata, new bundle last"]
   JW --> JF["All full project nodes and histories; then project references"]
   J -->|No| D{"Selected CAS manifest style"}
   JF --> D

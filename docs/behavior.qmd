@@ -823,7 +823,7 @@ format and history. Nothing is silently converted. Ordinary latest/archive
 storage, GitHub Releases and the root manifest.csv remain unchanged.
 
 See the [configuration reference](configuration.qmd#configured-local-cas-tree-publication-unreleased)
-for the exact fields and example. Automatic CAS snapshot selection and ordinary local and GitHub tree metadata are described below; ordinary/GitHub flat formats are implemented below;
+for the exact fields and example. Automatic CAS snapshot selection remains deferred; ordinary local and GitHub tree metadata are described below; ordinary/GitHub flat formats are implemented below;
 local CAS CSV/JSON publication is described below. Explicit verification/recovery is described below;
 unsupported options fail explicitly.
 

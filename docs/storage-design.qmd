@@ -480,7 +480,7 @@ missing content and conflicting same-ID namespace entries fail explicitly before
 destination changes. Metadata is bounded at 16 MiB and 100,000 file entries, with
 the existing portable path bounds. Ordinary root manifest.csv remains separate.
 
-Automatic snapshot discovery and ordinary local and GitHub tree metadata are described below; ordinary/GitHub flat formats are implemented below; this is compatibility recovery, not a format conversion or migration.
+Automatic snapshot discovery remains deferred; ordinary local and GitHub tree metadata are described below; ordinary/GitHub flat formats are implemented below; this is compatibility recovery, not a format conversion or migration.
 
 
 ## Flat history in local CAS

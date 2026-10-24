@@ -689,7 +689,7 @@ build:
 ~~~
 
 The Release receives projcli-manifests-v1.zip containing the readable JSON
-history, directory objects at trees/v1/<first2>/<remaining62>.json and immutable
+history, directory objects at `trees/v1/<first2>/<remaining62>.json` and immutable
 snapshot bindings. The project retains a small root reference even with remote
 placement. Project/both placement additionally saves full selected metadata
 under the existing provider-separated project location. Auto retains ordinary

@@ -3373,3 +3373,8 @@ Independent review corrected project tree reuse to compare canonical directory
 identity rather than cosmetic JSON bytes. A compact-node reuse regression keeps
 the original bytes after a successful second build. Negative graph/format/failure
 fixtures require a structured machine error, so a panic cannot count as success.
+
+Final source review also caught two accidentally literal newline escapes in the
+test helper and existing development diagram, and two stale-claim replacements
+that had dropped the deferred automatic-discovery qualifier. Corrected before
+final compilation evidence; hash path placeholders now render literally.

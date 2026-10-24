@@ -334,7 +334,8 @@ fn native_zip_member_budget_counts_parent_directories_before_extracting_any_file
     assert!(format!("{error:#}").contains("member limit"));
 }
 
-// Tree fixtures reuse the same isolated CLI and loopback transport; no live service.\nfn structured_failure(output:Output) {
+// Tree fixtures reuse the same isolated CLI and loopback transport; no live service.
+fn structured_failure(output:Output) {
     assert!(!output.status.success());
     let value:Value=serde_json::from_slice(&output.stdout).expect("structured failure required, not a panic");
     assert_eq!(value["protocol_version"],1);assert_eq!(value["ok"],false);
