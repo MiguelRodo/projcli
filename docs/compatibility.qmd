@@ -3149,3 +3149,10 @@ format, index, latest-selection rule, credential lookup or network backend.
 Real CLI fixtures cover all placements, lost project recovery, changed write
 policy, empty roots, read-only failure preservation and version mismatch. Remote
 tests and independent exact-head review are pending for this slice.
+
+Remote fixture execution found a Clap derive conflict between inferred required
+numeric arguments and conditional required-unless-snapshot rules. The CLI now
+uses optional parsed values with the existing ordinary required-unless controls;
+snapshot mode rejects archive flags by presence, and ordinary mode still requires
+both. Negative witnesses require exact structured failure codes so a parser panic
+can never count as successful rejection.

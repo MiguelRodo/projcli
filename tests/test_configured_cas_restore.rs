@@ -18,6 +18,12 @@ fn success(output:Output)->Value {
     assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
     serde_json::from_slice(&output.stdout).unwrap()
 }
+fn failed(output:Output,code:&str) {
+    assert!(!output.status.success());
+    let value:Value=serde_json::from_slice(&output.stdout).expect("failure must be a structured response, not a panic");
+    assert_eq!(value["protocol_version"],1);assert_eq!(value["ok"],false);
+    assert_eq!(value["error"]["code"],code);
+}
 fn files(root:&Path)->BTreeMap<String,Vec<u8>> {
     fn collect(root:&Path,path:&Path,rows:&mut BTreeMap<String,Vec<u8>>) {
         for entry in fs::read_dir(path).unwrap() {
@@ -120,16 +126,17 @@ fn missing_corrupt_and_mismatched_selection_never_clears_the_destination_or_writ
         vec!["--snapshot",id.as_str(),"--provider","github"],
         vec!["--snapshot",id.as_str(),"--repository","fixture/unused"],
         vec!["--snapshot",id.as_str(),"--max-bytes","1"],
-        vec!["--snapshot",id.as_str(),"--max-expanded-bytes","1"]] {
+        vec!["--snapshot",id.as_str(),"--max-expanded-bytes","1"],
+        vec!["--snapshot",id.as_str(),"--max-bytes","0"]] {
         let output=command(&root).args(["remote","restore","--title","snapshots","--label","raw","--clear"]).args(extra).output().unwrap();
-        assert!(!output.status.success());let value:Value=serde_json::from_slice(&output.stdout).unwrap();assert_eq!(value["ok"],false);
+        failed(output,"command_failed");
         assert_eq!(files(&root),baseline);assert_eq!(files(&store),stored);
     }
     let hash=blake3::hash(b"shared content\n").to_hex().to_string();
     let blob=store.join("objects").join(&hash[..2]).join(&hash[2..]);fs::write(&blob,b"corrupt").unwrap();
     let corrupt_store=files(&store);
-    assert!(!command(&root).args(["remote","verify","--title","snapshots","--snapshot",&id]).output().unwrap().status.success());
-    assert!(!command(&root).args(["remote","restore","--title","snapshots","--snapshot",&id,"--label","raw","--clear"]).output().unwrap().status.success());
+    failed(command(&root).args(["remote","verify","--title","snapshots","--snapshot",&id]).output().unwrap(),"query_failed");
+    failed(command(&root).args(["remote","restore","--title","snapshots","--snapshot",&id,"--label","raw","--clear"]).output().unwrap(),"command_failed");
     assert_eq!(files(&root),baseline);assert_eq!(files(&store),corrupt_store);
 }
 #[test]
@@ -143,7 +150,8 @@ fn a_corrupt_present_project_copy_is_not_silently_ignored_when_remote_copy_is_he
     for operation in ["verify","restore"] {
         let mut cli=command(&root);cli.args(["remote",operation,"--title","snapshots","--snapshot",&id]);
         if operation=="restore" {cli.args(["--label","raw","--clear"]);}
-        assert!(!cli.output().unwrap().status.success());assert_eq!(files(&root),before);assert_eq!(files(&store),before_store);
+        failed(cli.output().unwrap(),if operation=="verify" {"query_failed"}else{"command_failed"});
+        assert_eq!(files(&root),before);assert_eq!(files(&store),before_store);
     }
 }
 #[test]
@@ -168,7 +176,7 @@ fn empty_root_without_objects_is_a_valid_explicit_restore_and_missing_full_metad
     success(command(&root).args(["remote","restore","--title","snapshots","--snapshot",&id,"--label","raw","--clear"]).output().unwrap());
     assert!(fs::read_dir(root.join("input")).unwrap().next().is_none());
     fs::remove_dir_all(store.join("tree-snapshots")).unwrap();let before=files(&root);
-    assert!(!command(&root).args(["remote","verify","--title","snapshots","--snapshot",&id]).output().unwrap().status.success());
+    failed(command(&root).args(["remote","verify","--title","snapshots","--snapshot",&id]).output().unwrap(),"query_failed");
     assert_eq!(files(&root),before);assert!(!ids(&metadata(&root),"references/v1").is_empty());
 }
 #[test]
@@ -177,10 +185,10 @@ fn snapshot_mode_requires_a_named_cas_store_and_rejects_noncas_without_mutation(
     config["remotes"]["local"]["ordinary"]=json!({"path":"../ordinary","structure":"archive"});
     config["build"]["dest"]=json!({});save(&root,&config);let before=files(&root);let id="0".repeat(64);
     for title in ["missing","ordinary"] {
-        assert!(!command(&root).args(["remote","verify","--title",title,"--snapshot",&id]).output().unwrap().status.success());
-        assert!(!command(&root).args(["remote","restore","--title",title,"--snapshot",&id,"--label","raw","--clear"]).output().unwrap().status.success());
+        failed(command(&root).args(["remote","verify","--title",title,"--snapshot",&id]).output().unwrap(),"query_failed");
+        failed(command(&root).args(["remote","restore","--title",title,"--snapshot",&id,"--label","raw","--clear"]).output().unwrap(),"command_failed");
         assert_eq!(files(&root),before);
     }
-    assert!(!command(&root).args(["remote","restore","--snapshot",&id,"--label","raw"]).output().unwrap().status.success());
+    failed(command(&root).args(["remote","restore","--snapshot",&id,"--label","raw"]).output().unwrap(),"invalid_arguments");
     assert_eq!(files(&root),before);assert!(!root.parent().unwrap().join("store").exists());
 }

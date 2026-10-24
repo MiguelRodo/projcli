@@ -652,7 +652,7 @@ installer's documented post-install backup-cleanup limitation still applies.
 For snapshot mode, ordinary archive download byte-limit flags are unnecessary;
 the tree reader retains its existing metadata/graph/entry bounds. GitHub
 repository and source/destination-position filters are rejected in this explicit
-mode, as are nonzero archive byte-limit flags. Ordinary restore without
+mode, as are archive byte-limit flags. Ordinary restore without
 --snapshot retains its existing controls and
 required archive limits.
 

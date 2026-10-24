@@ -152,10 +152,10 @@ pub enum RemoteCommands {
         profile:Option<String>,
         #[arg(long)]
         clear:bool,
-        #[arg(long,required_unless_present="snapshot",default_value_if("snapshot",clap::builder::ArgPredicate::IsPresent,"0"))]
-        max_bytes:u64,
-        #[arg(long,required_unless_present="snapshot",default_value_if("snapshot",clap::builder::ArgPredicate::IsPresent,"0"))]
-        max_expanded_bytes:u64,
+        #[arg(long,required_unless_present="snapshot")]
+        max_bytes:Option<u64>,
+        #[arg(long,required_unless_present="snapshot")]
+        max_expanded_bytes:Option<u64>,
     },
     /// Check the folders and exact bytes in one named local CAS tree snapshot; changes nothing.
     Verify {
@@ -865,12 +865,13 @@ fn configured_restore(root:&camino::Utf8Path,command:&RemoteCommands)->anyhow::R
     if let Some(snapshot)=snapshot {
         anyhow::ensure!(position.is_none()&&repository.is_none(),"Explicit CAS snapshot restore does not use position or GitHub repository filters");
         anyhow::ensure!(provider.as_deref().is_none_or(|value|value=="local"),"Explicit CAS snapshots require a local source");
-        anyhow::ensure!(*max_bytes==0&&*max_expanded_bytes==0,"CAS snapshots use bounded tree readers, not ordinary archive byte-limit flags");
+        anyhow::ensure!(max_bytes.is_none()&&max_expanded_bytes.is_none(),"CAS snapshots use bounded tree readers, not ordinary archive byte-limit flags");
         return proj::configured_cas::restore(root,title.as_deref().ok_or_else(||anyhow::anyhow!("CAS snapshot restore requires --title"))?,
             snapshot,label,profile.as_deref(),remote_version.as_deref(),*clear);
     }
     let request=proj::restore::RestoreRequest {label:label.clone(),position:position.clone(),provider:provider.clone(),
         title:title.clone(),remote_version:remote_version.clone(),repository:repository.clone(),profile:profile.clone(),
-        clear:*clear,max_bytes:*max_bytes,max_expanded_bytes:*max_expanded_bytes};
+        clear:*clear,max_bytes:max_bytes.ok_or_else(||anyhow::anyhow!("Ordinary restore requires --max-bytes"))?,
+        max_expanded_bytes:max_expanded_bytes.ok_or_else(||anyhow::anyhow!("Ordinary restore requires --max-expanded-bytes"))?};
     proj::restore::restore_label(root,&request)
 }
