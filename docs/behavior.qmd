@@ -798,6 +798,27 @@ registry preferred sources, legacy fallback and registry fallback. A newly
 registered unpreferred definition does not displace an existing legacy fallback.
 
 Registry/build.dest mapping integration currently covers ordinary latest/archive
-and GitHub Release operations. New placement/style/format policies and tree-aware
-configured CAS publication/restore remain pending; no ignored-option success is
-substituted. Legacy inline and CAS-list behavior is preserved.
+and GitHub Release operations. Configured tree publication and placement are described below. Flat format
+publication and configured CAS restore remain pending; unsupported options fail. Legacy inline and CAS-list behavior is preserved.
+
+
+## Configured local CAS tree publication (unreleased)
+
+A new local CAS destination saves identical file bytes once and represents each
+folder by a content fingerprint. Builds can send selected declared folders and
+keep the complete folder listings remotely, in the project, or in both places.
+A small project record identifying the saved folders is always written last.
+
+auto chooses remote listings for the new tree writer. both requires both copies,
+but is not a transaction across locations: a later failure may leave published
+data or references. The build preserves its local release and records possible
+distribution rather than claiming everything was rolled back. Preview restores
+the captured store and project remote metadata.
+
+Previously accepted content/inspect CAS definitions keep their existing flat
+format and history. Nothing is silently converted. Ordinary latest/archive
+storage, GitHub Releases and the root manifest.csv remain unchanged.
+
+See the [configuration reference](configuration.qmd#configured-local-cas-tree-publication-unreleased)
+for the exact fields and example. Configured CAS restore and publishing the new
+CSV/JSON history formats remain pending; unsupported options fail explicitly.

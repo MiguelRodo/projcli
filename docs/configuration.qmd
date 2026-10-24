@@ -342,6 +342,56 @@ while mapping form is required for per-build label subsets.
 
 This slice deliberately does **not** activate per-remote manifest placement,
 flat/tree policy or CSV/JSON format fields. Such fields fail rather than being
-accepted and ignored. Tree-aware configured CAS mapping publication is still
-pending; the existing CAS name-list route keeps its legacy flat encoding.
+accepted and ignored. Configured CAS tree mapping publication is described below. The existing CAS
+name-list route retains its legacy flat encoding when using legacy definitions.
 Previously stored snapshots and the explicit tree APIs remain unchanged.
+
+
+## Configured local CAS tree publication (unreleased)
+
+New local CAS definitions can select recursive tree publication through the named
+registry. Directory selection is independent of full metadata placement:
+
+~~~yaml
+remotes:
+  local:
+    snapshots:
+      path: ../snapshot-store
+      structure: cas
+      manifest: auto
+      manifest-style: tree
+build:
+  dest:
+    snapshots:
+      content: [raw, output]
+~~~
+
+Omitted content selects eligible non-cache declared labels. Explicit null, false
+or an empty list selects none; build subsets cannot enable excluded labels.
+auto means remote for this CAS writer. remote stores complete tree objects and
+snapshot metadata beside file objects; project stores that metadata under the
+project; both requires both copies. File objects always remain in the configured
+store. A small project reference is retained for every successful publication,
+including remote placement. That reference is not itself a complete archive.
+
+Raw objects, directory objects and snapshot/reference records use first-two-
+characters/rest-of-hash fan-out. Identical directory contents share a root across
+labels and versions. Snapshot version associations are separate immutable records.
+There is no inferred timestamp or mutable discovery index. Existing blobs are
+verified before reuse. Required graphs precede full references; the small project
+reference is written last. Errors after provider entry retain the local release
+and distribution evidence. both is not a cross-location atomic transaction:
+partial references/objects may remain and errors say so. Nothing is garbage-
+collected or rolled back from a published store automatically.
+
+Previously accepted path/structure/content/inspect CAS definitions keep their
+legacy flat JSON identities and plural .projr/manifests.csv ledger. Name-list
+selection still works; mapping subsets preserve legacy label spelling. To opt
+into new trees, remove the legacy inspect field and explicitly select tree if
+desired. No old manifest is reinterpreted or moved.
+
+This slice implements tree publication and library recovery. Configured CAS
+restore/selection and flat CSV/JSON catalogue publication are still pending.
+manifest-format and legacy inspect on modern policies fail rather than silently
+doing something else. The ordinary latest/archive and GitHub writers retain
+their current policy support; new placement/style options are not claimed there.

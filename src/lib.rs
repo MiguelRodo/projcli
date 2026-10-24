@@ -78,3 +78,5 @@ mod config_evidence;
 pub mod catalogue;
 
 pub mod remote_registry;
+
+mod cas_remote;

@@ -588,5 +588,32 @@ the controlled stage order remains the same.
 Registry membership alone neither uploads nor loads credentials. The existing
 provider engines receive only selected definitions. Configured restore remains
 an explicit separate operation, and registry sources remain available after
-removal from the current upload set. Per-remote placement/style/format policy and
-tree-aware configured CAS routing are still pending.
+removal from the current upload set. Configured local CAS tree publication adds the provider overlay below.
+Flat format publication and configured CAS recovery remain pending.
+
+## Development-source configured CAS overlay
+
+Configured local trees add a selected provider at the existing publication phase,
+after ordinary/legacy targets and before optional Git. This does not move end
+hooks, next-dev or the existing partial-distribution boundary.
+
+```{mermaid}
+%%| label: fig-lifecycle-configured-cas
+%%| fig-cap: "Development source: save a selected directory snapshot before Git finalization."
+%%| fig-alt: "Validate selected folders, save content and required snapshot copies, then record the project reference. Later failures retain evidence."
+%%{init: {"htmlLabels": false}}%%
+flowchart TB
+  A["Frozen selected CAS targets"] --> B["Read-only source preparation"]
+  B --> C["Retain distribution-start evidence"]
+  C --> D["Publish verified file and tree objects"]
+  D --> E["Publish required complete snapshot references"]
+  E --> F["Write lightweight project root reference"]
+  F --> G["Existing optional Git and finalization"]
+  D --> H["On failure: preserve local release and possible partial effects"]
+  E --> H
+  F --> H
+```
+
+Preparation errors before any provider entry retain the pre-distribution recovery
+contract. Once a provider may have changed state, no cross-location rollback is
+claimed. Preview captures selected local stores and project remote metadata.

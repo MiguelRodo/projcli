@@ -106,7 +106,7 @@ jobs:
                           self.figures.append(self.text[self.start:self.position() + len("</svg>")])
                           self.start = None
           figures = SvgParser(result.stdout).figures
-          assert len(figures) == 10, f"Expected ten browser-rendered diagrams, found {len(figures)}"
+          assert len(figures) == 11, f"Expected eleven browser-rendered diagrams, found {len(figures)}"
           for index, text in enumerate(figures, 1):
               svg = ET.fromstring(text)
               assert svg.tag == "{http://www.w3.org/2000/svg}svg"
