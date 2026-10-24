@@ -245,7 +245,7 @@ pub(crate) fn validate_native_names(base: &Utf8Path, relative: &str, mirror: boo
 
 
 /// Validate a stored relative path without filesystem reads; shared by archives and manifests.
-pub(crate) fn portable_relative(name:&str)->anyhow::Result<Utf8PathBuf> {
+pub(crate) fn portable_relative(name:&str)->anyhow::Result<camino::Utf8PathBuf> {
     anyhow::ensure!(!name.is_empty() && !name.starts_with('/') && !name.contains('\\'),
         "Stored path must be a relative portable path");
     let name=name.strip_suffix('/').unwrap_or(name);
