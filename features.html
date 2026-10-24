@@ -288,6 +288,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#choose-where-a-build-saves-its-results" id="toc-choose-where-a-build-saves-its-results" class="nav-link" data-scroll-target="#choose-where-a-build-saves-its-results">Choose where a build saves its results</a></li>
   <li><a href="#check-and-recover-a-saved-folder" id="toc-check-and-recover-a-saved-folder" class="nav-link" data-scroll-target="#check-and-recover-a-saved-folder">Check and recover a saved folder</a></li>
   <li><a href="#keep-a-readable-history-of-saved-files" id="toc-keep-a-readable-history-of-saved-files" class="nav-link" data-scroll-target="#keep-a-readable-history-of-saved-files">Keep a readable history of saved files</a></li>
+  <li><a href="#see-which-files-reached-a-local-backup" id="toc-see-which-files-reached-a-local-backup" class="nav-link" data-scroll-target="#see-which-files-reached-a-local-backup">See which files reached a local backup</a></li>
   </ul>
 </nav>
     </div>
@@ -404,7 +405,7 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="choose-where-a-build-saves-its-results">Choose where a build saves its results</h2>
 <p>In development source, name each available storage destination once under remotes, then select where this build sends its results with build.dest. A named location remains available for restoring earlier data after you stop uploading to it. The <a href="./configuration.html">configuration reference</a> has copyable examples and explains how to select only particular folders.</p>
 <p>For local content-addressed storage (CAS), identical file bytes are stored once and folders receive fingerprints based on their names and contents. The new tree writer can keep the complete folder listing in the storage location, in your project, or in both. It always keeps a small project record identifying the saved folders. That small record alone cannot restore files if the storage content or required full listings are lost.</p>
-<p>These additions are not in installed preview.3. Automatic version selection for CAS restore and ordinary/GitHub formatting remain pending; local CAS CSV/JSON history is described below. Explicit named-ID tree recovery is described below. Ordinary local and GitHub Release upload/restore behavior remains available as described in the <a href="./remote-compatibility.html">remote guide</a>.</p>
+<p>These additions are not in installed preview.3. Automatic version selection for CAS restore, ordinary tree listings and GitHub formatting remain pending; local CAS CSV/JSON history is described below. Explicit named-ID tree recovery is described below. Ordinary local and GitHub Release upload/restore behavior remains available as described in the <a href="./remote-compatibility.html">remote guide</a>.</p>
 </section>
 <section id="check-and-recover-a-saved-folder" class="level2">
 <h2 class="anchored" data-anchor-id="check-and-recover-a-saved-folder">Check and recover a saved folder</h2>
@@ -416,6 +417,11 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="keep-a-readable-history-of-saved-files">Keep a readable history of saved files</h2>
 <p>In development source, a local store can keep a CSV history you can filter in Excel, or a JSON history you can open as text. When a folder has not changed, a later version points directly to its earlier complete listing. Changed versions still list every current file. The <a href="./configuration.html#flat-history-in-local-cas">configuration example</a> shows how to choose the format and where to keep the full history.</p>
 <p>You can optionally shorten repeated hashes using a file dictionary. That adds indirection, so it is off by default. File-byte storage already avoids duplicate content independently of these choices. The existing project manifest.csv remains unchanged. These source additions are not yet in installed preview.3.</p>
+</section>
+<section id="see-which-files-reached-a-local-backup" class="level2">
+<h2 class="anchored" data-anchor-id="see-which-files-reached-a-local-backup">See which files reached a local backup</h2>
+<p>In development source, local folder backups can keep readable CSV or JSON lists for each build. The list describes files actually stored, including older files your upload settings deliberately keep. An unchanged folder points to its earlier complete listing. CSV stays suitable for filtering in Excel: a reference row tells you which earlier version to filter.</p>
+<p>For archived backups, the record also tells you which physical version folder contains the bytes. Keeping the latest folder replaces its older contents; a historical list does not recreate bytes that have since been overwritten. See <a href="./configuration.html#ordinary-local-flat-history">the configuration example</a>. This source addition is not in installed preview.3.</p>
 
 
 </section>

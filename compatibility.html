@@ -369,6 +369,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#explicit-named-cas-snapshot-recovery" id="toc-explicit-named-cas-snapshot-recovery" class="nav-link" data-scroll-target="#explicit-named-cas-snapshot-recovery">Explicit named CAS snapshot recovery</a></li>
   <li><a href="#legacy-flat-cas-verified-recovery" id="toc-legacy-flat-cas-verified-recovery" class="nav-link" data-scroll-target="#legacy-flat-cas-verified-recovery">Legacy flat CAS verified recovery</a></li>
   <li><a href="#local-cas-flat-catalogue-runtime" id="toc-local-cas-flat-catalogue-runtime" class="nav-link" data-scroll-target="#local-cas-flat-catalogue-runtime">Local CAS flat catalogue runtime</a></li>
+  <li><a href="#ordinary-local-flat-metadata-integration" id="toc-ordinary-local-flat-metadata-integration" class="nav-link" data-scroll-target="#ordinary-local-flat-metadata-integration">Ordinary local flat metadata integration</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -1255,6 +1256,14 @@ ul.task-list li input[type="checkbox"] {
 <p>Fixtures cover four formats/placements, Excel membership, version references and reversion, format switching, idempotent/partial retries, stale claims, corruption, and Unix second-copy permission failure with hard-link preservation. Remote checks and exact-head independent final review remain pending.</p>
 <p>The Unix second-copy permission witness runs under the existing unprivileged host/pinned CI users; it must not be run as root. No local heavy tests ran.</p>
 <p>Remote execution caught an assertion expecting an unquoted root CSV header. Production correctly retained its existing QUOTE_ALL codec. The fixture now parses the four column names while retaining exact root-CSV byte comparisons around recovery; production serialization is unchanged.</p>
+</section>
+<section id="ordinary-local-flat-metadata-integration" class="level2">
+<h2 class="anchored" data-anchor-id="ordinary-local-flat-metadata-integration">Ordinary local flat metadata integration</h2>
+<p>New beyond projr: registered local latest/archive destinations keep actual final file-byte inventories in the existing CSV/JSON catalogue codecs, separate from projr-compatible root MD5 manifest.csv and VERSION. File layout, cue/inspection/ strategy behavior, retained extras, archive reuse and VERSION* meanings are preserved. Ordinary tree metadata, GitHub new formats and new binding recovery are explicitly pending; installed preview.3 is unchanged.</p>
+<p>Ponytail full reused catalogue reference/dictionary resolution, bounded source scanning, guarded installation, metadata replacement and existing writer claims. Independent early review found folded legacy-inline titles could share a project metadata namespace; selected metadata namespaces now reject overlap before hooks, while inline definitions without new metadata retain their old behavior. Bounded immutable reads and pre-normalization retry checks also gained regression fixtures.</p>
+<p>Actual CLI regressions cover all four formats and placements, retained extras and older upload-missing bytes, Unicode membership, direct version references, archive physical reuse, changes, same-version preservation, format switches, empty markers, stale claims, corrupt/linked/oversized metadata and aliased titles. Remote compilation/tests and exact-head independent final review are pending.</p>
+<p>The first remote Linux run compiled successfully and passed nine new groups. The alias fixture had omitted content on a legacy inline definition, which correctly selected no upload. It now explicitly enables content, checks a real prehook marker remains absent, and permits only the already-approved local preflight diagnostic. The oversized-binding witness also requires the bounded-read diagnostic. Production behavior and safety assertions are unchanged.</p>
+<p>Final review also identified a project-to-remote placement switch could start a disjoint history. Ordinary local history now reads both fixed known metadata locations, independently of selected write placement. A three-build project-to-remote-to-both fixture with format changes checks complete earlier history, direct references, and unchanged old/unselected files. This is bounded fixed-location compatibility, not snapshot discovery.</p>
 
 
 </section>

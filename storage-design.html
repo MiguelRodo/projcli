@@ -330,6 +330,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#explicit-configured-tree-readers" id="toc-explicit-configured-tree-readers" class="nav-link" data-scroll-target="#explicit-configured-tree-readers">Explicit configured tree readers</a></li>
   <li><a href="#recover-existing-flat-cas-snapshots" id="toc-recover-existing-flat-cas-snapshots" class="nav-link" data-scroll-target="#recover-existing-flat-cas-snapshots">Recover existing flat CAS snapshots</a></li>
   <li><a href="#flat-history-in-local-cas" id="toc-flat-history-in-local-cas" class="nav-link" data-scroll-target="#flat-history-in-local-cas">Flat history in local CAS</a></li>
+  <li><a href="#ordinary-local-history-integration-development-source" id="toc-ordinary-local-history-integration-development-source" class="nav-link" data-scroll-target="#ordinary-local-history-integration-development-source">Ordinary local history integration (development source)</a></li>
   </ul>
 </nav>
     </div>
@@ -574,6 +575,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>The authoritative history read through replacement/reference publication holds the existing cooperative claim at <code>&lt;store&gt;/.proj/build.lock</code>. Unknown/stale claims fail closed and only an owned claim is removed; there is no automatic process killing or stale-claim cleanup. Raw immutable objects may be copied before that claim. Required history copies precede full snapshot refs, then the small project ref. both is not a cross-location transaction: errors can leave objects or an updated first history copy. Retry can finish the remaining copy.</p>
 <p>Explicit verify/restore resolves version references/dictionaries, checks inventory hashes and actual raw bytes, and uses the existing guarded installer. The result reports snapshot_kind: flat-catalogue-v1. Old tree and legacy-flat IDs stay distinct and readable, regardless of the current write style. A small binding alone is not a backup. Empty directories are recorded by this new format, unlike legacy flat.</p>
 <p>These new manifest-format controls currently apply to local CAS. Ordinary local latest/archive and GitHub Release providers retain their existing metadata path; their new-format integration is still pending. Trees default to fixed v1 JSON; explicit manifest-format: json is valid there, while CSV/dictionary choices require flat style. Null/unknown modes fail instead of silently choosing a default.</p>
+</section>
+<section id="ordinary-local-history-integration-development-source" class="level2">
+<h2 class="anchored" data-anchor-id="ordinary-local-history-integration-development-source">Ordinary local history integration (development source)</h2>
+<p>Ordinary latest/archive data keeps its existing directory layout; new flat catalogues do not copy files into objects. A distinct versioned local binding records each logical folder’s inventory hash, relative physical payload path, empty flag and existing VERSION advertisement. Its ID is a snapshot binding, not a pure content root. Small project references persist with remote-only full metadata. One archive payload may serve several build-version observations. Mutable latest storage cannot promise recovery of older overwritten content.</p>
 
 
 </section>

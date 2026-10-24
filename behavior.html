@@ -322,6 +322,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#configured-local-cas-tree-publication-unreleased" id="toc-configured-local-cas-tree-publication-unreleased" class="nav-link" data-scroll-target="#configured-local-cas-tree-publication-unreleased">Configured local CAS tree publication (unreleased)</a></li>
   <li><a href="#explicit-saved-folder-recovery-development-source" id="toc-explicit-saved-folder-recovery-development-source" class="nav-link" data-scroll-target="#explicit-saved-folder-recovery-development-source">Explicit saved-folder recovery (development source)</a></li>
   <li><a href="#readable-local-snapshot-history-development-source" id="toc-readable-local-snapshot-history-development-source" class="nav-link" data-scroll-target="#readable-local-snapshot-history-development-source">Readable local snapshot history (development source)</a></li>
+  <li><a href="#actual-ordinary-local-file-lists-development-source" id="toc-actual-ordinary-local-file-lists-development-source" class="nav-link" data-scroll-target="#actual-ordinary-local-file-lists-development-source">Actual ordinary local file lists (development source)</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -590,7 +591,12 @@ ul.task-list li input[type="checkbox"] {
 <section id="readable-local-snapshot-history-development-source" class="level2">
 <h2 class="anchored" data-anchor-id="readable-local-snapshot-history-development-source">Readable local snapshot history (development source)</h2>
 <p>Local CAS flat style now publishes CSV/JSON histories, with unchanged versions pointing directly to earlier complete folder listings. Optional file dictionaries keep every path but shorten repeated hashes. Both plain formats and dictionary variants use the same raw stored bytes and stable snapshot bindings.</p>
-<p>Full history placement and small project references follow the existing approved policy. Earlier decoded records remain immutable; retries preserve them and later copy failures retain honest partial-publication evidence. Existing ordinary root CSV and old flat/tree snapshots remain unchanged. Other provider formatting and automatic snapshot lookup remain pending.</p>
+<p>Full history placement and small project references follow the existing approved policy. Earlier decoded records remain immutable; retries preserve them and later copy failures retain honest partial-publication evidence. Existing ordinary root CSV and old flat/tree snapshots remain unchanged. Ordinary local flat history is described below; ordinary tree/GitHub formatting and automatic snapshot lookup remain pending.</p>
+</section>
+<section id="actual-ordinary-local-file-lists-development-source" class="level2">
+<h2 class="anchored" data-anchor-id="actual-ordinary-local-file-lists-development-source">Actual ordinary local file lists (development source)</h2>
+<p>Named ordinary local destinations default to flat CSV history with both full metadata copies; explicit flat formats and placement are supported. Legacy inline build.local without new policy fields retains its behavior. Complete inventories describe final destination bytes, not the source CSV. Build versions and physical data locations remain distinct; archive reuse and legacy VERSION* are preserved. No CAS object store is introduced for ordinary destinations. Recorded same-version conflicts are checked on the complete private installation stage before replacing data. Required histories precede full bindings and small project references; failures report partial effects, without cross-location rollback.</p>
+<p>Ordinary tree and GitHub new-format metadata remain pending. The ordinary restore command continues its existing CSV/VERSION behavior; no new automatic snapshot selection or historical latest-data recovery is claimed.</p>
 
 
 </section>

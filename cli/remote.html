@@ -331,6 +331,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#verify-or-restore-an-exact-local-cas-tree-snapshot-development-source" id="toc-verify-or-restore-an-exact-local-cas-tree-snapshot-development-source" class="nav-link" data-scroll-target="#verify-or-restore-an-exact-local-cas-tree-snapshot-development-source">Verify or restore an exact local CAS tree snapshot (development source)</a></li>
   <li><a href="#recover-existing-flat-cas-snapshots" id="toc-recover-existing-flat-cas-snapshots" class="nav-link" data-scroll-target="#recover-existing-flat-cas-snapshots">Recover existing flat CAS snapshots</a></li>
   <li><a href="#verify-and-restore-new-flat-csvjson-snapshots" id="toc-verify-and-restore-new-flat-csvjson-snapshots" class="nav-link" data-scroll-target="#verify-and-restore-new-flat-csvjson-snapshots">Verify and restore new flat CSV/JSON snapshots</a></li>
+  <li><a href="#ordinary-local-file-list-history" id="toc-ordinary-local-file-list-history" class="nav-link" data-scroll-target="#ordinary-local-file-list-history">Ordinary local file-list history</a></li>
   </ul>
 </nav>
     </div>
@@ -654,6 +655,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="verify-and-restore-new-flat-csvjson-snapshots" class="level2">
 <h2 class="anchored" data-anchor-id="verify-and-restore-new-flat-csvjson-snapshots">Verify and restore new flat CSV/JSON snapshots</h2>
 <p>The same named-store and exact-ID verify/restore commands now read the new flat-catalogue-v1 binding as well as tree-v1 and legacy-flat. They resolve complete version inventories, check all referenced bytes and keep VERSION, root CSV and store history unchanged. Current write format does not hide older snapshots. See the <a href="../configuration.html#flat-history-in-local-cas">format/placement reference</a>. Automatic snapshot selection is still separate; no newest-version policy is added.</p>
+</section>
+<section id="ordinary-local-file-list-history" class="level2">
+<h2 class="anchored" data-anchor-id="ordinary-local-file-list-history">Ordinary local file-list history</h2>
+<p>Configured local latest/archive builds can write flat CSV/JSON history; see <a href="../configuration.html#ordinary-local-flat-history">placement, defaults and examples</a>. These lists describe actual uploaded folders, including retained remote-only files, and preserve the physical location of reused archive data. Existing ordinary remote restore remains unchanged. Exact-ID CAS verify/restore does not interpret ordinary bindings as content-addressed file objects.</p>
 
 
 </section>

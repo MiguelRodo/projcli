@@ -299,7 +299,10 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#development-source-local-only-failure-branch" id="toc-development-source-local-only-failure-branch" class="nav-link" data-scroll-target="#development-source-local-only-failure-branch">Development source: local-only failure branch</a></li>
   <li><a href="#development-source-registry-overlay" id="toc-development-source-registry-overlay" class="nav-link" data-scroll-target="#development-source-registry-overlay">Development-source registry overlay</a></li>
   <li><a href="#development-source-configured-cas-overlay" id="toc-development-source-configured-cas-overlay" class="nav-link" data-scroll-target="#development-source-configured-cas-overlay">Development-source configured CAS overlay</a></li>
-  <li><a href="#explicit-snapshot-verification-and-recovery" id="toc-explicit-snapshot-verification-and-recovery" class="nav-link" data-scroll-target="#explicit-snapshot-verification-and-recovery">Explicit snapshot verification and recovery</a></li>
+  <li><a href="#explicit-snapshot-verification-and-recovery" id="toc-explicit-snapshot-verification-and-recovery" class="nav-link" data-scroll-target="#explicit-snapshot-verification-and-recovery">Explicit snapshot verification and recovery</a>
+  <ul class="collapse">
+  <li><a href="#ordinary-local-file-lists-in-development-source" id="toc-ordinary-local-file-lists-in-development-source" class="nav-link" data-scroll-target="#ordinary-local-file-lists-in-development-source">Ordinary local file lists in development source</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -764,7 +767,7 @@ Figure&nbsp;7: Current source: production CSV capture within managed recovery.
   A["Validate planned namespaces / freeze routing"] --&gt; B["Existing analysis / promotion / CSV"]
   B --&gt; C["Keep local release"]
   C --&gt; D["Stage all selected local CSV bytes"]
-  D --&gt; E["Local archive/latest data, then metadata"]
+  D --&gt; E["Local data; opted-in final-byte histories; full metadata then project reference"]
   E --&gt; H["Validate catalog/history; stage comparison and ZIP effects"]
   H --&gt; I["GitHub latest/archive replacements, then metadata ZIPs"]
   I --&gt; F["Selected CAS, Git, end hooks, next-dev"]
@@ -910,8 +913,12 @@ Figure&nbsp;11: Development source: save a selected directory snapshot before Gi
 <p>The separate remote verify / remote restore –snapshot operations do not enter the build lifecycle, run hooks, create attempt logs, distribute data or bump a version. They select a named store and exact saved snapshot, validate bytes, and use the existing guarded directory installer only for an explicit restore. The eleven build-stage figures retain their existing order.</p>
 <p>Legacy-flat verification/recovery follows the same separate, explicit path as tree recovery. Stored-format selection changes no build stage or figure; both formats use the existing guarded installer and leave project/store history alone.</p>
 <p>Flat publication prepares bounded history early, copies raw objects, then holds the store claim through its authoritative history read/replacement and required references. All selected raw bytes and inventory bindings verify. Existing partial-distribution, optional Git, end-hook and next-dev boundaries are unchanged. The eleven-figure native browser witness remains required.</p>
+<section id="ordinary-local-file-lists-in-development-source" class="level3">
+<h3 class="anchored" data-anchor-id="ordinary-local-file-lists-in-development-source">Ordinary local file lists in development source</h3>
+<p>For named ordinary local destinations, the publisher owns a destination writer claim, reads the authoritative history, and checks the complete staged payload before replacement. It records actual final bytes and their physical location, then writes legacy compatibility metadata, new complete history copies, full snapshot bindings and the small project reference. Failed copies retain honest partial effects. This addition does not change preview.3 or the later Git/end-hook ordering; ordinary tree/GitHub formatting remains pending.</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->
