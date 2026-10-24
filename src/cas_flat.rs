@@ -60,7 +60,7 @@ impl FlatReference {
         serde_json::from_slice::<Self>(bytes).context("Malformed flat catalogue reference")?.canonical()
     }
 }
-fn filename(format:Format)->&'static str {
+pub(crate) fn filename(format:Format)->&'static str {
     match format {
         Format::Csv=>"catalogues/v1/manifest.csv",
         Format::Json=>"catalogues/v1/manifest.json",
@@ -92,7 +92,7 @@ fn semantic_prefix(left:&Catalogue,right:&Catalogue)->bool {
     left.records.len()<=right.records.len()&&left.records.iter().zip(&right.records).all(|(a,b)|
         a.label==b.label&&a.version==b.version&&a.created_at==b.created_at&&a.inventory_hash==b.inventory_hash)
 }
-fn load_history(bases:&[Utf8PathBuf])->Result<Catalogue> {
+pub(crate) fn load_history(bases:&[Utf8PathBuf])->Result<Catalogue> {
     let mut best=Catalogue::default();
     for base in bases {for format in FORMATS {
         let path=crate::cas_tree::native(base,filename(format))?;
@@ -105,7 +105,7 @@ fn load_history(bases:&[Utf8PathBuf])->Result<Catalogue> {
     }}
     Ok(best)
 }
-fn append_idempotent(history:&Catalogue,snapshot:&FlatSnapshot)->Result<Catalogue> {
+pub(crate) fn append_idempotent(history:&Catalogue,snapshot:&FlatSnapshot)->Result<Catalogue> {
     history.validate()?;
     let snapshot=FlatSnapshot::parse(&snapshot.readable_json()?)?;
     let existing:std::collections::HashSet<_>=history.records.iter().filter(|record|record.version==snapshot.version)

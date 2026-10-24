@@ -557,3 +557,14 @@ latest/archive and GitHub Release providers retain their existing metadata path;
 their new-format integration is still pending. Trees default to fixed v1 JSON;
 explicit manifest-format: json is valid there, while CSV/dictionary choices require
 flat style. Null/unknown modes fail instead of silently choosing a default.
+
+
+## Ordinary local history integration (development source)
+
+Ordinary latest/archive data keeps its existing directory layout; new flat
+catalogues do not copy files into objects. A distinct versioned local binding
+records each logical folder's inventory hash, relative physical payload path,
+empty flag and existing VERSION advertisement. Its ID is a snapshot binding,
+not a pure content root. Small project references persist with remote-only full
+metadata. One archive payload may serve several build-version observations.
+Mutable latest storage cannot promise recovery of older overwritten content.

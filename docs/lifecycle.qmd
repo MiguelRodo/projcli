@@ -413,7 +413,7 @@ flowchart TB
   A["Validate planned namespaces / freeze routing"] --> B["Existing analysis / promotion / CSV"]
   B --> C["Keep local release"]
   C --> D["Stage all selected local CSV bytes"]
-  D --> E["Local archive/latest data, then metadata"]
+  D --> E["Local data; opted-in final-byte histories; full metadata then project reference"]
   E --> H["Validate catalog/history; stage comparison and ZIP effects"]
   H --> I["GitHub latest/archive replacements, then metadata ZIPs"]
   I --> F["Selected CAS, Git, end hooks, next-dev"]
@@ -640,3 +640,14 @@ the store claim through its authoritative history read/replacement and required
 references. All selected raw bytes and inventory bindings verify. Existing
 partial-distribution, optional Git, end-hook and next-dev boundaries are unchanged.
 The eleven-figure native browser witness remains required.
+
+
+### Ordinary local file lists in development source
+
+For named ordinary local destinations, the publisher owns a destination writer
+claim, reads the authoritative history, and checks the complete staged payload
+before replacement. It records actual final bytes and their physical location,
+then writes legacy compatibility metadata, new complete history copies, full
+snapshot bindings and the small project reference. Failed copies retain honest
+partial effects. This addition does not change preview.3 or the later Git/end-hook
+ordering; ordinary tree/GitHub formatting remains pending.

@@ -608,3 +608,11 @@ through atomic replacements and refs. Unknown claims fail closed; no auto cleanu
 Required histories then full refs then project binding. No cross-location rollback,
 history truncation, GC, unnecessary tree-object intermediate or performance claim.
 Other provider formatting remains explicitly pending until implemented/tested.
+
+
+Ordinary local flat histories observe actual final payloads, never source CSV
+substitutes. Build version and physical archive location are distinct; preserve
+legacy VERSION* trust markers and latest overwrite limits. New registry defaults
+must not silently opt legacy inline builds into metadata. Guard final private-stage
+same-version conflicts before replacement, and reject overlapping metadata namespaces.
+Ordinary data stays outside CAS objects; GitHub/tree integration remains separate.

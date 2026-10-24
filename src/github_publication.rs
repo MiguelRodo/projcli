@@ -35,6 +35,8 @@ pub(crate) fn validate(root:&Utf8Path,raw:Option<&Map<String,Value>>,config:&cra
     for (title,value) in raw.into_iter().flatten() {
         anyhow::ensure!(!title.trim_matches(' ').is_empty()&&!title.chars().any(char::is_control),"Invalid GitHub destination title");
         let definition=crate::restore::definition(value)?;
+        anyhow::ensure!(crate::ordinary_manifest::Policy::parse(&definition)?.is_none(),
+            "GitHub manifest placement/style/format integration is not implemented yet");
         let mut labels=if let Some(Value::Array(values))=&definition.content {
             values.iter().map(|value|value.as_str().map(str::to_owned).context("Content labels must be strings")).collect::<anyhow::Result<Vec<_>>>()?
         }else{

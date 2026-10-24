@@ -690,3 +690,13 @@ version inventories, check all referenced bytes and keep VERSION, root CSV and
 store history unchanged. Current write format does not hide older snapshots.
 See the [format/placement reference](../configuration.qmd#flat-history-in-local-cas).
 Automatic snapshot selection is still separate; no newest-version policy is added.
+
+
+## Ordinary local file-list history
+
+Configured local latest/archive builds can write flat CSV/JSON history; see
+[placement, defaults and examples](../configuration.qmd#ordinary-local-flat-history).
+These lists describe actual uploaded folders, including retained remote-only files,
+and preserve the physical location of reused archive data. Existing ordinary
+remote restore remains unchanged. Exact-ID CAS verify/restore does not interpret
+ordinary bindings as content-addressed file objects.

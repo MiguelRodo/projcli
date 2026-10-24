@@ -340,9 +340,10 @@ existing path. Purely legacy CAS name lists do not acquire new case-folding rule
 The new registry also accepts an ordinary name list for all eligible content,
 while mapping form is required for per-build label subsets.
 
-This slice deliberately does **not** activate per-remote manifest placement,
-flat/tree policy or CSV/JSON format fields. Such fields fail rather than being
-accepted and ignored. Configured CAS tree mapping publication is described below. The existing CAS
+Named ordinary local destinations now support flat CSV/JSON history and metadata
+placement, described below. Ordinary tree and GitHub formatting fields still fail
+until implemented; they are never accepted and ignored. Configured CAS tree mapping
+publication is described below. The existing CAS
 name-list route retains its legacy flat encoding when using legacy definitions.
 Previously stored snapshots and the explicit tree APIs remain unchanged.
 
@@ -487,3 +488,56 @@ latest/archive and GitHub Release providers retain their existing metadata path;
 their new-format integration is still pending. Trees default to fixed v1 JSON;
 explicit manifest-format: json is valid there, while CSV/dictionary choices require
 flat style. Null/unknown modes fail instead of silently choosing a default.
+
+
+## File lists for ordinary local destinations {#ordinary-local-flat-history}
+
+Development source supports the four flat manifest formats for named local
+latest/archive destinations:
+
+~~~yaml
+remotes:
+  local:
+    backup:
+      path: ../backup
+      structure: archive
+      manifest: both
+      manifest-style: flat
+      manifest-format: csv
+build:
+  dest:
+    backup:
+      content: [raw, output]
+~~~
+
+Here csv is the default; json, csv-dedupe-file and json-dedupe-file are also
+supported. Identical complete inventories for the same logical folder reference
+the earlier complete version. Optional dictionaries retain every path row.
+The build version identifies the observation; its file hashes describe the
+**actual final destination**, including older files retained by upload-missing
+or upload-all. This is separate from the project's source CSV.
+
+manifest:auto defaults to both for ordinary local destinations. project stores
+complete new history only in the project; remote stores it only under the remote's
+.projcli-manifests directory; both stores both. Complete catalogue files use the
+same catalogues/v1 filenames as local CAS. A small project binding is always
+written last under .proj/remotes and records the physical folder, empty marker
+and verbatim legacy VERSION entry. The binding alone is not a complete file list.
+
+Unchanged archive data may stay in an older physical version directory; the new
+build record points there. Latest records describe what was observed, without
+making older overwritten bytes recoverable. An asterisk in legacy VERSION still
+means source agreement is untrusted; hashing actual destination bytes does not
+remove it. Root MD5 manifest.csv, VERSION and CHANGELOG.md remain the existing
+compatibility metadata regardless of the new manifest placement.
+
+Pure legacy inline build.local definitions keep their old behavior unless an
+explicit manifest/style/format field opts in. Null or unknown options fail.
+Ordinary tree-style metadata and GitHub format integration remain pending.
+Switching formats retains old files and reads compatible earlier history;
+conflicting retries or histories fail rather than overwrite recorded inventory.
+
+A cooperative destination claim covers history reads through publication.
+Required full catalogues precede immutable full bindings and the small project
+binding. Multiple copies are not a transaction: failure may leave earlier data
+or metadata installed, and is reported as partial publication.
