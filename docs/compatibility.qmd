@@ -3124,3 +3124,10 @@ Filesystem fixtures exercise all placements, shared roots/objects, library
 materialisation, subsets/null, legacy list/mapping history, preview preservation,
 namespace preflight and corrupt/partially published metadata. These fixtures have
 not yet run; remote exact-head execution and final independent review are pending.
+
+Remote macOS execution found that the new CAS routing validator resolved the
+project path even when no modern CAS target was selected. It now returns before
+filesystem checks for an empty selection, preserving unrelated configuration
+queries. Existing path guards remain in force for selected targets. The native
+browser diagram check now requires all eleven figures, including the new
+configured-publication overlay.

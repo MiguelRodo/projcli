@@ -103,3 +103,23 @@ and [command reference](cli/remote.qmd) for the tested scope and limits.
 These additions are included in the published preview.3 installation described
 above. The separate test prerelease holds sample data, not an installer. Complete projr
 compatibility, the future remote registry and broader M2 work remain unfinished.
+
+## Choose where a build saves its results
+
+In development source, name each available storage destination once under
+remotes, then select where this build sends its results with build.dest. A named
+location remains available for restoring earlier data after you stop uploading
+to it. The [configuration reference](configuration.qmd) has copyable examples
+and explains how to select only particular folders.
+
+For local content-addressed storage (CAS), identical file bytes are stored once
+and folders receive fingerprints based on their names and contents. The new
+tree writer can keep the complete folder listing in the storage location, in
+your project, or in both. It always keeps a small project record identifying
+the saved folders. That small record alone cannot restore files if the storage
+content or required full listings are lost.
+
+These additions are not in installed preview.3. Automatic selection of an older
+CAS snapshot for restore and the new CSV/JSON history options are still being
+connected to commands. Ordinary local and GitHub Release upload/restore behavior
+remains available as described in the [remote guide](remote-compatibility.qmd).

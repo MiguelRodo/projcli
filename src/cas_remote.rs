@@ -98,6 +98,7 @@ fn selected_labels(config:&crate::yml::ValidatedConfig,content:&Value)->Result<V
 /// Validate every selected namespace before hooks; no directories or blobs are created.
 pub(crate) fn configured(root:&Utf8Path,selections:&[Selection],config:&crate::yml::ValidatedConfig,
     ordinary:&[crate::publication::LocalPublication])->Result<Vec<Target>> {
+    if selections.is_empty(){return Ok(Vec::new())}
     let root=physical(root)?;let mut targets:Vec<Target>=Vec::new();let mut namespaces=HashSet::new();
     for selection in selections {
         let labels=selected_labels(config,&selection.definition.content)?;

@@ -598,6 +598,10 @@ after ordinary/legacy targets and before optional Git. This does not move end
 hooks, next-dev or the existing partial-distribution boundary.
 
 ~~~{mermaid}
+%%| label: fig-lifecycle-configured-cas
+%%| fig-cap: "Development source: save a selected directory snapshot before Git finalization."
+%%| fig-alt: "Validate selected folders, save content and required snapshot copies, then record the project reference. Later failures retain evidence."
+%%{init: {"htmlLabels": false}}%%
 flowchart TB
   A["Frozen selected CAS targets"] --> B["Read-only source preparation"]
   B --> C["Retain distribution-start evidence"]
