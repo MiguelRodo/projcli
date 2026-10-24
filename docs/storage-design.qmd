@@ -382,3 +382,15 @@ It is not a crash-atomic transaction or arbitrary concurrent-writer sandbox.
 Permissions/ownership restoration is not a CAS guarantee. As with the ordinary
 installer, cleanup failure can report an installed destination and retained private
 backup rather than pretending rollback after successful installation.
+
+
+Source review added explicit legacy manifests namespace protection: a tree restore
+cannot target the old flat manifests directory either. Merge validation compares
+actual directory-entry spelling, including selected empty directories, so native
+case aliases cannot widen an existing private directory's modes.
+
+Both private staging levels are explicitly closed. If a pre-replacement callback
+rejects a copied tree, cleanup may unlock only owned copies, never the installed
+destination or a retained previous original. Primary and cleanup failures remain
+visible together; a tree that cannot be safely removed is retained with its path.
+The ordinary installer's existing post-install backup-cleanup limitation remains.

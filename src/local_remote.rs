@@ -254,6 +254,25 @@ pub fn download_version(root: &Utf8Path, version: &LocalVersion, destination: &U
     Ok(LocalDownload { version: version.version.clone(), destination: destination.to_owned(), empty: version.empty, clear })
 }
 
+// Before replacement (or after successful rollback) only next is owned copied data.
+// Never unlock previous: it may be an original with externally aliased permissions.
+fn discard_download_stage(staging:tempfile::TempDir,primary:anyhow::Error)->anyhow::Error {
+    let previous=staging.path().join("previous");
+    match fs::symlink_metadata(&previous) {
+        Err(error) if error.kind()==std::io::ErrorKind::NotFound=>{
+            match crate::fs_utils::close_owned_staging(staging) {
+                Ok(())=>primary,
+                Err(cleanup)=>primary.context(format!("Private download cleanup also failed: {cleanup:#}")),
+            }
+        },
+        status=>{
+            let retained=staging.keep();
+            primary.context(format!("Download cleanup withheld to preserve possible original at {}; previous inspection: {}",
+                retained.display(),match status {Ok(_)=>"present".into(),Err(error)=>error.to_string()}))
+        },
+    }
+}
+
 /// Shared guarded tree installation; callers provide a complete staged source.
 pub(crate) fn install_directory(root: &Utf8Path, source: &Utf8Path, destination: &Utf8Path, clear: bool) -> anyhow::Result<()> {
     install_directory_checked(root,source,destination,clear,|_|Ok(()))
@@ -269,6 +288,7 @@ pub(crate) fn install_directory_checked(root:&Utf8Path,source:&Utf8Path,destinat
     let staging = tempfile::Builder::new().prefix(".proj-download-").tempdir_in(parent)?;
     let staged = Utf8PathBuf::try_from(staging.path().join("next"))?;
     let previous = Utf8PathBuf::try_from(staging.path().join("previous"))?;
+    let preparation=(||->anyhow::Result<()> {
     fs::create_dir(&staged)?;
     let mut permissions = std::collections::BTreeMap::new();
     download_permissions(source, Utf8Path::new(""), &mut permissions)?;
@@ -288,8 +308,14 @@ pub(crate) fn install_directory_checked(root:&Utf8Path,source:&Utf8Path,destinat
     verify(&staged)?;
     validate_download_destination(root, source, destination)?;
     anyhow::ensure!(directory_present(destination)? == had_destination, "Download destination presence changed during staging");
+        Ok(())
+    })();
+    if let Err(error)=preparation {return Err(discard_download_stage(staging,error));}
     if had_destination {
-        fs::rename(destination, &previous).with_context(|| format!("Cannot retain existing download destination {destination}"))?;
+        if let Err(error)=fs::rename(destination,&previous) {
+            return Err(discard_download_stage(staging,anyhow::Error::from(error)
+                .context(format!("Cannot retain existing download destination {destination}"))));
+        }
     }
     if let Err(error) = fs::rename(&staged, destination) {
         if had_destination {
@@ -298,7 +324,8 @@ pub(crate) fn install_directory_checked(root:&Utf8Path,source:&Utf8Path,destinat
                 anyhow::bail!("Cannot install local download: {error}; rollback failed: {rollback}; original destination retained at {}/previous", retained.display());
             }
         }
-        return Err(error).with_context(|| format!("Cannot install staged local download at {destination}"));
+        return Err(discard_download_stage(staging,anyhow::Error::from(error)
+            .context(format!("Cannot install staged local download at {destination}"))));
     }
     let cleanup_path = staging.path().to_owned();
     staging.close().with_context(|| format!("Download installed at {destination}, but private staging cleanup failed at {}", cleanup_path.display()))?;

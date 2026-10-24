@@ -168,3 +168,69 @@ fn staging_creation_failure_preserves_destination_and_store() {
     }
     assert_eq!(bytes(&fixture.store),before);
 }
+
+
+#[test]
+fn legacy_flat_manifests_and_lookup_ledger_survive_rejected_and_normal_tree_restore() {
+    let (fixture,metadata)=Fixture::new(false,false);
+    proj::cas::ingest_directory(&fixture.project,&fixture.store,"output",&fixture.project.join("source"),"v1.2.3").unwrap();
+    let before=bytes(&fixture.store);let ledger=fs::read(fixture.project.join(".projr/manifests.csv")).unwrap();
+    assert!(fixture.restore(&metadata,&fixture.store.join("manifests"),true).is_err());
+    assert_eq!(bytes(&fixture.store),before);
+    fixture.restore(&metadata,&fixture.project.join("recovered"),true).unwrap();
+    assert_eq!(bytes(&fixture.store),before);
+    assert_eq!(fs::read(fixture.project.join(".projr/manifests.csv")).unwrap(),ledger);
+}
+
+#[test]
+fn selected_empty_directory_alias_never_replaces_or_widens_the_existing_private_directory() {
+    let (fixture,metadata)=Fixture::new(false,false);
+    let destination=fixture.project.join("recovered");
+    fs::create_dir_all(destination.join("nested/Empty")).unwrap();
+    fs::write(destination.join("previous"),b"keep private").unwrap();
+    #[cfg(unix)] {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(destination.join("nested/Empty"),fs::Permissions::from_mode(0o700)).unwrap();
+    }
+    let before=bytes(&destination);
+    let error=fixture.restore(&metadata,&destination,false).unwrap_err();
+    let text=format!("{error:#}");
+    assert!(text.contains("alias")||text.contains("directory"),"{text}");
+    assert_eq!(bytes(&destination),before);
+    #[cfg(unix)] {
+        use std::os::unix::fs::PermissionsExt;
+        assert_eq!(fs::metadata(destination.join("nested/Empty")).unwrap().permissions().mode()&0o777,0o700);
+    }
+    assert_eq!(fs::read_dir(&fixture.project).unwrap().count(),2);
+}
+
+#[test]
+fn callback_failure_cleans_all_private_copies_without_unlocking_the_original_directory() {
+    let (fixture,metadata)=Fixture::new(false,false);
+    let destination=fixture.project.join("recovered");
+    fs::create_dir_all(destination.join("NESTED")).unwrap();
+    fs::create_dir(destination.join("locked")).unwrap();
+    fs::write(destination.join("locked/private"),b"private original").unwrap();
+    fs::write(destination.join("NESTED/previous"),b"previous").unwrap();
+    #[cfg(unix)] {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(destination.join("locked"),fs::Permissions::from_mode(0o500)).unwrap();
+    }
+    let before=bytes(&destination);let store_before=bytes(&fixture.store);
+    assert!(fixture.restore(&metadata,&destination,false).is_err());
+    assert_eq!(bytes(&destination),before);assert_eq!(bytes(&fixture.store),store_before);
+    // On case-sensitive filesystems the copied stage has portable aliases; on
+    // case-insensitive filesystems selected paths retain the wrong native case.
+    // Both fail after copying the unrelated restrictive private directory.
+    assert_eq!(fs::read_dir(&fixture.project).unwrap().count(),2);
+    assert!(!fs::read_dir(&fixture.project).unwrap().any(|entry|
+        entry.unwrap().file_name().to_string_lossy().starts_with(".proj-")));
+    #[cfg(unix)] {
+        use std::os::unix::fs::PermissionsExt;
+        let path=destination.join("locked");
+        let original=fs::metadata(&path).unwrap().permissions().mode()&0o777;
+        // Restore only our fixture's original permissions for portable TempDir cleanup.
+        fs::set_permissions(&path,fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(original,0o500);
+    }
+}

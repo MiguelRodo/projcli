@@ -173,3 +173,17 @@ pub(crate) fn read_managed_bounded(path:&Utf8Path,limit:u64)->anyhow::Result<Vec
     anyhow::ensure!(bytes.len() as u64 <= limit, "Managed input is too large");
     Ok(bytes)
 }
+
+
+/// Close a wholly owned copied staging tree, never installed data or retained originals.
+/// Failures retain/report the path instead of hiding cleanup errors in TempDir::drop.
+pub(crate) fn close_owned_staging(staging:tempfile::TempDir)->anyhow::Result<()> {
+    let path=staging.path().to_owned();
+    match prepare_owned_cleanup(&path) {
+        Ok(())=>staging.close().with_context(||format!("Owned staging cleanup failed at {}; private files may remain",path.display())),
+        Err(error)=>{
+            let retained=staging.keep();
+            Err(error.context(format!("Owned staging retained at {}",retained.display())))
+        },
+    }
+}

@@ -343,7 +343,9 @@ fn restore_destination(root:&Utf8Path,store:&Layout,destination:&Utf8Path)->Resu
     let anchor=destination.ancestors().last().context("CAS destination has no anchor")?;
     crate::path_safety::validate_native_names(anchor,destination.strip_prefix(anchor)?.as_str(),false)?;
     let destination=physical(destination)?;project_target(root,&destination,false)?;
-    for namespace in [&store.objects,&store.trees,&store.snapshots] {
+    let legacy=store.objects.parent().context("CAS objects have no store base")?.join("manifests");
+    for namespace in [&store.objects,store.trees.parent().context("CAS trees have no namespace parent")?,
+        store.snapshots.parent().context("CAS snapshots have no namespace parent")?,&legacy] {
         anyhow::ensure!(!overlaps(&destination,namespace),"CAS restore destination overlaps storage");
     }
     let parent=destination.parent().context("CAS restore destination has no parent")?;
@@ -371,20 +373,22 @@ fn copy_object(store:&Layout,id:&str,target:&Utf8Path)->Result<()> {
     anyhow::ensure!(digest.finalize().to_hex().as_str()==id,"CAS object changed while materialising expected digest {id}");
     Ok(())
 }
-fn observed(plan:&Plan,prefix:&str,files:&mut Vec<FileRecord>,empty:&mut Vec<String>)->Result<()> {
+fn observed(plan:&Plan,prefix:&str,files:&mut Vec<FileRecord>,empty:&mut Vec<String>,directories:&mut HashSet<String>)->Result<()> {
+    if !prefix.is_empty(){directories.insert(prefix.into());}
     if plan.entries.is_empty()&&!prefix.is_empty(){empty.push(prefix.into());}
     for entry in &plan.entries {
         let name=if prefix.is_empty(){entry.name.clone()}else{format!("{prefix}/{}",entry.name)};
         match &entry.content {
             PlannedContent::File(path)=>files.push(FileRecord {path:name,hash:crate::cas::hash_file(path)?}),
-            PlannedContent::Tree(child)=>observed(child,&name,files,empty)?,
+            PlannedContent::Tree(child)=>observed(child,&name,files,empty,directories)?,
         }
     }
     Ok(())
 }
 fn verify_materialised(stage:&Utf8Path,expected:&FlatDirectory,clear:bool)->Result<()> {
     let plan=scan(stage,"",&mut Expansion::default())?;
-    let mut files=Vec::new();let mut empty=Vec::new();observed(&plan,"",&mut files,&mut empty)?;
+    let mut files=Vec::new();let mut empty=Vec::new();let mut directories=HashSet::new();
+    observed(&plan,"",&mut files,&mut empty,&mut directories)?;
     // scan validates each actual directory's names/types under the graph's
     // expanded limits. Do not impose the optional flat-export prefix-work bound.
     files.sort_by(|left,right|left.path.as_bytes().cmp(right.path.as_bytes()));empty.sort();
@@ -396,7 +400,7 @@ fn verify_materialised(stage:&Utf8Path,expected:&FlatDirectory,clear:bool)->Resu
             anyhow::ensure!(files.get(&file.path).copied()==Some(&file.hash),"Materialised CAS file is missing or corrupt: {}",file.path);
         }
         for path in &expected.empty_directories {
-            anyhow::ensure!(fs::symlink_metadata(stage.join(path))?.is_dir(),"Materialised CAS directory is missing: {path}");
+            anyhow::ensure!(directories.contains(path),"Materialised CAS directory is missing or has a native name alias: {path}");
         }
     }
     Ok(())
@@ -422,7 +426,9 @@ pub fn restore_label(project_root:&Utf8Path,content:&Utf8Path,metadata:&Utf8Path
         .context("Selected CAS snapshot has no requested logical label")?;
     let parent=destination.parent().context("CAS destination has no parent")?;
     let staging=tempfile::Builder::new().prefix(".proj-cas-restore-").tempdir_in(parent)?;
-    let source=Utf8PathBuf::try_from(staging.path().join("selected"))?;fs::create_dir(&source)?;
+    let source=Utf8PathBuf::try_from(staging.path().join("selected"))?;
+    let execution=(||->Result<TreeRestore> {
+    fs::create_dir(&source)?;
     for directory in &selected.empty_directories {fs::create_dir_all(source.join(directory))?;}
     for file in &selected.files {copy_object(&store,&file.hash,&source.join(&file.path))?;}
     verify_materialised(&source,selected,true)?;
@@ -431,5 +437,13 @@ pub fn restore_label(project_root:&Utf8Path,content:&Utf8Path,metadata:&Utf8Path
         verify_materialised(stage,selected,clear)
     })?;
     Ok(TreeRestore {snapshot_id:snapshot_id.into(),label:label.into(),version:verified.snapshot.version,
-        destination,clear,files:selected.files.len()})
+        destination:destination.clone(),clear,files:selected.files.len()})
+    })();
+    let cleanup=crate::fs_utils::close_owned_staging(staging);
+    match (execution,cleanup) {
+        (Err(error),Err(cleanup))=>Err(error.context(format!("CAS source staging cleanup also failed: {cleanup:#}"))),
+        (Err(error),Ok(()))=>Err(error),
+        (Ok(_),Err(cleanup))=>Err(cleanup.context(format!("CAS destination installed at {destination}, but source staging cleanup failed"))),
+        (Ok(result),Ok(()))=>Ok(result),
+    }
 }
