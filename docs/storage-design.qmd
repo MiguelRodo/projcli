@@ -377,8 +377,8 @@ use the same installer with their previous behavior. No hard-linked external
 file inode is edited in place.
 
 The recovery API remains explicitly selected. Named registry and configured tree
-publication/placement are described below; configured recovery, CLI verification
-and flat catalogue publication integration remain pending.
+publication/placement are described below; automatic snapshot selection and flat catalogue publication integration remain
+pending. Explicit configured verification/recovery is described below.
 It is not a crash-atomic transaction or arbitrary concurrent-writer sandbox.
 Permissions/ownership restoration is not a CAS guarantee. As with the ordinary
 installer, cleanup failure can report an installed destination and retained private
@@ -440,8 +440,21 @@ selection still works; mapping subsets preserve legacy label spelling. To opt
 into new trees, remove the legacy inspect field and explicitly select tree if
 desired. No old manifest is reinterpreted or moved.
 
-This slice implements tree publication and library recovery. Configured CAS
-restore/selection and flat CSV/JSON catalogue publication are still pending.
+The publication slice added tree storage and library recovery. Explicit named-ID
+configured recovery is described below; automatic snapshot selection and flat
+CSV/JSON catalogue publication remain pending.
 manifest-format and legacy inspect on modern policies fail rather than silently
 doing something else. The ordinary latest/archive and GitHub writers retain
 their current policy support; new placement/style options are not claimed there.
+
+## Explicit configured tree readers
+
+Named v1 snapshot verification and single-label restore now consider the full
+remote and project metadata namespaces independently of current write placement
+or style. Current upload content does not hide an explicit historical snapshot.
+All present full copies must verify; absence is distinct from corruption. Readers
+do not need the old project ledger, root CSV or small project reference.
+
+Selection remains exact title/ID/label, not an automatic newest-version policy.
+Existing graph limits and guarded installation are reused. Legacy flat IDs are
+not recast as v1 tree IDs; flat recovery and catalogue runtime remain pending.

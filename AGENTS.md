@@ -586,3 +586,11 @@ legacy content/inspect parser and old IDs/ledger; never migrate in place. Prepar
 sources before actual provider entry. Once entry is recorded, preserve release
 and honest partial effects. No atomic both-copy/GC/discovery claim follows.
 Flat catalogue options and configured recovery remain separate reviewed slices.
+
+
+Explicit CAS snapshot commands use an exact named local store and v1 ID. Upload
+selection/style must not hide older explicit snapshots. Check all present full
+metadata copies and actual bytes; never substitute a small root reference or
+silently reinterpret a legacy flat ID. No CSV, VERSION, log or remote writes on
+verification/recovery. Keep automatic snapshot selection and flat runtime work
+separate, and ordinary restore selection unchanged.

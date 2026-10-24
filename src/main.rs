@@ -142,6 +142,9 @@ pub enum RemoteCommands {
         title:Option<String>,
         #[arg(long)]
         remote_version:Option<String>,
+        /// Restore an exact local CAS tree snapshot; requires its configured remote title.
+        #[arg(long,requires="title")]
+        snapshot:Option<String>,
         /// Explicit owner/repository; otherwise resolve the selected project's Git origin.
         #[arg(long)]
         repository:Option<String>,
@@ -149,10 +152,19 @@ pub enum RemoteCommands {
         profile:Option<String>,
         #[arg(long)]
         clear:bool,
+        #[arg(long,required_unless_present="snapshot")]
+        max_bytes:Option<u64>,
+        #[arg(long,required_unless_present="snapshot")]
+        max_expanded_bytes:Option<u64>,
+    },
+    /// Check the folders and exact bytes in one named local CAS tree snapshot; changes nothing.
+    Verify {
         #[arg(long)]
-        max_bytes:u64,
+        title:String,
         #[arg(long)]
-        max_expanded_bytes:u64,
+        snapshot:String,
+        #[arg(long)]
+        profile:Option<String>,
     },
     /// Explicit GitHub Release assets; does not change configured destinations.
     Github {
@@ -485,6 +497,12 @@ fn main() {
         Commands::History {attempt,limit} => match proj::history::read(&root,attempt.as_deref(),*limit) {
             Ok(history)=>print!("{}",history.markdown()),
             Err(error)=>fail(format_args!("Cannot inspect build history: {error:#}")),
+        },
+        Commands::Remote {command:RemoteCommands::Verify {title,snapshot,profile}} => {
+            match proj::configured_cas::verify(&root,title,snapshot,profile.as_deref()) {
+                Ok(result)=>println!("{}",serde_json::to_string_pretty(&result).expect("CAS observation is serializable")),
+                Err(error)=>fail(format_args!("CAS verification failed: {error:#}")),
+            }
         },
         Commands::Remote {command:command @ RemoteCommands::Restore {..}} => {
             match configured_restore(&root,command) {
@@ -842,10 +860,18 @@ fn upload_github_asset(client:&proj::github_release::GithubReleaseClient,tag:&st
 }
 
 fn configured_restore(root:&camino::Utf8Path,command:&RemoteCommands)->anyhow::Result<proj::restore::RestoreResult> {
-    let RemoteCommands::Restore {label,position,provider,title,remote_version,repository,profile,clear,max_bytes,max_expanded_bytes}=command
+    let RemoteCommands::Restore {label,position,provider,title,remote_version,snapshot,repository,profile,clear,max_bytes,max_expanded_bytes}=command
         else {anyhow::bail!("Expected configured restore command");};
+    if let Some(snapshot)=snapshot {
+        anyhow::ensure!(position.is_none()&&repository.is_none(),"Explicit CAS snapshot restore does not use position or GitHub repository filters");
+        anyhow::ensure!(provider.as_deref().is_none_or(|value|value=="local"),"Explicit CAS snapshots require a local source");
+        anyhow::ensure!(max_bytes.is_none()&&max_expanded_bytes.is_none(),"CAS snapshots use bounded tree readers, not ordinary archive byte-limit flags");
+        return proj::configured_cas::restore(root,title.as_deref().ok_or_else(||anyhow::anyhow!("CAS snapshot restore requires --title"))?,
+            snapshot,label,profile.as_deref(),remote_version.as_deref(),*clear);
+    }
     let request=proj::restore::RestoreRequest {label:label.clone(),position:position.clone(),provider:provider.clone(),
         title:title.clone(),remote_version:remote_version.clone(),repository:repository.clone(),profile:profile.clone(),
-        clear:*clear,max_bytes:*max_bytes,max_expanded_bytes:*max_expanded_bytes};
+        clear:*clear,max_bytes:max_bytes.ok_or_else(||anyhow::anyhow!("Ordinary restore requires --max-bytes"))?,
+        max_expanded_bytes:max_expanded_bytes.ok_or_else(||anyhow::anyhow!("Ordinary restore requires --max-expanded-bytes"))?};
     proj::restore::restore_label(root,&request)
 }

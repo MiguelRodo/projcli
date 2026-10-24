@@ -80,3 +80,6 @@ pub mod catalogue;
 pub mod remote_registry;
 
 mod cas_remote;
+
+/// Explicit named local CAS verification and guarded snapshot recovery.
+pub mod configured_cas;

@@ -589,7 +589,8 @@ Registry membership alone neither uploads nor loads credentials. The existing
 provider engines receive only selected definitions. Configured restore remains
 an explicit separate operation, and registry sources remain available after
 removal from the current upload set. Configured local CAS tree publication adds the provider overlay below.
-Flat format publication and configured CAS recovery remain pending.
+Flat format publication and automatic CAS snapshot selection remain pending;
+explicit verification/recovery is described below.
 
 ## Development-source configured CAS overlay
 
@@ -617,3 +618,11 @@ flowchart TB
 Preparation errors before any provider entry retain the pre-distribution recovery
 contract. Once a provider may have changed state, no cross-location rollback is
 claimed. Preview captures selected local stores and project remote metadata.
+
+## Explicit snapshot verification and recovery
+
+The separate remote verify / remote restore --snapshot operations do not enter
+the build lifecycle, run hooks, create attempt logs, distribute data or bump a
+version. They select a named store and exact saved snapshot, validate bytes, and
+use the existing guarded directory installer only for an explicit restore. The
+eleven build-stage figures retain their existing order.
