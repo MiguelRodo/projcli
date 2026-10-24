@@ -312,6 +312,15 @@ fn csv_field(value: &str) -> String {
     else { value.to_owned() }
 }
 
+/// Store the observed legacy byte stream and its raw-JSON identity unchanged.
+/// project_root owns the lookup CSV; cas_remote_root owns objects/manifests.
+/// label/version bind the raw JSON and source_dir must be a real disjoint tree.
+///
+/// Cooperative store and separate legacy-ledger claims serialize authoritative
+/// index updates without reacquiring the build's project claim. Exact lookup-row
+/// retries retain existing bytes; differing digests keep their historical meaning.
+/// Claims are non-reentrant; stale/busy ownership, malformed indexes, unsafe paths and I/O failures propagate;
+/// complete unreferenced objects/metadata may remain after a later failure.
 pub fn ingest_directory(project_root: &Utf8Path, cas_remote_root: &Utf8Path, label: &str, source_dir: &Utf8Path, version: &str) -> Result<()> {
     validate_manifest(&DirectoryManifest { label: label.to_owned(), version: version.to_owned(), files: vec![] })?;
     let source = crate::path_safety::resolve_path(source_dir.as_std_path(), true)?;
@@ -322,16 +331,6 @@ pub fn ingest_directory(project_root: &Utf8Path, cas_remote_root: &Utf8Path, lab
     if source.starts_with(&remote) || remote.starts_with(&source) || ledger_identity.starts_with(&source) {
         anyhow::bail!("CAS source overlaps its storage or project metadata");
     }
-    checked_directory(cas_remote_root)?;
-    checked_directory(&cas_remote_root.join("objects"))?;
-    checked_directory(&cas_remote_root.join("manifests"))?;
-    checked_directory(&project_root.join(".projr"))?;
-    if ledger.exists() && !ledger.is_file() { anyhow::bail!("CAS project index is not a regular file"); }
-    let mut index = match fs::read(&ledger) {
-        Ok(bytes) => bytes,
-        Err(error) if error.kind() == io::ErrorKind::NotFound => Vec::new(),
-        Err(error) => return Err(error).context("Cannot read existing CAS project index"),
-    };
     fn scan(directory: &std::path::Path, root: &std::path::Path, files: &mut Vec<(String, camino::Utf8PathBuf)>) -> Result<()> {
         for entry in fs::read_dir(directory)? {
             let entry = entry?;
@@ -351,6 +350,39 @@ pub fn ingest_directory(project_root: &Utf8Path, cas_remote_root: &Utf8Path, lab
     let mut selected = Vec::new();
     scan(&source, &source, &mut selected)?;
     selected.sort_by(|left, right| left.0.cmp(&right.0));
+    checked_directory(cas_remote_root)?;
+    let ledger_root = project_root.join(".projr");
+    checked_directory(&ledger_root)?;
+    // Create only guarded coordination roots; invalid source trees were rejected above.
+    fs::create_dir_all(cas_remote_root).context("Cannot create legacy CAS store root")?;
+    fs::create_dir_all(&ledger_root).context("Cannot create legacy CAS ledger root")?;
+    checked_directory(cas_remote_root)?;
+    checked_directory(&ledger_root)?;
+    // One ledger can describe several stores. Claim both physical roots in a
+    // fixed order; .projr avoids the project's already-held build claim.
+    let mut coordination = vec![
+        camino::Utf8PathBuf::try_from(fs::canonicalize(cas_remote_root)?)?,
+        camino::Utf8PathBuf::try_from(fs::canonicalize(&ledger_root)?)?,
+    ];
+    coordination.sort();
+    coordination.dedup();
+    // ponytail: coarse ownership through hashing/publication; narrow only after measured contention.
+    let _claims = coordination.iter().map(|root| crate::attempt::Attempt::acquire(root))
+        .collect::<Result<Vec<_>>>()?;
+    if ledger.exists() && !ledger.is_file() { anyhow::bail!("CAS project index is not a regular file"); }
+    let mut index = match fs::read(&ledger) {
+        Ok(bytes) => bytes,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Vec::new(),
+        Err(error) => return Err(error).context("Cannot read existing CAS project index"),
+    };
+    let mut recorded = std::collections::HashSet::new();
+    for row in csv::ReaderBuilder::new().has_headers(false).from_reader(index.as_slice()).records() {
+        let row = row.context("Malformed legacy CAS project index")?;
+        anyhow::ensure!(row.len() == 4, "Legacy CAS project index requires four columns");
+        recorded.insert((row[0].to_owned(), row[1].to_owned(), row[2].to_owned()));
+    }
+    checked_directory(&cas_remote_root.join("objects"))?;
+    checked_directory(&cas_remote_root.join("manifests"))?;
     let objects = cas_remote_root.join("objects");
     let mut files = Vec::new();
     for (logical, path) in selected {
@@ -364,9 +396,11 @@ pub fn ingest_directory(project_root: &Utf8Path, cas_remote_root: &Utf8Path, lab
     let bytes = serde_json::to_vec(&manifest)?;
     let digest = blake3::hash(&bytes).to_hex().to_string();
     write_metadata(&cas_remote_root.join("manifests").join(format!("{digest}.json")), &bytes, true)?;
-    if !index.is_empty() && !index.ends_with(b"\n") { index.push(b'\n'); }
-    index.extend_from_slice(format!("{},{},{},{}\n", csv_field(version), csv_field(label), digest, Utc::now().to_rfc3339()).as_bytes());
-    write_metadata(&ledger, &index, false)?;
+    if !recorded.contains(&(version.to_owned(), label.to_owned(), digest.clone())) {
+        if !index.is_empty() && !index.ends_with(b"\n") { index.push(b'\n'); }
+        index.extend_from_slice(format!("{},{},{},{}\n", csv_field(version), csv_field(label), digest, Utc::now().to_rfc3339()).as_bytes());
+        write_metadata(&ledger, &index, false)?;
+    }
     Ok(())
 }
 

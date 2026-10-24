@@ -715,3 +715,13 @@ then small references. Failures may leave earlier remote/full metadata effects;
 there is no atomic multi-target transaction. Ordinary restore still uses its
 compatible CSV/VERSION path and data ZIP, rather than treating these bindings as
 native CAS snapshots.
+
+
+### Preserved legacy CAS writer
+
+Legacy CAS name-list definitions keep their existing encoding and index schema.
+Their writer now claims the store and the separate project .projr lookup scope.
+Exact repeated version/label/digest rows are not appended again; earlier bytes
+and differing rows remain intact. No new configuration key, same-version conflict
+rule or automatic migration is introduced. Busy/stale claims fail rather than
+guessing ownership. Modern named format/placement defaults are unchanged.

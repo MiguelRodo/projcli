@@ -95,12 +95,13 @@ fn conflicting_manifest_and_unwritable_index_targets_preserve_old_state() {
     let directory = tempfile::tempdir().unwrap(); let project = root(&directory);
     let source = project.join("source"); let remote = project.join("archive");
     fs::create_dir(&source).unwrap(); fs::write(source.join("result"), b"actual").unwrap();
-    fs::create_dir(project.join(".projr")).unwrap(); fs::write(project.join(".projr/manifests.csv"), "old-index\n").unwrap();
+    fs::create_dir(project.join(".projr")).unwrap(); fs::write(project.join(".projr/manifests.csv"), "older,raw,opaque,prior\n").unwrap();
     let manifest = DirectoryManifest { label: "output".into(), version: "1.0.0".into(), files: vec![FileEntry { path: "result".into(), hash: blake3::hash(b"actual").to_hex().to_string() }] };
     let target = write_manifest(&remote, &manifest); fs::write(&target, "old-conflicting-bytes").unwrap();
-    assert!(proj::ingest_directory(&project, &remote, "output", &source, "1.0.0").is_err());
+    let error=proj::ingest_directory(&project, &remote, "output", &source, "1.0.0").unwrap_err();
+    assert!(format!("{error:#}").to_ascii_lowercase().contains("conflict"));
     assert_eq!(fs::read(&target).unwrap(), b"old-conflicting-bytes");
-    assert_eq!(fs::read(project.join(".projr/manifests.csv")).unwrap(), b"old-index\n");
+    assert_eq!(fs::read(project.join(".projr/manifests.csv")).unwrap(), b"older,raw,opaque,prior\n");
     fs::remove_file(project.join(".projr/manifests.csv")).unwrap(); fs::create_dir(project.join(".projr/manifests.csv")).unwrap();
     fs::write(project.join(".projr/manifests.csv/keep"), "old-index-directory").unwrap();
     assert!(proj::ingest_directory(&project, &remote, "output", &source, "2.0.0").is_err());

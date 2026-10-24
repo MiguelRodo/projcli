@@ -941,3 +941,20 @@ and mocked GitHub transitions. No automatic latest/discovery, permission/ownersh
 restoration, live consistent dataset, performance or new live GitHub claim is
 added. These checks await exact-head remote execution; installed preview.3 is
 unchanged until a separately reviewed release/install.
+
+
+## Legacy CAS publication safety
+
+The retained legacy name-list route now claims its physical store and the shared
+project .projr ledger root in fixed order, after rejecting invalid source trees.
+This coordinates public callers writing different stores without reacquiring an
+already-held project build claim. The authoritative four-column lookup is read
+and updated while both claims remain held. Existing busy/stale claims fail
+closed; no process is killed and stale ownership is not guessed.
+
+An exact version/label/raw-manifest-digest retry preserves the index bytes and
+timestamp. Other rows, raw JSON IDs, content hashes and differing same-version
+digests retain their previous meaning. Malformed indexes fail before new
+references. Complete unreferenced metadata can remain after a later error; this
+does not add a multi-location transaction, distributed locking or new version
+policy. Ordinary root manifest.csv and new flat/tree catalogues are separate.
