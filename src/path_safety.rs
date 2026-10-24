@@ -234,7 +234,18 @@ pub(crate) fn validate_native_names(base: &Utf8Path, relative: &str, mirror: boo
         current.push(component);
         if !exact {
             match fs::symlink_metadata(&current) {
-                Ok(_) => anyhow::bail!("Ambiguous native filesystem alias in store destination: {current}"),
+                Ok(_) => {
+                    // An immutable publisher can install the exact requested entry
+                    // between the first enumeration and metadata lookup. Recheck
+                    // spelling once; an alias still has no exact directory entry.
+                    let parent=current.parent().context("Native store entry has no parent")?;
+                    let mut appeared=false;
+                    for entry in fs::read_dir(parent).with_context(||format!("Cannot recheck native store names at {parent}"))? {
+                        appeared |= entry.with_context(||format!("Cannot reread native store name at {parent}"))?
+                            .file_name()==std::ffi::OsStr::new(component);
+                    }
+                    anyhow::ensure!(appeared,"Ambiguous native filesystem alias in store destination: {current}");
+                },
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
                 Err(error) => return Err(error).with_context(|| format!("Cannot inspect native store destination {current}")),
             }
@@ -259,4 +270,16 @@ pub(crate) fn portable_relative(name:&str)->anyhow::Result<camino::Utf8PathBuf> 
             "Stored path contains a reserved native device name");
     }
     Ok(name.into())
+}
+
+/// NFC/case comparison key for planned paths only; never use this spelling for I/O.
+pub(crate) fn portable_path_key(path:&Utf8Path)->camino::Utf8PathBuf {
+    camino::Utf8PathBuf::from(icu_normalizer::ComposingNormalizer::new_nfc()
+        .normalize(&path.as_str().to_uppercase()).into_owned())
+}
+
+/// Conservative namespace overlap, including absent portable case/normalization aliases.
+pub(crate) fn portable_paths_overlap(left:&Utf8Path,right:&Utf8Path)->bool {
+    let left=portable_path_key(left);let right=portable_path_key(right);
+    left.starts_with(&right)||right.starts_with(&left)
 }

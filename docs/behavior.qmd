@@ -740,3 +740,27 @@ trees and separate small snapshot/root metadata. They do not activate new config
 keys, publish objects, select snapshots or restore data yet. Existing ordinary
 CSV, latest/archive transfers and old flat CAS encodings remain unchanged.
 See [storage design](storage-design.qmd) for the exact current boundary and limits.
+
+
+## Development source: immutable local tree objects and explicit verification
+
+cas_tree adds explicit-path library APIs for tree ingestion, reference-last
+snapshot publication and read-only deep verification. File data and recovery
+metadata may use separate bases. All new hash-addressed objects use first-two/
+remaining-hash fan-out; legacy file objects are reused and legacy flat paths
+are not moved. No registry/configuration fields or automatic Git root-reference
+writes are activated by this slice, and tree restore remains subsequent work.
+
+Complete sources are pre-scanned for unsafe paths/links/special files; current
+file handles are rechecked and copied/hashed as one stream. Snapshot references
+are published only after their full graph verifies. Earlier valid metadata/data
+is never repaired or overwritten on a digest mismatch. Partial I/O can leave
+unreferenced objects; it is not falsely a complete snapshot or a crash-atomic
+distributed transaction. Exact v1 identity and expanded-work limits are described
+in [storage design](storage-design.qmd).
+
+Both CSV and JSON catalogue modes, default artefact/version-level references
+and optional file dictionaries are now approved integration scope. The complete
+JSON view codec does not silently choose that evolving storage policy. M3,
+configured build integration, tree restore and release/install remain unfinished;
+installed preview.3 is unchanged.

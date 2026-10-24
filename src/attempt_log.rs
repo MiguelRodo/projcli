@@ -1,5 +1,5 @@
 //! Per-attempt local-release evidence, without a central mutable catalogue.
-use std::{fs, io::{Read, Write}};
+use std::{fs, io::Write};
 use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Serialize};
@@ -211,13 +211,7 @@ pub(crate) fn read(path: &Utf8Path) -> anyhow::Result<Vec<u8>> {
 
 /// Read regular evidence with an explicit byte budget and no linked path components.
 pub(crate) fn read_bounded(path:&Utf8Path,limit:u64)->anyhow::Result<Vec<u8>> {
-    crate::path_safety::resolve_path(path.as_std_path(), true)?;
-    let metadata = fs::symlink_metadata(path)?;
-    anyhow::ensure!(metadata.is_file() && metadata.len() <= limit, "Attempt evidence must be a bounded regular file");
-    let mut bytes=Vec::new();
-    fs::File::open(path).with_context(||format!("Cannot read attempt evidence at {path}"))?.take(limit+1).read_to_end(&mut bytes)?;
-    anyhow::ensure!(bytes.len() as u64 <= limit, "Attempt evidence is too large");
-    Ok(bytes)
+    crate::fs_utils::read_managed_bounded(path,limit)
 }
 
 fn create(path: &Utf8Path, bytes: &[u8]) -> anyhow::Result<()> {

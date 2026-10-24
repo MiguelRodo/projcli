@@ -2990,3 +2990,43 @@ Remote exact-head compilation/API/platform/pinned validation remains required.
 This is a codec slice, not completed CAS ingestion/restore, manifest placement
 or registry integration. M2 source is complete at PR206; installed preview.3,
 the R package, ordinary transfer policy and legacy storage remain unchanged.
+
+
+## Explicit local tree-object ingestion and verification
+
+**New library APIs; no configuration migration.** cas_tree reuses the old
+copy-and-hash file object store and immutable metadata writer, while adding
+versioned tree/snapshot namespaces, first-two/rest fan-out, canonical identity
+checks before reference traversal and actual file-byte verification. Content
+and metadata roots are explicit; no local index is required for a selected remote
+snapshot. Harmless JSON formatting variants are verified and reused immutably.
+
+Ponytail full review reused the existing no-link bounded reader through a shared
+filesystem helper and the existing portable publication-overlap algorithm.
+Independent review strengthened absent authority/control-path guards (including
+Unicode/case aliases), aligned native blob-prefix acceptance in producer and
+reader, and required a real verification assertion for the alias fixture.
+No R package, credentials, source CSV semantics or legacy flat IDs are changed.
+The old flat verifier now rejects a missing/empty manifest directory and gives
+distinct missing/nonregular versus corrupt-object diagnostics.
+
+Nine filesystem witnesses cover project-copy loss without a local index, exact
+membership/empty roots, unchanged subtree reuse, sharded paths, separate metadata
+roots, immutable pretty reuse, missing/malformed/corrupt data, no-write authority
+and namespace guards, concurrent idempotence, bounded DAG/depth expansion, static
+links/FIFOs, conditional native aliases and byte-for-byte old ledger/manifest
+coexistence. They must run remotely with the complete platform/API/pinned gates;
+no local heavy execution is performed.
+
+The APIs do not yet wire registry/build selection, tree restore, metadata-copy
+orchestration or Git root refs. The latest flat catalogue direction keeps CSV
+and JSON, default per-artefact VERSION-level deduplication and optional file
+dictionaries; complete JSON remains a human/export primitive rather than an
+exclusive stored format. No destructive migration, GC, network packing, live
+consistent-dataset guarantee, permissions restoration or speed/size claim.
+
+Remote validation of the tree-store candidate exposed an exact-name enumeration
+race during concurrent identical reference publication. The native-name guard
+now rereads the parent once only when metadata appeared after its first scan,
+requiring the exact spelling. A differently spelled native alias still fails;
+the existing native-alias reader/producer fixture remains in place.
