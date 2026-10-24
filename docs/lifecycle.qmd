@@ -626,3 +626,7 @@ the build lifecycle, run hooks, create attempt logs, distribute data or bump a
 version. They select a named store and exact saved snapshot, validate bytes, and
 use the existing guarded directory installer only for an explicit restore. The
 eleven build-stage figures retain their existing order.
+
+Legacy-flat verification/recovery follows the same separate, explicit path as
+tree recovery. Stored-format selection changes no build stage or figure; both
+formats use the existing guarded installer and leave project/store history alone.

@@ -388,6 +388,6 @@ they do not establish complete parity with every convenience wrapper or option.
 The following explicit named-ID CAS recovery/verification slice reuses the tree
 verifier and guarded installer without root CSV, current upload selection or a
 project ledger. Ordinary restore still uses its documented CSV/version/source
-selection. Legacy flat CAS recovery and runtime flat CSV/JSON formats remain
-pending. The [configuration](configuration.qmd), [remote commands](cli/remote.qmd)
+selection. Legacy flat CAS compatibility recovery is described in the current command
+reference; runtime flat CSV/JSON publication remains pending. The [configuration](configuration.qmd), [remote commands](cli/remote.qmd)
 and [compatibility log](compatibility.qmd) distinguish implemented and pending work.

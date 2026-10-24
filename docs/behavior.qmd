@@ -799,7 +799,8 @@ registered unpreferred definition does not displace an existing legacy fallback.
 
 Registry/build.dest mapping integration currently covers ordinary latest/archive
 and GitHub Release operations. Configured tree publication and placement are described below. Flat format
-publication, automatic CAS selection and legacy flat recovery remain pending;
+publication and automatic CAS selection remain pending; legacy flat recovery
+is described below;
 explicit tree verification/recovery is described below. Unsupported options fail.
 Legacy inline and CAS-list behavior is preserved.
 
@@ -837,3 +838,9 @@ controls. It never treats the small project record as a complete backup.
 The explicit snapshot mode leaves ordinary restore selection unchanged. It
 does not infer the newest snapshot, reinterpret old flat IDs, create build logs
 or update project versions. See the [remote command reference](cli/remote.qmd).
+
+
+Existing flat CAS snapshots can also be checked and restored by exact ID without
+converting them. See the [remote reference](cli/remote.qmd#recover-existing-flat-cas-snapshots).
+Their older file lists do not record empty folders, so those cannot be restored
+from that format. New CSV/JSON history publication remains pending.

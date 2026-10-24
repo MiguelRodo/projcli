@@ -3157,3 +3157,17 @@ uses optional parsed values with the existing ordinary required-unless controls;
 snapshot mode rejects archive flags by presence, and ordinary mode still requires
 both. Negative witnesses require exact structured failure codes so a parser panic
 can never count as successful rejection.
+
+## Legacy flat CAS verified recovery
+
+The original flat manifest namespace and raw-JSON BLAKE3 identity are read
+directly, with no conversion. Configured verification/restore now distinguish
+legacy-flat from tree-v1, while existing tree result fields remain present.
+Legacy ASCII-insensitive label matching is preserved. The shared installer
+continues fresh-copy/hash verification and original-preserving cleanup.
+
+Ponytail full review reused bounded managed reads, portable inventory validation,
+object verification and the existing installer. No new database, identity,
+writer policy or migration. Five CLI fixture groups cover exact bytes, Unicode,
+fresh-project recovery, corruption, unsafe inventories and format coexistence.
+Remote tests and independent exact-head review remain pending.

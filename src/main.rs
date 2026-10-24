@@ -142,7 +142,7 @@ pub enum RemoteCommands {
         title:Option<String>,
         #[arg(long)]
         remote_version:Option<String>,
-        /// Restore an exact local CAS tree snapshot; requires its configured remote title.
+        /// Restore an exact local CAS snapshot; requires its configured remote title.
         #[arg(long,requires="title")]
         snapshot:Option<String>,
         /// Explicit owner/repository; otherwise resolve the selected project's Git origin.
@@ -157,7 +157,7 @@ pub enum RemoteCommands {
         #[arg(long,required_unless_present="snapshot")]
         max_expanded_bytes:Option<u64>,
     },
-    /// Check the folders and exact bytes in one named local CAS tree snapshot; changes nothing.
+    /// Check the folders and exact bytes in one named local CAS snapshot; changes nothing.
     Verify {
         #[arg(long)]
         title:String,
