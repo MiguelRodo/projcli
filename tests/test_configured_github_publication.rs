@@ -659,3 +659,30 @@ fn final_zip_native_aliases_fail_before_remote_mutations() {
         drop(state);server.finish();
     }
 }
+
+
+#[test]
+fn registered_github_definition_remains_restore_source_after_uploads_are_disabled() {
+    let server=Server::start();let (_temporary,root)=setup(&server);
+    let mut config=json!({"directories":{"output":{"path":"results"}},
+        "remotes":{"github":{"data":{"content":["output"],"send":{"inspect":"none"}}}},
+        "build":{"scripts":[],"git":false,"dest":{"data":{}}}});
+    fs::write(root.join("_proj.yml"),serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+    success(invoke(&server,&root,&["build","--non-interactive"]));
+    let before={let state=server.state.lock().unwrap();
+        assert_eq!(state.uploads,["output-v1.2.4.zip","manifest.zip","VERSION.zip","CHANGELOG.zip"]);
+        assert_eq!(members(&state.assets["output-v1.2.4.zip"].1)["result.csv"],b"actual fixture bytes\n");
+        (state.assets.clone(),state.uploads.clone(),state.deleted.clone())};
+    config["build"]["dest"]=json!({});
+    fs::write(root.join("_proj.yml"),serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+    success(invoke(&server,&root,&["build","--non-interactive"]));
+    {let state=server.state.lock().unwrap();assert_eq!(state.assets,before.0);assert_eq!(state.uploads,before.1);assert_eq!(state.deleted,before.2);}
+    let manifest=fs::read(root.join("manifest.csv")).unwrap();let version=fs::read(root.join("VERSION")).unwrap();
+    fs::write(root.join("results/result.csv"),b"damaged").unwrap();
+    success(invoke(&server,&root,&["remote","restore","--label","output","--title","data","--position","source",
+        "--remote-version","v1.2.4","--clear","--repository","owner/repo","--max-bytes","1000000","--max-expanded-bytes","1000000"]));
+    assert_eq!(fs::read(root.join("results/result.csv")).unwrap(),b"actual fixture bytes\n");
+    assert_eq!(fs::read(root.join("manifest.csv")).unwrap(),manifest);assert_eq!(fs::read(root.join("VERSION")).unwrap(),version);
+    {let state=server.state.lock().unwrap();assert_eq!(state.assets,before.0);assert_eq!(state.uploads,before.1);assert_eq!(state.deleted,before.2);}
+    server.finish();
+}

@@ -151,8 +151,9 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     let project_config: ProjConfig = serde_json::from_value(combined)
         .context("Failed to deserialize combined configuration")?;
     let config = project_config.validate_and_resolve(project_root, is_dev)?;
-    let ordinary = crate::publication::configured(project_root, project_config.build.local.as_ref(), &config)?;
-    let github_specs=crate::github_publication::validate(project_root,project_config.build.github.as_ref(),&config)?;
+    let destinations=crate::remote_registry::selected(&project_config)?;
+    let ordinary=crate::publication::configured(project_root,destinations.local.as_ref(),&config)?;
+    let github_specs=crate::github_publication::validate(project_root,destinations.github.as_ref(),&config)?;
     let execution = execution_override.or(config.settings.execution_directory).unwrap_or(ExecutionDirectory::Native);
     environment.set_working_directory(match execution {
         ExecutionDirectory::Native => caller_directory,

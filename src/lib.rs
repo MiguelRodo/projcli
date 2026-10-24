@@ -76,3 +76,5 @@ pub mod history;
 mod config_evidence;
 
 pub mod catalogue;
+
+pub mod remote_registry;

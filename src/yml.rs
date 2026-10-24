@@ -23,10 +23,12 @@ use std::fs;
 /// assert!(config.directories.is_empty());
 /// ```
 
-#[derive(Deserialize, Debug, Default, Clone)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Default, Clone)]
 pub struct RemotesConfig {
+    /// Legacy flat CAS definitions; their accepted execution behavior is preserved.
     pub local: Option<HashMap<String, LocalRemoteConfig>>,
+    /// Ordinary named definitions are available independently of upload selection.
+    pub registry: crate::remote_registry::OrdinaryRegistry,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -166,7 +168,8 @@ pub struct BuildConfig {
     pub local: Option<serde_json::Map<String, Value>>,
     /// Existing inline GitHub Release destinations; bounded archive publication.
     pub github: Option<serde_json::Map<String, Value>>,
-    pub dest: Option<Vec<String>>,
+    /// Explicit named targets/subsets; existing CAS name-list selection stays compatible.
+    pub dest: Option<crate::remote_registry::Destinations>,
     pub scripts: Option<Vec<String>>,
     #[serde(default)]
     pub hooks: HooksConfig,
@@ -253,12 +256,15 @@ pub struct ResolvedGitConfig {
 ///
 /// ```rust
 /// use proj::yml::{DirConfig, IgnoreConfig};
-/// let dir = DirConfig { path: None, safe: None, hash: None, ignore: IgnoreConfig::Single("all".to_string()) };
+/// let dir = DirConfig { path: None, safe: None, hash: None, source: None, ignore: IgnoreConfig::Single("all".to_string()) };
 /// ```
 #[derive(Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct DirConfig {
     pub path: Option<Utf8PathBuf>,
+    /// Restore provider/name metadata; builds validate references but do not auto-restore.
+    #[serde(default)]
+    pub source: Option<Value>,
     /// Optional safe-cache selection marker; valid only on cache-class mappings.
     #[serde(default, deserialize_with = "deserialize_explicit_bool")]
     pub safe: Option<bool>,
@@ -319,8 +325,11 @@ fn default_ignore() -> IgnoreConfig {
 
 /// The fully resolved and validated project configuration.
 ///
-/// Once parsed and checked, this structure guarantees that all referenced directories
-/// conform to naming rules and have explicit nonempty paths. No base targets are injected.
+/// Resource mappings and legacy CAS paths are resolved against the selected project.
+/// Ordinary registry definitions retain their declarative values; selected publication
+/// plans separately freeze physical routing before hooks. Resource names/paths follow
+/// their explicit role rules (including the fixed output-r-data role). No base targets
+/// are injected.
 ///
 /// # Panics
 ///
@@ -405,23 +414,8 @@ impl ProjConfig {
         crate::path_safety::validate_directory_labels(self.directories.keys().map(String::as_str))?;
         crate::paths::select_safe_cache(self.directories.iter().map(|(label, directory)| (label.as_str(), directory.safe)), &[])?;
 
-        // 0. Validate Structural Constraints
-        if let Some(dest) = &self.build.dest {
-            if let Some(remotes) = &self.remotes.local {
-                for dest_tag in dest {
-                    if !remotes.contains_key(dest_tag) {
-                        anyhow::bail!(
-                            "Build destination target '{}' is not registered in remotes.local inventory.",
-                            dest_tag
-                        );
-                    }
-                }
-            } else {
-                anyhow::bail!(
-                    "build.dest contains targets but remotes.local is completely undefined."
-                );
-            }
-        }
+        // Names/subsets fail before any build mutation; transport credentials are not loaded.
+        let destinations=crate::remote_registry::selected(self)?;
 
         // 1. Process explicit user configurations
         for (label, config) in &self.directories {
@@ -513,7 +507,7 @@ impl ProjConfig {
 
         let validated = ValidatedConfig {
             remotes,
-            dest: self.build.dest.clone().unwrap_or_default(),
+            dest: destinations.legacy_cas,
             config: self.config.clone(),
             settings: self.settings.clone(),
             directories: resolved,
@@ -524,8 +518,8 @@ impl ProjConfig {
             old_dev_remove: self.dev.old_dev_remove,
             parameters: self.parameters.clone(),
         };
-        crate::publication::configured(project_root, self.build.local.as_ref(), &validated)?;
-        crate::github_publication::validate(project_root,self.build.github.as_ref(),&validated)?;
+        crate::publication::configured(project_root, destinations.local.as_ref(), &validated)?;
+        crate::github_publication::validate(project_root,destinations.github.as_ref(),&validated)?;
         Ok(validated)
     }
 }

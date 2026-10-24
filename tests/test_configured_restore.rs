@@ -20,8 +20,9 @@ fn source_reference_precedes_preferred_destination_and_clear_is_staged() {
     let result=restore_label(&root,&request()).unwrap();assert!(result.restored);assert_eq!(result.title.as_deref(),Some("A"));
     assert_eq!(fs::read(root.join("data/data.csv")).unwrap(),b"chosen-A");assert!(root.join("data/old.txt").exists());
     let mut clear=request();clear.clear=true;restore_label(&root,&clear).unwrap();assert!(!root.join("data/old.txt").exists());
-    // Ordinary publication fields are not silently accepted by builds.
-    assert!(proj::yml::yml_read_from(&root,false).is_err());
+    // Restore annotations can now coexist with normal build configuration;
+    // normal builds validate the reference without automatically restoring.
+    assert!(proj::yml::yml_read_from(&root,false).is_ok());
 }
 #[test]
 fn explicit_inline_source_and_profile_local_precedence_use_physical_final_path() {
@@ -124,4 +125,25 @@ fn legacy_data_aliases_are_read_only_and_conflicting_namespaces_fail() {
     fs::create_dir_all(root.join("remote/output-r-data/v1.2.3")).unwrap();fs::write(root.join("remote/output-r-data/v1.2.3/new"),"conflict").unwrap();
     assert!(restore_label(&root,&req).unwrap_err().to_string().contains("namespaces conflict"));
     assert_eq!(fs::read(root.join("data/restored")).unwrap(),b"legacy bytes");
+}
+
+
+#[test]
+fn registry_sources_preserve_legacy_priority_unless_explicitly_preferred() {
+    for (legacy_preferred,registry_preferred,directory_reference,expected) in [
+        (false,false,false,"legacy"),(true,true,false,"legacy"),
+        (false,true,false,"registered"),(true,false,true,"registered")] {
+        let (_temp,root)=setup();remote(&root,"legacy","v1.0","legacy");remote(&root,"registered","v1.0","registered");
+        let mut directory=serde_json::json!({"path":"data"});
+        if directory_reference {directory["source"]=serde_json::json!({"local":"registered"});}
+        let mut old=serde_json::json!({"path":"legacy","content":["raw"]});
+        let mut new=serde_json::json!({"path":"registered","content":["raw"]});
+        if legacy_preferred {old["source"]=serde_json::json!(true);}
+        if registry_preferred {new["source"]=serde_json::json!(true);}
+        let config=serde_json::json!({"directories":{"raw":directory},"remotes":{"local":{"registered":new}},
+            "build":{"local":{"legacy":old}}});
+        fs::write(root.join("_proj.yml"),serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+        let result=restore_label(&root,&request()).unwrap();assert_eq!(result.title.as_deref(),Some(expected));
+        assert_eq!(fs::read(root.join("data/data.csv")).unwrap(),expected.as_bytes());
+    }
 }

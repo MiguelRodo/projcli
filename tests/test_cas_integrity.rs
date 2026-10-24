@@ -5,7 +5,7 @@ use proj::{DirectoryManifest, FileEntry, LocalRemoteConfig, RemotesConfig, Stora
 fn root(temp: &tempfile::TempDir) -> Utf8PathBuf { Utf8PathBuf::try_from(temp.path().canonicalize().unwrap()).unwrap() }
 fn configuration(remote: &Utf8Path, inspect: InspectStrategy) -> ValidatedConfig {
     ValidatedConfig {
-        remotes: RemotesConfig { local: Some(HashMap::from([("archive".into(), LocalRemoteConfig { path: remote.to_owned(), structure: StorageStructure::Cas, content: vec!["output".into()], inspect })])) },
+        remotes: RemotesConfig { local: Some(HashMap::from([("archive".into(), LocalRemoteConfig { path: remote.to_owned(), structure: StorageStructure::Cas, content: vec!["output".into()], inspect })])), ..Default::default() },
         dest: vec![], config: Default::default(), settings: Default::default(), directories: HashMap::new(), git: proj::ResolvedGitConfig { commit: false, push: false },
         restrictions: Default::default(), clear_output: None, output_run: None, old_dev_remove: None,
         parameters: serde_yaml::Value::Mapping(serde_yaml::Mapping::new()),
