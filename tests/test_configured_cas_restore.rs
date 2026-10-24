@@ -1,8 +1,6 @@
 //! Explicit CAS recovery uses owned fixtures, never live datasets or credentials.
 use std::{fs,path::{Path,PathBuf},process::{Command,Output},collections::BTreeMap};
 use serde_json::{json,Value};
-use camino::Utf8Path;
-use proj::{cas_tree};
 fn command(root:&Path)->Command {
     let mut command=Command::new(env!("CARGO_BIN_EXE_proj"));command.current_dir(root);
     for (key,_) in std::env::vars_os() {
@@ -59,7 +57,6 @@ fn ids(base:&Path,namespace:&str)->Vec<String> {
         format!("{}{}",parts[0],rest)
     }).collect()
 }
-fn upath(path:&Path)->&Utf8Path {Utf8Path::from_path(path).unwrap()}
 
 #[test]
 fn named_snapshot_verify_and_restore_work_without_project_csv_or_current_upload_selection() {

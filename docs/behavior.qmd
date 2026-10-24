@@ -799,7 +799,9 @@ registered unpreferred definition does not displace an existing legacy fallback.
 
 Registry/build.dest mapping integration currently covers ordinary latest/archive
 and GitHub Release operations. Configured tree publication and placement are described below. Flat format
-publication and configured CAS restore remain pending; unsupported options fail. Legacy inline and CAS-list behavior is preserved.
+publication, automatic CAS selection and legacy flat recovery remain pending;
+explicit tree verification/recovery is described below. Unsupported options fail.
+Legacy inline and CAS-list behavior is preserved.
 
 
 ## Configured local CAS tree publication (unreleased)
