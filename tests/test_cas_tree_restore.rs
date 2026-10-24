@@ -11,7 +11,7 @@ fn bytes(root:&Utf8Path)->BTreeMap<String,Vec<u8>> {
             let item=item.unwrap();let path=Utf8PathBuf::try_from(item.path()).unwrap();
             let kind=item.file_type().unwrap();
             if kind.is_dir(){visit(root,&path,rows);}
-            else if kind.is_file(){rows.insert(path.strip_prefix(root).unwrap().to_string(),fs::read(path).unwrap());}
+            else if kind.is_file(){rows.insert(path.strip_prefix(root).unwrap().as_str().replace(std::path::MAIN_SEPARATOR,"/"),fs::read(path).unwrap());}
         }
     }
     let mut rows=BTreeMap::new();if root.exists(){visit(root,root,&mut rows);}rows
