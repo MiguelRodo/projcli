@@ -176,6 +176,31 @@ fn validate_manifest(manifest: &DirectoryManifest) -> Result<()> {
     Ok(())
 }
 
+fn legacy_manifest_path(remote:&Utf8Path,id:&str)->Result<camino::Utf8PathBuf> {
+    validate_digest(id)?;
+    let base=remote.join("manifests");checked_directory(&base)?;
+    let relative=format!("{id}.json");let path=base.join(&relative);
+    crate::path_safety::resolve_path(path.as_std_path(),true)?;
+    crate::path_safety::validate_native_names(&base,&relative,false)?;
+    Ok(path)
+}
+/// Check exact legacy flat-reference presence, without creating a namespace or following links.
+pub(crate) fn legacy_manifest_exists(remote:&Utf8Path,id:&str)->Result<bool> {
+    crate::yml::configuration_entry_exists(&legacy_manifest_path(remote,id)?)
+}
+/// Read an existing legacy flat CAS manifest, preserving its raw-JSON BLAKE3 identity.
+/// This is not a v1 tree identity. Reads are bounded at 16 MiB; names/digests and
+/// file/directory collisions are validated, but this reader alone does not verify objects.
+pub fn read_directory_manifest(remote:&Utf8Path,id:&str)->Result<DirectoryManifest> {
+    let path=legacy_manifest_path(remote,id)?;
+    let bytes=crate::fs_utils::read_managed_bounded(&path,crate::snapshot_format::MAX_METADATA_BYTES as u64)
+        .context("Cannot read legacy CAS manifest")?;
+    anyhow::ensure!(blake3::hash(&bytes).to_hex().as_str()==id,"Corrupt legacy CAS manifest identity");
+    let manifest:DirectoryManifest=serde_json::from_slice(&bytes).context("Malformed legacy CAS manifest")?;
+    anyhow::ensure!(manifest.files.len()<=crate::snapshot_format::MAX_RECORDS,"Legacy CAS file-entry limit exceeded");
+    validate_manifest(&manifest)?;Ok(manifest)
+}
+
 /// Verify the configured legacy flat CAS manifests, with object bytes checked for file inspection.
 /// Versioned tree snapshots use cas_tree::verify_snapshot; absence is not verified success.
 pub fn verify_remote_integrity(remote_title: &str, validated: &ValidatedConfig) -> Result<()> {

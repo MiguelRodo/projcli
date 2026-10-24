@@ -136,3 +136,9 @@ A complete snapshot saved remotely can recover files into a fresh configured
 project. The command leaves your project version and stored snapshot unchanged.
 It checks the data before replacing files; choose --clear only when you want to
 remove destination-only files as well. Installed preview.3 is unchanged.
+
+
+Existing flat CAS snapshots can also be checked and restored by exact ID without
+converting them. See the [remote reference](cli/remote.qmd#recover-existing-flat-cas-snapshots).
+Their older file lists do not record empty folders, so those cannot be restored
+from that format. New CSV/JSON history publication remains pending.

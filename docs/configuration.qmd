@@ -406,3 +406,9 @@ older snapshot. The destination label must still be declared. Existing full
 remote and project metadata are checked; no root manifest.csv or mutable index
 is required. Normal directory-source preference remains the ordinary restore
 selection contract when no snapshot ID is supplied.
+
+
+Existing flat CAS snapshots can also be checked and restored by exact ID without
+converting them. See the [remote reference](cli/remote.qmd#recover-existing-flat-cas-snapshots).
+Their older file lists do not record empty folders, so those cannot be restored
+from that format. New CSV/JSON history publication remains pending.

@@ -431,19 +431,27 @@ pub fn restore_label(project_root:&Utf8Path,content:&Utf8Path,metadata:&Utf8Path
     let verified=verify_snapshot(content,metadata,snapshot_id)?;
     let selected=verified.directories.iter().find(|directory|directory.label==label)
         .context("Selected CAS snapshot has no requested logical label")?;
+    install_inventory(project_root,&store,snapshot_id,&verified.snapshot.version,selected,&destination,clear)
+}
+
+/// Shared installation of an already verified inventory; destination guards run again
+/// immediately before private staging. File copies are freshly hashed before replacement.
+fn install_inventory(project_root:&Utf8Path,store:&Layout,snapshot_id:&str,version:&str,
+    selected:&FlatDirectory,destination:&Utf8Path,clear:bool)->Result<TreeRestore> {
+    let destination=restore_destination(project_root,store,destination)?;
     let parent=destination.parent().context("CAS destination has no parent")?;
     let staging=tempfile::Builder::new().prefix(".proj-cas-restore-").tempdir_in(parent)?;
     let source=Utf8PathBuf::try_from(staging.path().join("selected"))?;
     let execution=(||->Result<TreeRestore> {
     fs::create_dir(&source)?;
     for directory in &selected.empty_directories {fs::create_dir_all(source.join(directory))?;}
-    for file in &selected.files {copy_object(&store,&file.hash,&source.join(&file.path))?;}
+    for file in &selected.files {copy_object(store,&file.hash,&source.join(&file.path))?;}
     verify_materialised(&source,selected,true)?;
     crate::local_remote::install_directory_checked(project_root,&source,&destination,clear,|stage| {
-        restore_destination(project_root,&store,&destination)?;
+        restore_destination(project_root,store,&destination)?;
         verify_materialised(stage,selected,clear)
     })?;
-    Ok(TreeRestore {snapshot_id:snapshot_id.into(),label:label.into(),version:verified.snapshot.version,
+    Ok(TreeRestore {snapshot_id:snapshot_id.into(),label:selected.label.clone(),version:version.into(),
         destination:destination.clone(),clear,files:selected.files.len()})
     })();
     let cleanup=crate::fs_utils::close_owned_staging(staging);
@@ -453,6 +461,44 @@ pub fn restore_label(project_root:&Utf8Path,content:&Utf8Path,metadata:&Utf8Path
         (Ok(_),Err(cleanup))=>Err(cleanup.context(format!("CAS destination installed at {destination}, but source staging cleanup failed"))),
         (Ok(result),Ok(()))=>Ok(result),
     }
+}
+
+
+/// Verified old flat metadata and its portable complete file inventory.
+/// Legacy metadata cannot recover empty directories because it did not record them.
+#[derive(Clone,Debug,serde::Serialize)]
+pub struct VerifiedLegacySnapshot {
+    /// Raw-JSON BLAKE3 ID, never reinterpreted as a content-only tree root.
+    pub snapshot_id:String,
+    /// Original version metadata, outside the raw-file-content identities.
+    pub version:String,
+    /// Sorted portable paths with full digests; empty-directory leaves are unavailable.
+    pub inventory:FlatDirectory,
+}
+/// Deeply verify an existing legacy flat manifest and every referenced raw object.
+/// Existing IDs and bytes remain unchanged. New recovery rejects unsafe/aliased paths
+/// and applies the same bounded portable inventory rules as new tree recovery.
+pub fn verify_legacy_snapshot(content:&Utf8Path,snapshot_id:&str)->Result<VerifiedLegacySnapshot> {
+    let store=layout(content,content)?;
+    let manifest=crate::cas::read_directory_manifest(content,snapshot_id)?;
+    let inventory=FlatDirectory {label:manifest.label,files:manifest.files.into_iter()
+        .map(|file|FileRecord {path:file.path,hash:file.hash}).collect(),empty_directories:vec![]};
+    let mut canonical=FlatSnapshot::new(manifest.version.clone(),None,vec![inventory])?;
+    let inventory=canonical.directories.pop().context("Legacy CAS inventory disappeared")?;
+    let mut graph=Graph::default();for file in &inventory.files {graph.file(&store,&file.hash)?;}
+    Ok(VerifiedLegacySnapshot {snapshot_id:snapshot_id.into(),version:manifest.version,inventory})
+}
+/// Restore an existing legacy flat snapshot through the same checked private installer.
+/// Label comparison retains legacy ASCII-insensitive behavior. Empty-directory history
+/// was never recorded and is not invented. No manifest, object, ledger or VERSION changes.
+pub fn restore_legacy_label(project_root:&Utf8Path,content:&Utf8Path,snapshot_id:&str,
+    label:&str,destination:&Utf8Path,clear:bool)->Result<TreeRestore> {
+    crate::path_safety::validate_directory_label(label)?;
+    let store=layout(content,content)?;let destination=restore_destination(project_root,&store,destination)?;
+    let mut verified=verify_legacy_snapshot(content,snapshot_id)?;
+    anyhow::ensure!(verified.inventory.label.eq_ignore_ascii_case(label),"Legacy CAS snapshot has no requested logical label");
+    verified.inventory.label=label.into();
+    install_inventory(project_root,&store,snapshot_id,&verified.version,&verified.inventory,&destination,clear)
 }
 
 

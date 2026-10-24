@@ -456,5 +456,27 @@ All present full copies must verify; absence is distinct from corruption. Reader
 do not need the old project ledger, root CSV or small project reference.
 
 Selection remains exact title/ID/label, not an automatic newest-version policy.
-Existing graph limits and guarded installation are reused. Legacy flat IDs are
-not recast as v1 tree IDs; flat recovery and catalogue runtime remain pending.
+Existing graph limits and guarded installation are reused. Legacy flat IDs are not recast as v1 tree IDs; the compatibility reader below
+restores their original format. New flat catalogue runtime remains pending.
+
+
+## Recover existing flat CAS snapshots
+
+The explicit remote verify / remote restore --snapshot commands also read the
+original flat JSON snapshots in `manifests/<id>.json`. Their IDs remain BLAKE3 of
+the original JSON bytes; they are never reinterpreted as pure content-tree IDs.
+Responses identify snapshot_kind as legacy-flat or tree-v1.
+
+The reader validates metadata, portable names and every referenced object before
+using the same guarded staging/installer as trees. Old snapshots remain usable
+after the remote's current write style changes, without a project CSV or legacy
+ledger. Stored metadata, IDs, objects, VERSION and history are never rewritten.
+
+Legacy snapshots record files but not empty directories or permissions. Recovery
+does not invent that missing history. Unsafe path aliases, traversal, corrupt or
+missing content and conflicting same-ID namespace entries fail explicitly before
+destination changes. Metadata is bounded at 16 MiB and 100,000 file entries, with
+the existing portable path bounds. Ordinary root manifest.csv remains separate.
+
+Automatic snapshot discovery and new flat CSV/JSON catalogue publication remain
+pending; this is compatibility recovery, not a format conversion or migration.

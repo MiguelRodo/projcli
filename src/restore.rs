@@ -55,6 +55,9 @@ pub struct RestoreResult {
     /// Exact content-addressed snapshot for explicit CAS recovery; absent for ordinary layouts.
     #[serde(skip_serializing_if="Option::is_none")]
     pub snapshot_id:Option<String>,
+    /// Stored CAS format; absent for ordinary latest/archive restores.
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub snapshot_kind:Option<String>,
 }
 #[derive(Clone,Copy,Deserialize)]
 #[serde(rename_all="lowercase")]
@@ -326,7 +329,7 @@ pub fn restore_label(root:&Utf8Path,request:&RestoreRequest)->anyhow::Result<Res
     let manifest_path=root.join("manifest.csv");
     anyhow::ensure!(fs::symlink_metadata(&manifest_path)?.is_file(),"Restore requires a regular root manifest.csv");
     let rows=crate::manifest::read(&manifest_path)?;
-    let mut result=RestoreResult {label:label.clone(),destination:destination.clone(),provider:None,title:None,version:None,restored:false,skipped:None,snapshot_id:None};
+    let mut result=RestoreResult {label:label.clone(),destination:destination.clone(),provider:None,title:None,version:None,restored:false,skipped:None,snapshot_id:None,snapshot_kind:None};
     if !rows.iter().any(|row|(row.label==label||(label=="output-r-data"&&row.label.eq_ignore_ascii_case("data")))&&!row.r#fn.is_empty()) {
         result.skipped=Some("no-recorded-files".into());return Ok(result);
     }
