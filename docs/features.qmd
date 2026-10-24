@@ -100,8 +100,8 @@ restore sequence, including reuse of an unchanged archive and preservation of
 older snapshots. See the [remote verification](remote-compatibility.qmd#live-github-fixture-verification)
 and [command reference](cli/remote.qmd) for the tested scope and limits.
 
-These additions are included in the published preview.3 installation described
-above. The separate test prerelease holds sample data, not an installer. Complete projr
+These ordinary remote additions were introduced in preview.3 and remain in
+preview.4. The separate test prerelease holds sample data, not an installer. Complete projr
 compatibility remains unproved. Preview.4 adds the named locations and file
 histories below.
 

@@ -282,7 +282,7 @@ Other decision combinations and existing current-version data fail explicitly.
 See the remote CLI page for credentials, metadata bounds and partial failure.
 
 
-## Ordinary named remotes and upload selection
+## Ordinary named remotes and upload selection {#ordinary-named-remotes-and-upload-selection-in-development-source}
 
 Ordinary local latest/archive and GitHub Release definitions can now live under
 top-level remotes rather than build. A definition remains available to restore
@@ -351,7 +351,7 @@ name-list route retains its legacy flat encoding when using legacy definitions.
 Previously stored snapshots and the explicit tree APIs remain unchanged.
 
 
-## Configured local CAS tree publication
+## Configured local CAS tree publication {#configured-local-cas-tree-publication-unreleased}
 
 New local CAS definitions can select recursive tree publication through the named
 registry. Directory selection is independent of full metadata placement:

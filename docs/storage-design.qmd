@@ -1,15 +1,16 @@
 ---
 
-Preview.4 includes the named remote definitions, file-history formats and explicit
-local snapshot recovery documented below. Historical slice notes retain their
-original verification scope. See [verified delivery](release-delivery.qmd#verified-preview4-delivery).
 title: "Storage and release catalogue design"
 ---
 
-Current development source includes named remotes, local tree/flat CAS and
+Preview.4 includes the named remote definitions, file-history formats and explicit
+local snapshot recovery documented below. Historical slice notes retain their
+original verification scope. See [verified delivery](release-delivery.qmd#verified-preview4-delivery).
+
+Preview.4 includes named remotes, local tree/flat CAS and
 explicit verified recovery. The final sections describe implemented local
 CSV/JSON history. Earlier dated codec sections record the initial library slices.
-Automatic snapshot lookup and optional DVC remain separate work. Ordinary local/GitHub flat history is implemented in the final sections. Installed preview.3 is unchanged.
+Automatic snapshot lookup and optional DVC remain separate work. Ordinary local/GitHub flat history is implemented in the final sections. These additions are included in preview.4.
 
 ## Standalone ordinary use
 
