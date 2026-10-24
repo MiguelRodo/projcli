@@ -3424,3 +3424,10 @@ This is the shared source-backed root-cause fix; the same 65-directory fixture
 remains strict, and remote execution must confirm the result. No stack-size
 increase or relaxed depth/record guard. Broader recursion/performance redesign
 is not part of this fix.
+
+The delivery documentation pass corrected materially stale central inventory
+claims that still called registry706 design-only and ordinary/GitHub metadata
+integration pending. The source-backed R audit remains historical; a concise
+current extension matrix now distinguishes native verified CAS recovery from
+ordinary compatible restore, all style/format/location defaults, mocked versus
+live evidence and remaining convenience gaps. No runtime or policy change.
