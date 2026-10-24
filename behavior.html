@@ -318,6 +318,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#development-source-immutable-local-tree-objects-and-explicit-verification" id="toc-development-source-immutable-local-tree-objects-and-explicit-verification" class="nav-link" data-scroll-target="#development-source-immutable-local-tree-objects-and-explicit-verification">Development source: immutable local tree objects and explicit verification</a></li>
   <li><a href="#flat-catalogue-serialization-groundwork" id="toc-flat-catalogue-serialization-groundwork" class="nav-link" data-scroll-target="#flat-catalogue-serialization-groundwork">Flat catalogue serialization groundwork</a></li>
   <li><a href="#verified-explicit-cas-materialisation-in-development-source" id="toc-verified-explicit-cas-materialisation-in-development-source" class="nav-link" data-scroll-target="#verified-explicit-cas-materialisation-in-development-source">Verified explicit CAS materialisation in development source</a></li>
+  <li><a href="#ordinary-registry-selection-and-restore-sources" id="toc-ordinary-registry-selection-and-restore-sources" class="nav-link" data-scroll-target="#ordinary-registry-selection-and-restore-sources">Ordinary registry selection and restore sources</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -563,6 +564,12 @@ ul.task-list li input[type="checkbox"] {
 <section id="verified-explicit-cas-materialisation-in-development-source" class="level2">
 <h2 class="anchored" data-anchor-id="verified-explicit-cas-materialisation-in-development-source">Verified explicit CAS materialisation in development source</h2>
 <p>The tree restore_label API recovers one label from an explicit v1 snapshot using deep graph verification, fresh private files and the existing guarded installer. Explicit clear controls destination-only files. Store/project controls and source metadata remain unchanged. This does not activate configured CAS restore or new CLI commands; selection/registry wiring is still M3 work.</p>
+</section>
+<section id="ordinary-registry-selection-and-restore-sources" class="level2">
+<h2 class="anchored" data-anchor-id="ordinary-registry-selection-and-restore-sources">Ordinary registry selection and restore sources</h2>
+<p>Named ordinary remotes now remain restore sources independently of current build upload selection. The existing provider cue/inspection/strategy engines execute only selected targets; registered but unselected GitHub definitions do not load credentials or contact a provider. Existing per-directory source references can coexist with normal build configuration and are validated without auto-restore.</p>
+<p>Directory references retain priority, followed by legacy preferred sources, registry preferred sources, legacy fallback and registry fallback. A newly registered unpreferred definition does not displace an existing legacy fallback.</p>
+<p>Registry/build.dest mapping integration currently covers ordinary latest/archive and GitHub Release operations. New placement/style/format policies and tree-aware configured CAS publication/restore remain pending; no ignored-option success is substituted. Legacy inline and CAS-list behavior is preserved.</p>
 
 
 </section>

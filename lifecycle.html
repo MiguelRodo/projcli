@@ -297,6 +297,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#development-source-writer-ownership-around-the-staged-lifecycle" id="toc-development-source-writer-ownership-around-the-staged-lifecycle" class="nav-link" data-scroll-target="#development-source-writer-ownership-around-the-staged-lifecycle">Development source: writer ownership around the staged lifecycle</a></li>
   <li><a href="#development-source-snapshot-and-final-git-receipt" id="toc-development-source-snapshot-and-final-git-receipt" class="nav-link" data-scroll-target="#development-source-snapshot-and-final-git-receipt">Development source: snapshot and final Git receipt</a></li>
   <li><a href="#development-source-local-only-failure-branch" id="toc-development-source-local-only-failure-branch" class="nav-link" data-scroll-target="#development-source-local-only-failure-branch">Development source: local-only failure branch</a></li>
+  <li><a href="#development-source-registry-overlay" id="toc-development-source-registry-overlay" class="nav-link" data-scroll-target="#development-source-registry-overlay">Development-source registry overlay</a></li>
   </ul>
 </nav>
     </div>
@@ -860,6 +861,11 @@ Figure&nbsp;10: Development source: production failure evidence follows the exis
 </div>
 </div>
 <p>Diagnostics use opaque IDs and coarse stages, never copied exception text or credentials. Rejected ownership creates no competing log. Previews are unchanged. Successful and distributed-failure Git history stays enabled as agreed. No automatic pruning, stronger hook enforcement or crash recovery is introduced. The integrated M2 driver checks visible local diagnostics and exact last-good state; real repository tests check Git exclusion and successful-record tracking.</p>
+</section>
+<section id="development-source-registry-overlay" class="level2">
+<h2 class="anchored" data-anchor-id="development-source-registry-overlay">Development-source registry overlay</h2>
+<p>The released figures keep their preview.2/preview.3 labels. In development source, named destination and source-reference validation extends node C in the pre-build figure, and selected registered/legacy target resolution extends node A in the ordinary-publication figure. Both occur before hooks or publication effects; the controlled stage order remains the same.</p>
+<p>Registry membership alone neither uploads nor loads credentials. The existing provider engines receive only selected definitions. Configured restore remains an explicit separate operation, and registry sources remain available after removal from the current upload set. Per-remote placement/style/format policy and tree-aware configured CAS routing are still pending.</p>
 
 
 </section>
