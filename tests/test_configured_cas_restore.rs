@@ -192,3 +192,15 @@ fn snapshot_mode_requires_a_named_cas_store_and_rejects_noncas_without_mutation(
     failed(command(&root).args(["remote","restore","--snapshot",&id,"--label","raw"]).output().unwrap(),"invalid_arguments");
     assert_eq!(files(&root),before);assert!(!root.parent().unwrap().join("store").exists());
 }
+
+#[test]
+fn restore_help_constructs_the_parser_and_ordinary_mode_still_requires_archive_limits() {
+    let (_temp,root,_config)=setup("remote");let before=files(&root);
+    let help=Command::new(env!("CARGO_BIN_EXE_proj")).current_dir(&root).args(["remote","restore","--help"]).output().unwrap();
+    assert!(help.status.success(),"{}",String::from_utf8_lossy(&help.stderr));
+    let help=String::from_utf8(help.stdout).unwrap();assert!(help.contains("--snapshot"));assert!(help.contains("--max-bytes"));
+    for limits in [vec![],vec!["--max-bytes","1000"]] {
+        failed(command(&root).args(["remote","restore","--title","snapshots","--label","raw"]).args(limits).output().unwrap(),"invalid_arguments");
+    }
+    assert_eq!(files(&root),before);assert!(!root.parent().unwrap().join("store").exists());
+}

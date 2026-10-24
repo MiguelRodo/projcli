@@ -3147,7 +3147,8 @@ Ponytail full review reuses projected read-only configuration, deep tree checks,
 safe destination selection and the existing staged installer. No new persistence
 format, index, latest-selection rule, credential lookup or network backend.
 Real CLI fixtures cover all placements, lost project recovery, changed write
-policy, empty roots, read-only failure preservation and version mismatch. Remote
+policy, empty roots, read-only failure preservation, version mismatch and actual
+parser/help construction with ordinary-limit requirements. Remote
 tests and independent exact-head review are pending for this slice.
 
 Remote fixture execution found a Clap derive conflict between inferred required
