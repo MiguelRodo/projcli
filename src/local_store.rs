@@ -79,15 +79,21 @@ fn inventory(path: &Utf8Path) -> anyhow::Result<Inventory> {
 /// writer/crash atomicity are not guaranteed. Post-install cleanup failure can
 /// leave partial residue and is reported as an installed transfer, not rollback.
 pub fn store_files(root: &Utf8Path, source: &Utf8Path, destination: &Utf8Path, strategy: StoreStrategy, dry_run: bool) -> anyhow::Result<FileStorePlan> {
-    store_files_impl(root,source,destination,strategy,dry_run,None)
+    store_files_impl(root,source,destination,strategy,dry_run,None,|_|Ok(()))
 }
 /// Apply actions derived from a caller-validated historical comparison. Physical
 /// inventories still guard staging; files not selected by the comparison retain
 /// their actual bytes. Only configured publication supplies trusted CSV history.
 pub(crate) fn store_compared_files(root:&Utf8Path,source:&Utf8Path,destination:&Utf8Path,strategy:StoreStrategy,comparison:&Inventory)->anyhow::Result<FileStorePlan> {
-    store_files_impl(root,source,destination,strategy,false,Some(comparison))
+    store_files_impl(root,source,destination,strategy,false,Some(comparison),|_|Ok(()))
 }
-fn store_files_impl(root:&Utf8Path,source:&Utf8Path,destination:&Utf8Path,strategy:StoreStrategy,dry_run:bool,comparison:Option<&Inventory>)->anyhow::Result<FileStorePlan> {
+/// Check final union bytes before replacing an ordinary publication destination.
+pub(crate) fn store_publication_files(root:&Utf8Path,source:&Utf8Path,destination:&Utf8Path,strategy:StoreStrategy,
+    comparison:Option<&Inventory>,verify:impl FnOnce(&Utf8Path)->anyhow::Result<()>)->anyhow::Result<FileStorePlan> {
+    store_files_impl(root,source,destination,strategy,false,comparison,verify)
+}
+fn store_files_impl(root:&Utf8Path,source:&Utf8Path,destination:&Utf8Path,strategy:StoreStrategy,dry_run:bool,comparison:Option<&Inventory>,
+    verify:impl FnOnce(&Utf8Path)->anyhow::Result<()>)->anyhow::Result<FileStorePlan> {
     crate::path_safety::resolve_path(source.as_std_path(), true)?;
     anyhow::ensure!(fs::symlink_metadata(source)?.is_dir(), "Store source must be a real directory: {source}");
     crate::local_remote::validate_download_destination(root, source, destination)?;
@@ -112,6 +118,7 @@ fn store_files_impl(root:&Utf8Path,source:&Utf8Path,destination:&Utf8Path,strate
         strategy, uploads, overwrites, removals, same_bytes, applied: false };
     if dry_run { return Ok(plan); }
     if plan.uploads.is_empty() && plan.removals.is_empty() && destination.exists() {
+        verify(destination)?;
         plan.applied = true;
         return Ok(plan);
     }
@@ -162,7 +169,7 @@ fn store_files_impl(root:&Utf8Path,source:&Utf8Path,destination:&Utf8Path,strate
         let target = staged.join(relative);
         if target.exists() { fs::set_permissions(target, mode)?; }
     }
-    crate::local_remote::install_directory(root, &staged, destination, mirror)?;
+    crate::local_remote::install_directory_checked(root, &staged, destination, mirror,verify)?;
         Ok(())
     })();
     let cleanup_path = staging.path().to_owned();

@@ -86,3 +86,5 @@ pub mod configured_cas;
 
 /// Flat CAS catalogue publication and explicit verified recovery.
 pub mod cas_flat;
+
+pub(crate) mod ordinary_manifest;

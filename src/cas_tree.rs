@@ -212,8 +212,12 @@ pub fn ingest_flat_directory(project_root:&Utf8Path,content:&Utf8Path,source:&Ut
 /// Read-only complete source observation, for bounded metadata preparation before provider entry.
 pub(crate) fn observe_flat_directory(project_root:&Utf8Path,content:&Utf8Path,source:&Utf8Path,label:&str)->Result<FlatDirectory> {
     let store=layout(content,content)?;let source=source_path(project_root,&store,source)?;
-    anyhow::ensure!(source.is_dir(),"CAS source must be an existing directory");
-    let plan=scan(&source,"",&mut Expansion::default())?;
+    observe_directory(&source,label)
+}
+/// Observe ordinary payload bytes with the same bounded portable-name/type checks,
+/// without imposing a content-addressed store layout or writing file objects.
+pub(crate) fn observe_directory(source:&Utf8Path,label:&str)->Result<FlatDirectory> {
+    let plan=scan(source,"",&mut Expansion::default())?;
     let mut files=Vec::new();let mut empty=Vec::new();let mut dirs=HashSet::new();
     observed(&plan,"",&mut files,&mut empty,&mut dirs)?;
     Ok(FlatSnapshot::new("inventory".into(),None,vec![FlatDirectory {label:label.into(),files,empty_directories:empty}])?.directories.remove(0))

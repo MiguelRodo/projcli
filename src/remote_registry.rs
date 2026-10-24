@@ -146,7 +146,10 @@ pub(crate) fn selected(config:&ProjConfig)->Result<Selected> {
     for (title,subset) in choices {
         anyhow::ensure!(selected_names.insert(if legacy_only(config){title.clone()}else{name(&title)?}),"Duplicate/aliased build destination name");
         if let Some(value)=config.remotes.registry.local.get(&title) {
-            local.insert(title,selected_definition(config,value,subset)?);
+            let mut selected=selected_definition(config,value,subset)?;
+            selected.as_object_mut().context("Remote definition must be a mapping")?
+                .entry("manifest-style").or_insert(Value::String("flat".into()));
+            local.insert(title,selected);
         } else if let Some(value)=config.remotes.registry.github.get(&title) {
             github.insert(title,selected_definition(config,value,subset)?);
         } else if let Some(value)=config.remotes.registry.cas.get(&title) {
@@ -314,10 +317,10 @@ mod tests {
         assert!(selected(&config).is_err());
     }
     #[test]
-    fn unsupported_new_policy_fields_fail_instead_of_activating_silent_defaults() {
-        for remote in [serde_json::json!({"path":"../A","manifest":"project"}),
+    fn unsupported_new_policy_values_fail_instead_of_activating_silent_defaults() {
+        for remote in [serde_json::json!({"path":"../A","manifest":"unsupported"}),
             serde_json::json!({"path":"../A","manifest-style":"tree"}),
-            serde_json::json!({"path":"../A","manifest-format":"json"})] {
+            serde_json::json!({"path":"../A","manifest-format":null})] {
             assert!(serde_json::from_value::<ProjConfig>(serde_json::json!({"remotes":{"local":{"A":remote}}})).is_err());
         }
         assert!(serde_json::from_value::<ProjConfig>(serde_json::json!({"remotes":{"s3":{}}})).is_err());

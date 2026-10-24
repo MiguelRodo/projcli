@@ -24,6 +24,7 @@ pub(crate) struct LocalPublication {
     // No comparison changes planning, not filesystem safety validation.
     inspect_none:bool,
     inspect_manifest:bool,
+    metadata:Option<crate::ordinary_manifest::Locations>,
 }
 /// Shared typed send controls; each transport validates its executable subset.
 #[derive(Deserialize)]
@@ -103,7 +104,9 @@ pub(crate) fn configured(root:&Utf8Path,raw:Option<&Map<String,Value>>,config:&c
                 "Publication content requires CSV capture; enable hash for label {label}");
             selected.push((label.clone(),identity(&config.get_path(root,&label)?)?));
         }
-        targets.push(LocalPublication {title:title.clone(),base,labels:selected,append:definition.path_append_label.unwrap_or(true),archive,strategy,always,inspect_none,inspect_manifest});
+        let metadata=crate::ordinary_manifest::Policy::parse(&definition)?.map(|policy|policy.locations(root,&base,title)).transpose()?;
+        targets.push(LocalPublication {title:title.clone(),base,labels:selected,append:definition.path_append_label.unwrap_or(true),
+            archive,strategy,always,inspect_none,inspect_manifest,metadata});
     }
     if targets.is_empty() {return Ok(targets);}
     validate_namespaces(root,&targets,config)?;
@@ -136,6 +139,7 @@ fn reject_legacy_data(target:&LocalPublication)->anyhow::Result<()> {
 fn validate_namespaces(root:&Utf8Path,targets:&[LocalPublication],config:&crate::yml::ValidatedConfig)->anyhow::Result<()> {
     let sources=config.directories.keys().map(|label|identity(&config.get_path(root,label)?)).collect::<anyhow::Result<Vec<_>>>()?;
     let mut bases:Vec<&Utf8Path>=Vec::new();
+    let mut metadata_paths:Vec<Utf8PathBuf>=Vec::new();
     for target in targets {
         reject_legacy_data(target)?;
         for base in &bases {anyhow::ensure!(!overlaps(base,&target.base),"Configured publication bases overlap");}
@@ -149,6 +153,19 @@ fn validate_namespaces(root:&Utf8Path,targets:&[LocalPublication],config:&crate:
         }
         let mut reserved:Vec<Utf8PathBuf>=Vec::new();
         for name in ["manifest.csv","VERSION","CHANGELOG.md"] {reserved.push(identity(&target.base.join(name))?);}
+        if let Some(metadata)=&target.metadata {
+            let current=metadata.paths().map(identity).collect::<anyhow::Result<Vec<_>>>()?;
+            for path in &current {
+                for previous in &metadata_paths {
+                    anyhow::ensure!(!overlaps(path,previous),"Ordinary manifest namespaces overlap across destinations");
+                }
+            }
+            metadata_paths.extend(current);
+            for path in metadata.paths() {
+                for source in &sources {anyhow::ensure!(!overlaps(path,source),"Ordinary manifest metadata overlaps a declared resource");}
+            }
+            for name in [".projcli-manifests",".proj"] {reserved.push(identity(&target.base.join(name))?);}
+        }
         for (label,_) in &target.labels {
             if target.archive {crate::local_remote::list_versions(&target.base,label,crate::local_remote::LocalStructure::Archive,target.append)?;}
             for empty in [false,true] {
@@ -275,7 +292,7 @@ pub(crate) fn archive_history(remote:&[ManifestRow],versions:&[(String,String)],
 /// entries before invoking the shared publisher; no external destination here.
 pub(crate) fn staging_target(base:Utf8PathBuf,labels:Vec<(String,Utf8PathBuf)>,archive:bool,strategy:StoreStrategy,always:bool,inspection:&str)->LocalPublication {
     LocalPublication{title:"GitHub private staging".into(),base,labels,append:true,archive,strategy,always,
-        inspect_none:inspection=="none",inspect_manifest:inspection=="manifest"}
+        inspect_none:inspection=="none",inspect_manifest:inspection=="manifest",metadata:None}
 }
 /// Replace one label value while retaining every other VERSION entry.
 pub(crate) fn set_version(entries:&mut Vec<(String,String)>,label:&str,version:String) {
@@ -367,6 +384,18 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
             native_name(&target.base)?;
             fs::create_dir_all(&target.base)?;
             native_name(&target.base)?;
+            // The same store claim covers authoritative legacy/history reads through
+            // data installation and metadata. Unknown claims fail closed.
+            let _writer=if target.metadata.is_some(){Some(crate::attempt::Attempt::acquire(&target.base)?)}else{None};
+            let catalogue=target.metadata.as_ref().map(|metadata|metadata.history()).transpose()?;
+            if target.metadata.is_some() {
+                item.rows=crate::manifest::read(&target.base.join("manifest.csv"))?;
+                item.versions=version_entries(&target.base.join("VERSION"))?;
+                if target.archive {for (label,_) in &target.labels {
+                    item.archive_comparisons.insert(label.clone(),archive_comparison(target,&item.rows,&item.versions,&history,label,version)?);
+                }}
+            }
+            let mut directories=Vec::new();let mut payloads=Vec::new();
             set_version(&mut item.versions,"Project",version.into());
             for (label,_) in &target.labels {
                 let source=Utf8Path::from_path(item.files.path()).unwrap().join(label);
@@ -397,7 +426,14 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
                 if ensure {
                     fs::create_dir_all(full.parent().context("Publication destination has no parent")?)?;
                     native_name(&full)?;
-                    if target.archive&&!existed {
+                    if let (Some(metadata),Some(catalogue))=(&target.metadata,&catalogue) {
+                        let fresh=target.archive&&!existed;
+                        crate::local_store::store_publication_files(root,&source,&full,
+                            if fresh{StoreStrategy::SyncPurge}else{strategy},
+                            if fresh{None}else{comparison.as_ref()},|stage|{
+                                metadata.check(catalogue,version,crate::ordinary_manifest::observe(stage,label)?)
+                            })?;
+                    } else if target.archive&&!existed {
                         // A new archive is always complete, never just the
                         // changed subset relative to an older comparison.
                         crate::local_store::store_files(root,&source,&full,StoreStrategy::SyncPurge,false)?;
@@ -408,6 +444,9 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
                 let mut normalized_empty=false;
                 if full.try_exists()? {
                     if inventory(&full)?.is_empty() {
+                        if let (Some(metadata),Some(catalogue))=(&target.metadata,&catalogue) {
+                            metadata.check(catalogue,version,crate::ordinary_manifest::observe(&full,label)?)?;
+                        }
                         normalized_empty=full_before;
                         let mode=fs::symlink_metadata(&full)?.permissions();
                         fs::create_dir_all(&empty)?;fs::set_permissions(&empty,mode)?;
@@ -434,6 +473,27 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
                         ||(target.inspect_none&&matches!(target.strategy,StoreStrategy::SyncDiff)));
                     set_version(&mut item.versions,label,format!("{version}{}",if untrusted{"*"}else{""}));
                 }
+                if let (Some(metadata),Some(catalogue))=(&target.metadata,&catalogue) {
+                    let advertised=item.versions.iter().find(|(key,_)|key==label).map(|(_,value)|value.clone());
+                    let (path,is_empty)=if full.try_exists()? {(full.clone(),false)}
+                        else if empty.try_exists()? {(empty.clone(),true)}
+                        else {
+                            let advertised=advertised.as_deref().context("Reused archive has no advertised data version")?.trim_end_matches('*');
+                            let entries=crate::local_remote::list_versions(&target.base,label,crate::local_remote::LocalStructure::Archive,target.append)?;
+                            let numbers=crate::local_remote::version_numbers(advertised).context("Invalid advertised archive version")?;
+                            let matches:Vec<_>=entries.into_iter().filter(|entry|
+                                crate::local_remote::version_numbers(&entry.version).is_some_and(|value|
+                                    crate::local_remote::compare_versions(&value,&numbers).is_eq())).collect();
+                            anyhow::ensure!(matches.len()==1,"Reused archive payload is missing or ambiguous");
+                            let entry=matches.into_iter().next().unwrap();(entry.path,entry.empty)
+                        };
+                    let directory=crate::ordinary_manifest::observe(&path,label)?;
+                    metadata.check(catalogue,version,directory.clone())?;
+                    directories.push(directory);
+                    payloads.push(crate::ordinary_manifest::Payload {label:label.clone(),inventory_hash:String::new(),
+                        path:path.strip_prefix(&target.base)?.as_str().replace(std::path::MAIN_SEPARATOR,"/"),
+                        empty:is_empty,advertised_version:advertised});
+                }
                 item.rows.retain(|row|!(row.label==*label&&row.version==version));
                 item.rows.extend(history.iter().filter(|row|row.label==*label&&row.version==version).cloned());
             }
@@ -442,6 +502,9 @@ pub(crate) fn publish_local(root:&Utf8Path,targets:&[LocalPublication],version:&
             write_bytes(&target.base.join("VERSION"),text.as_bytes())?;
             if let Some(changelog)=&changelog {
                 write_bytes(&target.base.join("CHANGELOG.md"),changelog)?;
+            }
+            if let (Some(metadata),Some(catalogue))=(&target.metadata,&catalogue) {
+                metadata.publish(root,catalogue,version,target.archive,directories,payloads)?;
             }
             Ok(())
         })();

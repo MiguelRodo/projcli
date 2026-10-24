@@ -119,7 +119,7 @@ your project, or in both. It always keeps a small project record identifying
 the saved folders. That small record alone cannot restore files if the storage
 content or required full listings are lost.
 
-These additions are not in installed preview.3. Automatic version selection for CAS restore and ordinary/GitHub formatting
+These additions are not in installed preview.3. Automatic version selection for CAS restore, ordinary tree listings and GitHub formatting
 remain pending; local CAS CSV/JSON history is described below. Explicit named-ID tree recovery is described below. Ordinary local and GitHub Release upload/restore behavior
 remains available as described in the [remote guide](remote-compatibility.qmd).
 
@@ -155,3 +155,18 @@ You can optionally shorten repeated hashes using a file dictionary. That adds
 indirection, so it is off by default. File-byte storage already avoids duplicate
 content independently of these choices. The existing project manifest.csv remains
 unchanged. These source additions are not yet in installed preview.3.
+
+
+## See which files reached a local backup
+
+In development source, local folder backups can keep readable CSV or JSON lists
+for each build. The list describes files actually stored, including older files
+your upload settings deliberately keep. An unchanged folder points to its earlier
+complete listing. CSV stays suitable for filtering in Excel: a reference row tells
+you which earlier version to filter.
+
+For archived backups, the record also tells you which physical version folder
+contains the bytes. Keeping the latest folder replaces its older contents; a
+historical list does not recreate bytes that have since been overwritten.
+See [the configuration example](configuration.qmd#ordinary-local-flat-history).
+This source addition is not in installed preview.3.

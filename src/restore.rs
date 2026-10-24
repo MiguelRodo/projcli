@@ -74,10 +74,17 @@ pub(crate) struct Definition {
     pub(crate) get:Option<Value>,
     pub(crate) cue:Option<Value>,
     pub(crate) id:Option<Value>,
+    pub(crate) manifest:Option<crate::cas_remote::Placement>,
+    pub(crate) manifest_style:Option<crate::cas_remote::Style>,
+    pub(crate) manifest_format:Option<crate::catalogue::Format>,
 }
 struct Source {provider:String,title:String,definition:Definition}
 pub(crate) fn definition(value:&Value)->anyhow::Result<Definition> {
+    for key in ["manifest","manifest-style","manifest-format"] {
+        anyhow::ensure!(!value.get(key).is_some_and(Value::is_null),"{key} must be supported or omitted");
+    }
     let parsed:Definition=serde_json::from_value(value.clone()).context("Invalid ordinary remote definition")?;
+    crate::ordinary_manifest::Policy::parse(&parsed)?;
     if let Some(get)=&parsed.get {
         anyhow::ensure!(get.is_object()&&get.as_object().unwrap().is_empty(),
             "get strategy/conflict are not implemented; restore uses explicit --clear");

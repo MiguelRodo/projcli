@@ -855,5 +855,22 @@ variants use the same raw stored bytes and stable snapshot bindings.
 Full history placement and small project references follow the existing approved
 policy. Earlier decoded records remain immutable; retries preserve them and later
 copy failures retain honest partial-publication evidence. Existing ordinary
-root CSV and old flat/tree snapshots remain unchanged. Other provider formatting
+root CSV and old flat/tree snapshots remain unchanged. Ordinary local flat history is described below; ordinary tree/GitHub formatting
 and automatic snapshot lookup remain pending.
+
+
+## Actual ordinary local file lists (development source)
+
+Named ordinary local destinations default to flat CSV history with both full
+metadata copies; explicit flat formats and placement are supported. Legacy inline
+build.local without new policy fields retains its behavior. Complete inventories
+describe final destination bytes, not the source CSV. Build versions and physical
+data locations remain distinct; archive reuse and legacy VERSION* are preserved.
+No CAS object store is introduced for ordinary destinations. Recorded same-version
+conflicts are checked on the complete private installation stage before replacing
+data. Required histories precede full bindings and small project references; failures
+report partial effects, without cross-location rollback.
+
+Ordinary tree and GitHub new-format metadata remain pending. The ordinary restore
+command continues its existing CSV/VERSION behavior; no new automatic snapshot
+selection or historical latest-data recovery is claimed.
