@@ -331,7 +331,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#recover-existing-flat-cas-snapshots" id="toc-recover-existing-flat-cas-snapshots" class="nav-link" data-scroll-target="#recover-existing-flat-cas-snapshots">Recover existing flat CAS snapshots</a></li>
   <li><a href="#flat-history-in-local-cas" id="toc-flat-history-in-local-cas" class="nav-link" data-scroll-target="#flat-history-in-local-cas">Flat history in local CAS</a></li>
   <li><a href="#ordinary-local-history-integration-development-source" id="toc-ordinary-local-history-integration-development-source" class="nav-link" data-scroll-target="#ordinary-local-history-integration-development-source">Ordinary local history integration (development source)</a></li>
-  <li><a href="#github-flat-history-integration-development-source" id="toc-github-flat-history-integration-development-source" class="nav-link" data-scroll-target="#github-flat-history-integration-development-source">GitHub flat history integration (development source)</a></li>
+  <li><a href="#github-flat-history-integration-development-source" id="toc-github-flat-history-integration-development-source" class="nav-link" data-scroll-target="#github-flat-history-integration-development-source">GitHub flat history integration (development source)</a>
+  <ul class="collapse">
+  <li><a href="#flat-cas-placement-continuity" id="toc-flat-cas-placement-continuity" class="nav-link" data-scroll-target="#flat-cas-placement-continuity">Flat CAS placement continuity</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -585,8 +588,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="github-flat-history-integration-development-source">GitHub flat history integration (development source)</h2>
 <p>GitHub full catalogue/history and snapshot bindings share the versioned projcli-manifests-v1.zip asset; data stays in the ordinary ZIP layout. Bindings include frozen repository/tag and the actual payload asset, separate from the build-version inventory. Exact prepared ZIP observations preserve existing packaging semantics rather than inventing empty directories. Disk-backed private records avoid retaining full metadata buffers for every target at once.</p>
 <p>Every required HTTP write and full project copy precedes small project references. Original asset-ID checks protect against replacing an already changed history; they do not establish cross-writer or crash atomicity. No CAS objects, new credential mechanism, live user-data test or broad snapshot discovery is introduced.</p>
+<section id="flat-cas-placement-continuity" class="level3">
+<h3 class="anchored" data-anchor-id="flat-cas-placement-continuity">Flat CAS placement continuity</h3>
+<p>Configured flat CAS separates known history read locations from selected full-copy destinations. Project/store histories must be compatible prefixes before hooks, and publication rereads them under the existing store claim. Only selected copies change; old files/IDs remain. The public explicit-bases flat publication API keeps its signature/scope. Tree and legacy formats are unchanged.</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

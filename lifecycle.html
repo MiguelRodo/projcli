@@ -884,7 +884,7 @@ Figure&nbsp;10: Development source: production failure evidence follows the exis
 <div>
 <pre class="mermaid mermaid-js" data-label="fig-lifecycle-configured-cas">%%{init: {"htmlLabels": false}}%%
 flowchart TB
-  A["Frozen selected destinations"] --&gt; B["Read-only preparation"]
+  A["Frozen selected destinations"] --&gt; B["Read-only preparation and known-history checks"]
   B --&gt; C["Retain possible distribution evidence on provider entry"]
   C --&gt; L{"Ordinary local selected?"}
   L --&gt;|Yes| LP["Apply transfer policy; record actual final bytes"]
@@ -935,6 +935,7 @@ Figure&nbsp;11: Development source: ordinary and content-addressed storage metad
 <section id="github-file-history-in-development-source" class="level3">
 <h3 class="anchored" data-anchor-id="github-file-history-in-development-source">GitHub file history in development source</h3>
 <p>After private mirror planning, observe each exact prepared data ZIP or an actually downloaded retained archive. Stage bounded history/bindings before any HTTP mutation. Upload data, legacy metadata and the new bundle, checking its originally observed asset identity before deletion. After every target’s required HTTP succeeds, write all selected project full histories, then small project references. Failures report partial remote/local effects and retain the local release. Later CAS/Git/end-hook ordering is unchanged; no atomic multi-target transaction is implied.</p>
+<p>Configured flat CAS checks both fixed known history copies in the existing pre-build validation phase, before hooks. It rereads compatible histories under the existing store claim during publication. Only selected full copies change; provider order and the explicit verification/recovery path remain unchanged.</p>
 
 
 </section>
