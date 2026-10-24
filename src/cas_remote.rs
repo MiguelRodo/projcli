@@ -4,7 +4,8 @@ use anyhow::{Context,Result};
 use camino::{Utf8Path,Utf8PathBuf};
 use serde::Deserialize;
 use serde_json::Value;
-use crate::snapshot_format::{TreeSnapshot,DirectoryRoot};
+use crate::snapshot_format::{TreeSnapshot,DirectoryRoot,FlatSnapshot};
+use crate::catalogue::Format;
 use crate::path_safety::portable_paths_overlap as overlaps;
 
 /// Full metadata placement, independent of file-object storage and manifest style.
@@ -32,12 +33,17 @@ pub(crate) struct Definition {
     pub(crate) manifest:Placement,
     #[serde(default)]
     pub(crate) manifest_style:Style,
+    #[serde(default)]
+    pub(crate) manifest_format:Option<Format>,
     pub(crate) source:Option<Value>,
 }
 impl Definition {
     /// Validate metadata options and label-list shapes without filesystem or transport effects.
     pub(crate) fn parse(value:&Value)->Result<Self> {
+        anyhow::ensure!(!value.get("manifest-format").is_some_and(Value::is_null),"manifest-format must be an explicit supported mode or omitted");
         let result:Self=serde_json::from_value(value.clone()).context("Invalid configured CAS definition")?;
+        anyhow::ensure!(result.manifest_style==Style::Flat||result.manifest_format.is_none_or(|format|format==Format::Json),
+            "Tree manifests use fixed v1 JSON; flat CSV/JSON/dictionary modes require manifest-style: flat");
         anyhow::ensure!(!result.path.as_str().trim().is_empty(),"Configured CAS requires an explicit nonempty path");
         for (kind,value) in [("content",Some(&result.content)),("source",result.source.as_ref())] {
             match value {
@@ -70,6 +76,8 @@ pub(crate) struct Target {
     project_metadata:Utf8PathBuf,
     metadata:Vec<Utf8PathBuf>,
     labels:Vec<(String,Utf8PathBuf)>,
+    style:Style,
+    format:Format,
 }
 fn physical(path:&Utf8Path)->Result<Utf8PathBuf> {
     Ok(Utf8PathBuf::try_from(crate::path_safety::resolve_path(path.as_std_path(),true)?)?)
@@ -104,7 +112,6 @@ pub(crate) fn configured(root:&Utf8Path,selections:&[Selection],config:&crate::y
         let labels=selected_labels(config,&selection.definition.content)?;
         if labels.is_empty(){continue}
         TreeSnapshot::new("preflight".into(),None,labels.iter().map(|label|DirectoryRoot {label:label.clone(),tree:"0".repeat(64)}).collect())?;
-        anyhow::ensure!(selection.definition.manifest_style==Style::Tree,"Configured flat CAS catalogue publication is not implemented yet");
         let input=&selection.definition.path;
         let base=physical(&if input.is_absolute(){input.clone()}else{root.join(input)})?;
         anyhow::ensure!(!root.starts_with(&base),"Configured CAS store contains the project root");
@@ -128,21 +135,43 @@ pub(crate) fn configured(root:&Utf8Path,selections:&[Selection],config:&crate::y
             Placement::Project=>vec![project_metadata.clone()],
             Placement::Both=>vec![base.clone(),project_metadata.clone()],
         };
-        for location in &metadata {crate::cas_tree::preflight_storage(&root,&base,location,&sources)?;}
-        crate::cas_tree::preflight_project_reference(&root,&project_metadata)?;
-        targets.push(Target {base,project_metadata,metadata,labels});
+        for location in &metadata {
+            crate::cas_tree::preflight_storage(&root,&base,location,&sources)?;
+            if selection.definition.manifest_style==Style::Flat {crate::cas_flat::preflight(&root,&base,location)?;}
+        }
+        if selection.definition.manifest_style==Style::Flat {
+            crate::cas_flat::preflight_project_reference(&root,&project_metadata)?;
+        }else{crate::cas_tree::preflight_project_reference(&root,&project_metadata)?;}
+        targets.push(Target {base,project_metadata,metadata,labels,style:selection.definition.manifest_style,
+            format:selection.definition.manifest_format.unwrap_or(if selection.definition.manifest_style==Style::Flat {Format::Csv}else{Format::Json})});
     }
     Ok(targets)
 }
 /// Source validation remains before actual provider entry and never creates store paths.
 pub(crate) fn prepare(root:&Utf8Path,target:&Target,version:&str)->Result<()> {
     TreeSnapshot::new(version.into(),None,target.labels.iter().map(|(label,_)|DirectoryRoot {label:label.clone(),tree:"0".repeat(64)}).collect())?;
-    crate::cas_tree::validate_sources(root,&target.base,&target.metadata[0],&target.labels.iter().map(|(_,path)|path.clone()).collect::<Vec<_>>())
+    crate::cas_tree::validate_sources(root,&target.base,&target.metadata[0],&target.labels.iter().map(|(_,path)|path.clone()).collect::<Vec<_>>())?;
+    if target.style==Style::Flat {
+        let directories=target.labels.iter().map(|(label,path)|crate::cas_tree::observe_flat_directory(root,&target.base,path,label)).collect::<Result<_>>()?;
+        let snapshot=FlatSnapshot::new(version.into(),None,directories)?;
+        crate::cas_flat::prepare(root,&target.base,&target.metadata,&snapshot,target.format)?;
+    }
+    Ok(())
+}
+/// Static evidence provider name; never copied remote titles, physical paths or credentials.
+pub(crate) fn provider(target:&Target)->&'static str {
+    if target.style==Style::Flat {"cas_flat"}else{"cas_tree"}
 }
 /// Add immutable file/tree objects, then required full references, then the lightweight project ref.
 /// Snapshot metadata has no inferred clock; identical supplied version/roots are retry-idempotent.
 /// Copy/reference failure may leave partial effects; no cross-location rollback or GC is attempted.
 pub(crate) fn publish(root:&Utf8Path,target:&Target,version:&str)->Result<String> {
+    if target.style==Style::Flat {
+        let directories=target.labels.iter().map(|(label,path)|
+            crate::cas_tree::ingest_flat_directory(root,&target.base,path,label)).collect::<Result<_>>()?;
+        let snapshot=FlatSnapshot::new(version.into(),None,directories)?;
+        return crate::cas_flat::publish_snapshot(root,&target.base,&target.metadata,Some(&target.project_metadata),&snapshot,target.format);
+    }
     let primary=&target.metadata[0];let mut roots=Vec::new();
     for (label,path) in &target.labels {
         roots.push(DirectoryRoot {label:label.clone(),tree:crate::cas_tree::ingest_directory(root,&target.base,primary,path)?});
@@ -191,4 +220,14 @@ mod tests {
         }
         assert!(Definition::parse(&serde_json::json!({"path":" ","structure":"cas"})).is_err());
     }
+    #[test]
+    fn flat_modes_are_explicit_and_tree_only_accepts_its_json_representation() {
+        for mode in ["csv","json","csv-dedupe-file","json-dedupe-file"] {
+            assert!(Definition::parse(&serde_json::json!({"path":"../store","structure":"cas",
+                "manifest-style":"flat","manifest-format":mode})).is_ok());
+        }
+        assert!(Definition::parse(&serde_json::json!({"path":"../store","structure":"cas","manifest-format":"json"})).is_ok());
+        assert!(Definition::parse(&serde_json::json!({"path":"../store","structure":"cas","manifest-style":"flat","manifest-format":null})).is_err());
+    }
+
 }

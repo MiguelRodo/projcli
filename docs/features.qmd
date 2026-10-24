@@ -119,8 +119,8 @@ your project, or in both. It always keeps a small project record identifying
 the saved folders. That small record alone cannot restore files if the storage
 content or required full listings are lost.
 
-These additions are not in installed preview.3. Automatic version selection for CAS restore and the new CSV/JSON history
-options remain pending. Explicit named-ID tree recovery is described below. Ordinary local and GitHub Release upload/restore behavior
+These additions are not in installed preview.3. Automatic version selection for CAS restore and ordinary/GitHub formatting
+remain pending; local CAS CSV/JSON history is described below. Explicit named-ID tree recovery is described below. Ordinary local and GitHub Release upload/restore behavior
 remains available as described in the [remote guide](remote-compatibility.qmd).
 
 ## Check and recover a saved folder
@@ -141,4 +141,17 @@ remove destination-only files as well. Installed preview.3 is unchanged.
 Existing flat CAS snapshots can also be checked and restored by exact ID without
 converting them. See the [remote reference](cli/remote.qmd#recover-existing-flat-cas-snapshots).
 Their older file lists do not record empty folders, so those cannot be restored
-from that format. New CSV/JSON history publication remains pending.
+from that format. Local CAS CSV/JSON history is described below; other provider formatting remains pending.
+
+## Keep a readable history of saved files
+
+In development source, a local store can keep a CSV history you can filter in
+Excel, or a JSON history you can open as text. When a folder has not changed,
+a later version points directly to its earlier complete listing. Changed versions
+still list every current file. The [configuration example](configuration.qmd#flat-history-in-local-cas)
+shows how to choose the format and where to keep the full history.
+
+You can optionally shorten repeated hashes using a file dictionary. That adds
+indirection, so it is off by default. File-byte storage already avoids duplicate
+content independently of these choices. The existing project manifest.csv remains
+unchanged. These source additions are not yet in installed preview.3.

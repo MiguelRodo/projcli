@@ -729,7 +729,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         }
         for target in &cas_trees {
             crate::cas_remote::prepare(project_root,target,&initial_version.to_string(true))?;
-            log.operation("cas_tree",1,
+            log.operation(crate::cas_remote::provider(target),1,
                 ||{distribution_started=true;drop(publication_backup.take());
                     crate::cas_remote::publish(project_root,target,&initial_version.to_string(true))},|_|None)?;
         }

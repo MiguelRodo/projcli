@@ -83,3 +83,6 @@ mod cas_remote;
 
 /// Explicit named local CAS verification and guarded snapshot recovery.
 pub mod configured_cas;
+
+/// Flat CAS catalogue publication and explicit verified recovery.
+pub mod cas_flat;

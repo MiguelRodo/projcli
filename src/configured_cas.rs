@@ -16,6 +16,13 @@ pub enum SnapshotVerification {
         #[serde(flatten)]
         observation:VerifiedSnapshot,
     },
+    /// Versioned flat catalogue binding and complete resolved observations.
+    #[serde(rename="flat-catalogue-v1")]
+    FlatCatalogue {
+        /// Full hashes are resolved from version references and optional file dictionaries.
+        #[serde(flatten)]
+        observation:crate::cas_flat::VerifiedFlatSnapshot,
+    },
     /// Original flat JSON identity/version and complete observed file inventory.
     #[serde(rename="legacy-flat")]
     LegacyFlat {
@@ -27,10 +34,11 @@ pub enum SnapshotVerification {
 impl SnapshotVerification {
     fn version(&self)->&str {
         match self {Self::Tree {observation}=>&observation.snapshot.version,
-            Self::LegacyFlat {observation}=>&observation.version}
+            Self::LegacyFlat {observation}=>&observation.version,
+            Self::FlatCatalogue {observation}=>&observation.snapshot.version}
     }
     fn kind(&self)->&'static str {
-        match self {Self::Tree {..}=>"tree-v1",Self::LegacyFlat {..}=>"legacy-flat"}
+        match self {Self::Tree {..}=>"tree-v1",Self::LegacyFlat {..}=>"legacy-flat",Self::FlatCatalogue {..}=>"flat-catalogue-v1"}
     }
 }
 
@@ -59,11 +67,21 @@ fn observe(root:&Utf8Path,title:&str,id:&str,profile:Option<&str>)
             anyhow::ensure!(previous.snapshot==verified.snapshot,"Conflicting CAS snapshot copies");
         }else{selected=Some((metadata.clone(),verified));}
     }
+    let mut flat:Option<(Utf8PathBuf,crate::cas_flat::VerifiedFlatSnapshot)>=None;
+    for metadata in [&content,&project] {
+        if !crate::cas_flat::snapshot_exists(&content,metadata,id)? {continue}
+        let verified=crate::cas_flat::verify_snapshot(&content,metadata,id)?;
+        if let Some((_,previous))=&flat {
+            anyhow::ensure!(previous.snapshot==verified.snapshot,"Conflicting flat snapshot copies");
+        }else{flat=Some((metadata.clone(),verified));}
+    }
+    anyhow::ensure!(selected.is_none()||flat.is_none(),"Snapshot ID occurs in incompatible format namespaces");
     if crate::cas::legacy_manifest_exists(&content,id)? {
-        anyhow::ensure!(selected.is_none(),"Snapshot ID occurs in both legacy-flat and v1-tree namespaces; selection is ambiguous");
+        anyhow::ensure!(selected.is_none()&&flat.is_none(),"Snapshot ID occurs in incompatible format namespaces; selection is ambiguous");
         let verified=crate::cas_tree::verify_legacy_snapshot(&content,id)?;
         return Ok((config,content.clone(),content,SnapshotVerification::LegacyFlat {observation:verified}));
     }
+    if let Some((metadata,verified))=flat {return Ok((config,content,metadata,SnapshotVerification::FlatCatalogue {observation:verified}))}
     let (metadata,verified)=selected.context("Requested complete snapshot was not found; a small project reference alone cannot restore it")?;
     Ok((config,content,metadata,SnapshotVerification::Tree {observation:verified}))
 }
@@ -100,6 +118,7 @@ pub fn restore(root:&Utf8Path,title:&str,snapshot:&str,label:&str,profile:Option
     match verified {
         SnapshotVerification::Tree {..}=>crate::cas_tree::restore_label(root,&content,&metadata,snapshot,&label,&destination,clear)?,
         SnapshotVerification::LegacyFlat {..}=>crate::cas_tree::restore_legacy_label(root,&content,snapshot,&label,&destination,clear)?,
+        SnapshotVerification::FlatCatalogue {..}=>crate::cas_flat::restore_label(root,&content,&metadata,snapshot,&label,&destination,clear)?,
     };
     Ok(crate::restore::RestoreResult {label,destination,provider:Some("local".into()),title:Some(title.into()),
         version:Some(version),restored:true,skipped:None,snapshot_id:Some(snapshot.into()),snapshot_kind:Some(kind)})

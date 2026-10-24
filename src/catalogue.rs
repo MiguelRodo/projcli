@@ -201,6 +201,27 @@ impl Catalogue {
             canonical_directory(FlatDirectory {label:label.into(),files:files.clone(),empty_directories:empty_directories.clone()})
         }else{anyhow::bail!("Inventory reference is not complete")}
     }
+    /// Resolve selected labels for one version with one catalogue validation and key index.
+    /// Duplicate/unsafe labels fail before cloning inventories. Full hashes are resolved;
+    /// dictionary IDs and reference representations never enter the returned membership.
+    pub fn expanded_snapshot(&self,version:&str,labels:&[String])->Result<FlatSnapshot> {
+        self.validate()?;
+        let skeleton=FlatSnapshot::new(version.into(),None,labels.iter().map(|label|FlatDirectory {
+            label:label.clone(),files:vec![],empty_directories:vec![]}).collect())?;
+        let index:HashMap<_,_>=self.records.iter().map(|record|((record.label.as_str(),record.version.as_str()),record)).collect();
+        let mut directories=Vec::new();
+        for directory in skeleton.directories {
+            let record=index.get(&(directory.label.as_str(),version)).context("Requested artefact/version is absent")?;
+            let target=match &record.inventory {
+                Inventory::Complete {..}=>*record,
+                Inventory::Reference {ref_version}=>*index.get(&(directory.label.as_str(),ref_version.as_str())).context("Referenced inventory is absent")?,
+            };
+            if let Inventory::Complete {files,empty_directories}=&target.inventory {
+                directories.push(FlatDirectory {label:directory.label,files:files.clone(),empty_directories:empty_directories.clone()});
+            }else{anyhow::bail!("Referenced inventory is not complete")}
+        }
+        FlatSnapshot::new(version.into(),None,directories)
+    }
     /// Encode CSV/JSON with version references and, only when requested, a bundled file dictionary.
     /// CSV index columns preserve history order even after Excel sorts rows.
     pub fn encode(&self,format:Format)->Result<Vec<u8>> {

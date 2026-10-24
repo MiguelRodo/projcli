@@ -173,7 +173,7 @@ fn legacy_name_list_and_mapping_subset_preserve_existing_flat_ids_and_label_spel
 }
 #[test]
 fn unsupported_or_overlapping_targets_fail_before_hooks_and_preserve_exact_version() {
-    for (key,value) in [("path",json!("input/store")),("manifest-style",json!("flat")),
+    for (key,value) in [("path",json!("input/store")),("manifest-style",json!("unsupported")),
         ("manifest-format",json!("csv")),("inspect",json!("file"))] {
         let (_temp,root,mut config)=setup("remote");config["remotes"]["local"]["snapshots"][key]=value;
         config["build"]["hooks"]=json!({"pre":["pre.py"]});

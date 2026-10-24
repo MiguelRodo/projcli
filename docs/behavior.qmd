@@ -823,8 +823,8 @@ format and history. Nothing is silently converted. Ordinary latest/archive
 storage, GitHub Releases and the root manifest.csv remain unchanged.
 
 See the [configuration reference](configuration.qmd#configured-local-cas-tree-publication-unreleased)
-for the exact fields and example. Automatic CAS snapshot selection and publishing the new CSV/JSON history
-formats remain pending. Explicit verification/recovery is described below;
+for the exact fields and example. Automatic CAS snapshot selection and ordinary/GitHub formatting remain pending;
+local CAS CSV/JSON publication is described below. Explicit verification/recovery is described below;
 unsupported options fail explicitly.
 
 ## Explicit saved-folder recovery (development source)
@@ -843,4 +843,17 @@ or update project versions. See the [remote command reference](cli/remote.qmd).
 Existing flat CAS snapshots can also be checked and restored by exact ID without
 converting them. See the [remote reference](cli/remote.qmd#recover-existing-flat-cas-snapshots).
 Their older file lists do not record empty folders, so those cannot be restored
-from that format. New CSV/JSON history publication remains pending.
+from that format. Local CAS CSV/JSON history is described below; other provider formatting remains pending.
+
+## Readable local snapshot history (development source)
+
+Local CAS flat style now publishes CSV/JSON histories, with unchanged versions
+pointing directly to earlier complete folder listings. Optional file dictionaries
+keep every path but shorten repeated hashes. Both plain formats and dictionary
+variants use the same raw stored bytes and stable snapshot bindings.
+
+Full history placement and small project references follow the existing approved
+policy. Earlier decoded records remain immutable; retries preserve them and later
+copy failures retain honest partial-publication evidence. Existing ordinary
+root CSV and old flat/tree snapshots remain unchanged. Other provider formatting
+and automatic snapshot lookup remain pending.
