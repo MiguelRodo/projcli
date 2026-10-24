@@ -566,3 +566,15 @@ entries; clear=true requires exact selected membership. Never restore into CAS
 namespaces or project authority/control paths, mutate file aliases in place,
 require the local ledger for explicit remote recovery, or claim crash atomicity,
 permissions restoration or active CLI/config wiring from the library alone.
+
+
+## Ordinary remote registry boundary
+
+Registry definitions are source lookups independent of build upload selection.
+Mapping build.dest selects explicit names and optional content subsets; never
+upload all registered definitions implicitly. Preserve legacy inline/CAS-list
+execution and source priority. Normal directory-source annotations validate
+references but do not activate automatic build-time restore. Reuse existing
+ordinary provider validators/engines. Reject unsupported placement/style/format
+fields until implemented; do not accept them as ignored options or call the
+ordinary registry slice complete tree-aware M3 integration.

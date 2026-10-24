@@ -575,3 +575,18 @@ Successful and distributed-failure Git history stays enabled as agreed. No
 automatic pruning, stronger hook enforcement or crash recovery is introduced.
 The integrated M2 driver checks visible local diagnostics and exact last-good
 state; real repository tests check Git exclusion and successful-record tracking.
+
+
+## Development-source registry overlay
+
+The released figures keep their preview.2/preview.3 labels. In development source,
+named destination and source-reference validation extends node C in the pre-build
+figure, and selected registered/legacy target resolution extends node A in the
+ordinary-publication figure. Both occur before hooks or publication effects;
+the controlled stage order remains the same.
+
+Registry membership alone neither uploads nor loads credentials. The existing
+provider engines receive only selected definitions. Configured restore remains
+an explicit separate operation, and registry sources remain available after
+removal from the current upload set. Per-remote placement/style/format policy and
+tree-aware configured CAS routing are still pending.

@@ -276,3 +276,72 @@ The first build.github upload subset requires explicit send.inspect: none and
 upload-all (the none default), with archive as the existing structure default.
 Other decision combinations and existing current-version data fail explicitly.
 See the remote CLI page for credentials, metadata bounds and partial failure.
+
+
+## Ordinary named remotes and upload selection in development source
+
+Ordinary local latest/archive and GitHub Release definitions can now live under
+top-level remotes rather than build. A definition remains available to restore
+even when the build no longer uploads to it. These use the same executable
+definition/send fields already accepted by inline ordinary publication.
+
+    remotes:
+      local:
+        historical:
+          path: ../historical-store
+          structure: archive
+          content: [raw-data]
+        current:
+          path: ../current-store
+          structure: latest
+          send:
+            cue: if-change
+            inspect: manifest
+    build:
+      dest:
+        current:
+          content: [output]
+      scripts: []
+      git: false
+
+A selected destination's content list limits that build to declared labels allowed
+by the remote's content, if specified. Omit the destination's content to use all
+remote-eligible labels; if the remote also omits content, ordinary content:true
+selection applies (declared non-cache labels, with existing hash requirements).
+Explicit content:[] selects no labels. build.dest:{} selects no registered
+uploads. Registry membership alone does not upload or load GitHub credentials.
+
+Normal builds now accept and validate the existing directory source metadata:
+
+    directories:
+      raw-data:
+        path: data
+        source:
+          local: historical
+
+This does not automatically restore during a build. Use the existing
+remote restore command with --label, optionally --title/--provider and explicit
+version/clear choices. Source lookup uses the registry independently of build.dest.
+Directory-specific references keep priority. Existing legacy preferred sources
+win first; an explicitly preferred registered source can win over an unpreferred
+legacy fallback. Otherwise legacy fallback order remains ahead of newly
+available registry fallback definitions.
+
+Unknown names, duplicate/portable-aliased registered names, invalid/excluded label
+subsets and conflicting registry/inline definitions fail before hooks or writes.
+The new mapping selection cannot be mixed with inline build.local/build.github;
+move those definitions to remotes first. Empty/omitted subsets are distinct from
+null; explicitly null/malformed mapping entries are rejected. Remote-level
+content:null retains its existing disabled/no-label meaning and cannot be
+overridden by a build subset.
+
+Legacy inline ordinary builds and legacy CAS name-list destinations retain their
+existing path. Purely legacy CAS name lists do not acquire new case-folding rules.
+The new registry also accepts an ordinary name list for all eligible content,
+while mapping form is required for per-build label subsets.
+
+This slice deliberately does **not** activate per-remote manifest placement,
+flat/tree policy or CSV/JSON format fields. Such fields fail rather than being
+accepted and ignored. Tree-aware configured CAS mapping publication is still
+pending; the existing CAS name-list route keeps its legacy flat encoding.
+Previously stored snapshots and the explicit tree APIs remain unchanged.

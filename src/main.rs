@@ -54,7 +54,7 @@ pub enum Commands {
         #[arg(long, default_value_t=20)]
         limit: usize,
     },
-    /// Inspect ordinary local remote storage without publishing or restoring.
+    /// Inspect, publish or restore remote data.
     Remote {
         #[command(subcommand)]
         command: RemoteCommands,
@@ -126,10 +126,10 @@ pub enum Commands {
     },
 }
 
-/// Ordinary local inspection/download; does not change the configured remote registry.
+/// Remote operations reuse registered definitions or explicit ordinary/local arguments.
 #[derive(Subcommand)]
 pub enum RemoteCommands {
-    /// Restore one declared final directory using existing inline configuration.
+    /// Restore one declared directory using registered or inline sources.
     Restore {
         #[arg(long)]
         label:String,
@@ -137,6 +137,7 @@ pub enum RemoteCommands {
         position:Option<String>,
         #[arg(long,value_parser=["local","github"])]
         provider:Option<String>,
+        /// Select a configured remote by name.
         #[arg(long)]
         title:Option<String>,
         #[arg(long)]

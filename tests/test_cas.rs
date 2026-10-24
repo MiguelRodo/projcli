@@ -142,7 +142,7 @@ fn test_verify_remote_integrity() {
     });
 
     let config = ValidatedConfig {
-        remotes: RemotesConfig { local: Some(remotes.clone()) },
+        remotes: RemotesConfig { local: Some(remotes.clone()), ..Default::default() },
         dest: vec![],
         config: Default::default(), settings: Default::default(),
         directories: HashMap::new(),

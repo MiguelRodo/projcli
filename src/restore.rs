@@ -1,5 +1,5 @@
-//! Configured single-label restore using existing projr inline remote definitions.
-//! No automatic publication or future top-level registry schema is introduced.
+//! Configured single-label restore from an ordinary named registry or legacy inline definitions.
+//! This is an explicit operation; current upload selection does not remove registered sources.
 use std::fs;
 use anyhow::Context;
 use camino::{Utf8Path,Utf8PathBuf};
@@ -8,17 +8,19 @@ use serde_json::Value;
 use crate::local_remote::{LocalStructure,version_numbers,compare_versions};
 use crate::github_zip::{GithubStructure,directory_asset_name};
 
-/// Explicit configured restore controls. Missing filters search directory source
-/// before eligible build destinations, preserving merged declaration order.
+/// Explicit configured restore controls. Directory references retain first priority;
+/// legacy preferred sources precede registry preferred sources, then legacy/registry
+/// fallbacks in their merged declaration order. No automatic source failover is implied.
 #[derive(Default)]
 pub struct RestoreRequest {
     /// Declared label to restore (required; no implicit role or path).
     pub label:String,
-    /// Restrict lookup to source or dest; None searches both in that order.
+    /// Filter legacy directory-source/build-destination sections; registered definitions
+    /// remain candidates for either choice. None searches both legacy sections.
     pub position:Option<String>,
     /// Restrict the provider to local or github.
     pub provider:Option<String>,
-    /// Restrict the existing inline title/reference.
+    /// Restrict a registered name or legacy inline title/reference.
     pub title:Option<String>,
     /// Exact archive version override; None selects newest remote version.
     pub remote_version:Option<String>,
@@ -83,12 +85,15 @@ pub(crate) fn definition(value:&Value)->anyhow::Result<Definition> {
 }
 fn referenced(raw:&Value,provider:&str,title:&str,inline:Option<&Value>)->anyhow::Result<Definition> {
     anyhow::ensure!(!title.is_empty()&&!title.chars().any(char::is_control),"Invalid remote title");
-    let shared=raw.get("build").and_then(|v|v.get(provider)).and_then(|v|v.get(title));
+    let registered=raw.get("remotes").and_then(|v|v.get(provider)).and_then(|v|v.get(title));
+    let legacy=raw.get("build").and_then(|v|v.get(provider)).and_then(|v|v.get(title));
+    anyhow::ensure!(!(registered.is_some()&&legacy.is_some()),"Restore source is defined in both remotes and build");
+    let shared=registered.or(legacy);
     let value=match (shared,inline) {
         (Some(shared),Some(inline))=>crate::yml::deep_merge(shared.clone(),inline.clone()),
         (Some(shared),None)=>shared.clone(),
         (None,Some(inline))=>inline.clone(),
-        (None,None)=>anyhow::bail!("Directory source references an undefined build remote"),
+        (None,None)=>anyhow::bail!("Directory source references an undefined remote"),
     };
     definition(&value)
 }
@@ -114,6 +119,8 @@ pub(crate) fn content_has(value:Option<&Value>,label:&str,raw:&Value)->anyhow::R
     }
 }
 fn select_source(raw:&Value,label:&str,request:&RestoreRequest)->anyhow::Result<Source> {
+    // Registry lookup is independent of upload selection and legacy section filters.
+    // Directory-specific references retain their existing priority.
     if request.position.as_deref()!=Some("dest") {
         if let Some(sources)=raw["directories"][label].get("source").filter(|v|!v.is_null()) {
             for (provider,entries) in sources.as_object().context("Directory source must be a provider mapping")? {
@@ -132,8 +139,8 @@ fn select_source(raw:&Value,label:&str,request:&RestoreRequest)->anyhow::Result<
             }
         }
     }
+    let mut fallback=None;
     if request.position.as_deref()!=Some("source") {
-        let mut fallback=None;
         if let Some(build)=raw.get("build").and_then(Value::as_object) {
             for (provider,entries) in build {
                 if !matches!(provider.as_str(),"local"|"github")||!provider_allowed(provider,request) {continue;}
@@ -156,23 +163,54 @@ fn select_source(raw:&Value,label:&str,request:&RestoreRequest)->anyhow::Result<
                 }
             }
         }
-        if let Some(source)=fallback {return Ok(source);}
     }
+    let mut registry_fallback=None;
+    if let Some(registry)=raw.get("remotes").and_then(Value::as_object) {
+        for (provider,entries) in registry {
+            if !matches!(provider.as_str(),"local"|"github")||!provider_allowed(provider,request){continue;}
+            for (title,value) in entries.as_object().context("Remote provider must contain named definitions")? {
+                if !title_allowed(title,request){continue;}
+                // Legacy flat CAS is not an ordinary restore source. Tree-aware configured
+                // recovery remains a separately tracked implementation step.
+                if value.get("structure").and_then(Value::as_str)==Some("cas"){continue;}
+                let definition=definition(value)?;
+                if value.get("content").is_some()&&!content_has(value.get("content"),label,raw)? {continue;}
+                let preferred=match definition.source.as_ref() {
+                    Some(Value::Bool(false))=>continue,
+                    Some(Value::Bool(true))=>true,
+                    Some(Value::Array(labels))=>{
+                        anyhow::ensure!(labels.iter().all(Value::is_string),"Remote source preference must contain label strings");
+                        labels.iter().any(|value|value.as_str()==Some(label))
+                    },
+                    None|Some(Value::Null)=>false,
+                    _=>anyhow::bail!("Remote source must be boolean or a label list"),
+                };
+                let source=Source {provider:provider.clone(),title:title.clone(),definition};
+                if preferred{return Ok(source)}
+                if registry_fallback.is_none(){registry_fallback=Some(source)}
+            }
+        }
+    }
+    if let Some(source)=fallback.or(registry_fallback){return Ok(source)}
     anyhow::bail!("No configured restore source matches the requested label and filters")
 }
 fn projected_config(raw:&Value,root:&Utf8Path)->anyhow::Result<crate::yml::ValidatedConfig> {
     let mut projection=raw.clone();
     if let Some(build)=projection.get_mut("build").and_then(Value::as_object_mut) {
-        build.remove("local");build.remove("github");
+        // Upload selection must not disable a registered restore source.
+        build.remove("dest");
     }
     if let Some(directories)=projection.get_mut("directories").and_then(Value::as_object_mut) {
         for directory in directories.values_mut() {
             if let Some(directory)=directory.as_object_mut() {directory.remove("source");}
         }
     }
-    let config:crate::yml::ProjConfig=serde_json::from_value(projection).context("Invalid restore project configuration")?;
+    let mut config:crate::yml::ProjConfig=serde_json::from_value(projection).context("Invalid restore project configuration")?;
+    crate::remote_registry::validate_names(&config)?;
+    config.build.local=None;config.build.github=None;
     config.validate_and_resolve(root,false)
 }
+
 fn repository(root:&Utf8Path,explicit:Option<&str>,api:&str)->anyhow::Result<String> {
     if let Some(repository)=explicit {return Ok(repository.into());}
     repository_in(root,explicit,api,&crate::run_environment::RunEnvironment::inherited())
@@ -270,8 +308,8 @@ fn github_version(client:&crate::github_release::GithubReleaseClient,root:&Utf8P
 /// no retry against another source after a selected source fails. Empty/unrecorded
 /// labels are skipped without clearing. Local and GitHub latest/archive downloads
 /// use the existing staged installers. The CSV is not an integrity/trust check.
-/// Ordinary inline remote fields are recognized only here: normal builds still
-/// reject unsupported publication fields rather than silently ignoring them.
+/// Existing ordinary provider definitions are reused. Normal builds validate source
+/// references without auto-restoring and reject unsupported publication fields.
 pub fn restore_label(root:&Utf8Path,request:&RestoreRequest)->anyhow::Result<RestoreResult> {
     anyhow::ensure!(request.position.as_deref().is_none_or(|v|matches!(v,"source"|"dest")),"Restore position must be source or dest");
     anyhow::ensure!(request.provider.as_deref().is_none_or(|v|matches!(v,"local"|"github")),"Restore provider must be local or github");

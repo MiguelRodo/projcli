@@ -3071,3 +3071,40 @@ native-case empty-directory alias acceptance, and silent TempDir cleanup failure
 Regression fixtures cover mixed old/new store preservation, unchanged private
 directory modes and removal of restrictive copied stages after verification
 failure. Root/privileged permission behavior remains explicitly conditional.
+
+
+## Ordinary registry/source-selection slice
+
+**Intentional departure:** definitions under remotes remain available for restore
+when removed from upload selection. The source of this decision is the user's
+top-level registry request, tracked in the existing registry design issue.
+Provider definitions, default inspection/cue/strategies, payload layout and
+GitHub ZIP names continue to use the existing source-backed implementation.
+
+**New:** normal build configuration validates directory source references but
+does not execute restore automatically. Existing restore-only source annotations
+therefore no longer make an otherwise supported build invalid. Restore keeps
+directory-specific priority, then legacy preferred, registry preferred,
+legacy fallback and registry fallback. It adds no silent source failover after
+an error.
+
+Pure tests cover selection/empty subsets, ambiguous names, legacy CAS/inlines,
+source references and unsupported policy fields. Real CLI fixtures cover A/B
+registration with only B upload, historical A restore after upload removal,
+unknown-reference failure before hooks/version changes with only the approved local diagnostic, and unselected
+GitHub definitions without credentials. An existing loopback REST fixture
+covers registered GitHub build/assets/metadata plus restore after uploads are
+disabled; this is mocked transport, not another live GitHub round-trip.
+Remote execution and independent review are pending for this slice.
+
+Manifest placement/style/serialization and configured CAS tree operations are
+not activated by this ordinary registry slice. Existing root manifest.csv,
+legacy CAS and their stored identities/readers are unchanged.
+
+
+Source review preserved explicit remote content:null as no selected labels;
+omission alone enables the registry's all-eligible default. Build subsets cannot
+override a remote exclusion. Failure witnesses retain the approved local-only
+diagnostic and static machine error envelope; detailed text remains on stderr.
+Registry/inline name conflicts also fail in read-only restore projection before
+destination clearing.
