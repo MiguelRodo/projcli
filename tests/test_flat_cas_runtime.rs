@@ -134,7 +134,8 @@ fn four_formats_and_placements_publish_version_references_and_restore_complete_m
         assert_eq!(result["result"]["snapshot_kind"],"flat-catalogue-v1");assert_eq!(files(&root.join("input")),expected);
         assert!(root.join("input/empty").is_dir());assert_eq!(files(&store),stored);assert_eq!(files(&project),project_bytes);
         assert_eq!(fs::read(root.join("VERSION")).unwrap(),version);assert_eq!(fs::read(root.join("manifest.csv")).unwrap(),csv);
-        assert_eq!(String::from_utf8(csv).unwrap().lines().next(),Some("label,fn,version,hash"));
+        let mut root_csv=csv::Reader::from_reader(csv.as_slice());
+        assert_eq!(root_csv.headers().unwrap().iter().collect::<Vec<_>>(),["label","fn","version","hash"]);
     }}
 }
 #[test]

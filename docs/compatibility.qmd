@@ -3193,3 +3193,8 @@ checks and exact-head independent final review remain pending.
 
 The Unix second-copy permission witness runs under the existing unprivileged
 host/pinned CI users; it must not be run as root. No local heavy tests ran.
+
+Remote execution caught an assertion expecting an unquoted root CSV header.
+Production correctly retained its existing QUOTE_ALL codec. The fixture now
+parses the four column names while retaining exact root-CSV byte comparisons
+around recovery; production serialization is unchanged.
