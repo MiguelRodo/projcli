@@ -156,25 +156,34 @@ fn tree_format_validation_is_explicit_before_any_backup_changes() {
 #[test]
 fn excessive_inferred_parent_records_fail_on_private_stage_preserving_previous_backup_history() {
     let (_temp,root,mut config)=setup("both","latest","if-change");build(&root);
-    let store=root.parent().unwrap().join("store");let before=files(&store);let project=metadata(&root);let old_project=files(&project);
-    // Balanced fan-out avoids a quadratic wide-directory fixture. 1,610
-    // files at depth64 give 99,998 children (17+161+1610+60*1610+1610).
-    // Two root files reach the existing observation limit of100,000; the
-    // inferred Tree root adds one and must fail BEFORE prior data replacement.
-    let large=root.join("large");fs::create_dir(&large).unwrap();
-    for index in 0..1_610 {
-        let mut parent=large.join(format!("t{}/g{}/f{}",index/100,(index/10)%10,index%10));
-        for _ in 0..60 {parent=parent.join("a");}
-        fs::create_dir_all(&parent).unwrap();fs::write(parent.join("file"),b"x").unwrap();
+    let store=root.parent().unwrap().join("store");let project=metadata(&root);let old_project=files(&project);
+    // Keep project provenance small: seed only the owned backup with balanced
+    // empty directories. Merge retains these destination-only folders.
+    // Four balanced ten-way levels have11,110 dirs; 80,000 children
+    // plus8,885 extra leaves make99,995. Maximum depth is6, not64.
+    // Four prior children plus one requested new file =>100,000 stage children;
+    // the inferred Tree root adds one and must fail BEFORE replacement.
+    let data=store.join("raw");let mut samples=Vec::new();
+    for index in 0..10_000 {
+        let parent=data.join(format!("t{}/g{}/f{}/h{}",index/1000,(index/100)%10,(index/10)%10,index%10));
+        for child in 0..8 {
+            let ordinal=index*8+child;let mut leaf=parent.join(format!("b{child}"));
+            if ordinal<8_885{leaf=leaf.join("c");}
+            fs::create_dir_all(&leaf).unwrap();if matches!(ordinal,0|40_000|79_999){samples.push(leaf);}
+        }
     }
-    fs::write(large.join("extra-one"),b"x").unwrap();fs::write(large.join("extra-two"),b"x").unwrap();
-    config["directories"]["raw"]["path"]=json!("large");save(&root,&config);
+    let before=files(&store);
+    config["remotes"]["local"]["delivery"]["send"]["strategy"]=json!("upload-missing");
+    fs::write(root.join("input/new"),b"must not replace prior backup").unwrap();save(&root,&config);
     let output=command(&root).arg("build").output().unwrap();assert!(!output.status.success());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("expanded record limit"));
+    let diagnostic=String::from_utf8_lossy(&output.stderr);
+    assert!(diagnostic.contains("expanded record limit"),"Unexpected boundary error: {}",diagnostic.chars().take(2000).collect::<String>());
     let after=files(&store);assert_eq!(after.len(),before.len(),"prior backup file membership changed");
     for (path,bytes) in &before {assert_eq!(after.get(path),Some(bytes),"prior backup changed at {path}");}
+    assert!(!data.join("new").exists());for path in samples{assert!(path.is_dir());}
     assert_eq!(files(&project),old_project);assert!(!store.join(".proj/build.lock").exists());
 }
+
 #[cfg(unix)]
 #[test]
 fn linked_tree_namespace_fails_before_backup_or_external_metadata_is_changed() {

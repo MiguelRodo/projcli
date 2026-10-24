@@ -3329,3 +3329,19 @@ bad-node guards; a 16-case CLI layout/placement/cue matrix with native-CAS root
 equality; style-switch preservation; corruption; JSON validation; linked namespace;
 and an owned 100,000-child private-stage rejection preserving prior backup/history.
 No local heavy tests ran; exact-head CI and final independent review are pending.
+
+
+The first Windows boundary fixture failed before its intended diagnostic and
+could not display the actual error. The owned regression now retains a small
+project source and seeds the same100,000 final-stage child boundary using empty
+folders in the owned backup; upload-missing must retain them. This avoids a large
+project provenance record and an extra full source-stage copy while keeping the
+production threshold/path guards and prior-backup/history assertions unchanged.
+Unexpected fixture errors now include bounded diagnostic text. No local test ran.
+
+
+The exact-limit filesystem fixture now uses a shallow balanced six-level topology
+(11,110 parents +80,000 children +8,885 leaves), retaining the same99,995 extra
+directories and100,000 final-stage children. This reduces repeated native-ancestor
+checks while keeping every guard/assertion. Excessive graph depth is independently
+checked by a small pure65-level metadata chain, without deep filesystem copies.

@@ -183,5 +183,14 @@ mod tests {
         let child=DirectoryTree::new(vec![]).unwrap();let id=child.identity().unwrap();
         let wrong=DirectoryTree::new(vec![TreeEntry {name:"file".into(),kind:EntryKind::File,hash:"0".repeat(64)}]).unwrap().readable_json().unwrap();
         assert!(Verification::default().inventory(&id,|_|{calls+=1;Ok(wrong.clone())}).is_err());assert_eq!(calls,1);
+        // Exercise excessive metadata depth without a deep filesystem fixture.
+        let mut node=DirectoryTree::new(vec![]).unwrap();let mut nodes=HashMap::new();
+        for _ in 0..65 {
+            let child=node.identity().unwrap();nodes.insert(child.clone(),node.readable_json().unwrap());
+            node=DirectoryTree::new(vec![TreeEntry {name:"a".into(),kind:EntryKind::Tree,hash:child}]).unwrap();
+        }
+        let root=node.identity().unwrap();nodes.insert(root.clone(),node.readable_json().unwrap());
+        let error=Verification::default().inventory(&root,|id|Ok(nodes.get(id).context("Missing depth witness node")?.clone())).unwrap_err();
+        assert!(error.to_string().contains("depth"));
     }
 }
