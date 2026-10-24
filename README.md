@@ -9,14 +9,15 @@ paths together and explore the documented preview workflow.
 > **Never run production builds on the only copy of important work.**
 > Previews are not a security sandbox; code you run can still change files.
 
-**Status:** [v0.4.0-preview.3](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.3)
-retains M1's useful local CLI workflow and adds ordinary local/GitHub publication and guarded single-label restore.
+**Status:** [v0.4.0-preview.4](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.4)
+adds inspectable build records, named backup locations, readable file histories and verified local recovery.
 It remains a development prerelease. Stable Latest is v0.3.0 and predates these features.
 
 This release includes versioned temporary output paths, explicit R-package data
 management and HTML resource embedding when no embedding option was specified.
 It also supports latest/versioned remote snapshots and explicit upload controls;
-complete projr compatibility and M2 traceability remain unfinished.
+M2 build records and the agreed M3 local recovery workflow are included. Complete
+projr compatibility, wrappers and broader initialisation remain separate work.
 See [what works](docs/features.qmd) for supported workflows and limits.
 
 [Website](https://miguelrodo.github.io/projcli/) ·
@@ -25,7 +26,7 @@ See [what works](docs/features.qmd) for supported workflows and limits.
 
 ## Installation
 
-Use the pinned [v0.4.0-preview.3 development release](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.3).
+Use the pinned [v0.4.0-preview.4 development release](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.4).
 It supplies Linux x86-64 (glibc 2.35 or newer) and Windows x86-64 binaries.
 **No Rust compiler or administrator access is needed.** macOS and ARM binaries
 are not supplied.
@@ -36,8 +37,8 @@ Run this inside Ubuntu:
 ```bash
 mkdir -p "$HOME/.local/bin"
 installer="$(mktemp)"
-curl -fsSL "https://raw.githubusercontent.com/MiguelRodo/projcli/95441429fe0ba6779b831ffdf9ad952136a946d0/install-local.sh" -o "$installer" &&
-  PROJ_RELEASE_VERSION=0.4.0-preview.3 \
+curl -fsSL "https://raw.githubusercontent.com/MiguelRodo/projcli/f6f4510a806ea302a2ceee5177707fbde9bed5bf/install-local.sh" -o "$installer" &&
+  PROJ_RELEASE_VERSION=0.4.0-preview.4 \
   PROJ_INSTALL_DIR="$HOME/.local/bin" bash "$installer"
 rm -f "$installer"
 export PATH="$HOME/.local/bin:$PATH"
@@ -45,7 +46,7 @@ hash -r
 proj --version
 ```
 
-Expected version: `proj 0.4.0-preview.3`. The installer verifies SHA256 before
+Expected version: `proj 0.4.0-preview.4`. The installer verifies SHA256 before
 replacing `~/.local/bin/proj`. The PATH change applies to the current terminal.
 The explicit version pin matters: GitHub's stable **Latest** is still v0.3.0.
 
@@ -56,7 +57,7 @@ publisher identity or reproducible builds.
 
 ## Quickstart: a small Python analysis
 
-This example targets `0.4.0-preview.3`. Remote docs checks run it through the
+This example targets `0.4.0-preview.4`. Remote docs checks run it through the
 downloaded release binary and the current PR code. You need Python 3 available
 as `python3`; the shell commands below assume Ubuntu / WSL Ubuntu.
 

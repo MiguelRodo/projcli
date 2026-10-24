@@ -1,4 +1,8 @@
 ---
+
+Preview.4 includes the named remote definitions, file-history formats and explicit
+local snapshot recovery documented below. Historical slice notes retain their
+original verification scope. See [verified delivery](release-delivery.qmd#verified-preview4-delivery).
 title: "Storage and release catalogue design"
 ---
 

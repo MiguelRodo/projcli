@@ -2,9 +2,8 @@
 
 This development preview adds inspectable build records and verified local
 recovery, including the approved remote configuration and file-list choices.
-These notes are prepared before publication; they do not claim installation.
-The tagged source will be identified by source-commit.txt and both platform
-downloads by checksums.txt.
+Exact source: f6f4510a806ea302a2ceee5177707fbde9bed5bf. Both platform downloads
+are identified by checksums.txt; source-commit.txt binds them to this source.
 
 ## What changed since preview.3
 
@@ -38,13 +37,12 @@ downloads by checksums.txt.
 
 ## Verification and boundaries
 
-The candidate is checked remotely with all-platform Rust suites, API examples,
+The exact release source was checked remotely with all-platform Rust suites, API examples,
 installers, native browser documentation and actual R/Python/HTML analysis.
 The bounded M3 gate combines an actual analysis, ordinary backup and native local
 archive, removes only a disposable working project, then restores both selected
 labels by explicit snapshot ID. Retained bytes and corruption failures have a
-separate Rust verification step. These notes alone are not evidence of a passed
-gate; exact source/run links belong in the delivery record after verification.
+separate Rust verification step. The integrated gate and its independent byte checks passed.
 
 New GitHub listing/tree formats use actual CLI commands against mocked REST.
 The earlier synthetic real GitHub transport round-trip remains evidence for its
@@ -64,7 +62,7 @@ A failure can leave earlier uploads or complete metadata copies; diagnostics
 preserve the local release and possible distribution evidence. Do not infer
 full rollback or automatically retry an ambiguous failed publication. Existing
 Windows backup-cleanup and arbitrary-script/power-loss limitations remain.
-Project builds and content-addressed publishers use cooperative writer claims;
+Project builds and mutable CAS history/lookup updates use cooperative writer claims;
 standalone ordinary file-copy operations keep their documented concurrency limits.
 This is not a distributed lock.
 
@@ -81,3 +79,9 @@ compiler or administrator access. Evaluate with sample data or a backed-up copy.
 
 Reference and delivery checks:
 https://miguelrodo.github.io/projcli/release-candidate.html
+
+Exact-tag Linux/Windows tests, binary version/protocol and installer checks:
+https://github.com/MiguelRodo/projcli/actions/runs/40124525153
+
+Full pinned acceptance on the identical reviewed release tree:
+https://github.com/MiguelRodo/projcli/actions/runs/40122746225

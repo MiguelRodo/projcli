@@ -1,5 +1,9 @@
 # Configuration `_proj.yml`
 
+Preview.4 includes the named remote definitions, file-history formats and explicit
+local snapshot recovery documented below. Historical slice notes retain their
+original verification scope. See [verified delivery](release-delivery.qmd#verified-preview4-delivery).
+
 The `_proj.yml` file dictates the structural map of your project. It configures the foundational paths and mapping logic used by the CLI.
 
 ## Schema Rules and Foundational Prefixes
@@ -278,7 +282,7 @@ Other decision combinations and existing current-version data fail explicitly.
 See the remote CLI page for credentials, metadata bounds and partial failure.
 
 
-## Ordinary named remotes and upload selection in development source
+## Ordinary named remotes and upload selection
 
 Ordinary local latest/archive and GitHub Release definitions can now live under
 top-level remotes rather than build. A definition remains available to restore
@@ -347,7 +351,7 @@ name-list route retains its legacy flat encoding when using legacy definitions.
 Previously stored snapshots and the explicit tree APIs remain unchanged.
 
 
-## Configured local CAS tree publication (unreleased)
+## Configured local CAS tree publication
 
 New local CAS definitions can select recursive tree publication through the named
 registry. Directory selection is independent of full metadata placement:

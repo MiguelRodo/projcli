@@ -3460,3 +3460,19 @@ their project .proj state; standalone callers already holding the exact store
 claim receive a conservative busy error. No ownership inference or bypass is
 added. The coarse legacy critical section favors correctness; narrow it only
 after measured contention. The old/raw and new/tree identities remain distinct.
+
+
+## Preview.4 verified release and installation (24 October 2026)
+
+Same/new: the reviewed M2/M3 source is packaged without runtime changes. Public
+Linux/Windows assets, source metadata, checksums and WSL user-local installation
+are verified in [delivery evidence](release-delivery.qmd#verified-preview4-delivery).
+Public install commands and remote documentation checks move together to the
+published version. Historical preview.2/3 evidence remains historical. One project
+per store is unchanged; legacy ledger coordination is same-project only.
+
+Ponytail full: reuse the existing exact-tag pipeline, installers and independent
+review; no new release framework, runtime abstraction or redundant heavy local
+test. Public pin checks execute both platform install examples remotely. Full
+projr parity, discovery/performance and later milestones are not claimed. Stop
+implementation/reviews after M3 delivery as requested.

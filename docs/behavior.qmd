@@ -1,5 +1,9 @@
 # Project and execution behavior
 
+Preview.4 includes the named remote definitions, file-history formats and explicit
+local snapshot recovery documented below. Historical slice notes retain their
+original verification scope. See [verified delivery](release-delivery.qmd#verified-preview4-delivery).
+
 This is the product behavior contract. Confirmed decisions below guide
 implementation; they are not claims that the current CLI already implements
 them. Proposals require review before they become requirements. The

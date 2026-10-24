@@ -1,6 +1,6 @@
 # Preview feature status
 
-The published development release is [0.4.0-preview.3](install.qmd). The verified
+The published development release is [0.4.0-preview.4](install.qmd). The verified
 WSL user-local command also reports that version. See
 [release evidence](release-delivery.qmd) for the exact source and checks.
 
@@ -13,16 +13,17 @@ data while evaluating it. The existing projr R package and thesis remain unchang
 | Project selection | Explicit root; nearest recognized ancestor; markerless cwd fallback; shallow default script discovery. | Cross-platform fixtures cover markers, nested invocation and explicit override. Root recognition includes Python/Julia markers; that does not imply Julia execution or a wrapper. |
 | Configuration and init | Active root YAML required; legacy alias/ambiguity rule; profile precedence; explicitly declared resource directories; local-only directory initialization. | Cross-platform configuration/error-preservation fixtures. Old no-config roadmap assumptions were superseded. |
 | Execution context | Ordered explicit scripts/hooks; native cwd with explicit project-root override; supported Quarto/R Markdown root controls; unsafe/unknown layouts fail early. | Real Python/R/rendering acceptance and cross-platform fixtures passed. Direct R API/IDE parity remains unproved. |
-| Automation | Opt-in protocol-v1 JSON, capability version, typed queries, noninteractive command worker, nonzero failures; child logs on stderr. | Cross-platform machine tests. Static coarse error codes; no invented attempt/release record on success. |
+| Automation | Opt-in protocol-v1 JSON, capability version, typed queries, noninteractive command worker, nonzero failures; child logs on stderr. | Cross-platform machine tests. Structured results and unique attempt records; optional Git outcomes use a pre-commit snapshot and later local receipt. |
 | Preview preservation | The released CLI restores captured managed state after successful/failed previews. Cache results remain. | Included through the reviewed recovery dependency; final integrated tests and actual released-binary checks passed. Generated-output path queries use the safe cache by default; arbitrary writes are not isolated. |
-| Production safety groundwork | Path guards, bounded local failure recovery, optional checked Git publication and verified CAS bytes. | Focused fixtures and reviews; incomplete release identity/provenance/retry model. This page is not an invitation to run on valuable production data. |
-| Ordinary remotes | Local/GitHub latest/archive publication and guarded single-label restore; file/manifest/none inspection, four strategies and both supported cues. | Full mocked CLI matrix; bounded real latest/archive round-trip. Complete option parity and M2 remain unfinished. |
-| Binary delivery | [Development prerelease 0.4.0-preview.3](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.3) supplies versioned Linux/Windows x86-64 assets with mandatory checksums. | Exact-tag workflow, uploaded/public asset hashes and both native binary smokes passed. WSL user-local installation and tiny success/failure Python previews passed. Other platforms are not supplied. |
+| Production safety groundwork | Path guards, bounded local failure recovery, optional checked Git publication and verified CAS bytes. | Focused fixtures, integrated M2/M3 gates and independent byte checks; no whole-project or cross-location transaction. This page is not an invitation to run on valuable production data. |
+| Ordinary remotes | Local/GitHub latest/archive publication and guarded single-label restore; file/manifest/none inspection, four strategies and both supported cues. | Full mocked CLI matrix; bounded real latest/archive round-trip. The reviewed remote registry, histories and M2 records are included; convenience option parity remains incomplete. |
+| Binary delivery | [Development prerelease 0.4.0-preview.4](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.4) supplies versioned Linux/Windows x86-64 assets with mandatory checksums. | Exact-tag workflow, uploaded/public asset hashes and both native binary smokes passed. WSL user-local installation and tiny success/failure Python previews passed. Other platforms are not supplied. |
 
 Still unfinished: direct projr/quarto R API/RStudio parity, existing R helper
 integration, automatic isolation of every script write,
-durable attempt/release identifiers, complete input/code/config/dependency provenance,
-multi-writer/crash atomicity and analysis-free publication retry. Capture/recovery
+full environment reproduction, automatic snapshot discovery, distributed/crash
+atomicity and analysis-free publication retry. Attempt IDs, bounded source/configuration/dependency
+fingerprints and final file rows are included; these do not freeze every transitive import. Capture/recovery
 cannot undo arbitrary external script effects or guarantee concurrent readers never
 observe temporary changes. User/third-party logs are not automatically secret-redacted.
 
@@ -34,7 +35,7 @@ recorded final/archive/version state on success and failure. Runtime path guards
 and preflight remain essential; arbitrary child code is not sandboxed.
 
 General command/argv forms, stronger process confinement and broader maintenance
-audits remain follow-ups. M2 records/provenance/retry and later frontend work
-are not completed by M1.
+audits remain follow-ups. M2 records and the agreed M3 local recovery scope are delivered in preview.4;
+analysis-free publication retry and later frontend work remain separate.
 See [delivery boundaries](release-delivery.qmd), [behavior](behavior.qmd) and the
 [compatibility log](compatibility.qmd) for supported details and remaining gaps.

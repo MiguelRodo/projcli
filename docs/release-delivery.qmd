@@ -32,8 +32,8 @@ version, capabilities and a disposable configured preview. No local compilation,
 sudo, persistent authentication change or R package modification is needed.
 
 Known limits include bounded captured-state recovery, arbitrary external script
-effects, incomplete direct R/IDE parity, incomplete attempt/release records and
-analysis-free publication retry. This is a development preview, not M2 completion.
+effects, incomplete direct R/IDE parity, analysis-free publication retry and broader environment reproduction.
+Preview.4 includes the agreed M2/M3 scope described below.
 
 ## Verified preview.2 delivery
 
@@ -67,7 +67,7 @@ The shell resolves the checked user-local command. No local compilation, system
 binary replacement, container operation or R-package change was involved.
 
 This historical delivery pinned PROJ_RELEASE_VERSION=0.4.0-preview.2.
-The [current install guide](install.qmd) now pins preview.3.
+The [current install guide](install.qmd) now pins preview.4.
 Linux/Windows x86-64 delivery is verified; macOS/ARM binaries remain unavailable.
 Bookdown site embedding, direct R/IDE parity, linked-output portability and
 M2 records/provenance/retry remain outside the accepted CLI workflow.
@@ -125,3 +125,47 @@ configured path-append-label:false. Identity/sealing/full provenance, registry
 design and CAS-specific discovery/retention are unfinished. Preview.3 is not M2
 completion or complete projr compatibility. Existing R package/helpers and thesis
 remain unchanged.
+
+
+## Verified preview.4 delivery {#verified-preview4-delivery}
+
+[0.4.0-preview.4](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.4) is published as a development prerelease
+and installed in the checked WSL user-local location. Exact source/tag: f6f4510a806ea302a2ceee5177707fbde9bed5bf.
+The CLI reports preview.4 and protocol1. Stable Latest remains v0.3.0.
+
+Independently reviewed [PR222](https://github.com/MiguelRodo/projcli/pull/222)
+passed all twelve checks. Its [full pinned acceptance](https://github.com/MiguelRodo/projcli/actions/runs/40122746225)
+used the identical final release tree: native renderer policies, M1/M2 workflows,
+M3 real analysis/backup/recovery and independent Rust byte checks passed. M3 covers
+three tree/flat-format recovery cases and nine corruption probes after removing
+only disposable working projects. [PR223](https://github.com/MiguelRodo/projcli/pull/223)
+adds same-project legacy lookup coordination and exact retry preservation; no
+multi-project shared-store upload model was introduced.
+
+Final-main [platform tests](https://github.com/MiguelRodo/projcli/actions/runs/40123605850),
+[installers](https://github.com/MiguelRodo/projcli/actions/runs/40123605837) and
+[site](https://github.com/MiguelRodo/projcli/actions/runs/40123605832) passed.
+The [exact-tag workflow](https://github.com/MiguelRodo/projcli/actions/runs/40124525153)
+passed Linux/Windows locked tests, actual binary help/version/protocol and installers.
+Both binary bytes match tagged artifacts. All five public downloads match the
+independently reviewed draft, including four unique checksum entries.
+
+| Platform | SHA256 |
+|---|---|
+| Linux x86-64 | 31ffa1732f8ee4da9bcf15540a53abeee741a8aca23eeca26f5a94ac6aa8a7f0 |
+| Windows x86-64 | 92a5b7626a39f09d78b0661b43e183d8c87c4b382f7e13616bd228121b43a378 |
+
+The old WSL user-local binary was copied to a unique backup before replacement.
+Installed bytes match the public Linux asset; help/version/capabilities and fresh
+login-shell resolution passed. Tiny Python preview success and deliberate exit17
+preserved project VERSION and prior final output while retaining the computed
+cache result. No local compilation, container operation, system binary overwrite,
+R-package or thesis change was involved.
+
+This completes the agreed M2 and M3 scope, not full projr parity or later milestones.
+Stores currently belong to one project. Recovery selects an explicit stored ID;
+automatic discovery, GC, performance redesign, permissions restoration, multi-location
+transactions and full environment reproduction remain outside this claim. New
+GitHub metadata formats have real CLI/mocked REST coverage, not a new live format
+round-trip. Ordinary restore remains single-label. Wrappers/IDE parity and richer
+initialisation remain separate work. Implementation stops after this M3 delivery.
