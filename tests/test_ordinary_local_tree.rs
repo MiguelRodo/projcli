@@ -153,6 +153,7 @@ fn tree_format_validation_is_explicit_before_any_backup_changes() {
     let (_temp,root,mut config)=setup("both","latest","if-change");
     config["remotes"]["local"]["delivery"]["manifest-format"]=json!("json");save(&root,&config);build(&root);
 }
+#[cfg(unix)]
 #[test]
 fn excessive_inferred_parent_records_fail_on_private_stage_preserving_previous_backup_history() {
     let (_temp,root,mut config)=setup("both","latest","if-change");build(&root);
@@ -193,4 +194,27 @@ fn linked_tree_namespace_fails_before_backup_or_external_metadata_is_changed() {
     fs::create_dir_all(&base).unwrap();std::os::unix::fs::symlink(&external,base.join("trees")).unwrap();
     assert!(!command(&root).arg("build").output().unwrap().status.success());assert!(!store.join("raw").exists());
     assert_eq!(files(&external),BTreeMap::from([("sentinel".into(),b"preserved".to_vec())]));assert!(!external.join("v1").exists());
+}
+
+#[test]
+fn excessive_retained_depth_is_rejected_on_private_stage_before_backup_replacement() {
+    let (_temp,root,mut config)=setup("both","latest","if-change");build(&root);
+    let store=root.parent().unwrap().join("store");let project=metadata(&root);
+    let old_project=files(&project);let data=store.join("raw");
+    let mut deep=data.clone();let mut samples=Vec::new();
+    for depth in 1..=65 {
+        deep=deep.join("a");fs::create_dir(&deep).unwrap();
+        if matches!(depth,1|32|65){samples.push(deep.clone());}
+    }
+    let before=files(&store);
+    config["remotes"]["local"]["delivery"]["send"]["strategy"]=json!("upload-missing");
+    fs::write(root.join("input/new"),b"must not replace prior backup").unwrap();save(&root,&config);
+    let output=command(&root).arg("build").output().unwrap();assert!(!output.status.success());
+    let diagnostic=String::from_utf8_lossy(&output.stderr);
+    assert!(diagnostic.contains("depth limit"),"Unexpected private-stage error: {}",diagnostic.chars().take(2000).collect::<String>());
+    let reply:Value=serde_json::from_slice(&output.stdout).expect("structured failure required, not panic");
+    assert_eq!(reply["ok"],false);assert_eq!(reply["error"]["code"],"command_failed");
+    assert_eq!(files(&store),before);assert_eq!(files(&project),old_project);
+    assert!(!data.join("new").exists());for path in samples{assert!(path.is_dir());}
+    assert!(!store.join(".proj/build.lock").exists());
 }

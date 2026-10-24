@@ -3395,3 +3395,12 @@ implementation abstraction. Existing platform suites supply interruption,
 concurrency/retry, all-mode/placement and mocked GitHub coverage. This is a final
 bounded M3 gate, not a new discovery/performance milestone. Remote checks and
 independent final review are pending; no local heavy test executed.
+
+The 100,001-record filesystem witness is retained on Unix/pinned Linux, avoiding
+100,000-directory copies on every Windows test/release run. Every host now also
+uses a compact owned 65-component retained-directory fixture with a shallow
+source/new file, forcing private-stage depth rejection before replacement.
+Its assertion names the observation/depth guard, not Forest's record limit.
+Pure record-budget and graph-depth tests remain on every host. Existing bytes,
+history, sampled directories and claim cleanup are asserted. No production bound
+or path guard changes; exact-head remote checks remain required.
