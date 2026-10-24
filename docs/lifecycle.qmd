@@ -557,7 +557,7 @@ This overlay adds evidence after existing production failure recovery; it does
 not move hooks, output clearing, promotion, publication or version transitions.
 
 ```{mermaid}
-%%| label: fig-lifecycle-local-failure
+%%| label: fig-lifecycle-local-diagnostics
 %%| fig-cap: "Development source: production failure evidence follows the existing distribution boundary."
 %%| fig-alt: "After an owned production failure, possible distribution keeps ordinary Git evidence. Earlier failures retain a local-only diagnostic after recovery."
 %%{init: {"htmlLabels": false}}%%

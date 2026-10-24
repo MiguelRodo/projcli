@@ -2943,5 +2943,12 @@ preview behaviour and installed preview.3 remain unchanged.
 The first remote run exposed one remaining old Git shim returning the previous
 ls-files no-match status. Its response now models successful empty ls-files -z
 output, retaining the endpoint-change/no-push assertions. Browser validation
-requires all nine lifecycle diagrams, including the new local-failure branch;
+requires all ten lifecycle diagrams, including the new local-failure branch;
 SVG dimensions/nodes, screenshot and export assertions remain intact.
+
+
+Remote recovery fixtures now allow only one validated new diagnostic and its
+new ancestor directories; every prior byte/presence, including unrelated .proj
+evidence, remains compared exactly. The same full 20 authority/phase cases and
+renderer recovery assertions remain. Native rendering also exposes the older
+authored ordinary-publication overlay, so the browser witness requires ten SVGs.
