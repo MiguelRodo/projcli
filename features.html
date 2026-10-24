@@ -285,6 +285,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#planned-work" id="toc-planned-work" class="nav-link" data-scroll-target="#planned-work">Planned work</a></li>
   <li><a href="#included-in-preview.2" id="toc-included-in-preview.2" class="nav-link" data-scroll-target="#included-in-preview.2">Included in preview.2</a></li>
   <li><a href="#remote-work-in-preview.3" id="toc-remote-work-in-preview.3" class="nav-link" data-scroll-target="#remote-work-in-preview.3">Remote work in preview.3</a></li>
+  <li><a href="#choose-where-a-build-saves-its-results" id="toc-choose-where-a-build-saves-its-results" class="nav-link" data-scroll-target="#choose-where-a-build-saves-its-results">Choose where a build saves its results</a></li>
   </ul>
 </nav>
     </div>
@@ -396,6 +397,12 @@ ul.task-list li input[type="checkbox"] {
 <p>Preview.3 can upload selected outputs to ordinary local folders or GitHub Releases, keep versioned snapshots and restore files. It supports comparison by files or recorded history, with explicit controls for what gets uploaded.</p>
 <p>A small synthetic project has completed a real GitHub upload, replacement and restore sequence, including reuse of an unchanged archive and preservation of older snapshots. See the <a href="./remote-compatibility.html#live-github-fixture-verification">remote verification</a> and <a href="./cli/remote.html">command reference</a> for the tested scope and limits.</p>
 <p>These additions are included in the published preview.3 installation described above. The separate test prerelease holds sample data, not an installer. Complete projr compatibility, the future remote registry and broader M2 work remain unfinished.</p>
+</section>
+<section id="choose-where-a-build-saves-its-results" class="level2">
+<h2 class="anchored" data-anchor-id="choose-where-a-build-saves-its-results">Choose where a build saves its results</h2>
+<p>In development source, name each available storage destination once under remotes, then select where this build sends its results with build.dest. A named location remains available for restoring earlier data after you stop uploading to it. The <a href="./configuration.html">configuration reference</a> has copyable examples and explains how to select only particular folders.</p>
+<p>For local content-addressed storage (CAS), identical file bytes are stored once and folders receive fingerprints based on their names and contents. The new tree writer can keep the complete folder listing in the storage location, in your project, or in both. It always keeps a small project record identifying the saved folders. That small record alone cannot restore files if the storage content or required full listings are lost.</p>
+<p>These additions are not in installed preview.3. Automatic selection of an older CAS snapshot for restore and the new CSV/JSON history options are still being connected to commands. Ordinary local and GitHub Release upload/restore behavior remains available as described in the <a href="./remote-compatibility.html">remote guide</a>.</p>
 
 
 </section>

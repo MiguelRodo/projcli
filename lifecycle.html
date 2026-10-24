@@ -298,6 +298,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#development-source-snapshot-and-final-git-receipt" id="toc-development-source-snapshot-and-final-git-receipt" class="nav-link" data-scroll-target="#development-source-snapshot-and-final-git-receipt">Development source: snapshot and final Git receipt</a></li>
   <li><a href="#development-source-local-only-failure-branch" id="toc-development-source-local-only-failure-branch" class="nav-link" data-scroll-target="#development-source-local-only-failure-branch">Development source: local-only failure branch</a></li>
   <li><a href="#development-source-registry-overlay" id="toc-development-source-registry-overlay" class="nav-link" data-scroll-target="#development-source-registry-overlay">Development-source registry overlay</a></li>
+  <li><a href="#development-source-configured-cas-overlay" id="toc-development-source-configured-cas-overlay" class="nav-link" data-scroll-target="#development-source-configured-cas-overlay">Development-source configured CAS overlay</a></li>
   </ul>
 </nav>
     </div>
@@ -865,7 +866,39 @@ Figure&nbsp;10: Development source: production failure evidence follows the exis
 <section id="development-source-registry-overlay" class="level2">
 <h2 class="anchored" data-anchor-id="development-source-registry-overlay">Development-source registry overlay</h2>
 <p>The released figures keep their preview.2/preview.3 labels. In development source, named destination and source-reference validation extends node C in the pre-build figure, and selected registered/legacy target resolution extends node A in the ordinary-publication figure. Both occur before hooks or publication effects; the controlled stage order remains the same.</p>
-<p>Registry membership alone neither uploads nor loads credentials. The existing provider engines receive only selected definitions. Configured restore remains an explicit separate operation, and registry sources remain available after removal from the current upload set. Per-remote placement/style/format policy and tree-aware configured CAS routing are still pending.</p>
+<p>Registry membership alone neither uploads nor loads credentials. The existing provider engines receive only selected definitions. Configured restore remains an explicit separate operation, and registry sources remain available after removal from the current upload set. Configured local CAS tree publication adds the provider overlay below. Flat format publication and configured CAS recovery remain pending.</p>
+</section>
+<section id="development-source-configured-cas-overlay" class="level2">
+<h2 class="anchored" data-anchor-id="development-source-configured-cas-overlay">Development-source configured CAS overlay</h2>
+<p>Configured local trees add a selected provider at the existing publication phase, after ordinary/legacy targets and before optional Git. This does not move end hooks, next-dev or the existing partial-distribution boundary.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div id="fig-lifecycle-configured-cas" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-lifecycle-configured-cas-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<pre class="mermaid mermaid-js" data-label="fig-lifecycle-configured-cas">%%{init: {"htmlLabels": false}}%%
+flowchart TB
+  A["Frozen selected CAS targets"] --&gt; B["Read-only source preparation"]
+  B --&gt; C["Retain distribution-start evidence"]
+  C --&gt; D["Publish verified file and tree objects"]
+  D --&gt; E["Publish required complete snapshot references"]
+  E --&gt; F["Write lightweight project root reference"]
+  F --&gt; G["Existing optional Git and finalization"]
+  D --&gt; H["On failure: preserve local release and possible partial effects"]
+  E --&gt; H
+  F --&gt; H
+</pre>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-lifecycle-configured-cas-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;11: Development source: save a selected directory snapshot before Git finalization.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Preparation errors before any provider entry retain the pre-distribution recovery contract. Once a provider may have changed state, no cross-location rollback is claimed. Preview captures selected local stores and project remote metadata.</p>
 
 
 </section>

@@ -26,6 +26,41 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -291,6 +326,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#revised-flat-catalogue-direction-csv-and-json" id="toc-revised-flat-catalogue-direction-csv-and-json" class="nav-link" data-scroll-target="#revised-flat-catalogue-direction-csv-and-json">Revised flat catalogue direction: CSV and JSON</a></li>
   <li><a href="#version-reference-catalogue-codecs-in-development-source" id="toc-version-reference-catalogue-codecs-in-development-source" class="nav-link" data-scroll-target="#version-reference-catalogue-codecs-in-development-source">Version-reference catalogue codecs in development source</a></li>
   <li><a href="#verified-local-tree-recovery-apis" id="toc-verified-local-tree-recovery-apis" class="nav-link" data-scroll-target="#verified-local-tree-recovery-apis">Verified local tree recovery APIs</a></li>
+  <li><a href="#configured-local-cas-tree-publication-unreleased" id="toc-configured-local-cas-tree-publication-unreleased" class="nav-link" data-scroll-target="#configured-local-cas-tree-publication-unreleased">Configured local CAS tree publication (unreleased)</a></li>
   </ul>
 </nav>
     </div>
@@ -477,9 +513,28 @@ ul.task-list li input[type="checkbox"] {
 <p>Recovery reuses the ordinary guarded directory installer and its bounded rollback. With clear=false, destination-only files survive; matching selected files receive the selected bytes, and selected empty directories may retain destination-only children. With clear=true, final membership matches the selected inventory, including explicit empty directories. The result reports clear and the selected snapshot/version/label. No project VERSION or source/store bytes are updated.</p>
 <p>Project authorities/control aliases, linked/special destinations and overlap with CAS objects/tree/reference namespaces fail. Empty snapshots need no objects directory. Remote metadata supports recovery into a fresh empty working project; project-side metadata remains supported when that metadata still exists.</p>
 <p>A new internal installer verification callback runs on its private next-stage before retaining the previous destination. Existing ordinary local/GitHub paths use the same installer with their previous behavior. No hard-linked external file inode is edited in place.</p>
-<p>This remains an explicit library slice: CLI/configured source selection, registry, manifest placement/defaults and catalogue publication integration are pending. It is not a crash-atomic transaction or arbitrary concurrent-writer sandbox. Permissions/ownership restoration is not a CAS guarantee. As with the ordinary installer, cleanup failure can report an installed destination and retained private backup rather than pretending rollback after successful installation.</p>
+<p>The recovery API remains explicitly selected. Named registry and configured tree publication/placement are described below; configured recovery, CLI verification and flat catalogue publication integration remain pending. It is not a crash-atomic transaction or arbitrary concurrent-writer sandbox. Permissions/ownership restoration is not a CAS guarantee. As with the ordinary installer, cleanup failure can report an installed destination and retained private backup rather than pretending rollback after successful installation.</p>
 <p>Source review added explicit legacy manifests namespace protection: a tree restore cannot target the old flat manifests directory either. Merge validation compares actual directory-entry spelling, including selected empty directories, so native case aliases cannot widen an existing private directory’s modes.</p>
 <p>Both private staging levels are explicitly closed. If a pre-replacement callback rejects a copied tree, cleanup may unlock only owned copies, never the installed destination or a retained previous original. Primary and cleanup failures remain visible together; a tree that cannot be safely removed is retained with its path. The ordinary installer’s existing post-install backup-cleanup limitation remains.</p>
+</section>
+<section id="configured-local-cas-tree-publication-unreleased" class="level2">
+<h2 class="anchored" data-anchor-id="configured-local-cas-tree-publication-unreleased">Configured local CAS tree publication (unreleased)</h2>
+<p>New local CAS definitions can select recursive tree publication through the named registry. Directory selection is independent of full metadata placement:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">remotes</span><span class="kw">:</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">local</span><span class="kw">:</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">snapshots</span><span class="kw">:</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">path</span><span class="kw">:</span><span class="at"> ../snapshot-store</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">structure</span><span class="kw">:</span><span class="at"> cas</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">manifest</span><span class="kw">:</span><span class="at"> auto</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">manifest-style</span><span class="kw">:</span><span class="at"> tree</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">build</span><span class="kw">:</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">dest</span><span class="kw">:</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">snapshots</span><span class="kw">:</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">content</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">raw</span><span class="kw">,</span><span class="at"> output</span><span class="kw">]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Omitted content selects eligible non-cache declared labels. Explicit null, false or an empty list selects none; build subsets cannot enable excluded labels. auto means remote for this CAS writer. remote stores complete tree objects and snapshot metadata beside file objects; project stores that metadata under the project; both requires both copies. File objects always remain in the configured store. A small project reference is retained for every successful publication, including remote placement. That reference is not itself a complete archive.</p>
+<p>Raw objects, directory objects and snapshot/reference records use first-two- characters/rest-of-hash fan-out. Identical directory contents share a root across labels and versions. Snapshot version associations are separate immutable records. There is no inferred timestamp or mutable discovery index. Existing blobs are verified before reuse. Required graphs precede full references; the small project reference is written last. Errors after provider entry retain the local release and distribution evidence. both is not a cross-location atomic transaction: partial references/objects may remain and errors say so. Nothing is garbage- collected or rolled back from a published store automatically.</p>
+<p>Previously accepted path/structure/content/inspect CAS definitions keep their legacy flat JSON identities and plural .projr/manifests.csv ledger. Name-list selection still works; mapping subsets preserve legacy label spelling. To opt into new trees, remove the legacy inspect field and explicitly select tree if desired. No old manifest is reinterpreted or moved.</p>
+<p>This slice implements tree publication and library recovery. Configured CAS restore/selection and flat CSV/JSON catalogue publication are still pending. manifest-format and legacy inspect on modern policies fail rather than silently doing something else. The ordinary latest/archive and GitHub writers retain their current policy support; new placement/style options are not claimed there.</p>
 
 
 </section>
