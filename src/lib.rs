@@ -74,3 +74,5 @@ mod provenance;
 pub mod history;
 
 mod config_evidence;
+
+pub mod catalogue;

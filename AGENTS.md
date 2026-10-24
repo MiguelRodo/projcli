@@ -544,3 +544,15 @@ catalogue deduplication. Latest flat serialization work keeps both CSV and JSON,
 with per-artefact VERSION-level references by default and optional file-dedupe
 modes; the complete JSON codec remains an explicit full-inventory/export view,
 not a JSON-only configuration default. Do not alter flat policy pending its schema.
+
+
+## Catalogue codec boundary
+
+Preserve four independent choices: provider/layout, manifest placement,
+flat/tree structure and CSV/JSON serialization/dedupe mode. New catalogue v1
+records may directly reference preceding complete same-label inventories, never
+chains. Dictionary modes must retain every current path and bundle their full
+hash dictionary. CSV repeats label/version on membership rows for filtering and
+uses explicit record_index to survive row sorting. Do not silently replace the
+ordinary projr CSV or old CAS readers, claim CSV references auto-expand in Excel,
+or promote codec-only groundwork to active remote support.
