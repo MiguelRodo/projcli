@@ -370,3 +370,39 @@ fn bookdown_native_assets_restore_after_post_promotion_hook_failure() {
         assert_eq!(snapshot(&root), before, "book_filename={name}");
     }
 }
+
+
+#[test]
+fn no_distribution_cas_preparation_failures_retain_one_local_diagnostic() {
+    for case in ["missing-source","end-hook","observation"] {
+        let empty_content=case!="missing-source";
+        let temporary=tempfile::tempdir().unwrap();
+        let root=temporary.path().canonicalize().unwrap();
+        fs::write(root.join("VERSION"),b"v1.2.3-7\n").unwrap();
+        fs::write(root.join("fail.py"),if case=="observation" {
+            "from pathlib import Path\nPath('missing-output').write_bytes(b'not a directory')\n"
+        } else {"raise SystemExit(17)\n"}).unwrap();
+        let content=if empty_content {"[]"}else{"[output]"};
+        let hook=if empty_content {"  hooks: {post: [fail.py]}\n"}else{""};
+        fs::write(root.join("_proj.yml"),format!("directories:\n  output: {{path: missing-output}}\nremotes:\n  local:\n    archive:\n      path: archives\n      structure: cas\n      inspect: manifest\n      content: {content}\nbuild:\n  scripts: []\n  git: false\n  dest: [archive]\n{hook}  restrictions:\n    not_behind: false\n")).unwrap();
+        let result=std::process::Command::new(env!("CARGO_BIN_EXE_proj"))
+            .current_dir(&root).args(["--machine","--non-interactive","--project"]).arg(&root).arg("build")
+            .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
+            .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").env_remove("PROJR_CLEAR_OUTPUT")
+            .output().unwrap();
+        assert!(!result.status.success(),"case {empty_content}");
+        let root_json=fs::read_dir(root.join(".proj/log")).unwrap()
+            .filter(|entry|entry.as_ref().unwrap().path().extension().is_some_and(|e|e=="json")).count();
+        assert_eq!(root_json,0,"duplicate ordinary record in case {empty_content}");
+        let diagnostics:Vec<_>=fs::read_dir(root.join(".proj/log/local-failures")).unwrap()
+            .map(|e|e.unwrap().path()).filter(|p|p.extension().is_some_and(|e|e=="json")).collect();
+        assert_eq!(diagnostics.len(),1);
+        let history=std::process::Command::new(env!("CARGO_BIN_EXE_proj"))
+            .args(["--machine","--project"]).arg(&root).arg("history").output().unwrap();
+        assert!(history.status.success(),"{}",String::from_utf8_lossy(&history.stderr));
+        let value:serde_json::Value=serde_json::from_slice(&history.stdout).unwrap();
+        assert_eq!(value["result"]["history"]["entries"].as_array().unwrap().len(),1);
+        assert_eq!(value["result"]["history"]["entries"][0]["local_only"],true);
+        assert!(!root.join("archives").exists());
+    }
+}

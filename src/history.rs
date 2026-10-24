@@ -11,7 +11,8 @@ pub struct History { entries:Vec<Entry> }
 /// Safe summary fields only: arbitrary configuration, URLs and vendor output are not forwarded.
 #[derive(Serialize)]
 struct Entry {
-    attempt_id:String, started_at:String, release_version:String, status:String,
+    attempt_id:String, started_at:String, release_version:Option<String>, status:String,
+    local_only:bool,stage:String,
     git:crate::attempt_log::GitOutcome, distribution_may_have_started:bool,
     final_files:Option<Files>,
 }
@@ -46,7 +47,7 @@ pub fn read(root:&Utf8Path,attempt:Option<&str>,limit:usize)->anyhow::Result<His
         let Some(id)=name.strip_suffix(".json") else {continue};
         if valid_id(id)&&attempt.is_none_or(|wanted|wanted==id){ids.push(id.to_owned());}
     }
-    if attempt.is_some(){anyhow::ensure!(ids.len()==1,"Requested attempt does not exist");}
+
     let mut budget=64*1024*1024usize;
     let mut entries=Vec::new();
     for id in ids {
@@ -57,6 +58,8 @@ pub fn read(root:&Utf8Path,attempt:Option<&str>,limit:usize)->anyhow::Result<His
             "Attempt identity/schema mismatch");
         anyhow::ensure!(terminal(&record.status)||matches!(record.status.as_str(),"in_progress"|"pre_git_snapshot"),
             "Unknown attempt outcome");
+        anyhow::ensure!(matches!(record.stage.as_str(),"local_release"|"distribution"|"git"|"end_hooks_and_next_dev"),
+            "Unknown attempt stage");
         let started=chrono::DateTime::parse_from_rfc3339(&record.started_at).context("Invalid attempt time")?;
         let version=crate::version::ProjVersion::parse(&record.release_version).context("Invalid release version")?;
         anyhow::ensure!(version.dev==0&&version.to_string(true)==record.release_version,"Invalid release version");
@@ -78,9 +81,37 @@ pub fn read(root:&Utf8Path,attempt:Option<&str>,limit:usize)->anyhow::Result<His
         anyhow::ensure!(git.head.as_ref().is_none_or(|head|matches!(head.len(),40|64)
             &&head.bytes().all(|b|b.is_ascii_hexdigit())),"Invalid recorded Git object ID");
         entries.push((started,Entry {attempt_id:id,started_at:record.started_at,
-            release_version:record.release_version,status,git,
+            release_version:Some(record.release_version),status,git,local_only:false,stage:record.stage,
             distribution_may_have_started:record.distribution_may_have_started,final_files:files}));
     }
+    let failures=directory.join("local-failures");
+    if crate::yml::configuration_entry_exists(&failures)? {
+        crate::path_safety::resolve_path(failures.as_std_path(),true)?;
+        anyhow::ensure!(std::fs::symlink_metadata(&failures)?.is_dir(),"Local diagnostics must be a directory");
+        for (count,item) in std::fs::read_dir(&failures)?.enumerate() {
+            anyhow::ensure!(count<10_000,"Local diagnostics exceed 10,000 entries");
+            let name=item?.file_name();
+            let Some(id)=name.to_str().and_then(|n|n.strip_suffix(".json")).filter(|id|valid_id(id)) else{continue};
+            if attempt.is_some_and(|wanted|wanted!=id){continue;}
+            let bytes=attempt_log::read(&failures.join(format!("{id}.json")))?;
+            budget=budget.checked_sub(bytes.len()).context("History exceeds total JSON read budget")?;
+            let value:attempt_log::LocalFailure=serde_json::from_slice(&bytes).context("Invalid local failure diagnostic")?;
+            anyhow::ensure!(value.schema_version==1&&value.attempt_id==id&&value.status=="failed"
+                &&!value.distribution_may_have_started
+                &&matches!(value.stage.as_str(),"preflight"|"local_build"|"finalization"|"publication_preparation"),
+                "Invalid local failure identity/outcome");
+            for version in [&value.version_before,&value.version_after].into_iter().flatten() {
+                anyhow::ensure!(crate::version::ProjVersion::parse(version).context("Invalid diagnostic version")?.to_string(true)==*version,
+                    "Invalid diagnostic version");
+            }
+            let started=chrono::DateTime::parse_from_rfc3339(&value.started_at)?;
+            anyhow::ensure!(!entries.iter().any(|(_,entry)|entry.attempt_id==id),"Duplicate attempt identity");
+            entries.push((started,Entry {attempt_id:value.attempt_id,started_at:value.started_at,
+                release_version:None,status:"failed".into(),git:crate::attempt_log::GitOutcome::requested(false,false),
+                distribution_may_have_started:false,final_files:None,local_only:true,stage:value.stage}));
+        }
+    }
+    if attempt.is_some(){anyhow::ensure!(entries.len()==1,"Requested attempt does not exist");}
     entries.sort_by(|a,b|b.0.cmp(&a.0).then_with(||b.1.attempt_id.cmp(&a.1.attempt_id)));
     Ok(History {entries:entries.into_iter().take(limit).map(|(_,entry)|entry).collect()})
 }
@@ -118,7 +149,7 @@ impl History {
         let mut text=String::from("# Build history\n\n| Attempt | Started | Release | Outcome |\n| --- | --- | --- | --- |\n");
         for entry in &self.entries {
             text.push_str(&format!("| {} | {} | {} | {} |\n",entry.attempt_id,
-                entry.started_at,entry.release_version,entry.status));
+                entry.started_at,entry.release_version.as_deref().unwrap_or("no successful release"),entry.status));
         }
         for entry in &self.entries {
             text.push_str(&format!("\n## {}\n\n",entry.attempt_id));

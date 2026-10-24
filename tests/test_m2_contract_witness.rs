@@ -7,6 +7,12 @@ fn integrated_m2_record_matches_actual_source_input_and_final_bytes() {
     let root=std::path::PathBuf::from(std::env::var_os("PROJCLI_M2_EVIDENCE").expect("M2 artifact path required"));
     assert_eq!(fs::read(root.join("failed-cache-result.csv")).unwrap(),b"failed-only-output\n");
     assert_eq!(fs::read(root.join("failure-witness.txt")).unwrap(),b"analysis reached exit17 after output overwrite");
+    let diagnostic:Value=serde_json::from_slice(&fs::read(root.join("local-failure.json")).unwrap()).unwrap();
+    assert_eq!(diagnostic["status"],"failed");
+    assert_eq!(diagnostic["stage"],"local_build");
+    assert_eq!(diagnostic["distribution_may_have_started"],false);
+    assert_eq!(diagnostic["version_before"],"v1.2.5.1");
+    assert_eq!(diagnostic["version_after"],"v1.2.5.1");
     for name in ["first","second","retry"] {
         let case=root.join(name);
         let record:Value=serde_json::from_slice(&fs::read(case.join("record.json")).unwrap()).unwrap();

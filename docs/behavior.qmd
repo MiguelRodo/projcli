@@ -687,3 +687,37 @@ last-good version/output/CSV preservation, then retries successfully. Git is
 blocked by a failing shim to prove standalone operation. An independent Rust
 witness checks source/declaration BLAKE3 and actual input/final CSV bytes.
 This does not select pre-distribution failed-log retention or claim M2 closure.
+
+
+## Development source: local diagnostics before distribution
+
+Production failures after writer ownership is acquired retain a small JSON
+diagnostic in .proj/log/local-failures/. This implements the approved local-only
+retention choice. It records the opaque attempt ID, UTC times, coarse failed
+stage, failure status, possible-distribution flag (false) and recognised numeric
+versions before/after ordinary recovery. It omits raw exception text, command
+arguments, configuration, URLs, credentials and host/user identity. The original
+command still returns its normal failure and detailed stderr; those details
+are not copied into retained history.
+
+The directory contains its own narrowly scoped .gitignore. Framework Git status
+and staging also exclude this reserved directory at every repository depth and
+reject already tracked diagnostics. Successful records, distributed-failure
+records and Git receipts retain their agreed Git behaviour. A diagnostic write
+failure preserves the original build error and reports the evidence failure.
+No automatic pruning is introduced. Previews and failures before writer ownership
+is acquired do not create diagnostics.
+
+History lists these attempts as failed/local_only, with a null release_version
+and their coarse stage. They are not successful releases and have no final file
+rows. Existing publication-preparation boundaries remain truthful: a local release
+already preserved by that boundary is not claimed rolled back merely because no
+provider was entered. Version observations report the actual recognised state.
+Guarded reads reject links/special files; inability to observe a numeric version
+is explicit null. Duplicate normal/local records for an owned attempt are avoided
+without discarding evidence after distribution may have started.
+
+This source change does not update installed preview.3. The integrated M2 gate
+now checks durable local failure visibility, exact last-good recovery and retry,
+alongside separate real-Git witnesses for diagnostic exclusion and continued
+tracking of successful/distributed records.

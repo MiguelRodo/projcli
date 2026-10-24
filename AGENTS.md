@@ -493,3 +493,17 @@ universal secret detection. Preserve CSV, hooks, receipt timing and undecided
 failure retention. Run tests/acceptance/m2_contract.py plus its independent Rust
 byte witness remotely alongside the existing pinned matrix. Assess readiness
 against actual M2 criteria; do not add full environment/transitive freezing gates.
+
+
+## Local pre-distribution failure diagnostics
+Production failures after acquiring writer ownership now retain a bounded,
+allowlisted diagnostic under .proj/log/local-failures/ after ordinary recovery.
+The directory's own exact '*' ignore policy and framework Git pathspecs exclude
+only these local diagnostics, including at nested project depths. Reject
+force-tracked claims or diagnostics rather than hiding tracked changes.
+Successful records and failures after possible distribution remain normal Git
+evidence. Never serialize raw errors, argv, parameters, URLs or personal identity.
+Version observation must reject linked, special and oversized files. Keep one
+record per attempt when publication preparation fails without provider entry.
+History distinguishes local failed attempts from successful releases. Do not
+invent pruning, crash recovery, preview retention or new hook semantics.

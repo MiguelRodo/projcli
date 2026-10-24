@@ -2911,3 +2911,30 @@ analysis writes distinct failure-only cache bytes and an external fixture marker
 before exit17. The gate checks both, exact unchanged last-good managed bytes,
 and replacement with correct computed bytes on retry; command failure alone is
 not treated as proof of the intended fault.
+
+
+## Local-only failures before distribution
+
+**Deliberate approved addition to projr:** owned production failures before
+possible distribution now retain allowlisted JSON diagnostics locally rather
+than disappear from attempt history. Exact VERSION/DESCRIPTION recovery and
+existing publication boundaries are unchanged. The user approved local retention
+with Git exclusion; successful and distributed-failure records stay Git-tracked.
+
+Ponytail full review reuses the existing attempt identity, guarded bounded reads,
+exclusive evidence creation and history projection; no dependency or central
+catalogue is added. Independent source review caught and corrected Option API
+usage, multi-pattern Git match semantics, unvalidated stage projection, unsafe
+diagnostic version reads and duplicate normal/local attempt records on failures
+before provider entry. The directory's own '*' .gitignore plus exact reserved
+Git pathspecs keep exclusion narrow; force-tracked diagnostics fail closed.
+Raw error/argv/configuration/URL/host data is omitted rather than redacted later.
+
+Focused witnesses cover malformed configuration, linked/special version paths,
+linked diagnostics, failed analysis followed by successful optional-Git build,
+nested repository scope, forced tracking, and no-provider-action failures during
+CAS preparation/end hooks. The integrated M2 fixture and independent Rust
+artifact witness now require the local failed record, unchanged last-good state,
+history visibility and successful retry. Exact-head remote gates and final
+review remain required before merge. R package, CSV, snapshot/receipt sequence,
+preview behaviour and installed preview.3 remain unchanged.

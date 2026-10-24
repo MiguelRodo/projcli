@@ -128,8 +128,15 @@ fn preview_disabled_output_and_failed_end_hook_preserve_prior_csv_and_version() 
             assert!(log.get("inventory").is_none());
             assert_eq!(log["final_outputs"]["status"],"not_requested");
             assert!(log["final_outputs"]["inventory"].is_null());
+        }else if mode=="failed" {
+            let paths:Vec<_>=fs::read_dir(root.join(".proj/log/local-failures")).unwrap()
+                .map(|entry|entry.unwrap().path()).filter(|path|path.extension().is_some_and(|e|e=="json")).collect();
+            assert_eq!(paths.len(),1);
+            let diagnostic:serde_json::Value=serde_json::from_slice(&fs::read(&paths[0]).unwrap()).unwrap();
+            assert_eq!(diagnostic["stage"],"finalization");
+            assert_eq!(diagnostic["distribution_may_have_started"],false);
         }else{
-            assert!(!root.join(".proj/log").exists(),"pre-distribution failure/preview retention changed");
+            assert!(!root.join(".proj/log").exists(),"preview retention changed");
         }
         if mode != "disabled"  {
             assert_eq!(fs::read(root.join("VERSION")).unwrap(), b"v1.2.3-4\n");

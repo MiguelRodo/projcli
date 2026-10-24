@@ -1,4 +1,4 @@
-"""Remote integrated M2 LOCAL traceability gate; no new failed-record retention policy."""
+"""Remote integrated M2 LOCAL traceability gate; local-only failed-attempt diagnostics."""
 from __future__ import annotations
 import argparse,csv,hashlib,json,os,shutil,subprocess,tempfile
 from pathlib import Path
@@ -32,7 +32,7 @@ def main():
     parser.add_argument('--evidence',required=True,type=Path);parser.add_argument('--artifacts',required=True,type=Path)
     args=parser.parse_args();binary=args.binary.resolve(strict=True);args.artifacts.mkdir(parents=True,exist_ok=True)
     evidence={'complete':False,'cases':[],'scope':'integrated local M2 fixture; optional Git/provider failures covered by existing suites',
-              'pre_distribution_failure_retention':'unchanged and undecided','not_claimed':['full environment reproduction','frozen transitive imports','remote availability']}
+              'pre_distribution_failure_retention':'local diagnostics excluded from Git','not_claimed':['full environment reproduction','frozen transitive imports','remote availability']}
     try:
         with tempfile.TemporaryDirectory(prefix='projcli-m2-') as temp:
             base=Path(temp);root=base/'project';root.mkdir();guard=base/'git-guard';guard.mkdir()
@@ -108,13 +108,23 @@ def main():
             shutil.copyfile(failed_cache,args.artifacts/'failed-cache-result.csv')
             shutil.copyfile(failure_witness,args.artifacts/'failure-witness.txt')
             assert {name:(root/name).read_bytes() for name in before}==before
-            assert snapshot(root/'.proj/log')==logs
+            after_logs=snapshot(root/'.proj/log')
+            assert all(after_logs[name]==data for name,data in logs.items())
+            diagnostics=list((root/'.proj/log/local-failures').glob('*.json'))
+            assert len(diagnostics)==1
+            diagnostic=json.loads(diagnostics[0].read_text())
+            assert diagnostic['status']=='failed' and diagnostic['stage']=='local_build'
+            assert diagnostic['distribution_may_have_started'] is False
+            assert diagnostic['version_before']==diagnostic['version_after']=='v1.2.5.1'
+            assert (root/'.proj/log/local-failures/.gitignore').read_bytes()==b'*\n'
+            shutil.copyfile(diagnostics[0],args.artifacts/'local-failure.json')
             assert not (root/'.proj/build.lock').exists()
             assert not (root/'.git').exists() and not witness.exists()
             result,history=invoke(binary,root,env,'history');assert result.returncode==0
             entries=history['result']['history']['entries']
-            assert len(entries)==2 and all(entry['status']=='completed' for entry in entries)
-            assert entries[0]['release_version']=='v1.2.5'
+            assert len(entries)==3 and sum(entry['status']=='completed' for entry in entries)==2
+            assert entries[0]['release_version'] is None and entries[0]['local_only'] is True
+            assert entries[0]['attempt_id']==diagnostic['attempt_id']
             assert before['VERSION']==b'Version: v1.2.5.1'
             result,_=invoke(binary,root,env,'build','--patch')
             assert result.returncode==0,result.stderr
@@ -134,7 +144,7 @@ def main():
                 'expected_result':66,'expected_md5':hashlib.md5(b'value\n66\n').hexdigest(),
                 'configuration_blake3':retry['startup_provenance']['configuration']['effective']['blake3']})
             result,history=invoke(binary,root,env,'history');assert result.returncode==0
-            assert len(history['result']['history']['entries'])==3
+            assert len(history['result']['history']['entries'])==4
             assert history['result']['history']['entries'][0]['release_version']=='v1.2.6'
             result=subprocess.run([str(binary),'--project',str(root),'history'],cwd=root,env=env,capture_output=True,text=True)
             assert result.returncode==0 and all(case['attempt_id'] in result.stdout for case in evidence['cases'])
@@ -146,7 +156,7 @@ def main():
                 for secret in [b'M2-PRIVATE-TOKEN',b'M2-QUERY',b'private.invalid',str(root).encode()]:
                     assert secret not in data
             evidence.update(complete=True,failed_build_preserves_exact_last_good_state=True,no_false_successful_release=True,
-                no_git_calls_or_credentials_required=True,history_from_records=True,exact_prior_development_version_preserved=True,retry_succeeds_without_rewriting_prior_records=True)
+                no_git_calls_or_credentials_required=True,history_from_records=True,exact_prior_development_version_preserved=True,retry_succeeds_without_rewriting_prior_records=True,local_failure_visible_without_false_release=True)
     except Exception as error:
         evidence['error']=str(error);raise
     finally:

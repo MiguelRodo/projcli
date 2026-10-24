@@ -323,6 +323,26 @@ fn analysis_failure_is_not_publication_failure_and_changes_neither_git_reference
     assert!(!fixture.root.join("released/results.csv").exists());
     assert_eq!(fs::read(fixture.root.join("cache/projr/v1.2.4/output/results.csv")).unwrap(), b"result\n84\n");
     assert_eq!(fixture.text(&["status", "--porcelain"]), "");
+    let directory=fixture.root.join(".proj/log/local-failures");
+    let diagnostic=fs::read_dir(&directory).unwrap().map(|e|e.unwrap().path())
+        .find(|p|p.extension().is_some_and(|s|s=="json")).unwrap();
+    let bytes=fs::read(&diagnostic).unwrap();
+    let record:serde_json::Value=serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(record["stage"],"local_build");
+    assert_eq!(record["distribution_may_have_started"],false);
+    assert_eq!(record["version_before"],"v1.2.3.4");
+    assert_eq!(record["version_after"],"v1.2.3.4");
+    let success=fixture.build(false);
+    assert!(success.status.success(),"{}",String::from_utf8_lossy(&success.stderr));
+    assert_eq!(fs::read(&diagnostic).unwrap(),bytes);
+    let tracked=fixture.text(&["ls-tree","-r","--name-only","HEAD"]);
+    assert!(!tracked.contains("local-failures"));
+    assert!(tracked.lines().any(|p|p.starts_with(".proj/log/")&&p.ends_with(".json")));
+    // Force-tracked diagnostics fail closed rather than silently hide tracked changes.
+    fixture.git(&["add","-f","--",diagnostic.strip_prefix(&fixture.root).unwrap().to_str().unwrap()]);
+    let rejected=fixture.build(false);
+    assert!(!rejected.status.success());
+    assert!(String::from_utf8_lossy(&rejected.stderr).contains("must not be tracked"));
 }
 
 
@@ -591,4 +611,19 @@ fn git_receipt_observes_post_hook_changes_without_rewriting_the_committed_snapsh
     assert_eq!(detail["entries"][0]["final_files"]["rows"],serde_json::to_value(&rows).unwrap());
     assert!(history.markdown().contains("renamed&#46;csv"));
     assert!(!history.markdown().contains("results&#46;csv"));
+}
+
+
+#[test]
+fn nested_local_failure_exclusion_keeps_other_project_records_and_unrelated_files() {
+    let fixture=Fixture::new(false);
+    let nested=fixture.root.join("unrelated [project]/.proj/log/local-failures");
+    fs::create_dir_all(&nested).unwrap();
+    fs::write(nested.join("private.json"),b"local-only").unwrap();
+    let result=fixture.build(false);
+    assert!(result.status.success(),"{}",String::from_utf8_lossy(&result.stderr));
+    let paths=fixture.text(&["ls-tree","-r","--name-only","HEAD"]);
+    assert!(!paths.contains("local-failures"),"{paths}");
+    assert!(paths.lines().any(|p|p.starts_with(".proj/log/")&&p.ends_with(".json")));
+    assert_eq!(fs::read(nested.join("private.json")).unwrap(),b"local-only");
 }
