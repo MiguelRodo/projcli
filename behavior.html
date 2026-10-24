@@ -326,6 +326,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#actual-github-flat-histories-development-source" id="toc-actual-github-flat-histories-development-source" class="nav-link" data-scroll-target="#actual-github-flat-histories-development-source">Actual GitHub flat histories (development source)</a></li>
   <li><a href="#ordinary-local-tree-metadata-development-source" id="toc-ordinary-local-tree-metadata-development-source" class="nav-link" data-scroll-target="#ordinary-local-tree-metadata-development-source">Ordinary local tree metadata (development source)</a></li>
   <li><a href="#github-directory-metadata-development-source" id="toc-github-directory-metadata-development-source" class="nav-link" data-scroll-target="#github-directory-metadata-development-source">GitHub directory metadata (development source)</a></li>
+  <li><a href="#integrated-m3-acceptance-scope" id="toc-integrated-m3-acceptance-scope" class="nav-link" data-scroll-target="#integrated-m3-acceptance-scope">Integrated M3 acceptance scope</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -615,6 +616,11 @@ ul.task-list li input[type="checkbox"] {
 <section id="github-directory-metadata-development-source" class="level2">
 <h2 class="anchored" data-anchor-id="github-directory-metadata-development-source">GitHub directory metadata (development source)</h2>
 <p>Explicit tree style now reuses DirectoryTree v1 with exact ZIP observations and a readable JSON history companion. Its new binding schema separates pure roots from label/version/physical Release context; flat serialization and IDs remain unchanged. Bounded bundle validation checks every node ID, then graph/inventory agreement before writes. Required private metadata precedes HTTP publication; all required HTTP and full project copies precede small project references. Partial failures remain visible, with local release/evidence preserved. Tree style is fixed JSON; ordinary/GitHub defaults and compatible restore are unchanged. This is mocked REST/actual CLI scope, not a new live Release claim.</p>
+</section>
+<section id="integrated-m3-acceptance-scope" class="level2">
+<h2 class="anchored" data-anchor-id="integrated-m3-acceptance-scope">Integrated M3 acceptance scope</h2>
+<p>The pinned remote gate combines actual Python analysis, ordinary local tree backup and native CAS snapshots with optional Git disabled. It exercises tree, flat CSV and opt-in JSON file-dictionary modes; earlier objects/snapshots survive a second build. A fresh disposable project then verifies/restores both labels by explicit snapshot ID without the old project CSV, ledger or small references. Object corruption, missing objects and malformed snapshot metadata must produce structured failures while preserving good destinations and damaged store bytes. A separate Rust witness connects retained store membership to recovered bytes.</p>
+<p>Existing complete platform suites cover publication interruption, cooperative writer exclusion/idempotency, path/link guards, all formats/placements, ordinary and mocked GitHub transitions. No automatic latest/discovery, permission/ownership restoration, live consistent dataset, performance or new live GitHub claim is added. These checks await exact-head remote execution; installed preview.3 is unchanged until a separately reviewed release/install.</p>
 
 
 </section>

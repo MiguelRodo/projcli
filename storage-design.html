@@ -337,6 +337,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </ul></li>
   <li><a href="#ordinary-local-directory-trees-development-source" id="toc-ordinary-local-directory-trees-development-source" class="nav-link" data-scroll-target="#ordinary-local-directory-trees-development-source">Ordinary local directory trees (development source)</a></li>
   <li><a href="#github-tree-metadata-integration" id="toc-github-tree-metadata-integration" class="nav-link" data-scroll-target="#github-tree-metadata-integration">GitHub tree metadata integration</a></li>
+  <li><a href="#bounded-m3-release-evidence" id="toc-bounded-m3-release-evidence" class="nav-link" data-scroll-target="#bounded-m3-release-evidence">Bounded M3 release evidence</a></li>
   </ul>
 </nav>
     </div>
@@ -604,6 +605,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="github-tree-metadata-integration">GitHub tree metadata integration</h2>
 <p>Ordinary GitHub data remains latest/archive ZIP assets. Tree metadata reuses the v1 pure directory codec and first-two/rest sharding, with a distinct projcli.github-tree-snapshot.v1 binding. A readable JSON catalogue deliberately duplicates membership for inspection and existing immutable-version lookup; its inventory hash must equal the graph’s expanded membership. No raw CAS object path is followed for ordinary payload bytes.</p>
 <p>The existing bounded metadata bundle now allowlists directory objects as well as histories/bindings. Validate all object identities before controlled graph reads; missing, corrupt or contradictory metadata fails before HTTP mutation. Private disk-backed graphs are prepared before uploads and copied to selected full project locations only after all required HTTP succeeds. Small references remain last. Flat IDs and earlier nodes survive style changes. No compression/performance, multi-target atomicity or new snapshot-discovery guarantee is implied.</p>
+</section>
+<section id="bounded-m3-release-evidence" class="level2">
+<h2 class="anchored" data-anchor-id="bounded-m3-release-evidence">Bounded M3 release evidence</h2>
+<p>The final pinned gate retains actual native CAS stores and exact recovered files after a two-build analysis plus ordinary backup. It recovers by explicit snapshot ID into a fresh project, then probes missing/corrupt content and malformed metadata without modifying good targets. A separate Rust witness checks retained snapshots against recovered bytes and ordinary CSV hashes. Broader discovery and performance work remains deferred; complete platform suites cover writer, interruption, retry and all format/placement boundaries. Passing this gate is source evidence; release/install verification remains separate.</p>
 
 
 </section>
