@@ -670,7 +670,13 @@ fn registered_github_definition_remains_restore_source_after_uploads_are_disable
     fs::write(root.join("_proj.yml"),serde_json::to_vec_pretty(&config).unwrap()).unwrap();
     success(invoke(&server,&root,&["build","--non-interactive"]));
     let before={let state=server.state.lock().unwrap();
-        assert_eq!(state.uploads,["output-v1.2.4.zip","manifest.zip","VERSION.zip","CHANGELOG.zip"]);
+        assert_eq!(state.uploads,["output-v1.2.4.zip","manifest.zip","VERSION.zip","CHANGELOG.zip","projcli-manifests-v1.zip"]);
+        let bundle=members(&state.assets["projcli-manifests-v1.zip"].1);
+        let history=proj::catalogue::Catalogue::parse(&bundle["catalogues/v1/manifest.csv"],proj::catalogue::Format::Csv).unwrap();
+        let observed=history.expanded_snapshot("v1.2.4",&["output".into()]).unwrap();
+        assert_eq!(observed.directories[0].files.len(),1);
+        assert_eq!(observed.directories[0].files[0].path,"result.csv");
+        assert_eq!(observed.directories[0].files[0].hash,blake3::hash(b"actual fixture bytes\n").to_hex().to_string());
         assert_eq!(members(&state.assets["output-v1.2.4.zip"].1)["result.csv"],b"actual fixture bytes\n");
         (state.assets.clone(),state.uploads.clone(),state.deleted.clone())};
     config["build"]["dest"]=json!({});

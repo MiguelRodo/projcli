@@ -9,8 +9,9 @@ format:
 ::: {.callout-warning}
 ## Released workflow, bounded recovery
 The core figures describe the reviewed lifecycle introduced in 0.4.0-preview.2
-and retained in preview.3. The ordinary-publication overlay below is released
-in preview.3.
+and retained in preview.3. The historical ordinary-publication figure below is
+released in preview.3. The separate development-source storage overlay describes
+new file-history additions; those are not in installed preview.3.
 The exact source and executed acceptance are linked below. This is a bounded
 managed-path workflow, not whole-project rollback or a security sandbox.
 Use sample data or a disposable project copy.
@@ -393,7 +394,7 @@ Configured remote restore is a separate explicit operation, not an automatic
 stage in the build lifecycle above. It selects a source, stages a complete
 download and then invokes guarded merge/clear installation.
 
-## Configured ordinary publication in preview.3
+## Configured ordinary publication
 
 Preview.3 publishes ordinary local
 archive/latest targets, then the bounded GitHub latest/archive publication path, before
@@ -403,7 +404,8 @@ Each provider stages every selected CSV snapshot before its first remote mutatio
 GitHub preparation additionally checks the remote catalog and shared metadata.
 This is not a transaction across providers. Failure preserves the local release
 and skips later stages, without rolling back already published destinations.
-Preview skips publication. Released diagrams above retain their version meaning.
+Preview skips publication. The historical overlay below retains its preview.3 meaning; development-source
+metadata additions appear in the separate storage overlay at the end of this page.
 
 ```{mermaid}
 %%| label: fig-lifecycle-ordinary-publication
@@ -413,7 +415,7 @@ flowchart TB
   A["Validate planned namespaces / freeze routing"] --> B["Existing analysis / promotion / CSV"]
   B --> C["Keep local release"]
   C --> D["Stage all selected local CSV bytes"]
-  D --> E["Local data; opted-in final-byte histories; full metadata then project reference"]
+  D --> E["Local archive/latest data, then metadata"]
   E --> H["Validate catalog/history; stage comparison and ZIP effects"]
   H --> I["GitHub latest/archive replacements, then metadata ZIPs"]
   I --> F["Selected CAS, Git, end hooks, next-dev"]
@@ -589,10 +591,10 @@ Registry membership alone neither uploads nor loads credentials. The existing
 provider engines receive only selected definitions. Configured restore remains
 an explicit separate operation, and registry sources remain available after
 removal from the current upload set. Configured local CAS tree publication adds the provider overlay below.
-Flat format publication and automatic CAS snapshot selection remain pending;
+Flat CSV/JSON publication is implemented below; automatic CAS snapshot selection remains deferred;
 explicit verification/recovery is described below.
 
-## Development-source configured CAS overlay
+## Development-source storage metadata overlay
 
 Configured local trees add a selected provider at the existing publication phase,
 after ordinary/legacy targets and before optional Git. This does not move end
@@ -600,20 +602,34 @@ hooks, next-dev or the existing partial-distribution boundary.
 
 ```{mermaid}
 %%| label: fig-lifecycle-configured-cas
-%%| fig-cap: "Development source: save a selected directory snapshot before Git finalization."
-%%| fig-alt: "Validate selected folders, save content and required snapshot copies, then record the project reference. Later failures retain evidence."
+%%| fig-cap: "Development source: ordinary and content-addressed storage metadata before Git finalization."
+%%| fig-alt: "Selected local folders retain actual payload histories. GitHub prepares exact ZIP history and publishes all HTTP and full project copies before references. Selected CAS style then saves content and required metadata before its reference. Failures preserve evidence."
 %%{init: {"htmlLabels": false}}%%
 flowchart TB
-  A["Frozen selected CAS targets"] --> B["Read-only source preparation"]
-  B --> C["Retain distribution-start evidence"]
-  C --> D{"Selected manifest style"}
+  A["Frozen selected destinations"] --> B["Read-only preparation"]
+  B --> C["Retain possible distribution evidence on provider entry"]
+  C --> L{"Ordinary local selected?"}
+  L -->|Yes| LP["Apply transfer policy; record actual final bytes"]
+  LP --> LR["Required full local histories and bindings; then project references"]
+  L -->|No| J{"GitHub selected?"}
+  LR --> J
+  J -->|Yes| JP["Prepare exact data ZIPs or download retained archive bytes"]
+  JP --> JW["All target HTTP writes: data, legacy metadata, new bundle last"]
+  JW --> JF["All full project histories; then project references"]
+  J -->|No| D{"Selected CAS manifest style"}
+  JF --> D
   D -->|Tree| T["Save file bytes and directory fingerprints"]
-  D -->|Flat| H["Save file bytes; claim history writer and preserve earlier rows"]
+  D -->|Flat| H["Save file bytes; claim writer and preserve earlier rows"]
+  D -->|No CAS| G["Existing optional Git and finalization"]
   T --> E["Save required full metadata, then snapshot records"]
   H --> E
   E --> F["Write lightweight project root reference"]
-  F --> G["Existing optional Git and finalization"]
-  T --> X["On failure: preserve local release and possible partial effects"]
+  F --> G
+  LP --> X["On failure: preserve local release and possible partial effects"]
+  LR --> X
+  JW --> X
+  JF --> X
+  T --> X
   H --> X
   E --> X
   F --> X
@@ -650,4 +666,15 @@ before replacement. It records actual final bytes and their physical location,
 then writes legacy compatibility metadata, new complete history copies, full
 snapshot bindings and the small project reference. Failed copies retain honest
 partial effects. This addition does not change preview.3 or the later Git/end-hook
-ordering; ordinary tree/GitHub formatting remains pending.
+ordering; ordinary tree formatting remains pending.
+
+
+### GitHub file history in development source
+
+After private mirror planning, observe each exact prepared data ZIP or an actually
+downloaded retained archive. Stage bounded history/bindings before any HTTP mutation.
+Upload data, legacy metadata and the new bundle, checking its originally observed
+asset identity before deletion. After every target's required HTTP succeeds, write
+all selected project full histories, then small project references. Failures report
+partial remote/local effects and retain the local release. Later CAS/Git/end-hook
+ordering is unchanged; no atomic multi-target transaction is implied.

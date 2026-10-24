@@ -151,7 +151,10 @@ pub(crate) fn selected(config:&ProjConfig)->Result<Selected> {
                 .entry("manifest-style").or_insert(Value::String("flat".into()));
             local.insert(title,selected);
         } else if let Some(value)=config.remotes.registry.github.get(&title) {
-            github.insert(title,selected_definition(config,value,subset)?);
+            let mut selected=selected_definition(config,value,subset)?;
+            selected.as_object_mut().context("Remote definition must be a mapping")?
+                .entry("manifest-style").or_insert(Value::String("flat".into()));
+            github.insert(title,selected);
         } else if let Some(value)=config.remotes.registry.cas.get(&title) {
             let value=selected_definition(config,value,subset)?;
             cas.push(crate::cas_remote::Selection {title,definition:crate::cas_remote::Definition::parse(&value)?});

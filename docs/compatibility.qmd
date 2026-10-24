@@ -3237,3 +3237,47 @@ locations, independently of selected write placement. A three-build
 project-to-remote-to-both fixture with format changes checks complete earlier
 history, direct references, and unchanged old/unselected files. This is bounded
 fixed-location compatibility, not snapshot discovery.
+
+
+## GitHub flat metadata integration
+
+New beyond projr: four flat catalogue formats and metadata placement for named
+GitHub Release destinations, with actual prepared/reused ZIP inventories and
+separate immutable repository/tag/asset bindings. Existing ordinary transport,
+root MD5 CSV, VERSION* trust markers and CSV/VERSION restore remain. Default flat
+CSV applies to named definitions; legacy inline definitions opt in explicitly.
+Ordinary tree and live new-format Release verification remain unimplemented/unverified.
+
+Ponytail full reused catalogue resolution, native bounded ZIP extraction/writing,
+streaming Release operations, guarded metadata replacement and physical mirror
+planning. Early independent review fixed per-target premature project receipts,
+repeated index construction and generated ZIP member-count validation. Exact
+prepared ZIP hashing also prevents recording empty mirror folders that packaging
+does not retain. New bundle replacement checks the originally observed asset ID.
+
+Twelve remote-only mocked REST/CLI groups cover all format/placement/layout cases,
+source-retained unions, archive reuse/placeholders, format/placement switching,
+late two-target failure, stale bundle identity, unknown/corrupt metadata, defaults/
+legacy inline behavior, empty ZIP semantics, compatible restore and directory-inclusive
+member bounds. Compilation, exact-head CI and final independent review remain pending.
+
+
+Independent fixture review also keeps accepted sockets explicitly blocking on
+Windows and canonicalizes the owned member-limit ZIP path on macOS. Production
+path guards and extractor assertions are unchanged. The ordinary lifecycle overlay
+now explicitly labels development-source history additions rather than implying
+they shipped in preview.3.
+
+
+Historical preview.3 diagram nodes are retained. The existing development-source
+storage overlay now shows the new ordinary local/GitHub metadata phases alongside
+CAS, preserving eleven native-browser figures. Stale pending-format statements
+now distinguish implemented flat histories from deferred ordinary tree metadata
+and automatic snapshot lookup.
+
+
+The first pinned run compiled the new implementation and completed the dedicated
+mocked GitHub suite. A retained named-registry fixture still expected only legacy
+assets; it now requires the new bundle last and verifies its file path/hash,
+while preserving all no-upload-after-disabling and restore-byte assertions.
+No production behavior was relaxed to satisfy the outdated expectation.
