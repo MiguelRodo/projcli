@@ -333,3 +333,149 @@ fn native_zip_member_budget_counts_parent_directories_before_extracting_any_file
     let error=proj::github_zip::extract_zip(camino::Utf8Path::from_path(&archive).unwrap(),128*1024*1024).err().expect("member cap must reject before extraction");
     assert!(format!("{error:#}").contains("member limit"));
 }
+
+// Tree fixtures reuse the same isolated CLI and loopback transport; no live service.\nfn structured_failure(output:Output) {
+    assert!(!output.status.success());
+    let value:Value=serde_json::from_slice(&output.stdout).expect("structured failure required, not a panic");
+    assert_eq!(value["protocol_version"],1);assert_eq!(value["ok"],false);
+    assert!(matches!(value["error"]["code"].as_str(),Some("command_failed"|"invalid_arguments")));
+}
+
+fn enable_tree(root:&Path,config:&mut Value) {
+    config["remotes"]["github"]["data"]["manifest-style"]=json!("tree");
+    config["remotes"]["github"]["data"].as_object_mut().unwrap().remove("manifest-format");
+    save(root,config);
+}
+fn assert_tree(metadata:&BTreeMap<String,Vec<u8>>,binding:&Value,payload:&BTreeMap<String,Vec<u8>>)->String {
+    use proj::snapshot_format::{DirectoryTree,EntryKind};
+    fn collect(metadata:&BTreeMap<String,Vec<u8>>,id:&str,prefix:&str,depth:usize,files:&mut BTreeMap<String,String>) {
+        assert!(depth<=64);
+        let tree=DirectoryTree::parse(&metadata[&format!("trees/v1/{}/{}.json",&id[..2],&id[2..])]).unwrap();
+        assert_eq!(tree.identity().unwrap(),id);
+        for entry in tree.entries {
+            let path=if prefix.is_empty(){entry.name}else{format!("{prefix}/{}",entry.name)};
+            match entry.kind {
+                EntryKind::File=>{assert!(files.insert(path,entry.hash).is_none());},
+                EntryKind::Tree=>collect(metadata,&entry.hash,&path,depth+1,files),
+            }
+        }
+    }
+    assert_eq!(binding["schema"],"projcli.github-tree-snapshot.v1");
+    let id=binding["payloads"][0]["tree"].as_str().unwrap();let mut actual=BTreeMap::new();
+    collect(metadata,id,"",0,&mut actual);
+    let expected:BTreeMap<_,_>=payload.iter().filter(|(path,_)|path.as_str()!="projr-empty")
+        .map(|(path,bytes)|(path.clone(),blake3::hash(bytes).to_hex().to_string())).collect();
+    assert_eq!(actual,expected);id.into()
+}
+#[test]
+fn github_tree_layout_placement_and_cue_matrix_has_pure_roots_exact_zip_members_and_small_references() {
+    let mut expected_root=None;
+    for layout in ["latest","archive"] {for placement in ["auto","project","remote","both"] {for cue in ["always","if-change"] {
+        let server=Server::start();let (_temp,root,mut config)=setup("json",placement,layout);
+        enable_tree(&root,&mut config);config["remotes"]["github"]["data"]["send"]["cue"]=json!(cue);save(&root,&config);
+        fs::create_dir_all(root.join("results/nested/empty")).unwrap();
+        fs::write(root.join("results/nested/other"),b"nested bytes").unwrap();
+        build(&server,&root);
+        let first=server.assets("data");let asset=if layout=="latest"{"output.zip"}else{"output-v1.2.4.zip"};
+        let payload=members(&first[asset]);assert!(!payload.keys().any(|path|path.contains("empty")));
+        let project_rows=files(&project(&root,"data"));let refs=bindings(&project_rows,"references/v1/");assert_eq!(refs.len(),1);
+        assert_eq!(first.contains_key(META),placement!="project");
+        assert_eq!(project_rows.keys().any(|name|name.starts_with("trees/v1/")),placement!="remote");
+        let full=if placement=="project"{project_rows}else{members(&first[META])};
+        let tree=assert_tree(&full,&refs[0],&payload);
+        if let Some(expected)=&expected_root{assert_eq!(&tree,expected)}else{expected_root=Some(tree.clone());}
+        assert_payload(&history(&full,"json"),"v1.2.4",&payload);
+        let old_nodes:BTreeMap<_,_>=full.iter().filter(|(path,_)|path.starts_with("trees/v1/")).map(|(path,bytes)|(path.clone(),bytes.clone())).collect();
+        assert!(!old_nodes.is_empty());assert!(!full.keys().any(|path|path.starts_with("objects/")));
+        build(&server,&root);
+        let second=server.assets("data");let rows=files(&project(&root,"data"));let refs=bindings(&rows,"references/v1/");
+        let later=refs.iter().find(|row|row["version"]=="v1.2.5").unwrap();
+        assert_eq!(later["payloads"][0]["tree"],tree);
+        let later_asset=if layout=="archive"&&cue=="always"{"output-v1.2.5.zip"}else{asset};
+        assert_eq!(later["payloads"][0]["asset"],later_asset);
+        let full=if placement=="project"{rows.clone()}else{members(&second[META])};
+        assert_eq!(assert_tree(&full,later,&members(&second[later_asset])),tree);
+        for (path,bytes) in old_nodes{assert_eq!(full[&path],bytes);}
+        assert!(matches!(&history(&full,"json").records[1].inventory,Inventory::Reference{ref_version} if ref_version=="v1.2.4"));
+    }}}
+}
+#[test]
+fn github_flat_tree_flat_changes_keep_older_bindings_histories_and_tree_nodes() {
+    let server=Server::start();let (_temp,root,mut config)=setup("csv","both","archive");build(&server,&root);
+    let first=members(&server.assets("data")[META]);let old=files(&project(&root,"data"));
+    enable_tree(&root,&mut config);build(&server,&root);
+    let middle=members(&server.assets("data")[META]);let refs=bindings(&middle,"snapshots/v1/");
+    let tree_ref=refs.iter().find(|row|row["version"]=="v1.2.5").unwrap();
+    let tree=assert_tree(&middle,tree_ref,&members(&server.assets("data")["output-v1.2.4.zip"]));
+    config["remotes"]["github"]["data"]["manifest-style"]=json!("flat");
+    config["remotes"]["github"]["data"]["manifest-format"]=json!("json-dedupe-file");save(&root,&config);build(&server,&root);
+    let final_rows=members(&server.assets("data")[META]);
+    for (path,bytes) in &first {assert_eq!(&final_rows[path],bytes);}
+    for (path,bytes) in middle.iter().filter(|(path,_)|path.starts_with("trees/v1/")){assert_eq!(&final_rows[path],bytes);}
+    for (path,bytes) in old{assert_eq!(files(&project(&root,"data"))[&path],bytes);}
+    let refs=bindings(&final_rows,"snapshots/v1/");let newest=refs.iter().find(|row|row["version"]=="v1.2.6").unwrap();
+    assert_eq!(newest["schema"],"projcli.github-snapshot.v1");assert!(newest["payloads"][0].get("tree").is_none());
+    assert_eq!(history(&final_rows,"json-dedupe-file").records.len(),3);assert_eq!(tree.len(),64);
+}
+#[test]
+fn missing_or_corrupt_github_directory_objects_fail_before_any_remote_write() {
+    for damage in ["missing","corrupt","unknown"] {
+        let server=Server::start();let (_temp,root,mut config)=setup("json","both","latest");
+        enable_tree(&root,&mut config);build(&server,&root);
+        let mut rows=members(&server.assets("data")[META]);let path=rows.keys().find(|path|path.starts_with("trees/v1/")).unwrap().clone();
+        match damage {
+            "missing"=>{rows.remove(&path);},
+            "corrupt"=>{rows.insert(path,b"{}".to_vec());},
+            _=>{rows.insert("trees/v1/../untrusted.json".into(),b"{}".to_vec());},
+        }
+        let zip=fixture_zip(&rows.iter().map(|(path,bytes)|(path.as_str(),bytes.as_slice())).collect::<Vec<_>>());
+        {let mut state=server.state.lock().unwrap();state.assets.get_mut(&(1,META.into())).unwrap().1=zip;state.uploads.clear();state.deleted.clear();}
+        let before=server.assets("data");let local=files(&project(&root,"data"));
+        structured_failure(invoke(&server,&root));
+        assert_eq!(server.assets("data"),before);assert_eq!(files(&project(&root,"data")),local);
+        let state=server.state.lock().unwrap();assert!(state.uploads.is_empty());assert!(state.deleted.is_empty());
+    }
+}
+#[test]
+fn github_tree_metadata_failure_never_writes_project_success_references() {
+    let server=Server::start();let (_temp,root,mut config)=setup("json","both","latest");enable_tree(&root,&mut config);
+    let mut second=config["remotes"]["github"]["data"].clone();second["path"]=json!("other");
+    config["remotes"]["github"]["second"]=second;config["build"]["dest"]["second"]=json!({});save(&root,&config);
+    server.state.lock().unwrap().fail_metadata=Some(2);
+    structured_failure(invoke(&server,&root));assert!(server.assets("data").contains_key(META));
+    assert!(server.assets("second").contains_key("other-output.zip"));
+    assert!(files(&project(&root,"data")).is_empty());assert!(files(&project(&root,"second")).is_empty());
+}
+#[test]
+fn github_tree_requires_fixed_json_and_preserves_ordinary_restore() {
+    for mode in ["csv","csv-dedupe-file","json-dedupe-file"] {
+        let server=Server::start();let (_temp,root,mut config)=setup(mode,"both","latest");
+        config["remotes"]["github"]["data"]["manifest-style"]=json!("tree");save(&root,&config);
+        structured_failure(invoke(&server,&root));assert!(server.assets("data").is_empty());
+        assert!(files(&project(&root,"data")).is_empty());
+    }
+    for layout in ["latest","archive"] {
+        let server=Server::start();let (_temp,root,mut config)=setup("json","remote",layout);enable_tree(&root,&mut config);build(&server,&root);
+        let assets=server.assets("data");let name=if layout=="latest"{"output.zip"}else{"output-v1.2.4.zip"};
+        let expected=members(&assets[name]);let before=files(&project(&root,"data"));
+        fs::write(root.join("results/result.csv"),b"damaged").unwrap();fs::write(root.join("results/extra"),b"remove").unwrap();
+        let output=command(&root,env!("CARGO_BIN_EXE_proj")).env("GITHUB_API_URL",&server.base).env("GITHUB_PAT","fixture-token")
+            .args(["--machine","--non-interactive","--project"]).arg(&root)
+            .args(["remote","restore","--label","output","--title","data","--provider","github","--repository","owner/repo",
+                "--clear","--max-bytes","1000000","--max-expanded-bytes","1000000"]).output().unwrap();
+        assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
+        assert_eq!(files(&root.join("results")),expected);assert_eq!(files(&project(&root,"data")),before);
+    }
+}
+
+#[test]
+fn reformatted_project_directory_nodes_reuse_canonical_identity_without_overwriting_bytes() {
+    let server=Server::start();let (_temp,root,mut config)=setup("json","both","latest");enable_tree(&root,&mut config);build(&server,&root);
+    let project_path=project(&root,"data");let rows=files(&project_path);
+    let path=rows.keys().find(|path|path.starts_with("trees/v1/")).unwrap();
+    let parsed:Value=serde_json::from_slice(&rows[path]).unwrap();let compact=serde_json::to_vec(&parsed).unwrap();
+    assert_ne!(compact,rows[path]);fs::write(project_path.join(path),&compact).unwrap();
+    build(&server,&root);assert_eq!(fs::read(project_path.join(path)).unwrap(),compact);
+    let refs=bindings(&files(&project_path),"references/v1/");assert_eq!(refs.len(),2);
+    assert_eq!(refs[0]["payloads"][0]["tree"],refs[1]["payloads"][0]["tree"]);
+}

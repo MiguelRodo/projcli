@@ -119,8 +119,7 @@ your project, or in both. It always keeps a small project record identifying
 the saved folders. That small record alone cannot restore files if the storage
 content or required full listings are lost.
 
-These additions are not in installed preview.3. Automatic version selection for CAS restore, GitHub tree listings
-remain pending; local CAS CSV/JSON history is described below. Explicit named-ID tree recovery is described below. Ordinary local and GitHub Release upload/restore behavior
+These additions are not in installed preview.3. Automatic version selection for CAS restore remains deferred; local CAS CSV/JSON history is described below. Explicit named-ID tree recovery is described below. Ordinary local and GitHub Release upload/restore behavior
 remains available as described in the [remote guide](remote-compatibility.qmd).
 
 ## Check and recover a saved folder
@@ -141,7 +140,7 @@ remove destination-only files as well. Installed preview.3 is unchanged.
 Existing flat CAS snapshots can also be checked and restored by exact ID without
 converting them. See the [remote reference](cli/remote.qmd#recover-existing-flat-cas-snapshots).
 Their older file lists do not record empty folders, so those cannot be restored
-from that format. Local CAS CSV/JSON history is described below; ordinary/GitHub flat publication is also implemented below; GitHub tree metadata remains pending; ordinary local trees are implemented below.
+from that format. Local CAS CSV/JSON history is described below; ordinary/GitHub flat publication is also implemented below; Ordinary local and GitHub tree metadata are described below.
 
 ## Keep a readable history of saved files
 
@@ -199,3 +198,18 @@ complete file lists or points to the earlier unchanged listing.
 Choose tree style in [this local-backup example](configuration.qmd#ordinary-local-tree-history).
 The small project record keeps the folder code even when complete metadata stays
 with the backup. This source addition is not in installed preview.3.
+
+## Keep folder fingerprints with GitHub backups {#github-tree-backups}
+
+GitHub backups normally keep a flat file list. You can also save fingerprints
+for each folder and its children, while keeping the same downloadable data ZIPs.
+Set manifest-style: tree on that remote; the
+[configuration reference](configuration.qmd#github-tree-history) gives a complete
+example and explains where the listings are saved.
+
+The saved file list describes what actually reached the ZIP, including retained
+older files when your upload settings request them. Identical folder contents
+have the same fingerprint across versions. A small project record identifies
+the saved root even when full listings live on GitHub. Earlier flat records
+remain readable when you change this setting. This development-source feature
+is not yet in installed preview.3.

@@ -618,8 +618,8 @@ flowchart TB
   L -->|No| J{"GitHub selected?"}
   LR --> J
   J -->|Yes| JP["Prepare exact data ZIPs or download retained archive bytes"]
-  JP --> JW["All target HTTP writes: data, legacy metadata, new bundle last"]
-  JW --> JF["All full project histories; then project references"]
+  JP --> JM["Prepare flat history or tree nodes plus readable history"]\n  JM --> JW["All target HTTP writes: data, legacy metadata, new bundle last"]
+  JW --> JF["All full project nodes and histories; then project references"]
   J -->|No| D{"Selected CAS manifest style"}
   JF --> D
   D -->|Tree| T["Save file bytes and directory fingerprints"]
@@ -672,7 +672,7 @@ before replacement. It records actual final bytes and their physical location,
 then writes legacy compatibility metadata, new complete history copies, full
 snapshot bindings and the small project reference. Failed copies retain honest
 partial effects. This addition does not change preview.3 or the later Git/end-hook
-ordering; GitHub tree formatting remains pending.
+ordering; GitHub tree metadata is described below.
 
 
 ### GitHub file history in development source
@@ -697,3 +697,13 @@ directory limits before replacement. Actual stored membership then determines v1
 directory objects and a cross-checked readable history. Required objects and full
 copies precede references. Provider ordering and released historical figures are
 unchanged; the existing development overlay shows this added local style branch.
+
+
+### GitHub tree history in development source
+
+Exact ZIP observation now also derives pure directory roots when tree style is
+selected. Required bounded directory graphs, readable histories and bindings are
+prepared before HTTP mutation; downloaded bundles validate graph/inventory
+agreement first. Full metadata uses the same HTTP-before-project-copy ordering,
+with small references last. This adds a metadata style to the existing development
+overlay, without changing the released historical figures or provider/hook order.

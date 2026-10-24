@@ -341,8 +341,7 @@ The new registry also accepts an ordinary name list for all eligible content,
 while mapping form is required for per-build label subsets.
 
 Named ordinary local destinations now support flat CSV/JSON history and metadata
-placement, described below. GitHub tree formatting still fails
-until implemented; they are never accepted and ignored. Configured CAS tree mapping
+placement, described below. GitHub flat/tree metadata is also implemented below. Configured CAS tree mapping
 publication is described below. The existing CAS
 name-list route retains its legacy flat encoding when using legacy definitions.
 Previously stored snapshots and the explicit tree APIs remain unchanged.
@@ -396,7 +395,7 @@ local CAS flat CSV/JSON histories are described below. Automatic snapshot lookup
 remains deferred. Legacy inspect belongs only to the old definition; new
 manifest-format choices are validated against style. Ordinary local/GitHub flat
 histories are also implemented below, alongside compatible CSV/VERSION metadata;
-GitHub tree metadata remains pending; ordinary local trees are implemented below.
+Ordinary local and GitHub tree metadata are described below.
 
 ## Restore from a saved tree after changing upload choices
 
@@ -412,7 +411,7 @@ selection contract when no snapshot ID is supplied.
 Existing flat CAS snapshots can also be checked and restored by exact ID without
 converting them. See the [remote reference](cli/remote.qmd#recover-existing-flat-cas-snapshots).
 Their older file lists do not record empty folders, so those cannot be restored
-from that format. Local CAS CSV/JSON history is described below; ordinary/GitHub flat publication is also implemented below; GitHub tree metadata remains pending; ordinary local trees are implemented below.
+from that format. Local CAS CSV/JSON history is described below; ordinary/GitHub flat publication is also implemented below; Ordinary local and GitHub tree metadata are described below.
 
 
 ## Flat history in local CAS
@@ -533,7 +532,7 @@ compatibility metadata regardless of the new manifest placement.
 
 Pure legacy inline build.local definitions keep their old behavior unless an
 explicit manifest/style/format field opts in. Null or unknown options fail.
-Ordinary local tree metadata and GitHub flat formatting are described below; GitHub tree metadata remains pending.
+Ordinary local tree metadata and GitHub flat formatting are described below; GitHub tree metadata is described below.
 Switching formats retains old files and reads compatible earlier history;
 conflicting retries or histories fail rather than overwrite recorded inventory.
 
@@ -568,7 +567,7 @@ build:
 
 The same four flat formats and auto/project/remote/both placements as ordinary
 local destinations apply. auto means both. The format default remains csv;
-Tree style is available for ordinary local destinations; GitHub tree style remains pending.
+Tree style is available for ordinary local destinations; GitHub tree style is also described below.
 Legacy inline build.github without new metadata fields retains its old behavior.
 
 Complete new remote history is a separate projcli-manifests-v1.zip Release asset,
@@ -636,8 +635,7 @@ build:
 
 Defaults remain flat for ordinary local/GitHub destinations and tree for modern
 local CAS. Ordinary local tree metadata uses JSON; CSV/file-dictionary choices
-require flat style. GitHub tree metadata remains explicitly unsupported in this
-slice. Legacy inline definitions opt in by specifying new metadata fields.
+require flat style. GitHub tree metadata is also supported as described below. Legacy inline definitions opt in by specifying new metadata fields.
 
 Directory objects live at `trees/v1/<first2>/<remaining62>.json` inside the selected
 full metadata location. Each child's name/type/content hash determines its
@@ -669,3 +667,51 @@ later failure may leave earlier effects and preserves local release/evidence.
 Ordinary restore remains the compatible CSV/VERSION operation. Its file data is
 still the normal backup folder. The separate exact-ID CAS recovery commands do
 not reinterpret these ordinary bindings as CAS file-object snapshots.
+
+## Tree metadata for GitHub Release backups {#github-tree-history}
+
+GitHub Release destinations keep their ordinary data ZIPs and flat default.
+To opt into directory-based fingerprints, set tree style on the named remote:
+
+~~~yaml
+remotes:
+  github:
+    backup:
+      structure: archive
+      manifest-style: tree
+      manifest: remote
+      # Optional; tree metadata has a fixed JSON representation.
+      manifest-format: json
+build:
+  dest:
+    backup:
+      content: [raw, output]
+~~~
+
+The Release receives projcli-manifests-v1.zip containing the readable JSON
+history, directory objects at trees/v1/<first2>/<remaining62>.json and immutable
+snapshot bindings. The project retains a small root reference even with remote
+placement. Project/both placement additionally saves full selected metadata
+under the existing provider-separated project location. Auto retains ordinary
+both behavior. Tree style requires JSON; CSV and dictionary formats require flat.
+
+Roots depend only on names, kinds and file hashes of the exact prepared or
+downloaded retained data ZIP. Build version, label, Release repository/tag/asset
+and legacy VERSION advertisement bind separately in
+projcli.github-tree-snapshot.v1. No ordinary file data is stored as CAS objects.
+The complete readable history is deliberately retained beside the graph; this
+is a metadata trade-off, without a size or speed claim.
+
+All bundle members are bounded and allowlisted. Every directory object's ID is
+verified, and each tree binding must reconstruct the recorded inventory hash.
+Missing/corrupt nodes fail before HTTP publication. Existing flat bindings remain
+readable with unchanged IDs; switching styles retains compatible history and old
+nodes. New snapshots never destructively reinterpret an earlier format.
+
+Prepare required graphs, history, bindings and data ZIPs before HTTP writes.
+Upload data and compatibility metadata, then the new metadata bundle. After all
+required target HTTP operations succeed, write all selected project full copies,
+then small references. Failures may leave earlier remote/full metadata effects;
+there is no atomic multi-target transaction. Ordinary restore still uses its
+compatible CSV/VERSION path and data ZIP, rather than treating these bindings as
+native CAS snapshots.
