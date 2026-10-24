@@ -77,7 +77,7 @@ shape has demonstrated end-to-end behaviour. [Destination storage][dest],
 | Settings granularity | Transfer settings are shared per destination title; content labels inherit them. Per-label source mappings choose their own source entries. | Restore resolves per-label sources and shared destination definitions. Configured build/store plans resolve shared title settings and selected labels. |
 | YAML layers | Local overrides active profiles overrides base; earlier listed profiles win; merge recurses, null inherits. R uses _projr base/profile/local names. [Merge][merge]. | Core merge precedence exists. Deliberate primary _proj.yml plus legacy _projr.yml conflict error retained. |
 | Archive function arguments | archive_local/archive_github accept false/null, true or selected labels; create implicit archive destination only when YAML has no archive title. Existing archive title wins; always_archive controls generated cue. [Send dispatch][send]. | Missing compatibility entrypoints. Do not override explicit YAML silently. |
-| Future registry | A separate user-requested registry/source-selection redesign is recorded; its naming remains open. | [Issue706][registry] is design-only; do not implement this new schema as part of parity work yet. |
+| Named remote extension | Subsequently approved user design, separate from the original R source behavior. | [Issue706][registry] is implemented as top-level remotes plus build.dest, preserving named restore sources and explicit upload label subsets. New style/format/placement behavior is summarized below; legacy inline definitions remain supported. |
 
 Actual defaults and checks:
 [destination completion][dest-default], [validation][yml-check],
@@ -132,7 +132,7 @@ remote side effects. [HTTP replacement][http-upload], [GitHub transfer][github].
 | Trusted version | Stronger helper checks VERSION/archive agreement and project/remote manifest evidence. Restore bypasses this stronger helper. | Missing; do not describe ordinary restore as cryptographically verified. |
 | Download all | Copy directory tree or download named release asset and unzip. | Explicit local/asset/directory downloads and configured single-label restore exist, with staging and exact-byte fixtures. |
 | Download one | Local and GitHub helpers flatten requested file to its basename at destination. | Missing; basename collision handling needs safe bounded implementation rather than unsafe silent overwrite. |
-| Restore labels | Default declared raw labels; explicit labels supported. Root manifest required; empty/unrecorded labels may be skipped. | Root CSV prerequisite and explicit single-label restore exist. Default multi-label raw restore remains missing. |
+| Restore labels | Default declared raw labels; explicit labels supported. Root manifest required; empty/unrecorded labels may be skipped. | Ordinary restore retains its root CSV prerequisite and explicit single-label interface. Explicit-ID native CAS verification/recovery does not require the old project CSV/index. Default multi-label raw restore remains missing. |
 | Restore source | Source before destination; filter provider/title/content/source eligibility. First suitable selection, not retry across every provider after failure. Legacy fallback GitHub archive then local _archive exists. | Implemented for explicit single-label restore. Source failures do not silently switch providers. Undeclared archive fallbacks are deliberately excluded by the explicit-mapping contract. |
 | Restore target | Final declared path, safe=false; optional clear removes current contents before lookup/download. | Declared final target and merge/clear are implemented; stage/validate before installation rather than importing clear-before-lookup data loss. |
 | Restore result | Per-label errors can yield partial false; clone wrapper can ignore that false and return true. | Single-label machine results distinguish restored/skipped/failure; stderr retains installation/rollback diagnostics. No multi-label aggregate guarantee is claimed. |
@@ -204,8 +204,8 @@ reproductions. Proposed fixes are review candidates, not silent semantic changes
 | Medium: provider-dependent identity | build.github.nightly: {id: another-tag, content: [output]} validates an id, but completion resets it to nightly. Local id instead becomes path. Title is cosmetic locally and functional on GitHub. [Completion][dest-default]. | Reject or clearly deprecate ignored id values; document title/tag/path meanings. A larger unified identity design is separate. |
 | Medium: source-selection defects | directories.raw-data.source: {github: archive}, as shipped in the template, meets default helper paths that pass the wrong mapping level or an absent title into a title-specific branch. [Template][template], [selection][restore-select]. | Fix source selection with explicit/default provider/title fixtures; do not require users to discover accidental nesting workarounds. |
 | Medium: unsupported documentation | send.cue: never and structure: version are mentioned in wrappers but excluded by current enums; old OSF prose outlives implementation. [Wrappers][wrappers], [enums][options]. | Correct docs and errors. Implement new values only if separately requested, not to make stale prose true. |
-| Already recorded design | Removing a build destination can remove a historical restore source because definitions and upload selection share the same location. | The original registry proposal is [issue706][registry]. Named definitions and independent ordinary upload/source lookup are now implemented in PR211; further per-remote format integration remains in progress. The source audit itself did not implement it. |
-| Low: naming preference | dest versus destinations changes readability, not provider or safety behaviour. | Choose during the existing registry discussion; no new alias or migration silently introduced. |
+| Already recorded design | Removing a build destination can remove a historical restore source because definitions and upload selection share the same location. | The original registry proposal is [issue706][registry]. Named definitions and independent ordinary upload/source lookup are now implemented in PR211; per-remote placement, flat/tree style and CSV/JSON format integration are now included in the development extension below. The source audit itself did not implement it. |
+| Low: naming preference | dest versus destinations changes readability, not provider or safety behaviour. | The approved selection key is build.dest. No destinations alias or silent legacy migration was introduced. |
 
 Credential lookup also deserves explicit presentation: ambient R gh/gitcreds
 resolution precedes GH_TOKEN/GITHUB_TOKEN, and repository inference may choose
@@ -241,12 +241,11 @@ Remaining slices should stay independently testable:
    inference beyond origin. Retain source-first selection and guarded installation.
 3. CAS-specific archive integration where the existing structures do not decide
    snapshot discovery/retention. Isolate those decisions from ordinary parity;
-   issue706's future registry remains design-only.
+   issue706's named remote definitions/upload selection are now implemented; broader discovery/retention remains deferred.
 
 The full inventory stays open until implemented and independently reviewed
 evidence maps every supported row. CSV completion alone closes none of the
-broader provenance/remote milestones. The future registry proposal is separate
-planned work; do not silently implement it while porting old inline definitions.
+broader provenance/remote milestones. The subsequently approved registry is documented below. It is an intentional extension, not an accidental reinterpretation of old inline definitions.
 
 [r-root]: https://github.com/SATVILab/projr/tree/90be50132d16aee33e39c0f7f35ef906c35f5397
 [options]: https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/misc.R#L713
@@ -378,6 +377,45 @@ The fixture's package version string is also preview.2, so identify the tested
 source by its commit and binary hash, not that string alone.
 
 
+## Current development delivery {#current-remote-delivery}
+
+The original source audit and historical rollout notes below remain useful
+compatibility evidence. The current reviewed M3 source adds the following;
+installed preview.3 is unchanged until the separate preview.4 delivery checks.
+
+Defaults below apply to named top-level remote definitions. Legacy inline
+ordinary definitions without new metadata fields retain their opt-in behavior;
+legacy CAS name-list definitions keep their old flat encoding. Stored snapshots
+remain readable independently of the current write style.
+
+| Destination/data layout | File-list choices | Recovery boundary |
+|---|---|---|
+| Native local content-addressed archive | Tree JSON by default; flat CSV/JSON and optional file dictionaries. | Explicit snapshot-ID verification and staged single-label recovery; full remote metadata can recover without the old project. Legacy flat IDs remain readable. |
+| Ordinary local latest/archive folders | Flat CSV by default; all four flat formats or explicit tree JSON. | Existing compatible CSV/VERSION restore and physical folders; do not interpret ordinary bindings as native CAS snapshots. |
+| GitHub Release latest/archive ZIPs | Flat CSV by default; all four flat formats or explicit tree JSON in a bounded metadata ZIP. | Existing compatible ZIP/CSV/VERSION restore. New format coverage is mocked REST with actual CLI execution, not a new live-format round-trip. |
+
+Named top-level remotes remain available as sources after removal from build.dest.
+Build selection may limit logical folder labels without deleting definitions.
+Per-remote manifest placement chooses project/remote/both full metadata copies;
+auto uses remote for native CAS and both for ordinary layouts. Small project
+references remain even with remote full listings. Existing root ordinary
+manifest.csv and compatible transport metadata retain their separate meanings.
+
+Plain csv/json deduplicate unchanged artefact versions by direct references to
+earlier complete inventories. Optional csv-dedupe-file/json-dedupe-file also use
+file dictionaries while retaining every path row. Tree style is fixed JSON,
+with pure directory identities independent of label/version/physical location.
+Old snapshots and compatible histories survive style/format changes.
+
+See the [configuration reference](configuration.qmd), [remote commands](cli/remote.qmd),
+[practical guide](features.qmd) and [lifecycle](lifecycle.qmd). The integrated local
+M3 gate retains actual archives/recovered bytes and corruption failures, verified
+by a separate Rust witness; exact release gates and installation are separate.
+Default multi-label restore, individual-file/list/trusted-version conveniences,
+additional credential inference, automatic CAS discovery and performance work
+remain follow-ups. The unchanged R package is the source comparison, not an
+implementation target for these new configuration/metadata choices.
+
 ## Current development extensions beyond the original audit
 
 PR211 added named ordinary definitions and upload subsets independently of
@@ -389,10 +427,9 @@ The following explicit named-ID CAS recovery/verification slice reuses the tree
 verifier and guarded installer without root CSV, current upload selection or a
 project ledger. Ordinary restore still uses its documented CSV/version/source
 selection. Legacy flat CAS compatibility recovery is described in the current command
-reference; runtime flat CSV/JSON publication remains pending. The [configuration](configuration.qmd), [remote commands](cli/remote.qmd)
+reference. Runtime flat CSV/JSON publication is now implemented as described below. The [configuration](configuration.qmd), [remote commands](cli/remote.qmd)
 and [compatibility log](compatibility.qmd) distinguish implemented and pending work.
 
 The local CAS flat catalogue extension now connects CSV/JSON and optional file
-dictionaries to publication/recovery. It does not yet change ordinary local or
-GitHub Release metadata; broader new-format provider integration remains pending.
+dictionaries to publication/recovery. Ordinary local and GitHub Release format integration is also implemented in the current development extension below.
 See the [configuration reference](configuration.qmd#flat-history-in-local-cas).
