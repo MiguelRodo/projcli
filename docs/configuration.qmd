@@ -639,7 +639,7 @@ local CAS. Ordinary local tree metadata uses JSON; CSV/file-dictionary choices
 require flat style. GitHub tree metadata remains explicitly unsupported in this
 slice. Legacy inline definitions opt in by specifying new metadata fields.
 
-Directory objects live at trees/v1/<first2>/<remaining62>.json inside the selected
+Directory objects live at `trees/v1/<first2>/<remaining62>.json` inside the selected
 full metadata location. Each child's name/type/content hash determines its
 directory ID; labels, build versions, physical paths and catalogue serialization
 are excluded. No ordinary data is copied into a CAS objects directory.
