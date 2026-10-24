@@ -1465,7 +1465,7 @@ case "$1" in
 --version) exit 0 ;;
 symbolic-ref) echo feature ;;
 check-ref-format) exit 0 ;;
-ls-files) exit 1 ;;
+ls-files) exit 0 ;;
 rev-parse) exit 0 ;;
 config)
  for key do :; done

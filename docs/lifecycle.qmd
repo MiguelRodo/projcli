@@ -405,7 +405,7 @@ This is not a transaction across providers. Failure preserves the local release
 and skips later stages, without rolling back already published destinations.
 Preview skips publication. Released diagrams above retain their version meaning.
 
-~~~{mermaid}
+```{mermaid}
 %%| label: fig-lifecycle-ordinary-publication
 %%| fig-cap: "Preview.3: ordinary local and bounded GitHub publication."
 %%| fig-alt: "Validate configuration and planned names and freeze GitHub routing before hooks. After local success and CSV capture, keep the local release, stage local targets and publish local data then metadata. Prepare all GitHub ZIPs and validate their remote catalog, upload data then metadata, then continue CAS, Git, end hooks and next development version. Failure preserves the release and reports partial effects."
@@ -421,7 +421,7 @@ flowchart TB
   E -->|Failure| G
   H -->|Failure| G
   I -->|Failure| G
-~~~
+```
 
 
 The ordinary-local publication stage also supports explicit none comparison:
@@ -556,7 +556,7 @@ ordering changes. The integrated M2 fixture checks success/change/failure/retry.
 This overlay adds evidence after existing production failure recovery; it does
 not move hooks, output clearing, promotion, publication or version transitions.
 
-~~~{mermaid}
+```{mermaid}
 %%| label: fig-lifecycle-local-failure
 %%| fig-cap: "Development source: production failure evidence follows the existing distribution boundary."
 %%| fig-alt: "After an owned production failure, possible distribution keeps ordinary Git evidence. Earlier failures retain a local-only diagnostic after recovery."
@@ -567,7 +567,7 @@ flowchart TB
   B -->|"No"| D["Existing recovery / preserved local-release boundary"]
   D --> E["Retain local-only diagnostic; no successful release claim"]
   E --> F["History: failed, local_only; Git excludes only diagnostics"]
-~~~
+```
 
 Diagnostics use opaque IDs and coarse stages, never copied exception text or
 credentials. Rejected ownership creates no competing log. Previews are unchanged.
