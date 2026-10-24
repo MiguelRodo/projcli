@@ -7,6 +7,7 @@ use serde::Deserialize;
 use serde_json::{Map,Value};
 use crate::local_store::StoreStrategy;
 use crate::manifest::ManifestRow;
+use crate::path_safety::portable_paths_overlap as overlaps;
 
 /// One validated ordinary local destination. Settings are frozen before hooks.
 #[derive(Clone)]
@@ -36,14 +37,7 @@ pub(crate) struct Send {
 fn identity(path:&Utf8Path)->anyhow::Result<Utf8PathBuf> {
     Ok(Utf8PathBuf::try_from(crate::path_safety::resolve_path(path.as_std_path(),true)?)?)
 }
-fn overlaps(a:&Utf8Path,b:&Utf8Path)->bool {
-    // ponytail: conservative portable case comparison for planned missing paths;
-    // avoids filesystem probe writes before the build's mutation boundary.
-    let normalizer=icu_normalizer::ComposingNormalizer::new_nfc();
-    let a=Utf8PathBuf::from(normalizer.normalize(&a.as_str().to_uppercase()).into_owned());
-    let b=Utf8PathBuf::from(normalizer.normalize(&b.as_str().to_uppercase()).into_owned());
-    a.starts_with(&b)||b.starts_with(&a)
-}
+
 fn native_name(path:&Utf8Path)->anyhow::Result<()> {
     let anchor=path.ancestors().last().context("Publication path has no root")?;
     crate::path_safety::validate_native_names(anchor,path.strip_prefix(anchor)?.as_str(),false)

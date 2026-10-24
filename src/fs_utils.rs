@@ -161,3 +161,15 @@ pub(crate) fn prepare_owned_cleanup(path:&std::path::Path)->anyhow::Result<()> {
     }
     Ok(())
 }
+
+/// Read bounded regular bytes, rejecting linked path components and special files before open.
+pub(crate) fn read_managed_bounded(path:&Utf8Path,limit:u64)->anyhow::Result<Vec<u8>> {
+    use std::io::Read;
+    crate::path_safety::resolve_path(path.as_std_path(), true)?;
+    let metadata = fs::symlink_metadata(path)?;
+    anyhow::ensure!(metadata.is_file() && metadata.len() <= limit, "Managed input must be a bounded regular file");
+    let mut bytes=Vec::new();
+    fs::File::open(path).with_context(||format!("Cannot read bounded managed file at {path}"))?.take(limit+1).read_to_end(&mut bytes)?;
+    anyhow::ensure!(bytes.len() as u64 <= limit, "Managed input is too large");
+    Ok(bytes)
+}

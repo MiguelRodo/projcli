@@ -261,3 +261,18 @@ fn successive_inventories_match_changed_added_renamed_and_deleted_file_bytes() {
     // File inspection above covers all historical manifests, including old paths
     // whose source files have since been removed or renamed.
 }
+
+#[test]
+fn absent_or_empty_legacy_manifest_directory_is_not_success_but_explicit_empty_snapshot_is_valid() {
+    let directory=tempfile::tempdir().unwrap();let base=root(&directory);
+    let project=base.join("project");let remote=base.join("store");
+    fs::create_dir_all(project.join("empty")).unwrap();fs::create_dir(&remote).unwrap();
+    for inspect in [InspectStrategy::Manifest,InspectStrategy::File] {
+        let error=proj::verify_remote_integrity("archive",&configuration(&remote,inspect)).unwrap_err();
+        assert!(format!("{error:#}").contains("Missing legacy flat CAS manifest directory"));
+    }
+    fs::create_dir(remote.join("manifests")).unwrap();
+    assert!(proj::verify_remote_integrity("archive",&configuration(&remote,InspectStrategy::File)).is_err());
+    proj::ingest_directory(&project,&remote,"output",&project.join("empty"),"v1.0.0").unwrap();
+    assert!(proj::verify_remote_integrity("archive",&configuration(&remote,InspectStrategy::File)).is_ok());
+}

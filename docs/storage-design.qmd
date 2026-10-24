@@ -210,3 +210,77 @@ future integration, not a runtime dependency.
 separates analysis files from associated metadata. Existing M2 attempt/provenance
 records serve that different purpose; a content root is not a scientific result,
 a complete run catalogue or proof of reproducibility.
+
+
+## Local tree-object APIs in development source
+
+The cas_tree library now connects the codecs to explicit local storage roots.
+This is not new configuration activation or a claim that the CLI can restore
+tree snapshots yet. Callers choose a file-content base and a metadata base;
+equal bases keep recovery metadata with the content, while different bases
+permit project-side metadata without changing content-root IDs.
+
+For a 64-character digest beginning ab, paths are:
+
+| Object | Path below its selected base |
+|---|---|
+| Raw file bytes, shared with the old CAS | objects/ab/remaining-62-hex |
+| V1 directory object | trees/v1/ab/remaining-62-hex.json |
+| V1 snapshot reference | tree-snapshots/v1/ab/remaining-62-hex.json |
+| Existing legacy flat manifest | manifests/full-64-hex.json, unchanged |
+
+The legacy flat lookup ledger is still project .projr/manifests.csv. New explicit
+tree reads do not require it or a working project copy: remote references and
+their tree graph contain version/label/name/hash information. The old public
+flat verifier remains a separate legacy reader. A missing/empty legacy manifest
+directory now fails rather than claiming an archive was verified; an explicit
+empty snapshot is valid. Deep legacy errors distinguish missing/nonregular
+objects from corrupt bytes.
+
+ingest_directory pre-scans the selected source and rejects links, special files,
+unsafe names, source/storage overlap and project control aliases before store
+publication. It rechecks each file at open and hashes the same stream that is
+copied. It returns an immutable content root, not a published successful snapshot.
+It does not silently filter hidden files or produce an atomic consistent image
+of a concurrently edited dataset.
+
+publish_snapshot verifies every referenced directory ID and actual file bytes
+before atomically installing the immutable reference. Identical supplied
+metadata is idempotent. Existing JSON with harmless formatting differences is
+validated against the same canonical ID and reused without rewriting it.
+Concurrent equal references may converge safely; there is no mutable latest
+index or implicit clock in these APIs. Errors can leave unreferenced immutable
+objects, not a successful reference to an incomplete graph. No cleanup/GC or
+cross-location transaction is promised.
+
+verify_snapshot is read-only and takes an explicit snapshot ID. It checks typed
+schemas, object identity, regular/no-link paths and file hashes, and returns
+complete observed file/empty-directory membership per label. A small reference
+file alone is not sufficient proof that an archive is intact. Metadata is bounded
+to 16 MiB per object and 64 MiB unique graph metadata; traversal also caps depth
+64, expanded entries 100,000 and expanded path text 16 MiB. DAG reuse does not
+bypass the expanded-output limits. Permission/ownership/timestamp restoration and
+live-dataset consistency are outside this byte/name observation.
+
+A caller can request a complete readable JSON inventory export, subject to the
+separate flat-view bounds. It never substitutes a truncated list. This export
+does not select the stored flat catalogue policy.
+
+## Revised flat catalogue direction: CSV and JSON
+
+The later user decision keeps **both** CSV and JSON. Default csv/json catalogues
+will deduplicate complete inventories at the logical artefact/version level:
+an unchanged later version directly references an earlier complete inventory.
+This is distinct from flat/tree structure and raw file-object CAS deduplication.
+
+Optional csv-dedupe-file and json-dedupe-file modes are off by default. Their
+dictionary representation must retain every current path membership, resolve
+to full verified hashes, and not become omitted-file deltas. CSV must remain
+a rectangular Excel-filter-friendly table. A reference row will identify the
+earlier complete version; filtering only that later row does not magically
+expand the earlier file list.
+
+Those catalogue serializers/reference rules are not wired by this tree-object
+slice. The existing complete JSON codec is a full inventory/view primitive;
+it is not a JSON-only default or a decision to drop legacy CSV. Existing root
+ordinary manifest.csv, old flat CAS data and their readers remain compatible.

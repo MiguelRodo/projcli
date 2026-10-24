@@ -260,3 +260,15 @@ pub(crate) fn portable_relative(name:&str)->anyhow::Result<camino::Utf8PathBuf> 
     }
     Ok(name.into())
 }
+
+/// NFC/case comparison key for planned paths only; never use this spelling for I/O.
+pub(crate) fn portable_path_key(path:&Utf8Path)->camino::Utf8PathBuf {
+    camino::Utf8PathBuf::from(icu_normalizer::ComposingNormalizer::new_nfc()
+        .normalize(&path.as_str().to_uppercase()).into_owned())
+}
+
+/// Conservative namespace overlap, including absent portable case/normalization aliases.
+pub(crate) fn portable_paths_overlap(left:&Utf8Path,right:&Utf8Path)->bool {
+    let left=portable_path_key(left);let right=portable_path_key(right);
+    left.starts_with(&right)||right.starts_with(&left)
+}

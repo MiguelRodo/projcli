@@ -16,8 +16,10 @@ use std::collections::{BTreeMap,HashSet};
 /// Maximum accepted or emitted JSON metadata bytes per document.
 pub const MAX_METADATA_BYTES:usize=16*1024*1024;
 const MAX_TEXT_BYTES:usize=8*1024*1024;
-const MAX_RECORDS:usize=100_000;
-const MAX_PATH_WORK:usize=16*1024*1024;
+/// Shared codec/graph record bound.
+pub(crate) const MAX_RECORDS:usize=100_000;
+/// Shared expanded path/prefix work bound, charged before derived allocations.
+pub(crate) const MAX_PATH_WORK:usize=16*1024*1024;
 const MAX_LABELS:usize=4096;
 const FLAT_SCHEMA:&str="projcli.flat-snapshot.v1";
 const TREE_SCHEMA:&str="projcli.directory-tree.v1";

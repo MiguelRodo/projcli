@@ -10,6 +10,7 @@ pub mod git;
 pub mod clear;
 pub mod cas;
 pub mod snapshot_format;
+pub mod cas_tree;
 pub mod env;
 
 pub use version::*;

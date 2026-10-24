@@ -525,3 +525,22 @@ Bound derived prefix work before allocation as well as input bytes/records/depth
 This module alone does not enable registry/placement, filesystem publication or
 restore. Reuse guarded immutable helpers and verify typed graph objects before
 future consumers follow refs; retain ordinary CSV and existing flat CAS readers.
+
+
+## Local v1 tree-store APIs
+cas_tree explicitly separates file-content and metadata roots. Reuse raw CAS
+objects; new trees and snapshot refs are first-two/rest hash-sharded and use
+the reviewed v1 canonical identities. Legacy flat manifests/ledger stay unchanged.
+Guard planned authority/control aliases before writes; use the same native
+blob-prefix validation on publication and reading. Pre-scan source links/special
+entries/names before writes, recheck on open, and hash the copied stream.
+Snapshot refs publish only after full graph identity/file-byte verification.
+Bound unique metadata, recursion and expanded DAG paths; no local index is
+required for explicit remote snapshot reading. Preserve semantically identical
+immutable JSON variants without overwriting them. Failure can leave unreferenced
+objects; no GC/crash-atomic/multi-location transaction claim.
+The APIs do not yet activate registry/build policy, Git refs, restore or CSV/JSON
+catalogue deduplication. Latest flat serialization work keeps both CSV and JSON,
+with per-artefact VERSION-level references by default and optional file-dedupe
+modes; the complete JSON codec remains an explicit full-inventory/export view,
+not a JSON-only configuration default. Do not alter flat policy pending its schema.

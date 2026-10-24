@@ -143,12 +143,14 @@ fn validate_logical_path(path: &str) -> Result<()> {
     Ok(())
 }
 
-fn object_path(objects: &Utf8Path, digest: &str) -> Result<camino::Utf8PathBuf> {
+/// Validate a raw file digest before deriving its existing CAS object path.
+pub(crate) fn object_path(objects: &Utf8Path, digest: &str) -> Result<camino::Utf8PathBuf> {
     validate_digest(digest)?;
     Ok(objects.join(&digest[..2]).join(&digest[2..]))
 }
 
-fn checked_directory(path: &Utf8Path) -> Result<()> {
+/// Guard a real-or-absent directory without creating it or following links.
+pub(crate) fn checked_directory(path: &Utf8Path) -> Result<()> {
     crate::path_safety::resolve_path(path.as_std_path(), true)?;
     if path.exists() && !path.is_dir() { anyhow::bail!("CAS directory path is not a directory: {path}"); }
     Ok(())
@@ -174,6 +176,8 @@ fn validate_manifest(manifest: &DirectoryManifest) -> Result<()> {
     Ok(())
 }
 
+/// Verify the configured legacy flat CAS manifests, with object bytes checked for file inspection.
+/// Versioned tree snapshots use cas_tree::verify_snapshot; absence is not verified success.
 pub fn verify_remote_integrity(remote_title: &str, validated: &ValidatedConfig) -> Result<()> {
     let remotes = validated.remotes.local.as_ref().context("No remotes configured")?;
     let remote = remotes.get(remote_title).context("Configured CAS remote not found")?;
@@ -183,12 +187,14 @@ pub fn verify_remote_integrity(remote_title: &str, validated: &ValidatedConfig) 
     let objects = remote.path.join("objects");
     checked_directory(&manifests)?;
     checked_directory(&objects)?;
-    if !manifests.exists() { return Ok(()); }
+    if !manifests.exists() { anyhow::bail!("Missing legacy flat CAS manifest directory"); }
+    let mut found=0usize;
     for entry in fs::read_dir(&manifests)? {
         let path = camino::Utf8PathBuf::try_from(entry?.path()).context("Non-UTF-8 CAS manifest path")?;
         if path.extension() != Some("json") { continue; }
         crate::path_safety::resolve_path(path.as_std_path(), true)?;
         if !path.is_file() { anyhow::bail!("CAS manifest is not a regular file"); }
+        found+=1;
         let digest = path.file_stem().context("CAS manifest has no digest filename")?;
         validate_digest(digest)?;
         let bytes = fs::read(&path)?;
@@ -199,17 +205,17 @@ pub fn verify_remote_integrity(remote_title: &str, validated: &ValidatedConfig) 
             for entry in &manifest.files {
                 let object = object_path(&objects, &entry.hash)?;
                 crate::path_safety::resolve_path(object.as_std_path(), true)?;
-                if !object.is_file() || hash_file(&object)? != entry.hash {
-                    anyhow::bail!("CAS object is missing or its bytes do not match the digest");
-                }
+                if !object.is_file() { anyhow::bail!("Missing or non-regular legacy CAS file object: {}",entry.hash); }
+                if hash_file(&object)? != entry.hash { anyhow::bail!("Corrupt legacy CAS file-object bytes: {}",entry.hash); }
             }
         }
     }
+    anyhow::ensure!(found>0,"No legacy flat CAS snapshot manifests were found");
     Ok(())
 }
 
 /// Copy and hash the same stream: never re-open a source under a previously computed digest.
-fn store_object(reader: &mut impl Read, objects: &Utf8Path) -> Result<String> {
+pub(crate) fn store_object(reader: &mut impl Read, objects: &Utf8Path) -> Result<String> {
     checked_directory(objects)?;
     fs::create_dir_all(objects)?;
     let mut staged = NamedTempFile::new_in(objects)?;
@@ -225,9 +231,11 @@ fn store_object(reader: &mut impl Read, objects: &Utf8Path) -> Result<String> {
     staged.as_file().sync_all()?;
     let digest = hasher.finalize().to_hex().to_string();
     let target = object_path(objects, &digest)?;
+    crate::path_safety::validate_native_names(objects,target.strip_prefix(objects)?.as_str(),false)?;
     let parent = target.parent().context("CAS object has no prefix directory")?;
     checked_directory(parent)?;
     fs::create_dir_all(parent)?;
+    crate::path_safety::validate_native_names(objects,target.strip_prefix(objects)?.as_str(),false)?;
     crate::path_safety::resolve_path(target.as_std_path(), true)?;
     if target.exists() {
         if !target.is_file() || hash_file(&target)? != digest { anyhow::bail!("Existing CAS object is corrupt"); }
@@ -244,7 +252,8 @@ fn store_object(reader: &mut impl Read, objects: &Utf8Path) -> Result<String> {
     Ok(digest)
 }
 
-fn write_metadata(path: &Utf8Path, bytes: &[u8], immutable: bool) -> Result<()> {
+/// Atomically publish complete metadata; immutable targets are never overwritten.
+pub(crate) fn write_metadata(path: &Utf8Path, bytes: &[u8], immutable: bool) -> Result<()> {
     let parent = path.parent().context("CAS metadata has no parent")?;
     checked_directory(parent)?;
     fs::create_dir_all(parent)?;
