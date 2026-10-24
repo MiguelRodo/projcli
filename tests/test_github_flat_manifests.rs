@@ -21,6 +21,7 @@ impl Server {
         let worker=thread::spawn(move||while !stopped.load(Ordering::Relaxed) {
             let (mut stream,_)=match listener.accept(){Ok(value)=>value,Err(error) if error.kind()==std::io::ErrorKind::WouldBlock=>{
                 thread::sleep(Duration::from_millis(2));continue;},Err(error)=>panic!("{error}")};
+            stream.set_nonblocking(false).unwrap();
             stream.set_read_timeout(Some(Duration::from_secs(20))).unwrap();
             let mut head=Vec::new();let mut byte=[0];
             while !head.ends_with(b"\r\n\r\n"){stream.read_exact(&mut byte).unwrap();head.push(byte[0]);}
@@ -319,7 +320,7 @@ fn new_flat_config_still_restores_via_ordinary_compatible_metadata_without_chang
 }
 #[test]
 fn native_zip_member_budget_counts_parent_directories_before_extracting_any_files() {
-    let temp=tempfile::tempdir().unwrap();let archive=temp.path().join("members.zip");
+    let temp=tempfile::tempdir().unwrap();let archive=temp.path().canonicalize().unwrap().join("members.zip");
     {
         let mut zip=zip::ZipWriter::new(fs::File::create(&archive).unwrap());
         let options=zip::write::SimpleFileOptions::default();

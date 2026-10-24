@@ -3260,3 +3260,10 @@ source-retained unions, archive reuse/placeholders, format/placement switching,
 late two-target failure, stale bundle identity, unknown/corrupt metadata, defaults/
 legacy inline behavior, empty ZIP semantics, compatible restore and directory-inclusive
 member bounds. Compilation, exact-head CI and final independent review remain pending.
+
+
+Independent fixture review also keeps accepted sockets explicitly blocking on
+Windows and canonicalizes the owned member-limit ZIP path on macOS. Production
+path guards and extractor assertions are unchanged. The ordinary lifecycle overlay
+now explicitly labels development-source history additions rather than implying
+they shipped in preview.3.

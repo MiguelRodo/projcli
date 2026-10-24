@@ -9,8 +9,9 @@ format:
 ::: {.callout-warning}
 ## Released workflow, bounded recovery
 The core figures describe the reviewed lifecycle introduced in 0.4.0-preview.2
-and retained in preview.3. The ordinary-publication overlay below is released
-in preview.3.
+and retained in preview.3. The ordinary-publication overlay combines that
+released data flow with explicitly described development-source file-history
+additions. Those additions are not in installed preview.3.
 The exact source and executed acceptance are linked below. This is a bounded
 managed-path workflow, not whole-project rollback or a security sandbox.
 Use sample data or a disposable project copy.
@@ -393,7 +394,7 @@ Configured remote restore is a separate explicit operation, not an automatic
 stage in the build lifecycle above. It selects a source, stages a complete
 download and then invokes guarded merge/clear installation.
 
-## Configured ordinary publication in preview.3
+## Configured ordinary publication
 
 Preview.3 publishes ordinary local
 archive/latest targets, then the bounded GitHub latest/archive publication path, before
@@ -403,11 +404,13 @@ Each provider stages every selected CSV snapshot before its first remote mutatio
 GitHub preparation additionally checks the remote catalog and shared metadata.
 This is not a transaction across providers. Failure preserves the local release
 and skips later stages, without rolling back already published destinations.
-Preview skips publication. Released diagrams above retain their version meaning.
+Preview skips publication. The overlay below includes the development-source
+metadata additions described at the end of this page; released diagrams above
+retain their version meaning.
 
 ```{mermaid}
 %%| label: fig-lifecycle-ordinary-publication
-%%| fig-cap: "Preview.3: ordinary local and bounded GitHub publication."
+%%| fig-cap: "Ordinary publication: preview.3 data flow with development-source file-history additions."
 %%| fig-alt: "Validate configuration and planned names and freeze GitHub routing before hooks. After local success and CSV capture, keep the local release, stage local targets and publish local data then metadata. Prepare all GitHub ZIPs and validate their remote catalog, upload data then metadata, then continue CAS, Git, end hooks and next development version. Failure preserves the release and reports partial effects."
 flowchart TB
   A["Validate planned namespaces / freeze routing"] --> B["Existing analysis / promotion / CSV"]

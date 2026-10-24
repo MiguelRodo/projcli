@@ -177,8 +177,8 @@ This source addition is not in installed preview.3.
 In development source, GitHub backups can also keep CSV or JSON file lists.
 Choose which folders to upload, save a complete listing in the project, on GitHub,
 or both, and retain a small project record pointing to the saved files.
-An unchanged folder can point to an earlier complete listing; optional file
-dictionaries still keep every filename.
+An unchanged folder can point to an earlier complete listing. Optional formats
+can reduce repeated file information while retaining every filename.
 
 The list describes the ZIP actually prepared for upload. If an archived folder
 is reused, its record names that older ZIP. A failed upload keeps the local
