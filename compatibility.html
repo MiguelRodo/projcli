@@ -362,6 +362,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#local-only-failures-before-distribution" id="toc-local-only-failures-before-distribution" class="nav-link" data-scroll-target="#local-only-failures-before-distribution">Local-only failures before distribution</a></li>
   <li><a href="#m3-versioned-manifest-codecs" id="toc-m3-versioned-manifest-codecs" class="nav-link" data-scroll-target="#m3-versioned-manifest-codecs">M3 versioned manifest codecs</a></li>
   <li><a href="#explicit-local-tree-object-ingestion-and-verification" id="toc-explicit-local-tree-object-ingestion-and-verification" class="nav-link" data-scroll-target="#explicit-local-tree-object-ingestion-and-verification">Explicit local tree-object ingestion and verification</a></li>
+  <li><a href="#version-reference-catalogue-codec-slice" id="toc-version-reference-catalogue-codec-slice" class="nav-link" data-scroll-target="#version-reference-catalogue-codec-slice">Version-reference catalogue codec slice</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -1204,6 +1205,11 @@ ul.task-list li input[type="checkbox"] {
 <p>Nine filesystem witnesses cover project-copy loss without a local index, exact membership/empty roots, unchanged subtree reuse, sharded paths, separate metadata roots, immutable pretty reuse, missing/malformed/corrupt data, no-write authority and namespace guards, concurrent idempotence, bounded DAG/depth expansion, static links/FIFOs, conditional native aliases and byte-for-byte old ledger/manifest coexistence. They must run remotely with the complete platform/API/pinned gates; no local heavy execution is performed.</p>
 <p>The APIs do not yet wire registry/build selection, tree restore, metadata-copy orchestration or Git root refs. The latest flat catalogue direction keeps CSV and JSON, default per-artefact VERSION-level deduplication and optional file dictionaries; complete JSON remains a human/export primitive rather than an exclusive stored format. No destructive migration, GC, network packing, live consistent-dataset guarantee, permissions restoration or speed/size claim.</p>
 <p>Remote validation of the tree-store candidate exposed an exact-name enumeration race during concurrent identical reference publication. The native-name guard now rereads the parent once only when metadata appeared after its first scan, requiring the exact spelling. A differently spelled native alias still fails; the existing native-alias reader/producer fixture remains in place.</p>
+</section>
+<section id="version-reference-catalogue-codec-slice" class="level2">
+<h2 class="anchored" data-anchor-id="version-reference-catalogue-codec-slice">Version-reference catalogue codec slice</h2>
+<p><strong>New, not projr parity:</strong> projr’s ordinary root manifest.csv and legacy CAS ledger/manifests remain unchanged. New explicit codecs retain CSV and JSON, deduplicate unchanged logical artefact inventories by direct complete-version reference, and optionally dictionary-deduplicate file hashes without omitting any current path memberships. JSON grouping alone is not recursive tree storage.</p>
+<p>Pure tests cover changed/renamed/added/deleted files, ordering/date independence, reversions, empty catalogues/roots, four-mode equivalence, malformed references and dictionaries, CSV quoting/Unicode, rectangular Excel-style filtering and row sorting, duplicate/path/schema/size rejection. They are pending remote execution. No filesystem, credentials or process environment are used by these tests. This does not yet implement catalogue publication ordering, runtime format selection or a legacy conversion tool. Do not infer physical content integrity from a metadata-only round trip.</p>
 
 
 </section>
