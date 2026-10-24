@@ -242,3 +242,21 @@ pub(crate) fn validate_native_names(base: &Utf8Path, relative: &str, mirror: boo
     }
     Ok(())
 }
+
+
+/// Validate a stored relative path without filesystem reads; shared by archives and manifests.
+pub(crate) fn portable_relative(name:&str)->anyhow::Result<camino::Utf8PathBuf> {
+    anyhow::ensure!(!name.is_empty() && !name.starts_with('/') && !name.contains('\\'),
+        "Stored path must be a relative portable path");
+    let name=name.strip_suffix('/').unwrap_or(name);
+    for part in name.split('/') {
+        crate::path_safety::validate_directory_label(part)?;
+        let stem=part.split('.').next().unwrap().to_ascii_uppercase();
+        anyhow::ensure!(!matches!(stem.as_str(),"CON"|"PRN"|"AUX"|"NUL"|"CONIN$"|"CONOUT$"|"CLOCK$")
+            && !(stem.len()==4 && (stem.starts_with("COM")||stem.starts_with("LPT"))
+                && matches!(stem.as_bytes()[3],b'1'..=b'9'))
+            && !["COM","LPT"].iter().any(|prefix| matches!(stem.strip_prefix(prefix),Some("\u{b9}"|"\u{b2}"|"\u{b3}"))),
+            "Stored path contains a reserved native device name");
+    }
+    Ok(name.into())
+}

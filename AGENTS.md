@@ -513,3 +513,15 @@ pre-entry evidence. Saved intent/configured empty targets are not action entry.
 Pre-entry preparation/end-hook/observation/evidence failures restore exact prior
 managed state before local diagnostics observe after-version. After entry,
 preserve local release/partial-distribution evidence and never fabricate rollback.
+
+
+## Versioned M3 metadata codecs
+snapshot_format is a pure library codec slice. Preserve explicit schema strings,
+BLAKE3 derive-key contexts and canonical ordering once reviewed; pretty bytes are
+not IDs. Directory roots exclude label/version/date; snapshot metadata is separate.
+No implicit clock, legacy ID reinterpretation, destructive conversion, delta-only
+flat view or size-savings claim. Complete flat views include empty directory leaves.
+Bound derived prefix work before allocation as well as input bytes/records/depth.
+This module alone does not enable registry/placement, filesystem publication or
+restore. Reuse guarded immutable helpers and verify typed graph objects before
+future consumers follow refs; retain ordinary CSV and existing flat CAS readers.

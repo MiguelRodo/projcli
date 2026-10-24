@@ -90,9 +90,14 @@ and copies into final paths. Compatibility includes more than copying a manifest
 Working interpretation: retain ordinary latest/archive and add **CAS as a third
 remote structure**, with versioned snapshots and content-addressed objects.
 CAS can provide archive storage without becoming the manifest format. Current
-Rust runtime still accepts only local CAS remotes; latest/archive providers,
-full store/restore policy and CSV-driven queries are not implemented by this
-slice. Retention, garbage collection and discovery remain open. No DVC dependency.
+Rust runtime now includes ordinary local and GitHub latest/archive publication,
+inspection and staged configured restore, plus the older local flat-CAS ingestion
+and integrity APIs. Those delivered transfers are not new M3 work. M3 adds the
+missing CAS recovery/safety and the now-approved versioned flat/tree metadata;
+the first codec slice below does not yet wire new configuration or transfer APIs.
+There is no DVC dependency, destructive migration, garbage collection or performance
+claim. Ordinary root manifest.csv remains separate from the legacy CAS lookup
+ledger .projr/manifests.csv.
 
 Pinned reference:
 [manifest](https://github.com/SATVILab/projr/blob/90be50132d16aee33e39c0f7f35ef906c35f5397/R/manifest.R),
@@ -107,3 +112,101 @@ Existing opt-in Git commit behavior still stages eligible project files, includi
 root CSV unless ignored. This adds no automatic Git requirement or ignore rule.
 All regular files, including dotfiles, are inventoried; exact R enumeration parity
 beyond the stated schema/capture comparison remains unverified.
+
+
+## Approved M3 direction and current source boundary
+
+There is one project per store for this milestone. A remote's existing flat CAS
+manifest already contains its label, version and all file paths/hashes. The
+project-local plural ledger is a lookup shortcut, not the sole holder of that
+metadata. Explicit snapshot selection can read remote metadata directly; a
+label/version lookup must report missing or conflicting candidates instead of
+silently picking one. Automatic discovery improvements and performance tuning
+are deferred rather than treated as proof that metadata is absent.
+
+Four choices remain distinct:
+
+| Choice | Meaning | Approved direction |
+|---|---|---|
+| Provider | How bytes travel | Existing local filesystem or GitHub Releases. |
+| Layout | Where payload bytes live | Preserve latest/archive; CAS is an additional structure. |
+| Manifest style | How a snapshot's names/content identities are described | flat or recursive tree; defaults flat for GitHub/non-CAS local, tree for CAS; explicit per-remote override. |
+| Manifest placement | Where recovery metadata is retained | auto/project/remote/both; auto uses remote for CAS and existing latest/archive behaviour. A small Git root reference can remain even with remote metadata. |
+
+The remotes registry and build.dest selection are approved integration work.
+Omitting a selected remote's directory subset means all eligible directories;
+removing it from upload targets must not remove it as a restore source. These
+new fields are not accepted by the current parser in this codec-only slice.
+Legacy configurations and data are not silently converted.
+
+## Versioned codecs in development source
+
+The Rust snapshot_format module introduces three explicit JSON schemas:
+
+- projcli.flat-snapshot.v1: one complete snapshot, with shared version/date
+  metadata once and complete file lists grouped by logical label.
+- projcli.directory-tree.v1: one directory's direct child name/type/hash entries.
+  A child is a file or another tree; no logical label or release metadata is in
+  this content object.
+- projcli.tree-snapshot.v1: the small version/date and label-to-root associations,
+  separate from the directory content IDs.
+
+New file rows name BLAKE3 as their algorithm. Existing ordinary manifest.csv
+keeps its four-column MD5 semantics. Existing flat CAS manifests retain their
+old label/version-bearing JSON and raw-byte identities; a bare legacy ID is
+never automatically interpreted as a new directory tree. This slice adds codecs,
+not a destructive conversion or a replacement of either legacy reader.
+
+Flat JSON prints each complete path/hash entry and empty-directory leaf on its
+own line. Empty logical roots remain visible even with no files. Other directory
+parents are visible in their paths. There are no cross-version deltas or hidden
+references needed to inspect the complete flat file list. JSON grouping does not
+make this a recursive tree and does not promise smaller files than CSV.
+
+Directory trees bind direct names, file/tree types and child hashes. Changing
+a label, build version or supplied date changes snapshot metadata, not the
+directory root. A new file changes its content hash and relevant ancestors;
+independent unchanged subtrees can retain their IDs. Permissions, ownership and
+filesystem timestamps are not part of this byte/name identity.
+
+All new IDs use BLAKE3 derive-key mode with their exact schema string as context,
+over compact canonical UTF-8 JSON. Struct fields have fixed order; labels, file
+paths, empty-directory leaves and tree children are sorted by UTF-8 bytes.
+A supplied RFC3339 date is normalized to UTC; none means unknown and never
+queries the clock. Version/date metadata is part of snapshot identity, while
+pretty spacing/line endings and input ordering are not. New format versions
+must not silently change this canonical encoding.
+
+Readers reject unknown schemas/fields, invalid hashes, duplicate or portable
+case/normalization aliases, traversal, device names and conflicting file/empty
+directory shapes. Bounds are 16 MiB JSON, 8 MiB text, 100,000 flat entries or
+direct children, 4,096 logical labels, 4,096-byte paths with at most 64 components,
+and 1,024-byte names/labels. Flat prefix expansion has its own global 16 MiB work
+budget checked before allocating derived prefixes.
+
+**Not yet delivered by these codecs:** source ingestion, immutable tree-object
+publication, graph traversal/deep verification, restore installation, registry
+selection, manifest placement or automatic Git root-reference writes. Those
+consumers must verify every object's canonical identity before following
+references, bound both graph work and expanded output paths, and publish snapshot
+references last. Equal canonical identities must never authorize overwriting
+different stored bytes without verified semantic equivalence. Ordinary transfer
+and the M2 managed recovery pipeline remain unchanged.
+
+## Targeted lessons, without importing another tool's contract
+
+[Git's objects documentation](https://git-scm.com/book/en/v2/Git-Internals-Git-Objects)
+illustrates the separation between file contents, named tree edges and commit
+metadata. This is an engineering lesson, not Git-object-format compatibility:
+proj's algorithms, encoding and filesystem metadata scope are stated above.
+
+[DVC's cache documentation](https://doc.dvc.org/user-guide/project-structure/internal-files)
+shows content deduplication and a directory descriptor containing relative
+path/hash entries. Deduplication is independent of whether a manifest is flat
+or recursive; grouped JSON alone is not a recursive tree. DVC remains optional
+future integration, not a runtime dependency.
+
+[Packit's primary description of outpack packets](https://github.com/mrc-ide/packit)
+separates analysis files from associated metadata. Existing M2 attempt/provenance
+records serve that different purpose; a content root is not a scientific result,
+a complete run catalogue or proof of reproducibility.

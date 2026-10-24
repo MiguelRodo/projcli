@@ -2961,3 +2961,32 @@ after sealing. Earlier preparation, no-action end-hook, final observation and
 evidence failures restore exact prior VERSION/DESCRIPTION/CSV/final-output state.
 The three no-action cases assert all those bytes and absence, not just log count.
 Post-entry partial-failure behaviour and hook/provider ordering are unchanged.
+
+
+## M3 versioned manifest codecs
+
+**New approved representation; legacy data untouched.** The initial
+snapshot_format library slice defines complete per-snapshot readable flat JSON,
+recursive direct-child tree objects and separate version/label/root metadata.
+New metadata uses schema-specific BLAKE3 derive-key contexts over canonical
+compact JSON; raw BLAKE3 file IDs and old flat CAS IDs are not reinterpreted.
+Ordinary projr-compatible four-column CSV/MD5 remains readable and unchanged.
+
+Flat documents list every file and empty-directory leaf, with version/date once
+and one entry per line. Root identity excludes version/labels/date; snapshot
+identity includes supplied metadata. No clock is injected. Human formatting does
+not determine identity, and JSON is not claimed to be smaller than CSV.
+
+Ponytail full review reused serde_json, BLAKE3, chrono, ICU and existing portable
+ZIP path checks; no dependency or alternate storage engine was added. The path
+check now lives in path_safety and remains shared by the original ZIP consumer.
+Independent source review required an explicit pre-allocation prefix-work budget,
+a deep-common-prefix attack fixture, true derive-key hash separation, and
+one-line empty-directory leaves. Pure tests pin canonical tree bytes, order/date
+normalization, metadata/root separation, escaping, empty inventories, aliases,
+shape conflicts, malformed schemas/hashes and input/derived-work limits.
+
+Remote exact-head compilation/API/platform/pinned validation remains required.
+This is a codec slice, not completed CAS ingestion/restore, manifest placement
+or registry integration. M2 source is complete at PR206; installed preview.3,
+the R package, ordinary transfer policy and legacy storage remain unchanged.
