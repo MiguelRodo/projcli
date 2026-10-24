@@ -3378,3 +3378,12 @@ Final source review also caught two accidentally literal newline escapes in the
 test helper and existing development diagram, and two stale-claim replacements
 that had dropped the deferred automatic-discovery qualifier. Corrected before
 final compilation evidence; hash path placeholders now render literally.
+
+The 100,001-record filesystem witness is retained on Unix/pinned Linux, avoiding
+100,000-directory copies on every Windows test/release run. Every host now also
+uses a compact owned 65-component retained-directory fixture with a shallow
+source/new file, forcing private-stage depth rejection before replacement.
+Its assertion names the observation/depth guard, not Forest's record limit.
+Pure record-budget and graph-depth tests remain on every host. Existing bytes,
+history, sampled directories and claim cleanup are asserted. No production bound
+or path guard changes; exact-head remote checks remain required.
