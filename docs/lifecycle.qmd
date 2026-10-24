@@ -621,8 +621,11 @@ flowchart TB
   JP --> JM["Prepare flat history or tree nodes plus readable history"]
   JM --> JW["All target HTTP writes: data, legacy metadata, new bundle last"]
   JW --> JF["All full project nodes and histories; then project references"]
-  J -->|No| D{"Selected CAS manifest style"}
+  J -->|No| D{"Selected CAS encoding"}
   JF --> D
+  D -->|Legacy raw JSON| LC["Claim store and shared lookup; exact-row retry"]
+  LC --> G
+  LC --> X
   D -->|Tree| T["Save file bytes and directory fingerprints"]
   D -->|Flat| H["Save file bytes; claim writer and preserve earlier rows"]
   D -->|No CAS| G["Existing optional Git and finalization"]
@@ -716,3 +719,11 @@ then a second unchanged build and explicit read-only verification/fresh-project
 recovery. Corruption probes require no destination replacement or store repair.
 It adds retained release evidence rather than another build stage or native
 figure.
+
+
+The preserved legacy raw-JSON branch acquires store and shared-lookup ownership
+inside the existing CAS publication phase. Exact repeated lookup rows keep their
+original bytes. This adds no build/hook/Git stage: ordinary providers still run
+first, legacy CAS precedes modern configured CAS, and failure retains possible
+distribution evidence. The existing development overlay includes the legacy
+ownership branch; released historical figures remain unchanged.

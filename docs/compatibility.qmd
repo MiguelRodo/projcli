@@ -3415,3 +3415,32 @@ This is the shared source-backed root-cause fix; the same 65-directory fixture
 remains strict, and remote execution must confirm the result. No stack-size
 increase or relaxed depth/record guard. Broader recursion/performance redesign
 is not part of this fix.
+
+
+## Legacy CAS ledger safety completion (24 October)
+
+**Essential M3.2 gap, not a new architecture:** final criteria review found that
+the preserved legacy ingest path still appended exact-repeat lookup rows and
+read/modified a shared project ledger without coordination. Modern tree/flat
+writers were covered; the legacy path was not exempt from issue689.
+
+**Fix:** reuse Attempt claims for sorted/deduplicated physical store and .projr
+ledger roots, distinct from the build's held project claim. Reject linked/special
+sources before creating coordination roots. Read/parse the authoritative
+four-column index under ownership; preserve raw bytes and append only for a new
+exact version/label/digest tuple. Raw JSON/object IDs and differing-digest legacy
+version behavior remain unchanged. Early review caught that checked_directory
+does not create first-ingest roots; guarded creation now precedes canonicalization.
+
+**Ponytail full:** one shared ingestion function, existing claims/CSV reader and
+seven focused filesystem groups (six on Windows). No new dependency, lock engine,
+schema, migration, same-version conflict rule or background cleanup. Existing
+immutable-manifest fixture uses valid historical lookup CSV so it still reaches
+the intended conflict guard, now checked explicitly. Remote tests/review pending;
+no local compilation or heavy test. Release packaging stays held until verified.
+
+Claims remain non-reentrant. Configured builds already reject stores overlapping
+their project .proj state; standalone callers already holding the exact store
+claim receive a conservative busy error. No ownership inference or bypass is
+added. The coarse legacy critical section favors correctness; narrow it only
+after measured contention. The old/raw and new/tree identities remain distinct.
