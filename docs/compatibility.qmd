@@ -3274,3 +3274,10 @@ storage overlay now shows the new ordinary local/GitHub metadata phases alongsid
 CAS, preserving eleven native-browser figures. Stale pending-format statements
 now distinguish implemented flat histories from deferred ordinary tree metadata
 and automatic snapshot lookup.
+
+
+The first pinned run compiled the new implementation and completed the dedicated
+mocked GitHub suite. A retained named-registry fixture still expected only legacy
+assets; it now requires the new bundle last and verifies its file path/hash,
+while preserving all no-upload-after-disabling and restore-byte assertions.
+No production behavior was relaxed to satisfy the outdated expectation.

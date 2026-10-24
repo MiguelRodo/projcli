@@ -798,8 +798,8 @@ registry preferred sources, legacy fallback and registry fallback. A newly
 registered unpreferred definition does not displace an existing legacy fallback.
 
 Registry/build.dest mapping integration currently covers ordinary latest/archive
-and GitHub Release operations. Configured tree publication and placement are described below. Flat format
-publication and automatic CAS selection remain pending; legacy flat recovery
+and GitHub Release operations. Configured tree publication and placement are described below. Flat CSV/JSON publication is described below; automatic CAS selection remains
+deferred; legacy flat recovery
 is described below;
 explicit tree verification/recovery is described below. Unsupported options fail.
 Legacy inline and CAS-list behavior is preserved.

@@ -445,10 +445,10 @@ desired. No old manifest is reinterpreted or moved.
 
 The first publication slice added tree storage. Explicit named-ID recovery and
 local CAS flat CSV/JSON histories are described below. Automatic snapshot lookup
-remain deferred; ordinary/GitHub flat formatting is implemented below. Legacy inspect belongs only to the
-old definition; new manifest-format choices are validated against style. Ordinary
-latest/archive and GitHub retain their current metadata policy until separately
-integrated; new formatting options are not claimed there.
+remains deferred. Legacy inspect belongs only to the old definition; new
+manifest-format choices are validated against style. Ordinary local/GitHub flat
+histories are also implemented below, alongside compatible CSV/VERSION metadata;
+ordinary tree metadata remains pending.
 
 ## Explicit configured tree readers
 
@@ -460,7 +460,7 @@ do not need the old project ledger, root CSV or small project reference.
 
 Selection remains exact title/ID/label, not an automatic newest-version policy.
 Existing graph limits and guarded installation are reused. Legacy flat IDs are not recast as v1 tree IDs; the compatibility reader below
-restores their original format. Local CAS flat runtime is described below; ordinary/GitHub formatting remains pending.
+restores their original format. Local CAS flat runtime is described below; ordinary/GitHub flat histories are implemented below; ordinary tree metadata remains pending.
 
 
 ## Recover existing flat CAS snapshots
