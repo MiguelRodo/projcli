@@ -908,6 +908,8 @@ fn execute_build_pipeline(
         }
     }
 
+    drop(analysis);
+    if let Some(worker)=worker.as_mut() {worker.finish()?;}
     Ok(())
 }
 

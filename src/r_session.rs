@@ -51,6 +51,13 @@ impl Worker {
         let input=child.stdin.take().context("Shared R input pipe is unavailable")?;
         Ok(Self {child,input:Some(input),directory})
     }
+    /// Close analysis input and require successful R shutdown before finalization.
+    pub(crate) fn finish(&mut self) -> anyhow::Result<()> {
+        self.input.take();
+        let status=self.child.wait().context("Cannot wait for shared R shutdown")?;
+        anyhow::ensure!(status.success(),"Shared R shutdown failed: {status}");
+        Ok(())
+    }
     pub(crate) fn execute(&mut self, path: &Utf8Path) -> anyhow::Result<()> {
         let result=self.directory.path().join("result");
         match std::fs::remove_file(&result) {

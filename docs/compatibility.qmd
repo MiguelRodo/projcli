@@ -3581,7 +3581,10 @@ Ponytail full: reuse RunEnvironment and existing runner order; one private reque
 file plus control pipe/completion file avoids shell/generated-source interpolation
 and script-stdout protocol ambiguity. Close the owned input at pipeline completion;
 never search for or terminate unrelated processes. Script hangs retain the existing
-lack of a build timeout. File polling is a bounded-design overhead, not a performance
+lack of a build timeout. A checked worker finish closes input and requires a successful
+R shutdown before analysis succeeds; Drop remains best-effort cleanup during errors.
+A native .Last exit17 fixture verifies failure before promotion/end hooks, with exact
+previous VERSION and final bytes retained. File polling is a bounded-design overhead, not a performance
 claim. Configured native executable resolution precedes hooks and applies to
 directly controlled R drivers; Quarto's engine remains native.
 
@@ -3611,3 +3614,9 @@ analysis global, while the following plain R script must retain it; verify rende
 text plus exact document/VERSION recovery. Windows native state/executable tests
 are separate; this does not claim all project-level render engines share the
 same execution model.
+
+The final green jobs still contained an R package warning for the optional renderer
+test's undeclared rmarkdown dependency. Move that engine acceptance driver outside
+the thin package to tests/acceptance/r_frontend_renderers.R; retain mandatory pinned
+execution. CI now requires literal Status: OK on both platforms, not just exit0.
+No runtime rmarkdown dependency is added to the thin frontend.

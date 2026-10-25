@@ -103,7 +103,28 @@ if (!nzchar(binary)) {
   failed <- tryCatch(native_build("build-dev",c("--execution-dir","project"),project=root,binary=binary),projcli_error=identity)
   stopifnot(inherits(failed,"projcli_error"),!file.exists(file.path(root,"never-marker")),
     !file.exists(file.path(root,"post-pid")),identical(before,readBin(file.path(root,"VERSION"),"raw",n=1000)))
-  cat("PASS native shared/isolated R state, mixed-language order, hook separation, executable paths and fail-fast recovery\n")
+  # Establish the native shutdown failure, then require the framework to catch it
+  # after a successful last-script acknowledgement and before promotion/end hooks.
+  writeLines(".Last <- function() quit(save='no',status=17L,runLast=FALSE)",file.path(root,"shutdown-probe.R"))
+  probe <- processx::run(executable,file.path(root,"shutdown-probe.R"),stdin=NULL,error_on_status=FALSE)
+  stopifnot(probe$status==17L)
+  cfg$directories <- list(cache=list(path="cache",safe=TRUE),output=list(path="released"))
+  cfg$build$scripts <- list("shutdown.R");write_cfg()
+  dir.create(file.path(root,"released"),showWarnings=FALSE)
+  writeLines("prior final bytes",file.path(root,"released","prior.txt"))
+  writeLines(c(
+    paste0("out <- projcli::projr_path_get('output','new.csv',format='absolute',binary=",quote_r(binary),")"),
+    "dir.create(dirname(out),recursive=TRUE,showWarnings=FALSE)",
+    "writeLines(c('value','42'),out)",
+    ".Last <- function() quit(save='no',status=17L,runLast=FALSE)"),file.path(root,"shutdown.R"))
+  unlink(file.path(root,"post-pid"))
+  before <- readBin(file.path(root,"VERSION"),"raw",n=1000)
+  failed <- tryCatch(native_build("build",c("--patch","--execution-dir","project"),project=root,binary=binary),projcli_error=identity)
+  stopifnot(inherits(failed,"projcli_error"),!file.exists(file.path(root,"post-pid")),
+    !file.exists(file.path(root,"released","new.csv")),
+    readLines(file.path(root,"released","prior.txt"))=="prior final bytes",
+    identical(before,readBin(file.path(root,"VERSION"),"raw",n=1000)))
+  cat("PASS native shared/isolated R state, mixed-language order, hook separation, executable paths, checked shutdown and fail-fast recovery\n")
  }
  run()
 }

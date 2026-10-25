@@ -746,7 +746,7 @@ session accepts isolated (default) or shared. Isolated starts a fresh Rscript fo
 each plain R script. Shared lazily starts one child R process for the selected
 plain R analysis scripts in that build, preserving their objects, options, working
 directory and library changes across scripts, even with Python/document steps
-between them. It is not the R frontend caller's live session. Source failures stop
+between them. It is not the R frontend caller's live session. Source or shared-process shutdown failures stop
 the build; later scripts and end hooks do not run. Ordering is unchanged.
 
 rscript is an optional path resolved against the captured project root; absolute
