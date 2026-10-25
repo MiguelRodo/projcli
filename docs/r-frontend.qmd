@@ -189,6 +189,10 @@ The report also reads settings and expected row counts through the frontend's
 configuration/parameter helpers. Fresh data recovery calls remote restore through
 the R transport, with each restored folder compared byte-for-byte before rerunning.
 These are test assertions awaiting the final named run, not a completed result.
+Fresh recovery keeps the recorded project metadata, including root manifest.csv,
+with its configuration and scripts. It starts without data, outputs, analysis cache
+or an installed project library. Ordinary restore uses that CSV; this does not
+claim recovery from a bare store without project metadata.
 
 The scope is the two processing scripts and a generated test report. The test
 expects 265 and 236 data rows and checks the report's visible counts. The scientific

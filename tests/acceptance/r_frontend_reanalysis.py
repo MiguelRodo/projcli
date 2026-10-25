@@ -184,6 +184,7 @@ def main():
     (args.evidence/"matched-renv.lock.json").write_bytes(lock);evidence["full_public_lock_retained"]=True
    else:evidence["full_public_lock_retained"]=False
    store=base/"store";results={};observations={}
+   evidence["cases"]=observations
    for backend in ["legacy","cli"]:
     root=base/backend;project(root,source,backend=="legacy",store)
     (root/"renv.lock").write_bytes(lock)
@@ -207,6 +208,7 @@ def main():
       "preview_report":preview_report,"production_report":report_marker(root,False),
       "unchanged_pinned_source_and_input":True}
    assert results["legacy"]==results["cli"],"Fresh complete ordered CSV cells differ across engines"
+   evidence["full_ordered_csv_comparison"]=True
    root=base/"cli"
    expected={label:inventory(root/folder) for label,folder in
              [("raw-data","_raw_data"),("output","_output"),("docs","_docs")]}
@@ -218,12 +220,17 @@ def main():
    for label,folder in [("raw-data","_raw_data"),("output","_output"),("docs","_docs")]:
     assert inventory(root/folder)==expected[label]
    fresh=base/"fresh";cfg=project(fresh,source,False,store)
-   # Start recovery without any original data/output/cache or old project indexes.
+   # Ordinary projr-compatible recovery retains tracked project metadata, including
+   # its root manifest.csv. Start without data/output/cache or dependency libraries.
    (fresh/"_raw_data"/"data-raw-PIVI.csv").unlink();(fresh/"_raw_data").rmdir()
    cfg["build"]["dest"]={};(fresh/"_proj.yml").write_text(json.dumps(cfg))
    (fresh/"VERSION").write_bytes(before_version);(fresh/"renv.lock").write_bytes(lock)
+   project_manifest=(root/"manifest.csv").read_bytes();assert project_manifest
+   (fresh/"manifest.csv").write_bytes(project_manifest)
+   evidence["recovery_project_manifest_sha256"]=digest(project_manifest)
    receipt=run("restore-packages",fresh)
    restored=run("restore-data",fresh)
+   assert (fresh/"manifest.csv").read_bytes()==project_manifest
    assert restored["labels"]==["raw-data","output","docs"]
    for label,folder in [("raw-data","_raw_data"),("output","_output"),("docs","_docs")]:
     assert inventory(fresh/folder)==expected[label]

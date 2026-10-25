@@ -62,6 +62,7 @@ main <- function() {
     action <<- "configured-data-restore-through-R-frontend"
     labels <- c("raw-data","output","docs")
     for(label in labels) {
+      action <<- paste0("configured-data-restore-through-R-frontend-",label)
       reply <- projcli::proj_cli("remote restore",
         c("--provider","local","--title","backup","--remote-version","v1.2.4",
           "--label",label,"--max-bytes",as.character(64*1024^2),

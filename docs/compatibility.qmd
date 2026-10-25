@@ -3721,3 +3721,13 @@ the already tested adapter environment helper for both engines. This prevents
 missing packages or ambient-version substitution; it is not a production behavior
 change or new scientific execution evidence. Obsolete in-flight execution is
 cancelled before rerunning the corrected fixture.
+
+The 9df named run reached successful baseline/candidate preview and production,
+full ordered CSV comparison, exact archive and deliberate-failure checks, then
+failed ordinary fresh restore: the fixture omitted root manifest.csv. The existing
+ordinary restore contract requires that regular project metadata file (restore.rs),
+as a cloned/retained project has; it is distinct from the CAS selection ledger.
+The fresh case now copies and hashes that project manifest, asserts restore leaves
+it unchanged, and still starts without data, outputs, cache or project packages.
+No restore guard is weakened and no bare-store discovery behavior is introduced.
+Completed per-case observations are retained even if a later phase fails.
