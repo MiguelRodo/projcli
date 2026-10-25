@@ -71,3 +71,23 @@ fn configuration_errors_are_typed_without_secrets_and_checked_mode_is_deliberate
     fs::write(root.join("_proj.yml"),r#"{"par":{"value":2}}"#).unwrap();
     assert_eq!(query(root,&["yml","parameter","value"],false)["error"]["code"],"query_failed");
 }
+
+
+#[test]
+fn new_human_query_failures_withhold_private_deserialization_values() {
+    let temp = tempfile::tempdir().unwrap();
+    fs::write(temp.path().join("_proj.yml"),
+        r#"{"build":{"scripts":"private-human-query-canary"}}"#).unwrap();
+    for args in [vec!["yml","get","--check"],vec!["yml","parameter","private-key-canary"]] {
+        let output = Command::new(env!("CARGO_BIN_EXE_proj"))
+            .arg("--non-interactive").arg("--project").arg(temp.path()).args(args)
+            .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
+            .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
+        assert!(!output.status.success());
+        assert!(output.stdout.is_empty());
+        let stderr=String::from_utf8(output.stderr).unwrap();
+        assert!(stderr.contains("private details were withheld"));
+        assert!(!stderr.contains("private-human-query-canary"));
+        assert!(!stderr.contains("private-key-canary"));
+    }
+}

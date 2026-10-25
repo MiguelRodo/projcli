@@ -3536,3 +3536,8 @@ read-only state, sanitized failures and managed profiles with current values.
 The candidate CLI is compiled/tested remotely; preview.4 transport compatibility
 remains a separate required test. These changes are untested until exact-head CI
 and independent review finish; M4's representative reanalysis gate remains pending.
+
+Independent review also caught full human error chains echoing a private serde
+value in the two new query arms. Both now use static diagnostics, with a human-mode
+canary regression. Machine/R errors were already static; old diagnostic contracts
+are unchanged. The new getters' successful explicit data results remain intentional.

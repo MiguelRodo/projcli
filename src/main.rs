@@ -570,13 +570,13 @@ fn main() {
             YmlCommands::Get { profile, check } => {
                 match proj::yml::merged_configuration_from(&root, profile.as_deref(), *check) {
                     Ok(value) => println!("{}", serde_json::to_string_pretty(&value).expect("JSON value is serializable")),
-                    Err(error) => fail(format_args!("Cannot read selected configuration: {error:#}")),
+                    Err(_) => fail(format_args!("Cannot read selected configuration. Check the selected files/profile; private details were withheld.")),
                 }
             }
             YmlCommands::Parameter { profile, keys } => {
                 match proj::yml::parameter_value_from(&root, profile.as_deref(), keys) {
                     Ok(value) => println!("{}", serde_json::to_string_pretty(&value).expect("JSON value is serializable")),
-                    Err(error) => fail(format_args!("Cannot read selected parameter: {error:#}")),
+                    Err(_) => fail(format_args!("Cannot read selected parameter. Check the selected files/profile and literal keys; private details were withheld.")),
                 }
             }
         },
