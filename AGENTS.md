@@ -707,3 +707,10 @@ project-contained library/lockfile, and must not bootstrap packages at setup/bui
 Keep dependency receipts separate from CLI protocol responses. Restore failures are
 failures; package scripts/cache effects are not covered by managed build rollback.
 Use pinned temporary test dependencies in remote CI only.
+
+M4 named acceptance uses unchanged pinned Weisberger01+04 and clean projr3ac29595.
+Keep the scientific sources immutable and distinguish its bounded report harness
+from original paper reports or old path-edited pilot copies. Require full ordered
+CSV assertions, real render, explicit dependency restore, local archive/fresh
+recovery and failure preservation. Heavy analysis is explicitly selected remotely
+in the existing pinned image; retain metadata only, not third-party study payloads.

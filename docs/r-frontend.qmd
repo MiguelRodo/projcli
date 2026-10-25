@@ -169,3 +169,24 @@ The receipt reports observed locked package versions and a lockfile checksum.
 A failed restore is not a successful reanalysis; inspect the library/cache before
 retrying. Legacy GitHub/BiocManager selectors and update helpers remain outside
 this supported subset. See the package dependency reference.
+
+## Check a real analysis after changing engines
+
+The M4 acceptance test uses the existing Weisberger weed-study scripts 01 and 04
+at a fixed public commit. It compares their complete generated CSV contents across
+the old R engine and the new frontend, then archives locally, restores all selected
+folders into a fresh project, restores its R packages explicitly and reruns it.
+
+The scope is the two processing scripts and a generated test report. The test
+expects 265 and 236 data rows and checks the report's visible counts. The scientific
+scripts remain unchanged. It uses the same current pinned R runtime for both engines;
+historical paper models and the earlier R4.1.1 environment are outside this comparison.
+Its package snapshot is captured once for the run; fresh project libraries restore
+from an owned cache primed from that matched environment. The separate small-package
+test covers a cold, cache-disabled restore.
+
+This heavier check is explicitly selected through representative_reanalysis in
+the [R workflow](https://github.com/MiguelRodo/projcli/actions/workflows/r-adapter.yml).
+Ordinary package checks do not fetch studies or install dependencies. Retained
+results contain source/package pins, hashes, row comparisons and checks; original
+scripts, datasets, generated CSVs/reports and local stores are not uploaded.
