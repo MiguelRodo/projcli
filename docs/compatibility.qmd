@@ -3499,3 +3499,10 @@ Representative-project, renderer/hook, API/backend and renv gates remain pending
 This initial M4 implementation request does not itself approve merge, release
 or installation. The Windows fixture invokes R.exe explicitly because PowerShell
 resolves bare R as its history alias; that CI failure occurred before R checks.
+
+The final M1 contract pass also caught forced-cwd selection and dropped managed
+context in the draft adapter. NULL project now delegates to native CLI root
+selection, and the existing two guarded context variables pass through without
+inheriting arbitrary R state. A real nested R call changes cwd to another marked
+project and edits VERSION, then checks captured root/profile/version and exact
+preview version restoration. Explicit project override behavior is unchanged.

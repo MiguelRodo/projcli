@@ -35,7 +35,8 @@
        anyDuplicated(toupper(names(env)))))) {
     .proj_error("invalid_environment", "env must be a uniquely named character vector.")
   }
-  baseline <- c("PATH", "HOME", "LANG", "LC_CTYPE")
+  baseline <- c("PATH", "HOME", "LANG", "LC_CTYPE",
+                "PROJ_PROJECT_ROOT", "PROJ_RUN_CONTEXT")
   if (length(env) && any(toupper(names(env)) %in% c(baseline, "R_LIBS"))) {
     .proj_error("invalid_environment", "env cannot replace the baseline variables or active R_LIBS.")
   }
@@ -142,7 +143,8 @@
   if (any(grepl("^(--(machine|non-interactive|project|help|version)(=|$)|-h$|-V$)", before_literal))) {
     .proj_error("invalid_arguments", "Use the adapter's project argument; transport and help flags cannot be overridden.")
   }
-  c("--machine", "--non-interactive", "--project", project,
+  c("--machine", "--non-interactive",
+    if (!is.null(project)) c("--project", project),
     strsplit(command, " ", fixed = TRUE)[[1L]], args)
 }
 
@@ -154,7 +156,7 @@
 #'
 #' @param command One advertised machine command, such as "path get".
 #' @param args Character vector of command-specific arguments, without shell quoting.
-#' @param project Existing project directory. NULL uses the calling working folder.
+#' @param project Existing project directory. NULL preserves CLI inherited root/discovery.
 #' @param binary Executable path, or NULL for the option, PROJCLI_BIN, then PATH.
 #' @param env Explicit additional child variables, including any credentials needed.
 #' @param timeout Subprocess time limit in seconds; Inf allows long builds.
@@ -180,11 +182,12 @@ proj_cli <- function(command = "capabilities", args = character(), project = NUL
     if (length(args)) .proj_error("invalid_arguments", "capabilities takes no command arguments.")
     return(capabilities)
   }
-  if (is.null(project)) project <- getwd()
-  if (!.proj_strings(project, scalar = TRUE, empty = FALSE) || !dir.exists(project)) {
-    .proj_error("invalid_project", "Choose one existing project directory.")
+  if (!is.null(project)) {
+    if (!.proj_strings(project, scalar = TRUE, empty = FALSE) || !dir.exists(project)) {
+      .proj_error("invalid_project", "Choose one existing project directory.")
+    }
+    project <- normalizePath(project, winslash = "/", mustWork = TRUE)
   }
-  project <- normalizePath(project, winslash = "/", mustWork = TRUE)
   reply <- .proj_process(binary, .proj_argv(command, args, project), child_env, timeout)
   if (!identical(reply[["cli_version"]], capabilities[["cli_version"]])) {
     .proj_error("cli_changed", "The CLI version changed during the call. Check any effects before retrying.")

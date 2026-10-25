@@ -31,6 +31,10 @@ API mapping are the next M4 slice, not implemented by this transport.
 The adapter forwards the active R library folders, a small baseline of system
 and locale variables, and additional variables you explicitly supply in env.
 It does not forward every R-session variable or copy your in-memory R objects.
+During a CLI build it also preserves the two managed context values, so calls
+inside R scripts keep the captured project, profile and version after changing
+folders. With no explicit project argument, the CLI keeps its normal captured
+root or nearest-project selection; an explicit project remains an override.
 For example, a GitHub operation can receive a token explicitly from your own
 configured environment; the adapter does not create or grant credentials.
 

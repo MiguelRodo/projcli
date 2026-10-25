@@ -60,6 +60,8 @@ stopifnot(env[["PROJCLI_TEST_TOKEN"]] == "secret-canary",
           env[["R_LIBS"]] == paste("one library", "another", sep = .Platform$path.sep),
           !any(c("R_PROFILE_USER", "R_ENVIRON_USER", "PROJCLI_SESSION_CANARY") %in% names(env)))
 error_code(inside(".proj_environment")(c(R_LIBS = "bad")), "invalid_environment")
+error_code(inside(".proj_environment")(c(PROJ_RUN_CONTEXT = "bad")), "invalid_environment")
+stopifnot(!"--project" %in% inside(".proj_argv")("version get", character(), NULL))
 error_code(inside(".proj_environment")(c(A = "one", a = "two")), "invalid_environment")
 error_code(inside(".proj_environment")(setNames("bad", "")), "invalid_environment")
 argv <- inside(".proj_argv")("path get", c("--label", "output", "a;$(echo literal)&.csv"), "project space")
@@ -93,6 +95,12 @@ if (!nzchar(binary)) {
       build = list(git = FALSE, scripts = list("analysis.R")))
     writeLines(jsonlite::toJSON(cfg, auto_unbox = TRUE),
                file.path(project, "_proj.yml"), useBytes = TRUE)
+    profile <- list(directories = list(cache = list(path = "profile-cache", safe = TRUE)))
+    writeLines(jsonlite::toJSON(profile, auto_unbox = TRUE),
+               file.path(project, "_projr-transport.yml"), useBytes = TRUE)
+    decoy <- file.path(root, "another project");dir.create(decoy)
+    writeLines("v8.8.8", file.path(decoy, "VERSION"))
+    original_version <- proj_cli("version get", project = project, binary = spaced)$result$version
     fragment <- "data \u00e9;$(echo literal)&.csv"
     answer <- proj_cli("path get", c("--label", "output", fragment),
                        project, binary = spaced)
@@ -107,22 +115,34 @@ if (!nzchar(binary)) {
     on.exit(if (is.na(original)) Sys.unsetenv("PROJCLI_SESSION_CANARY") else
       Sys.setenv(PROJCLI_SESSION_CANARY = original), add = TRUE)
     Sys.setenv(PROJCLI_SESSION_CANARY = "not forwarded")
-    script <- c('saveRDS(list(libs = .libPaths(),',
+    quote_r <- function(x) encodeString(x, quote = '"')
+    script <- c('observed <- list(libs = .libPaths(),',
       ' token = Sys.getenv("PROJCLI_TEST_TOKEN"),',
-      ' pollution = Sys.getenv("PROJCLI_SESSION_CANARY", unset = "absent")), "observed.rds")',
+      ' pollution = Sys.getenv("PROJCLI_SESSION_CANARY", unset = "absent"))',
+      paste0('writeLines("v9.9.9-9", ', quote_r(file.path(project, "VERSION")), ')'),
+      paste0('setwd(', quote_r(decoy), ')'),
+      paste0('observed$nested_path <- projcli::proj_cli("path get", ',
+        'c("--label","output","--format","absolute","nested.csv"), binary = ', quote_r(spaced), ')$result$path'),
+      paste0('observed$nested_version <- projcli::proj_cli("version get", binary = ',
+        quote_r(spaced), ')$result$version'),
+      paste0('saveRDS(observed, ', quote_r(file.path(project, "observed.rds")), ')'),
       'cat("secret-canary private child diagnostic\\n", file = stderr())')
     writeLines(script, file.path(project, "analysis.R"), useBytes = TRUE)
-    invisible(proj_cli("build-dev", c("--execution-dir", "project"),
+    invisible(proj_cli("build-dev", c("--execution-dir", "project", "--profile", "transport"),
       project, spaced, env = c(PROJCLI_TEST_TOKEN = "secret-canary")))
     observed <- readRDS(file.path(project, "observed.rds"))
     stopifnot(normalizePath(custom, winslash = "/") %in%
       normalizePath(observed$libs, winslash = "/"),
-      observed$token == "secret-canary", observed$pollution == "absent")
+      observed$token == "secret-canary", observed$pollution == "absent",
+      identical(observed$nested_version, original_version),
+      startsWith(observed$nested_path,
+        paste0(normalizePath(file.path(project, "profile-cache"), winslash = "/"), "/")),
+      readLines(file.path(project, "VERSION")) == "v1.2.3-7")
     writeLines('stop("secret-canary private failure")', file.path(project, "analysis.R"))
-    error_code(proj_cli("build-dev", c("--execution-dir", "project"),
+    error_code(proj_cli("build-dev", c("--execution-dir", "project", "--profile", "transport"),
       project, spaced, env = c(PROJCLI_TEST_TOKEN = "secret-canary")), "command_failed")
     stopifnot(readLines(file.path(project, "VERSION")) == "v1.2.3-7")
-    cat("PASS real CLI: native binary and Unicode/spaced paths, literal argv, R_LIBS, explicit dummy credential, absent session pollution, safe errors\n")
+    cat("PASS real CLI: native binary and Unicode/spaced paths, literal argv, R_LIBS, managed root/profile/version after cwd and VERSION changes, explicit dummy credential, absent session pollution, safe errors\n")
   }
   if (required) {
     run_integration(binary)

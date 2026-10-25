@@ -666,8 +666,10 @@ The separate frontends/r/projcli package calls a separately installed native CLI
 through processx argument vectors and protocol/capability negotiation. Keep workflow,
 paths, rendering and recovery in Rust; never copy or edit SATVILab/projr. The initial
 transport is not a drop-in legacy API, backend switch, dependency restorer or M4 gate.
-Forward active library paths through R_LIBS, baseline PATH/HOME/locale, and only
-explicit additional variables. Never inherit the whole R session environment or
+Forward active library paths through R_LIBS, baseline PATH/HOME/locale, the two
+existing managed PROJ_PROJECT_ROOT/PROJ_RUN_CONTEXT values (validated by Rust),
+and only explicit additional variables. NULL project delegates to native CLI
+captured-root/discovery; never force cwd and lose a running build snapshot. Never inherit the whole R session environment or
 serialize raw argv, credentials or child diagnostics into error conditions. processx
 adds required Windows/control variables; startup files and arbitrary scripts still
 have their normal effects. No clean-room, sandbox, parallel-speed or CRAN-acceptance

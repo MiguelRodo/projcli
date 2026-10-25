@@ -8,7 +8,7 @@ proj_cli(command = "capabilities", args = character(), project = NULL,
 \arguments{
 \item{command}{One advertised machine command, for example \code{"path get"}.}
 \item{args}{Command-specific character arguments, without shell quoting.}
-\item{project}{An existing project directory; \code{NULL} uses the calling folder.}
+\item{project}{An existing project directory; \code{NULL} preserves the CLI inherited root or nearest-project discovery.}
 \item{binary}{Executable path; \code{NULL} checks \code{options(projcli.binary)},
 then \code{PROJCLI_BIN}, then \code{PATH}.}
 \item{env}{Explicit additional named child variables, including any credentials.}
@@ -23,7 +23,11 @@ directly, not through a shell. No binary or package download is attempted.
 }
 \details{
 The baseline environment forwards PATH, HOME, LANG and LC_CTYPE when set,
-and active \code{.libPaths()} through R_LIBS. Extra variables must be explicit.
+and active \code{.libPaths()} through R_LIBS. The two managed context variables
+PROJ_PROJECT_ROOT and PROJ_RUN_CONTEXT also pass through; the CLI validates them
+and retains captured root/profile/version when an R script changes folders.
+Explicit project selection retains its normal override semantics.
+Other extra variables must be explicit.
 processx also supplies its control variables and required Windows variables.
 This is not a sandbox and does not disable project or user startup files.
 Raw command output, stderr and machine error text are withheld from conditions:
