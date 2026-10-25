@@ -3713,3 +3713,11 @@ that incorrectly still called later implemented helpers pending. These additions
 require exact-head remote execution and independent review; no completion claim.
 Ponytail full: reuse the existing R transport and configuration helpers; no new
 restore wrapper, renderer engine or package-management policy is introduced.
+
+Named-gate source review also found that nested science Rscript children inherited
+the OS environment rather than the selected restored .libPaths in the legacy
+callback. The owned report harness now forwards active libraries explicitly through
+the already tested adapter environment helper for both engines. This prevents
+missing packages or ambient-version substitution; it is not a production behavior
+change or new scientific execution evidence. Obsolete in-flight execution is
+cancelled before rerunning the corrected fixture.

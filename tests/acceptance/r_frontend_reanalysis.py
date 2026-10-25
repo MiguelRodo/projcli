@@ -32,8 +32,10 @@ scripts <- c("01_weeds_process-raw-data-PIVI.R","04_weeds_biomass-vs-density.R")
 stopifnot(all(file.copy(file.path(root,"science",scripts),target,overwrite=TRUE)))
 stopifnot(file.copy(lookup("raw-data","data-raw-PIVI.csv"),target,overwrite=TRUE))
 file.create(file.path(target,".here"))
+child_env <- get(".proj_environment",asNamespace("projcli"))(character())
 for(script in scripts) {
  status <- processx::run(file.path(R.home("bin"),"Rscript"),c("--vanilla",script),wd=target,
+   env=child_env,
    stdout=file.path(target,paste0(script,".stdout")),stderr=file.path(target,paste0(script,".stderr")),
    error_on_status=FALSE)
  if(status$status!=0L)stop("Pinned science script failed: ",script)
