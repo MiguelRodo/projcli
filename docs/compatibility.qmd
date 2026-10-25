@@ -3701,3 +3701,15 @@ the deliberate stop, plus command_failed, so a preflight failure cannot satisfy
 the analysis-failure claim. Exact final/archive/VERSION preservation remains checked.
 The witness is inside the gate's private temporary parent, not a user path or product
 feature; no script sandbox claim is made.
+
+
+M4 final acceptance reconciliation: exercise settings/parameter reads inside the
+owned report harness and generic build("patch") in the candidate production case.
+Fresh recovery now invokes configured remote restore through proj_cli from R,
+rather than a Python subprocess, then retains the same full folder-byte and rerun
+assertions. Scientific scripts, data pins, engine behavior and store semantics are
+unchanged. Supported-subset documentation removes earlier incremental-draft text
+that incorrectly still called later implemented helpers pending. These additions
+require exact-head remote execution and independent review; no completion claim.
+Ponytail full: reuse the existing R transport and configuration helpers; no new
+restore wrapper, renderer engine or package-management policy is introduced.

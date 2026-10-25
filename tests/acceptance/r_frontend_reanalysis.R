@@ -58,6 +58,19 @@ main <- function() {
   do.call(Sys.setenv,as.list(c(environment,PROJCLI_M4_BACKEND=spec$backend,
     PROJCLI_M4_CLI=spec$binary,PROJCLI_M4_CASE_ROOT=spec$project,
     PROJR_AUTO_INSTALL="FALSE")))
+  if(spec$phase=="restore-data") {
+    action <<- "configured-data-restore-through-R-frontend"
+    labels <- c("raw-data","output","docs")
+    for(label in labels) {
+      reply <- projcli::proj_cli("remote restore",
+        c("--provider","local","--title","backup","--remote-version","v1.2.4",
+          "--label",label,"--max-bytes",as.character(64*1024^2),
+          "--max-expanded-bytes",as.character(128*1024^2)),
+        project=spec$project,binary=spec$binary,env=environment,timeout=180)
+      stopifnot(isTRUE(reply$ok))
+    }
+    return(list(ok=TRUE,phase=spec$phase,labels=as.list(labels)))
+  }
   if(spec$phase=="preview") {
     action <<- paste0(spec$backend,"-preview")
     if(spec$backend=="legacy") {
@@ -75,7 +88,7 @@ main <- function() {
         msg="M4 bounded comparison",clear_output="never",
         archive_local=FALSE,archive_github=FALSE,always_archive=FALSE))
     } else {
-      stopifnot(projcli::projr_build_patch(project=spec$project,binary=spec$binary,
+      stopifnot(projcli::projr_build("patch",project=spec$project,binary=spec$binary,
         execution_dir="project",clear_output="none",msg="M4 bounded comparison",
         env=c(environment,PROJCLI_M4_BACKEND="cli",PROJCLI_M4_CLI=spec$binary,
               PROJCLI_M4_CASE_ROOT=spec$project)))

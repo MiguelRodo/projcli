@@ -714,3 +714,9 @@ from original paper reports or old path-edited pilot copies. Require full ordere
 CSV assertions, real render, explicit dependency restore, local archive/fresh
 recovery and failure preservation. Heavy analysis is explicitly selected remotely
 in the existing pinned image; retain metadata only, not third-party study payloads.
+
+M4 representative acceptance must exercise public build/path/configuration calls
+and configured data restore through the R frontend itself. A direct Python CLI
+restore is useful core evidence but does not prove the R transport recovery path.
+Keep the full restored-byte and fresh rerun assertions; never substitute counts
+alone for full CSV equality.

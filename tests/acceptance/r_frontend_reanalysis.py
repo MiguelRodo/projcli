@@ -14,6 +14,14 @@ MARKER="M4_WEISBERGER_ROWS:265:236"
 FENCE=chr(96)*3
 CHUNK=r"""
 legacy <- identical(Sys.getenv("PROJCLI_M4_BACKEND"),"legacy")
+settings <- projcli::projr_yml_get(check=TRUE,
+ backend=if(legacy)projr::projr_yml_get else "cli",
+ binary=if(legacy)NULL else Sys.getenv("PROJCLI_M4_CLI"))
+expected <- projcli::projr_par_get("expected",
+ backend=if(legacy)projr::projr_par_get else "cli",
+ binary=if(legacy)NULL else Sys.getenv("PROJCLI_M4_CLI"))
+stopifnot(is.list(settings),settings$directories[["raw-data"]]$path=="_raw_data",
+ expected$pivi==265L,expected$paired==236L)
 lookup <- function(label,...) projcli::projr_path_get(label,...,create=FALSE,
  format="absolute",safe=TRUE,backend=if(legacy)projr::projr_path_get else "cli",
  binary=if(legacy)NULL else Sys.getenv("PROJCLI_M4_CLI"))
@@ -32,6 +40,7 @@ for(script in scripts) {
 }
 counts <- vapply(c("data-tidy-PIVI.csv","data-bio-den-paired.csv"),
  function(name)nrow(read.csv(file.path(target,name),check.names=FALSE)),integer(1))
+stopifnot(identical(unname(counts),as.integer(c(expected$pivi,expected$paired))))
 """
 REPORT=("\n".join(["---","title: Two existing weed-study processing scripts","output: html_document","---","",
  FENCE+"{r,include=FALSE}",CHUNK,FENCE,"","This comparison covers scripts 01 and 04 only.","",
@@ -93,6 +102,7 @@ def project(root,source,legacy,store):
     "structure":"archive","send":{"inspect":"file"}}}},
     "build":{"scripts":["bounded.Rmd"],"git":False,"dest":{"backup":{"content":["raw-data","output","docs"]}}}}
   name="_proj.yml"
+ cfg["parameters"]={"expected":{"pivi":265,"paired":236}}
  (root/name).write_text(json.dumps(cfg))
  return cfg
 def find_preview(root,name):
@@ -138,6 +148,7 @@ def main():
    legacy_source=extract_package(package,base/"legacy-source")
    evidence["legacy_archive_sha256"]=digest(package)
    def run(phase,root=None,backend="cli"):
+    print("M4 phase:",phase,"backend:",backend,flush=True)
     name=phase+"-"+(root.name if root else "setup");spec=base/(name+".json");result=base/(name+"-result.json")
     data={"phase":phase,"project":str(root) if root else None,"backend":backend,"binary":str(binary),
       "environment":environment,"bootstrap":str(bootstrap),"seed":str(seed),"legacy_library":str(legacy_library),
@@ -210,13 +221,9 @@ def main():
    cfg["build"]["dest"]={};(fresh/"_proj.yml").write_text(json.dumps(cfg))
    (fresh/"VERSION").write_bytes(before_version);(fresh/"renv.lock").write_bytes(lock)
    receipt=run("restore-packages",fresh)
+   restored=run("restore-data",fresh)
+   assert restored["labels"]==["raw-data","output","docs"]
    for label,folder in [("raw-data","_raw_data"),("output","_output"),("docs","_docs")]:
-    result=subprocess.run([str(binary),"--machine","--non-interactive","--project",str(fresh),
-      "remote","restore","--provider","local","--title","backup","--remote-version","v1.2.4",
-      "--label",label,"--max-bytes",str(64*1024**2),"--max-expanded-bytes",str(128*1024**2)],
-      env=env,cwd=fresh,capture_output=True,text=True,timeout=180)
-    reply=json.loads(result.stdout)
-    assert result.returncode==0 and reply["ok"],"Configured fresh restore failed"
     assert inventory(fresh/folder)==expected[label]
    assert (fresh/"VERSION").read_bytes()==before_version and inventory(store)==before_store
    assert not (fresh/"_tmp").exists(),"Fresh recovery must not reuse an old analysis cache"
@@ -233,7 +240,8 @@ def main():
     assert inventory(fresh/folder)==expected[label]
    evidence.update(complete=True,cases=observations,
     recovered={"dependency_receipt":receipt["receipt"],"rows":{n:summarize(v) for n,v in rebuilt.items()},
-      "report":report_marker(fresh,True,safe_role("docs")),"all_selected_restored_bytes_match":True,"source_available_with_uploads_disabled":True},
+      "report":report_marker(fresh,True,safe_role("docs")),"all_selected_restored_bytes_match":True,"source_available_with_uploads_disabled":True,
+      "data_restore_through_R_frontend":True,"configuration_and_parameter_helpers_executed":True},
     previous_final_and_archive_bytes_preserved_on_failure=True,
     full_ordered_csv_comparison=True,no_live_provider_upload=True)
  finally:
