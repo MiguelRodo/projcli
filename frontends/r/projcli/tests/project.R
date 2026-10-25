@@ -19,6 +19,11 @@ code(projr_path_get("code"),"unsupported_legacy_label")
 code(projr_path_get("data"),"unsupported_legacy_label")
 code(projr_path_get("output",safe=NA),"invalid_arguments")
 code(projr_build_patch(execution_dir="unknown"),"invalid_arguments")
+if (.Platform$OS.type=="windows") {
+  r_path <- get(".proj_r_path",asNamespace("projcli"))
+  stopifnot(identical(r_path("\\\\?\\C:\\project space\\child"),"C:/project space/child"),
+    identical(r_path("\\\\?\\UNC\\server\\share\\child"),"//server/share/child"))
+}
 cat("PASS explicit backend preservation and unsupported legacy argument boundaries\n")
 binary <- Sys.getenv("PROJCLI_R_API_TEST_BINARY",unset="")
 if (!nzchar(binary)) {
@@ -62,6 +67,7 @@ if (!nzchar(binary)) {
   stopifnot(do.call(projr_version_get,args)=="2.0.0.1")
   do.call(projr_version_set,c(list("3.4.5-8"),args))
   stopifnot(do.call(projr_version_get,args)=="3.4.5.8")
+  stopifnot(grepl("3.4.5.8",readLines(file.path(root,"VERSION")),fixed=TRUE))
   old <- readBin(file.path(root,"VERSION"),"raw",n=1000)
   code(do.call(projr_version_set,c(list("invalid"),args)),"command_failed")
   stopifnot(identical(old,readBin(file.path(root,"VERSION"),"raw",n=1000)))

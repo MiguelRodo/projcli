@@ -11,6 +11,17 @@
   }
   invisible(TRUE)
 }
+.proj_r_path <- function(path) {
+  if (.Platform$OS.type != "windows") return(path)
+  # Native Rust absolute paths may use the verbatim namespace. Windows forbids
+  # mixed '/' separators there; R file.path adds '/', so return ordinary syntax.
+  if (startsWith(path,"\\\\?\\UNC\\")) {
+    path <- paste0("//",substring(path,9L))
+  } else if (startsWith(path,"\\\\?\\")) {
+    path <- substring(path,5L)
+  }
+  gsub("\\","/",path,fixed=TRUE)
+}
 .proj_version_root <- function(project, binary, env, timeout) {
   reply <- proj_cli("path get", c("--label","project","--format","absolute"),
                     project,binary,env,timeout)
@@ -18,6 +29,7 @@
   if (!.proj_strings(root,scalar=TRUE,empty=FALSE)) {
     .proj_error("invalid_protocol","The CLI returned an invalid project path.")
   }
+  root <- .proj_r_path(root)
   if (file.exists(file.path(root,"DESCRIPTION"))) {
     .proj_error("unsupported_version_authority",
       "Legacy R version/build helpers may use DESCRIPTION. This CLI subset uses VERSION; select an explicit existing R function for DESCRIPTION projects.")
@@ -178,7 +190,7 @@ projr_path_get <- function(label,...,create=FALSE,format=c("auto","relative","ab
   reply <- proj_cli("path get",args,project,binary,env,timeout)
   path <- .proj_query_value(reply,"path")
   if (!.proj_strings(path,scalar=TRUE,empty=FALSE)) .proj_error("invalid_protocol","The CLI returned an invalid path.")
-  path
+  .proj_r_path(path)
 }
 
 #' Read the captured VERSION using the CLI canonical spelling
