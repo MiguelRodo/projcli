@@ -38,8 +38,13 @@ pub(crate) struct Worker {
 impl Worker {
     pub(crate) fn start(root: &Utf8Path, profile: Option<&str>, environment: &RunEnvironment) -> anyhow::Result<Self> {
         let directory = tempfile::Builder::new().prefix("projcli-r-session-").tempdir()?;
+        // Rscript -e truncates multiline expressions on the supported Windows
+        // launch path. A private script file preserves the same fixed driver on
+        // both platforms without shell quoting or generated R expressions.
+        let driver = directory.path().join("driver.R");
+        std::fs::write(&driver, DRIVER).context("Cannot prepare shared R driver")?;
         let mut command = environment.command("Rscript");
-        command.arg("-e").arg(DRIVER).arg(directory.path()).stdin(Stdio::piped());
+        command.arg(&driver).arg(directory.path()).stdin(Stdio::piped());
         command.env(crate::project::PROJECT_ROOT_ENV,root.as_str());
         if let Some(profile)=profile {command.env("PROJR_PROFILE",profile);}
         let mut child = command.spawn().context("Cannot start shared R analysis session")?;
