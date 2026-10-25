@@ -37,6 +37,18 @@ error_code(inside(".proj_process")(rscript, c("--vanilla", "-e", "Sys.sleep(5)")
   inside(".proj_environment")(character()), 0.05), "timeout")
 stopifnot(identical(responses(), before_responses))
 error_code(decode('{"protocol_version":1,"protocol_version":1}', 0L), "invalid_protocol")
+error_code(decode(envelope(FALSE, NULL, list(code_extra = "command_failed",
+  message = "secret-canary")), 1L), "invalid_protocol")
+error_code(decode(envelope(FALSE, NULL, list(code = "command_failed",
+  message_extra = "secret-canary")), 1L), "invalid_protocol")
+valid_cap <- list(capability_version = 1L, non_interactive = TRUE,
+                  machine_commands = list("capabilities"))
+stopifnot(identical(inside(".proj_capabilities")(list(result = valid_cap)), "capabilities"))
+for (name in names(valid_cap)) {
+  bad <- valid_cap
+  names(bad)[names(bad) == name] <- paste0(name, "_extra")
+  error_code(inside(".proj_capabilities")(list(result = bad)), "incompatible_capabilities")
+}
 error_code(decode(paste0(envelope(), envelope()), 0L), "invalid_protocol")
 error_code(inside(".proj_capabilities")(list(result = list(capability_version = 2L))),
            "incompatible_capabilities")

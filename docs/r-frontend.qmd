@@ -54,6 +54,7 @@ or full R/IDE/renderer parity is claimed.
 
 The candidate adds unconditional malformed-response, environment, argument and
 missing-binary tests, plus required real Linux/Windows checks against the separately
-published, hash-verified preview.4. Tests are unrun until remote CI reports a result.
+published, hash-verified preview.4. [PR225](https://github.com/MiguelRodo/projcli/pull/225) records exact-head
+remote results; those checks must pass before merge.
 The full M4 gate still needs a named representative project, renderer/hook mapping,
 explicit selected dependency preparation, archive/restore and baseline rerun comparison.

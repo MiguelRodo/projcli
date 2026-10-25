@@ -76,14 +76,14 @@ jobs:
       - name: R-only package check and required native integration
         shell: pwsh
         run: |
-          R CMD build frontends/r/projcli
+          & R.exe CMD build frontends/r/projcli
           if ($LASTEXITCODE -ne 0) { throw 'R package build failed' }
-          R CMD check --no-manual --no-build-vignettes projcli_0.0.0.9000.tar.gz
+          & R.exe CMD check --no-manual --no-build-vignettes projcli_0.0.0.9000.tar.gz
           if ($LASTEXITCODE -ne 0) { throw 'R-only package check failed' }
-          R CMD INSTALL frontends/r/projcli
+          & R.exe CMD INSTALL frontends/r/projcli
           if ($LASTEXITCODE -ne 0) { throw 'R package install failed' }
           $env:PROJCLI_R_TEST_BINARY = (Resolve-Path adapter-cli/proj.exe).Path
-          Rscript --vanilla frontends/r/projcli/tests/transport.R
+          & Rscript.exe --vanilla frontends/r/projcli/tests/transport.R
           if ($LASTEXITCODE -ne 0) { throw 'Required actual CLI integration failed' }
       - uses: actions/upload-artifact@v4
         if: always()

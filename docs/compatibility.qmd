@@ -3491,8 +3491,11 @@ core changes, embedded binding, shell command builder, package installer, workfl
 copy or new backend framework. Independent review identified malformed error-shape,
 timeout/interrupt reporting and Windows response-file cleanup gaps; the candidate
 adds guarded access, effects-may-exist diagnostics and close-before-cleanup reads.
-Focused pure and actual-subprocess tests cover those paths remotely. Checks are
-currently unrun; required native Linux/Windows integration uses the published
+Focused pure and actual-subprocess tests cover those paths remotely. Exact-head
+results are recorded in [PR225](https://github.com/MiguelRodo/projcli/pull/225);
+required native Linux/Windows integration uses the published
 checksum-verified preview.4, while R-only checks still run without an optional CLI.
 Representative-project, renderer/hook, API/backend and renv gates remain pending.
-No M4 merge/release/installation has been approved or performed.
+This initial M4 implementation request does not itself approve merge, release
+or installation. The Windows fixture invokes R.exe explicitly because PowerShell
+resolves bare R as its history alias; that CI failure occurred before R checks.

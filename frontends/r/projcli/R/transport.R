@@ -57,16 +57,16 @@
                     error = function(e) NULL)
   if (!is.list(value) || is.null(names(value)) || anyDuplicated(names(value)) ||
       !all(c("protocol_version", "cli_version", "ok", "result", "error") %in% names(value))) bad()
-  if (!identical(value$protocol_version, 1L)) {
+  if (!identical(value[["protocol_version"]], 1L)) {
     .proj_error("incompatible_protocol",
       "This R adapter requires machine protocol 1. Install a compatible proj CLI.")
   }
-  if (!.proj_strings(value$cli_version, scalar = TRUE, empty = FALSE) ||
-      !grepl("^[0-9]+\\.[0-9]+\\.[0-9]+([-+][A-Za-z0-9.-]+)?$", value$cli_version) ||
-      !is.logical(value$ok) || length(value$ok) != 1L || is.na(value$ok) ||
-      !identical(status == 0L, value$ok)) bad()
-  if (value$ok) {
-    if (!is.null(value$error)) bad()
+  if (!.proj_strings(value[["cli_version"]], scalar = TRUE, empty = FALSE) ||
+      !grepl("^[0-9]+\\.[0-9]+\\.[0-9]+(-[A-Za-z0-9.-]+)?(\\+[A-Za-z0-9.-]+)?$", value[["cli_version"]]) ||
+      !is.logical(value[["ok"]]) || length(value[["ok"]]) != 1L || is.na(value[["ok"]]) ||
+      !identical(status == 0L, value[["ok"]])) bad()
+  if (value[["ok"]]) {
+    if (!is.null(value[["error"]])) bad()
     return(value)
   }
   messages <- c(
@@ -76,19 +76,22 @@
     command_failed = "The proj command failed. Changes or partial distribution may already have occurred.",
     worker_unavailable = "proj could not start its command worker."
   )
-  if (!is.list(value$error)) bad()
-  code <- value$error$code
+  if (!is.list(value[["error"]]) || is.null(names(value[["error"]])) ||
+      anyDuplicated(names(value[["error"]])) ||
+      !all(c("code", "message") %in% names(value[["error"]])) ||
+      !.proj_strings(value[["error"]][["message"]], scalar = TRUE, empty = FALSE)) bad()
+  code <- value[["error"]][["code"]]
   if (!.proj_strings(code, scalar = TRUE) ||
-      !code %in% names(messages) || !is.null(value$result)) bad()
+      !code %in% names(messages) || !is.null(value[["result"]])) bad()
   .proj_error(code, unname(messages[[code]]), status)
 }
 
 .proj_status <- function(result) {
-  if (isTRUE(result$timeout)) {
+  if (isTRUE(result[["timeout"]])) {
     .proj_error("timeout",
       "The proj subprocess timed out. Changes or partial distribution may already have occurred; inspect before retrying.")
   }
-  if (length(result$status) != 1L || !is.numeric(result$status) || is.na(result$status)) {
+  if (length(result[["status"]]) != 1L || !is.numeric(result[["status"]]) || is.na(result[["status"]])) {
     .proj_error("transport_failed",
       "The proj subprocess stopped without an exit status. Effects may already exist; inspect before retrying.")
   }
@@ -116,19 +119,22 @@
   bytes <- readBin(output, "raw", n = as.integer(size))
   text <- tryCatch(rawToChar(bytes), error = function(e) "")
   Encoding(text) <- "UTF-8"
-  .proj_decode(text, result$status)
+  .proj_decode(text, result[["status"]])
 }
 
 .proj_capabilities <- function(reply) {
-  cap <- reply$result
-  if (!is.list(cap) || !identical(cap$capability_version, 1L) ||
-      !isTRUE(cap$non_interactive) || !is.list(cap$machine_commands) ||
-      !length(cap$machine_commands) ||
-      !all(vapply(cap$machine_commands, .proj_strings, logical(1), scalar = TRUE, empty = FALSE))) {
+  cap <- reply[["result"]]
+  if (!is.list(cap) || is.null(names(cap)) || anyDuplicated(names(cap)) ||
+      !all(c("capability_version", "non_interactive", "machine_commands") %in% names(cap)) ||
+      !identical(cap[["capability_version"]], 1L) ||
+      !isTRUE(cap[["non_interactive"]]) || !is.list(cap[["machine_commands"]]) ||
+      !is.null(names(cap[["machine_commands"]])) ||
+      !length(cap[["machine_commands"]]) ||
+      !all(vapply(cap[["machine_commands"]], .proj_strings, logical(1), scalar = TRUE, empty = FALSE))) {
     .proj_error("incompatible_capabilities",
       "This R adapter requires capability version 1 and noninteractive machine commands.")
   }
-  unlist(cap$machine_commands, use.names = FALSE)
+  unlist(cap[["machine_commands"]], use.names = FALSE)
 }
 
 .proj_argv <- function(command, args, project) {
@@ -180,7 +186,7 @@ proj_cli <- function(command = "capabilities", args = character(), project = NUL
   }
   project <- normalizePath(project, winslash = "/", mustWork = TRUE)
   reply <- .proj_process(binary, .proj_argv(command, args, project), child_env, timeout)
-  if (!identical(reply$cli_version, capabilities$cli_version)) {
+  if (!identical(reply[["cli_version"]], capabilities[["cli_version"]])) {
     .proj_error("cli_changed", "The CLI version changed during the call. Check any effects before retrying.")
   }
   reply
