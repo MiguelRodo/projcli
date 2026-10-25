@@ -54,6 +54,7 @@ jobs:
           runuser -u rstudio -- env CARGO_HOME="$RUNNER_TEMP/r-adapter-cargo" RUSTUP_AUTO_INSTALL=0 cargo build --locked --bin proj
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla frontends/r/projcli/tests/configuration.R
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla frontends/r/projcli/tests/project.R
+          runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla frontends/r/projcli/tests/sessions.R
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -108,6 +109,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Required configuration API integration failed' }
           & Rscript.exe --vanilla frontends/r/projcli/tests/project.R
           if ($LASTEXITCODE -ne 0) { throw 'Required project API integration failed' }
+          & Rscript.exe --vanilla frontends/r/projcli/tests/sessions.R
+          if ($LASTEXITCODE -ne 0) { throw 'Required R session integration failed' }
       - uses: actions/upload-artifact@v4
         if: always()
         with:

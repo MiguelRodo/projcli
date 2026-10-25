@@ -695,3 +695,9 @@ M4 project helpers must not silently translate legacy DESCRIPTION version
 authority, render_book, implicit folder creation, engine objects or archive flags.
 Preserve omitted defaults when invoking an explicit R callback. Core workflow
 remains authoritative; required native candidate tests run remotely.
+
+M4 config.r.session applies only to plain R analysis scripts; isolated stays default.
+Shared means one build-scoped child, not the caller's live R session. Keep hooks
+separate and renderer behavior native. Resolve config.r.rscript once before hooks,
+using direct native executable paths and the existing run environment. No daemon,
+silent renv restore or housekeeping worker is implied.

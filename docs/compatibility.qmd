@@ -3567,3 +3567,29 @@ present VERSION absent. Convert Windows disk/UNC paths to R-compatible slash
 syntax before R filesystem checks and path returns. The regression requires the
 setter's actual VERSION bytes to change; missing-file no-op remains distinct.
 No Rust path guard or project identity behavior changes.
+
+## M4 explicit R process selection candidate
+
+New user-approved config.r.session isolated/shared and config.r.rscript. Isolated
+remains default. Shared mode reuses one build-scoped child for plain R analysis
+scripts only, via source into its global environment; hooks and renderer drivers
+remain separate. Unlike a legacy caller-session build, it does not capture the
+interactive caller's objects. Startup/renv activation costs still occur at worker
+launch. No permanent daemon, automatic renv restoration or housekeeping batching.
+
+Ponytail full: reuse RunEnvironment and existing runner order; one private request
+file plus control pipe/completion file avoids shell/generated-source interpolation
+and script-stdout protocol ambiguity. Close the owned input at pipeline completion;
+never search for or terminate unrelated processes. Script hangs retain the existing
+lack of a build timeout. File polling is a bounded-design overhead, not a performance
+claim. Configured native executable resolution precedes hooks and applies to
+directly controlled R drivers; Quarto's engine remains native.
+
+Remote fixtures assert globals/options/cwd sharing vs separation, lowercase R
+selection, Python ordering, distinct hook processes, spaced project-relative
+executable paths, invalid selection before hooks and script-failure stop/recovery.
+Execution and exact-head independent review are pending.
+
+Independent pre-CI review caught Windows text newline conversion and a completion
+creation/read race. The worker now writes explicit binary status bytes to a private
+same-directory temporary file, closes it, then renames it before the driver reads.

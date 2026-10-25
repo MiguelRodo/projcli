@@ -727,3 +727,23 @@ original bytes. This adds no build/hook/Git stage: ordinary providers still run
 first, legacy CAS precedes modern configured CAS, and failure retains possible
 distribution evidence. The existing development overlay includes the legacy
 ownership branch; released historical figures remain unchanged.
+
+
+## M4 draft: R session boundary
+
+~~~{mermaid}
+flowchart TB
+  V["Validate R settings and executable"] --> H["Start hooks in separate processes"]
+  H --> A["Ordered analysis"]
+  A --> I["isolated: fresh Rscript for each plain R script"]
+  A --> S["shared: lazily start one child; source each plain R script in order"]
+  I --> E["End analysis"]
+  S --> C["Close worker control input and wait for exit"]
+  C --> E
+  A -.-> R["Document renderers keep their native process boundaries"]
+  E --> P["Existing success/failure and finalization workflow"]
+~~~
+
+This draft adds a process choice inside analysis, without moving hooks, clearing,
+promotion or publication. Python and document steps retain their place between R
+scripts. Shared R state never becomes the Rust driver's or hook processes' state.

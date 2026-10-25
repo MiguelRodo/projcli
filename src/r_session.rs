@@ -22,7 +22,9 @@ const DRIVER: &str = r#"local({
       TRUE
     },error=function(e) {message(conditionMessage(e));FALSE},
       interrupt=function(e) FALSE)
-    writeLines(if(ok) "ok" else "error",result,useBytes=TRUE)
+    pending <- paste0(result,".tmp")
+    writeBin(charToRaw(if(ok) "ok\n" else "error\n"),pending)
+    if (!file.rename(pending,result)) quit(status=2L)
     if (!ok) quit(status=1L)
   }
 })"#;

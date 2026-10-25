@@ -151,6 +151,7 @@ pub enum RSession {
 #[derive(Deserialize, Debug, Default, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct RConfig {
+    /// Isolated by default; shared applies only to plain analysis scripts.
     #[serde(default)]
     pub session: RSession,
     /// Optional native Rscript executable, not a shell command or arguments.
