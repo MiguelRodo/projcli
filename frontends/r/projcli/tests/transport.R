@@ -130,13 +130,19 @@ if (!nzchar(binary)) {
     writeLines(script, file.path(project, "analysis.R"), useBytes = TRUE)
     invisible(proj_cli("build-dev", c("--execution-dir", "project", "--profile", "transport"),
       project, spaced, env = c(PROJCLI_TEST_TOKEN = "secret-canary")))
+    portable_path <- function(value) {
+      value <- chartr("\\", "/", value)
+      if (startsWith(value, "//?/UNC/")) paste0("//", substring(value, 9L))
+      else if (startsWith(value, "//?/")) substring(value, 5L)
+      else value
+    }
     observed <- readRDS(file.path(project, "observed.rds"))
     stopifnot(normalizePath(custom, winslash = "/") %in%
       normalizePath(observed$libs, winslash = "/"),
       observed$token == "secret-canary", observed$pollution == "absent",
       identical(observed$nested_version, original_version),
-      startsWith(observed$nested_path,
-        paste0(normalizePath(file.path(project, "profile-cache"), winslash = "/"), "/")),
+      startsWith(portable_path(observed$nested_path),
+        paste0(portable_path(normalizePath(project, winslash = "/")), "/profile-cache/")),
       readLines(file.path(project, "VERSION")) == "v1.2.3-7")
     writeLines('stop("secret-canary private failure")', file.path(project, "analysis.R"))
     error_code(proj_cli("build-dev", c("--execution-dir", "project", "--profile", "transport"),

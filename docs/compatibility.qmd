@@ -3506,3 +3506,8 @@ selection, and the existing two guarded context variables pass through without
 inheriting arbitrary R state. A real nested R call changes cwd to another marked
 project and edits VERSION, then checks captured root/profile/version and exact
 preview version restoration. Explicit project override behavior is unchanged.
+
+The new Windows regression exposed a fixture-only representation mismatch:
+native absolute paths and R slash-normalized paths are now compared in the same
+representation, including native verbatim prefixes. Root/profile prefix and exact
+captured-version/restoration checks remain intact; production guards are unchanged.
