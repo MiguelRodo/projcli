@@ -986,3 +986,12 @@ Default query profiles preserve managed context, while configuration contents re
 current observations. R configuration helpers support merged active views; legacy
 isolated-layer semantics require explicit existing-function callbacks. Callback
 execution is deliberately in the caller's R session, not a promised clean child.
+
+### M4 project helper subset
+
+Draft R build/dev/path/version helpers delegate to the existing workflow and
+require explicit legacy callbacks where semantics differ. Read-only path lookup
+uses format and safe; it never activates folder creation. High-level VERSION
+helpers reject DESCRIPTION projects, and high-level build helpers reject Bookdown
+markers rather than equating render_book with render_site. Generic proj_cli still
+exposes the documented standalone CLI. This does not change renderer/hook ordering.
