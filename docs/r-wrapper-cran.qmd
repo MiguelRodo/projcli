@@ -1,6 +1,7 @@
 # Future R wrapper: CLI installation and CRAN checks
 
-Status: design direction recorded on 2026-10-20, not a shipped wrapper or an
+Status: design direction recorded on 2026-10-20. M4 now has an initial
+[separate R transport candidate](r-frontend.qmd); it is not a shipped wrapper or an
 accepted CRAN submission. The existing R package remains untouched. This note
 does not settle the complete frontend protocol or claim renderer parity.
 
@@ -50,4 +51,5 @@ binary-download permission from Quarto's existence.
 
 Before implementation, specify compatible protocol versions, executable discovery,
 argument quoting, diagnostics, and which tests are unconditional versus executable
-integration. R production changes require separate authorization.
+integration. M4 authorizes production code in the separate frontend, not changes to the existing
+SATVILab/projr package.

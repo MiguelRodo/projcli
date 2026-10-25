@@ -1,0 +1,13 @@
+Package: projcli
+Title: Call the Standalone Project Build Command
+Version: 0.0.0.9000
+Authors@R: person("Miguel", "Rodo", email = "miguel.rodo@uct.ac.za", role = c("aut", "cre"))
+Description: An explicit subprocess interface to a separately installed project
+    build command. Validates the machine protocol and passes a deliberate child
+    environment without embedding a Rust engine in the R session.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+Imports: jsonlite (>= 1.8.0), processx (>= 3.8.0)
+SystemRequirements: proj CLI with machine protocol 1 and capability version 1
+URL: https://github.com/MiguelRodo/projcli
