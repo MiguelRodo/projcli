@@ -9,6 +9,21 @@ if (!nzchar(binary)) {
   dir.create(file.path(root,"changed cwd"))
   quote_r <- function(value) encodeString(value,quote='"')
   at <- function(name) quote_r(file.path(root,name))
+  # This is the core-runner witness, not transport conformance (covered separately).
+  # Human mode retains R engine diagnostics from our owned synthetic fixture; the
+  # machine interface intentionally withholds them and cannot diagnose a failure.
+  native_build <- function(command,args=character(),project,binary) {
+    environment <- get(".proj_environment",asNamespace("projcli"))(character())
+    result <- processx::run(binary,c("--non-interactive","--project",project,command,args),
+       env=environment,stdin=NULL,stdout="|",stderr="|",error_on_status=FALSE,timeout=120)
+    if(result$status!=0L) {
+      lines <- strsplit(result$stderr,"\n",fixed=TRUE)[[1L]]
+      diagnostic <- paste(tail(lines,12L),collapse="\n")
+      get(".proj_error",asNamespace("projcli"))("fixture_native_failed",
+        paste("Owned synthetic runner fixture failed:",substr(diagnostic,1L,4000L)))
+    }
+    invisible(result)
+  }
   writeLines("v1.2.3-7",file.path(root,"VERSION"))
   cfg <- list(config=list(r=list(session="shared")),
     build=list(git=FALSE,scripts=list("first.r","middle.py","second.R"),
@@ -35,7 +50,7 @@ if (!nzchar(binary)) {
     paste0("writeLines(as.character(Sys.getpid()),",at("second-pid"),")")),file.path(root,"second.R"))
    for (name in c("first-pid","second-pid","pre-pid","post-pid","middle-ok")) unlink(file.path(root,name))
    before <- readBin(file.path(root,"VERSION"),"raw",n=1000)
-   proj_cli("build-dev",c("--execution-dir","project"),project=root,binary=binary)
+   native_build("build-dev",c("--execution-dir","project"),project=root,binary=binary)
    read <- function(name) readLines(file.path(root,name))
    stopifnot(identical(read("first-pid"),read("second-pid"))==(mode=="shared"),
      read("pre-pid")!=read("first-pid"),read("post-pid")!=read("first-pid"),
@@ -67,17 +82,17 @@ if (!nzchar(binary)) {
   old_path <- Sys.getenv("PATH")
   tryCatch({
    Sys.setenv(PATH=paste(trap,old_path,sep=.Platform$path.sep))
-   proj_cli("build-dev",c("--execution-dir","project"),project=root,binary=binary)
+   native_build("build-dev",c("--execution-dir","project"),project=root,binary=binary)
   },finally=Sys.setenv(PATH=old_path))
   stopifnot(readLines(file.path(root,"configured-ok"))=="configured executable ran")
   unlink(link,recursive=TRUE)
   # Missing executable and invalid session fail before hooks or script execution.
   for (name in c("pre-pid","second-pid")) unlink(file.path(root,name))
   cfg$config$r$rscript <- "missing executable";write_cfg()
-  failed <- tryCatch(proj_cli("build-dev",project=root,binary=binary),projcli_error=identity)
+  failed <- tryCatch(native_build("build-dev",project=root,binary=binary),projcli_error=identity)
   stopifnot(inherits(failed,"projcli_error"),!file.exists(file.path(root,"pre-pid")))
   cfg$config$r$rscript <- NULL;cfg$config$r$session <- "misspelled";write_cfg()
-  failed <- tryCatch(proj_cli("build-dev",project=root,binary=binary),projcli_error=identity)
+  failed <- tryCatch(native_build("build-dev",project=root,binary=binary),projcli_error=identity)
   stopifnot(inherits(failed,"projcli_error"),!file.exists(file.path(root,"pre-pid")))
   # Shared script failure stops later steps and end hooks, retains exact VERSION.
   cfg$config$r$session <- "shared";cfg$build$scripts <- list("first.r","fail.R","never.R");write_cfg()
@@ -85,7 +100,7 @@ if (!nzchar(binary)) {
   writeLines(paste0("writeLines('unexpected',",at("never-marker"),")"),file.path(root,"never.R"))
   unlink(file.path(root,"post-pid"))
   before <- readBin(file.path(root,"VERSION"),"raw",n=1000)
-  failed <- tryCatch(proj_cli("build-dev",c("--execution-dir","project"),project=root,binary=binary),projcli_error=identity)
+  failed <- tryCatch(native_build("build-dev",c("--execution-dir","project"),project=root,binary=binary),projcli_error=identity)
   stopifnot(inherits(failed,"projcli_error"),!file.exists(file.path(root,"never-marker")),
     !file.exists(file.path(root,"post-pid")),identical(before,readBin(file.path(root,"VERSION"),"raw",n=1000)))
   cat("PASS native shared/isolated R state, mixed-language order, hook separation, executable paths and fail-fast recovery\n")
