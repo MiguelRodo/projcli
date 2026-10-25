@@ -63,26 +63,46 @@ proj_renv_restore <- function(project,library,lockfile="renv.lock",rscript=NULL,
  receipt<-tempfile("projcli-renv-",fileext=".json")
  if(!file.create(receipt)) .proj_error("transport_failed","Cannot prepare the dependency result.")
  on.exit(unlink(receipt),add=TRUE);Sys.chmod(receipt,"0600")
- result<-.proj_capture(rscript,c("--vanilla","-e",.proj_renv_driver,project,lockfile,library,receipt),
+ driver<-tempfile("projcli-renv-driver-",fileext=".R")
+ if(!file.create(driver)) .proj_error("transport_failed","Cannot prepare the dependency driver.")
+ on.exit(unlink(driver),add=TRUE);Sys.chmod(driver,"0600")
+ writeBin(charToRaw(.proj_renv_driver),driver)
+ result<-.proj_capture(rscript,c("--vanilla",driver,project,lockfile,library,receipt),
                         .proj_environment(env),timeout)
  size<-file.info(receipt)$size
  if(is.na(size)||size>8*1024^2) .proj_error("renv_restore_failed","Dependency result unavailable; inspect the library and cache before retrying.")
- text<-rawToChar(readBin(receipt,"raw",n=as.integer(size)));Encoding(text)<-"UTF-8"
- value<-tryCatch(jsonlite::fromJSON(text,simplifyVector=FALSE),error=function(e)NULL)
+ bytes<-tryCatch(readBin(receipt,"raw",n=as.integer(size)),
+   error=function(e).proj_error("renv_restore_failed","Dependency result unreadable; inspect effects before retrying."))
+ .proj_renv_decode(bytes,result$status)
+}
+
+.proj_renv_decode <- function(bytes,status) {
+ bad <- function() .proj_error("renv_restore_failed","Dependency result invalid; inspect the library and cache before retrying.")
+ if(!is.raw(bytes)||length(bytes)>8*1024^2||!is.numeric(status)||length(status)!=1L||is.na(status)) bad()
+ text<-tryCatch(rawToChar(bytes),error=function(e)NULL)
+ if(is.null(text)) bad()
+ Encoding(text)<-"UTF-8"
+ value<-tryCatch(suppressWarnings(jsonlite::fromJSON(text,simplifyVector=FALSE)),error=function(e)NULL)
  if(!is.list(value)||is.null(names(value))||anyDuplicated(names(value))||
-    !is.logical(value[["ok"]])||length(value[["ok"]])!=1L||is.na(value[["ok"]])) {
-  .proj_error("renv_restore_failed","Dependency result invalid; inspect the library and cache before retrying.")
- }
- if(!isTRUE(value[["ok"]])||result$status!=0L) {
-  if(identical(value[["code"]],"renv_missing")) .proj_error("renv_missing","Install renv explicitly in the selected R installation first. No bootstrap was attempted.")
+    !is.logical(value[["ok"]])||length(value[["ok"]])!=1L||is.na(value[["ok"]])) bad()
+ if(!isTRUE(value[["ok"]])||status!=0L) {
+  if(identical(value[["ok"]],FALSE)&&identical(value[["code"]],"renv_missing")) {
+   .proj_error("renv_missing","Install renv explicitly in the selected R installation first. No bootstrap was attempted.")
+  }
   .proj_error("renv_restore_failed","Dependency restoration failed. Library, cache or package installation effects may remain; inspect before retrying.")
  }
+ if(!setequal(names(value),c("ok","result"))) bad()
  observed<-value[["result"]]
+ version <- function(value) .proj_strings(value,scalar=TRUE,empty=FALSE)&&
+   grepl("^[0-9]+([.-][0-9]+)*$",value)
  if(!is.list(observed)||anyDuplicated(names(observed))||
-    !all(c("lockfile_md5","renv_version","packages") %in% names(observed))||
+    !setequal(names(observed),c("lockfile_md5","renv_version","packages"))||
     !.proj_strings(observed[["lockfile_md5"]],scalar=TRUE)||
     !grepl("^[0-9a-f]{32}$",observed[["lockfile_md5"]])||
-    !.proj_strings(observed[["renv_version"]],scalar=TRUE,empty=FALSE)||
-    !is.list(observed[["packages"]])) .proj_error("renv_restore_failed","Dependency result did not establish the restored versions.")
+    !version(observed[["renv_version"]])||!is.list(observed[["packages"]])) bad()
+ packages<-observed[["packages"]]
+ if(length(packages)&&(is.null(names(packages))||anyNA(names(packages))||
+    anyDuplicated(names(packages))||any(!grepl("^[A-Za-z][A-Za-z0-9.]*$",names(packages)))||
+    !all(vapply(packages,version,logical(1))))) bad()
  observed
 }

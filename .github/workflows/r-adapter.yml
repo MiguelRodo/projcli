@@ -8,6 +8,7 @@ on:
       - 'Cargo.*'
       - 'tests/test_yml_queries.rs'
       - 'tests/acceptance/r_frontend_renderers.R'
+      - 'tests/acceptance/r_frontend_renv.R'
       - '.github/workflows/r-adapter.yml'
 jobs:
   pinned-linux:
@@ -62,7 +63,7 @@ jobs:
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla frontends/r/projcli/tests/project.R
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla frontends/r/projcli/tests/sessions.R
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" PROJCLI_R_RENDER_TESTS_REQUIRED=1 Rscript --vanilla tests/acceptance/r_frontend_renderers.R
-          runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_RENV_TESTS_REQUIRED=1 Rscript --vanilla frontends/r/projcli/tests/dependencies.R
+          runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_RENV_TESTS_REQUIRED=1 Rscript --vanilla tests/acceptance/r_frontend_renv.R
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -130,7 +131,7 @@ jobs:
           & Rscript.exe --vanilla frontends/r/projcli/tests/sessions.R
           if ($LASTEXITCODE -ne 0) { throw 'Required R session integration failed' }
           $env:PROJCLI_R_RENV_TESTS_REQUIRED = "1"
-          & Rscript.exe --vanilla frontends/r/projcli/tests/dependencies.R
+          & Rscript.exe --vanilla tests/acceptance/r_frontend_renv.R
           if ($LASTEXITCODE -ne 0) { throw 'Required explicit dependency restoration failed' }
       - uses: actions/upload-artifact@v4
         if: always()

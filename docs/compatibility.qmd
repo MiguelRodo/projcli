@@ -3641,3 +3641,14 @@ repository, restore into an empty library with empty/disabled cache, load its re
 check unchanged lockfile/caller libraries, repeat, and reject an unavailable locked
 version. No original R package, pilot project, user library or local installation
 is changed. New tests and independent review remain pending.
+
+Independent source review required the same private driver-file launch used by
+the R worker, plus static handling of malformed/NUL receipt bytes and strict
+package-name/version result validation. These corrections have unconditional
+redaction/schema fixtures; actual restoration remains a required remote operation.
+
+Package checks run only pure receipt/argument regressions. The explicit restore
+integration lives outside the package at tests/acceptance/r_frontend_renv.R and
+requires its dedicated CI gate flag; installing dependencies during ordinary
+R CMD check is forbidden. Preparing optional test dependencies is a separate
+isolated runner setup step, not package setup or automatic user bootstrapping.
