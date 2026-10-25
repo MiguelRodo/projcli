@@ -34,15 +34,19 @@ jobs:
           binary=target/'proj_0.4.0-preview.4_linux_amd64'
           assert hashlib.sha256(binary.read_bytes()).hexdigest()=='31ffa1732f8ee4da9bcf15540a53abeee741a8aca23eeca26f5a94ac6aa8a7f0'
           binary.chmod(0o755)
+          source=Path('adapter-cli/renv_1.1.5.tar.gz')
+          urllib.request.urlretrieve('https://cran.r-project.org/src/contrib/Archive/renv/renv_1.1.5.tar.gz',source)
+          assert hashlib.sha256(source.read_bytes()).hexdigest()=='3ee996c65989bc5ea3914fbceb3794b00c7daab7eda49dce64048012ea0406b2'
           PY
           chown -R rstudio:rstudio "$GITHUB_WORKSPACE"
           install -d -o rstudio -g rstudio "$RUNNER_TEMP/r-adapter-library"
+          runuser -u rstudio -- R CMD INSTALL --library="$RUNNER_TEMP/r-adapter-library" adapter-cli/renv_1.1.5.tar.gz
       - name: Check package without the optional CLI
         shell: bash
         run: |
           Rscript --vanilla -e 'stopifnot(requireNamespace("processx",quietly=TRUE),requireNamespace("jsonlite",quietly=TRUE))'
-          runuser -u rstudio -- R CMD build frontends/r/projcli
-          runuser -u rstudio -- R CMD check --no-manual --no-build-vignettes projcli_0.0.0.9000.tar.gz
+          runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" R CMD build frontends/r/projcli
+          runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" R CMD check --no-manual --no-build-vignettes projcli_0.0.0.9000.tar.gz
           python3 -c 'from pathlib import Path; assert "Status: OK" in Path("projcli.Rcheck/00check.log").read_text().splitlines(), "R package check must be clean"'
       - name: Required actual CLI R integration
         shell: bash
@@ -58,6 +62,7 @@ jobs:
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla frontends/r/projcli/tests/project.R
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla frontends/r/projcli/tests/sessions.R
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" PROJCLI_R_RENDER_TESTS_REQUIRED=1 Rscript --vanilla tests/acceptance/r_frontend_renderers.R
+          runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_RENV_TESTS_REQUIRED=1 Rscript --vanilla frontends/r/projcli/tests/dependencies.R
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -87,6 +92,15 @@ jobs:
         run: |
           $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath adapter-cli/proj.exe).Hash.ToLowerInvariant()
           if ($actual -cne '92a5b7626a39f09d78b0661b43e183d8c87c4b382f7e13616bd228121b43a378') { throw 'Pinned CLI hash mismatch' }
+      - name: Prepare pinned optional renv test dependency
+        shell: pwsh
+        run: |
+          python -c "import urllib.request; urllib.request.urlretrieve('https://cran.r-project.org/src/contrib/Archive/renv/renv_1.1.5.tar.gz','adapter-cli/renv_1.1.5.tar.gz')"
+          if ($LASTEXITCODE -ne 0) { throw 'Optional test source download failed' }
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath adapter-cli/renv_1.1.5.tar.gz).Hash.ToLowerInvariant()
+          if ($actual -cne '3ee996c65989bc5ea3914fbceb3794b00c7daab7eda49dce64048012ea0406b2') { throw 'Optional test source checksum mismatch' }
+          & R.exe CMD INSTALL adapter-cli/renv_1.1.5.tar.gz
+          if ($LASTEXITCODE -ne 0) { throw 'Optional test dependency installation failed' }
       - name: R-only package check and required native integration
         shell: pwsh
         run: |
@@ -115,6 +129,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Required project API integration failed' }
           & Rscript.exe --vanilla frontends/r/projcli/tests/sessions.R
           if ($LASTEXITCODE -ne 0) { throw 'Required R session integration failed' }
+          $env:PROJCLI_R_RENV_TESTS_REQUIRED = "1"
+          & Rscript.exe --vanilla frontends/r/projcli/tests/dependencies.R
+          if ($LASTEXITCODE -ne 0) { throw 'Required explicit dependency restoration failed' }
       - uses: actions/upload-artifact@v4
         if: always()
         with:

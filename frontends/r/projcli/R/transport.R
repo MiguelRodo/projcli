@@ -98,7 +98,7 @@
   }
 }
 
-.proj_process <- function(binary, args, env, timeout) {
+.proj_capture <- function(binary, args, env, timeout) {
   output <- tempfile("projcli-response-", fileext = ".json")
   if (!file.create(output)) .proj_error("transport_failed", "Cannot prepare the CLI response file.")
   on.exit(unlink(output), add = TRUE)
@@ -120,7 +120,12 @@
   bytes <- readBin(output, "raw", n = as.integer(size))
   text <- tryCatch(rawToChar(bytes), error = function(e) "")
   Encoding(text) <- "UTF-8"
-  .proj_decode(text, result[["status"]])
+  list(text=text,status=result[["status"]])
+}
+
+.proj_process <- function(binary,args,env,timeout) {
+  result <- .proj_capture(binary,args,env,timeout)
+  .proj_decode(result$text,result$status)
 }
 
 .proj_capabilities <- function(reply) {

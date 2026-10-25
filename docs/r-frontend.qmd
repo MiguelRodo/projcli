@@ -146,3 +146,26 @@ path. See the [configuration reference](configuration.qmd#r-processes-and-execut
 for working directories, startup files and supported inputs. The housekeeping
 worker discussed for repeated documentation tasks is still a proposal, not this
 analysis-session feature.
+
+## Restore R packages only when you ask
+
+For a trusted project with an existing renv.lock, create a project library and run:
+
+~~~r
+dir.create("restored-library", showWarnings = FALSE)
+receipt <- projcli::proj_renv_restore(".", "restored-library")
+receipt$packages
+~~~
+
+This explicit operation installs the locked dependencies using an already installed
+renv package. It does not install renv, run automatically during builds, update the
+lockfile, delete extra library packages or activate the project in your current R
+session. Ordinary projects do not need renv. Use a disposable project copy first:
+dependency installation can run package scripts and contact lockfile repositories.
+
+Select rscript explicitly for another installed R. The default uses your current
+R installation; config.r.rscript separately selects the Rust build drivers.
+The receipt reports observed locked package versions and a lockfile checksum.
+A failed restore is not a successful reanalysis; inspect the library/cache before
+retrying. Legacy GitHub/BiocManager selectors and update helpers remain outside
+this supported subset. See the package dependency reference.

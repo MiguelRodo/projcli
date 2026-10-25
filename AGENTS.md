@@ -701,3 +701,9 @@ Shared means one build-scoped child, not the caller's live R session. Keep hooks
 separate and renderer behavior native. Resolve config.r.rscript once before hooks,
 using direct native executable paths and the existing run environment. No daemon,
 silent renv restore or housekeeping worker is implied.
+
+Explicit M4 renv restoration is opt-in, uses already installed renv and a selected
+project-contained library/lockfile, and must not bootstrap packages at setup/build.
+Keep dependency receipts separate from CLI protocol responses. Restore failures are
+failures; package scripts/cache effects are not covered by managed build rollback.
+Use pinned temporary test dependencies in remote CI only.
