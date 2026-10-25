@@ -3593,3 +3593,10 @@ Execution and exact-head independent review are pending.
 Independent pre-CI review caught Windows text newline conversion and a completion
 creation/read race. The worker now writes explicit binary status bytes to a private
 same-directory temporary file, closes it, then renames it before the driver reads.
+
+Review also required binding shared/isolated selection to the effective analysis
+fingerprint. New records include the safe session/configured-executable flags;
+the selected config path is hashed in the bounded opaque configuration digest,
+never retained as a personal path. This does not freeze executable bytes. The
+native executable override fixture now puts a harmless failing Rscript on PATH,
+so ignoring the configured executable cannot pass.

@@ -53,10 +53,23 @@ if (!nzchar(binary)) {
    stopifnot(file.symlink(executable,file.path(link,"Rscript")))
    cfg$config$r$rscript <- "R executable space/Rscript"
   }
-  cfg$config$r$session <- "isolated";write_cfg()
-  for (name in c("first-pid","second-pid","pre-pid","post-pid","middle-ok")) unlink(file.path(root,name))
-  proj_cli("build-dev",c("--execution-dir","project"),project=root,binary=binary)
-  stopifnot(file.exists(file.path(root,"second-pid")))
+  cfg$config$r$session <- "isolated";cfg$build$scripts <- list("probe.R");write_cfg()
+  writeLines(paste0("writeLines('configured executable ran',",at("configured-ok"),")"),file.path(root,"probe.R"))
+  # An ignored executable override must fail: PATH's Rscript is a benign failing
+  # native tool, while other utilities remain available for R startup.
+  trap <- file.path(root,"failing Rscript");dir.create(trap)
+  if(.Platform$OS.type=="windows") {
+    stopifnot(file.copy(file.path(Sys.getenv("WINDIR"),"System32","where.exe"),file.path(trap,"Rscript.exe")))
+  } else {
+    stopifnot(file.copy("/bin/false",file.path(trap,"Rscript")))
+    Sys.chmod(file.path(trap,"Rscript"),"0755")
+  }
+  old_path <- Sys.getenv("PATH")
+  tryCatch({
+   Sys.setenv(PATH=paste(trap,old_path,sep=.Platform$path.sep))
+   proj_cli("build-dev",c("--execution-dir","project"),project=root,binary=binary)
+  },finally=Sys.setenv(PATH=old_path))
+  stopifnot(readLines(file.path(root,"configured-ok"))=="configured executable ran")
   unlink(link,recursive=TRUE)
   # Missing executable and invalid session fail before hooks or script execution.
   for (name in c("pre-pid","second-pid")) unlink(file.path(root,name))
