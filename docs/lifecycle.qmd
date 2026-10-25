@@ -731,7 +731,7 @@ ownership branch; released historical figures remain unchanged.
 
 ## M4 draft: R session boundary
 
-~~~{mermaid}
+```{mermaid}
 %%| label: fig-lifecycle-m4-r-session
 %%| fig-cap: "M4 draft process boundaries inside the existing build lifecycle."
 %%| fig-alt: "Validate R setup; run isolated hooks; execute ordered analysis with separate or shared R scripts; close the shared child; continue existing finalization."
@@ -746,7 +746,7 @@ flowchart TB
   C --> E
   A -.-> R["Document renderers keep their native process boundaries"]
   E --> P["Existing success/failure and finalization workflow"]
-~~~
+```
 
 This draft adds a process choice inside analysis, without moving hooks, clearing,
 promotion or publication. Python and document steps retain their place between R
