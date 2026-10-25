@@ -79,7 +79,8 @@ def project(root,source,legacy,store):
   (folder/name).write_bytes(data)
  (root/"bounded.Rmd").write_text(REPORT)
  (root/"M4.Rproj").write_text("Version: 1.0\n")
- (root/"VERSION").write_bytes(b"Version: 1.2.3-7\n")
+ # Clean projr reads a plain version line; the CLI accepts this format too.
+ (root/"VERSION").write_bytes(b"v1.2.3-7\n")
  directories={label:{"path":path} for label,path in
   [("raw-data","_raw_data"),("output","_output"),("docs","_docs"),("cache","_tmp")]}
  if legacy:
