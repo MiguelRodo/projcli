@@ -55,6 +55,7 @@ jobs:
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla frontends/r/projcli/tests/configuration.R
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla frontends/r/projcli/tests/project.R
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla frontends/r/projcli/tests/sessions.R
+          runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" PROJCLI_R_RENDER_TESTS_REQUIRED=1 Rscript --vanilla frontends/r/projcli/tests/renderers.R
       - uses: actions/upload-artifact@v4
         if: always()
         with:

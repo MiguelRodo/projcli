@@ -3604,3 +3604,10 @@ so ignoring the configured executable cannot pass.
 The first native-browser gate found only eleven diagrams: Quarto did not execute
 the new tilde-fenced Mermaid block. Use its existing backtick-fence convention;
 keep the twelve-SVG assertion rather than lowering it to accept a missing figure.
+
+The required pinned Linux R gate also runs actual lowercase Rmd and Quarto
+documents between two shared analysis scripts. Each document must lack the
+analysis global, while the following plain R script must retain it; verify rendered
+text plus exact document/VERSION recovery. Windows native state/executable tests
+are separate; this does not claim all project-level render engines share the
+same execution model.
