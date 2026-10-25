@@ -3558,5 +3558,5 @@ in Rust. No lifecycle ordering changes or legacy R edits.
 
 Ponytail full: reuse generic transport/completion, avoid implementing R build
 workflow. R-only boundary tests plus required Linux/Windows candidate integration
-exercise preview preservation, CSV promotion, version transitions and no-mutation
+exercise preview preservation, generated results.csv promotion (not manifest.csv validation), version transitions and no-mutation
 lookup. Exact-head execution/review is pending; this is not M4 completion.
