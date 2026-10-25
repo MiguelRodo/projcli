@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'frontends/r/**'
+      - 'src/**'
+      - 'Cargo.*'
+      - 'tests/test_yml_queries.rs'
       - '.github/workflows/r-adapter.yml'
 jobs:
   pinned-linux:
@@ -44,6 +47,12 @@ jobs:
         run: |
           runuser -u rstudio -- R CMD INSTALL --library="$RUNNER_TEMP/r-adapter-library" frontends/r/projcli
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_TEST_BINARY="$GITHUB_WORKSPACE/adapter-cli/proj_0.4.0-preview.4_linux_amd64" Rscript --vanilla frontends/r/projcli/tests/transport.R
+      - name: Required candidate-core configuration API integration
+        shell: bash
+        run: |
+          install -d -o rstudio -g rstudio "$RUNNER_TEMP/r-adapter-cargo"
+          runuser -u rstudio -- env CARGO_HOME="$RUNNER_TEMP/r-adapter-cargo" RUSTUP_AUTO_INSTALL=0 cargo build --locked --bin proj
+          runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla frontends/r/projcli/tests/configuration.R
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -85,6 +94,17 @@ jobs:
           $env:PROJCLI_R_TEST_BINARY = (Resolve-Path adapter-cli/proj.exe).Path
           & Rscript.exe --vanilla frontends/r/projcli/tests/transport.R
           if ($LASTEXITCODE -ne 0) { throw 'Required actual CLI integration failed' }
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+      - name: Required candidate-core configuration API integration
+        shell: pwsh
+        run: |
+          cargo build --locked --bin proj
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate CLI build failed' }
+          $env:PROJCLI_R_API_TEST_BINARY = (Resolve-Path target/debug/proj.exe).Path
+          & Rscript.exe --vanilla frontends/r/projcli/tests/configuration.R
+          if ($LASTEXITCODE -ne 0) { throw 'Required configuration API integration failed' }
       - uses: actions/upload-artifact@v4
         if: always()
         with:

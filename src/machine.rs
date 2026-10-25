@@ -45,7 +45,7 @@ pub(crate) fn emit_argument_error() -> i32 {
 pub(crate) fn emit_capabilities() -> i32 {
     emit(Ok(json!({
         "capability_version": CAPABILITY_VERSION,
-        "machine_commands": ["capabilities", "history", "remote restore", "remote verify", "remote versions", "remote download", "remote store", "remote github assets", "remote github upload", "remote github download", "remote github upload-directory", "remote github upload-metadata", "remote github download-directory", "path get", "version get", "version set", "yml read", "init", "ignore add", "ignore remove", "build", "build-dev"],
+        "machine_commands": ["capabilities", "history", "remote restore", "remote verify", "remote versions", "remote download", "remote store", "remote github assets", "remote github upload", "remote github download", "remote github upload-directory", "remote github upload-metadata", "remote github download-directory", "path get", "version get", "version set", "yml read", "yml get", "yml parameter", "init", "ignore add", "ignore remove", "build", "build-dev"],
         "non_interactive": true,
         "path_targets": ["safe", "final"],
         "path_fragments": true,
@@ -55,7 +55,7 @@ pub(crate) fn emit_capabilities() -> i32 {
         "default_path_format": "auto",
         "logs": "stderr",
         "attempt_history": true,
-        "queries": {"remote verify": "snapshot","history": "history","remote github assets": "assets", "remote store --dry-run": "plan", "remote versions": "versions", "path get": "path", "version get": "version", "yml read": "validated"},
+        "queries": {"remote verify": "snapshot","history": "history","remote github assets": "assets", "remote store --dry-run": "plan", "remote versions": "versions", "path get": "path", "version get": "version", "yml read": "validated", "yml get": "configuration", "yml parameter": "value"},
         "preview_output_isolation": false,
         "attempt_release_records": false,
         "direct_r_ide_parity": false
@@ -116,6 +116,14 @@ pub(crate) fn run(cli: &Cli) -> i32 {
             proj::yml_read_from(&root, false).map(|_| json!({"validated": true}))
                 .map_err(|_| failure(ErrorCode::QueryFailed, "Cannot read valid active project configuration."))
         }
+        Commands::Yml { command: YmlCommands::Get { profile, check } } =>
+            proj::yml::merged_configuration_from(&root, profile.as_deref(), *check)
+                .map(|configuration| json!({"configuration": configuration}))
+                .map_err(|_| failure(ErrorCode::QueryFailed, "Cannot read selected project configuration.")),
+        Commands::Yml { command: YmlCommands::Parameter { profile, keys } } =>
+            proj::yml::parameter_value_from(&root, profile.as_deref(), keys)
+                .map(|value| json!({"value": value}))
+                .map_err(|_| failure(ErrorCode::QueryFailed, "Cannot read the selected project parameter.")),
         _ => run_worker(&root),
     };
     emit(result)

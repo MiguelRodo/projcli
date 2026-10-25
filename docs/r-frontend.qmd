@@ -62,3 +62,46 @@ published, hash-verified preview.4. [PR225](https://github.com/MiguelRodo/projcl
 remote results; those checks must pass before merge.
 The full M4 gate still needs a named representative project, renderer/hook mapping,
 explicit selected dependency preparation, archive/restore and baseline rerun comparison.
+
+
+## Read configuration without reimplementing YAML (next M4 candidate)
+
+The new projr_yml_get, projr_yml_check and projr_par_get/projr_param_get helpers use
+explicit CLI queries. They need a candidate CLI advertising yml get and yml parameter;
+the published preview.4 validation command cannot supply these values.
+
+~~~r
+settings <- projcli::projr_yml_get(project = ".")
+seed <- projcli::projr_par_get("model", "seed", project = ".")
+~~~
+
+Keys are data, never evaluated as R code. Homogeneous scalar arrays become R vectors;
+mixed/null-bearing arrays and maps stay lists, without automatic date/data-frame
+conversion. Use the CLI backend's supported runtime aliases/settings; older par/pars
+and R-only runtime configuration are not silently translated.
+
+An explicit existing R function is the legacy escape hatch:
+
+~~~r
+settings <- projcli::projr_yml_get(backend = projr::projr_yml_get)
+~~~
+
+That callback runs in your R session/current folder, with its original arguments,
+results and errors. It can retain the old engine's prompts, installations and other
+effects; CLI redaction/isolation does not apply. The adapter does not load or install
+a legacy package automatically. CLI-only project/binary/env/timeout controls cannot
+be mixed into callback mode. There is no silent fallback.
+
+The old getter's explicit profile argument reads a single layer, while CLI profiles
+select merged overlays; that R argument therefore requires a callback. Old check
+was ignored in the reference source; the CLI check flag actually validates. The
+supported default is merged active configuration, with values read at query time.
+
+### Supported-subset work still pending
+
+Build/dev/path/version wrappers, renderer/hook reconciliation, repository-level
+restore and explicit dependency restoration are not delivered by these getters.
+The source audit found real boundaries: legacy path lookup creates folders, version
+helpers may prefer DESCRIPTION, repository restore clones before restoring multiple
+labels, and renv restore chooses installation sources. These are not silently equated
+with read-only CLI lookup, VERSION-only authority or single-label data restore.

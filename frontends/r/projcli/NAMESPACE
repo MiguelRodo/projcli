@@ -1,1 +1,5 @@
 export(proj_cli)
+export(projr_yml_get)
+export(projr_yml_check)
+export(projr_par_get)
+export(projr_param_get)

@@ -37,3 +37,30 @@ Configuration validation and path queries do not change `.gitignore`,
 and directory initialization request ignore synchronization explicitly.
 Directory initialization stops on configuration read/validation errors before
 changing ignore rules or creating directories.
+
+
+## Explicit configuration and parameter queries (M4 candidate)
+
+The existing yml read command still reports validation only. The new commands
+explicitly return requested data; that data can include private configuration
+values, so do not publish their output as a diagnostic log.
+
+~~~bash
+proj --machine yml get --check
+proj --machine yml get --profile team
+proj --machine yml parameter model seed
+proj --machine yml parameter -- --literal-key
+~~~
+
+The result keys are configuration and value respectively. Empty parameter selectors
+return the whole parameter value; absent keys return null. Keys are literal mapping
+keys, not R expressions, dotted-path evaluation or array indexes. Existing four
+shared parameter aliases normalize per layer before merging. Parameter queries
+apply runtime validation; get applies it only with --check. Unchecked get still
+requires a mapping and rejects malformed or conflicting aliases.
+
+CLI profile flags select merged overlays. Without an explicit profile, queries
+inside a build retain its captured profile order for that project. Configuration
+contents are read at query time; fingerprints do not freeze every analysis input.
+Explicit project overrides retain their existing behavior. No directories, ignore
+rules, dependency installation or build records are created by these queries.
