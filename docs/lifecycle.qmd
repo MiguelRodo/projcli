@@ -732,6 +732,10 @@ ownership branch; released historical figures remain unchanged.
 ## M4 draft: R session boundary
 
 ~~~{mermaid}
+%%| label: fig-lifecycle-m4-r-session
+%%| fig-cap: "M4 draft process boundaries inside the existing build lifecycle."
+%%| fig-alt: "Validate R setup; run isolated hooks; execute ordered analysis with separate or shared R scripts; close the shared child; continue existing finalization."
+%%{init: {"htmlLabels": false}}%%
 flowchart TB
   V["Validate R settings and executable"] --> H["Start hooks in separate processes"]
   H --> A["Ordered analysis"]
