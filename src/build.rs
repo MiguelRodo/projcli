@@ -151,6 +151,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     let project_config: ProjConfig = serde_json::from_value(combined)
         .context("Failed to deserialize combined configuration")?;
     let config = project_config.validate_and_resolve(project_root, is_dev)?;
+    environment.set_rscript(project_config.config.r.executable(project_root)?);
     let destinations=crate::remote_registry::selected(&project_config)?;
     let ordinary=crate::publication::configured(project_root,destinations.local.as_ref(),&config)?;
     let github_specs=crate::github_publication::validate(project_root,destinations.github.as_ref(),&config)?;
@@ -580,7 +581,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         if !is_dev && run_analysis && config.output_run.unwrap_or(true) && clear_stage == crate::yml::OutputClearStage::Pre {
             crate::clear::clear_post(project_root, false, &config, Some("post"), false)?;
         }
-        execute_build_pipeline(project_root, &resolved_files, build_scripts.is_some(), profile.clone(), quarto_exists, bookdown_exists, resolved_python_cmd.as_deref(), &environment, execution, &before_render)?;
+        execute_build_pipeline(project_root, &resolved_files, build_scripts.is_some(), profile.clone(), quarto_exists, bookdown_exists, resolved_python_cmd.as_deref(), &environment, execution, config.config.r.session, &before_render)?;
         if !is_dev && run_analysis && config.output_run.unwrap_or(true) && clear_stage == crate::yml::OutputClearStage::Post {
             crate::clear::clear_post(project_root, false, &config, Some("post"), false)?;
         }
@@ -795,8 +796,18 @@ fn execute_build_pipeline(
     resolved_python_cmd: Option<&str>,
     environment: &RunEnvironment,
     execution: ExecutionDirectory,
+    r_session: crate::yml::RSession,
     before_render: &impl Fn(Option<&camino::Utf8Path>) -> anyhow::Result<()>,
-) -> anyhow::Result<()> {
+ ) -> anyhow::Result<()> {
+    let mut worker: Option<crate::r_session::Worker> = None;
+    let mut analysis = |file: &camino::Utf8Path, selected_profile: Option<&str>| -> anyhow::Result<()> {
+        if r_session == crate::yml::RSession::Shared && matches!(file.extension(),Some("R"|"r")) {
+            if worker.is_none() {worker=Some(crate::r_session::Worker::start(project_root,selected_profile,environment)?);}
+            worker.as_mut().expect("initialized R worker").execute(file)
+        } else {
+            execute_script(project_root,file,selected_profile,resolved_python_cmd,environment,execution)
+        }
+    };
     if explicit {
         // Path A: Explicit Configuration via build.scripts
 
@@ -805,7 +816,7 @@ fn execute_build_pipeline(
         if quarto_exists && bookdown_exists {
             let has_docs = resolved_files.iter().any(|f| {
                 let ext = f.extension().unwrap_or("");
-                ext == "qmd" || ext == "Rmd"
+                ext == "qmd" || ext == "Rmd" || ext == "rmd"
             });
             if has_docs {
                 anyhow::bail!("Mutual Exclusion Error: Both _quarto.yml and _bookdown.yml exist in the workspace, and the build.scripts key in _proj.yml is omitted or includes .qmd or .Rmd files. Aborting build.");
@@ -820,7 +831,7 @@ fn execute_build_pipeline(
         let mut doc_files = Vec::new();
         for file in resolved_files {
             let ext = file.extension().unwrap_or("");
-            if ext == "qmd" || ext == "Rmd" {
+            if ext == "qmd" || ext == "Rmd" || ext == "rmd" {
                 doc_files.push(file.clone());
             }
         }
@@ -833,9 +844,9 @@ fn execute_build_pipeline(
 
             for file in resolved_files {
                 let ext = file.extension().unwrap_or("");
-                if ext == "qmd" || ext == "Rmd" {
+                if ext == "qmd" || ext == "Rmd" || ext == "rmd" {
                     seen_doc = true;
-                } else if ext == "R" || ext == "py" {
+                } else if ext == "R" || ext == "r" || ext == "py" {
                     if seen_doc {
                         post_scripts.push(file);
                     } else {
@@ -847,7 +858,7 @@ fn execute_build_pipeline(
             // Execute pre-scripts
             for script in pre_scripts {
                 let p = profile.clone();
-                execute_script(project_root, &script, p.as_deref(), resolved_python_cmd, environment, execution)?;
+                analysis(&script,p.as_deref())?;
             }
 
             // Execute doc clusters
@@ -864,14 +875,14 @@ fn execute_build_pipeline(
             // Execute post-scripts
             for script in post_scripts {
                 let p = profile.clone();
-                execute_script(project_root, &script, p.as_deref(), resolved_python_cmd, environment, execution)?;
+                analysis(&script,p.as_deref())?;
             }
         } else {
             // No project files, just execute in exact relative order
             for file in resolved_files {
                 let p = profile.clone();
                 if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) { before_render(Some(file))?; }
-                execute_script(project_root, &file, p.as_deref(), resolved_python_cmd, environment, execution)?;
+                analysis(&file,p.as_deref())?;
             }
         }
 
@@ -892,7 +903,7 @@ fn execute_build_pipeline(
 
             for file in resolved_files {
                 if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) { before_render(Some(file))?; }
-                execute_script(project_root, &file, profile.as_deref(), resolved_python_cmd, environment, execution)?;
+                analysis(&file,profile.as_deref())?;
             }
         }
     }
