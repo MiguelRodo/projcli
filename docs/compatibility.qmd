@@ -3652,3 +3652,8 @@ integration lives outside the package at tests/acceptance/r_frontend_renv.R and
 requires its dedicated CI gate flag; installing dependencies during ordinary
 R CMD check is forbidden. Preparing optional test dependencies is a separate
 isolated runner setup step, not package setup or automatic user bootstrapping.
+
+The first remote optional-restore run stopped in a pure malformed-receipt fixture:
+its R-to-JSON serializer could normalize duplicate R list names into valid keys.
+The duplicate-key case now supplies literal JSON bytes and named case diagnostics;
+reader validation remains strict. No actual restore was claimed from that failed run.
