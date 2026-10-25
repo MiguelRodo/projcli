@@ -199,7 +199,7 @@ def main():
    for label,files in expected.items():assert inventory(store/label/"v1.2.4")==files
    before_version=(root/"VERSION").read_bytes();before_store=inventory(store)
    assert re.findall(rb"\d+",before_version)==[b"1",b"2",b"4",b"1"]
-   run("failed-build",root)
+   evidence["deliberate_failure"]=run("failed-build",root)
    assert (root/"VERSION").read_bytes()==before_version and inventory(store)==before_store
    for label,folder in [("raw-data","_raw_data"),("output","_output"),("docs","_docs")]:
     assert inventory(root/folder)==expected[label]

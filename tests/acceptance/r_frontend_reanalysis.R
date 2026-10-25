@@ -87,11 +87,15 @@ main <- function() {
     yaml <- jsonlite::fromJSON(rawToChar(before),simplifyVector=FALSE)
     yaml$build$scripts <- list("deliberate.R")
     writeLines(jsonlite::toJSON(yaml,auto_unbox=TRUE,null="null"),cfg)
-    writeLines("stop('deliberate M4 analysis failure')",file.path(spec$project,"deliberate.R"))
+    witness <- file.path(dirname(spec$project),"deliberate-analysis-witness")
+    stopifnot(!file.exists(witness))
+    writeLines(c(paste0("writeLines('analysis-entered',",encodeString(witness,quote='"'),")"),
+      "stop('deliberate M4 analysis failure')"),file.path(spec$project,"deliberate.R"))
     result <- tryCatch(projcli::projr_build_patch(project=spec$project,binary=spec$binary,
         execution_dir="project",env=environment),projcli_error=identity)
-    stopifnot(inherits(result,"projcli_error"))
-    return(list(ok=TRUE,phase=spec$phase,error_code=result$code))
+    stopifnot(inherits(result,"projcli_error"),identical(result$code,"command_failed"),
+      identical(readLines(witness,warn=FALSE),"analysis-entered"))
+    return(list(ok=TRUE,phase=spec$phase,error_code=result$code,analysis_marker_confirmed=TRUE))
   } else stop("Unsupported gate phase")
   list(ok=TRUE,phase=spec$phase,backend=spec$backend)
 }

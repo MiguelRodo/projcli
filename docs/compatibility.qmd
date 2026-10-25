@@ -3695,3 +3695,9 @@ pinned core. PR229760259e passed explicit cache-disabled source dependency resto
 repeat/unavailable-version checks, clean package checks and full pinned core;
 independent source/artifact reviews cleared both. These remain draft source, with
 the user installation/release unchanged.
+
+Named-gate review requires an owned out-of-project test witness immediately before
+the deliberate stop, plus command_failed, so a preflight failure cannot satisfy
+the analysis-failure claim. Exact final/archive/VERSION preservation remains checked.
+The witness is inside the gate's private temporary parent, not a user path or product
+feature; no script sandbox claim is made.
