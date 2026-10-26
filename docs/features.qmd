@@ -54,8 +54,11 @@ the current implementation and the [behavior contract](behavior.qmd) for limits.
 - Production recovery is bounded. It does not undo arbitrary script writes or
   partial external publication effects.
 
-The existing R package is unchanged. A Rust library is available in this
-repository, but new R, Python and Julia frontend integrations are separate work.
+The existing projr R package is unchanged. The new source package projcli is
+available in this repository: see its [installation and quick start](r-frontend.qmd)
+and [function reference](r-reference.qmd). It is not on CRAN, and preview.4 predates
+the full M4 CLI support. Python/Julia frontends and complete R/IDE parity remain
+separate work.
 
 ## Planned work
 
