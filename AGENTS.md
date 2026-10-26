@@ -25,9 +25,9 @@ the top-level Rust project.
 ## 2. Dependencies and frontend boundaries
 - Prefer stable dependencies already in the project and avoid unnecessary additions.
 - The current Rust package exposes library modules and a CLI. How future R,
-  Python and Julia frontends call the core is an explicit architecture decision;
-  do not assume embedded bindings or subprocess delegation are already approved
-  or implemented across all languages.
+  Python and Julia frontends call the core is an explicit architecture decision.
+  M4 explicitly selects a thin R subprocess adapter in frontends/r/projcli;
+  do not infer embedded bindings or approved integration for other languages.
 - Environment forwarding and sanitization need a documented, tested contract.
   Do not claim a clean environment, filesystem sandbox, guaranteed CRAN acceptance
   or parallel execution merely because a subprocess or hashing crate is used.
@@ -659,3 +659,23 @@ stores. Use distinct ledger ownership rather than reacquiring the build's projec
 claim. Preserve raw JSON IDs and index bytes; skip only exact version/label/digest
 repeats, retaining differing digests and historical opaque rows. Do not silently
 turn legacy same-version content changes into a new conflict policy.
+
+
+## M4 R transport boundary
+The separate frontends/r/projcli package calls a separately installed native CLI
+through processx argument vectors and protocol/capability negotiation. Keep workflow,
+paths, rendering and recovery in Rust; never copy or edit SATVILab/projr. The initial
+transport is not a drop-in legacy API, backend switch, dependency restorer or M4 gate.
+Forward active library paths through R_LIBS, baseline PATH/HOME/locale, the two
+existing managed PROJ_PROJECT_ROOT/PROJ_RUN_CONTEXT values (validated by Rust),
+and only explicit additional variables. NULL project delegates to native CLI
+captured-root/discovery; never force cwd and lose a running build snapshot. Never inherit the whole R session environment or
+serialize raw argv, credentials or child diagnostics into error conditions. processx
+adds required Windows/control variables; startup files and arbitrary scripts still
+have their normal effects. No clean-room, sandbox, parallel-speed or CRAN-acceptance
+claim follows. Package setup/checks never download proj or install R dependencies.
+Keep unconditional validation/mock checks and required Linux/Windows native-executable
+integration separate. Our CI pins and checksum-verifies preview.4 for transport
+compatibility; it does not test new Rust behavior or the complete M4 representative
+reanalysis. Use remote tests, review the exact final head, and keep M4 PRs draft
+until approved; no M4 merge/release/install authority is inferred from M3 approval.

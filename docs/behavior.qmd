@@ -962,3 +962,15 @@ digests retain their previous meaning. Malformed indexes fail before new
 references. Complete unreferenced metadata can remain after a later error; this
 does not add a multi-location transaction, distributed locking or new version
 policy. Ordinary root manifest.csv and new flat/tree catalogues are separate.
+
+
+## M4 initial R transport candidate
+
+The explicitly approved R frontend is a separate subprocess package under
+frontends/r/projcli, not an embedded engine or an edit to SATVILab/projr. Initial
+transport checks protocol/capabilities per call, passes argv directly, forwards
+active libraries and deliberate environment additions, and withholds raw errors
+and diagnostics. Noninteractive mode prevents implicit package installation.
+This does not change Rust hook/renderer ordering or supported lifecycle. M4 API
+mapping, backend escape-hatch routing, explicit dependency restoration and the
+representative reanalysis gate remain separate work. See [R guide](r-frontend.qmd).

@@ -37,6 +37,7 @@ website:
           - cli/path.qmd
           - cli/ignore.qmd
           - cli/errors.qmd
+          - r-frontend.qmd
       - section: Design and progress
         contents:
           - behavior.qmd

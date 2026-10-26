@@ -1,0 +1,64 @@
+# Call proj from R
+
+Status: the first M4 adapter is under development, not part of the published
+R package or a complete replacement for projr. The existing R package is unchanged.
+
+## Read a project path
+
+The new source package is in frontends/r/projcli. It needs the separately installed
+proj command plus the R packages processx and jsonlite. Installing or checking this
+package never downloads proj. Install those prerequisites deliberately; then,
+from a source checkout, install the adapter with R CMD INSTALL frontends/r/projcli.
+
+~~~r
+reply <- projcli::proj_cli(
+  "path get", c("--label", "output", "results.csv"), project = ".")
+reply$result$path
+~~~
+
+Pass each argument separately, without shell quoting. Spaces and Unicode paths
+stay part of the argument. The adapter checks the command's machine interface
+before sending the requested action. Set binary to an exact executable path or
+options(projcli.binary = ...) when proj is not on PATH. It gives setup guidance
+if the command is missing or incompatible; it does not download a replacement.
+
+This low-level call is explicit CLI selection. Existing projr functions remain
+available as an escape hatch; automatic backend routing and the familiar public
+API mapping are the next M4 slice, not implemented by this transport.
+
+## Pass credentials deliberately
+
+The adapter forwards the active R library folders, a small baseline of system
+and locale variables, and additional variables you explicitly supply in env.
+It does not forward every R-session variable or copy your in-memory R objects.
+During a CLI build it also preserves the two managed context values, so calls
+inside R scripts keep the captured project, profile and version after changing
+folders. With no explicit project argument, the CLI keeps its normal captured
+root or nearest-project selection; an explicit project remains an override.
+For example, a GitHub operation can receive a token explicitly from your own
+configured environment; the adapter does not create or grant credentials.
+
+Raw child diagnostics can contain secrets. This first interface discards them
+and returns safe error codes rather than echoing command arguments, tokens or
+arbitrary machine error text. Use the CLI directly for detailed private logs.
+Requested result data is still returned; arbitrary project code is not a sandbox.
+Startup files can still run. A timeout or failure may follow partial changes or
+uploads, so inspect before retrying. Dependency restoration is separate, explicit
+M4 work; renv is not required for every project.
+
+## Reference and test boundary
+
+The supported wire contract is protocol1/capability1, not an exact CLI version
+match. The full validated envelope is returned as an R list. projcli_error has
+safe code/status fields and no retained child output or invocation metadata.
+The package manual documents the environment baseline, Windows additions, response
+read limit and timeout behavior. [CRAN notes](r-wrapper-cran.qmd) explain why checks
+without a CLI and required integration checks are separate; no CRAN acceptance
+or full R/IDE/renderer parity is claimed.
+
+The candidate adds unconditional malformed-response, environment, argument and
+missing-binary tests, plus required real Linux/Windows checks against the separately
+published, hash-verified preview.4. [PR225](https://github.com/MiguelRodo/projcli/pull/225) records exact-head
+remote results; those checks must pass before merge.
+The full M4 gate still needs a named representative project, renderer/hook mapping,
+explicit selected dependency preparation, archive/restore and baseline rerun comparison.

@@ -1,0 +1,93 @@
+name: R subprocess adapter
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'frontends/r/**'
+      - '.github/workflows/r-adapter.yml'
+jobs:
+  pinned-linux:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    container:
+      image: ghcr.io/miguelrodo/devcontainers-projcli@sha256:a58a8a4dd6f0be83879d08b3a43ab92e256425bbfb81372b257d77a7ff9077f9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Prepare separate published compatibility binary
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib,urllib.request
+          from pathlib import Path
+          base='https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.4/'
+          target=Path('adapter-cli');target.mkdir()
+          for name in ['source-commit.txt','proj_0.4.0-preview.4_linux_amd64']:
+              urllib.request.urlretrieve(base+name,target/name)
+          assert (target/'source-commit.txt').read_text().strip()=='f6f4510a806ea302a2ceee5177707fbde9bed5bf'
+          binary=target/'proj_0.4.0-preview.4_linux_amd64'
+          assert hashlib.sha256(binary.read_bytes()).hexdigest()=='31ffa1732f8ee4da9bcf15540a53abeee741a8aca23eeca26f5a94ac6aa8a7f0'
+          binary.chmod(0o755)
+          PY
+          chown -R rstudio:rstudio "$GITHUB_WORKSPACE"
+          install -d -o rstudio -g rstudio "$RUNNER_TEMP/r-adapter-library"
+      - name: Check package without the optional CLI
+        shell: bash
+        run: |
+          Rscript --vanilla -e 'stopifnot(requireNamespace("processx",quietly=TRUE),requireNamespace("jsonlite",quietly=TRUE))'
+          runuser -u rstudio -- R CMD build frontends/r/projcli
+          runuser -u rstudio -- R CMD check --no-manual --no-build-vignettes projcli_0.0.0.9000.tar.gz
+      - name: Required actual CLI R integration
+        shell: bash
+        run: |
+          runuser -u rstudio -- R CMD INSTALL --library="$RUNNER_TEMP/r-adapter-library" frontends/r/projcli
+          runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_TEST_BINARY="$GITHUB_WORKSPACE/adapter-cli/proj_0.4.0-preview.4_linux_amd64" Rscript --vanilla frontends/r/projcli/tests/transport.R
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r-adapter-pinned-check
+          path: projcli.Rcheck
+          if-no-files-found: warn
+  windows:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: r-lib/actions/setup-r@v2
+      - name: Prepare R dependencies and pinned compatibility binary
+        shell: Rscript {0}
+        run: |
+          install.packages(c("processx", "jsonlite"), repos = "https://cloud.r-project.org")
+          dir.create("adapter-cli")
+          base <- "https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.4/"
+          download.file(paste0(base, "source-commit.txt"), "adapter-cli/source-commit.txt", mode = "wb")
+          stopifnot(readLines("adapter-cli/source-commit.txt") == "f6f4510a806ea302a2ceee5177707fbde9bed5bf")
+          download.file(paste0(base, "proj_0.4.0-preview.4_windows_amd64.exe"), "adapter-cli/proj.exe", mode = "wb")
+      - name: Verify native Windows asset checksum
+        shell: pwsh
+        run: |
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath adapter-cli/proj.exe).Hash.ToLowerInvariant()
+          if ($actual -cne '92a5b7626a39f09d78b0661b43e183d8c87c4b382f7e13616bd228121b43a378') { throw 'Pinned CLI hash mismatch' }
+      - name: R-only package check and required native integration
+        shell: pwsh
+        run: |
+          & R.exe CMD build frontends/r/projcli
+          if ($LASTEXITCODE -ne 0) { throw 'R package build failed' }
+          & R.exe CMD check --no-manual --no-build-vignettes projcli_0.0.0.9000.tar.gz
+          if ($LASTEXITCODE -ne 0) { throw 'R-only package check failed' }
+          & R.exe CMD INSTALL frontends/r/projcli
+          if ($LASTEXITCODE -ne 0) { throw 'R package install failed' }
+          $env:PROJCLI_R_TEST_BINARY = (Resolve-Path adapter-cli/proj.exe).Path
+          & Rscript.exe --vanilla frontends/r/projcli/tests/transport.R
+          if ($LASTEXITCODE -ne 0) { throw 'Required actual CLI integration failed' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r-adapter-windows-check
+          path: projcli.Rcheck
+          if-no-files-found: warn
