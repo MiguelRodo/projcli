@@ -9,5 +9,6 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: R (>= 4.1.0)
 Imports: jsonlite (>= 1.8.0), processx (>= 3.8.0)
+Suggests: renv (>= 1.1.5)
 SystemRequirements: proj CLI with machine protocol 1 and capability version 1
 URL: https://github.com/MiguelRodo/projcli

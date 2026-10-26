@@ -3620,3 +3620,40 @@ test's undeclared rmarkdown dependency. Move that engine acceptance driver outsi
 the thin package to tests/acceptance/r_frontend_renderers.R; retain mandatory pinned
 execution. CI now requires literal Status: OK on both platforms, not just exit0.
 No runtime rmarkdown dependency is added to the thin frontend.
+
+## M4 explicit optional dependency-restoration candidate
+
+New proj_renv_restore delegates to an already installed renv in a fresh --vanilla
+Rscript, with an explicit existing project-contained library and lockfile. It does
+not parse YAML, implement a package manager, bootstrap renv, update locked versions
+or change caller library paths. This bounded operation is deliberately not an alias
+for legacy projr_renv_restore's GitHub/non-GitHub/BiocManager selectors.
+
+Reuse the sanitized subprocess capture below the CLI protocol decoder; dependency
+receipts are separate JSON, never fake CLI envelopes. Withhold raw child diagnostics;
+return lockfile MD5, renv version and checked installed package versions. Explicit
+restore follows renv repository/cache/install-script behavior, including possible
+cache/install effects on failure; no whole-environment rollback guarantee.
+
+CI temporarily installs only SHA256-pinned CRAN renv1.1.5 into isolated runner
+libraries. Required fixtures build an owned pure-R source package and local file
+repository, restore into an empty library with empty/disabled cache, load its result,
+check unchanged lockfile/caller libraries, repeat, and reject an unavailable locked
+version. No original R package, pilot project, user library or local installation
+is changed. New tests and independent review remain pending.
+
+Independent source review required the same private driver-file launch used by
+the R worker, plus static handling of malformed/NUL receipt bytes and strict
+package-name/version result validation. These corrections have unconditional
+redaction/schema fixtures; actual restoration remains a required remote operation.
+
+Package checks run only pure receipt/argument regressions. The explicit restore
+integration lives outside the package at tests/acceptance/r_frontend_renv.R and
+requires its dedicated CI gate flag; installing dependencies during ordinary
+R CMD check is forbidden. Preparing optional test dependencies is a separate
+isolated runner setup step, not package setup or automatic user bootstrapping.
+
+The first remote optional-restore run stopped in a pure malformed-receipt fixture:
+its R-to-JSON serializer could normalize duplicate R list names into valid keys.
+The duplicate-key case now supplies literal JSON bytes and named case diagnostics;
+reader validation remains strict. No actual restore was claimed from that failed run.
