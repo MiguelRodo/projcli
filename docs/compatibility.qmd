@@ -3769,7 +3769,9 @@ warnings denied; compiled-CLI native R4.6.1 acceptance for real documentation,
 README, explicit init/snapshot, preview exclusion and exact failure recovery.
 Standalone native driver tests also cover documentation/README failures, pre/post
 snapshot failures and early exit without a completion receipt. Source/fixture hashes
-match the tested container copy. Native Windows and docs-site rendering are unrun.
+match the tested container copy. Subsequent PR CI also passed native Windows and
+rendered/browser-checked website validation; exact-head results are linked on
+[PR231](https://github.com/MiguelRodo/projcli/pull/231).
 
 The first offline cargo attempt lacked anyhow. Later authorized provisioning fetched
 only the187official crates.io packages already in Cargo.lock, checking every archive
@@ -3785,7 +3787,7 @@ during the course owner's confirmed idle window.
 Remaining boundary: named R build/version helpers still reject DESCRIPTION
 projects; generic proj_cli reaches this CLI housekeeping. DESCRIPTION version
 synchronization is not added. No full R-package build parity, citation support,
-persistent housekeeping worker, Windows verification, release or installation claim.
+persistent housekeeping worker, release or user-installation claim.
 
 
 Website follow-up in the same candidate: the R guide now has source installation,
@@ -3793,4 +3795,6 @@ a disposable-project quick start executed verbatim in Linux/Windows R CI, groupe
 reference for all14actual exports, explicit backend selection and source/release
 boundaries. Add R package navigation without changing public install pins. Remote
 docs validation renders/links the new page and retains native browser screenshots.
-These new CI/docs changes await exact-head execution/review.
+The R guide/reference and CI additions passed independent source review. Native
+Linux/Windows execute the verbatim guide, and docs CI checks all14exports,28pages,
+links and browser screenshots. Consult PR231 for the final exact-head results.

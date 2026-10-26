@@ -766,10 +766,10 @@ input. Startup files/renv activation retain normal R behavior at worker launch;
 there is no automatic dependency restore, clean-room or sandbox guarantee.
 
 
-## Optional R project setup and build maintenance (local candidate)
+## Optional R project setup and build maintenance {#optional-r-project-setup-and-build-maintenance-local-candidate}
 
-This candidate passed bounded local Linux checks; it is not released or remotely
-tested, and native Windows has not been verified. Plain Markdown
+This section describes source features added after preview.4. They are not in that
+published binary; use a matching source command until a release includes them. Plain Markdown
 remains supported. To create an R Markdown README without replacing README.md:
 
 ~~~sh
