@@ -3511,3 +3511,33 @@ The new Windows regression exposed a fixture-only representation mismatch:
 native absolute paths and R slash-normalized paths are now compared in the same
 representation, including native verbatim prefixes. Root/profile prefix and exact
 captured-version/restoration checks remain intact; production guards are unchanged.
+
+
+## M4.2 typed configuration getter candidate (25 October 2026)
+
+New: explicit yml get/parameter commands and four thin R config/parameter helpers.
+Reuse the existing Rust merge/alias/validation and get_parameter machinery, with
+literal selector keys and captured default profile order. Old yml read is unchanged;
+explicit getter results may contain requested secrets, but errors/old validation
+responses do not. Parameter queries support the runtime's four aliases, not silent
+translation of legacy par/pars. Configuration contents remain query-time values.
+
+Different: R explicit profile layers are not CLI merged-profile selection; reject
+that incompatible form unless a user supplies the existing R getter as backend.
+The reference getter ignores check; the CLI helper's explicit check validates.
+Callbacks preserve original R arguments/results/errors/current-session semantics,
+without implicit package loading or fallback. No changes to SATVILab/projr occur.
+
+Ponytail full: add explicit data queries rather than changing validated:true into
+a configuration list or copying YAML/eval(parse) into R. Keep a small type-preserving
+projection instead of jsonlite's date/data-frame/mixed-type simplifications. Tests
+cover literal keys/flags, arrays/null/maps, aliases/precedence, callback routing,
+read-only state, sanitized failures and managed profiles with current values.
+The candidate CLI is compiled/tested remotely; preview.4 transport compatibility
+remains a separate required test. These changes are untested until exact-head CI
+and independent review finish; M4's representative reanalysis gate remains pending.
+
+Independent review also caught full human error chains echoing a private serde
+value in the two new query arms. Both now use static diagnostics, with a human-mode
+canary regression. Machine/R errors were already static; old diagnostic contracts
+are unchanged. The new getters' successful explicit data results remain intentional.

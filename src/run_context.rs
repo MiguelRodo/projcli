@@ -194,6 +194,14 @@ pub fn run_version_from(root: &Utf8Path) -> anyhow::Result<ProjVersion> {
     crate::version_get_from(root).context("Cannot read a valid project version")
 }
 
+/// Selects query profiles without losing an inherited run's captured profile order.
+pub(crate) fn configuration_profiles_from(root: &Utf8Path, explicit: Option<&str>) -> anyhow::Result<Vec<String>> {
+    if explicit.is_none() {
+        if let Some(context) = inherited_for(root)? { return Ok(context.profiles); }
+    }
+    select_profiles(explicit, root)
+}
+
 pub(crate) fn select_profiles(explicit: Option<&str>, root: &Utf8Path) -> anyhow::Result<Vec<String>> {
     if let Some(value) = explicit { return normalized_profiles(value); }
     for key in ["PROJR_PROFILE", "QUARTO_PROFILE"] {

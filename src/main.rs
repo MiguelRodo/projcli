@@ -350,6 +350,24 @@ pub enum GithubCommands {
 pub enum YmlCommands {
     /// Read the _proj.yml content and trigger validation.
     Read,
+    /// Return explicitly requested merged configuration as JSON (may contain secrets).
+    Get {
+        /// Select merged profile overlays; default retains an inherited run's profiles.
+        #[arg(long)]
+        profile: Option<String>,
+        /// Also validate the existing runtime schema and paths.
+        #[arg(long)]
+        check: bool,
+    },
+    /// Return a parameter selected by exact mapping keys, without evaluating code.
+    Parameter {
+        /// Select merged profile overlays.
+        #[arg(long)]
+        profile: Option<String>,
+        /// Literal keys; use -- before a key that begins with a dash.
+        #[arg(value_name = "KEY")]
+        keys: Vec<String>,
+    },
 }
 
 /// Path resolution commands.
@@ -547,6 +565,18 @@ fn main() {
                 match proj::yml_read(false) {
                     Ok(_) => println!("Successfully read and validated _proj.yml"),
                     Err(e) => fail(format_args!("Error reading _proj.yml: {}", e)),
+                }
+            }
+            YmlCommands::Get { profile, check } => {
+                match proj::yml::merged_configuration_from(&root, profile.as_deref(), *check) {
+                    Ok(value) => println!("{}", serde_json::to_string_pretty(&value).expect("JSON value is serializable")),
+                    Err(_) => fail(format_args!("Cannot read selected configuration. Check the selected files/profile; private details were withheld.")),
+                }
+            }
+            YmlCommands::Parameter { profile, keys } => {
+                match proj::yml::parameter_value_from(&root, profile.as_deref(), keys) {
+                    Ok(value) => println!("{}", serde_json::to_string_pretty(&value).expect("JSON value is serializable")),
+                    Err(_) => fail(format_args!("Cannot read selected parameter. Check the selected files/profile and literal keys; private details were withheld.")),
                 }
             }
         },

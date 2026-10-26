@@ -679,3 +679,14 @@ integration separate. Our CI pins and checksum-verifies preview.4 for transport
 compatibility; it does not test new Rust behavior or the complete M4 representative
 reanalysis. Use remote tests, review the exact final head, and keep M4 PRs draft
 until approved; no M4 merge/release/install authority is inferred from M3 approval.
+
+
+M4 configuration helpers require explicit data-query capabilities, never interpret
+yml read's validation boolean as configuration. Preserve old validation responses,
+core merge/alias semantics and safe exact parameter selectors. Default query profiles
+use managed context, while values are read now; do not invent full configuration
+freezing. R backend callbacks are explicit existing functions, run in the caller's
+session and preserve their own behavior; never auto-load/install a legacy engine or
+silently equate profile-layer, DESCRIPTION, folder-creation or repository-clone
+semantics with different CLI operations. Treat query results as requested data,
+not automatically redacted logs. Only supported subsets have compatibility fixtures.

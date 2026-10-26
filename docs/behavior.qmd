@@ -974,3 +974,15 @@ and diagnostics. Noninteractive mode prevents implicit package installation.
 This does not change Rust hook/renderer ordering or supported lifecycle. M4 API
 mapping, backend escape-hatch routing, explicit dependency restoration and the
 representative reanalysis gate remain separate work. See [R guide](r-frontend.qmd).
+
+
+### M4 explicit data-query boundary
+
+New yml get/parameter operations explicitly return selected data; existing yml read
+and unrelated machine replies remain secret-free validation/query responses. Errors
+never echo configuration/selector values. Reuse core per-layer aliases, merging,
+runtime validation and literal selectors; no R eval(parse) or separate YAML engine.
+Default query profiles preserve managed context, while configuration contents remain
+current observations. R configuration helpers support merged active views; legacy
+isolated-layer semantics require explicit existing-function callbacks. Callback
+execution is deliberately in the caller's R session, not a promised clean child.

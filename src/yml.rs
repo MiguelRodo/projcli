@@ -726,6 +726,49 @@ pub fn get_combined_yml(
     Ok(base_val)
 }
 
+/// Returns the selected merged configuration without creating files or directories.
+///
+/// The profile argument selects merged overlays, not an isolated legacy R layer.
+/// An omitted profile retains the captured run's profile order for the same project;
+/// configuration contents are read now, not frozen by provenance.
+/// The check flag additionally applies existing runtime schema and path validation.
+/// Returned values may contain secrets: this is an explicit data query, not a log.
+/// Errors include alias conflicts, malformed files, invalid profiles and, when
+/// checking, unsupported runtime configuration.
+pub fn merged_configuration_from(
+    root: &Utf8Path, profile: Option<&str>, check: bool,
+) -> anyhow::Result<Value> {
+    let profiles = crate::run_context::configuration_profiles_from(root, profile)?;
+    let combined = get_combined_yml(Some(&profiles.join(",")), root)?;
+    anyhow::ensure!(combined.is_object(), "Project configuration must be a mapping");
+    if check {
+        let config: ProjConfig = serde_json::from_value(combined.clone())
+            .context("Cannot decode selected runtime configuration")?;
+        config.validate_and_resolve(root, false)?;
+    }
+    Ok(combined)
+}
+
+/// Reads a parameter by exact mapping keys from selected runtime configuration.
+///
+/// Selectors are literal strings: no R expressions, dotted-path evaluation or
+/// array indexing is performed. Empty selectors return the whole parameter value;
+/// a missing key returns JSON null. Existing runtime validation and parameter
+/// aliases apply. No files, ignore rules, directories or dependencies are changed.
+pub fn parameter_value_from(
+    root: &Utf8Path, profile: Option<&str>, keys: &[String],
+) -> anyhow::Result<Value> {
+    let combined = merged_configuration_from(root, profile, false)?;
+    let config: ProjConfig = serde_json::from_value(combined)
+        .context("Cannot decode selected runtime configuration")?;
+    let validated = config.validate_and_resolve(root, false)?;
+    let keys: Vec<_> = keys.iter().map(String::as_str).collect();
+    match get_parameter(&validated, &keys) {
+        Some(value) => serde_json::to_value(value).context("Parameter is not representable as JSON"),
+        None => Ok(Value::Null),
+    }
+}
+
 /// Requires a base file or an explicitly active profile configuration before building.
 /// Local overrides and inactive profiles alone do not establish an active configuration.
 pub(crate) fn require_active_configuration_for_profiles(base_dir: &Utf8Path, profiles: &[String]) -> anyhow::Result<()> {
