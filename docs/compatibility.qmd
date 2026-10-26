@@ -3657,3 +3657,77 @@ The first remote optional-restore run stopped in a pure malformed-receipt fixtur
 its R-to-JSON serializer could normalize duplicate R list names into valid keys.
 The duplicate-key case now supplies literal JSON bytes and named case diagnostics;
 reader validation remains strict. No actual restore was claimed from that failed run.
+
+## M4 named bounded migration gate candidate
+
+Selected vanichols/Weisberger-et-al-2019@0d1851599764ec6df07dbba7ce92a36edb3695a2,
+unchanged01_weeds_process-raw-data-PIVI.R and04_weeds_biomass-vs-density.R plus the
+original data-raw-PIVI.csv. Reuse the existing bounded report arrangement rather than
+the later pilot's four I/O-path edits. Verify Git blob/SHA256 source pins before use.
+Compare with clean SATVILab/projr@3ac29595d0e39552495d863661b99ea015d59d3d,
+not prior90be501 pilot evidence or the mixed local reference mirror.
+
+Both comparators use the existing pinned image and R4.6.1, not historical R4.1.1.
+Explicit CI setup fills missing public analysis packages, then snapshots one matched
+version set. Each empty project library is restored by the new explicit helper.
+Its cache is deliberately primed from that runtime through renv hydrate; no cold
+whole-analysis/system reconstruction claim. The independent small fixture already
+tests cache-disabled source installation. Legacy build renv snapshots/Git/provider
+uploads are disabled. Baseline execution uses the explicit existing-function escape
+hatch; the frontend uses the CLI. No original science source is modified.
+
+Assert fresh preview and production ordered CSV header/cell equality for265/236
+rows, visible real-rendered report counts, correct new version transition, exact
+local archive copies, deliberate failure preservation, registered source lookup with
+uploads disabled, fresh restoration of raw/output/docs and rerun equality after
+explicit dependency restore. Earlier compare.py's non-failing booleans are not reused.
+
+Git source has no explicit licence grant established by the data-only MIT Figshare
+supplement; retain metadata only, never original source/data/report/library/store
+payloads. This gate is implementation work awaiting its explicitly selected remote
+run and exact-head independent review, not M4 completion or whole-paper reproduction.
+Ponytail full: reuse installed frontend, ordinary store/restore, legacy callbacks and
+renv, rather than adding a second build engine, package manager or local-store layer.
+
+M4 prerequisite verification: PR228d8ad8c0 passed both native platforms with
+literal Status: OK, actual Rmd/Qmd separation, checked exit17 shutdown and full
+pinned core. PR229760259e passed explicit cache-disabled source dependency restore,
+repeat/unavailable-version checks, clean package checks and full pinned core;
+independent source/artifact reviews cleared both. These remain draft source, with
+the user installation/release unchanged.
+
+Named-gate review requires an owned out-of-project test witness immediately before
+the deliberate stop, plus command_failed, so a preflight failure cannot satisfy
+the analysis-failure claim. Exact final/archive/VERSION preservation remains checked.
+The witness is inside the gate's private temporary parent, not a user path or product
+feature; no script sandbox claim is made.
+
+
+M4 final acceptance reconciliation: exercise settings/parameter reads inside the
+owned report harness and generic build("patch") in the candidate production case.
+Fresh recovery now invokes configured remote restore through proj_cli from R,
+rather than a Python subprocess, then retains the same full folder-byte and rerun
+assertions. Scientific scripts, data pins, engine behavior and store semantics are
+unchanged. Supported-subset documentation removes earlier incremental-draft text
+that incorrectly still called later implemented helpers pending. These additions
+require exact-head remote execution and independent review; no completion claim.
+Ponytail full: reuse the existing R transport and configuration helpers; no new
+restore wrapper, renderer engine or package-management policy is introduced.
+
+Named-gate source review also found that nested science Rscript children inherited
+the OS environment rather than the selected restored .libPaths in the legacy
+callback. The owned report harness now forwards active libraries explicitly through
+the already tested adapter environment helper for both engines. This prevents
+missing packages or ambient-version substitution; it is not a production behavior
+change or new scientific execution evidence. Obsolete in-flight execution is
+cancelled before rerunning the corrected fixture.
+
+The 9df named run reached successful baseline/candidate preview and production,
+full ordered CSV comparison, exact archive and deliberate-failure checks, then
+failed ordinary fresh restore: the fixture omitted root manifest.csv. The existing
+ordinary restore contract requires that regular project metadata file (restore.rs),
+as a cloned/retained project has; it is distinct from the CAS selection ledger.
+The fresh case now copies and hashes that project manifest, asserts restore leaves
+it unchanged, and still starts without data, outputs, cache or project packages.
+No restore guard is weakened and no bare-store discovery behavior is introduced.
+Completed per-case observations are retained even if a later phase fails.

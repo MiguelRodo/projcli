@@ -1,6 +1,12 @@
 name: R subprocess adapter
 on:
   workflow_dispatch:
+    inputs:
+      representative_reanalysis:
+        description: Run the explicit bounded public Weisberger migration gate
+        type: boolean
+        required: false
+        default: false
   pull_request:
     paths:
       - 'frontends/r/**'
@@ -9,6 +15,7 @@ on:
       - 'tests/test_yml_queries.rs'
       - 'tests/acceptance/r_frontend_renderers.R'
       - 'tests/acceptance/r_frontend_renv.R'
+      - 'tests/acceptance/r_frontend_reanalysis.*'
       - '.github/workflows/r-adapter.yml'
 jobs:
   pinned-linux:
@@ -64,6 +71,19 @@ jobs:
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla frontends/r/projcli/tests/sessions.R
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" PROJCLI_R_RENDER_TESTS_REQUIRED=1 Rscript --vanilla tests/acceptance/r_frontend_renderers.R
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_RENV_TESTS_REQUIRED=1 Rscript --vanilla tests/acceptance/r_frontend_renv.R
+      - name: Explicit named Weisberger reanalysis
+        if: github.event_name == 'workflow_dispatch' && inputs.representative_reanalysis
+        timeout-minutes: 35
+        shell: bash
+        run: |
+          install -d -o rstudio -g rstudio "$RUNNER_TEMP/m4-reanalysis-work"
+          runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_REANALYSIS_REQUIRED=1 TMPDIR="$RUNNER_TEMP/m4-reanalysis-work" python3 tests/acceptance/r_frontend_reanalysis.py --binary "$GITHUB_WORKSPACE/target/debug/proj" --evidence "$GITHUB_WORKSPACE/r-frontend-reanalysis-evidence"
+      - uses: actions/upload-artifact@v4
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.representative_reanalysis
+        with:
+          name: r-frontend-weisberger-metadata
+          path: r-frontend-reanalysis-evidence/*.json
+          if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         if: always()
         with:

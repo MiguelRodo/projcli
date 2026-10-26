@@ -22,9 +22,9 @@ before sending the requested action. Set binary to an exact executable path or
 options(projcli.binary = ...) when proj is not on PATH. It gives setup guidance
 if the command is missing or incompatible; it does not download a replacement.
 
-This low-level call is explicit CLI selection. Existing projr functions remain
-available as an escape hatch; automatic backend routing and the familiar public
-API mapping are the next M4 slice, not implemented by this transport.
+This low-level call selects the CLI explicitly. The helpers below cover a documented
+subset of the familiar R API. Existing projr functions remain available through an
+explicit function backend; the adapter never silently switches engines.
 
 ## Pass credentials deliberately
 
@@ -60,11 +60,12 @@ The candidate adds unconditional malformed-response, environment, argument and
 missing-binary tests, plus required real Linux/Windows checks against the separately
 published, hash-verified preview.4. [PR225](https://github.com/MiguelRodo/projcli/pull/225) records exact-head
 remote results; those checks must pass before merge.
-The full M4 gate still needs a named representative project, renderer/hook mapping,
-explicit selected dependency preparation, archive/restore and baseline rerun comparison.
+The draft stack includes native renderer/session checks, explicit dependency
+restoration and the named comparison described below. Passing package checks alone
+does not establish that the named comparison passed or that M4 is released.
 
 
-## Read configuration without reimplementing YAML (next M4 candidate)
+## Read project settings
 
 The new projr_yml_get, projr_yml_check and projr_par_get/projr_param_get helpers use
 explicit CLI queries. They need a candidate CLI advertising yml get and yml parameter;
@@ -97,14 +98,21 @@ select merged overlays; that R argument therefore requires a callback. Old check
 was ignored in the reference source; the CLI check flag actually validates. The
 supported default is merged active configuration, with values read at query time.
 
-### Supported-subset work still pending
+### Supported draft API
 
-Build/dev/path/version wrappers, renderer/hook reconciliation, repository-level
-restore and explicit dependency restoration are not delivered by these getters.
-The source audit found real boundaries: legacy path lookup creates folders, version
-helpers may prefer DESCRIPTION, repository restore clones before restoring multiple
-labels, and renv restore chooses installation sources. These are not silently equated
-with read-only CLI lookup, VERSION-only authority or single-label data restore.
+| Task | CLI frontend | Deliberate boundary |
+|---|---|---|
+| Read/check settings and parameters | Typed helpers above | No R expression evaluation or isolated legacy profile-layer view |
+| Preview/build configured steps | build/dev helpers below | Explicit production bump; no legacy renderer objects or archive switches |
+| Read paths and VERSION | path/version helpers | Lookup does not create directories; DESCRIPTION authority requires the existing R backend |
+| Restore configured data | `proj_cli("remote restore", ...)` | One label per call; does not clone a repository or install packages |
+| Restore locked R packages | `proj_renv_restore(...)` | Explicit, already installed renv; no automatic installation/update helpers |
+| Quarto and R Markdown | Existing CLI drivers | Documents do not share the plain-script R workspace |
+| Bookdown and hooks needing caller R objects | Explicit existing R function backend | No silent render_book-to-render_site or caller-state translation |
+
+Repository cloning, broad project initialisation, citation/documentation helpers and
+legacy package-source/update selectors are outside this supported frontend subset.
+An explicit callback keeps its own behavior; it is not evidence of CLI equivalence.
 
 ## Run a preview or build from R
 
@@ -169,3 +177,33 @@ The receipt reports observed locked package versions and a lockfile checksum.
 A failed restore is not a successful reanalysis; inspect the library/cache before
 retrying. Legacy GitHub/BiocManager selectors and update helpers remain outside
 this supported subset. See the package dependency reference.
+
+## Check a real analysis after changing engines
+
+The M4 acceptance test uses the existing Weisberger weed-study scripts 01 and 04
+at a fixed public commit. It compares their complete generated CSV contents across
+the old R engine and the new frontend, then archives locally, restores all selected
+folders into a fresh project, restores its R packages explicitly and reruns it.
+
+The report also reads settings and expected row counts through the frontend's
+configuration/parameter helpers. Fresh data recovery calls remote restore through
+the R transport, with each restored folder compared byte-for-byte before rerunning.
+These are test assertions awaiting the final named run, not a completed result.
+Fresh recovery keeps the recorded project metadata, including root manifest.csv,
+with its configuration and scripts. It starts without data, outputs, analysis cache
+or an installed project library. Ordinary restore uses that CSV; this does not
+claim recovery from a bare store without project metadata.
+
+The scope is the two processing scripts and a generated test report. The test
+expects 265 and 236 data rows and checks the report's visible counts. The scientific
+scripts remain unchanged. It uses the same current pinned R runtime for both engines;
+historical paper models and the earlier R4.1.1 environment are outside this comparison.
+Its package snapshot is captured once for the run; fresh project libraries restore
+from an owned cache primed from that matched environment. The separate small-package
+test covers a cold, cache-disabled restore.
+
+This heavier check is explicitly selected through representative_reanalysis in
+the [R workflow](https://github.com/MiguelRodo/projcli/actions/workflows/r-adapter.yml).
+Ordinary package checks do not fetch studies or install dependencies. Retained
+results contain source/package pins, hashes, row comparisons and checks; original
+scripts, datasets, generated CSVs/reports and local stores are not uploaded.
