@@ -69,6 +69,11 @@ jobs:
         run: |
           runuser -u rstudio -- R CMD INSTALL --library="$RUNNER_TEMP/r-adapter-library" frontends/r/projcli
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_TEST_BINARY="$GITHUB_WORKSPACE/adapter-cli/proj_0.4.0-preview.4_linux_amd64" Rscript --vanilla frontends/r/projcli/tests/transport.R
+      - name: Prepare isolated CFF schema test dependencies
+        shell: bash
+        run: |
+          install -d -o rstudio -g rstudio "$RUNNER_TEMP/init-schema-python"
+          runuser -u rstudio -- python3 -m pip install --disable-pip-version-check --target "$RUNNER_TEMP/init-schema-python" 'jsonschema==4.23.0' 'PyYAML==6.0.2'
       - name: Required candidate-core configuration API integration
         shell: bash
         run: |
@@ -82,7 +87,7 @@ jobs:
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" PROJCLI_R_HOUSEKEEPING_REQUIRED=1 Rscript --vanilla tests/acceptance/r_housekeeping.R
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla tests/acceptance/r_docs_examples.R
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla tests/acceptance/init_metadata.R
-          runuser -u rstudio -- python3 tests/acceptance/init_metadata_schema.py --binary "$GITHUB_WORKSPACE/target/debug/proj"
+          runuser -u rstudio -- env PYTHONPATH="$RUNNER_TEMP/init-schema-python" python3 tests/acceptance/init_metadata_schema.py --binary "$GITHUB_WORKSPACE/target/debug/proj"
           runuser -u rstudio -- python3 tests/acceptance/init_interaction.py --binary "$GITHUB_WORKSPACE/target/debug/proj"
       - name: Explicit named Weisberger reanalysis
         if: github.event_name == 'workflow_dispatch' && inputs.representative_reanalysis
