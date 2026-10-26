@@ -72,13 +72,18 @@ impl Default for IgnoreType {
 /// The supplied project root must use its resolved identity; controlled writes
 /// reject symlinks in the root or metadata path rather than following them.
 pub fn update_ignores_for(project_root: &camino::Utf8Path, validated: &ValidatedConfig) -> anyhow::Result<()> {
+    update_ignores_for_generated(project_root,validated,&[])
+}
+
+pub(crate) fn update_ignores_for_generated(project_root: &camino::Utf8Path, validated: &ValidatedConfig, generated: &[std::path::PathBuf]) -> anyhow::Result<()> {
     let mut git_ignores = Vec::new();
     let mut rbuild_ignores = Vec::new();
 
-    for (_, dir) in &validated.directories {
+    for (label, dir) in &validated.directories {
         crate::yml::validate_ignore(&dir.ignore)?;
         // Collect ignores based on the ignore config
         let (should_git, should_rbuild) = match &dir.ignore {
+            IgnoreConfig::Unspecified => (!crate::script_selection::is_scripts(label),true),
             IgnoreConfig::Single(s) => {
                 let s = s.to_lowercase();
                 (s == "all" || s == "git", s == "all" || s == "rbuild")
@@ -127,6 +132,26 @@ pub fn update_ignores_for(project_root: &camino::Utf8Path, validated: &Validated
             r"^VERSION$", r"^manifest\.csv$", r"^CITATION\.cff$", r"^_quarto\.ya?ml$",
             r"^_bookdown\.ya?ml$", r"^README\.Rmd$", r"^README_files$", r"^.*\.Rproj$", r"^\.Rproj\.user$"
         ].into_iter().map(str::to_owned));
+    }
+    // Frozen native outputs only: never all HTML/assets or final docs.
+    for (label,directory) in &validated.directories {
+        if !crate::script_selection::is_scripts(label) {continue;}
+        let auto_git=match &directory.ignore {
+            IgnoreConfig::Unspecified=>true,
+            IgnoreConfig::Single(value)=>["all","git"].iter().any(|allowed|value.eq_ignore_ascii_case(allowed)),
+            IgnoreConfig::Multiple(values)=>values.iter().any(|value|["all","git"].iter().any(|allowed|value.eq_ignore_ascii_case(allowed))),
+        };
+        if !auto_git {continue;}
+        let source=validated.get_path(project_root,label)?;
+        for path in generated {
+            let path=camino::Utf8Path::from_path(path).ok_or_else(||anyhow::anyhow!("Generated path must be UTF-8"))?;
+            if path.starts_with(&source) {
+                let relative=path.strip_prefix(project_root)?;
+                let value=if cfg!(windows){relative.as_str().replace('\\',"/")}else{relative.to_string()};
+                let escaped=value.chars().flat_map(|c|if matches!(c,'\\'|'#'|'!'|'*'|'?'|'['|']'){vec!['\\',c]}else{vec![c]}).collect::<String>();
+                git_ignores.push(format!("/{escaped}"));
+            }
+        }
     }
     // Sort and deduplicate
     git_ignores.sort();

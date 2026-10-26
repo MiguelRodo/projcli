@@ -39,6 +39,9 @@ jobs:
       - name: Actual CLI R Python and embedded HTML acceptance
         shell: bash
         run: runuser -u rstudio -- python3 tests/acceptance/path_contract.py target/debug/proj --evidence path-contract-evidence.json
+      - name: Script groups and complete Quarto website output
+        shell: bash
+        run: runuser -u rstudio -- python3 tests/acceptance/script_groups.py target/debug/proj --evidence script-groups-evidence.json
       - name: Combined M1 actual CLI acceptance
         shell: bash
         run: runuser -u rstudio -- python3 tests/acceptance/m1_contract.py target/debug/proj --evidence m1-contract-evidence.json --artifacts m1-acceptance-artifacts
@@ -104,4 +107,11 @@ jobs:
           path: |
             m3-contract-evidence.json
             m3-acceptance-artifacts
+          if-no-files-found: warn
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: script-groups-evidence
+          path: script-groups-evidence.json
           if-no-files-found: warn

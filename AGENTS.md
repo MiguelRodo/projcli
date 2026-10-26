@@ -795,3 +795,9 @@ a named R init helper. Original SATVILab/projr remains the protected reference.
 Multiple final-destination routing is deferred to private planning issue773.
 Only the agreed single-docs script-group behavior may proceed. Keep source/released/installed status distinct and original projr/thesis unchanged;
 substantive changes require independent review and exact-head checks.
+
+Script groups are source directories, never managed outputs. Preserve ordered
+source-only discovery and zero-depth **/ semantics. Generate source ignore rules
+from frozen selected native output plans, not blanket HTML/assets or final docs.
+Multiple destinations/name matching remain deferred in issues#773. Verify actual
+grouped rendering and Quarto projects remotely before claiming compatibility.

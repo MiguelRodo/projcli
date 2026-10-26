@@ -205,11 +205,16 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     // Pre-flight Environment Verification
     let mut resolved_files = Vec::new();
     if let Some(scripts) = &build_scripts {
-        resolved_files = resolve_explicit_scripts(project_root, scripts)?;
+        resolved_files = crate::script_selection::resolve(project_root, scripts, &config)?;
     } else {
         if !quarto_exists && !bookdown_exists {
             resolved_files = resolve_fallback_scripts(project_root)?;
         }
+    }
+
+    if is_dev {
+        eprintln!("Selected analysis scripts (in execution order):");
+        for file in &resolved_files {eprintln!("  {}",file.strip_prefix(project_root).unwrap_or(file));}
     }
 
     // Upfront check for hooks
@@ -244,14 +249,11 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         Ok(())
     };
 
-    if let Some(scripts) = &build_scripts {
-        check_explicit_missing(scripts)?;
-    }
     check_explicit_missing(&raw_hooks)?;
 
     // An explicit empty list selects no analysis; it never enables discovery or
     // renderer setup. Hooks are still validated and executed independently.
-    let run_analysis = build_scripts.as_ref().map_or(true, |scripts| !scripts.is_empty());
+    let run_analysis = build_scripts.as_ref().map_or(true, |_| !resolved_files.is_empty());
     let selected_documents = build_scripts.is_none() || resolved_files.iter().any(|file| matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")));
     let quarto_exists = quarto_exists && run_analysis && selected_documents;
     let bookdown_exists = bookdown_exists && run_analysis && selected_documents;
@@ -280,7 +282,21 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     if has_document_analysis && !quarto_exists && !bookdown_exists {
         let docs = config.get_path(project_root, "docs")?;
         for file in &validation_files {
-            if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) { document_output_paths(file, &docs, project_root)?; }
+            if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) { document_output_paths(file, &crate::script_selection::document_directory(project_root,file,&docs,&config)?, project_root)?; }
+        }
+    }
+
+    // Distinct inputs must not silently overwrite a shared final file or asset tree.
+    if has_document_analysis && !quarto_exists && !bookdown_exists {
+        let mut destinations=std::collections::BTreeSet::new();
+        for file in &resolved_files {
+            if !matches!(file.extension(),Some("qmd"|"Rmd"|"rmd")) {continue;}
+            let docs=crate::script_selection::document_directory(project_root,file,&config.get_path(project_root,"docs")?,&config)?;
+            let plan=document_output_paths(file,&docs,project_root)?;
+            for target in [&plan.destination,&plan.destination_assets] {
+                let identity=crate::path_safety::resolve_path(target.as_std_path(),true)?;
+                anyhow::ensure!(destinations.insert(identity.to_string_lossy().to_uppercase()),"Selected documents collide at final output: {target}");
+            }
         }
     }
 
@@ -348,7 +364,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
             } else {
                 for file in &resolved_files {
                     if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) {
-                        let outputs = document_output_paths(file, &config.get_path(project_root, "docs")?, project_root)?;
+                        let outputs = document_output_paths(file, &crate::script_selection::document_directory(project_root,file,&config.get_path(project_root,"docs")?,&config)?, project_root)?;
                         for input in &validation_files {
                             let identity = crate::path_safety::resolve_path(input.as_std_path(), false)?;
                             for target in [&outputs.target, &outputs.destination, &outputs.assets, &outputs.destination_assets].into_iter().chain(outputs.intermediate.iter()) {
@@ -430,7 +446,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         let docs = config.get_path(project_root, "docs")?;
         for file in &resolved_files {
             if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) {
-                let paths = document_output_paths(file, &docs, project_root)?;
+                let paths = document_output_paths(file, &crate::script_selection::document_directory(project_root,file,&docs,&config)?, project_root)?;
                 native_layouts.push((file.clone(), paths.target.clone(), paths.assets.clone(), paths.intermediate.clone()));
                 if let Some(intermediate) = &paths.intermediate {
                     native_artifacts.push(intermediate.clone().into_std_path_buf());
@@ -506,7 +522,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
             }
         }
         for (file, expected_target, expected_assets, expected_intermediate) in &native_layouts {
-            let current = document_output_paths(file, &config.get_path(project_root, "docs")?, project_root)?;
+            let current = document_output_paths(file, &crate::script_selection::document_directory(project_root,file,&config.get_path(project_root,"docs")?,&config)?, project_root)?;
             anyhow::ensure!(&current.target == expected_target && &current.assets == expected_assets && &current.intermediate == expected_intermediate,
                 "Renderer output layout changed after preflight: {file}");
         }
@@ -518,7 +534,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
             if project_root.join("_environment.local").exists() {
                 crate::ignore::add_manual_ignores(project_root, &["_environment.local".to_string()], true, crate::ignore::IgnoreType::All)?;
             }
-            crate::ignore::update_ignores(project_root, &config)?;
+            crate::ignore::update_ignores_for_generated(project_root, &config, &native_artifacts)?;
         }
         if has_document_analysis {
             let cache = cache_root.as_ref().context("Document rendering requires cache")?;
@@ -555,7 +571,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
                 }
                 let (_, target, assets, intermediate) = native_layouts.iter().find(|(input, _, _, _)| input == file)
                     .context("Missing frozen document layout")?;
-                let current = document_output_paths(file, &config.get_path(project_root, "docs")?, project_root)?;
+                let current = document_output_paths(file, &crate::script_selection::document_directory(project_root,file,&config.get_path(project_root,"docs")?,&config)?, project_root)?;
                 anyhow::ensure!(&current.target == target && &current.assets == assets && &current.intermediate == intermediate, "Renderer output layout changed after preflight: {file}");
                 remove_native_artifact(target)?;
                 remove_native_artifact(assets)?;
@@ -605,7 +621,9 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
             if !quarto_exists && !bookdown_exists {
                 for file in &resolved_files {
                     if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) { let (_, target, assets, _) = native_layouts.iter().find(|(input, _, _, _)| input == file).context("Missing frozen document collection layout")?;
-                        stage_frozen_document(target, assets, staging)?; }
+                        let destination=crate::script_selection::document_directory(project_root,file,staging,&config)?;
+                        fs::create_dir_all(&destination)?;
+                        stage_frozen_document(target, assets, &destination)?; }
                 }
             } else if bookdown_exists {
                 let assets = frozen_book_assets.as_ref().context("Missing frozen Bookdown assets")?;

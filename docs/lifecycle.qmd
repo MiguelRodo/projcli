@@ -108,7 +108,7 @@ flowchart TB
   In the released implementation, preview retains an existing dev version or uses dev1 of a
   release without writing VERSION; an output run uses its requested release
   version throughout the run and leaves the subsequent dev1 only on success.
-- Validate declared paths, script/hook include and exclusion syntax, supported renderer plans,
+- Validate declared paths, ordered source groups/globs, script/hook exclusions, supported renderer plans,
   dependencies and explicitly enabled Git actions before controlled build writes.
   Probes can have their own effects: this is not a blanket read-only/environment
   sanitization guarantee.
@@ -768,3 +768,5 @@ Its opt-in renv action is not a build dependency restore. The existing productio
 ignore-preparation stage now creates automatic .Rbuildignore only for DESCRIPTION
 projects (or updates an existing file); analysis, rendering and publication order
 is unchanged by this metadata slice.
+
+Candidate script groups retain nested document/sidecar paths inside the single docs destination. Exact frozen native output paths generate source ignores; final docs are not blanket ignored. Real grouped and Quarto website checks run remotely before a compatibility claim.

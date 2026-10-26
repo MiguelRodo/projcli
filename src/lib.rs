@@ -8,6 +8,7 @@ pub mod profile;
 pub mod ignore;
 pub mod build_pre;
 pub mod build;
+mod script_selection;
 pub mod git;
 pub mod clear;
 pub mod cas;

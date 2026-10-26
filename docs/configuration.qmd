@@ -885,3 +885,24 @@ DESCRIPTION metadata.
 Any existing Git remote satisfies setup. General-init Git/GitHub actions remain
 opt-in when noninteractive; no automatic commit/push occurs there. Folder licensing
 is explicitly selected with init license --label, never inferred from init.
+
+## Selecting a script source group (candidate)
+
+~~~yaml
+directories:
+  scripts-l1:
+    path: lessons/l1
+  cache:
+    path: _tmp
+  docs:
+    path: docs
+build:
+  scripts: [scripts-l1, "!lessons/l1/**/draft-*"]
+~~~
+
+A source group can also be selected with lessons/l1 or lessons/l1/**/*.R.
+Patterns are project-relative, independent of the caller's working directory.
+Directory selection includes supported R, Python, QMD and Rmd sources recursively.
+The pattern lessons/l1/* selects immediate supported sources only.
+The docs role remains the single final document destination; independent documents
+in this group use docs/l1 and keep paths below lessons/l1.

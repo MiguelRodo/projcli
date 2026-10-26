@@ -1039,3 +1039,27 @@ automatic Rbuildignore requires DESCRIPTION and preserves explicit directory pol
 This candidate changes no installed CLI, original projr or thesis. No merge/release
 is approved. New named R init convenience remains absent; the existing generic
 R transport supports the CLI interface.
+
+## Script source groups (candidate)
+
+A configured scripts or scripts-<name> resource is a source, never an output or
+cache. build.scripts may select its name, a project-relative directory, source
+files, or globs. Directories recurse; patterns expand lexically in include order,
+duplicates run once, and all ! exclusions apply last. A *.R pattern is shallow;
+**/*.R includes current and nested files. Data and assets are not executed.
+Unmatched includes fail. Discovery skips declared cache/output/docs and framework
+metadata, rejects symbolic links, and does not use shell expansion. Preview prints
+the resolved order. Existing explicit empty selection remains empty.
+
+Independent documents below scripts-l1 go to the one docs destination's l1
+subfolder, retaining nested paths and renderer sidecars. Bare scripts retains
+relative paths directly under docs. Other inputs keep existing flat placement.
+Overlapping groups fail. Multiple final destinations and name-matching proposals
+are deferred to [the routing design issue](https://github.com/MiguelRodo/issues/issues/773).
+
+Omitted script ignore policy leaves sources visible in Git and excludes the
+group from an R source package only when DESCRIPTION exists. Production builds
+add exact planned native document outputs/sidecars to managed Git rules; unrelated
+HTML/assets and final docs remain visible. Explicit ignore policies, including
+ignore: [], override automatic script rules. Runtime verification for this new
+slice is pending; no new Quarto-project compatibility claim is made yet.
