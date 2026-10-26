@@ -1061,5 +1061,8 @@ Omitted script ignore policy leaves sources visible in Git and excludes the
 group from an R source package only when DESCRIPTION exists. Production builds
 add exact planned native document outputs/sidecars to managed Git rules; unrelated
 HTML/assets and final docs remain visible. Explicit ignore policies, including
-ignore: [], override automatic script rules. Runtime verification for this new
-slice is pending; no new Quarto-project compatibility claim is made yet.
+ignore: [], override automatic script rules. The remote suite includes actual grouped rendering and complete Quarto website
+fixtures. This is an unreleased candidate; final exact-commit results are recorded
+in draft PR234, without implying other project types or broader legacy parity.
+
+Existing explicitly named external files remain supported with guarded paths and redacted provenance. Discovery directories/globs remain project-scoped; the existing cleanup/input-overlap guards still own rejection of literal files inside managed outputs.

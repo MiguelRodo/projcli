@@ -54,8 +54,8 @@ pub(crate) fn resolve(root: &Utf8Path, selection: &[String], config: &crate::yml
             anyhow::ensure!(path.starts_with(root)&&path!=root,"Scripts directory must be inside the project: {label}");
             return Ok(path.strip_prefix(root)?.as_str().replace('\\',"/"));
         }
-        if Utf8Path::new(value).is_absolute() && Utf8Path::new(value).is_file() {
-            let path=Utf8PathBuf::from_path_buf(crate::path_safety::resolve_path(Utf8Path::new(value).as_std_path(),true)?).map_err(|_|anyhow::anyhow!("Script path must be UTF-8"))?;
+        if root.join(value).is_file() {
+            let path=Utf8PathBuf::from_path_buf(crate::path_safety::resolve_path(root.join(value).as_std_path(),true)?).map_err(|_|anyhow::anyhow!("Script path must be UTF-8"))?;
             return Ok(path.strip_prefix(root).unwrap_or(&path).to_owned().into_string());
         }
         portable(value)
@@ -80,8 +80,10 @@ pub(crate) fn resolve(root: &Utf8Path, selection: &[String], config: &crate::yml
         let mut files=Vec::new();
         if target.exists() {
             crate::path_safety::resolve_path(target.as_std_path(),true)?;
-            anyhow::ensure!(!blocked.iter().any(|base|target.starts_with(base)),"Scripts selection overlaps generated output or project state: {value}");
-            if target.is_dir() {walk(&target,None,&blocked,&mut files)?;}
+            if target.is_dir() {
+                anyhow::ensure!(!blocked.iter().any(|base|target.starts_with(base)),"Script directory selection overlaps generated output or project state: {value}");
+                walk(&target,None,&blocked,&mut files)?;
+            }
             else {anyhow::ensure!(target.is_file()&&supported(&target),"Unsupported selected script: {value}");files.push(target);}
         } else {
             let pattern=glob::Pattern::new(&value).with_context(||format!("Invalid script pattern '{value}'"))?;

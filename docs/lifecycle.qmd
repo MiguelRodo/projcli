@@ -769,4 +769,4 @@ ignore-preparation stage now creates automatic .Rbuildignore only for DESCRIPTIO
 projects (or updates an existing file); analysis, rendering and publication order
 is unchanged by this metadata slice.
 
-Candidate script groups retain nested document/sidecar paths inside the single docs destination. Exact frozen native output paths generate source ignores; final docs are not blanket ignored. Real grouped and Quarto website checks run remotely before a compatibility claim.
+Candidate script groups retain nested document/sidecar paths inside the single docs destination. Exact frozen native output paths generate source ignores; final docs are not blanket ignored. Remote fixtures cover grouped documents and complete Quarto websites; exact-commit outcomes are recorded in draft PR234.
