@@ -284,6 +284,9 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
         }
     }
 
+    let r_actions = if is_dev { crate::yml::RBuildConfig::default() } else { build.r };
+    crate::r_housekeeping::preflight(project_root, r_actions, &environment)?;
+
     // 4. VERSION Initialization Check
     let original_version = match version_get_from(project_root) {
         Some(v) => v,
@@ -330,7 +333,11 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     if has_document_analysis { anyhow::ensure!(cache_root.is_some(), "Document rendering requires an eligible cache directory"); }
     // Recovery removes/replaces managed destinations too, so preview needs the
     // same root/overlap/link guards even though it never performs release cleanup.
-    crate::path_safety::validate_build_paths(project_root, &config, &validation_files)?;
+    let mut protected_inputs = validation_files.clone();
+    if r_actions.readme { protected_inputs.push(project_root.join("README.Rmd")); }
+    if r_actions.document { protected_inputs.extend([project_root.join("R"), project_root.join("DESCRIPTION")]); }
+    if r_actions.renv_snapshot { protected_inputs.push(project_root.join("renv.lock")); }
+    crate::path_safety::validate_build_paths(project_root, &config, &protected_inputs)?;
     if run_analysis {
         {
             if quarto_exists || bookdown_exists {
@@ -384,6 +391,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     for name in ["VERSION", "manifest.csv", ".gitignore", ".Rbuildignore", "_proj.yml", "_projr.yml", "_projr-local.yml", "DESCRIPTION", "_quarto.yml", "_bookdown.yml"] {
         managed.push(project_root.join(name).into_std_path_buf());
     }
+    managed.extend(crate::r_housekeeping::managed_paths(project_root, r_actions));
     for entry in fs::read_dir(project_root)
         .with_context(|| format!("Cannot enumerate managed project state at {project_root}"))?
     {
@@ -484,7 +492,9 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     let mut document_stage = None;
     let mut project_embedding = None;
     let local_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| -> anyhow::Result<()> {
-        // Basic read-only validation and recovery are complete. Start hooks run first.
+        // Original projr snapshots before start hooks; capture recovery first.
+        crate::r_housekeeping::run(project_root, r_actions, &environment, true)?;
+        // Basic validation/recovery and any requested R snapshot are complete.
         for hooks in [&hooks_config.pre, &hooks_config.both] {
             if let Some(hooks) = hooks {
                 for hook in resolve_explicit_scripts(project_root, hooks)? {
@@ -617,6 +627,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
                 crate::fs_utils::copy_dir_recursive(staging, &docs)?;
             }
         }
+        crate::r_housekeeping::run(project_root, r_actions, &environment, false)?;
         if record_manifest {
             let outputs = crate::manifest::capture_build(project_root, &config, &initial_version.to_string(true), false)?;
             attempt_inventory=Some(crate::attempt_log::InventoryEvidence {

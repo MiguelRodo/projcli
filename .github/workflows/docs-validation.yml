@@ -118,6 +118,52 @@ jobs:
               print(f"PASS browser-rendered SVG {index}: {nodes} nodes; viewBox={svg.attrib['viewBox']}")
           assert (evidence / "lifecycle-page.png").stat().st_size > 1000
           PY
+      - name: Inspect R package pages and exported function coverage
+        run: |
+          python3 - <<'PY' 2>&1 | tee validation-evidence/r-package-pages.txt
+          from functools import partial
+          from html.parser import HTMLParser
+          from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+          from pathlib import Path
+          import re, shutil, subprocess, tempfile, threading
+          site=Path("docs/_site").resolve()
+          evidence=Path("validation-evidence/r-package-review").resolve()
+          evidence.mkdir(parents=True,exist_ok=True)
+          class MainText(HTMLParser):
+              def __init__(self,text):
+                  super().__init__();self.active=False;self.text=[];self.feed(text)
+              def handle_starttag(self,tag,attrs):
+                  if tag=="main":self.active=True
+              def handle_endtag(self,tag):
+                  if tag=="main":self.active=False
+              def handle_data(self,text):
+                  if self.active:self.text.append(text)
+          exports=re.findall(r"export\((\w+)\)",Path("frontends/r/projcli/NAMESPACE").read_text())
+          reference=" ".join(MainText((site/"r-reference.html").read_text()).text)
+          assert exports and all(name in reference for name in exports), "Missing exported function reference"
+          guide=" ".join(" ".join(MainText((site/"r-frontend.html").read_text()).text).split())
+          assert "not on CRAN" in guide and "preview.4" in guide and "Quick start" in guide
+          browser=shutil.which("google-chrome");assert browser
+          class Quiet(SimpleHTTPRequestHandler):
+              def log_message(self,*_):pass
+          server=ThreadingHTTPServer(("127.0.0.1",0),partial(Quiet,directory=str(site)))
+          threading.Thread(target=server.serve_forever,daemon=True).start()
+          try:
+              for page in ["r-frontend","r-reference"]:
+                  with tempfile.TemporaryDirectory(prefix="r-doc-browser-") as profile:
+                      result=subprocess.run([browser,"--headless","--disable-gpu","--dump-dom",
+                          "--virtual-time-budget=5000","--timeout=20000","--window-size=1400,2400",
+                          "--user-data-dir="+profile,"--screenshot="+str(evidence/(page+".png")),
+                          f"http://127.0.0.1:{server.server_port}/{page}.html"],
+                          capture_output=True,text=True,timeout=60)
+                  result.check_returncode()
+                  (evidence/(page+".html")).write_text(result.stdout)
+                  assert (evidence/(page+".png")).stat().st_size>1000
+                  print("PASS native browser R page:",page,flush=True)
+          finally:
+              server.shutdown();server.server_close()
+          print("PASS documented exports:",len(exports))
+          PY
       - name: Check rendered navigation and local links
         run: |
           python3 - <<'PY' 2>&1 | tee validation-evidence/links.txt
@@ -151,7 +197,7 @@ jobs:
                       self.in_navbar = False
           
           pages = {path: Page(path) for path in site.rglob("*.html")}
-          for name in ("index.html", "install.html", "tutorial.html", "features.html"):
+          for name in ("index.html", "install.html", "tutorial.html", "features.html", "r-frontend.html"):
               navbar = pages[site / name].navbar_links
               active = [a for a in navbar if "active" in a.get("class", "").split()]
               current = [a for a in navbar if a.get("aria-current") == "page"]

@@ -17,6 +17,8 @@ website:
         text: Get started
       - href: features.qmd
         text: What works
+      - href: r-frontend.qmd
+        text: R package
     right:
       - icon: github
         href: https://github.com/MiguelRodo/projcli
@@ -37,7 +39,10 @@ website:
           - cli/path.qmd
           - cli/ignore.qmd
           - cli/errors.qmd
+      - section: R package
+        contents:
           - r-frontend.qmd
+          - r-reference.qmd
       - section: Design and progress
         contents:
           - behavior.qmd

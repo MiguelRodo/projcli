@@ -1,0 +1,107 @@
+---
+title: "R function reference"
+subtitle: "The exported projcli API, grouped by task."
+---
+
+This documents the source package projcli 0.0.0.9000 (R >= 4.1, MIT licence).
+It is not a CRAN release or a drop-in replacement for every projr export.
+See [installation and quick start](r-frontend.qmd) and
+[source package help](https://github.com/MiguelRodo/projcli/tree/main/frontends/r/projcli/man).
+
+## Command interface {#transport}
+
+### proj_cli() {#proj-cli}
+
+~~~r
+proj_cli(command = "capabilities", args = character(), project = NULL,
+         binary = NULL, env = character(), timeout = Inf)
+~~~
+
+Pass each argument separately without shell quoting. Returns the validated command
+result envelope as a list; result contains the requested data. A failure raises
+projcli_error with a safe code and optional status. Raw child diagnostics are
+withheld. Timeout/failure can follow partial effects; inspect before retrying.
+No binary is installed automatically. Use help("proj_cli", package="projcli")
+for the protocol, environment and response-size contract.
+
+## Configuration {#configuration}
+
+| Function | Result / purpose |
+|---|---|
+| projr_yml_get(profile=NULL, check=FALSE, ...) | Merged settings as a named list. |
+| projr_yml_check(profile=NULL, ...) | Validate; invisible TRUE on success. |
+| projr_par_get(..., profile=NULL) | Literal mapping-key lookup; missing value is NULL. |
+| projr_param_get(..., profile=NULL) | Alias of the parameter helper. |
+
+These take backend="cli", project=NULL, binary=NULL, env=character(), timeout=Inf.
+Homogeneous scalar arrays become vectors; mixed/null-bearing arrays and maps stay
+lists. No automatic date/data-frame conversion or R-expression evaluation occurs.
+Explicit legacy single-profile-layer reads require an existing R function backend.
+CLI profiles represent merged overlays. Successful requested values may contain
+secrets. Help topic: help("projr_yml_get", package="projcli").
+
+## Builds and previews {#builds}
+
+| Function | Purpose |
+|---|---|
+| projr_build(bump_component, ...) | Choose major, minor or patch explicitly. |
+| projr_build_major(...) | Production major bump. |
+| projr_build_minor(...) | Production minor bump. |
+| projr_build_patch(...) | Production patch bump. |
+| projr_build_dev(...) | Preview configured scripts without publication/version bump. |
+
+Build/dev return invisible TRUE on CLI success. Common build options include msg,
+profile, clear_output and execution_dir; transport options are backend/project/
+binary/env/timeout. Unspecified execution_dir follows configured/native behavior;
+"project" explicitly selects root execution. Clearing accepts none/never/pre/post.
+A production build can modify managed outputs and publish configured destinations.
+
+The supported preview controls are file=NULL, bump=FALSE, old_dev_remove=FALSE and
+empty args_engine. Arbitrary renderer objects, old archive switches and implicit
+production bump require an explicit existing R callback, not guessed translation.
+DESCRIPTION projects and Bookdown markers are rejected by these named wrappers;
+generic proj_cli exposes documented CLI behavior. Help topic:
+help("projr_build", package="projcli").
+
+## Paths and versions {#paths}
+
+| Function | Result / purpose |
+|---|---|
+| projr_path_get(label, ..., create=FALSE, format=c("auto","relative","absolute"), safe=TRUE, ...) | Character path assembled from literal unnamed fragments. |
+| projr_version_get(...) | Canonical VERSION text without the leading v. |
+| projr_version_set(version, only_if_exists=TRUE, ...) | Invisible TRUE; by default leaves an absent VERSION absent. |
+
+The common backend/project/binary/env/timeout controls apply. Path lookup never
+creates folders; create=TRUE and legacy code/data special lookups need an existing
+R callback. safe=FALSE selects the final configured location. VERSION helpers do
+not synchronize DESCRIPTION. Help topic: help("projr_build", package="projcli").
+
+## Dependencies {#dependencies}
+
+### proj_renv_restore() {#proj-renv-restore}
+
+~~~r
+proj_renv_restore(project, library, lockfile = "renv.lock",
+                  rscript = NULL, env = character(), timeout = Inf)
+~~~
+
+An explicit operation using already installed renv in a fresh --vanilla Rscript.
+Project, library and lockfile must exist; library/lockfile remain inside project.
+It uses transactional=TRUE, clean=FALSE and prompt=FALSE, checks locked package
+versions and unchanged lockfile, and returns lockfile_md5, renv_version and packages.
+That checksum identifies bytes, not a security guarantee. It does not install renv,
+update/activate the project or reproduce all legacy package-source/update selectors.
+rscript defaults to the calling R; config.r.rscript separately controls CLI drivers.
+Help topic: help("proj_renv_restore", package="projcli").
+
+## Backend and environment {#backend}
+
+Named helpers accept "cli" or a supplied existing R function. A callback retains
+its arguments/results/caller state; CLI-only transport options cannot be mixed in.
+No legacy package is loaded automatically and no silent fallback occurs.
+
+The CLI child receives active R libraries, managed root/context and a deliberate
+system/locale baseline. Add credentials only through explicit env entries when
+needed. It does not inherit interactive R objects. Startup and project/package
+code can still run; this interface is not a sandbox. See the guide and installed
+help for the exact supported subset and [configuration](configuration.qmd).
