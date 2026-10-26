@@ -133,7 +133,7 @@ impl Fingerprint {
             bytes:0,nodes:0,redactions:0};
         let empty=serde_json::json!({});let null=Value::Null;let isolated=Value::String("isolated".into());
         let result=(||->io::Result<()>{
-            for path in ["/directories","/parameters","/build/scripts","/build/hooks/pre","/build/hooks/both","/build/hooks/post","/config/r/session","/config/r/rscript","/build/r"] {
+            for path in ["/directories","/parameters","/build/scripts","/build/hooks/pre","/build/hooks/both","/build/hooks/post","/config/r/session","/config/r/rscript","/build/r","/settings/sync-description-version"] {
                 writer.string(path)?;
                 let default=if matches!(path,"/directories"|"/parameters"){&empty}else if path=="/config/r/session"{&isolated}else{&null};
                 writer.value(combined.pointer(path).unwrap_or(default),0,path=="/parameters")?;

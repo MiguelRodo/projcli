@@ -765,3 +765,13 @@ not new R package Imports or user auto-installs. Windows explicitly prepares Pan
 Docs CI renders/links all pages, checks every export appears in r-reference and
 retains native-browser screenshots of both R pages alongside twelve lifecycle SVGs.
 Publication/merge/install remains unapproved; validation artifacts are not deployment.
+
+## Approved VERSION authority extension (overnight 26 October)
+
+Latest user decision supersedes the DESCRIPTION rejection boundary: VERSION is
+authoritative; synchronize existing DESCRIPTION by default under
+settings.sync-description-version. No implicit DESCRIPTION creation. Freeze the
+policy before hooks, preserve exact previous bytes/counters on recoverable failure,
+and admit dirty DESCRIPTION for consecutive Git builds only with exact committed
+and framework-created development-byte evidence. Keep Bookdown's explicit boundary.
+Do not merge, release or update installed tools for this overnight candidate.

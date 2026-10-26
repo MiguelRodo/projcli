@@ -992,7 +992,7 @@ execution is deliberately in the caller's R session, not a promised clean child.
 Draft R build/dev/path/version helpers delegate to the existing workflow and
 require explicit legacy callbacks where semantics differ. Read-only path lookup
 uses format and safe; it never activates folder creation. High-level VERSION
-helpers reject DESCRIPTION projects, and high-level build helpers reject Bookdown
+helpers use VERSION authority and default DESCRIPTION synchronization; high-level build helpers still reject Bookdown
 markers rather than equating render_book with render_site. Generic proj_cli still
 exposes the documented standalone CLI. This does not change renderer/hook ordering.
 
@@ -1010,3 +1010,13 @@ README, snapshots and deliberate failures. The R workflow runs native Linux and
 Windows acceptance and the guide's exact quick start; docs CI renders/checks the
 website. See [PR231](https://github.com/MiguelRodo/projcli/pull/231) for exact-head evidence. Citation work, background daemon, package restore during build and
 general initialization parity are excluded.
+
+
+## VERSION-authoritative DESCRIPTION synchronization (source candidate)
+
+VERSION remains authoritative. settings.sync-description-version defaults true:
+update an existing DESCRIPTION Version on release/dev/set writes, never create it.
+Preserve other bytes and exact pre-distribution recovery. Previews do not synchronize.
+Malformed/multi-record metadata fails before hooks. Named R helpers support this
+explicit core policy; legacy callbacks retain their original authority.
+See [configuration](configuration.qmd#version-and-description-synchronization-source-candidate).

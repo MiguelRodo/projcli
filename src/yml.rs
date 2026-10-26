@@ -85,6 +85,8 @@ pub struct ProjConfig {
 #[derive(Deserialize, Debug, Default, Clone)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub struct SettingsConfig {
+    /// Keep an existing DESCRIPTION Version aligned with VERSION (default true).
+    pub sync_description_version: Option<bool>,
     pub output_clear_stage: Option<OutputClearStage>,
     /// Native runner cwd by default; explicit command policy takes precedence.
     pub execution_directory: Option<crate::build::ExecutionDirectory>,
@@ -739,6 +741,9 @@ fn read_configuration_file(path: &Utf8Path) -> anyhow::Result<Value> {
     if let Some(settings) = value.get("settings") {
         let _: SettingsConfig = serde_json::from_value(settings.clone())
             .with_context(|| format!("Invalid settings in {path}"))?;
+        if let Some(marker) = settings.get("sync-description-version") {
+            anyhow::ensure!(marker.is_boolean(), "settings.sync-description-version must be boolean in {path}");
+        }
         for key in ["output-clear-stage", "execution-directory", "path-representation"] {
             if let Some(marker) = settings.get(key) {
                 anyhow::ensure!(marker.is_string(), "settings.{key} must be a string in {path}");

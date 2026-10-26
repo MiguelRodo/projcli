@@ -516,7 +516,7 @@ flowchart TB
   S["Preflight; bounded startup observations;<br/>existing pre-build, analysis,<br/>promotion and recovery"]
   P{"Production local success?"}
   D{"Publication enabled?"}
-  L["End hooks; next dev;<br/>observe outputs; retain final CSV;<br/>install completed log"]
+  L["End hooks; next dev VERSION + existing DESCRIPTION;<br/>observe outputs; retain final CSV;<br/>install completed log"]
   G["Retain snapshot; distribution/Git;<br/>existing finalization; observe outputs;<br/>retain final CSV and log or Git receipt"]
   R["Release owned claim on normal exit"]
   W --> S --> P
@@ -758,3 +758,7 @@ flowchart TB
 This draft adds a process choice inside analysis, without moving hooks, clearing,
 promotion or publication. Python and document steps retain their place between R
 scripts. Shared R state never becomes the Rust driver's or hook processes' state.
+
+Source candidate: release and next-dev VERSION writes synchronize existing DESCRIPTION
+by default; previews and pre-distribution recovery retain exact prior bytes. The
+settings.sync-description-version switch is captured before hooks.

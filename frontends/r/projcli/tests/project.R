@@ -77,8 +77,10 @@ if (!nzchar(binary)) {
   do.call(projr_version_set,c(list("1.0.0",only_if_exists=FALSE),args))
   stopifnot(file.exists(file.path(root,"VERSION")))
   writeLines("Package: existing",file.path(root,"DESCRIPTION"))
-  code(do.call(projr_version_get,args),"unsupported_version_authority")
-  code(do.call(projr_build_patch,args),"unsupported_version_authority")
+  stopifnot(do.call(projr_version_get,args)=="1.0.0")
+  do.call(projr_build_patch,c(args,list(execution_dir="project")))
+  stopifnot(do.call(projr_version_get,args)=="1.0.1.1",
+    any(readLines(file.path(root,"DESCRIPTION"))=="Version: 1.0.1.1"))
   unlink(file.path(root,"DESCRIPTION"))
   writeLines("book_filename: book",file.path(root,"_bookdown.yml"))
   code(do.call(projr_build_patch,args),"unsupported_bookdown_semantics")

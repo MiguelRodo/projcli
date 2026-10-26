@@ -3798,3 +3798,18 @@ docs validation renders/links the new page and retains native browser screenshot
 The R guide/reference and CI additions passed independent source review. Native
 Linux/Windows execute the verbatim guide, and docs CI checks all14exports,28pages,
 links and browser screenshots. Consult PR231 for the final exact-head results.
+
+## VERSION-authoritative DESCRIPTION updates (overnight candidate)
+
+Approved user deviation from original projr: VERSION is the default authority, and
+an existing DESCRIPTION Version follows it unless settings.sync-description-version
+is false. No metadata file or package scaffold is implicitly created. Original
+projr version helpers may use DESCRIPTION as authority; explicit callbacks preserve
+that behavior. The installed ea323355 build has not been changed by this candidate.
+
+Ponytail: extend the shared version writer, existing bounded BuildState recovery and
+exact Git dev-transition witness; do not add a second version engine. Atomic
+same-directory replacement preserves hard-link aliases. Existing metadata other
+than Version remains byte-identical. The Git witness binds both committed and
+expected development DESCRIPTION bytes by digest and still rejects arbitrary edits.
+Local capped verification passed: seven synchronization tests, eighteen real-Git tests (two subprocess entrypoints ignored), existing fourteen recovery and ten housekeeping tests, native R wrapper execution and the documented preview/full-build example. Independent review found and fixed orphan/multi-record DCF handling, Git CRLF normalization and stale installed help. Final exact-head remote checks remain pending.

@@ -627,3 +627,31 @@ fn nested_local_failure_exclusion_keeps_other_project_records_and_unrelated_file
     assert!(paths.lines().any(|p|p.starts_with(".proj/log/")&&p.ends_with(".json")));
     assert_eq!(fs::read(nested.join("private.json")).unwrap(),b"local-only");
 }
+
+#[test]
+fn package_metadata_tracks_two_owned_dev_bumps_but_not_arbitrary_edits() {
+ let f=Fixture::new(false);
+ fs::write(f.root.join("DESCRIPTION"),"Package: fixture\nVersion: 1.2.3.4\nTitle: Original\n").unwrap();
+ f.git(&["add","DESCRIPTION"]);f.git(&["commit","-m","fixture package metadata"]);
+ for (release,dev) in [("1.2.4","1.2.4.1"),("1.2.5","1.2.5.1")] {
+  let o=f.build(false);assert!(o.status.success(),"{}",String::from_utf8_lossy(&o.stderr));
+  assert_eq!(f.text(&["show","HEAD:./DESCRIPTION"]),format!("Package: fixture\nVersion: {release}\nTitle: Original"));
+  assert_eq!(fs::read_to_string(f.root.join("DESCRIPTION")).unwrap(),format!("Package: fixture\nVersion: {dev}\nTitle: Original\n"));
+ }
+ let head=f.text(&["rev-parse","HEAD"]);let desc=fs::read_to_string(f.root.join("DESCRIPTION")).unwrap().replace("Title: Original","Title: user edit");
+ fs::write(f.root.join("DESCRIPTION"),&desc).unwrap();assert!(!f.build(false).status.success());
+ assert_eq!(f.text(&["rev-parse","HEAD"]),head);assert_eq!(fs::read_to_string(f.root.join("DESCRIPTION")).unwrap(),desc);
+}
+
+#[test]
+fn crlf_description_survives_git_lf_normalization_across_two_builds() {
+ let f=Fixture::new(false);
+ fs::write(f.root.join(".gitattributes"),"DESCRIPTION text eol=lf\n").unwrap();
+ fs::write(f.root.join("DESCRIPTION"),"Package: fixture\r\nVersion: 1.2.3.4\r\nTitle: Original\r\n").unwrap();
+ f.git(&["add",".gitattributes","DESCRIPTION"]);f.git(&["commit","-m","fixture CRLF metadata"]);
+ for (release,dev) in [("1.2.4","1.2.4.1"),("1.2.5","1.2.5.1")] {
+  let o=f.build(false);assert!(o.status.success(),"{}",String::from_utf8_lossy(&o.stderr));
+  assert_eq!(f.git(&["show","HEAD:./DESCRIPTION"]),format!("Package: fixture\nVersion: {release}\nTitle: Original\n").as_bytes());
+  assert_eq!(fs::read(f.root.join("DESCRIPTION")).unwrap(),format!("Package: fixture\r\nVersion: {dev}\r\nTitle: Original\r\n").as_bytes());
+ }
+}

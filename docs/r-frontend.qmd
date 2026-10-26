@@ -148,10 +148,10 @@ readme uses rmarkdown to render README.Rmd to README.md; renv-snapshot records
 dependencies before start hooks and again before post-build documentation/README.
 It does not restore packages. Install optional task dependencies deliberately.
 
-For a package containing DESCRIPTION, the named build/version wrappers retain
-their VERSION-only boundary. Use proj_cli("build", "--patch") for these CLI tasks,
-or the existing R backend for broader legacy package-version behavior. DESCRIPTION
-version synchronization and citations are not added.
+In this source candidate, VERSION remains authoritative and the named build/version
+helpers synchronize an existing DESCRIPTION by default. Set
+settings.sync-description-version: false to leave DESCRIPTION unchanged. An explicit
+legacy backend retains its original version policy. Citation support is separate.
 [Exact task reference](configuration.qmd#optional-r-project-setup-and-build-maintenance-local-candidate)
 covers prerequisites, order and bounded recovery.
 
@@ -178,7 +178,7 @@ projr_build_patch(backend = projr::projr_build_patch)
 
 That existing function runs in your R session with its original arguments, results
 and effects; the old package must already be installed. No automatic fallback occurs.
-Bookdown render_book, DESCRIPTION authority, arbitrary renderer objects, dev bump/
+Bookdown render_book, legacy DESCRIPTION authority, arbitrary renderer objects, dev bump/
 cache deletion, implicit path creation and caller-state hooks are outside the
 supported CLI-wrapper subset.
 

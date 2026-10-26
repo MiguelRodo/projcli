@@ -30,10 +30,7 @@
     .proj_error("invalid_protocol","The CLI returned an invalid project path.")
   }
   root <- .proj_r_path(root)
-  if (file.exists(file.path(root,"DESCRIPTION"))) {
-    .proj_error("unsupported_version_authority",
-      "Legacy R version/build helpers may use DESCRIPTION. This CLI subset uses VERSION; select an explicit existing R function for DESCRIPTION projects.")
-  }
+
   root
 }
 .proj_build_root <- function(project,binary,env,timeout) {
@@ -205,7 +202,7 @@ projr_version_get <- function(backend="cli",project=NULL,binary=NULL,env=charact
   if(!.proj_strings(text,scalar=TRUE,empty=FALSE)) .proj_error("invalid_protocol","The CLI returned invalid version text.")
   text
 }
-#' Set VERSION without changing DESCRIPTION
+#' Set VERSION and synchronize existing DESCRIPTION unless disabled in settings
 #' @param version One CLI-supported version string.
 #' @param only_if_exists Leave an absent VERSION absent when TRUE.
 #' @param backend,project,binary,env,timeout See projr_yml_get.

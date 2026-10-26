@@ -321,10 +321,15 @@ pub(crate) fn require_clean_git_in(root: &camino::Utf8Path, environment: &RunEnv
         let mut expected_path = b" M ".to_vec();
         expected_path.extend_from_slice(prefix);
         expected_path.extend_from_slice(b"VERSION\0");
+        let mut description_path = b" M ".to_vec();
+        description_path.extend_from_slice(prefix);
+        description_path.extend_from_slice(b"DESCRIPTION");
+        let mut description_dirty=false;
         let mut version_dirty=false;
         let mut allowed=true;
         for entry in output.stdout.split(|byte|*byte==0).filter(|entry|!entry.is_empty()) {
             if entry==&expected_path[..expected_path.len()-1] {version_dirty=true;continue;}
+            if entry==description_path {description_dirty=true;continue;}
             let receipt=entry.strip_prefix(b"?? ").and_then(|path|path.strip_prefix(prefix))
                 .and_then(|path|std::str::from_utf8(path).ok());
             let owned=if let Some(relative)=receipt {
@@ -333,7 +338,7 @@ pub(crate) fn require_clean_git_in(root: &camino::Utf8Path, environment: &RunEnv
             }else{false};
             if !owned {allowed=false;break;}
         }
-        anyhow::ensure!(allowed && (!version_dirty||owned_dev_transition_matches(root,&git)?),
+        anyhow::ensure!(allowed && (!(version_dirty||description_dirty)||owned_dev_transition_matches(root,&git,description_dirty)?),
             "Git commit requested but the repository already contains changes; resolve them before building");
     }
     Ok(())
@@ -558,6 +563,12 @@ pub(crate) struct DevTransition {
     head: String,
     release: String,
     development: String,
+    #[serde(default)]
+    description_release: Option<String>,
+    #[serde(default)]
+    description_working_release: Option<String>,
+    #[serde(default)]
+    description_development: Option<String>,
 }
 
 fn transition_path(root: &camino::Utf8Path, git: &SystemGit) -> anyhow::Result<std::path::PathBuf> {
@@ -589,7 +600,7 @@ pub(crate) fn head_in(root:&camino::Utf8Path,environment:&RunEnvironment)->Optio
     Some(head.to_owned())
 }
 
-fn owned_dev_transition_matches(root: &camino::Utf8Path, git: &SystemGit) -> anyhow::Result<bool> {
+fn owned_dev_transition_matches(root: &camino::Utf8Path, git: &SystemGit, description_dirty: bool) -> anyhow::Result<bool> {
     let path = transition_path(root, git)?;
     crate::path_safety::resolve_path(&path, true)?;
     let metadata = match std::fs::metadata(&path) {
@@ -602,28 +613,53 @@ fn owned_dev_transition_matches(root: &camino::Utf8Path, git: &SystemGit) -> any
         Ok(record) => record, Err(_) => return Ok(false),
     };
     crate::path_safety::resolve_path(root.join("VERSION").as_std_path(), true)?;
-    Ok(record.schema == 1 && record.root == root.as_str()
+    let description_matches = if description_dirty {
+        let current=crate::fs_utils::read_managed_text(root.join("DESCRIPTION"))?;
+        record.description_release.as_deref()==Some(blake3::hash(&git_object_bytes(git,"HEAD:./DESCRIPTION")?).to_hex().as_str())
+            && record.description_development.as_deref()==Some(blake3::hash(current.as_bytes()).to_hex().as_str())
+    } else {true};
+    Ok(description_matches && record.schema == 1 && record.root == root.as_str()
         && record.head == git.run_cmd(&["rev-parse", "HEAD"])?
         && record.release.as_bytes() == git_file_bytes(git)?
         && record.development.as_bytes() == std::fs::read(root.join("VERSION"))?)
 }
 
 pub(crate) fn capture_dev_transition(root: &camino::Utf8Path, environment: &RunEnvironment,
-    release: &crate::version::ProjVersion, development: &crate::version::ProjVersion) -> anyhow::Result<Option<DevTransition>> {
+    release: &crate::version::ProjVersion, development: &crate::version::ProjVersion, sync_description: bool) -> anyhow::Result<Option<DevTransition>> {
     let git = SystemGit { repo_path: root.to_owned(), environment: environment.clone() };
     let tracked = git.run_cmd(&["ls-tree", "HEAD", "--", "VERSION"])?;
     if tracked.is_empty() { return Ok(None); }
     anyhow::ensure!(tracked.starts_with("100644 blob ") || tracked.starts_with("100755 blob "), "Committed VERSION must be a regular file");
+    let mut description_release=None;
+    let mut description_working_release=None;
+    let mut description_development=None;
+    if sync_description && !git.run_cmd(&["ls-tree","HEAD","--","DESCRIPTION"])?.is_empty() {
+        let current=crate::fs_utils::read_managed_text(root.join("DESCRIPTION"))?;
+        let clean=git_command_in(Some(root),environment)?.current_dir(root)
+            .args(["diff","--quiet","HEAD","--","DESCRIPTION"]).status()?;
+        anyhow::ensure!(clean.success(), "Git commit did not retain the release DESCRIPTION");
+        let committed=git_object_bytes(&git,"HEAD:./DESCRIPTION")?;
+        let next=crate::version::description_bytes(root,development)?.context("DESCRIPTION disappeared")?;
+        description_release=Some(blake3::hash(&committed).to_hex().to_string());
+        description_working_release=Some(blake3::hash(current.as_bytes()).to_hex().to_string());
+        description_development=Some(blake3::hash(&next).to_hex().to_string());
+    }
     let release = crate::version::version_file_content(release);
     anyhow::ensure!(release.as_bytes() == git_file_bytes(&git)?, "Git commit did not retain the planned release VERSION");
     Ok(Some(DevTransition { schema: 1, root: root.to_string(), head: git.run_cmd(&["rev-parse", "HEAD"])?,
-        release, development: crate::version::version_file_content(development) }))
+        release, development: crate::version::version_file_content(development), description_release, description_working_release, description_development }))
 }
 
 pub(crate) fn record_dev_transition(root: &camino::Utf8Path, environment: &RunEnvironment, record: &DevTransition) -> anyhow::Result<()> {
     let git = SystemGit { repo_path: root.to_owned(), environment: environment.clone() };
     anyhow::ensure!(record.head == git.run_cmd(&["rev-parse", "HEAD"])? && record.release.as_bytes() == git_file_bytes(&git)?,
         "Git state changed during end hooks; development transition was not applied");
+    if let Some(expected)=&record.description_release {
+        let current=crate::fs_utils::read_managed_text(root.join("DESCRIPTION"))?;
+        anyhow::ensure!(record.description_working_release.as_deref()==Some(blake3::hash(current.as_bytes()).to_hex().as_str())
+            && blake3::hash(&git_object_bytes(&git,"HEAD:./DESCRIPTION")?).to_hex().as_str()==expected,
+            "DESCRIPTION changed during end hooks; development transition was not applied");
+    }
     crate::fs_utils::write_managed_file(transition_path(root, &git)?, serde_json::to_vec(record)?)
 }
 
