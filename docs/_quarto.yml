@@ -30,6 +30,7 @@ website:
       - section: Reference
         contents:
           - configuration.qmd
+          - cli/init.qmd
           - cli/build.qmd
           - cli/history.qmd
           - cli/remote.qmd

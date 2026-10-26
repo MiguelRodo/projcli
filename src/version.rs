@@ -97,7 +97,7 @@ impl ProjVersion {
         let major: u32 = caps.get(1)?.as_str().parse().ok()?;
         let minor: u32 = caps.get(2)?.as_str().parse().ok()?;
         let patch: u32 = caps.get(3)?.as_str().parse().ok()?;
-        let dev: u32 = caps.get(4).map_or(0, |m| m.as_str().parse().unwrap_or(0));
+        let dev: u32 = match caps.get(4) { Some(value) => value.as_str().parse().ok()?, None => 0 };
 
         Some(ProjVersion {
             major,
@@ -215,13 +215,18 @@ pub(crate) fn description_bytes(root: &Utf8Path, version: &ProjVersion) -> anyho
         } else if !body.is_empty() {
             anyhow::ensure!(separator.is_none(), "DESCRIPTION must contain one DCF record");
             has_field = true;
-            let (key, _) = body.split_once(':').context("Invalid DESCRIPTION field: expected name: value")?;
+            let (key, value) = body.split_once(':').context("Invalid DESCRIPTION field: expected name: value")?;
             anyhow::ensure!(!key.is_empty() && key.chars().all(|c| !c.is_whitespace() && !c.is_control()),
                 "Invalid DESCRIPTION field name");
             previous_version = key == "Version";
             if previous_version {
                 anyhow::ensure!(!found, "DESCRIPTION has duplicate Version fields");
                 found = true;
+                let literal=Regex::new(r"(?i)^v?\d+\.\d+\.\d+(?:[.-]\d+)?$").expect("Static version grammar");
+                if literal.is_match(value.trim()) && ProjVersion::parse(value.trim()).as_ref()==Some(version) {
+                    output.push_str(line);
+                    continue;
+                }
                 output.push_str("Version: ");
                 output.push_str(&version.to_string(false));
                 output.push_str(if line.ends_with("\r\n") { "\r\n" } else if line.ends_with('\n') { "\n" } else { "" });
@@ -270,7 +275,9 @@ pub(crate) fn version_set_at_with_sync(root: &Utf8Path, version: &ProjVersion, s
     let backup = crate::build_state::BuildState::capture(&[], &targets)?;
     let result = (|| {
         if let Some(bytes) = description {
-            crate::fs_utils::replace_managed_file(&root.join("DESCRIPTION"), bytes)?;
+            if fs::read(root.join("DESCRIPTION"))?!=bytes {
+                crate::fs_utils::replace_managed_file(&root.join("DESCRIPTION"), bytes)?;
+            }
         }
         if path.exists() {
             crate::fs_utils::replace_managed_file(&path, version_file_content(version))?;

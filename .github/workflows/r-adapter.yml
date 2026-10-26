@@ -16,6 +16,10 @@ on:
       - 'tests/acceptance/r_frontend_renderers.R'
       - 'tests/acceptance/r_frontend_renv.R'
       - 'tests/acceptance/r_housekeeping.R'
+      - 'tests/acceptance/init_metadata.R'
+      - 'tests/acceptance/init_metadata_schema.py'
+      - 'tests/acceptance/init_interaction.py'
+      - 'tests/fixtures/cff-schema-1.2.0.json'
       - 'tests/acceptance/r_docs_examples.R'
       - 'docs/r-frontend.qmd'
       - 'docs/r-reference.qmd'
@@ -77,6 +81,9 @@ jobs:
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_RENV_TESTS_REQUIRED=1 Rscript --vanilla tests/acceptance/r_frontend_renv.R
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" PROJCLI_R_HOUSEKEEPING_REQUIRED=1 Rscript --vanilla tests/acceptance/r_housekeeping.R
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla tests/acceptance/r_docs_examples.R
+          runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla tests/acceptance/init_metadata.R
+          runuser -u rstudio -- python3 tests/acceptance/init_metadata_schema.py --binary "$GITHUB_WORKSPACE/target/debug/proj"
+          runuser -u rstudio -- python3 tests/acceptance/init_interaction.py --binary "$GITHUB_WORKSPACE/target/debug/proj"
       - name: Explicit named Weisberger reanalysis
         if: github.event_name == 'workflow_dispatch' && inputs.representative_reanalysis
         timeout-minutes: 35
@@ -165,6 +172,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Required R housekeeping failed' }
           & Rscript.exe --vanilla tests/acceptance/r_docs_examples.R
           if ($LASTEXITCODE -ne 0) { throw 'Documented R quick start failed' }
+          & Rscript.exe --vanilla tests/acceptance/init_metadata.R
+          if ($LASTEXITCODE -ne 0) { throw 'Existing R transport init metadata failed' }
       - uses: actions/upload-artifact@v4
         if: always()
         with:

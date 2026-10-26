@@ -762,3 +762,9 @@ scripts. Shared R state never becomes the Rust driver's or hook processes' state
 Source candidate: release and next-dev VERSION writes synchronize existing DESCRIPTION
 by default; previews and pre-distribution recovery retain exact prior bytes. The
 settings.sync-description-version switch is captured before hooks.
+
+Init is a separate incremental setup workflow, documented in [project setup](cli/init.qmd).
+Its opt-in renv action is not a build dependency restore. The existing production
+ignore-preparation stage now creates automatic .Rbuildignore only for DESCRIPTION
+projects (or updates an existing file); analysis, rendering and publication order
+is unchanged by this metadata slice.

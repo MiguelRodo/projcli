@@ -199,3 +199,11 @@ does not establish whole-paper/historical-runtime reproduction, CRAN acceptance 
 full legacy parity. The existing projr package is unchanged.
 
 Browse the [function index](r-reference.qmd) or use help(package="projcli") locally.
+
+## Explicit init options in the source candidate
+
+The [project setup reference](cli/init.qmd) covers purpose/contact questions,
+--description-file, --readme-rmd, --renv and --citation. Use the existing
+proj_cli("init", args, project = ...) transport for those exact options. A new named
+R init helper is not included in this candidate. R package scaffolding and automatic
+citation-author inference are not implied.

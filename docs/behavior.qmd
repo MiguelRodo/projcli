@@ -1020,3 +1020,22 @@ Preserve other bytes and exact pre-distribution recovery. Previews do not synchr
 Malformed/multi-record metadata fails before hooks. Named R helpers support this
 explicit core policy; legacy callbacks retain their original authority.
 See [configuration](configuration.qmd#version-and-description-synchronization-source-candidate).
+
+## Explicit init metadata candidate
+
+General init creates VERSION, declared directories and plain README by default.
+It asks purpose/contact metadata in a terminal, supports complete explicit
+noninteractive values, and cancels on EOF. DESCRIPTION, README.Rmd, renv and CFF
+creation are separate explicit choices (DESCRIPTION/renv/CFF default false).
+No R/NAMESPACE scaffold or author/DOI/dependency harvesting occurs. Existing files
+are create-only except the approved DESCRIPTION Version synchronization policy;
+equivalent valid version spellings preserve exact existing bytes.
+
+Any existing remote satisfies setup. GitHub remains optional, with general init
+creating an empty private remote only after opt-in; no initial commit/push.
+Project-contained folder licensing stays a standalone labelled command. Generated
+automatic Rbuildignore requires DESCRIPTION and preserves explicit directory policy.
+
+This candidate changes no installed CLI, original projr or thesis. No merge/release
+is approved. New named R init convenience remains absent; the existing generic
+R transport supports the CLI interface.

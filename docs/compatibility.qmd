@@ -3815,3 +3815,32 @@ expected development DESCRIPTION bytes by digest and still rejects arbitrary edi
 Local capped verification passed: seven synchronization tests, eighteen real-Git tests (two subprocess entrypoints ignored), existing fourteen recovery and ten housekeeping tests, native R wrapper execution and the documented preview/full-build example. Independent review found and fixed orphan/multi-record DCF handling, Git CRLF normalization and stale installed help. Final exact-head remote checks remain pending.
 
 Native CI exposed roxygen's valid Config/roxygen2/version DCF field after documentation. Field-name validation now accepts nonwhitespace/noncontrol names (including slash), preserving actual native extension fields. Added a byte-preservation regression and bounded native-fixture error tail; assertions unchanged. The seven sync regressions and native R housekeeping gate passed locally after this fix; independent source delta cleared. Final exact-head remote gates pending.
+
+## Explicit metadata init candidate (overnight 26 October)
+
+Reference: original projr032cba1ec8a2ccb59ce45dfc009da7d73f61297c,
+R/init-helper.R351-599 and823-841, R/init-std.R and R/license-dir.R.
+Same four root licence choices, purpose/contact intent and optional desc. Deliberate
+user overrides: Markdown default; no R/NAMESPACE scaffold; DESCRIPTION/renv explicitly
+opt-in; contact is not an inferred author; generic native CFF rather than cffr.
+General init's optional GitHub route is conservatively private/empty, without
+automatic commits/pushes; standalone existing commands retain their own behavior.
+
+Existing DESCRIPTION seeds VERSION without normalizing an equivalent valid literal
+Version line; genuine mismatches follow VERSION under the approved default setting.
+Invalid R package folder names omit Package rather than invent a sanitized identity.
+Named R init convenience is not implemented; the existing generic transport fixture
+covers explicit CLI init. Original R package/thesis remain untouched.
+
+Complete licence bodies come from official Apache/Creative Commons sources, with
+URLs/checksums in templates/licenses/sources.json. Separate labelled folder licensing
+is project-contained and create-only, without automatic propagation. Automatic
+ignore updates use escaped paths, preserve explicit directory policy and user blocks,
+and do not create Rbuildignore without DESCRIPTION.
+
+Ponytail: one init-options module, the existing CLI/machine dispatch and managed
+file helpers; no new dependency or citation framework. Authored fixtures cover
+metadata/idempotence, Git worktrees, a no-network gh shim, CFF official-schema
+validation, existing generic R transport and path/marker preservation.
+Compilation and execution are pending remote CI. The existing generic R transport is exercised; a named R init helper is not added
+by this slice. No source-completion or installed-version claim follows from authored tests.

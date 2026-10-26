@@ -28,7 +28,8 @@ pub fn ask_yes_no(prompt: &str, default: bool) -> bool {
         print!("{} {} ", prompt, default_str);
         stdout.flush().unwrap();
         input.clear();
-        if stdin.lock().read_line(&mut input).is_ok() {
+        match stdin.lock().read_line(&mut input) { Ok(0) | Err(_) => return false, Ok(_) => {} }
+        {
             let trimmed = input.trim().to_lowercase();
             if trimmed.is_empty() {
                 return default;
@@ -56,7 +57,8 @@ pub fn ask_string(prompt: &str, default: Option<&str>) -> String {
         print!("{}{}: ", prompt, default_prompt);
         stdout.flush().unwrap();
         input.clear();
-        if stdin.lock().read_line(&mut input).is_ok() {
+        match stdin.lock().read_line(&mut input) { Ok(0) | Err(_) => return String::new(), Ok(_) => {} }
+        {
             let trimmed = input.trim();
             if trimmed.is_empty() {
                 if let Some(d) = default {
@@ -83,7 +85,8 @@ pub fn ask_choice(prompt: &str, choices: &[&str], default: Option<&str>) -> Stri
         print!("{} ({}) {}: ", prompt, choices.join("/"), default_prompt);
         stdout.flush().unwrap();
         input.clear();
-        if stdin.lock().read_line(&mut input).is_ok() {
+        match stdin.lock().read_line(&mut input) { Ok(0) | Err(_) => return "later".to_owned(), Ok(_) => {} }
+        {
             let trimmed = input.trim().to_lowercase();
             if trimmed.is_empty() {
                 if let Some(d) = default {
@@ -189,6 +192,7 @@ pub fn init_readme(title_opt: Option<String>, description_opt: Option<String>) -
             let title = title_opt.unwrap_or_else(|| ask_string("Project Title", Some("My Project")));
             let description = description_opt.unwrap_or_else(|| ask_string("Project Description", Some("A projr project.")));
 
+            anyhow::ensure!(!title.is_empty(), "README initialization cancelled before writing");
             let content = format!("# {}\n\n{}\n", title, description);
             fs::write(readme_path.as_std_path(), content).context("Failed to write README.md.")?;
             println!("Created README.md.");
@@ -203,24 +207,31 @@ pub fn init_readme(title_opt: Option<String>, description_opt: Option<String>) -
 pub fn init_license(license_opt: Option<String>, first_name_opt: Option<String>, last_name_opt: Option<String>) -> anyhow::Result<()> {
     let project_root = root().context("Failed to find project root.")?;
     let license_path = project_root.join("LICENSE");
+    for name in ["LICENSE", "LICENSE.md"] {
+        let path=project_root.join(name);
+        crate::path_safety::resolve_path(path.as_std_path(),true)?;
+        if path.exists() {
+            anyhow::ensure!(fs::symlink_metadata(&path)?.is_file(),"Existing licence must be a regular file");
+            println!("Existing {name} preserved.");
+            return Ok(());
+        }
+    }
 
     if !license_path.exists() {
         if ask_yes_no("Add a LICENSE?", true) {
-            let choice = license_opt.unwrap_or_else(|| ask_choice("Choose a license", &["ccby", "apache", "cc0", "proprietary"], Some("ccby")));
-            let content = match choice.as_str() {
-                "ccby" => "Creative Commons Attribution 4.0 International\n\n[CC-BY 4.0 License Text]\n".to_string(),
-                "apache" => "Apache License\nVersion 2.0, January 2004\n\n[Apache License Text]\n".to_string(),
-                "cc0" => "Creative Commons Zero v1.0 Universal\n\n[CC0 License Text]\n".to_string(),
-                "proprietary" => {
-                    let first_name = first_name_opt.unwrap_or_else(|| ask_string("First Name", None));
-                    let last_name = last_name_opt.unwrap_or_else(|| ask_string("Last Name", None));
-                    let year = chrono::Utc::now().format("%Y").to_string();
-                    format!("Copyright (c) {} {} {}. All rights reserved.\n", year, first_name, last_name)
-                },
-                _ => "".to_string(),
+            let choice = match license_opt {
+                Some(value) => value,
+                None if is_prompt_enabled() => ask_choice("Code licence", &["ccby", "apache", "cc0", "proprietary", "later"], Some("later")),
+                None => return Ok(()),
             };
+            let holder = if choice.eq_ignore_ascii_case("proprietary") {
+                let first = first_name_opt.unwrap_or_else(|| ask_string("Copyright holder first name", None));
+                let last = last_name_opt.unwrap_or_else(|| ask_string("Copyright holder last name", None));
+                Some(format!("{first} {last}").trim().to_owned())
+            } else { None };
+            let Some(content) = crate::init_setup::licence(&choice, holder.as_deref())? else { return Ok(()); };
 
-            fs::write(license_path.as_std_path(), content).context("Failed to write LICENSE.")?;
+            crate::init_setup::create(&project_root, "LICENSE", content.as_bytes())?;
             println!("Created LICENSE ({})", choice);
         }
     } else {
@@ -301,7 +312,14 @@ pub fn init_github(public_opt: Option<bool>) -> anyhow::Result<()> {
     let remotes = String::from_utf8_lossy(&remote_output.stdout);
     if remotes.trim().is_empty() {
         if ask_yes_no("Create a GitHub repository?", true) {
-            let is_public = public_opt.unwrap_or_else(|| ask_choice("Visibility", &["public", "private"], Some("private")) == "public");
+            let is_public = match public_opt {
+                Some(value) => value,
+                None => {
+                    let choice=ask_choice("Visibility", &["public", "private"], Some("private"));
+                    if choice=="later" { return Ok(()); }
+                    choice=="public"
+                }
+            };
 
             let mut args = vec!["repo", "create", "--source=.", "--push"];
             if is_public {
@@ -332,15 +350,7 @@ pub fn init_github(public_opt: Option<bool>) -> anyhow::Result<()> {
 }
 
 pub fn init_full() -> anyhow::Result<()> {
-    println!("Starting full proj initialization...");
-    init_version()?;
-    init_directories()?;
-    init_readme(None, None)?;
-    init_license(None, None, None)?;
-    init_git(None)?;
-    init_github(None)?;
-    println!("Initialization complete.");
-    Ok(())
+    crate::init_setup::initialize(crate::init_setup::InitOptions::default())
 }
 
 
@@ -379,4 +389,42 @@ pub fn init_renv() -> anyhow::Result<()> {
     let mut environment = crate::run_environment::RunEnvironment::resolve(None, &root)?;
     environment.set_rscript(config.config.r.executable(&root)?);
     crate::r_housekeeping::initialize_renv(&root, &environment)
+}
+
+
+/// Explicitly license one declared project-contained directory, or root source code.
+/// General init never applies licences to resource labels. Existing LICENSE is preserved.
+/// External paths and project-root aliases are rejected in label mode.
+pub fn init_license_for(label:Option<&str>,license:Option<String>,first:Option<String>,last:Option<String>)->anyhow::Result<()> {
+    let Some(label)=label else {return init_license(license,first,last)};
+    let root=root().context("Cannot find project root")?;
+    let config:crate::yml::ProjConfig=serde_json::from_value(crate::yml::merged_configuration_from(&root,None,false)?)?;
+    let target=config.validate_and_resolve(&root,false)?.get_path(&root,label)?;
+    let target=crate::path_safety::resolve_path(target.as_std_path(),true)?;
+    anyhow::ensure!(target.starts_with(root.as_std_path())&&target!=root.as_std_path(),
+        "Directory licensing requires a declared project-contained folder distinct from the root");
+    let target=camino::Utf8Path::from_path(&target).context("Non-UTF8 licence directory")?;
+    for name in ["LICENSE","LICENSE.md"] {
+        let path=target.join(name);
+        crate::path_safety::resolve_path(path.as_std_path(),true)?;
+        if path.exists() {
+            anyhow::ensure!(fs::symlink_metadata(&path)?.is_file(),"Existing licence must be a regular file");
+            return Ok(());
+        }
+    }
+    let choice=match license {
+        Some(value)=>value,
+        None if is_prompt_enabled()=>ask_choice("Directory licence",&["ccby","apache","cc0","proprietary","later"],Some("later")),
+        None=>return Ok(()),
+    };
+    let holder=if choice.eq_ignore_ascii_case("proprietary") {
+        let first=first.unwrap_or_else(||ask_string("Copyright holder first name",None));
+        let last=last.unwrap_or_else(||ask_string("Copyright holder last name",None));
+        Some(format!("{first} {last}").trim().to_owned())
+    }else{None};
+    let Some(text)=crate::init_setup::directory_licence(&choice,holder.as_deref())? else{return Ok(())};
+    crate::path_safety::resolve_path(target.as_std_path(),true)?;
+    fs::create_dir_all(target)?;
+    crate::init_setup::create(target,"LICENSE",text.as_bytes())?;
+    Ok(())
 }

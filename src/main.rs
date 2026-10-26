@@ -61,6 +61,8 @@ pub enum Commands {
     },
     /// Init related operations
     Init {
+        #[command(flatten)]
+        options: proj::init_setup::InitOptions,
         #[command(subcommand)]
         command: Option<InitCommands>,
     },
@@ -663,7 +665,17 @@ fn main() {
                 }
             }
         },
-        Commands::Init { command } => match command {
+        Commands::Init { command, options } => {
+            if command.is_some() && *options != proj::init_setup::InitOptions::default() {
+                fail(format_args!("Use general init options with proj init, not with a subcommand"));
+            }
+            match command {
+            Some(InitCommands::Plan) => {
+                match proj::init_setup::inspect(&root) {
+                    Ok(state) => println!("{}", serde_json::to_string_pretty(&state).expect("Serializable init state")),
+                    Err(error) => fail(format_args!("Cannot inspect setup: {error:#}")),
+                }
+            }
             Some(InitCommands::Version) => {
                 if let Err(e) = proj::init_version() {
                     fail(format_args!("Initialization failed: {:#}", e));
@@ -686,8 +698,8 @@ fn main() {
                     fail(format_args!("R dependency initialization failed: {:#}", e));
                 }
             }
-            Some(InitCommands::License { license, first_name, last_name }) => {
-                if let Err(e) = proj::init_license(license.clone(), first_name.clone(), last_name.clone()) {
+            Some(InitCommands::License { label, license, first_name, last_name }) => {
+                if let Err(e) = proj::init::init_license_for(label.as_deref(), license.clone(), first_name.clone(), last_name.clone()) {
                     fail(format_args!("Initialization failed: {:#}", e));
                 }
             }
@@ -702,9 +714,10 @@ fn main() {
                 }
             }
             None => {
-                if let Err(e) = proj::init_full() {
+                if let Err(e) = proj::init_setup::initialize(options.clone()) {
                     fail(format_args!("Initialization failed: {:#}", e));
                 }
+            }
             }
         },
         Commands::Version { command } => match command {
@@ -744,6 +757,8 @@ fn main() {
 /// ```
 #[derive(Subcommand)]
 pub enum InitCommands {
+    /// Inspect existing setup without writes or network access.
+    Plan,
     /// Initialize version
     Version,
     /// Initialize directories
@@ -764,6 +779,9 @@ pub enum InitCommands {
     },
     /// Initialize License
     License {
+        /// Explicit declared folder label; omission selects root source code only.
+        #[arg(long)]
+        label: Option<String>,
         /// License type (ccby, apache, cc0, proprietary)
         #[arg(long)]
         license: Option<String>,

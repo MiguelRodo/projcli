@@ -103,24 +103,31 @@ pub fn update_ignores_for(project_root: &camino::Utf8Path, validated: &Validated
             };
 
             if let Some(path_str) = path_str_opt {
+                let path_str = if cfg!(windows) {path_str.replace('\\',"/")}else{path_str};
                 if should_git {
-                    let git_pattern = if path_str.ends_with("/**") {
-                        path_str.clone()
-                    } else {
-                        format!("{}/**", path_str)
-                    };
+                    let literal=path_str.chars().flat_map(|character| {
+                        if matches!(character,'\\'|'#'|'!'|'*'|'?'|'['|']') {vec!['\\',character]}else{vec![character]}
+                    }).collect::<String>();
+                    let git_pattern=format!("{}/**",literal.trim_end_matches('/'));
                     git_ignores.push(git_pattern);
                 }
                 if should_rbuild {
-                    let rbuild_pattern = format!("^{}/$", path_str.trim_end_matches('/'));
+                    let rbuild_pattern = format!("^{}/$", regex::escape(path_str.trim_end_matches('/')));
                     rbuild_ignores.push(rbuild_pattern);
-                    let rbuild_pattern_2 = format!("^{}$", path_str.trim_end_matches('/'));
+                    let rbuild_pattern_2 = format!("^{}$", regex::escape(path_str.trim_end_matches('/')));
                     rbuild_ignores.push(rbuild_pattern_2);
                 }
             }
         }
     }
 
+    if project_root.join("DESCRIPTION").exists() {
+        rbuild_ignores.extend([
+            r"^\.git$", r"^\.proj$", r"^\.projr$", r"^_proj(r)?(-[^/]+)?\.ya?ml$",
+            r"^VERSION$", r"^manifest\.csv$", r"^CITATION\.cff$", r"^_quarto\.ya?ml$",
+            r"^_bookdown\.ya?ml$", r"^README\.Rmd$", r"^README_files$", r"^.*\.Rproj$", r"^\.Rproj\.user$"
+        ].into_iter().map(str::to_owned));
+    }
     // Sort and deduplicate
     git_ignores.sort();
     git_ignores.dedup();
@@ -131,7 +138,9 @@ pub fn update_ignores_for(project_root: &camino::Utf8Path, validated: &Validated
     update_ignore_file(&gitignore_path, &git_ignores)?;
 
     let rbuildignore_path = project_root.join(".Rbuildignore");
-    update_ignore_file(&rbuildignore_path, &rbuild_ignores)?;
+    if project_root.join("DESCRIPTION").exists() || rbuildignore_path.exists() {
+        update_ignore_file(&rbuildignore_path, &rbuild_ignores)?;
+    }
 
     Ok(())
 }
@@ -152,9 +161,15 @@ fn update_ignore_file(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Re
         Vec::new()
     };
 
+    let starts=content_lines.iter().filter(|line|line.as_str()==start_marker).count();
+    let ends=content_lines.iter().filter(|line|line.as_str()==end_marker).count();
+    anyhow::ensure!((starts==0&&ends==0)||(starts==1&&ends==1),
+        "Malformed or repeated managed ignore markers in {path}");
     let start_idx = content_lines.iter().position(|line| line == start_marker);
     let end_idx = content_lines.iter().position(|line| line == end_marker);
 
+    anyhow::ensure!(start_idx.zip(end_idx).is_none_or(|(start,end)|start<end),
+        "Reversed managed ignore markers in {path}");
     let mut new_lines = Vec::new();
 
     match (start_idx, end_idx) {
@@ -194,7 +209,8 @@ fn update_ignore_file(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Re
         }
     }
 
-    crate::fs_utils::write_managed_file(path, final_content)?;
+    if path.exists() {crate::fs_utils::replace_managed_file(path, final_content)?;}
+    else {crate::fs_utils::write_managed_file(path, final_content)?;}
     Ok(())
 }
 

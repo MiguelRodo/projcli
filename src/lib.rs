@@ -1,5 +1,6 @@
 pub mod fs_utils;
 pub mod init;
+pub mod init_setup;
 mod r_housekeeping;
 pub mod version;
 pub mod yml;
