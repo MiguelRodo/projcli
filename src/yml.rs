@@ -460,7 +460,7 @@ impl ProjConfig {
     /// Validates explicit directory paths without injecting missing mappings.
     ///
     /// It iterates through all specified configuration blocks to ensure custom label names
-    /// start with approved identifiers (`cache`, `raw`, `output`, `docs`).
+    /// use cache/raw/output/docs prefixes or scripts[-name] source groups.
     ///
     /// # Errors
     ///

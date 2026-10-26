@@ -71,3 +71,34 @@ fn discovered_symlink_is_rejected_without_following_it() {
     assert!(String::from_utf8_lossy(&output.stderr).contains("symbolic links"));
     assert!(!temp.path().join("cache").exists());
 }
+
+#[test]
+fn literal_absolute_includes_and_excludes_are_symmetric_and_canonical() {
+    let temp=fixture("[]");
+    let file=temp.path().join("source with spaces/a.py");
+    let selections=vec![file.to_str().unwrap().to_owned(),format!("!{}",file.display())];
+    fs::write(temp.path().join("_proj.yml"),format!(
+        "directories:\n  scripts-l1: {{path: 'source with spaces'}}\n  cache: {{path: cache}}\nbuild:\n  git: false\n  scripts: {}\n",serde_json::to_string(&selections).unwrap())).unwrap();
+    let output=run(temp.path(),&["build-dev"]);
+    assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
+    assert!(!temp.path().join("cache/order").exists());
+}
+#[test]
+fn grouped_file_and_asset_ancestor_collisions_fail_before_start_hooks() {
+    for group in ["x.html","report_files"] {
+        let temp=tempfile::tempdir().unwrap();
+        let root=temp.path();
+        fs::create_dir_all(root.join("first")).unwrap();
+        fs::create_dir_all(root.join("second")).unwrap();
+        fs::write(root.join("first/report.qmd"),"---\nformat: html\noutput-file: x.html\n---\nFirst\n").unwrap();
+        fs::write(root.join("second/other.qmd"),"---\nformat: html\n---\nSecond\n").unwrap();
+        fs::write(root.join("hook.py"),"from pathlib import Path\nPath('hook-ran').write_text('unexpected')\n").unwrap();
+        fs::write(root.join("_proj.yml"),format!(
+            "directories:\n  cache: {{path: cache}}\n  docs: {{path: docs}}\n  scripts: {{path: first}}\n  scripts-{group}: {{path: second}}\nbuild:\n  git: false\n  scripts: [scripts, scripts-{group}]\n  hooks:\n    pre: [hook.py]\n")).unwrap();
+        let output=run(root,&["build-dev"]);
+        assert!(!output.status.success());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("collide"),"{}",String::from_utf8_lossy(&output.stderr));
+        assert!(!root.join("hook-ran").exists());
+        assert!(!root.join("cache").exists());
+    }
+}

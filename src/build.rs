@@ -213,7 +213,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     }
 
     if is_dev {
-        eprintln!("Selected analysis scripts (in execution order):");
+        eprintln!("Selected analysis scripts (include order; project documents render together):");
         for file in &resolved_files {eprintln!("  {}",file.strip_prefix(project_root).unwrap_or(file));}
     }
 
@@ -288,14 +288,16 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
 
     // Distinct inputs must not silently overwrite a shared final file or asset tree.
     if has_document_analysis && !quarto_exists && !bookdown_exists {
-        let mut destinations=std::collections::BTreeSet::new();
+        let mut destinations:Vec<camino::Utf8PathBuf>=Vec::new();
         for file in &resolved_files {
             if !matches!(file.extension(),Some("qmd"|"Rmd"|"rmd")) {continue;}
             let docs=crate::script_selection::document_directory(project_root,file,&config.get_path(project_root,"docs")?,&config)?;
             let plan=document_output_paths(file,&docs,project_root)?;
             for target in [&plan.destination,&plan.destination_assets] {
                 let identity=crate::path_safety::resolve_path(target.as_std_path(),true)?;
-                anyhow::ensure!(destinations.insert(identity.to_string_lossy().to_uppercase()),"Selected documents collide at final output: {target}");
+                let identity=camino::Utf8PathBuf::from_path_buf(identity).map_err(|_|anyhow::anyhow!("Output path must be UTF-8"))?;
+                anyhow::ensure!(!destinations.iter().any(|previous|crate::path_safety::portable_paths_overlap(previous,&identity)),"Selected documents collide at final output: {target}");
+                destinations.push(identity);
             }
         }
     }

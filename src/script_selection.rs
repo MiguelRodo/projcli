@@ -6,6 +6,11 @@ pub(crate) fn is_scripts(label: &str) -> bool {
     label.eq_ignore_ascii_case("scripts") || label.to_ascii_lowercase().strip_prefix("scripts-").is_some_and(|name|!name.is_empty())
 }
 
+enum Exclusion {
+    File(Utf8PathBuf),
+    Pattern(glob::Pattern),
+}
+
 fn supported(path: &Utf8Path) -> bool {
     matches!(path.extension(), Some("R" | "r" | "py" | "qmd" | "Rmd" | "rmd"))
 }
@@ -50,7 +55,8 @@ pub(crate) fn resolve(root: &Utf8Path, selection: &[String], config: &crate::yml
             return Ok(path.strip_prefix(root)?.as_str().replace('\\',"/"));
         }
         if Utf8Path::new(value).is_absolute() && Utf8Path::new(value).is_file() {
-            return Ok(value.to_owned());
+            let path=Utf8PathBuf::from_path_buf(crate::path_safety::resolve_path(Utf8Path::new(value).as_std_path(),true)?).map_err(|_|anyhow::anyhow!("Script path must be UTF-8"))?;
+            return Ok(path.strip_prefix(root).unwrap_or(&path).to_owned().into_string());
         }
         portable(value)
     };
@@ -59,8 +65,13 @@ pub(crate) fn resolve(root: &Utf8Path, selection: &[String], config: &crate::yml
     let mut exclusions=Vec::new();
     for value in selection.iter().filter_map(|value|value.strip_prefix('!')) {
         let mut value=text(value)?;
-        if root.join(&value).is_dir() {value=format!("{}/**",glob::Pattern::escape(value.trim_end_matches('/')));}
-        exclusions.push(glob::Pattern::new(&value).with_context(||format!("Invalid script/hook exclusion pattern '!{value}'"))?);
+        let target=root.join(&value);
+        if target.is_file() {
+            exclusions.push(Exclusion::File(Utf8PathBuf::from_path_buf(crate::path_safety::resolve_path(target.as_std_path(),true)?).map_err(|_|anyhow::anyhow!("Script path must be UTF-8"))?));
+        } else {
+            if target.is_dir() {value=format!("{}/**",glob::Pattern::escape(value.trim_end_matches('/')));}
+            exclusions.push(Exclusion::Pattern(glob::Pattern::new(&value).with_context(||format!("Invalid script/hook exclusion pattern '!{value}'"))?));
+        }
     }
     let mut selected=Vec::new();
     for value in selection.iter().filter(|value|!value.starts_with('!')) {
@@ -88,10 +99,14 @@ pub(crate) fn resolve(root: &Utf8Path, selection: &[String], config: &crate::yml
         }
         anyhow::ensure!(!files.is_empty(),"Explicit script/hook pattern matched no files (no supported sources): {value}");
         // Each include expands lexically; explicit include order remains authoritative.
+        files=files.into_iter().map(|file|Ok(Utf8PathBuf::from_path_buf(crate::path_safety::resolve_path(file.as_std_path(),true)?).map_err(|_|anyhow::anyhow!("Script path must be UTF-8"))?)).collect::<anyhow::Result<Vec<_>>>()?;
         files.sort();
         for file in files {
             let relative=file.strip_prefix(root).unwrap_or(&file);
-            if !exclusions.iter().any(|pattern|pattern.matches_path_with(relative.as_std_path(),options)) && !selected.contains(&file) {
+            if !exclusions.iter().any(|exclude|match exclude {
+                Exclusion::File(path)=>path==&file,
+                Exclusion::Pattern(pattern)=>pattern.matches_path_with(relative.as_std_path(),options),
+            }) && !selected.contains(&file) {
                 selected.push(file);
             }
         }

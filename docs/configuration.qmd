@@ -13,8 +13,9 @@ Custom directory labels are strictly validated against a set of foundational pre
 - `raw`
 - `output`
 - `docs`
+- `scripts` or `scripts-<name>` (new source-group candidate; not in installed preview.4)
 
-These prefixes are **case-insensitive**. Any label defined in the configuration must begin with one of these approved identifiers.
+These prefixes are **case-insensitive**. Ordinary labels begin with cache, raw, output or docs. Source groups use exactly scripts or scripts- followed by a nonempty name.
 
 ## Explicit paths and local initialization
 
@@ -906,3 +907,5 @@ Directory selection includes supported R, Python, QMD and Rmd sources recursivel
 The pattern lessons/l1/* selects immediate supported sources only.
 The docs role remains the single final document destination; independent documents
 in this group use docs/l1 and keep paths below lessons/l1.
+
+Preview shows resolved source include order. Existing project renderer grouping still applies: Quarto/Bookdown documents render together as one coherent project.
