@@ -3567,3 +3567,56 @@ present VERSION absent. Convert Windows disk/UNC paths to R-compatible slash
 syntax before R filesystem checks and path returns. The regression requires the
 setter's actual VERSION bytes to change; missing-file no-op remains distinct.
 No Rust path guard or project identity behavior changes.
+
+## M4 explicit R process selection candidate
+
+New user-approved config.r.session isolated/shared and config.r.rscript. Isolated
+remains default. Shared mode reuses one build-scoped child for plain R analysis
+scripts only, via source into its global environment; hooks and renderer drivers
+remain separate. Unlike a legacy caller-session build, it does not capture the
+interactive caller's objects. Startup/renv activation costs still occur at worker
+launch. No permanent daemon, automatic renv restoration or housekeeping batching.
+
+Ponytail full: reuse RunEnvironment and existing runner order; one private request
+file plus control pipe/completion file avoids shell/generated-source interpolation
+and script-stdout protocol ambiguity. Close the owned input at pipeline completion;
+never search for or terminate unrelated processes. Script hangs retain the existing
+lack of a build timeout. A checked worker finish closes input and requires a successful
+R shutdown before analysis succeeds; Drop remains best-effort cleanup during errors.
+A native .Last exit17 fixture verifies failure before promotion/end hooks, with exact
+previous VERSION and final bytes retained. File polling is a bounded-design overhead, not a performance
+claim. Configured native executable resolution precedes hooks and applies to
+directly controlled R drivers; Quarto's engine remains native.
+
+Remote fixtures assert globals/options/cwd sharing vs separation, lowercase R
+selection, Python ordering, distinct hook processes, spaced project-relative
+executable paths, invalid selection before hooks and script-failure stop/recovery.
+Execution and exact-head independent review are pending.
+
+Independent pre-CI review caught Windows text newline conversion and a completion
+creation/read race. The worker now writes explicit binary status bytes to a private
+same-directory temporary file, closes it, then renames it before the driver reads.
+
+Review also required binding shared/isolated selection to the effective analysis
+fingerprint. New records include the safe session/configured-executable flags;
+the selected config path is hashed in the bounded opaque configuration digest,
+never retained as a personal path. This does not freeze executable bytes. The
+native executable override fixture now puts a harmless failing Rscript on PATH,
+so ignoring the configured executable cannot pass.
+
+The first native-browser gate found only eleven diagrams: Quarto did not execute
+the new tilde-fenced Mermaid block. Use its existing backtick-fence convention;
+keep the twelve-SVG assertion rather than lowering it to accept a missing figure.
+
+The required pinned Linux R gate also runs actual lowercase Rmd and Quarto
+documents between two shared analysis scripts. Each document must lack the
+analysis global, while the following plain R script must retain it; verify rendered
+text plus exact document/VERSION recovery. Windows native state/executable tests
+are separate; this does not claim all project-level render engines share the
+same execution model.
+
+The final green jobs still contained an R package warning for the optional renderer
+test's undeclared rmarkdown dependency. Move that engine acceptance driver outside
+the thin package to tests/acceptance/r_frontend_renderers.R; retain mandatory pinned
+execution. CI now requires literal Status: OK on both platforms, not just exit0.
+No runtime rmarkdown dependency is added to the thin frontend.

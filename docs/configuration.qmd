@@ -729,3 +729,38 @@ Exact repeated version/label/digest rows are not appended again; earlier bytes
 and differing rows remain intact. No new configuration key, same-version conflict
 rule or automatic migration is introduced. Busy/stale claims fail rather than
 guessing ownership. Modern named format/placement defaults are unchanged.
+
+## R processes and executable
+
+The M4 draft adds an R block under config (not settings):
+
+~~~yaml
+config:
+  r:
+    session: isolated
+    # Optional: a native executable file, not a shell command with arguments.
+    # rscript: "tools/R installation/bin/Rscript"
+~~~
+
+session accepts isolated (default) or shared. Isolated starts a fresh Rscript for
+each plain R script. Shared lazily starts one child R process for the selected
+plain R analysis scripts in that build, preserving their objects, options, working
+directory and library changes across scripts, even with Python/document steps
+between them. It is not the R frontend caller's live session. Source or shared-process shutdown failures stop
+the build; later scripts and end hooks do not run. Ordering is unchanged.
+
+rscript is an optional path resolved against the captured project root; absolute
+paths also work. Omission uses Rscript on PATH. Spaces are literal path data, not
+shell quoting. Missing files, nonexecutables and Windows non-.exe files fail
+preflight. The selected executable serves plain R scripts, R hooks and Rmd/Bookdown
+R drivers. Quarto chooses its own engine; this setting does not rewrite its setup.
+
+Hooks stay in separate processes, including in shared mode. Renderers retain
+native execution settings and do not receive the shared analysis workspace.
+The child starts with the existing controlled run environment, active libraries
+and captured root/profile/version context; later R state changes do not modify
+the Rust driver or other processes. The initial cwd follows execution-directory
+policy. Shared mode uses source(..., local=.GlobalEnv, chdir=FALSE), so Rscript
+commandArgs and stdin are worker controls, not per-script arguments or interactive
+input. Startup files/renv activation retain normal R behavior at worker launch;
+there is no automatic dependency restore, clean-room or sandbox guarantee.

@@ -132,3 +132,17 @@ need an explicit existing R function backend. This keeps their different behavio
 visible instead of silently treating it as equivalent. For example,
 backend = projr::projr_build_patch calls that function in your current R session;
 the old package must already be installed. No package is installed automatically.
+
+## Share values between plain R scripts
+
+By default each R script starts fresh. Set config.r.session to shared if a later
+R script should use objects or loaded packages from an earlier one. The shared
+process lasts for that build only and starts when its first plain R analysis
+script runs. It is separate from your interactive R session. Hooks and rendered
+documents keep their existing behavior; they do not share these objects.
+
+To choose another installed R, set config.r.rscript to its Rscript executable
+path. See the [configuration reference](configuration.qmd#r-processes-and-executable)
+for working directories, startup files and supported inputs. The housekeeping
+worker discussed for repeated documentation tasks is still a proposal, not this
+analysis-session feature.

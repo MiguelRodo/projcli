@@ -131,11 +131,11 @@ impl Fingerprint {
     pub(crate) fn capture(combined:&Value)->Self {
         let mut writer=Canonical {hash:blake3::Hasher::new_derive_key("projcli merged analysis configuration v1"),
             bytes:0,nodes:0,redactions:0};
-        let empty=serde_json::json!({});let null=Value::Null;
+        let empty=serde_json::json!({});let null=Value::Null;let isolated=Value::String("isolated".into());
         let result=(||->io::Result<()>{
-            for path in ["/directories","/parameters","/build/scripts","/build/hooks/pre","/build/hooks/both","/build/hooks/post"] {
+            for path in ["/directories","/parameters","/build/scripts","/build/hooks/pre","/build/hooks/both","/build/hooks/post","/config/r/session","/config/r/rscript"] {
                 writer.string(path)?;
-                let default=if matches!(path,"/directories"|"/parameters"){&empty}else{&null};
+                let default=if matches!(path,"/directories"|"/parameters"){&empty}else if path=="/config/r/session"{&isolated}else{&null};
                 writer.value(combined.pointer(path).unwrap_or(default),0,path=="/parameters")?;
             }
             writer.write_all(b"directory_order[")?;
@@ -192,6 +192,18 @@ mod tests {
         assert_ne!(hash(&secret),hash(&serde_json::json!({"parameters":{"token":"SECRET","url":"[redacted]"}})));
         assert!(!serde_json::to_string(&Fingerprint::capture(&secret)).unwrap().contains("SECRET"));
         assert_ne!(Fingerprint::capture(&a).bind_policy("one").blake3,Fingerprint::capture(&a).bind_policy("two").blake3);
+    }
+    #[test]
+    fn r_session_and_executable_selection_are_bound_without_retaining_paths() {
+        let default=serde_json::json!({});
+        let isolated=serde_json::json!({"config":{"r":{"session":"isolated"}}});
+        let shared=serde_json::json!({"config":{"r":{"session":"shared"}}});
+        assert_eq!(hash(&default),hash(&isolated));
+        assert_ne!(hash(&isolated),hash(&shared));
+        let selected=serde_json::json!({"config":{"r":{"rscript":"/private-machine/Rscript"}}});
+        assert_ne!(hash(&default),hash(&selected));
+        let text=serde_json::to_string(&Fingerprint::capture(&selected)).unwrap();
+        assert!(!text.contains("private-machine"));
     }
     #[test]
     fn limits_never_publish_a_prefix_digest() {

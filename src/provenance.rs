@@ -75,6 +75,8 @@ impl ConfigurationEvidence {
             "output_clear_stage":format!("{clear:?}").to_ascii_lowercase(),
             "path_representation":format!("{:?}",config.settings.path_representation.unwrap_or(crate::paths::PathFormat::Auto)).to_ascii_lowercase(),
             "output_run":config.output_run.unwrap_or(true),
+            "r_session":format!("{:?}",config.config.r.session).to_ascii_lowercase(),
+            "rscript_configured":config.config.r.rscript.is_some(),
             "git_commit":config.git.commit,"git_push":config.git.push,
             "declared_directories":config.directories.len(),"cache_selected":cache_selected,
             "hashed_directories":config.directories.iter().filter(|(label,directory)|

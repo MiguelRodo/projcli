@@ -131,6 +131,52 @@ pub enum GitEngine {
 pub struct GlobalConfig {
     #[serde(default)]
     pub git: GeneralGitConfig,
+    /// Plain-R session policy and optional executable; renderer session semantics stay native.
+    #[serde(default)]
+    pub r: RConfig,
+}
+
+/// Plain R scripts use independent processes unless a shared child session is selected.
+#[derive(Deserialize, Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum RSession {
+    /// One fresh Rscript process per plain R script and hook.
+    #[default]
+    Isolated,
+    /// One child session for plain analysis scripts; hooks remain isolated.
+    Shared,
+}
+
+/// R configuration under config.r; paths are project-relative unless absolute.
+#[derive(Deserialize, Debug, Default, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct RConfig {
+    /// Isolated by default; shared applies only to plain analysis scripts.
+    #[serde(default)]
+    pub session: RSession,
+    /// Optional native Rscript executable, not a shell command or arguments.
+    pub rscript: Option<Utf8PathBuf>,
+}
+
+impl RConfig {
+    /// Resolve a configured executable without launching it or modifying the project.
+    /// Omission retains PATH lookup. Missing/non-file paths and nonexecutables fail.
+    pub fn executable(&self, root: &Utf8Path) -> anyhow::Result<Option<std::path::PathBuf>> {
+        let Some(value) = &self.rscript else { return Ok(None); };
+        anyhow::ensure!(!value.as_str().is_empty(), "config.r.rscript must be a nonempty executable path");
+        let path = if value.is_absolute() {value.clone()} else {root.join(value)};
+        let path = std::fs::canonicalize(path).context("Cannot resolve config.r.rscript executable")?;
+        anyhow::ensure!(path.is_file(), "config.r.rscript must name an executable file");
+        #[cfg(unix)] {
+            use std::os::unix::fs::PermissionsExt;
+            anyhow::ensure!(std::fs::metadata(&path)?.permissions().mode() & 0o111 != 0,
+                "config.r.rscript is not executable");
+        }
+        #[cfg(windows)]
+        anyhow::ensure!(path.extension().is_some_and(|ext|ext.eq_ignore_ascii_case("exe")),
+            "config.r.rscript must name a native .exe, not a command script");
+        Ok(Some(path))
+    }
 }
 
 fn default_git_engine() -> GitEngine {
@@ -410,6 +456,7 @@ impl ProjConfig {
         is_dev: bool,
     ) -> anyhow::Result<ValidatedConfig> {
         validate_clear_output(self.build.clear_output.as_deref())?;
+        self.config.r.executable(project_root)?;
         let mut resolved = HashMap::new();
         crate::path_safety::validate_directory_labels(self.directories.keys().map(String::as_str))?;
         crate::paths::select_safe_cache(self.directories.iter().map(|(label, directory)| (label.as_str(), directory.safe)), &[])?;
