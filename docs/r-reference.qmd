@@ -67,7 +67,7 @@ help("projr_build", package="projcli").
 
 | Function | Result / purpose |
 |---|---|
-| projr_path_get(label, ..., create=FALSE, format=c("auto","relative","absolute"), safe=TRUE, ...) | Character path assembled from literal unnamed fragments. |
+| projr_path_get(label, ..., create=FALSE, format=c("auto","relative","absolute"), safe=TRUE) | Character path assembled from literal unnamed fragments. |
 | projr_version_get(...) | Canonical VERSION text without the leading v. |
 | projr_version_set(version, only_if_exists=TRUE, ...) | Invisible TRUE; by default leaves an absent VERSION absent. |
 
