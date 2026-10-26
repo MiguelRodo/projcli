@@ -17,7 +17,10 @@ This release includes versioned temporary output paths, explicit R-package data
 management and HTML resource embedding when no embedding option was specified.
 It also supports latest/versioned remote snapshots and explicit upload controls;
 M2 build records and the agreed M3 local recovery workflow are included. Complete
-projr compatibility, wrappers and broader initialisation remain separate work.
+projr compatibility and broader initialisation remain separate work. A new R package
+is available from source; see [R installation and quick start](docs/r-frontend.qmd)
+and the [function reference](docs/r-reference.qmd). It is not on CRAN, and full M4
+CLI support is newer than the published preview.4.
 See [what works](docs/features.qmd) for supported workflows and limits.
 
 [Website](https://miguelrodo.github.io/projcli/) ·
@@ -124,8 +127,10 @@ selects no analysis scripts.
 - [Behavior contract](docs/behavior.qmd): intended behavior and known gaps.
 - [Compatibility log](docs/compatibility.qmd): comparison with `projr`.
 
-The existing R package is unchanged. Matching CLI, RStudio and GUI renderer
-behavior has not yet been proved; new frontend integrations are separate work.
+The existing projr R package is unchanged. The separate source package projcli
+provides a documented R interface to the CLI, with explicit legacy callbacks where
+semantics differ. Matching every CLI, RStudio and GUI renderer behavior is not
+claimed; Python/Julia frontends and broader legacy parity remain separate work.
 M2, complete input/code/dependency provenance and analysis-free publication
 retry remain unfinished. Preview recovery is bounded and does not isolate every
 write or undo arbitrary external effects.

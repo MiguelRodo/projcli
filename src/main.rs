@@ -674,9 +674,16 @@ fn main() {
                     fail(format_args!("Initialization failed: {:#}", e));
                 }
             }
-            Some(InitCommands::Readme { title, description }) => {
-                if let Err(e) = proj::init_readme(title.clone(), description.clone()) {
+            Some(InitCommands::Readme { title, description, rmd }) => {
+                let result = if *rmd { proj::init_readme_rmd(title.clone(), description.clone()) }
+                    else { proj::init_readme(title.clone(), description.clone()) };
+                if let Err(e) = result {
                     fail(format_args!("Initialization failed: {:#}", e));
+                }
+            }
+            Some(InitCommands::Renv) => {
+                if let Err(e) = proj::init_renv() {
+                    fail(format_args!("R dependency initialization failed: {:#}", e));
                 }
             }
             Some(InitCommands::License { license, first_name, last_name }) => {
@@ -741,8 +748,13 @@ pub enum InitCommands {
     Version,
     /// Initialize directories
     Directories,
-    /// Initialize README
+    /// Initialize an empty renv project using already installed renv; never implicit.
+    Renv,
+    /// Initialize README (plain Markdown by default).
     Readme {
+        /// Create README.Rmd instead, without replacing or rendering README.md.
+        #[arg(long)]
+        rmd: bool,
         /// Project Title
         #[arg(long)]
         title: Option<String>,

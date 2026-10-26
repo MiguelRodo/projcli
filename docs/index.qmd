@@ -80,6 +80,7 @@ and the result to check. It uses Python's standard library.
 
 ## Find the detail you need
 
+- [R package](r-frontend.qmd): source installation, quick start and function reference.
 - [Install](install.qmd): prerequisites, release status and platform limits.
 - [What works](features.qmd): current capabilities and work still ahead.
 - [Build commands](cli/build.qmd): preview and production behavior.

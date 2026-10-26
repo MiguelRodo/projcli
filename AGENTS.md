@@ -720,3 +720,48 @@ and configured data restore through the R frontend itself. A direct Python CLI
 restore is useful core evidence but does not prove the R transport recovery path.
 Keep the full restored-byte and fresh rerun assertions; never substitute counts
 alone for full CSV equality.
+
+## Optional R maintenance candidate (26 October)
+
+User request: independent WHAT flags belong in build.r (document/readme/renv-snapshot),
+not config.r; config.r.rscript/session retain execution HOW. Default false preserves
+existing projcli behavior; this differs from legacy automatic renv detection.
+Reuse RunEnvironment, fixed R driver files and BuildState recovery. Production
+pre snapshot precedes start hooks (matching original projr); post snapshot/document/readme follows
+promotion, before inventory/distribution. Preserve clear and end-hook adjacency.
+No renv restore/install during build, citation work, daemon, package initialization
+redesign, external writes or heavy local tests are authorized by this local slice.
+Native packages/startup code remain trusted and can have effects beyond captured
+paths. Run remote Rust/platform/native R checks only after publication approval.
+
+
+Verification follow-up: parent authorizes bounded sequential local compilation and
+runtime checks only after coordinating a window with the concurrent STA2005S build.
+No push/remote CI is authorized. Reuse the stopped diagnostic container and its
+existing 512MiB/1CPU cap initially; no cap increase, new container/image, broad
+package install or other process changes without coordination. Cold target/cache
+availability must be reported, not assumed. Lightweight capped R syntax/driver
+checks are permitted and do not establish compiled-CLI acceptance.
+
+
+Bounded local verification completed: keep the official locked cache at
+/home/mrodo/_tmp/projcli-r-housekeeping-crates and the tested copy/target inside
+projcli-m4-r-adapter-20261025:/tmp/projcli-r-housekeeping. Dependencies were explicitly
+authorized, source/checksum audited, isolated and not upgraded. No global Cargo
+configuration or container networking changed. Local Linux checks passed; do not
+treat them as Windows/site-validation or external-publication approval. Native init
+must create its initial lock after bare setup via type=all snapshot; normal build
+snapshots retain renv's policy. Pre snapshot is before start hooks, matching projr.
+
+
+## R package guide/reference and remote verification
+
+The R guide must distinguish source package0.0.0.9000, released preview.4 and this
+unmerged maintenance candidate. List only NAMESPACE exports, link installed help,
+and keep the executable temporary-project quick start between its two markers.
+r_docs_examples.R evaluates that exact fenced example against the candidate on
+both native platforms. Optional devtools/rmarkdown are CI feature-test prerequisites,
+not new R package Imports or user auto-installs. Windows explicitly prepares Pandoc.
+Docs CI renders/links all pages, checks every export appears in r-reference and
+retains native-browser screenshots of both R pages alongside twelve lifecycle SVGs.
+Publication/merge/install remains unapproved; validation artifacts are not deployment.

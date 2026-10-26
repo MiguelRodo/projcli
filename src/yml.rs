@@ -206,10 +206,28 @@ fn default_use_proj_cred_helper() -> bool {
     false
 }
 
+/// Opt-in production R actions, independent of config.r execution policy.
+#[derive(Deserialize, Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct RBuildConfig {
+    /// Generate R package documentation with devtools::document after analysis.
+    #[serde(default)]
+    pub document: bool,
+    /// Render existing README.Rmd to README.md after analysis.
+    #[serde(default)]
+    pub readme: bool,
+    /// Snapshot an existing renv project before and after production analysis.
+    #[serde(default, rename = "renv-snapshot")]
+    pub renv_snapshot: bool,
+}
+
 /// Represents the build configuration options within `_proj.yml`.
 #[derive(Deserialize, Debug, Default, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct BuildConfig {
+    /// Optional production-only R housekeeping; omission preserves existing builds.
+    #[serde(default)]
+    pub r: RBuildConfig,
     /// Existing inline ordinary local archive/latest publication destinations.
     pub local: Option<serde_json::Map<String, Value>>,
     /// Existing inline GitHub Release destinations; bounded archive publication.
@@ -703,6 +721,11 @@ fn read_configuration_file(path: &Utf8Path) -> anyhow::Result<Value> {
     let mut value: Value = serde_json::to_value(yaml)
         .with_context(|| format!("Failed to convert configuration {path}"))?;
     normalize_r_data_layer(&mut value, path)?;
+    // Explicit action nulls must not disappear through profile null-inheritance.
+    if let Some(actions) = value.pointer("/build/r") {
+        let _: RBuildConfig = serde_json::from_value(actions.clone())
+            .with_context(|| format!("Invalid build.r action selection in {path}"))?;
+    }
     // Validate explicit markers before deep_merge's null-inheritance rule can hide them.
     if let Some(directories) = value.get("directories").and_then(Value::as_object) {
         for (label, directory) in directories {

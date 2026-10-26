@@ -3731,3 +3731,70 @@ The fresh case now copies and hashes that project manifest, asserts restore leav
 it unchanged, and still starts without data, outputs, cache or project packages.
 No restore guard is weakened and no bare-store discovery behavior is introduced.
 Completed per-case observations are retained even if a later phase fails.
+
+## Optional R housekeeping local candidate (26 October)
+
+Same intent: legacy SATVILab/projr@3ac29595d0e39552495d863661b99ea015d59d3d
+R/build-pre_and_post.R snapshots before/after production; R/build-post.R generates
+roxygen docs and renders README.Rmd; R/init-std.R has separate renv/README setup.
+These checked build files retain their behavior at original main
+90be50132d16aee33e39c0f7f35ef906c35f5397.
+
+Different: build.r.document/readme/renv-snapshot are explicit default-false actions.
+Legacy build.renv defaults true when renv is detected, and roxygen/README are
+auto-detected; do not silently translate those controls. Use devtools::document
+rather than direct roxygen2::roxygenise. Native compiler/package-load effects remain
+possible. Snapshot remains snapshot, never restore/install. The pre snapshot precedes start hooks, matching legacy. The post snapshot
+precedes documentation and README, also matching legacy. Post work stays before distribution; citations remain excluded.
+R init is explicit/bare with installed renv, not legacy broader dependency setup.
+New README.Rmd preserves plain README.md until explicit rendering.
+
+Ponytail full: reuse RunEnvironment, fixed driver-file launches and BuildState.
+One short-lived post-action batch replaces repeated post-action startups; no daemon,
+new runtime dependency, YAML evaluator, installer, hook engine or citation subsystem.
+Independent reviews cleared Windows separator handling, per-layer explicit-null
+validation, hard-linked init ignore-file guards, before-hook snapshot ordering and
+negative witnesses proving the intended failure boundary.
+
+Native verification caught bare renv init omitting a lockfile. Init now follows it
+with snapshot(type=all, prompt=FALSE) to record installed packages visible to that
+bare project; production snapshots retain native configured/default policy. Missing
+packages may warn rather than fail under renv; no stricter policy was invented.
+An invalid custom snapshot policy provides the genuine pre/post failure witness.
+
+**Bounded local Linux verification passed:** cargo check;10new CLI regressions;
+one new fingerprint assertion;14restoration,3merged-config and5strict-config
+regressions;34Rust documentation examples (4pre-existing ignores); cargo doc with
+warnings denied; compiled-CLI native R4.6.1 acceptance for real documentation,
+README, explicit init/snapshot, preview exclusion and exact failure recovery.
+Standalone native driver tests also cover documentation/README failures, pre/post
+snapshot failures and early exit without a completion receipt. Source/fixture hashes
+match the tested container copy. Subsequent PR CI also passed native Windows and
+rendered/browser-checked website validation; exact-head results are linked on
+[PR231](https://github.com/MiguelRodo/projcli/pull/231).
+
+The first offline cargo attempt lacked anyhow. Later authorized provisioning fetched
+only the187official crates.io packages already in Cargo.lock, checking every archive
+against its locked SHA256. No Git/path/alternate-registry dependency, upgrade, new
+credential, changed manifest/lock or global configuration was introduced. Cargo
+then compiled/tested offline against the isolated task cache. renv1.1.5 came from
+cached sourceSHA2563ee996c65989bc5ea3914fbceb3794b00c7daab7eda49dce64048012ea0406b2
+and was installed only in a temporary container test library; user libraries stayed
+unchanged. The original pinned image and512MiB/1CPU cap were retained. Peak reached
+the cap with memory-pressure events but zero OOM/kill events; tests ran sequentially
+during the course owner's confirmed idle window.
+
+Remaining boundary: named R build/version helpers still reject DESCRIPTION
+projects; generic proj_cli reaches this CLI housekeeping. DESCRIPTION version
+synchronization is not added. No full R-package build parity, citation support,
+persistent housekeeping worker, release or user-installation claim.
+
+
+Website follow-up in the same candidate: the R guide now has source installation,
+a disposable-project quick start executed verbatim in Linux/Windows R CI, grouped
+reference for all14actual exports, explicit backend selection and source/release
+boundaries. Add R package navigation without changing public install pins. Remote
+docs validation renders/links the new page and retains native browser screenshots.
+The R guide/reference and CI additions passed independent source review. Native
+Linux/Windows execute the verbatim guide, and docs CI checks all14exports,28pages,
+links and browser screenshots. Consult PR231 for the final exact-head results.

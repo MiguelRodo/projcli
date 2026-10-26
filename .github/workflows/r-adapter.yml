@@ -15,6 +15,10 @@ on:
       - 'tests/test_yml_queries.rs'
       - 'tests/acceptance/r_frontend_renderers.R'
       - 'tests/acceptance/r_frontend_renv.R'
+      - 'tests/acceptance/r_housekeeping.R'
+      - 'tests/acceptance/r_docs_examples.R'
+      - 'docs/r-frontend.qmd'
+      - 'docs/r-reference.qmd'
       - 'tests/acceptance/r_frontend_reanalysis.*'
       - '.github/workflows/r-adapter.yml'
 jobs:
@@ -71,6 +75,8 @@ jobs:
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla frontends/r/projcli/tests/sessions.R
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" PROJCLI_R_RENDER_TESTS_REQUIRED=1 Rscript --vanilla tests/acceptance/r_frontend_renderers.R
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_RENV_TESTS_REQUIRED=1 Rscript --vanilla tests/acceptance/r_frontend_renv.R
+          runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" PROJCLI_R_HOUSEKEEPING_REQUIRED=1 Rscript --vanilla tests/acceptance/r_housekeeping.R
+          runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla tests/acceptance/r_docs_examples.R
       - name: Explicit named Weisberger reanalysis
         if: github.event_name == 'workflow_dispatch' && inputs.representative_reanalysis
         timeout-minutes: 35
@@ -99,10 +105,11 @@ jobs:
         with:
           persist-credentials: false
       - uses: r-lib/actions/setup-r@v2
+      - uses: r-lib/actions/setup-pandoc@v2
       - name: Prepare R dependencies and pinned compatibility binary
         shell: Rscript {0}
         run: |
-          install.packages(c("processx", "jsonlite"), repos = "https://cloud.r-project.org")
+          install.packages(c("processx", "jsonlite", "devtools", "rmarkdown"), repos = "https://cloud.r-project.org")
           dir.create("adapter-cli")
           base <- "https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.4/"
           download.file(paste0(base, "source-commit.txt"), "adapter-cli/source-commit.txt", mode = "wb")
@@ -153,6 +160,11 @@ jobs:
           $env:PROJCLI_R_RENV_TESTS_REQUIRED = "1"
           & Rscript.exe --vanilla tests/acceptance/r_frontend_renv.R
           if ($LASTEXITCODE -ne 0) { throw 'Required explicit dependency restoration failed' }
+          $env:PROJCLI_R_HOUSEKEEPING_REQUIRED = "1"
+          & Rscript.exe --vanilla tests/acceptance/r_housekeeping.R
+          if ($LASTEXITCODE -ne 0) { throw 'Required R housekeeping failed' }
+          & Rscript.exe --vanilla tests/acceptance/r_docs_examples.R
+          if ($LASTEXITCODE -ne 0) { throw 'Documented R quick start failed' }
       - uses: actions/upload-artifact@v4
         if: always()
         with:

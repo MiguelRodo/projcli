@@ -1,209 +1,201 @@
-# Call proj from R
+---
+title: "Use proj from R"
+subtitle: "Preview an analysis, find its files and build its outputs from R."
+---
 
-Status: the first M4 adapter is under development, not part of the published
-R package or a complete replacement for projr. The existing R package is unchanged.
+The projcli R package calls the standalone proj command. Keep working in R while
+using the same project paths and build workflow as the command line. It is a
+separate package from the existing projr package.
 
-## Read a project path
+[Function reference](r-reference.qmd){.btn .btn-primary}
+[Configuration](configuration.qmd){.btn .btn-outline-primary}
 
-The new source package is in frontends/r/projcli. It needs the separately installed
-proj command plus the R packages processx and jsonlite. Installing or checking this
-package never downloads proj. Install those prerequisites deliberately; then,
-from a source checkout, install the adapter with R CMD INSTALL frontends/r/projcli.
+## Availability
 
-~~~r
-reply <- projcli::proj_cli(
-  "path get", c("--label", "output", "results.csv"), project = ".")
-reply$result$path
-~~~
+| Component | Status |
+|---|---|
+| R package projcli 0.0.0.9000 | Available in frontends/r/projcli in this repository; not on CRAN. |
+| M4 R helpers and complete CLI queries/session controls | Implemented in merged source; not included in the published preview.4 CLI. |
+| Optional R setup/maintenance below | Implemented in this source revision; not included in published preview.4. |
+| Downloadable/installed command | [Preview.4](install.qmd); installing the R package does not replace it. |
 
-Pass each argument separately, without shell quoting. Spaces and Unicode paths
-stay part of the argument. The adapter checks the command's machine interface
-before sending the requested action. Set binary to an exact executable path or
-options(projcli.binary = ...) when proj is not on PATH. It gives setup guidance
-if the command is missing or incompatible; it does not download a replacement.
+Use the matching source command for the full source API. An older compatible CLI
+can support basic calls, but new commands/configuration may be unavailable. Errors
+do not silently trigger an engine switch or binary download.
 
-This low-level call selects the CLI explicitly. The helpers below cover a documented
-subset of the familiar R API. Existing projr functions remain available through an
-explicit function backend; the adapter never silently switches engines.
+## Installation
 
-## Pass credentials deliberately
+Requirements: R 4.1 or newer, processx 3.8 or newer, jsonlite 1.8 or newer, and a
+separately installed proj command. The package does not embed Rust. There is no
+CRAN install.packages("projcli") release.
 
-The adapter forwards the active R library folders, a small baseline of system
-and locale variables, and additional variables you explicitly supply in env.
-It does not forward every R-session variable or copy your in-memory R objects.
-During a CLI build it also preserves the two managed context values, so calls
-inside R scripts keep the captured project, profile and version after changing
-folders. With no explicit project argument, the CLI keeps its normal captured
-root or nearest-project selection; an explicit project remains an override.
-For example, a GitHub operation can receive a token explicitly from your own
-configured environment; the adapter does not create or grant credentials.
-
-Raw child diagnostics can contain secrets. This first interface discards them
-and returns safe error codes rather than echoing command arguments, tokens or
-arbitrary machine error text. Use the CLI directly for detailed private logs.
-Requested result data is still returned; arbitrary project code is not a sandbox.
-Startup files can still run. A timeout or failure may follow partial changes or
-uploads, so inspect before retrying. Dependency restoration is separate, explicit
-M4 work; renv is not required for every project.
-
-## Reference and test boundary
-
-The supported wire contract is protocol1/capability1, not an exact CLI version
-match. The full validated envelope is returned as an R list. projcli_error has
-safe code/status fields and no retained child output or invocation metadata.
-The package manual documents the environment baseline, Windows additions, response
-read limit and timeout behavior. [CRAN notes](r-wrapper-cran.qmd) explain why checks
-without a CLI and required integration checks are separate; no CRAN acceptance
-or full R/IDE/renderer parity is claimed.
-
-The candidate adds unconditional malformed-response, environment, argument and
-missing-binary tests, plus required real Linux/Windows checks against the separately
-published, hash-verified preview.4. [PR225](https://github.com/MiguelRodo/projcli/pull/225) records exact-head
-remote results; those checks must pass before merge.
-The draft stack includes native renderer/session checks, explicit dependency
-restoration and the named comparison described below. Passing package checks alone
-does not establish that the named comparison passed or that M4 is released.
-
-
-## Read project settings
-
-The new projr_yml_get, projr_yml_check and projr_par_get/projr_param_get helpers use
-explicit CLI queries. They need a candidate CLI advertising yml get and yml parameter;
-the published preview.4 validation command cannot supply these values.
+Install the ordinary dependencies deliberately in an R console:
 
 ~~~r
-settings <- projcli::projr_yml_get(project = ".")
-seed <- projcli::projr_par_get("model", "seed", project = ".")
+install.packages(c("processx", "jsonlite"))
 ~~~
 
-Keys are data, never evaluated as R code. Homogeneous scalar arrays become R vectors;
-mixed/null-bearing arrays and maps stay lists, without automatic date/data-frame
-conversion. Use the CLI backend's supported runtime aliases/settings; older par/pars
-and R-only runtime configuration are not silently translated.
-
-An explicit existing R function is the legacy escape hatch:
+Download or clone the [source repository](https://github.com/MiguelRodo/projcli),
+set the R working folder to its root, then install the R subdirectory:
 
 ~~~r
-settings <- projcli::projr_yml_get(backend = projr::projr_yml_get)
+install.packages("frontends/r/projcli", repos = NULL, type = "source")
+library(projcli)
+help(package = "projcli")
 ~~~
 
-That callback runs in your R session/current folder, with its original arguments,
-results and errors. It can retain the old engine's prompts, installations and other
-effects; CLI redaction/isolation does not apply. The adapter does not load or install
-a legacy package automatically. CLI-only project/binary/env/timeout controls cannot
-be mixed into callback mode. There is no silent fallback.
+This does not install proj, renv or analysis dependencies. The [CLI install guide](install.qmd)
+covers the released binary and its limits. Until a new release includes the source
+features, they require a matching source command; building that command needs Rust
+and Cargo, as described in the repository README.
 
-The old getter's explicit profile argument reads a single layer, while CLI profiles
-select merged overlays; that R argument therefore requires a callback. Old check
-was ignored in the reference source; the CLI check flag actually validates. The
-supported default is merged active configuration, with values read at query time.
-
-### Supported draft API
-
-| Task | CLI frontend | Deliberate boundary |
-|---|---|---|
-| Read/check settings and parameters | Typed helpers above | No R expression evaluation or isolated legacy profile-layer view |
-| Preview/build configured steps | build/dev helpers below | Explicit production bump; no legacy renderer objects or archive switches |
-| Read paths and VERSION | path/version helpers | Lookup does not create directories; DESCRIPTION authority requires the existing R backend |
-| Restore configured data | `proj_cli("remote restore", ...)` | One label per call; does not clone a repository or install packages |
-| Restore locked R packages | `proj_renv_restore(...)` | Explicit, already installed renv; no automatic installation/update helpers |
-| Quarto and R Markdown | Existing CLI drivers | Documents do not share the plain-script R workspace |
-| Bookdown and hooks needing caller R objects | Explicit existing R function backend | No silent render_book-to-render_site or caller-state translation |
-
-Repository cloning, broad project initialisation, citation/documentation helpers and
-legacy package-source/update selectors are outside this supported frontend subset.
-An explicit callback keeps its own behavior; it is not evidence of CLI equivalence.
-
-## Run a preview or build from R
-
-The draft frontend also provides build, path and VERSION helpers. A preview runs
-configured scripts without publishing; an explicit production bump runs the
-existing CLI build workflow.
+proj can also name unrelated software. You can select an exact command:
 
 ~~~r
-projcli::projr_build_dev(execution_dir = "project")
-projcli::projr_build_patch(msg = "Update results", execution_dir = "project")
-output <- projcli::projr_path_get("output", "results.csv", format = "absolute")
-dir.create(dirname(output), recursive = TRUE, showWarnings = FALSE)
-projcli::projr_version_get()
+options(projcli.binary = "/absolute/path/to/proj")
+proj_cli("capabilities")
 ~~~
 
-Path lookup does not create folders or rewrite renderer configuration. Choose
-folder creation explicitly in your analysis. Omitting execution_dir preserves the
-CLI's configured/native working-directory policy. Omitting clear_output preserves
-its configured clearing policy; explicit never means none. Use configured upload
-destinations rather than legacy archive switches.
+Selection checks an explicit binary argument, that option, PROJCLI_BIN, then PATH.
+Analysis children do not inherit interactive R options. For the example below,
+put the intended command on PATH so parent and child R processes find it.
 
-This supported subset uses VERSION. DESCRIPTION-authoritative projects, Bookdown
-builds, R renderer argument objects, dev version bumps and implicit folder creation
-need an explicit existing R function backend. This keeps their different behavior
-visible instead of silently treating it as equivalent. For example,
-backend = projr::projr_build_patch calls that function in your current R session;
-the old package must already be installed. No package is installed automatically.
+## Quick start
 
-## Share values between plain R scripts
+This example creates and removes its own temporary project. The selected CLI and
+R package must be available to its R analysis child.
 
-By default each R script starts fresh. Set config.r.session to shared if a later
-R script should use objects or loaded packages from an earlier one. The shared
-process lasts for that build only and starts when its first plain R analysis
-script runs. It is separate from your interactive R session. Hooks and rendered
-documents keep their existing behavior; they do not share these objects.
+<!-- R_QUICKSTART_BEGIN -->
+~~~r
+library(projcli)
 
-To choose another installed R, set config.r.rscript to its Rscript executable
-path. See the [configuration reference](configuration.qmd#r-processes-and-executable)
-for working directories, startup files and supported inputs. The housekeeping
-worker discussed for repeated documentation tasks is still a proposal, not this
-analysis-session feature.
+project <- tempfile("proj-r-example-")
+dir.create(project)
+writeLines(c(
+  "directories:",
+  "  cache: {path: _tmp}",
+  "  output: {path: _output}",
+  "build:",
+  "  scripts: [analysis.R]",
+  "  git: false"
+), file.path(project, "_proj.yml"))
+writeLines(c(
+  "out <- projcli::projr_path_get('output', 'results.csv', format = 'absolute')",
+  "dir.create(dirname(out), recursive = TRUE, showWarnings = FALSE)",
+  "write.csv(data.frame(value = 42), out, row.names = FALSE)"
+), file.path(project, "analysis.R"))
+projr_version_set("0.1.0.1", only_if_exists = FALSE, project = project)
 
-## Restore R packages only when you ask
+projr_build_dev(project = project, execution_dir = "project")
+preview_file <- projr_path_get(
+  "output", "results.csv", project = project, format = "absolute")
+stopifnot(read.csv(preview_file)$value == 42)
 
-For a trusted project with an existing renv.lock, create a project library and run:
+projr_build_patch(
+  msg = "Example build", project = project, execution_dir = "project")
+final_file <- projr_path_get(
+  "output", "results.csv", project = project, safe = FALSE, format = "absolute")
+stopifnot(read.csv(final_file)$value == 42)
+read.csv(final_file)
+
+unlink(project, recursive = TRUE)
+~~~
+<!-- R_QUICKSTART_END -->
+
+Expected: one value,42. The preview keeps the project version and does not publish
+final outputs. The patch build promotes successful output. Git is disabled and no
+upload target is configured in this example. Paths are explicit; lookup itself
+does not create directories. Your analysis still controls its own writes.
+
+## Read settings and parameters
+
+These helpers require the M4 source CLI's typed query commands:
+
+~~~r
+settings <- projr_yml_get(project = ".")
+seed <- projr_par_get("model", "seed", project = ".")
+~~~
+
+Keys are literal names. Missing parameters return NULL. Requested configuration
+values can include secrets; avoid publishing them. See the
+[configuration functions](r-reference.qmd#configuration).
+
+## Optional R setup and maintenance
+
+The source CLI adds explicit setup commands:
+
+~~~r
+proj_cli("init", c("readme", "--rmd"))
+proj_cli("init", "renv")
+~~~
+
+README.Rmd is created without replacing plain README.md. The renv command uses
+already installed renv to set up an empty project and initial lockfile; it refuses
+existing renv state or .Rprofile. Setup does not enable build actions.
+
+Choose production tasks independently:
+
+~~~yaml
+build:
+  r:
+    document: true
+    readme: true
+    renv-snapshot: true
+~~~
+
+They default off. document uses installed devtools to generate documentation;
+readme uses rmarkdown to render README.Rmd to README.md; renv-snapshot records
+dependencies before start hooks and again before post-build documentation/README.
+It does not restore packages. Install optional task dependencies deliberately.
+
+For a package containing DESCRIPTION, the named build/version wrappers retain
+their VERSION-only boundary. Use proj_cli("build", "--patch") for these CLI tasks,
+or the existing R backend for broader legacy package-version behavior. DESCRIPTION
+version synchronization and citations are not added.
+[Exact task reference](configuration.qmd#optional-r-project-setup-and-build-maintenance-local-candidate)
+covers prerequisites, order and bounded recovery.
+
+## Restore packages explicitly
+
+For a trusted project with renv.lock and already installed renv:
 
 ~~~r
 dir.create("restored-library", showWarnings = FALSE)
-receipt <- projcli::proj_renv_restore(".", "restored-library")
+receipt <- proj_renv_restore(".", "restored-library")
 receipt$packages
 ~~~
 
-This explicit operation installs the locked dependencies using an already installed
-renv package. It does not install renv, run automatically during builds, update the
-lockfile, delete extra library packages or activate the project in your current R
-session. Ordinary projects do not need renv. Use a disposable project copy first:
-dependency installation can run package scripts and contact lockfile repositories.
+This restores locked versions in an existing project-contained library. It does
+not install renv, update the lockfile, activate your interactive session or run
+automatically during builds. Installation can execute package code and affect its
+cache. See the [dependency reference](r-reference.qmd#dependencies).
 
-Select rscript explicitly for another installed R. The default uses your current
-R installation; config.r.rscript separately selects the Rust build drivers.
-The receipt reports observed locked package versions and a lockfile checksum.
-A failed restore is not a successful reanalysis; inspect the library/cache before
-retrying. Legacy GitHub/BiocManager selectors and update helpers remain outside
-this supported subset. See the package dependency reference.
+## Keep an explicit legacy backend
 
-## Check a real analysis after changing engines
+~~~r
+projr_build_patch(backend = projr::projr_build_patch)
+~~~
 
-The M4 acceptance test uses the existing Weisberger weed-study scripts 01 and 04
-at a fixed public commit. It compares their complete generated CSV contents across
-the old R engine and the new frontend, then archives locally, restores all selected
-folders into a fresh project, restores its R packages explicitly and reruns it.
+That existing function runs in your R session with its original arguments, results
+and effects; the old package must already be installed. No automatic fallback occurs.
+Bookdown render_book, DESCRIPTION authority, arbitrary renderer objects, dev bump/
+cache deletion, implicit path creation and caller-state hooks are outside the
+supported CLI-wrapper subset.
 
-The report also reads settings and expected row counts through the frontend's
-configuration/parameter helpers. Fresh data recovery calls remote restore through
-the R transport, with each restored folder compared byte-for-byte before rerunning.
-These are test assertions awaiting the final named run, not a completed result.
-Fresh recovery keeps the recorded project metadata, including root manifest.csv,
-with its configuration and scripts. It starts without data, outputs, analysis cache
-or an installed project library. Ordinary restore uses that CSV; this does not
-claim recovery from a bare store without project metadata.
+Plain analysis R processes are isolated by default. config.r.session: shared
+reuses a child for plain scripts in a build, not your interactive process. Hooks
+and renderers remain separate; config.r.rscript selects an installed executable.
+[Execution reference](configuration.qmd#r-processes-and-executable) covers libraries,
+working folders and startup behavior. The maintenance post batch is separate;
+there is no permanent background daemon.
 
-The scope is the two processing scripts and a generated test report. The test
-expects 265 and 236 data rows and checks the report's visible counts. The scientific
-scripts remain unchanged. It uses the same current pinned R runtime for both engines;
-historical paper models and the earlier R4.1.1 environment are outside this comparison.
-Its package snapshot is captured once for the run; fresh project libraries restore
-from an owned cache primed from that matched environment. The separate small-package
-test covers a cold, cache-disabled restore.
+## Evidence and limits
 
-This heavier check is explicitly selected through representative_reanalysis in
-the [R workflow](https://github.com/MiguelRodo/projcli/actions/workflows/r-adapter.yml).
-Ordinary package checks do not fetch studies or install dependencies. Retained
-results contain source/package pins, hashes, row comparisons and checks; original
-scripts, datasets, generated CSVs/reports and local stores are not uploaded.
+The named M4 gate compared unchanged Weisberger01+04 scripts and complete CSVs
+between clean projr and the new engine on matched R4.6.1, with report checks, local
+archive, fresh data/dependency restore, rerun and deliberate failures.
+[Integrated evidence](https://github.com/MiguelRodo/projcli/actions/runs/40268103232)
+does not establish whole-paper/historical-runtime reproduction, CRAN acceptance or
+full legacy parity. The existing projr package is unchanged.
+
+Browse the [function index](r-reference.qmd) or use help(package="projcli") locally.

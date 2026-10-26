@@ -764,3 +764,87 @@ policy. Shared mode uses source(..., local=.GlobalEnv, chdir=FALSE), so Rscript
 commandArgs and stdin are worker controls, not per-script arguments or interactive
 input. Startup files/renv activation retain normal R behavior at worker launch;
 there is no automatic dependency restore, clean-room or sandbox guarantee.
+
+
+## Optional R project setup and build maintenance {#optional-r-project-setup-and-build-maintenance-local-candidate}
+
+This section describes source features added after preview.4. They are not in that
+published binary; use a matching source command until a release includes them. Plain Markdown
+remains supported. To create an R Markdown README without replacing README.md:
+
+~~~sh
+proj init readme --rmd --title "My project"
+~~~
+
+This creates README.Rmd only. To start an empty renv project deliberately, with
+renv already installed in the selected R:
+
+~~~sh
+proj init renv
+~~~
+
+The command uses renv::init(bare=TRUE, restart=FALSE), then an initial
+snapshot(type='all', prompt=FALSE) of its installed project library to create
+renv.lock. It does not discover/install missing analysis dependencies during init. It does not install renv,
+restore project packages, or run as part of normal init. Existing renv,
+renv.lock or .Rprofile is preserved by refusing this command; manage an existing
+project directly with renv. Failure restores the fixed project setup paths,
+including ignore files; effects in package caches or arbitrary startup code are
+not reversible. config.r.rscript chooses R for this command too.
+
+Choose production build tasks independently under build, rather than config:
+
+~~~yaml
+config:
+  r:
+    session: isolated
+    # rscript: "tools/R installation/bin/Rscript"
+build:
+  r:
+    document: true
+    readme: true
+    renv-snapshot: true
+~~~
+
+All three default to false, preserving existing projcli builds. document requires
+DESCRIPTION and R/ and runs devtools::document(). readme requires README.Rmd and
+renders it to root README.md using rmarkdown's md_document format. renv-snapshot
+requires an existing renv.lock and runs renv::snapshot(prompt=FALSE); it never
+means restore. Missing packages are errors, with no framework dependency install.
+These are production actions; build-dev skips them even when selected.
+
+Before start hooks, preflight checks fixed inputs/outputs and installed packages.
+After managed recovery is captured, snapshot runs before start hooks, matching
+original projr. Then start hooks/preparation, input inventory and analysis proceed. After successful analysis, post-clear, restoration
+of native artifacts and output promotion, snapshot runs again, followed by
+documentation and README. Then output inventory/history and distribution proceed.
+No housekeeping action runs between pre-clear and analysis, analysis and
+post-clear, or end hooks and the next development version. End hooks remain last.
+
+The post actions share one short-lived R child rooted at the project. Preflight
+and the pre-analysis snapshot use separate children. This reuses package loads
+within the post batch, not across all build stages. It is not a daemon or the
+shared analysis session, and it does not inherit caller R objects. Normal project
+startup/renv activation still runs in each child. A persistent housekeeping worker
+would require a separate lifecycle/state-leakage design and is not implemented.
+
+Fixed man/, NAMESPACE, DESCRIPTION, README.md, README_files/ and renv.lock effects
+join existing bounded build recovery, before distribution. Linked/special paths
+are rejected before launch; Unix additionally rejects multiply linked fixed
+files. Native R code, package loading/compilation, custom README output hooks and
+user-defined roxygen extensions can write elsewhere: there is no whole-project
+sandbox or rollback guarantee, and no new Windows hard-link guarantee. No citation
+generation or citation metadata update is included.
+
+
+The existing named R build/version helpers retain their M4 DESCRIPTION restriction.
+Package projects can invoke these CLI tasks through proj_cli("build", "--patch").
+This slice does not synchronize DESCRIPTION's Version with VERSION or add legacy
+package-version authority; generated package documentation may reflect its existing
+DESCRIPTION. Use the original R backend when that broader behavior is required.
+
+
+When migrating from projr, set renv-snapshot explicitly if you relied on its
+automatic snapshots for an existing renv project. Select document/readme explicitly
+if you want those maintenance tasks. Merely creating README.Rmd or initializing
+renv does not enable any build task.

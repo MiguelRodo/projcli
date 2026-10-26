@@ -115,3 +115,12 @@ it does not isolate every write or undo arbitrary external effects.
 
 See [what works](features.qmd), [detailed preview status](preview-status.qmd) and
 [verified delivery notes](release-delivery.qmd) for the evidence and limits.
+
+
+## R package source installation
+
+A separate R package is now available in the repository. It calls the CLI rather
+than embedding it. Read the [R installation and quick start](r-frontend.qmd) for
+R/package requirements, source installation and its [function reference](r-reference.qmd).
+It is not on CRAN, and installing it does not update preview.4 or supply all newer
+source CLI commands.

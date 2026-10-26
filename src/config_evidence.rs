@@ -133,7 +133,7 @@ impl Fingerprint {
             bytes:0,nodes:0,redactions:0};
         let empty=serde_json::json!({});let null=Value::Null;let isolated=Value::String("isolated".into());
         let result=(||->io::Result<()>{
-            for path in ["/directories","/parameters","/build/scripts","/build/hooks/pre","/build/hooks/both","/build/hooks/post","/config/r/session","/config/r/rscript"] {
+            for path in ["/directories","/parameters","/build/scripts","/build/hooks/pre","/build/hooks/both","/build/hooks/post","/config/r/session","/config/r/rscript","/build/r"] {
                 writer.string(path)?;
                 let default=if matches!(path,"/directories"|"/parameters"){&empty}else if path=="/config/r/session"{&isolated}else{&null};
                 writer.value(combined.pointer(path).unwrap_or(default),0,path=="/parameters")?;
@@ -164,6 +164,17 @@ impl Fingerprint {
 mod tests {
     use super::*;
     fn hash(value:&Value)->Option<String> {Fingerprint::capture(value).bind_policy("policy").blake3}
+    #[test]
+    fn r_housekeeping_actions_are_bound_to_the_effective_fingerprint() {
+        for action in ["document", "readme", "renv-snapshot"] {
+            let mut enabled = serde_json::json!({"build":{"r":{}}});
+            enabled["build"]["r"][action] = Value::Bool(true);
+            let mut disabled = enabled.clone();
+            disabled["build"]["r"][action] = Value::Bool(false);
+            assert_ne!(hash(&enabled), hash(&disabled), "{action}");
+        }
+    }
+
     #[test]
     fn canonical_order_types_sequences_and_redactions_are_unambiguous() {
         let a:Value=serde_json::from_str(r#"{"parameters":{"b":2,"a":1}}"#).unwrap();

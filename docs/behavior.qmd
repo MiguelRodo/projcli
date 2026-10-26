@@ -995,3 +995,18 @@ uses format and safe; it never activates folder creation. High-level VERSION
 helpers reject DESCRIPTION projects, and high-level build helpers reject Bookdown
 markers rather than equating render_book with render_site. Generic proj_cli still
 exposes the documented standalone CLI. This does not change renderer/hook ordering.
+
+### R-specific housekeeping in unreleased source
+
+New optional init readme --rmd and init renv; ordinary init/plain README is unchanged.
+Production-only build.r.document/readme/renv-snapshot are independent booleans,
+default false. config.r retains execution HOW, never action toggles. Snapshot is
+before start hooks and after analysis; post snapshot/document/readme follows promotion, before
+output capture/distribution. Previews skip all three. Missing packages fail,
+never framework-installed. Preserve clear/analysis and end-hook/version adjacency
+and existing bounded recovery. This behavior is implemented in source after
+preview.4. Native driver and compiled-CLI checks cover setup, documentation,
+README, snapshots and deliberate failures. The R workflow runs native Linux and
+Windows acceptance and the guide's exact quick start; docs CI renders/checks the
+website. See [PR231](https://github.com/MiguelRodo/projcli/pull/231) for exact-head evidence. Citation work, background daemon, package restore during build and
+general initialization parity are excluded.

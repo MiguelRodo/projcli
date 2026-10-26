@@ -342,3 +342,41 @@ pub fn init_full() -> anyhow::Result<()> {
     println!("Initialization complete.");
     Ok(())
 }
+
+
+/// Create README.Rmd explicitly without replacing either existing README.
+/// The template renders to Markdown; generating README.md is a separate build action.
+/// Does not install packages, execute R or modify project configuration.
+pub fn init_readme_rmd(title: Option<String>, description: Option<String>) -> anyhow::Result<()> {
+    let root = crate::ignore::root().context("Failed to find project root")?;
+    let path = root.join("README.Rmd");
+    crate::path_safety::resolve_path(path.as_std_path(), true)?;
+    if path.exists() {
+        anyhow::ensure!(path.is_file(), "README.Rmd must be a regular file");
+        return Ok(());
+    }
+    let header = serde_yaml::to_string(&serde_json::json!({
+        "title": title.unwrap_or_else(|| "My Project".into()),
+        "output": "md_document"
+    }))?;
+    let contents = format!("---\n{}---\n\n{}\n", header,
+        description.unwrap_or_else(|| "Describe your project here.".into()));
+    let mut file = tempfile::NamedTempFile::new_in(root.as_std_path())?;
+    file.write_all(contents.as_bytes())?;
+    crate::path_safety::resolve_path(path.as_std_path(), true)?;
+    file.persist_noclobber(path).map_err(|error| error.error)
+        .context("Cannot create README.Rmd without overwriting an existing file")?;
+    Ok(())
+}
+
+/// Explicitly initialize bare renv scaffolding using already installed renv.
+/// Honors config.r.rscript, never installs renv or restores project dependencies.
+/// Refuses existing renv state; external package/cache effects are not rolled back.
+pub fn init_renv() -> anyhow::Result<()> {
+    let root = crate::ignore::root().context("Failed to find project root")?;
+    let combined = crate::yml::get_combined_yml(None, &root)?;
+    let config: crate::yml::ProjConfig = serde_json::from_value(combined)?;
+    let mut environment = crate::run_environment::RunEnvironment::resolve(None, &root)?;
+    environment.set_rscript(config.config.r.executable(&root)?);
+    crate::r_housekeeping::initialize_renv(&root, &environment)
+}

@@ -66,7 +66,7 @@ flowchart TB
 
 The key adjacency rules are deliberate: **nothing runs between pre-clear and
 analysis**, or between **successful analysis and post-clear**. Start hooks come
-after verified basic setup; end hooks come at the end, immediately before the
+after verified basic setup (and the optional pre-build R snapshot in the local candidate); end hooks come at the end, immediately before the
 output build's transition to the next development version.
 
 ### 1. Pre-build details
@@ -89,8 +89,9 @@ flowchart TB
   E["[R/T] Preflight inputs and exclusion<br/>syntax, targets, dependencies and<br/>enabled Git prerequisites"]
   F["[R] Enumerate and capture managed<br/>recovery state before controlled<br/>writes"]
   G["[R] Run configured start hooks"]
-  H["[R] Complete remaining safe<br/>staging, renderer and allowed<br/>metadata preparation"]
-  A --> B --> C --> D --> E --> F --> G --> H
+  R["Local candidate: optional R snapshot<br/>before start hooks"]
+  H["[R] Complete safe staging and renderer<br/>preparation"]
+  A --> B --> C --> D --> E --> F --> R --> G --> H
   classDef existing fill:#e5f2ed,stroke:#146859,color:#153b32
   classDef main fill:#e7effa,stroke:#315b89,color:#183954
   classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
@@ -193,6 +194,7 @@ flowchart TB
   B{"Output build?"}
   C{"Analysis and promotion enabled?"}
   P["[R] Promote safe output/docs to<br/>explicitly configured final roots"]
+  H["Local candidate, production only:<br/>R snapshot, documentation, README;<br/>capture output inventory"]
   J{"Publication enabled?"}
   V["[R] Keep successful local release;<br/>close managed recovery boundary"]
   S["[R] Export configured local CAS<br/>destinations, if selected"]
@@ -203,8 +205,8 @@ flowchart TB
   G["[R] Restore captured managed<br/>state; retain cache results;<br/>no VERSION publication"]
   A --> B
   B -->|"Yes"| C
-  C -->|"Yes"| P --> J
-  C -->|"No: including empty analysis"| J
+  C -->|"Yes"| P --> H --> J
+  C -->|"No: including empty analysis"| H
   J -->|"Yes"| V --> S --> K --> D
   J -->|"No"| D
   B -->|"Preview: skip promotion/publication"| D
@@ -214,6 +216,11 @@ flowchart TB
   classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
   class A,P,V,S,K,D,F,G target
 ```
+
+The local R-maintenance candidate inserts optional snapshot/document/README work
+at H only for production, before output inventory/publication. The installed
+preview does not contain this addition. Preflight/pre-snapshot children are
+separate from the one post batch; previews skip all R maintenance.
 
 The end-hook/next-dev adjacency is approved. The released implementation places
 enabled CAS export and Git commit/push **before** end hooks and the next-dev
