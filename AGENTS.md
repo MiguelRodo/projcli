@@ -690,3 +690,8 @@ session and preserve their own behavior; never auto-load/install a legacy engine
 silently equate profile-layer, DESCRIPTION, folder-creation or repository-clone
 semantics with different CLI operations. Treat query results as requested data,
 not automatically redacted logs. Only supported subsets have compatibility fixtures.
+
+M4 project helpers must not silently translate legacy DESCRIPTION version
+authority, render_book, implicit folder creation, engine objects or archive flags.
+Preserve omitted defaults when invoking an explicit R callback. Core workflow
+remains authoritative; required native candidate tests run remotely.

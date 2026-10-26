@@ -105,3 +105,30 @@ The source audit found real boundaries: legacy path lookup creates folders, vers
 helpers may prefer DESCRIPTION, repository restore clones before restoring multiple
 labels, and renv restore chooses installation sources. These are not silently equated
 with read-only CLI lookup, VERSION-only authority or single-label data restore.
+
+## Run a preview or build from R
+
+The draft frontend also provides build, path and VERSION helpers. A preview runs
+configured scripts without publishing; an explicit production bump runs the
+existing CLI build workflow.
+
+~~~r
+projcli::projr_build_dev(execution_dir = "project")
+projcli::projr_build_patch(msg = "Update results", execution_dir = "project")
+output <- projcli::projr_path_get("output", "results.csv", format = "absolute")
+dir.create(dirname(output), recursive = TRUE, showWarnings = FALSE)
+projcli::projr_version_get()
+~~~
+
+Path lookup does not create folders or rewrite renderer configuration. Choose
+folder creation explicitly in your analysis. Omitting execution_dir preserves the
+CLI's configured/native working-directory policy. Omitting clear_output preserves
+its configured clearing policy; explicit never means none. Use configured upload
+destinations rather than legacy archive switches.
+
+This supported subset uses VERSION. DESCRIPTION-authoritative projects, Bookdown
+builds, R renderer argument objects, dev version bumps and implicit folder creation
+need an explicit existing R function backend. This keeps their different behavior
+visible instead of silently treating it as equivalent. For example,
+backend = projr::projr_build_patch calls that function in your current R session;
+the old package must already be installed. No package is installed automatically.

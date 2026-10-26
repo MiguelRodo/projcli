@@ -3541,3 +3541,29 @@ Independent review also caught full human error chains echoing a private serde
 value in the two new query arms. Both now use static diagnostics, with a human-mode
 canary regression. Machine/R errors were already static; old diagnostic contracts
 are unchanged. The new getters' successful explicit data results remain intentional.
+
+## M4 project helper candidate
+
+New thin R build/dev/path/version helpers delegate workflow to the CLI. The clean
+legacy comparison is SATVILab/projr@3ac29595d0e39552495d863661b99ea015d59d3d,
+R/dir.R, R/build.R and R/version.R. Its canonical path argument is format, not
+the relative/absolute arguments in a mixed local reference checkout.
+
+Different supported subset: explicit production bump, read-only path lookup,
+VERSION-only authority, no dev cache deletion, no engine objects or archive flag
+translation. Bookdown render_book is not the CLI render_site driver: reject the
+high-level CLI mapping and retain explicit R callbacks. Callbacks preserve omitted
+legacy defaults and original results. Native execution and merged policies remain
+in Rust. No lifecycle ordering changes or legacy R edits.
+
+Ponytail full: reuse generic transport/completion, avoid implementing R build
+workflow. R-only boundary tests plus required Linux/Windows candidate integration
+exercise preview preservation, generated results.csv promotion (not manifest.csv validation), version transitions and no-mutation
+lookup. Exact-head execution/review is pending; this is not M4 completion.
+
+The Windows wrapper gate found a real R/CLI boundary issue: native verbatim
+absolute paths combined with R file.path separators made file.exists report a
+present VERSION absent. Convert Windows disk/UNC paths to R-compatible slash
+syntax before R filesystem checks and path returns. The regression requires the
+setter's actual VERSION bytes to change; missing-file no-op remains distinct.
+No Rust path guard or project identity behavior changes.
