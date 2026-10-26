@@ -75,7 +75,7 @@ fn discovered_symlink_is_rejected_without_following_it() {
 #[test]
 fn literal_absolute_includes_and_excludes_are_symmetric_and_canonical() {
     let temp=fixture("[]");
-    let file=temp.path().join("source with spaces/a.py");
+    let file=temp.path().join("source with spaces/a.py").canonicalize().unwrap();
     let selections=vec![file.to_str().unwrap().to_owned(),format!("!{}",file.display())];
     fs::write(temp.path().join("_proj.yml"),format!(
         "directories:\n  scripts-l1: {{path: 'source with spaces'}}\n  cache: {{path: cache}}\nbuild:\n  git: false\n  scripts: {}\n",serde_json::to_string(&selections).unwrap())).unwrap();
