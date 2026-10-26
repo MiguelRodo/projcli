@@ -114,6 +114,10 @@ ul.task-list li input[type="checkbox"] {
     <a class="nav-link" href="./features.html"> 
 <span class="menu-text">What works</span></a>
   </li>  
+  <li class="nav-item">
+    <a class="nav-link active" href="./r-frontend.html" aria-current="page"> 
+<span class="menu-text">R package</span></a>
+  </li>  
 </ul>
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item compact">
@@ -226,12 +230,35 @@ ul.task-list li input[type="checkbox"] {
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
- <span class="menu-text">Design and progress</span></a>
+ <span class="menu-text">R package</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./r-frontend.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Use proj from R</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./r-reference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">R function reference</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Design and progress</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./behavior.html" class="sidebar-item-text sidebar-link">
@@ -305,6 +332,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#github-file-history-in-preview.4" id="toc-github-file-history-in-preview.4" class="nav-link" data-scroll-target="#github-file-history-in-preview.4">GitHub file history in preview.4</a></li>
   <li><a href="#github-tree-history-in-preview.4" id="toc-github-tree-history-in-preview.4" class="nav-link" data-scroll-target="#github-tree-history-in-preview.4">GitHub tree history in preview.4</a></li>
   </ul></li>
+  <li><a href="#m4-draft-r-session-boundary" id="toc-m4-draft-r-session-boundary" class="nav-link" data-scroll-target="#m4-draft-r-session-boundary">M4 draft: R session boundary</a></li>
   </ul>
 </nav>
     </div>
@@ -409,7 +437,7 @@ Figure&nbsp;1: Released overview. Open the stage details below for conditions an
 </div>
 </div>
 </div>
-<p>The key adjacency rules are deliberate: <strong>nothing runs between pre-clear and analysis</strong>, or between <strong>successful analysis and post-clear</strong>. Start hooks come after verified basic setup; end hooks come at the end, immediately before the output build’s transition to the next development version.</p>
+<p>The key adjacency rules are deliberate: <strong>nothing runs between pre-clear and analysis</strong>, or between <strong>successful analysis and post-clear</strong>. Start hooks come after verified basic setup (and the optional pre-build R snapshot in the local candidate); end hooks come at the end, immediately before the output build’s transition to the next development version.</p>
 <section id="pre-build-details" class="level3">
 <h3 class="anchored" data-anchor-id="pre-build-details">1. Pre-build details</h3>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -441,8 +469,9 @@ flowchart TB
   E["[R/T] Preflight inputs and exclusion&lt;br/&gt;syntax, targets, dependencies and&lt;br/&gt;enabled Git prerequisites"]
   F["[R] Enumerate and capture managed&lt;br/&gt;recovery state before controlled&lt;br/&gt;writes"]
   G["[R] Run configured start hooks"]
-  H["[R] Complete remaining safe&lt;br/&gt;staging, renderer and allowed&lt;br/&gt;metadata preparation"]
-  A --&gt; B --&gt; C --&gt; D --&gt; E --&gt; F --&gt; G --&gt; H
+  R["Local candidate: optional R snapshot&lt;br/&gt;before start hooks"]
+  H["[R] Complete safe staging and renderer&lt;br/&gt;preparation"]
+  A --&gt; B --&gt; C --&gt; D --&gt; E --&gt; F --&gt; R --&gt; G --&gt; H
   classDef existing fill:#e5f2ed,stroke:#146859,color:#153b32
   classDef main fill:#e7effa,stroke:#315b89,color:#183954
   classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
@@ -559,6 +588,7 @@ flowchart TB
   B{"Output build?"}
   C{"Analysis and promotion enabled?"}
   P["[R] Promote safe output/docs to&lt;br/&gt;explicitly configured final roots"]
+  H["Local candidate, production only:&lt;br/&gt;R snapshot, documentation, README;&lt;br/&gt;capture output inventory"]
   J{"Publication enabled?"}
   V["[R] Keep successful local release;&lt;br/&gt;close managed recovery boundary"]
   S["[R] Export configured local CAS&lt;br/&gt;destinations, if selected"]
@@ -569,8 +599,8 @@ flowchart TB
   G["[R] Restore captured managed&lt;br/&gt;state; retain cache results;&lt;br/&gt;no VERSION publication"]
   A --&gt; B
   B --&gt;|"Yes"| C
-  C --&gt;|"Yes"| P --&gt; J
-  C --&gt;|"No: including empty analysis"| J
+  C --&gt;|"Yes"| P --&gt; H --&gt; J
+  C --&gt;|"No: including empty analysis"| H
   J --&gt;|"Yes"| V --&gt; S --&gt; K --&gt; D
   J --&gt;|"No"| D
   B --&gt;|"Preview: skip promotion/publication"| D
@@ -589,6 +619,7 @@ Figure&nbsp;4: Released post-build order with bounded publication/recovery behav
 </div>
 </div>
 </div>
+<p>The local R-maintenance candidate inserts optional snapshot/document/README work at H only for production, before output inventory/publication. The installed preview does not contain this addition. Preflight/pre-snapshot children are separate from the one post batch; previews skip all R maintenance.</p>
 <p>The end-hook/next-dev adjacency is approved. The released implementation places enabled CAS export and Git commit/push <strong>before</strong> end hooks and the next-dev bump. Before publication it records the successful local release and gives up the managed recovery snapshot. Publication or later end-hook failure preserves that local release and skips the bump; partial external effects are not undone. Without publication, end-hook failure still uses bounded managed recovery. Preview runs end hooks, then restores captured managed state without a version transition. These are bounded managed-path guarantees, not whole-project or remote atomicity.</p>
 <p>Promotion is output-only and conditional on selected analysis and enabled promotion. Explicit empty analysis preserves existing upload inputs instead; configured publication may still use them. Metadata means existing project/version operations, not finished attempt/release identifiers or complete provenance. The implemented storage path is configured local CAS export; Git commit/push and network checks are opt-in, not consequences of merely having a Git repository.</p>
 <p>An analysis failure does not enter the success-only post-clear/promotion/end-hook/version path. This page does not introduce an always/finally-hook policy.</p>
@@ -954,9 +985,40 @@ Figure&nbsp;11: Development source: ordinary and content-addressed storage metad
 <p>Exact ZIP observation now also derives pure directory roots when tree style is selected. Required bounded directory graphs, readable histories and bindings are prepared before HTTP mutation; downloaded bundles validate graph/inventory agreement first. Full metadata uses the same HTTP-before-project-copy ordering, with small references last. This adds a metadata style to the existing development overlay, without changing the released historical figures or provider/hook order.</p>
 <p>The integrated M3 fixture observes this existing ordering end to end: actual analysis and ordinary backup, native CAS publication, completed attempt record, then a second unchanged build and explicit read-only verification/fresh-project recovery. Corruption probes require no destination replacement or store repair. It adds retained release evidence rather than another build stage or native figure.</p>
 <p>The preserved legacy raw-JSON branch acquires store and shared-lookup ownership inside the existing CAS publication phase. Exact repeated lookup rows keep their original bytes. This adds no build/hook/Git stage: ordinary providers still run first, legacy CAS precedes modern configured CAS, and failure retains possible distribution evidence. The existing development overlay includes the legacy ownership branch; released historical figures remain unchanged.</p>
-
-
 </section>
+</section>
+<section id="m4-draft-r-session-boundary" class="level2">
+<h2 class="anchored" data-anchor-id="m4-draft-r-session-boundary">M4 draft: R session boundary</h2>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div id="fig-lifecycle-m4-r-session" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-lifecycle-m4-r-session-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<pre class="mermaid mermaid-js" data-label="fig-lifecycle-m4-r-session">%%{init: {"htmlLabels": false}}%%
+flowchart TB
+  V["Validate R settings and executable"] --&gt; H["Start hooks in separate processes"]
+  H --&gt; A["Ordered analysis"]
+  A --&gt; I["isolated: fresh Rscript for each plain R script"]
+  A --&gt; S["shared: lazily start one child; source each plain R script in order"]
+  I --&gt; E["End analysis"]
+  S --&gt; C["Close worker control input and wait for exit"]
+  C --&gt; E
+  A -.-&gt; R["Document renderers keep their native process boundaries"]
+  E --&gt; P["Existing success/failure and finalization workflow"]
+</pre>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-lifecycle-m4-r-session-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;12: M4 draft process boundaries inside the existing build lifecycle.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>This draft adds a process choice inside analysis, without moving hooks, clearing, promotion or publication. Python and document steps retain their place between R scripts. Shared R state never becomes the Rust driver’s or hook processes’ state.</p>
+
+
 </section>
 
 </main> <!-- /main -->

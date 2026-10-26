@@ -111,6 +111,10 @@ ul.task-list li input[type="checkbox"] {
     <a class="nav-link" href="./features.html"> 
 <span class="menu-text">What works</span></a>
   </li>  
+  <li class="nav-item">
+    <a class="nav-link active" href="./r-frontend.html" aria-current="page"> 
+<span class="menu-text">R package</span></a>
+  </li>  
 </ul>
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item compact">
@@ -223,12 +227,35 @@ ul.task-list li input[type="checkbox"] {
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
- <span class="menu-text">Design and progress</span></a>
+ <span class="menu-text">R package</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./r-frontend.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Use proj from R</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./r-reference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">R function reference</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Design and progress</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./behavior.html" class="sidebar-item-text sidebar-link">
@@ -294,7 +321,7 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="future-r-wrapper-cli-installation-and-cran-checks" class="level1">
 <h1>Future R wrapper: CLI installation and CRAN checks</h1>
-<p>Status: design direction recorded on 2026-10-20, not a shipped wrapper or an accepted CRAN submission. The existing R package remains untouched. This note does not settle the complete frontend protocol or claim renderer parity.</p>
+<p>Status: design direction recorded on 2026-10-20. M4 now has an initial <a href="./r-frontend.html">separate R transport candidate</a>; it is not a shipped wrapper or an accepted CRAN submission. The existing R package remains untouched. This note does not settle the complete frontend protocol or claim renderer parity.</p>
 <section id="separate-installation" class="level2">
 <h2 class="anchored" data-anchor-id="separate-installation">Separate installation</h2>
 <p>The future wrapper is intended to contain R code that calls a separately installed proj CLI. Its <code>DESCRIPTION</code> should declare that CLI in <code>SystemRequirements</code>. It should discover a compatible executable and give an actionable missing/incompatible-CLI error. A user-invoked installer on the user’s own machine is distinct from automatic downloads during CRAN installation, checks or examples. Do not assume CRAN servers already provide proj.</p>
@@ -333,7 +360,7 @@ ul.task-list li input[type="checkbox"] {
 <section id="relevant-quarto-precedent" class="level2">
 <h2 class="anchored" data-anchor-id="relevant-quarto-precedent">Relevant Quarto precedent</h2>
 <p>The pinned Quarto R package <a href="https://github.com/quarto-dev/quarto-r/blob/v1.5.1/DESCRIPTION">DESCRIPTION at v1.5.1</a> declares the separate Quarto command-line tool in SystemRequirements. Its <a href="https://github.com/quarto-dev/quarto-r/blob/v1.5.1/tests/testthat/helpers.R">test helper</a> can skip executable-dependent tests when Quarto is unavailable, and its <a href="https://github.com/quarto-dev/quarto-r/blob/v1.5.1/R/utils-vignettes.R">vignette utility</a> checks executable availability during vignette processing. These are specific implementation precedents, not proof that CRAN has accepted a future proj wrapper or guaranteed an executable on every server. This note does not infer automatic binary-download permission from Quarto’s existence.</p>
-<p>Before implementation, specify compatible protocol versions, executable discovery, argument quoting, diagnostics, and which tests are unconditional versus executable integration. R production changes require separate authorization.</p>
+<p>Before implementation, specify compatible protocol versions, executable discovery, argument quoting, diagnostics, and which tests are unconditional versus executable integration. M4 authorizes production code in the separate frontend, not changes to the existing SATVILab/projr package.</p>
 
 
 </section>

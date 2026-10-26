@@ -111,6 +111,10 @@ ul.task-list li input[type="checkbox"] {
     <a class="nav-link" href="./features.html"> 
 <span class="menu-text">What works</span></a>
   </li>  
+  <li class="nav-item">
+    <a class="nav-link active" href="./r-frontend.html" aria-current="page"> 
+<span class="menu-text">R package</span></a>
+  </li>  
 </ul>
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item compact">
@@ -223,12 +227,35 @@ ul.task-list li input[type="checkbox"] {
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
- <span class="menu-text">Design and progress</span></a>
+ <span class="menu-text">R package</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./r-frontend.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Use proj from R</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./r-reference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">R function reference</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Design and progress</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./behavior.html" class="sidebar-item-text sidebar-link active">
@@ -328,6 +355,12 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#github-directory-metadata-development-source" id="toc-github-directory-metadata-development-source" class="nav-link" data-scroll-target="#github-directory-metadata-development-source">GitHub directory metadata (development source)</a></li>
   <li><a href="#integrated-m3-acceptance-scope" id="toc-integrated-m3-acceptance-scope" class="nav-link" data-scroll-target="#integrated-m3-acceptance-scope">Integrated M3 acceptance scope</a></li>
   <li><a href="#legacy-cas-publication-safety" id="toc-legacy-cas-publication-safety" class="nav-link" data-scroll-target="#legacy-cas-publication-safety">Legacy CAS publication safety</a></li>
+  <li><a href="#m4-initial-r-transport-candidate" id="toc-m4-initial-r-transport-candidate" class="nav-link" data-scroll-target="#m4-initial-r-transport-candidate">M4 initial R transport candidate</a>
+  <ul class="collapse">
+  <li><a href="#m4-explicit-data-query-boundary" id="toc-m4-explicit-data-query-boundary" class="nav-link" data-scroll-target="#m4-explicit-data-query-boundary">M4 explicit data-query boundary</a></li>
+  <li><a href="#m4-project-helper-subset" id="toc-m4-project-helper-subset" class="nav-link" data-scroll-target="#m4-project-helper-subset">M4 project helper subset</a></li>
+  <li><a href="#r-specific-housekeeping-in-unreleased-source" id="toc-r-specific-housekeeping-in-unreleased-source" class="nav-link" data-scroll-target="#r-specific-housekeeping-in-unreleased-source">R-specific housekeeping in unreleased source</a></li>
+  </ul></li>
   </ul></li>
   </ul>
 </nav>
@@ -628,8 +661,24 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="legacy-cas-publication-safety">Legacy CAS publication safety</h2>
 <p>The retained legacy name-list route now claims its physical store and the shared project .projr ledger root in fixed order, after rejecting invalid source trees. This coordinates public callers writing different stores without reacquiring an already-held project build claim. The authoritative four-column lookup is read and updated while both claims remain held. Existing busy/stale claims fail closed; no process is killed and stale ownership is not guessed.</p>
 <p>An exact version/label/raw-manifest-digest retry preserves the index bytes and timestamp. Other rows, raw JSON IDs, content hashes and differing same-version digests retain their previous meaning. Malformed indexes fail before new references. Complete unreferenced metadata can remain after a later error; this does not add a multi-location transaction, distributed locking or new version policy. Ordinary root manifest.csv and new flat/tree catalogues are separate.</p>
+</section>
+<section id="m4-initial-r-transport-candidate" class="level2">
+<h2 class="anchored" data-anchor-id="m4-initial-r-transport-candidate">M4 initial R transport candidate</h2>
+<p>The explicitly approved R frontend is a separate subprocess package under frontends/r/projcli, not an embedded engine or an edit to SATVILab/projr. Initial transport checks protocol/capabilities per call, passes argv directly, forwards active libraries and deliberate environment additions, and withholds raw errors and diagnostics. Noninteractive mode prevents implicit package installation. This does not change Rust hook/renderer ordering or supported lifecycle. M4 API mapping, backend escape-hatch routing, explicit dependency restoration and the representative reanalysis gate remain separate work. See <a href="./r-frontend.html">R guide</a>.</p>
+<section id="m4-explicit-data-query-boundary" class="level3">
+<h3 class="anchored" data-anchor-id="m4-explicit-data-query-boundary">M4 explicit data-query boundary</h3>
+<p>New yml get/parameter operations explicitly return selected data; existing yml read and unrelated machine replies remain secret-free validation/query responses. Errors never echo configuration/selector values. Reuse core per-layer aliases, merging, runtime validation and literal selectors; no R eval(parse) or separate YAML engine. Default query profiles preserve managed context, while configuration contents remain current observations. R configuration helpers support merged active views; legacy isolated-layer semantics require explicit existing-function callbacks. Callback execution is deliberately in the caller’s R session, not a promised clean child.</p>
+</section>
+<section id="m4-project-helper-subset" class="level3">
+<h3 class="anchored" data-anchor-id="m4-project-helper-subset">M4 project helper subset</h3>
+<p>Draft R build/dev/path/version helpers delegate to the existing workflow and require explicit legacy callbacks where semantics differ. Read-only path lookup uses format and safe; it never activates folder creation. High-level VERSION helpers reject DESCRIPTION projects, and high-level build helpers reject Bookdown markers rather than equating render_book with render_site. Generic proj_cli still exposes the documented standalone CLI. This does not change renderer/hook ordering.</p>
+</section>
+<section id="r-specific-housekeeping-in-unreleased-source" class="level3">
+<h3 class="anchored" data-anchor-id="r-specific-housekeeping-in-unreleased-source">R-specific housekeeping in unreleased source</h3>
+<p>New optional init readme –rmd and init renv; ordinary init/plain README is unchanged. Production-only build.r.document/readme/renv-snapshot are independent booleans, default false. config.r retains execution HOW, never action toggles. Snapshot is before start hooks and after analysis; post snapshot/document/readme follows promotion, before output capture/distribution. Previews skip all three. Missing packages fail, never framework-installed. Preserve clear/analysis and end-hook/version adjacency and existing bounded recovery. This behavior is implemented in source after preview.4. Native driver and compiled-CLI checks cover setup, documentation, README, snapshots and deliberate failures. The R workflow runs native Linux and Windows acceptance and the guide’s exact quick start; docs CI renders/checks the website. See <a href="https://github.com/MiguelRodo/projcli/pull/231">PR231</a> for exact-head evidence. Citation work, background daemon, package restore during build and general initialization parity are excluded.</p>
 
 
+</section>
 </section>
 </section>
 

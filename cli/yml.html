@@ -146,6 +146,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="nav-link" href="../features.html"> 
 <span class="menu-text">What works</span></a>
   </li>  
+  <li class="nav-item">
+    <a class="nav-link active" href="../r-frontend.html" aria-current="page"> 
+<span class="menu-text">R package</span></a>
+  </li>  
 </ul>
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item compact">
@@ -258,12 +262,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
- <span class="menu-text">Design and progress</span></a>
+ <span class="menu-text">R package</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../r-frontend.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Use proj from R</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../r-reference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">R function reference</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Design and progress</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../behavior.html" class="sidebar-item-text sidebar-link">
@@ -315,6 +342,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#proj-yml-read" id="toc-proj-yml-read" class="nav-link active" data-scroll-target="#proj-yml-read"><code>proj yml read</code></a>
   <ul class="collapse">
   <li><a href="#configuration-and-defaults" id="toc-configuration-and-defaults" class="nav-link" data-scroll-target="#configuration-and-defaults">Configuration and defaults</a></li>
+  <li><a href="#explicit-configuration-and-parameter-queries-m4-candidate" id="toc-explicit-configuration-and-parameter-queries-m4-candidate" class="nav-link" data-scroll-target="#explicit-configuration-and-parameter-queries-m4-candidate">Explicit configuration and parameter queries (M4 candidate)</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -336,6 +364,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Read-only queries accept missing configuration as an empty directory inventory. Builds require an active base or explicitly activated profile at the root. Inactive profiles and local overrides alone do not qualify. Every declared directory requires an explicit nonempty path; missing labels are never invented. Unsupported control fields fail validation; <code>metadata</code> and <code>parameters</code> remain arbitrary maps. Parameter aliases normalize before merging; conflicting aliases within one file are rejected. No query writes defaults into configuration.</p>
 <p><code>proj --project . --non-interactive init directories</code> creates a missing base with explicit <code>_raw_data</code>, <code>_tmp</code> and <code>_output</code> paths. It creates declared directories and synchronizes ignore rules without Git/GitHub setup. Existing configuration bytes are preserved. It leaves scripts absent, preserving discovery; <code>scripts: []</code> continues to mean no analysis.</p>
 <p>Configuration validation and path queries do not change <code>.gitignore</code>, <code>.Rbuildignore</code>, configuration files, or project directories. Production builds and directory initialization request ignore synchronization explicitly. Directory initialization stops on configuration read/validation errors before changing ignore rules or creating directories.</p>
+</section>
+<section id="explicit-configuration-and-parameter-queries-m4-candidate" class="level2">
+<h2 class="anchored" data-anchor-id="explicit-configuration-and-parameter-queries-m4-candidate">Explicit configuration and parameter queries (M4 candidate)</h2>
+<p>The existing yml read command still reports validation only. The new commands explicitly return requested data; that data can include private configuration values, so do not publish their output as a diagnostic log.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> <span class="at">--machine</span> yml get <span class="at">--check</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> <span class="at">--machine</span> yml get <span class="at">--profile</span> team</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> <span class="at">--machine</span> yml parameter model seed</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> <span class="at">--machine</span> yml parameter <span class="at">--</span> <span class="at">--literal-key</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The result keys are configuration and value respectively. Empty parameter selectors return the whole parameter value; absent keys return null. Keys are literal mapping keys, not R expressions, dotted-path evaluation or array indexes. Existing four shared parameter aliases normalize per layer before merging. Parameter queries apply runtime validation; get applies it only with –check. Unchecked get still requires a mapping and rejects malformed or conflicting aliases.</p>
+<p>CLI profile flags select merged overlays. Without an explicit profile, queries inside a build retain its captured profile order for that project. Configuration contents are read at query time; fingerprints do not freeze every analysis input. Explicit project overrides retain their existing behavior. No directories, ignore rules, dependency installation or build records are created by these queries.</p>
 
 
 </section>

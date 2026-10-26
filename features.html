@@ -111,6 +111,10 @@ ul.task-list li input[type="checkbox"] {
     <a class="nav-link active" href="./features.html" aria-current="page"> 
 <span class="menu-text">What works</span></a>
   </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./r-frontend.html"> 
+<span class="menu-text">R package</span></a>
+  </li>  
 </ul>
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item compact">
@@ -223,12 +227,35 @@ ul.task-list li input[type="checkbox"] {
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
- <span class="menu-text">Design and progress</span></a>
+ <span class="menu-text">R package</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./r-frontend.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Use proj from R</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./r-reference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">R function reference</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Design and progress</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./behavior.html" class="sidebar-item-text sidebar-link">
@@ -384,7 +411,7 @@ ul.task-list li input[type="checkbox"] {
 <li>This preview supplies only Linux and Windows x86-64 binaries; macOS and ARM delivery are unavailable.</li>
 <li>Production recovery is bounded. It does not undo arbitrary script writes or partial external publication effects.</li>
 </ul>
-<p>The existing R package is unchanged. A Rust library is available in this repository, but new R, Python and Julia frontend integrations are separate work.</p>
+<p>The existing projr R package is unchanged. The new source package projcli is available in this repository: see its <a href="./r-frontend.html">installation and quick start</a> and <a href="./r-reference.html">function reference</a>. It is not on CRAN, and preview.4 predates the full M4 CLI support. Python/Julia frontends and complete R/IDE parity remain separate work.</p>
 </section>
 <section id="planned-work" class="level2">
 <h2 class="anchored" data-anchor-id="planned-work">Planned work</h2>

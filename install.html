@@ -146,6 +146,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="nav-link" href="./features.html"> 
 <span class="menu-text">What works</span></a>
   </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./r-frontend.html"> 
+<span class="menu-text">R package</span></a>
+  </li>  
 </ul>
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item compact">
@@ -258,12 +262,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
- <span class="menu-text">Design and progress</span></a>
+ <span class="menu-text">R package</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./r-frontend.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Use proj from R</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./r-reference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">R function reference</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Design and progress</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./behavior.html" class="sidebar-item-text sidebar-link">
@@ -318,6 +345,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#finding-the-command-later" id="toc-finding-the-command-later" class="nav-link" data-scroll-target="#finding-the-command-later">Finding the command later</a></li>
   <li><a href="#what-the-checksum-proves" id="toc-what-the-checksum-proves" class="nav-link" data-scroll-target="#what-the-checksum-proves">What the checksum proves</a></li>
   <li><a href="#start-small" id="toc-start-small" class="nav-link" data-scroll-target="#start-small">Start small</a></li>
+  <li><a href="#r-package-source-installation" id="toc-r-package-source-installation" class="nav-link" data-scroll-target="#r-package-source-installation">R package source installation</a></li>
   </ul>
 </nav>
     </div>
@@ -434,6 +462,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="start-small">Start small</h2>
 <p>Follow <a href="./tutorial.html">Run your first analysis</a> with sample data. Broad M1/M2 milestones, R/IDE parity, complete input/code/dependency provenance, and reliable analysis-free publication retries remain unfinished. Preview recovery is bounded: it does not isolate every write or undo arbitrary external effects.</p>
 <p>See <a href="./features.html">what works</a>, <a href="./preview-status.html">detailed preview status</a> and <a href="./release-delivery.html">verified delivery notes</a> for the evidence and limits.</p>
+</section>
+<section id="r-package-source-installation" class="level2">
+<h2 class="anchored" data-anchor-id="r-package-source-installation">R package source installation</h2>
+<p>A separate R package is now available in the repository. It calls the CLI rather than embedding it. Read the <a href="./r-frontend.html">R installation and quick start</a> for R/package requirements, source installation and its <a href="./r-reference.html">function reference</a>. It is not on CRAN, and installing it does not update preview.4 or supply all newer source CLI commands.</p>
 
 
 </section>
