@@ -14,7 +14,7 @@ fn project()->tempfile::TempDir {
 }
 #[test] fn default_sync_preserves_other_fields_and_crlf_without_creating_description() {
  let t=project();let r=t.path();good(cli(r,&["version","set","2.3.4-8"]));assert!(!r.join("DESCRIPTION").exists());
- let desc="Package: example\r\nTitle: caf\u{e9}\r\nAuthors@R: person(\"A\", \"B\")\r\nDescription: line one\r\n  line two\r\nVersion: 9.9.9\r\nLicense: MIT\r\n";
+ let desc="Package: example\r\nTitle: caf\u{e9}\r\nAuthors@R: person(\"A\", \"B\")\r\nDescription: line one\r\n  line two\r\nVersion: 9.9.9\r\nLicense: MIT\r\nConfig/roxygen2/version: 8.1.0\r\n";
  fs::write(r.join("DESCRIPTION"),desc).unwrap();let o=cli(r,&["version","set","2.3.4-9"]);
  assert!(String::from_utf8_lossy(&o.stderr).contains("VERSION is authoritative"));good(o);
  assert_eq!(fs::read_to_string(r.join("DESCRIPTION")).unwrap(),desc.replace("9.9.9","2.3.4.9"));

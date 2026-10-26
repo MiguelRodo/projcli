@@ -3813,3 +3813,5 @@ same-directory replacement preserves hard-link aliases. Existing metadata other
 than Version remains byte-identical. The Git witness binds both committed and
 expected development DESCRIPTION bytes by digest and still rejects arbitrary edits.
 Local capped verification passed: seven synchronization tests, eighteen real-Git tests (two subprocess entrypoints ignored), existing fourteen recovery and ten housekeeping tests, native R wrapper execution and the documented preview/full-build example. Independent review found and fixed orphan/multi-record DCF handling, Git CRLF normalization and stale installed help. Final exact-head remote checks remain pending.
+
+Native CI exposed roxygen's valid Config/roxygen2/version DCF field after documentation. Field-name validation now accepts nonwhitespace/noncontrol names (including slash), preserving actual native extension fields. Added a byte-preservation regression and bounded native-fixture error tail; assertions unchanged. The seven sync regressions and native R housekeeping gate passed locally after this fix; independent source delta cleared. Final exact-head remote gates pending.

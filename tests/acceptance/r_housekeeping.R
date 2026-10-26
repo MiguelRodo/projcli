@@ -14,7 +14,12 @@ run <- function(args, success = TRUE) {
         c("PROJ_PROJECT_ROOT", "PROJ_RUN_CONTEXT", "PROJR_PROFILE", "QUARTO_PROFILE")]
     result <- processx::run(binary, c("--non-interactive", "--project", root, args),
         wd = root, error_on_status = FALSE, env = environment)
-    stopifnot(identical(result$status == 0L, success))
+    if (!identical(result$status == 0L, success)) {
+        diagnostics <- paste(result$stdout, result$stderr)
+        stop("Unexpected native housekeeping status ", result$status, ": ",
+             substr(diagnostics, max(1L, nchar(diagnostics) - 700L), nchar(diagnostics)),
+             call. = FALSE)
+    }
     result
 }
 writeLines("Preserve plain README", file.path(root, "README.md"))

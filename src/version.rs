@@ -216,7 +216,7 @@ pub(crate) fn description_bytes(root: &Utf8Path, version: &ProjVersion) -> anyho
             anyhow::ensure!(separator.is_none(), "DESCRIPTION must contain one DCF record");
             has_field = true;
             let (key, _) = body.split_once(':').context("Invalid DESCRIPTION field: expected name: value")?;
-            anyhow::ensure!(!key.is_empty() && key.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b,b'-'|b'_'|b'.'|b'@')),
+            anyhow::ensure!(!key.is_empty() && key.chars().all(|c| !c.is_whitespace() && !c.is_control()),
                 "Invalid DESCRIPTION field name");
             previous_version = key == "Version";
             if previous_version {
