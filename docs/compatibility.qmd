@@ -3893,3 +3893,4 @@ Configured GitHub source/destination selection and remote writer/reference
 coordination remain unfinished, explicitly not parity completion. Ponytail full
 reuse: existing Release client, safe ZIP import and pinned local engine; no new
 dependencies, credentials, replacement protocol or hosted service.
+Actual-engine export test found reconstruction mutates the copied LocalClient persistent index. The export now records its final closed bytes after successful reconstruction, while requiring immutable snapshot/tree metadata unchanged. Original-store byte/membership preservation remains asserted; no byte-read-only engine claim.
