@@ -86,6 +86,8 @@ for explicit in (False,True):
         assert source_bytes(root)==before
         assert sorted(str(path.relative_to(root/"docs")) for path in (root/"docs").rglob("*") if path.is_file())==membership
         assert not (root/"docs/docs").exists() and not (root/"docs/native-site").exists()
+        assert (root/"native-site/previous.html").read_text()=="Prior native tree"
+        assert sorted(str(path.relative_to(root/"native-site")) for path in (root/"native-site").rglob("*") if path.is_file())==["previous.html"]
         evidence[f"website_{'explicit' if explicit else 'native'}"]={"repeat_build_stable":True,"htmls":len(list((root/"docs").rglob("*.html"))),"local_references_checked":local_links(root/"docs"),"source_and_native_output_preserved":True,"excluded_draft_absent":True}
 Path(args.evidence).write_text(json.dumps(evidence,indent=2)+"\n")
 print("PASS grouped nested HTML/figures, source-safe ignore rules and complete native/explicit Quarto websites")
