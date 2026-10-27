@@ -1,0 +1,226 @@
+---
+title: "Experimental shared-content storage"
+---
+
+This unmerged source candidate is **experimental**. Keep independent backups.
+No installed executable or existing store changes. Configured local build/restore passed exact-head remote checks and independent review in draft PR #236.
+The stacked transport candidate adds library-level GitHub ZIP transfer; configured GitHub build/restore is in the next unverified draft.
+
+Files are split into reusable pieces by the optional upstream Xet helper. This may
+save storage when large files share uncompressed bytes. Already-compressed files
+may benefit little. Synthetic results do not predict savings for real datasets.
+
+Both local and GitHub destinations use structure: xet.
+GitHub transports this same local engine/store as a complete ZIP, not a hosted
+Xet service. One long-running storage release holds it. No incremental pack
+transport, automatic migration or live data upload is implemented here.
+
+## Why this remains experimental
+
+Upstream's [local client is a testing/development backend](https://github.com/huggingface/xet-core/blob/629562cd9fc37432317eb57811faf13a6935c601/xet_client/src/cas_client/simulation/mod.rs).
+Its [README directs ordinary use through huggingface_hub](https://github.com/huggingface/xet-core/blob/629562cd9fc37432317eb57811faf13a6935c601/README.md).
+Apache-2.0 permits reuse but does not establish an archival compatibility/support
+promise. The helper requires the exact tested upstream revision and unknown
+formats fail; upgrading must not silently reinterpret stored data.
+
+[Restart tests](https://github.com/MiguelRodo/projcli/actions/runs/40459341098)
+passed. [Interruption/export qualification](https://github.com/MiguelRodo/projcli/actions/runs/40463702593)
+passed selected process interruption/retry and stopped-writer ZIP export/import,
+but failed corruption detection: the default upstream local download returned
+success with wrong bytes. Unfinished reads also panicked. Those failures remain
+recorded. The new core independently checks reconstructed length/BLAKE3 in private
+staging before using the existing guarded destination installer.
+
+A cooperative claim serializes one project's store operations, including reads
+which can mutate upstream caches. Finalized verified content precedes immutable
+snapshot references. No persistent full-file copy is kept, but ingest/restore
+needs temporary disk space. Sparse database allocation can grow on export/import.
+A stale claim fails closed; no automatic stale-lock removal or migration occurs.
+
+Snapshots reuse the existing complete file inventory and pure directory identities.
+A backend-specific binding maps whole-file digests to upstream reconstruction
+addresses. File digests, directory roots, version metadata and Xet IDs stay distinct.
+Legacy CAS IDs/readers are untouched.
+
+The dedicated remote integration gate checks exact recovery and complete destination preservation; see the draft PR's exact-head results. These checks do not establish long-term archival support. Unix runtime only until equivalent
+hard-link validation is implemented on Windows. No power-loss, concurrent hot-copy,
+arbitrary interruption-point or production-readiness guarantee follows. Reusing
+upstream chunk/hash/codec primitives with a proj-owned durable backend is another
+route, but requires real persistence/index/recovery engineering.
+
+## Try the configured local candidate
+
+This is source-only experimental functionality, not an installed-release guide.
+The separately built pinned helper must already be on PATH as proj-xet-engine.
+No build/init/query automatically installs it or logs into Hugging Face.
+Current runtime support is Unix; Windows proj still works with ordinary backends.
+
+For a project that only archives existing data, an explicit empty script list
+avoids rerunning an analysis:
+
+```yaml
+directories:
+  raw-data:
+    path: raw-data
+  cache:
+    path: cache
+    safe: true
+remotes:
+  local:
+    shared-content:
+      path: ../experimental-store
+      structure: xet
+      content: [raw-data]
+build:
+  scripts: []
+  git: false
+  dest:
+    shared-content: {}
+```
+
+A production build stores selected folders; preview does not upload, require the
+helper or update backend caches. Queries never activate writes. Removing the
+remote from build.dest stops uploads while preserving explicit recovery lookup.
+Optional build.dest content narrows the remote's eligible labels.
+
+After finalization/independent byte verification, the build saves a complete store
+snapshot and small project reference under .proj/remotes. The reference's snapshot
+field supplies the exact ID:
+
+```sh
+proj remote verify --title shared-content --snapshot SNAPSHOT_ID
+proj remote restore --title shared-content --snapshot SNAPSHOT_ID --label raw-data --clear
+```
+
+Restore uses the label's configured final directory. Without --clear, extra
+destination files survive; with it, membership matches the snapshot. Both paths
+verify private reconstructed bytes before replacement. Verify/restore take the
+store claim and can update backend caches; they are not byte-for-byte read-only
+store operations. They leave project VERSION unchanged and need no old project CSV.
+
+Initial configured support is remote full metadata (manifest auto/remote), tree
+identities and JSON binding. Project/both, flat/CSV/dictionary overrides fail
+preflight rather than being ignored. Root manifest.csv and old ordinary/CAS
+formats remain unchanged. Broader format parity is not implemented. GitHub transfer uses this same engine through the complete-store transport described below.
+
+Experimental Xet preview does not copy/restore mutable engine stores under the
+project-only claim. It never opens the engine, even with an existing busy store.
+Arbitrary script/hook store edits are outside that preview guarantee. Every
+production target's types/format are checked before hooks, independently of
+one-time helper discovery. The configured integration gate covers multiple targets and busy-store handling.
+
+## Portable complete-store export candidate
+
+The next stacked source slice prepares the same local store for complete ZIP
+transfer. It takes the cooperative store claim while copying stopped-writer
+persistent data, excludes client caches and writer claims, and validates every
+committed version using the pinned helper. A separate export manifest records
+exact file paths, byte lengths and BLAKE3 digests. Unknown store files fail rather
+than disappearing silently. This is a full-history copy, including orphan packs;
+it does not reclaim space.
+
+Import first checks the trusted ZIP digest and byte length, then bounded safe
+extraction, exact file membership, and independent reconstruction of every
+committed snapshot in a fresh private tree. It never replaces an existing store.
+Keep the ZIP digest in trusted project/reference metadata; an internal checksum
+alone does not authenticate an archive.
+
+This slice is a library transport foundation, not yet configured GitHub upload.
+Tests are pending remote execution. Sparse databases can consume more temporary
+disk space than their allocated size in the original store. No live-copy or
+system power-loss guarantee is claimed.
+
+## GitHub complete-store transport candidate
+
+One long-running storage release can hold complete ZIPs of the same local store.
+The source library uploads a uniquely named ZIP without deleting the previous
+one, downloads it again, and checks both transport bytes and every stored version
+before returning a reference. The project must save that reference only after
+success. A failed or interrupted upload can leave an unreferenced ZIP; the
+previous reference and export remain available.
+
+Recovery starts from a trusted explicit project reference. The downloaded ZIP
+opens as a fresh private local store, so adding a version uses exactly the same
+engine as local storage. The updated complete store is then exported again.
+GitHub does not run a Xet service, and this initial design transfers the entire
+ZIP rather than only changed pieces.
+
+This is an experimental **library** candidate, not yet a configured build/restore
+option. There is no automatic latest-export lookup, shared remote writer
+coordination or cleanup policy. Local engine operations retain their cooperative
+writer claim. Independent writers can leave separate immutable exports; callers
+must not silently choose one or claim a merged history. Configured integration
+must resolve its source/reference boundary before exposing that workflow.
+
+Complete exports accumulate until an explicit future retention policy is chosen.
+No automatic deletion is performed. GitHub's per-asset limit is below 2 GiB; this
+client rejects larger exports before upload. Temporary expanded database copies
+can be much larger than the compressed ZIP. Tests use only a loopback mock REST
+service and synthetic bytes, not a live GitHub data release.
+
+## Configured GitHub candidate
+
+This draft needs remote verification before release. It uses the same local
+engine and the same structure selector:
+
+```yaml
+directories:
+  raw-data:
+    path: raw-data
+remotes:
+  github:
+    project-data-store:
+      structure: xet
+      content: [raw-data]
+build:
+  scripts: []
+  git: false
+  dest:
+    project-data-store: {}
+```
+
+The remote name selects one long-running storage release. The repository comes
+from the project's Git origin. Existing GitHub authentication is used; no account,
+token, engine or R package is installed automatically. Keep credentials out of YAML.
+The optional pinned engine is required for production only. Preview and queries
+do not open the engine or contact the release.
+
+Each upload is downloaded and fully checked before writing project metadata under
+.proj/remotes/<remote-name-hash>/xet-github/v1/. The file current.json selects the
+trusted store for the next build; immutable snapshots/<first2>/<rest>.json locators
+retain each earlier snapshot's exact ZIP. Each binds repository, API origin, tag,
+ZIP name/digest/length, backend/upstream and included snapshot IDs.
+Keep these files in project Git history. Config relocation must not silently
+reinterpret old locators; explicit migration is required.
+
+Recover the exact snapshot ID from the project's locator, then:
+
+```sh
+proj remote restore --provider github --title project-data-store \
+  --snapshot SNAPSHOT_ID --label raw-data --clear \
+  --max-bytes 1073741824 --max-expanded-bytes 4294967296
+
+proj remote verify --title project-data-store --snapshot SNAPSHOT_ID \
+  --max-bytes 1073741824 --max-expanded-bytes 4294967296
+```
+
+A fresh checkout needs its trusted locators, config, existing authentication and
+pinned engine. It needs no previous local store, caches, root CSV or current upload
+selection. If locators are lost, recover them from project Git history instead of
+guessing by hash or upload time. Full manifests remain in exports; automatic
+remote-only locator recovery is not implemented.
+
+Production caps ZIPs below 2 GiB and expanded stores at 8 GiB; explicit recovery
+requires caller-selected budgets. Bounds are not disk reservations. Temporary
+copies can need much more space than the original sparse database. Every update
+transfers the complete ZIP. Previous exports and failed/orphan uploads remain:
+there is no automatic retention cleanup, and GitHub asset quotas still apply.
+
+One project uses each store. Project writer exclusion and immutable exports protect
+local operations and old bytes, but there is no distributed linear-head protocol.
+Concurrent checkouts can create separate exports and conflicting Git locators;
+there is no automatic multi-machine history merge.
+
+Xet still repeats a complete readable inventory and file-address binding for each
+version. Shared directory identities and engine chunk deduplication do not imply
+version-level inventory deduplication.

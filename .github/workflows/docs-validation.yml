@@ -106,7 +106,7 @@ jobs:
                           self.figures.append(self.text[self.start:self.position() + len("</svg>")])
                           self.start = None
           figures = SvgParser(result.stdout).figures
-          assert len(figures) == 12, f"Expected twelve browser-rendered diagrams, found {len(figures)}"
+          assert len(figures) == 13, f"Expected thirteen browser-rendered diagrams, found {len(figures)}"
           for index, text in enumerate(figures, 1):
               svg = ET.fromstring(text)
               assert svg.tag == "{http://www.w3.org/2000/svg}svg"
@@ -143,13 +143,16 @@ jobs:
           assert exports and all(name in reference for name in exports), "Missing exported function reference"
           guide=" ".join(" ".join(MainText((site/"r-frontend.html").read_text()).text).split())
           assert "not on CRAN" in guide and "preview.4" in guide and "Quick start" in guide
+          home=" ".join(" ".join(MainText((site/"index.html").read_text()).text).split())
+          assert "Work from R" in home and "Start from R" in home
+          assert "projr_build_dev" in home and "not on CRAN" in home
           browser=shutil.which("google-chrome");assert browser
           class Quiet(SimpleHTTPRequestHandler):
               def log_message(self,*_):pass
           server=ThreadingHTTPServer(("127.0.0.1",0),partial(Quiet,directory=str(site)))
           threading.Thread(target=server.serve_forever,daemon=True).start()
           try:
-              for page in ["r-frontend","r-reference"]:
+              for page in ["index","r-frontend","r-reference"]:
                   with tempfile.TemporaryDirectory(prefix="r-doc-browser-") as profile:
                       result=subprocess.run([browser,"--headless","--disable-gpu","--dump-dom",
                           "--virtual-time-budget=5000","--timeout=20000","--window-size=1400,2400",

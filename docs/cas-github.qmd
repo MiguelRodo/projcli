@@ -1,0 +1,118 @@
+---
+title: "Shared-file stores on GitHub"
+---
+
+This is an unmerged experimental source candidate, not an installed feature yet.
+
+The existing ordinary GitHub backups keep one ZIP per folder or version.
+A complete CAS store is different: each distinct whole file is stored once, and
+small directory/version records identify which files belong together. CAS means
+content-addressed storage: file contents determine their identifiers. Xet instead
+can share smaller pieces within files. Neither changes your analysis source paths.
+
+This new library slice packages the complete existing CAS store as a ZIP for one
+long-running GitHub storage release. It preserves existing file hashes, tree
+identifiers and legacy readers. It does not convert or migrate local archives.
+Configured build/restore is the next separate source candidate described below.
+
+## What is verified before a reference can be saved
+
+Export holds the cooperative store writer claim while copying. It excludes
+coordination state, then checks every copied file, every content-addressed object
+including orphan objects, directory identities and each tree, flat-catalogue or
+legacy snapshot. Complete metadata must be present in the exported store.
+Project-only metadata is not silently invented or copied from another project.
+
+The ZIP has a bounded, versioned file-membership/length/digest envelope. Import
+first checks the trusted external ZIP digest and length, uses the existing
+traversal/link/duplicate/expansion guards, and then deeply checks the whole store
+in a fresh private location. The envelope is removed after checking so that new
+versions can be added and the store exported again.
+
+A checksum inside the ZIP alone does not authenticate it. Keep the exact store
+reference, including ZIP digest, in trusted project Git history.
+
+## GitHub transfer and failure behavior
+
+A new immutable ZIP is uploaded, then downloaded and independently checked before
+the library returns a reference eligible for project commit. A failed upload or
+verification leaves the previous good asset/reference intact; an unreferenced new
+ZIP can remain. Same-name retries accept only independently verified exact bytes.
+No delete-old-before-upload replacement or automatic retention cleanup is used.
+
+Recovery downloads the selected complete ZIP and uses the ordinary local CAS
+readers. It needs no Xet engine or Hugging Face account. Current library tests use
+only disposable synthetic files and a loopback mocked REST service, not live
+GitHub archives. Real GitHub validation and configured command examples remain
+pending. No multi-project/shared-store namespace, distributed linear-head merge,
+hot-copy or power-loss guarantee is introduced.
+
+All existing ordinary latest/archive paths and metadata ZIPs remain unchanged.
+
+The claim is cooperative: not every low-level existing tree writer acquires it. Stop all store writers before export. The tests cover busy-claim rejection; this is not a safe concurrent hot-copy mechanism. New acceptance also exercises all four flat encodings with direct version references, original legacy flat snapshots without the project ledger, missing objects and unknown catalogue files.
+
+## Configure the shared-file store candidate
+
+```yaml
+directories:
+  raw-data:
+    path: raw-data
+remotes:
+  github:
+    project-file-store:
+      structure: cas
+      manifest-style: tree
+      content: [raw-data]
+build:
+  scripts: []
+  git: false
+  dest:
+    project-file-store: {}
+```
+
+The name project-file-store selects one long-running storage release, using the
+project's Git origin and existing GitHub credentials. No Xet helper is needed.
+For this new backend, specify manifest-style explicitly: tree or flat.
+Earlier defaults said flat for GitHub and tree for CAS; an implicit default for
+their intersection has not been silently selected. With flat, manifest-format
+can be csv (the flat default), json, csv-dedupe-file or json-dedupe-file.
+Tree uses its fixed JSON encoding. This does not alter existing local CAS defaults.
+
+The initial GitHub complete-store option supports manifest: auto or remote,
+keeping full metadata in the store ZIP and small trusted project locators in Git.
+Project-only or both full-copy placement is not implemented for this transport
+and is rejected explicitly. Existing local CAS supports its wider placement policy.
+
+After a verified upload, project metadata lives under
+.proj/remotes/<remote-name-hash>/cas-github/v1/. current.json selects the trusted
+base for the next build; snapshots/<first2>/<rest>.json retains each version's
+exact ZIP locator. These records bind repository, API origin, release tag,
+ZIP digest/length and snapshot IDs/encoding kinds. Full per-version manifests
+and directory objects remain inside the ZIP. Keep project locators in Git.
+The project build commit supplies the version context; locators do not create
+Git tags on their own.
+
+```sh
+proj remote restore --provider github --title project-file-store \
+  --snapshot SNAPSHOT_ID --label raw-data --clear \
+  --max-bytes 1073741824 --max-expanded-bytes 4294967296
+
+proj remote verify --title project-file-store --snapshot SNAPSHOT_ID \
+  --max-bytes 1073741824 --max-expanded-bytes 4294967296
+```
+
+A fresh checkout needs its config, trusted locators and existing authentication,
+but no previous local store or root CSV. Removing the name from build.dest stops
+uploads without removing recovery lookup. Missing locators with existing store
+exports fail clearly; automatic remote-only discovery is not implemented.
+Style changes affect new writes while stored encoding kinds select old readers.
+
+Production limits store ZIPs below 2 GiB and expanded data to 8 GiB. Recovery
+requires explicit budgets. Every update transfers the complete ZIP, and old
+exports/orphans remain until an explicit retention policy is chosen. These limits
+are not disk reservations. Store assets follow the repository's visibility.
+
+This is one project per store, with Git-authoritative base locators. Local claims
+and immutable exports are not distributed linear-head coordination: concurrent
+checkouts can produce distinct exports and Git conflicts. No automatic history
+merge, multi-project namespace or cleanup is provided.

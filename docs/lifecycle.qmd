@@ -758,3 +758,34 @@ flowchart TB
 This draft adds a process choice inside analysis, without moving hooks, clearing,
 promotion or publication. Python and document steps retain their place between R
 scripts. Shared R state never becomes the Rust driver's or hook processes' state.
+
+## Experimental local Xet candidate
+
+This unmerged provider enters the existing distribution slot after ordinary/CAS,
+before Git, end hooks and next-dev. Earlier clear/render/promotion order is
+unchanged. Missing helper/invalid mapping fails preflight. Provider-entry failure
+retains local release/distribution evidence, as for the other providers.
+
+```{mermaid}
+%%| label: fig-lifecycle-xet-experimental
+%%| fig-cap: "Unmerged experimental Xet provider at the existing distribution boundary."
+%%| fig-alt: "Validate paths and freeze helper, prepare existing outputs, finalize and independently verify Xet bytes, publish full metadata then project reference before Git and end hooks. Preview skips the helper."
+flowchart LR
+  A["Preflight paths; freeze helper"] --> B["Existing analysis and final output preparation"]
+  B --> C["Existing ordinary/CAS providers"]
+  C --> D["Shared store: closed local operation"]
+  D --> E["Finalize or observe CAS; independently check bytes"]
+  E --> F["Publish full immutable snapshot"]
+  F --> L["Local: retain store snapshot"]
+  F --> Z["GitHub CAS/Xet: closed ZIP; upload new asset; verify download"]
+  L --> G["Write trusted project references"]
+  Z --> G
+  G --> H["Existing Git, end hooks, next-dev"]
+  A --> P["Preview: no helper/backend entry"]
+```
+
+These ordered writes are not a cross-location transaction. A later project-ref
+failure preserves the complete store snapshot for retry. No power-loss guarantee
+or upstream archival-support promise follows.
+
+Experimental GitHub Xet uses the existing distribution stage: verified immutable ZIP first, guarded project locators next, normal Git stage last. Failure retains old remote bytes; no remote rollback or new stage ordering is claimed.
