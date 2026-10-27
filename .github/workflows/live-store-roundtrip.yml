@@ -1,0 +1,55 @@
+name: Synthetic real GitHub store round-trip
+on:
+  pull_request:
+    paths: ['tools/check_live_store.py', '.github/workflows/live-store-roundtrip.yml']
+  workflow_dispatch:
+    inputs:
+      artifact_run:
+        description: Successful exact-head Xet integration run retaining CLI and helper
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  live:
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'MiguelRodo/projcli'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate exact tested artifact source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.artifact_run }}
+        run: |
+          python3 - <<'PY'
+          import os,json,subprocess
+          value=os.environ["RUN_ID"]
+          assert value.isdecimal()
+          run=json.loads(subprocess.check_output(["gh","api","repos/MiguelRodo/projcli/actions/runs/"+value]))
+          assert run["head_sha"]==os.environ["GITHUB_SHA"] and run["conclusion"]=="success"
+          assert run["path"]==".github/workflows/xet-local-integration.yml"
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: experimental-xet-integration
+          path: tested-artifact
+          run-id: ${{ inputs.artifact_run }}
+          github-token: ${{ github.token }}
+      - name: Test only dedicated synthetic stores
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LIVE_ARTIFACT: tested-artifact
+        run: python3 tools/check_live_store.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: synthetic-real-store-evidence
+          path: live-store-evidence
+          if-no-files-found: warn
+          retention-days: 30

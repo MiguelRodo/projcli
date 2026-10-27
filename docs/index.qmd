@@ -1,6 +1,6 @@
 ---
 title: "Your analysis, ready to run again."
-subtitle: "Keep the steps, paths and outputs of a research project together."
+subtitle: "Run a research project from R or the command line, with consistent paths and repeatable builds."
 toc: false
 ---
 
@@ -14,18 +14,22 @@ Previews are not a security sandbox; code you run can still change files.
 
 ::: {.hero}
 projcli runs the analysis steps you choose from a small project configuration.
-Start with the preview example below; production build safety is still being improved.
+Use its **R package** from an R console, or use the standalone command in a terminal.
+Both use the same build engine and project configuration.
 
-[Get started](tutorial.qmd){.btn .btn-primary}
+[Start from R](r-frontend.qmd){.btn .btn-primary}
+[Start from the command line](tutorial.qmd){.btn .btn-outline-primary}
 [Check installation options](install.qmd){.btn .btn-outline-primary}
 :::
 
 ::: {.callout-note}
 ## Development preview
-[v0.4.0-preview.4 is available](install.qmd) for Linux and Windows x86-64,
-without compiling Rust. It includes the local build workflow, M2 build records and M3
-verified local recovery. Later milestones remain unfinished. Stable Latest is still v0.3.0. Read
-[what works](features.qmd) before choosing a version.
+[Preview.5 is available](install.qmd) for Linux and Windows x86-64, without
+compiling the CLI. It includes the supported R interface and optional R build
+tasks, along with shared-file stores on GitHub and experimental Xet storage.
+The R package is installed separately from source and is not on CRAN. Xet needs
+its own pinned helper and remains experimental. Stable Latest is still v0.3.0.
+Read [what works](features.qmd) and the [storage guides](xet-storage.qmd).
 :::
 
 ::: {.grid}
@@ -48,6 +52,41 @@ context, even when an analysis changes its working folder.
 the project version. Your scripts still control the files they write.
 :::
 :::
+
+## Work from R
+
+The **projcli** R package provides familiar R functions for previewing and building
+a configured analysis, reading its settings, and finding project files. It calls
+the separately installed `proj` command; it does not replace or require the
+original projr package.
+
+For an existing configured project:
+
+~~~r
+library(projcli)
+
+projr_build_dev(project = "path/to/project")
+results <- projr_path_get(
+  "output", "results.csv",
+  project = "path/to/project", format = "absolute"
+)
+~~~
+
+The preview runs your analysis without publishing final outputs or changing its
+version. Your scripts can still write files. The [R quick start](r-frontend.qmd#quick-start)
+provides a complete temporary-project example, including the analysis script.
+
+- **Install:** R 4.1+, processx, jsonlite, and a separate compatible command are
+  required. [Install the R package from source](r-frontend.qmd#installation).
+- **Learn:** [Build and preview from R](r-frontend.qmd), or browse the
+  [function reference](r-reference.qmd).
+- **Optional R tasks:** the CLI can initialize renv, create README.Rmd,
+  generate package documentation, render the README, and snapshot dependencies.
+  [Choose these tasks explicitly](r-frontend.qmd#optional-r-setup-and-maintenance);
+  they are off by default and require their own installed R packages.
+
+This is a supported subset of the original projr workflow, not complete API
+compatibility. [Compare the supported behavior](compatibility.qmd).
 
 ## A small first project
 

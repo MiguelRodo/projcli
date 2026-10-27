@@ -2,8 +2,8 @@
 title: "Set up a project"
 ---
 
-These additions are a source candidate. They are not in the published preview.4
-download or the previously installed ea323355 build.
+These additions are an unmerged source candidate. They are not in the published
+or installed preview.5. Use the candidate source only when testing these additions.
 
 ## Start with the files you need
 

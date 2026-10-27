@@ -51,7 +51,7 @@ pub enum Commands {
     History {
         #[arg(long)]
         attempt: Option<String>,
-        #[arg(long, default_value_t=20)]
+        #[arg(long, default_value_t = 20)]
         limit: usize,
     },
     /// Inspect, publish or restore remote data.
@@ -134,39 +134,45 @@ pub enum RemoteCommands {
     /// Restore one declared directory using registered or inline sources.
     Restore {
         #[arg(long)]
-        label:String,
+        label: String,
         #[arg(long,value_parser=["source","dest"])]
-        position:Option<String>,
+        position: Option<String>,
         #[arg(long,value_parser=["local","github"])]
-        provider:Option<String>,
+        provider: Option<String>,
         /// Select a configured remote by name.
         #[arg(long)]
-        title:Option<String>,
+        title: Option<String>,
         #[arg(long)]
-        remote_version:Option<String>,
-        /// Restore an exact local CAS snapshot; requires its configured remote title.
-        #[arg(long,requires="title")]
-        snapshot:Option<String>,
+        remote_version: Option<String>,
+        /// Restore an exact local CAS or experimental Xet snapshot; requires its configured remote title.
+        #[arg(long, requires = "title")]
+        snapshot: Option<String>,
         /// Explicit owner/repository; otherwise resolve the selected project's Git origin.
         #[arg(long)]
-        repository:Option<String>,
+        repository: Option<String>,
         #[arg(long)]
-        profile:Option<String>,
+        profile: Option<String>,
         #[arg(long)]
-        clear:bool,
-        #[arg(long,required_unless_present="snapshot")]
-        max_bytes:Option<u64>,
-        #[arg(long,required_unless_present="snapshot")]
-        max_expanded_bytes:Option<u64>,
+        clear: bool,
+        #[arg(long, required_unless_present = "snapshot")]
+        max_bytes: Option<u64>,
+        #[arg(long, required_unless_present = "snapshot")]
+        max_expanded_bytes: Option<u64>,
     },
-    /// Check the folders and exact bytes in one named local CAS snapshot; changes nothing.
+    /// Check an exact local or GitHub snapshot; GitHub Xet requires archive byte budgets.
     Verify {
         #[arg(long)]
-        title:String,
+        title: String,
         #[arg(long)]
-        snapshot:String,
+        snapshot: String,
         #[arg(long)]
-        profile:Option<String>,
+        profile: Option<String>,
+        /// Required for GitHub Xet; maximum complete-store ZIP bytes.
+        #[arg(long)]
+        max_bytes: Option<u64>,
+        /// Required for GitHub Xet; maximum expanded store bytes.
+        #[arg(long)]
+        max_expanded_bytes: Option<u64>,
     },
     /// Explicit GitHub Release assets; does not change configured destinations.
     Github {
@@ -481,12 +487,22 @@ fn fail(message: std::fmt::Arguments<'_>) -> ! {
 }
 
 fn main() {
-    let machine_requested = std::env::args_os().skip(1).take_while(|argument| argument != "--").any(|argument| argument == "--machine");
+    let machine_requested = std::env::args_os()
+        .skip(1)
+        .take_while(|argument| argument != "--")
+        .any(|argument| argument == "--machine");
     let cli = match Cli::try_parse() {
         Ok(cli) => cli,
         Err(error) if machine_requested => {
-            let informational = matches!(error.kind(), clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion);
-            let code = if informational { machine::emit_capabilities() } else { machine::emit_argument_error() };
+            let informational = matches!(
+                error.kind(),
+                clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion
+            );
+            let code = if informational {
+                machine::emit_capabilities()
+            } else {
+                machine::emit_argument_error()
+            };
             std::process::exit(code);
         }
         Err(error) => error.exit(),
@@ -499,7 +515,8 @@ fn main() {
     }
     let mut interaction_guard = proj::EnvGuard::new();
     if cli.non_interactive {
-        interaction_guard.track_and_set(proj::NON_INTERACTIVE_ENV, "true")
+        interaction_guard
+            .track_and_set(proj::NON_INTERACTIVE_ENV, "true")
             .unwrap_or_else(|error| fail(format_args!("Invalid interaction environment: {error}")));
     }
     let root = match proj::resolve_project_root(cli.project.as_deref()) {
@@ -509,57 +526,135 @@ fn main() {
         }
     };
     let mut root_guard = proj::EnvGuard::new();
-    root_guard.track_and_set(proj::PROJECT_ROOT_ENV, root.as_str())
+    root_guard
+        .track_and_set(proj::PROJECT_ROOT_ENV, root.as_str())
         .unwrap_or_else(|error| fail(format_args!("Invalid project environment: {error}")));
 
     match &cli.command {
         Commands::Capabilities => unreachable!("Capabilities handled before project selection"),
-        Commands::History {attempt,limit} => match proj::history::read(&root,attempt.as_deref(),*limit) {
-            Ok(history)=>print!("{}",history.markdown()),
-            Err(error)=>fail(format_args!("Cannot inspect build history: {error:#}")),
-        },
-        Commands::Remote {command:RemoteCommands::Verify {title,snapshot,profile}} => {
-            match proj::configured_cas::verify(&root,title,snapshot,profile.as_deref()) {
-                Ok(result)=>println!("{}",serde_json::to_string_pretty(&result).expect("CAS observation is serializable")),
-                Err(error)=>fail(format_args!("CAS verification failed: {error:#}")),
+        Commands::History { attempt, limit } => {
+            match proj::history::read(&root, attempt.as_deref(), *limit) {
+                Ok(history) => print!("{}", history.markdown()),
+                Err(error) => fail(format_args!("Cannot inspect build history: {error:#}")),
             }
-        },
-        Commands::Remote {command:command @ RemoteCommands::Restore {..}} => {
-            match configured_restore(&root,command) {
-                Ok(result)=>println!("{}",serde_json::to_string_pretty(&result).expect("Restore result is serializable")),
-                Err(error)=>fail(format_args!("Configured restore failed: {error:#}")),
+        }
+        Commands::Remote {
+            command:
+                RemoteCommands::Verify {
+                    title,
+                    snapshot,
+                    profile,
+                    max_bytes,
+                    max_expanded_bytes,
+                },
+        } => {
+            match configured_verify(
+                &root,
+                title,
+                snapshot,
+                profile.as_deref(),
+                *max_bytes,
+                *max_expanded_bytes,
+            ) {
+                Ok(result) => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&result).expect("CAS observation is serializable")
+                ),
+                Err(error) => fail(format_args!("CAS verification failed: {error:#}")),
             }
+        }
+        Commands::Remote {
+            command: command @ RemoteCommands::Restore { .. },
+        } => match configured_restore(&root, command) {
+            Ok(result) => println!(
+                "{}",
+                serde_json::to_string_pretty(&result).expect("Restore result is serializable")
+            ),
+            Err(error) => fail(format_args!("Configured restore failed: {error:#}")),
         },
-        Commands::Remote { command: RemoteCommands::Github { command } } => {
-            match github_assets(&root, command) {
-                Ok(result) => println!("{}", serde_json::to_string_pretty(&result).expect("Asset metadata is serializable")),
-                Err(error) => fail(format_args!("GitHub Release operation failed: {error:#}")),
-            }
+        Commands::Remote {
+            command: RemoteCommands::Github { command },
+        } => match github_assets(&root, command) {
+            Ok(result) => println!(
+                "{}",
+                serde_json::to_string_pretty(&result).expect("Asset metadata is serializable")
+            ),
+            Err(error) => fail(format_args!("GitHub Release operation failed: {error:#}")),
         },
-        Commands::Remote { command: RemoteCommands::Store { source, destination, strategy, inspect: _, dry_run } } => {
-            match local_store_files(&root, source, destination, strategy, *dry_run) {
-                Ok(plan) => println!("{}", serde_json::to_string_pretty(&plan).expect("Store plan is serializable")),
-                Err(error) => fail(format_args!("Cannot transfer local store files: {error:#}")),
-            }
+        Commands::Remote {
+            command:
+                RemoteCommands::Store {
+                    source,
+                    destination,
+                    strategy,
+                    inspect: _,
+                    dry_run,
+                },
+        } => match local_store_files(&root, source, destination, strategy, *dry_run) {
+            Ok(plan) => println!(
+                "{}",
+                serde_json::to_string_pretty(&plan).expect("Store plan is serializable")
+            ),
+            Err(error) => fail(format_args!("Cannot transfer local store files: {error:#}")),
         },
-        Commands::Remote { command: RemoteCommands::Download { path, label, structure, remote_version, destination, path_append_label, clear } } => {
-            match download_local_version(&root, path, label, structure, remote_version.as_deref(), destination, *path_append_label, *clear) {
+        Commands::Remote {
+            command:
+                RemoteCommands::Download {
+                    path,
+                    label,
+                    structure,
+                    remote_version,
+                    destination,
+                    path_append_label,
+                    clear,
+                },
+        } => {
+            match download_local_version(
+                &root,
+                path,
+                label,
+                structure,
+                remote_version.as_deref(),
+                destination,
+                *path_append_label,
+                *clear,
+            ) {
                 Ok(result) => println!("Downloaded {} to {}", result.version, result.destination),
-                Err(error) => fail(format_args!("Cannot download local remote version: {error:#}")),
+                Err(error) => fail(format_args!(
+                    "Cannot download local remote version: {error:#}"
+                )),
             }
-        },
-        Commands::Remote { command: RemoteCommands::Versions { path, label, structure, path_append_label } } => {
-            match query_local_versions(&root, path, label, structure, *path_append_label) {
-                Ok(versions) => {
-                    for entry in versions {
-                        println!("{} {}{}{}{}", entry.version, entry.path,
-                            if entry.empty { " [empty marker]" } else { "" },
-                            if !entry.present { " [missing target]" } else { "" },
-                            if entry.metadata_untrusted == Some(true) { " [metadata untrusted]" } else { "" });
-                    }
+        }
+        Commands::Remote {
+            command:
+                RemoteCommands::Versions {
+                    path,
+                    label,
+                    structure,
+                    path_append_label,
+                },
+        } => match query_local_versions(&root, path, label, structure, *path_append_label) {
+            Ok(versions) => {
+                for entry in versions {
+                    println!(
+                        "{} {}{}{}{}",
+                        entry.version,
+                        entry.path,
+                        if entry.empty { " [empty marker]" } else { "" },
+                        if !entry.present {
+                            " [missing target]"
+                        } else {
+                            ""
+                        },
+                        if entry.metadata_untrusted == Some(true) {
+                            " [metadata untrusted]"
+                        } else {
+                            ""
+                        }
+                    );
                 }
-                Err(error) => fail(format_args!("Cannot list local remote versions: {error:#}")),
             }
+            Err(error) => fail(format_args!("Cannot list local remote versions: {error:#}")),
         },
         Commands::Yml { command } => match command {
             YmlCommands::Read => {
@@ -571,26 +666,57 @@ fn main() {
             }
             YmlCommands::Get { profile, check } => {
                 match proj::yml::merged_configuration_from(&root, profile.as_deref(), *check) {
-                    Ok(value) => println!("{}", serde_json::to_string_pretty(&value).expect("JSON value is serializable")),
-                    Err(_) => fail(format_args!("Cannot read selected configuration. Check the selected files/profile; private details were withheld.")),
+                    Ok(value) => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&value).expect("JSON value is serializable")
+                    ),
+                    Err(_) => fail(format_args!(
+                        "Cannot read selected configuration. Check the selected files/profile; private details were withheld."
+                    )),
                 }
             }
             YmlCommands::Parameter { profile, keys } => {
                 match proj::yml::parameter_value_from(&root, profile.as_deref(), keys) {
-                    Ok(value) => println!("{}", serde_json::to_string_pretty(&value).expect("JSON value is serializable")),
-                    Err(_) => fail(format_args!("Cannot read selected parameter. Check the selected files/profile and literal keys; private details were withheld.")),
+                    Ok(value) => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&value).expect("JSON value is serializable")
+                    ),
+                    Err(_) => fail(format_args!(
+                        "Cannot read selected parameter. Check the selected files/profile and literal keys; private details were withheld."
+                    )),
                 }
             }
         },
         Commands::Path { command } => match command {
-            PathCommands::Get { label, target, parts, format, relative_to } => {
-                match query_path(&root, label, target, parts, format.as_deref(), relative_to.as_deref()) {
+            PathCommands::Get {
+                label,
+                target,
+                parts,
+                format,
+                relative_to,
+            } => {
+                match query_path(
+                    &root,
+                    label,
+                    target,
+                    parts,
+                    format.as_deref(),
+                    relative_to.as_deref(),
+                ) {
                     Ok(path) => println!("{}", path),
                     Err(error) => fail(format_args!("Error getting path: {error:#}")),
                 }
             }
         },
-        Commands::Build { major, minor, patch: _, profile, description, execution_dir, output_clear_stage } => {
+        Commands::Build {
+            major,
+            minor,
+            patch: _,
+            profile,
+            description,
+            execution_dir,
+            output_clear_stage,
+        } => {
             if let Some(root) = proj::root() {
                 let mode = if *major {
                     proj::BuildMode::ProdMajor
@@ -621,7 +747,18 @@ fn main() {
                     }
                 }
 
-                if let Err(e) = proj::build_project_with_policies(&camino::Utf8PathBuf::try_from(root).unwrap(), mode, profile.as_deref(), desc.as_deref(), execution_mode(execution_dir.as_deref()), output_clear_stage.as_deref().map(proj::OutputClearStage::parse).transpose().expect("clap validates clear stage")) {
+                if let Err(e) = proj::build_project_with_policies(
+                    &root,
+                    mode,
+                    profile.as_deref(),
+                    desc.as_deref(),
+                    execution_mode(execution_dir.as_deref()),
+                    output_clear_stage
+                        .as_deref()
+                        .map(proj::OutputClearStage::parse)
+                        .transpose()
+                        .expect("clap validates clear stage"),
+                ) {
                     fail(format_args!("Build failed: {:#}", e));
                 } else {
                     println!("Build completed successfully.");
@@ -629,10 +766,25 @@ fn main() {
             } else {
                 fail(format_args!("Error finding project root"));
             }
-        },
-        Commands::BuildDev { profile, execution_dir, output_clear_stage } => {
+        }
+        Commands::BuildDev {
+            profile,
+            execution_dir,
+            output_clear_stage,
+        } => {
             if let Some(root) = proj::root() {
-                if let Err(e) = proj::build_project_with_policies(&camino::Utf8PathBuf::try_from(root).unwrap(), proj::BuildMode::Dev, profile.as_deref(), None, execution_mode(execution_dir.as_deref()), output_clear_stage.as_deref().map(proj::OutputClearStage::parse).transpose().expect("clap validates clear stage")) {
+                if let Err(e) = proj::build_project_with_policies(
+                    &root,
+                    proj::BuildMode::Dev,
+                    profile.as_deref(),
+                    None,
+                    execution_mode(execution_dir.as_deref()),
+                    output_clear_stage
+                        .as_deref()
+                        .map(proj::OutputClearStage::parse)
+                        .transpose()
+                        .expect("clap validates clear stage"),
+                ) {
                     fail(format_args!("Build failed: {:#}", e));
                 } else {
                     println!("Build completed successfully.");
@@ -640,11 +792,17 @@ fn main() {
             } else {
                 fail(format_args!("Error finding project root"));
             }
-        },
+        }
         Commands::Ignore { command } => match command {
-            IgnoreCommands::Add { paths, force_create, r#type } => {
+            IgnoreCommands::Add {
+                paths,
+                force_create,
+                r#type,
+            } => {
                 if let Some(root) = proj::root() {
-                    if let Err(e) = proj::add_manual_ignores(&root, paths, *force_create, r#type.clone()) {
+                    if let Err(e) =
+                        proj::add_manual_ignores(&root, paths, *force_create, r#type.clone())
+                    {
                         fail(format_args!("Error adding ignores: {}", e));
                     } else {
                         println!("Successfully added paths to ignores");
@@ -806,8 +964,14 @@ pub enum InitCommands {
     },
 }
 
-
-fn query_path(root: &camino::Utf8Path, label: &str, target: &str, parts: &[camino::Utf8PathBuf], format: Option<&str>, relative_to: Option<&str>) -> anyhow::Result<camino::Utf8PathBuf> {
+fn query_path(
+    root: &camino::Utf8Path,
+    label: &str,
+    target: &str,
+    parts: &[camino::Utf8PathBuf],
+    format: Option<&str>,
+    relative_to: Option<&str>,
+) -> anyhow::Result<camino::Utf8PathBuf> {
     let format = match format {
         None => proj::run_context::default_path_format_from(root)?,
         Some("auto") => proj::PathFormat::Auto,
@@ -825,13 +989,28 @@ fn query_path(root: &camino::Utf8Path, label: &str, target: &str, parts: &[camin
     proj::present_resource_path(root, &path, format, base.as_ref())
 }
 
-
 fn execution_mode(value: Option<&str>) -> Option<proj::ExecutionDirectory> {
-    value.map(|value| if value == "project" { proj::ExecutionDirectory::Project } else { proj::ExecutionDirectory::Native })
+    value.map(|value| {
+        if value == "project" {
+            proj::ExecutionDirectory::Project
+        } else {
+            proj::ExecutionDirectory::Native
+        }
+    })
 }
 
-fn query_local_versions(root: &camino::Utf8Path, path: &camino::Utf8Path, label: &str, structure: &str, append_label: bool) -> anyhow::Result<Vec<proj::local_remote::LocalVersion>> {
-    let base = if path.is_absolute() { path.to_owned() } else { root.join(path) };
+fn query_local_versions(
+    root: &camino::Utf8Path,
+    path: &camino::Utf8Path,
+    label: &str,
+    structure: &str,
+    append_label: bool,
+) -> anyhow::Result<Vec<proj::local_remote::LocalVersion>> {
+    let base = if path.is_absolute() {
+        path.to_owned()
+    } else {
+        root.join(path)
+    };
     let structure = match structure {
         "latest" => proj::local_remote::LocalStructure::Latest,
         "archive" => proj::local_remote::LocalStructure::Archive,
@@ -840,21 +1019,53 @@ fn query_local_versions(root: &camino::Utf8Path, path: &camino::Utf8Path, label:
     proj::local_remote::list_versions(&base, label, structure, append_label)
 }
 
-fn download_local_version(root: &camino::Utf8Path, path: &camino::Utf8Path, label: &str, structure: &str, remote_version: Option<&str>, destination: &camino::Utf8Path, append_label: bool, clear: bool) -> anyhow::Result<proj::local_remote::LocalDownload> {
-    let base = if path.is_absolute() { path.to_owned() } else { root.join(path) };
-    let destination = if destination.is_absolute() { destination.to_owned() } else { root.join(destination) };
+fn download_local_version(
+    root: &camino::Utf8Path,
+    path: &camino::Utf8Path,
+    label: &str,
+    structure: &str,
+    remote_version: Option<&str>,
+    destination: &camino::Utf8Path,
+    append_label: bool,
+    clear: bool,
+) -> anyhow::Result<proj::local_remote::LocalDownload> {
+    let base = if path.is_absolute() {
+        path.to_owned()
+    } else {
+        root.join(path)
+    };
+    let destination = if destination.is_absolute() {
+        destination.to_owned()
+    } else {
+        root.join(destination)
+    };
     let structure = match structure {
         "latest" => proj::local_remote::LocalStructure::Latest,
         "archive" => proj::local_remote::LocalStructure::Archive,
         _ => anyhow::bail!("Unsupported ordinary local remote structure"),
     };
-    let selected = proj::local_remote::select_version(&base, label, structure, remote_version, append_label)?;
+    let selected =
+        proj::local_remote::select_version(&base, label, structure, remote_version, append_label)?;
     proj::local_remote::download_version(root, &selected, &destination, clear)
 }
 
-fn local_store_files(root: &camino::Utf8Path, source: &camino::Utf8Path, destination: &camino::Utf8Path, strategy: &str, dry_run: bool) -> anyhow::Result<proj::local_store::FileStorePlan> {
-    let source = if source.is_absolute() { source.to_owned() } else { root.join(source) };
-    let destination = if destination.is_absolute() { destination.to_owned() } else { root.join(destination) };
+fn local_store_files(
+    root: &camino::Utf8Path,
+    source: &camino::Utf8Path,
+    destination: &camino::Utf8Path,
+    strategy: &str,
+    dry_run: bool,
+) -> anyhow::Result<proj::local_store::FileStorePlan> {
+    let source = if source.is_absolute() {
+        source.to_owned()
+    } else {
+        root.join(source)
+    };
+    let destination = if destination.is_absolute() {
+        destination.to_owned()
+    } else {
+        root.join(destination)
+    };
     let strategy = match strategy {
         "upload-all" => proj::local_store::StoreStrategy::UploadAll,
         "upload-missing" => proj::local_store::StoreStrategy::UploadMissing,
@@ -865,73 +1076,307 @@ fn local_store_files(root: &camino::Utf8Path, source: &camino::Utf8Path, destina
     proj::local_store::store_files(root, &source, &destination, strategy, dry_run)
 }
 
-
-fn github_assets(root: &camino::Utf8Path, command: &GithubCommands) -> anyhow::Result<serde_json::Value> {
+fn github_assets(
+    root: &camino::Utf8Path,
+    command: &GithubCommands,
+) -> anyhow::Result<serde_json::Value> {
     let repository = match command {
-        GithubCommands::Assets { repository, .. } | GithubCommands::Upload { repository, .. }
-            | GithubCommands::Download { repository, .. } | GithubCommands::UploadDirectory { repository, .. }
-            | GithubCommands::UploadMetadata { repository, .. } | GithubCommands::DownloadDirectory { repository, .. } => repository,
+        GithubCommands::Assets { repository, .. }
+        | GithubCommands::Upload { repository, .. }
+        | GithubCommands::Download { repository, .. }
+        | GithubCommands::UploadDirectory { repository, .. }
+        | GithubCommands::UploadMetadata { repository, .. }
+        | GithubCommands::DownloadDirectory { repository, .. } => repository,
     };
-    let token = ["GITHUB_PAT", "GH_TOKEN", "GITHUB_TOKEN"].iter()
-        .find_map(|name| std::env::var(name).ok().filter(|value| !value.trim().is_empty()));
+    let token = ["GITHUB_PAT", "GH_TOKEN", "GITHUB_TOKEN"]
+        .iter()
+        .find_map(|name| {
+            std::env::var(name)
+                .ok()
+                .filter(|value| !value.trim().is_empty())
+        });
     let api = std::env::var("GITHUB_API_URL").unwrap_or_else(|_| "https://api.github.com".into());
     let client = proj::github_release::GithubReleaseClient::new(repository, &api, token)?;
     let result = match command {
-        GithubCommands::UploadDirectory { tag, source, label, structure, remote_version, prefix, path_append_label, create_release, replace, .. } => {
-            let source=if source.is_absolute() {source.clone()} else {root.join(source)};
-            let (zip,empty)=proj::github_zip::directory_zip(&source)?;
-            let structure=if structure=="latest" {proj::github_zip::GithubStructure::Latest} else {proj::github_zip::GithubStructure::Archive};
-            let name=proj::github_zip::directory_asset_name(prefix.as_deref(),*path_append_label,label,structure,remote_version.as_deref(),empty)?;
-            let file=camino::Utf8Path::from_path(zip.path()).ok_or_else(||anyhow::anyhow!("ZIP path must be UTF-8"))?;
-            serde_json::json!({"asset":upload_github_asset(&client,tag,&name,file,*create_release,*replace)?})
-        },
-        GithubCommands::UploadMetadata { tag,source,kind,create_release,replace,.. } => {
-            let source=if source.is_absolute() {source.clone()} else {root.join(source)};
-            let kind=match kind.as_str() {
-                "manifest"=>proj::github_zip::MetadataKind::Manifest,
-                "version"=>proj::github_zip::MetadataKind::Version,
-                "changelog"=>proj::github_zip::MetadataKind::Changelog,
-                _=>anyhow::bail!("Unsupported metadata kind"),
+        GithubCommands::UploadDirectory {
+            tag,
+            source,
+            label,
+            structure,
+            remote_version,
+            prefix,
+            path_append_label,
+            create_release,
+            replace,
+            ..
+        } => {
+            let source = if source.is_absolute() {
+                source.clone()
+            } else {
+                root.join(source)
             };
-            let zip=proj::github_zip::metadata_zip(&source,kind)?;
-            let file=camino::Utf8Path::from_path(zip.path()).ok_or_else(||anyhow::anyhow!("ZIP path must be UTF-8"))?;
+            let (zip, empty) = proj::github_zip::directory_zip(&source)?;
+            let structure = if structure == "latest" {
+                proj::github_zip::GithubStructure::Latest
+            } else {
+                proj::github_zip::GithubStructure::Archive
+            };
+            let name = proj::github_zip::directory_asset_name(
+                prefix.as_deref(),
+                *path_append_label,
+                label,
+                structure,
+                remote_version.as_deref(),
+                empty,
+            )?;
+            let file = camino::Utf8Path::from_path(zip.path())
+                .ok_or_else(|| anyhow::anyhow!("ZIP path must be UTF-8"))?;
+            serde_json::json!({"asset":upload_github_asset(&client,tag,&name,file,*create_release,*replace)?})
+        }
+        GithubCommands::UploadMetadata {
+            tag,
+            source,
+            kind,
+            create_release,
+            replace,
+            ..
+        } => {
+            let source = if source.is_absolute() {
+                source.clone()
+            } else {
+                root.join(source)
+            };
+            let kind = match kind.as_str() {
+                "manifest" => proj::github_zip::MetadataKind::Manifest,
+                "version" => proj::github_zip::MetadataKind::Version,
+                "changelog" => proj::github_zip::MetadataKind::Changelog,
+                _ => anyhow::bail!("Unsupported metadata kind"),
+            };
+            let zip = proj::github_zip::metadata_zip(&source, kind)?;
+            let file = camino::Utf8Path::from_path(zip.path())
+                .ok_or_else(|| anyhow::anyhow!("ZIP path must be UTF-8"))?;
             serde_json::json!({"asset":upload_github_asset(&client,tag,kind.names().0,file,*create_release,*replace)?})
-        },
-        GithubCommands::DownloadDirectory { tag,name,destination,max_bytes,max_expanded_bytes,clear,empty,.. } => {
-            let destination=if destination.is_absolute() {destination.clone()} else {root.join(destination)};
+        }
+        GithubCommands::DownloadDirectory {
+            tag,
+            name,
+            destination,
+            max_bytes,
+            max_expanded_bytes,
+            clear,
+            empty,
+            ..
+        } => {
+            let destination = if destination.is_absolute() {
+                destination.clone()
+            } else {
+                root.join(destination)
+            };
             serde_json::json!({"asset":proj::github_zip::download_directory(&client,root,tag,name,&destination,*max_bytes,*max_expanded_bytes,*clear,*empty)?})
-        },
+        }
         GithubCommands::Assets { tag, .. } => serde_json::json!({"assets": client.assets(tag)?}),
-        GithubCommands::Upload { tag, name, source, create_release, replace, .. } => {
-            let source = if source.is_absolute() { source.clone() } else { root.join(source) };
+        GithubCommands::Upload {
+            tag,
+            name,
+            source,
+            create_release,
+            replace,
+            ..
+        } => {
+            let source = if source.is_absolute() {
+                source.clone()
+            } else {
+                root.join(source)
+            };
             serde_json::json!({"asset": upload_github_asset(&client,tag,name,&source,*create_release,*replace)?})
-        },
-        GithubCommands::Download { tag, name, destination, max_bytes, .. } => {
-            let destination = if destination.is_absolute() { destination.clone() } else { root.join(destination) };
+        }
+        GithubCommands::Download {
+            tag,
+            name,
+            destination,
+            max_bytes,
+            ..
+        } => {
+            let destination = if destination.is_absolute() {
+                destination.clone()
+            } else {
+                root.join(destination)
+            };
             serde_json::json!({"asset": client.download_asset(root, tag, name, &destination, *max_bytes)?})
-        },
+        }
     };
     Ok(result)
 }
 
-fn upload_github_asset(client:&proj::github_release::GithubReleaseClient,tag:&str,name:&str,source:&camino::Utf8Path,create_release:bool,replace:bool)->anyhow::Result<proj::github_release::ReleaseAsset> {
-    if replace {client.replace_asset(tag,name,source,create_release)}
-    else {client.upload_asset(tag,name,source,create_release)}
+fn upload_github_asset(
+    client: &proj::github_release::GithubReleaseClient,
+    tag: &str,
+    name: &str,
+    source: &camino::Utf8Path,
+    create_release: bool,
+    replace: bool,
+) -> anyhow::Result<proj::github_release::ReleaseAsset> {
+    if replace {
+        client.replace_asset(tag, name, source, create_release)
+    } else {
+        client.upload_asset(tag, name, source, create_release)
+    }
 }
 
-fn configured_restore(root:&camino::Utf8Path,command:&RemoteCommands)->anyhow::Result<proj::restore::RestoreResult> {
-    let RemoteCommands::Restore {label,position,provider,title,remote_version,snapshot,repository,profile,clear,max_bytes,max_expanded_bytes}=command
-        else {anyhow::bail!("Expected configured restore command");};
-    if let Some(snapshot)=snapshot {
-        anyhow::ensure!(position.is_none()&&repository.is_none(),"Explicit CAS snapshot restore does not use position or GitHub repository filters");
-        anyhow::ensure!(provider.as_deref().is_none_or(|value|value=="local"),"Explicit CAS snapshots require a local source");
-        anyhow::ensure!(max_bytes.is_none()&&max_expanded_bytes.is_none(),"CAS snapshots use bounded tree readers, not ordinary archive byte-limit flags");
-        return proj::configured_cas::restore(root,title.as_deref().ok_or_else(||anyhow::anyhow!("CAS snapshot restore requires --title"))?,
-            snapshot,label,profile.as_deref(),remote_version.as_deref(),*clear);
+fn configured_restore(
+    root: &camino::Utf8Path,
+    command: &RemoteCommands,
+) -> anyhow::Result<proj::restore::RestoreResult> {
+    let RemoteCommands::Restore {
+        label,
+        position,
+        provider,
+        title,
+        remote_version,
+        snapshot,
+        repository,
+        profile,
+        clear,
+        max_bytes,
+        max_expanded_bytes,
+    } = command
+    else {
+        anyhow::bail!("Expected configured restore command");
+    };
+    if let Some(snapshot) = snapshot {
+        let named = title
+            .as_deref()
+            .ok_or_else(|| anyhow::anyhow!("Snapshot restore requires --title"))?;
+        if proj::configured_xet_github::selected(root, named, profile.as_deref())? {
+            anyhow::ensure!(
+                position.is_none() && repository.is_none(),
+                "GitHub Xet uses its trusted project locator, not position/repository overrides"
+            );
+            anyhow::ensure!(
+                provider.as_deref().is_none_or(|value| value == "github"),
+                "Selected Xet snapshot uses GitHub transport"
+            );
+            return proj::configured_xet_github::restore(
+                root,
+                named,
+                snapshot,
+                label,
+                proj::restore::SnapshotRestoreOptions {
+                    profile: profile.as_deref(),
+                    remote_version: remote_version.as_deref(),
+                    clear: *clear,
+                    max_bytes: max_bytes
+                        .ok_or_else(|| anyhow::anyhow!("GitHub Xet requires --max-bytes"))?,
+                    max_expanded: max_expanded_bytes.ok_or_else(|| {
+                        anyhow::anyhow!("GitHub Xet requires --max-expanded-bytes")
+                    })?,
+                },
+            );
+        }
+        if proj::configured_cas_github::selected(root, named, profile.as_deref())? {
+            anyhow::ensure!(
+                position.is_none() && repository.is_none(),
+                "GitHub CAS uses its trusted project locator, not position/repository overrides"
+            );
+            anyhow::ensure!(
+                provider.as_deref().is_none_or(|value| value == "github"),
+                "Selected CAS snapshot uses GitHub transport"
+            );
+            return proj::configured_cas_github::restore(
+                root,
+                named,
+                snapshot,
+                label,
+                proj::restore::SnapshotRestoreOptions {
+                    profile: profile.as_deref(),
+                    remote_version: remote_version.as_deref(),
+                    clear: *clear,
+                    max_bytes: max_bytes
+                        .ok_or_else(|| anyhow::anyhow!("GitHub CAS requires --max-bytes"))?,
+                    max_expanded: max_expanded_bytes.ok_or_else(|| {
+                        anyhow::anyhow!("GitHub CAS requires --max-expanded-bytes")
+                    })?,
+                },
+            );
+        }
+        anyhow::ensure!(
+            position.is_none() && repository.is_none(),
+            "Explicit CAS snapshot restore does not use position or GitHub repository filters"
+        );
+        anyhow::ensure!(
+            provider.as_deref().is_none_or(|value| value == "local"),
+            "Explicit CAS snapshots require a local source"
+        );
+        anyhow::ensure!(
+            max_bytes.is_none() && max_expanded_bytes.is_none(),
+            "CAS snapshots use bounded tree readers, not ordinary archive byte-limit flags"
+        );
+        return proj::configured_cas::restore(
+            root,
+            title
+                .as_deref()
+                .ok_or_else(|| anyhow::anyhow!("CAS snapshot restore requires --title"))?,
+            snapshot,
+            label,
+            profile.as_deref(),
+            remote_version.as_deref(),
+            *clear,
+        );
     }
-    let request=proj::restore::RestoreRequest {label:label.clone(),position:position.clone(),provider:provider.clone(),
-        title:title.clone(),remote_version:remote_version.clone(),repository:repository.clone(),profile:profile.clone(),
-        clear:*clear,max_bytes:max_bytes.ok_or_else(||anyhow::anyhow!("Ordinary restore requires --max-bytes"))?,
-        max_expanded_bytes:max_expanded_bytes.ok_or_else(||anyhow::anyhow!("Ordinary restore requires --max-expanded-bytes"))?};
-    proj::restore::restore_label(root,&request)
+    let request = proj::restore::RestoreRequest {
+        label: label.clone(),
+        position: position.clone(),
+        provider: provider.clone(),
+        title: title.clone(),
+        remote_version: remote_version.clone(),
+        repository: repository.clone(),
+        profile: profile.clone(),
+        clear: *clear,
+        max_bytes: max_bytes
+            .ok_or_else(|| anyhow::anyhow!("Ordinary restore requires --max-bytes"))?,
+        max_expanded_bytes: max_expanded_bytes
+            .ok_or_else(|| anyhow::anyhow!("Ordinary restore requires --max-expanded-bytes"))?,
+    };
+    proj::restore::restore_label(root, &request)
+}
+
+fn configured_verify(
+    root: &camino::Utf8Path,
+    title: &str,
+    snapshot: &str,
+    profile: Option<&str>,
+    max_bytes: Option<u64>,
+    max_expanded: Option<u64>,
+) -> anyhow::Result<proj::configured_cas::SnapshotVerification> {
+    if proj::configured_xet_github::selected(root, title, profile)? {
+        let observation = proj::configured_xet_github::verify(
+            root,
+            title,
+            snapshot,
+            profile,
+            max_bytes.ok_or_else(|| anyhow::anyhow!("GitHub Xet requires --max-bytes"))?,
+            max_expanded
+                .ok_or_else(|| anyhow::anyhow!("GitHub Xet requires --max-expanded-bytes"))?,
+        )?;
+        Ok(proj::configured_cas::SnapshotVerification::Xet {
+            snapshot_id: snapshot.into(),
+            observation,
+        })
+    } else if proj::configured_cas_github::selected(root, title, profile)? {
+        proj::configured_cas_github::verify(
+            root,
+            title,
+            snapshot,
+            profile,
+            max_bytes.ok_or_else(|| anyhow::anyhow!("GitHub CAS requires --max-bytes"))?,
+            max_expanded
+                .ok_or_else(|| anyhow::anyhow!("GitHub CAS requires --max-expanded-bytes"))?,
+        )
+    } else {
+        anyhow::ensure!(
+            max_bytes.is_none() && max_expanded.is_none(),
+            "Local snapshots use bounded readers, not archive budgets"
+        );
+        proj::configured_cas::verify(root, title, snapshot, profile)
+    }
 }

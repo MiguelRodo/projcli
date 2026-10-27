@@ -3799,13 +3799,253 @@ The R guide/reference and CI additions passed independent source review. Native
 Linux/Windows execute the verbatim guide, and docs CI checks all14exports,28pages,
 links and browser screenshots. Consult PR231 for the final exact-head results.
 
+## Experimental local Xet candidate (27 October 2026)
+
+New unmerged/unverified source API using optional pinned upstream helper629562cd.
+No original projr edit, parity claim, installed binary or existing-store change.
+Reuses FlatSnapshot/DirectoryTree and guarded installer; BLAKE3+length independent
+of upstream pointer. Legacy IDs and ordinary manifest.csv stay unchanged.
+
+Ponytail full review reused claims/codecs/installer instead of adding upstream's
+large dependency graph to normal proj builds. Independent source review found
+mutable hard-link alias risk, missing helper timeout and arbitrary corruption-pack
+selection. Candidate now rejects multiply-linked mutable files on Unix, times out/
+reaps its own child, and damages the first-snapshot store clone. Windows runtime
+remains explicitly unsupported until equivalent link checks exist. Tests are
+unrun pending isolated remote compilation; no production-ready claim. Qualification
+40463702593 remains failing corruption evidence. Upstream LocalClient is intended
+for testing; keeping it opt-in experimental is a support/compatibility limitation.
+Config/build/CLI integration and GitHub transfer are still pending.
+
+Follow-up source review strengthened failure probes to compare complete destination
+membership and bytes (Unicode file, empty directory, extra sentinel included), not
+only the largest file. Dedicated CI triggers once per PR/head and requires the
+actual helper. Remote compilation/runtime results remain pending.
+
+Initial remote platform compilation exposed two warnings-as-errors: an unused
+import and a future discovery helper. Removed both instead of weakening lints.
+Unix-only store validation now has an explicit platform branch, keeping ordinary
+Windows builds supported without claiming Windows Xet runtime support.
+
+At code head dcaf989, actual-engine run40470529739 passed two pure codec checks and
+three integration checks (no ignored tests); checksum-verified artifact12718299537
+SHA256 f2e9951fd88eed8eaacf8c287eb5f85e1f360970f2eb67514c01db293c5f41e0.
+A final fixture refinement selects the known first-snapshot large payload pack and
+requires the independent digest-mismatch path specifically, instead of accepting
+any upstream error for corruption. Its new exact-head gate is pending. Source
+preservation's local full-history bundle independently restored/fsck verified, but
+the private GitHub source import remains permission-blocked; this integration CI
+still obtains the fixed official source and is not preserved-source build proof.
+
+## Experimental configured local Xet follow-up (27 October 2026)
+
+New opt-in registry/build/explicit snapshot routing, stacked after plumbing PR235.
+Reuses name/label selection, path guards, preview preservation, distribution logs
+and installer. Helper freezes before production hooks; preview/query/empty dest
+never starts it. Full store snapshot precedes Git-eligible small reference.
+One project per store; no identity redesign.
+
+Deliberate current limit: remote full metadata and tree JSON binding. Unsupported
+project/both or flat/CSV overrides fail. Old defaults/readers/IDs, root manifest.csv,
+R package and installed binary unchanged. GitHub pending. Configured real-CLI tests
+and independent review are pending, not compiled evidence. Ponytail full-mode
+review reuses definition validation/codecs/publication slots, no competing catalogue.
+
+Experimental Xet preview does not copy/restore mutable engine stores under the
+project-only claim. It never opens the engine, even with an existing busy store.
+Arbitrary script/hook store edits are outside that preview guarantee. Every
+production target's types/format are checked before hooks, independently of
+one-time helper discovery. The multi-store and busy-store regressions are pending.
+
+Configured gate40475309325 passed the initial real CLI selection/build/fresh
+restore and busy-preview probes. A final preflight correction checks the actual
+xet-references namespace, not just the shared CAS namespace, with a Unix symlink
+regression requiring failure before helper/hooks/store entry. Native Windows R
+CI's first attempt hit HTTPS timeout fetching its unchanged pinned renv source;
+only the failed job was retried without changing dependency checks.
+
+Initial native suite40475371837 passed Linux/macOS; Windows rejected an unused
+Unix-only fixture helper under strict warnings. The helper is now cfg(unix),
+without lint suppression. R adapter40475309335 passed after retrying only its
+Windows pinned-dependency HTTPS timeout. New final-head tests remain required.
+
+## Experimental Xet complete-store transfer candidate (27 October)
+
+New, not projr parity: closed-writer full-store ZIP export/import using the
+existing guarded ZIP implementation and the same pinned local engine. Full
+snapshot inventories and pure tree identities remain authoritative; no legacy
+CAS/CSV migration or hosted Xet protocol. Every committed snapshot is reconstructed
+and independently checked before an imported store is usable. Configured local
+Xet exact-head checks at71b4e44 and final independent review passed; archive checks
+are pending remote execution. Ponytail full review reused existing ZIP safety,
+store claims, snapshot readers and independent BLAKE3 checks, with no dependencies.
+GitHub publication and final reference sequencing remain separate unfinished work.
+
+## Experimental GitHub Xet ZIP transport candidate (27 October)
+
+New rather than projr parity: immutable complete-store ZIP upload/download uses
+the same local Xet content engine and structure xet. Trusted project references
+carry backend/upstream/schema, exact asset/digest/length and snapshot membership.
+Upload returns a reference only after downloading and independently validating
+all snapshots; no previous asset is deleted. A failed verification may leave an
+orphan ZIP. Mocked actual-engine tests are pending; no live data uploaded.
+Configured GitHub source/destination selection and remote writer/reference
+coordination remain unfinished, explicitly not parity completion. Ponytail full
+reuse: existing Release client, safe ZIP import and pinned local engine; no new
+dependencies, credentials, replacement protocol or hosted service.
+Actual-engine export test found reconstruction mutates the copied LocalClient persistent index. The export now records its final closed bytes after successful reconstruction, while requiring immutable snapshot/tree metadata unchanged. Original-store byte/membership preservation remains asserted; no byte-read-only engine claim.
+
+## Configured GitHub Xet candidate (27 October)
+
+New optional experimental structure; ordinary latest/archive and local CAS are
+unchanged. Credentials/repository/API are frozen before hooks through the shared
+GitHub connection policy. Normalized selected-title collisions and malformed
+nested references fail preflight. Verified immutable ZIP upload precedes guarded
+snapshot locator/current-reference writes, then normal Git publication.
+Explicit recovery retains its private store owner through installation and uses
+caller archive budgets. Missing authority with existing exports fails rather than
+guessing. Local writer exclusion is not distributed linear-head coordination.
+Full Xet per-version inventories remain repeated. No sharing-format redesign.
+Tests pending remote execution; no live synthetic release created for this slice.
+
+## Complete CAS-store GitHub transport candidate (27 October)
+
+New separately reviewable slice, not ordinary projr ZIP parity: complete local CAS
+stores retain existing object and tree/flat/legacy snapshot identities inside an
+immutable GitHub ZIP. File-level CAS stays separate from Xet chunk-level storage.
+Shared bounded physical inventory, safe ZIP codec and immutable transport functions
+are reused by CAS and Xet; backend-specific deep verification remains separate.
+All objects, including orphan objects, must match their addresses. Snapshot
+bindings/graphs/catalogues verify before a fresh imported store is returned.
+Original stores and old remote exports are unchanged; no migrations or deletion.
+Ponytail full review extracts only actual shared hashing/transport logic, without
+a new plugin/trait framework. No dependencies. Library/mocked tests pending remote
+execution. Configured CAS GitHub publication/recovery remains next slice.
+
+## Configured complete-CAS-store GitHub candidate (27 October)
+
+Separate from ordinary archive/latest ZIPs and Xet: structure cas uses existing
+file objects, tree/flat catalogues and immutable snapshot formats in a whole-store
+ZIP. Credentials and trusted project authority freeze before hooks; verified
+downloadable export precedes guarded current/snapshot locator writes, then Git.
+Explicit recovery keeps its private imported owner alive and requires byte budgets.
+No Xet helper, shared-project store, distributed head or destructive retention.
+All four flat formats retain direct version references/dictionaries; tree roots
+remain content-addressed. Initial auto/remote placement only; explicit style is
+required rather than silently resolving prior GitHub-flat/CAS-tree default overlap.
+Ponytail full reuse retains shared inventory/ZIP/immutable transfer and actual CAS
+readers; backend-specific verification stays separate. Namespace/tag preflight also
+preserves ordinary literal titles containing @version. Tests pending remote run.
+
+## Changed-source quality gates and R-package discoverability (candidate)
+
+New development checks select changed Rust and R sources from the PR merge base.
+Rustfmt and Air check formatting; lintr checks changed R files; Clippy analyzes the
+affected workspace against the merge-base diagnostics. This is development
+tooling, not a runtime change relative to projr. Checks never push contributor
+edits. The proposed gate and generated formatting patch require remote execution
+before claiming success; local runtime verification remains restricted.
+
+The homepage now introduces the R package before the command-line tutorial and
+links its source installation, tested quick start and actual exported-function
+reference. No unmerged initialization wrappers are advertised. Public inspection
+on 27 October confirmed the existing homepage, R guide and function reference
+return HTTP 200; the guide already contained source installation instructions,
+but the homepage made the R interface difficult to discover. The revised homepage
+still needs rendered-page and post-deployment verification.
+
+Ponytail full review: retain the existing evaluated quick-start block unchanged;
+reuse the current R guide/reference rather than duplicating API documentation;
+keep source-only capability and published preview.4 availability distinct.
+
+
+### Native complete-store transport correction (candidate)
+
+The first final platform suite exposed Windows inventory separators and macOS
+temporary-directory aliases. Envelope membership now joins native relative
+components with portable slashes; it does not reinterpret literal backslashes on
+Unix. Owned private scratch roots are created beneath the physical OS temporary
+directory, matching existing ZIP extraction. The fixture root is canonicalized
+too. Caller-supplied symlinks and portable-path validation remain rejected.
+A Unix literal-backslash regression accompanies the existing nested-file
+Windows/macOS round-trips. These corrections require new exact-head platform CI.
+
+
+## Preview.5 user-guide follow-up (candidate)
+
+The CAS/Xet guides now lead with choosing a backend, explicit project examples,
+helper prerequisites, supported options and restore tasks. Source implementation,
+whole-store transfer cost, Git-tracked locators and experimental limits stay
+distinct; obsolete intermediate library-only/pending-draft statements are removed.
+This is documentation alignment, not a new projr compatibility claim or runtime
+change. The publication marker remains pending until actual release verification.
+Ponytail full review: reuse existing commands and source build helper; do not add
+unimplemented install helpers, automatic credentials or a hosted Xet dependency.
+Remote render/link checks and independent review remain required.
+
+
+### Preview.5 publication follow-up
+
+Public CLI release pins now identify verified source
+87b5149c679a87796513e775c54ba98e4811aa9b and independently checked platform
+assets. R availability now distinguishes the separately installed source package
+from the CLI which includes its supported API. No pending PR232–234 APIs are
+claimed. The evaluated R quick-start block is unchanged. The live CAS/Xet
+round-trip, formatter/linter and actual-main evidence are linked in delivery notes.
+Website deployment/readback remains to be verified after this documentation merge.
+
+
+## Researcher website readability and themes (candidate)
+
+Documentation-only follow-up to preview.5: repair missing blank lines before
+lists, clarify the practical guides and stale command descriptions, and retain
+technical detail in reference pages. VERSION/DESCRIPTION synchronization and
+named R initialization helpers in PR232–234 remain unmerged. No runtime, legacy
+projr or installed-package changes are included.
+
+The verified reference is MiguelRodo/writing-in-the-sciences (not a guessed
+writing-for-the-sciences repository). Reuse its Quarto Cosmo/Darkly theme pair;
+Quarto controls persisted choice and system preference. Add keyboard labels and
+theme-scoped colours rather than a competing theme state manager. Browser checks
+must inspect actual lists, text/link/focus contrast, code, tables, navigation,
+keyboard switching, persisted choice and fresh system-default sessions. Render
+and independent review are pending; a draft preview is not a live deployment.
+
+Ponytail full review: use native Quarto themes and existing remote documentation
+CI; no new runtime dependency or custom persistence mechanism. Preserve existing
+technical identifiers and evaluated quick-start code blocks. Correct the old
+claims that configuration queries edit ignore rules, every R script is isolated,
+and only local CAS remotes exist, using current source and its existing tests.
+
+
+### Rendered-site review follow-up
+
+Initial docs validation40529300562 passed and its artifact12745831290 was
+independently SHA256-verified. Homepage light/dark, configuration lists and R
+reference table/code screenshots were visually inspected. The expanded all-page
+check exposed SVG labels being compared against the HTML background rather than
+the painted diagram shapes, and a browser-profile cleanup race hid that assertion.
+Keep SVG diagrams in the visual review evidence, measure HTML/code/button text
+against their actual CSS backgrounds, preserve the original assertion, and allow
+bounded cleanup retries. The icon image is visually reviewed; its anchor's text
+colour is not reported as proof of SVG-pixel contrast. Dark heading inline-code
+backgrounds are corrected from the screenshot. Final amended checks remain pending.
+No runtime, release, package or legacy-projr files changed.
+
+
+Final dark screenshot review found fixed-light-palette lifecycle connectors on a
+dark transparent SVG canvas. Keep those thirteen existing diagrams on an explicit
+light canvas in dark mode; do not change stage ordering or re-encode the diagrams.
+The browser checks the rendered canvas and retains light/dark screenshots.
+
 ## VERSION-authoritative DESCRIPTION updates (overnight candidate)
 
 Approved user deviation from original projr: VERSION is the default authority, and
 an existing DESCRIPTION Version follows it unless settings.sync-description-version
 is false. No metadata file or package scaffold is implicitly created. Original
 projr version helpers may use DESCRIPTION as authority; explicit callbacks preserve
-that behavior. The installed ea323355 build has not been changed by this candidate.
+that behavior. The original candidate was checked against ea323355; the currently installed
+preview.5 remains unchanged by this unmerged draft.
 
 Ponytail: extend the shared version writer, existing bounded BuildState recovery and
 exact Git dev-transition witness; do not add a second version engine. Atomic
@@ -3815,6 +4055,21 @@ expected development DESCRIPTION bytes by digest and still rejects arbitrary edi
 Local capped verification passed: seven synchronization tests, eighteen real-Git tests (two subprocess entrypoints ignored), existing fourteen recovery and ten housekeeping tests, native R wrapper execution and the documented preview/full-build example. Independent review found and fixed orphan/multi-record DCF handling, Git CRLF normalization and stale installed help. Final exact-head remote checks remain pending.
 
 Native CI exposed roxygen's valid Config/roxygen2/version DCF field after documentation. Field-name validation now accepts nonwhitespace/noncontrol names (including slash), preserving actual native extension fields. Added a byte-preservation regression and bounded native-fixture error tail; assertions unchanged. The seven sync regressions and native R housekeeping gate passed locally after this fix; independent source delta cleared. Final exact-head remote gates pending.
+
+
+### PR232 integration with current main (27 October)
+
+The original reviewed draft heads are preserved. Current main9592d1d, including
+verified CAS/Xet publication and the public researcher website, is integrated into
+this candidate. Reapply only the VERSION/DESCRIPTION policy at existing version
+write and Git-development-transition points; preserve the newer storage stages and
+R housekeeping preflight. Named R wrapper tests exercise DESCRIPTION projects;
+Bookdown and arbitrary legacy callbacks retain their explicit boundaries.
+
+Ponytail full review: extend the existing writer and bounded recovery, rather than
+adding a second version engine. Remote native/R acceptance, rustfmt/Air formatting,
+Clippy/lintr and renewed independent review are pending on this integrated head.
+No original projr, installed tool or public release is changed.
 
 ## Explicit metadata init candidate (overnight 26 October)
 

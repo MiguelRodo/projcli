@@ -4,11 +4,14 @@ Preview.4 includes the named remote definitions, file-history formats and explic
 local snapshot recovery documented below. Historical slice notes retain their
 original verification scope. See [verified delivery](release-delivery.qmd#verified-preview4-delivery).
 
-The `_proj.yml` file dictates the structural map of your project. It configures the foundational paths and mapping logic used by the CLI.
+Use `_proj.yml` to name your project folders, choose the analysis steps to run,
+and decide where results are saved. The examples below describe preview.5;
+unmerged initialization and script-group proposals are not available yet.
 
-## Schema Rules and Foundational Prefixes
+## Name your project folders
 
-Custom directory labels are strictly validated against a set of foundational prefixes:
+Directory names must start with one of these prefixes:
+
 - `cache`
 - `raw`
 - `output`
@@ -64,11 +67,13 @@ boolean. Cache-free queries and operations that do not consume a cache remain
 valid. The chosen safe cache is frozen in child run context. Cleanup, safe lookup and renderer staging consume that same selected mapping;
 no literal `cache` label is required when another eligible cache is selected.
 
-## Strict Validation Error Behaviors
+## Configuration errors
 
-The system performs strict validation on `_proj.yml`:
-- If a defined directory label uses an unsupported prefix layout, a validation error string will be returned and execution will fail.
-- All references must resolve correctly; otherwise, the CLI will output an error detailing the structurally invalid labels or malformed content.
+projcli checks the configuration before running the selected work:
+
+- An unsupported directory name stops the command with an explanation.
+- A reference to a missing directory or storage destination stops the command.
+  The error identifies the setting that needs correcting.
 
 ## Top-Level Configuration
 
@@ -80,25 +85,32 @@ The `_proj.yml` file supports a top-level `config` block for project-wide settin
 
 ## Parameters Configuration
 
-The `_proj.yml` file supports a top-level `parameters` block for arbitrary nested parameter evaluation. This allows you to define custom metadata and deeply queried values throughout your execution environment.
+The `_proj.yml` file supports a top-level `parameters` block for arbitrary nested parameter evaluation. Use it for analysis inputs such as a model name, random seed or reporting date.
 
 The configuration engine also supports several aliases for this block: `parameter`, `params`, and `param`. However, **multiple alias conflicts within the same configuration file are structurally rejected during validation** to prevent mapping confusion.
 
 ## Remotes Configuration
 
-The `_proj.yml` file supports a top-level `remotes` block, which currently supports a `local` mapping of standalone storage vaults.
+Define named storage locations under `remotes.local` or `remotes.github`.
+Local locations can use ordinary latest/archive folders, shared whole-file storage
+(`cas`), or experimental shared-pieces storage (`xet`). GitHub supports ordinary
+latest/archive uploads and complete-store ZIPs for `cas` and `xet`.
 
-- **`local`**: A mapping where keys represent remote titles and values configure the vault:
-  - **`path`**: The physical absolute or relative path to the remote storage directory.
-  - **`structure`**: Specifies the storage structure algorithm. Must be `cas` (Content-Addressable Storage).
-  - **`content`**: An array of string tags (matching foundational prefixes or defined directories) specifying which project output directories to sync into the remote upon build completion.
-  - **`inspect`**: `manifest` validates JSON, logical paths/digests and manifest filename/content identity; `file` additionally hashes every referenced object and compares actual bytes. Manifest-only inspection does not verify object bytes.
+Choose uploads with `build.dest`. Removing a destination from that selection
+leaves its definition available for restoring older data. The detailed examples
+below explain `content`, comparison/upload controls, and manifest options.
+See [shared-file GitHub backups](cas-github.qmd) and [experimental Xet](xet-storage.qmd)
+for their additional requirements and limits.
 
 ## Build Configuration
 
 The `_proj.yml` file can also contain a `build` block to configure the behavior of the `proj build` and `proj build-dev` execution engine. The `build` block supports the following sub-keys:
 
-- **`dest`**: An optional list of remote target strings. These targets must be mapped to explicit configurations within the `remotes.local` block. During post-build execution, resolved content directories matching these tags are piped to the CAS engine for deduplicated storage synchronization.
+- **`dest`**: Select named destinations defined under `remotes.local` or
+  `remotes.github`. Use a list of names, or the documented name-to-options
+  mapping to narrow each destination's `content`. The destination's structure
+  controls how files are saved. Removing a name from `build.dest` stops uploads
+  without removing that remote as a restore source.
 - **`scripts`**: An optional list of explicit script paths or glob patterns to execute during the build pipeline.
   - Globbing patterns are supported.
   - Prefix a pattern with `!` to exclude matching files from execution.
@@ -769,8 +781,8 @@ there is no automatic dependency restore, clean-room or sandbox guarantee.
 
 ## Optional R project setup and build maintenance {#optional-r-project-setup-and-build-maintenance-local-candidate}
 
-This section describes source features added after preview.4. They are not in that
-published binary; use a matching source command until a release includes them. Plain Markdown
+These features are included in preview.5. They were added after preview.4;
+use the matching command and separately installed R task dependencies. Plain Markdown
 remains supported. To create an R Markdown README without replacing README.md:
 
 ~~~sh
@@ -850,6 +862,40 @@ automatic snapshots for an existing renv project. Select document/readme explici
 if you want those maintenance tasks. Merely creating README.Rmd or initializing
 renv does not enable any build task.
 
+## Experimental Xet storage {#experimental-xet-structure-unmerged-candidate}
+
+Available in preview.5. Set `structure: xet` on a named local or GitHub remote.
+Both use the same optional, pinned local helper; GitHub transfers the complete
+store as a ZIP. Existing default storage choices do not change. The helper is
+qualified on Linux/WSL; macOS is unqualified and native Windows Xet is rejected.
+Initialization, queries and previews do not open or install the helper.
+
+Use `manifest: auto` or `remote` for complete records in the store, with
+`manifest-style: tree` and fixed JSON records. Other placement and format choices
+are rejected before a build. This remains experimental, with no inherited promise
+of long-term upstream archival support. See the [Xet guide](xet-storage.qmd) for
+installation, examples, format limits and the actual corruption-test results.
+
+### Complete stores on GitHub
+
+`remotes.github.<name>.structure: xet` uses one long-running storage release for
+whole-store ZIPs. Select uploads with `build.dest`. Exact snapshot restore and
+verification require `--max-bytes`, `--max-expanded-bytes` and the trusted
+Git-tracked project records identifying the uploaded ZIP. Old exports are retained.
+
+`remotes.github.<name>.structure: cas` shares whole files instead of file pieces
+and needs no Xet helper. Set `manifest-style: tree` or `flat` explicitly. Flat
+accepts `csv`, `json`, `csv-dedupe-file` and `json-dedupe-file`; tree has fixed JSON
+records. This transport initially supports only `manifest: auto` or `remote`.
+See the [shared-file GitHub guide](cas-github.qmd) for commands, placement and
+recovery limits. A complete CAS-store ZIP differs from an ordinary latest/archive
+folder ZIP.
+
+Both are included in preview.5 and completed a
+[real synthetic GitHub round-trip](https://github.com/MiguelRodo/projcli/actions/runs/40510154990).
+That bounded test does not establish full projr compatibility or savings for your
+data. Neither backend automatically finds missing project records or deletes
+older exports.
 
 ## VERSION and DESCRIPTION synchronization (source candidate)
 

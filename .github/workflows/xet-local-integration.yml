@@ -1,0 +1,77 @@
+name: Experimental local Xet integration
+on:
+  pull_request:
+    paths: ['src/xet*', 'src/cas_archive.rs', 'src/cas_github.rs', 'src/store_archive.rs', 'src/store_github.rs', 'tests/test_cas_github.rs', 'tools/xet-engine/**', 'tests/test_xet.rs', 'tests/test_xet_configured.rs', 'tests/test_xet_github.rs', 'tests/test_xet_github_configured.rs', 'tests/common/xet_github_mock.rs', 'src/remote_registry.rs', 'src/build.rs', 'src/configured_cas.rs', 'src/configured_xet_github.rs', 'src/configured_cas_github.rs', 'tests/test_cas_github_configured.rs', '.github/workflows/xet-local-integration.yml']
+permissions:
+  contents: read
+concurrency:
+  group: xet-local-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  pinned-local-engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    container:
+      image: ghcr.io/miguelrodo/devcontainers-projcli@sha256:a58a8a4dd6f0be83879d08b3a43ab92e256425bbfb81372b257d77a7ff9077f9
+      options: --cpus 2 --memory 6g --memory-swap 6g
+    env:
+      CARGO_HOME: /tmp/proj-xet-integration-cargo
+      RUSTUP_HOME: /tmp/proj-xet-integration-rustup
+      CARGO_TARGET_DIR: /tmp/proj-xet-integration-target
+      CARGO_BUILD_JOBS: '2'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_DEV_OPT_LEVEL: '1'
+      CARGO_INCREMENTAL: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f
+        with:
+          toolchain: 1.95.0
+          components: clippy
+      - name: Prepare isolated paths
+        shell: bash
+        run: |
+          mkdir -p "$CARGO_HOME" "$RUSTUP_HOME" "$CARGO_TARGET_DIR" xet-integration-evidence
+          chown -R rstudio:rstudio "$CARGO_HOME" "$RUSTUP_HOME" "$CARGO_TARGET_DIR" "$GITHUB_WORKSPACE"
+      - name: Compile core and pure snapshot regressions
+        shell: bash
+        run: |
+          runuser -u rstudio -- cargo test --locked --lib xet::tests -- --nocapture 2>&1 | tee xet-integration-evidence/core.log
+      - name: Compile optional exact upstream engine
+        timeout-minutes: 25
+        shell: bash
+        run: |
+          runuser -u rstudio -- python3 tools/xet-engine/build.py --source /tmp/proj-xet-integration-source --output "/tmp/optional engine/proj-xet-engine" 2>&1 | tee xet-integration-evidence/engine.log
+      - name: Exact recovery and failure preservation
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          runuser -u rstudio -- env PROJCLI_TEST_XET_REQUIRED=1 PROJCLI_TEST_XET_ENGINE="/tmp/optional engine/proj-xet-engine" cargo test --locked --test test_xet --test test_xet_configured --test test_xet_github --test test_xet_github_configured --test test_cas_github --test test_cas_github_configured -- --nocapture 2>&1 | tee xet-integration-evidence/integration.log
+      - name: Retain helper provenance and failure diagnostics
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib,os,pathlib,shutil,subprocess
+          out=pathlib.Path("xet-integration-evidence/helper");out.mkdir(parents=True,exist_ok=True)
+          for name in ["proj-xet-engine","proj-xet-engine.provenance.json",
+                       "proj-xet-engine.upstream-LICENSE","proj-xet-engine.clippy.json",
+                       "proj-xet-engine.clippy.log"]:
+              source=pathlib.Path("/tmp/optional engine")/name
+              if source.is_file():shutil.copyfile(source,out/name)
+          binary=pathlib.Path(os.environ["CARGO_TARGET_DIR"])/"debug/proj"
+          if binary.is_file():
+              shutil.copyfile(binary,out/"proj")
+              (out/"proj.sha256").write_text(hashlib.sha256(binary.read_bytes()).hexdigest()+"  proj"+chr(10))
+          (out/"source-commit.txt").write_bytes(subprocess.check_output(["runuser","-u","rstudio","--","git","rev-parse","HEAD"]))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: experimental-xet-integration
+          path: xet-integration-evidence
+          if-no-files-found: error
+          retention-days: 14

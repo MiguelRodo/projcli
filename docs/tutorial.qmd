@@ -13,10 +13,9 @@ Previews are not a security sandbox; code you run can still change files.
 
 ::: {.callout-note}
 ## Use the pinned preview
-[Install `0.4.0-preview.3`](install.qmd) and check `proj --version` before
-starting. Stable v0.3.0 predates this workflow. Remote docs checks run the
-complete example through the downloaded preview binary as well as the current
-PR code. You also need Python 3 available as `python3`.
+[Install `0.4.0-preview.5`](install.qmd) and check `proj --version` before
+starting. Stable v0.3.0 predates this workflow. The automated documentation checks run this complete example with both the
+published download and the proposed source changes. You also need Python 3 available as `python3`.
 :::
 
 ## 1. Make a small project
@@ -42,8 +41,8 @@ build:
   scripts: [analysis.py]
 ```
 
-The paths are explicit: runtime does not supply missing mappings or invent
-undeclared labels.
+Choose each folder explicitly. projcli uses the paths in this file; it does not
+guess missing folders.
 
 | Label | Folder | Role in this example |
 |---|---|---|

@@ -1,0 +1,4 @@
+linters: lintr::linters_with_defaults(
+    indentation_linter = NULL
+  )
+encoding: "UTF-8"
