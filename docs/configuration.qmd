@@ -897,7 +897,7 @@ That bounded test does not establish full projr compatibility or savings for you
 data. Neither backend automatically finds missing project records or deletes
 older exports.
 
-## VERSION and DESCRIPTION synchronization (preview.6 source)
+## VERSION and DESCRIPTION synchronization (preview.6 source) {#version-and-description-synchronization-source-candidate}
 
 VERSION remains the version authority. By default, writing it also updates only the
 Version field of an existing DESCRIPTION. Other fields, continuation text and line
@@ -920,7 +920,7 @@ Named R build/version helpers accept these projects under this VERSION-authorita
 contract; an explicit legacy backend retains its original authority rules. Bookdown
 and arbitrary legacy arguments remain separate unsupported mappings.
 
-## Optional init metadata (preview.6 source)
+## Optional init metadata (preview.6 source) {#optional-init-metadata-source-candidate}
 
 [Project setup reference](cli/init.qmd) documents explicit --description-file,
 --readme-rmd, --renv and --citation choices. These are action parameters, not new
@@ -933,7 +933,7 @@ Any existing Git remote satisfies setup. General-init Git/GitHub actions remain
 opt-in when noninteractive; no automatic commit/push occurs there. Folder licensing
 is explicitly selected with init license --label, never inferred from init.
 
-## Selecting a script source group
+## Selecting a script source group {#selecting-a-script-source-group-candidate}
 
 ~~~yaml
 directories:

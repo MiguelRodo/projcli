@@ -199,7 +199,7 @@ full legacy parity. The existing projr package is unchanged.
 
 Browse the [function index](r-reference.qmd) or use help(package="projcli") locally.
 
-## Explicit init options in preview.6 source
+## Explicit init options in preview.6 source {#explicit-init-options-in-the-source-candidate}
 
 The [project setup reference](cli/init.qmd) covers purpose/contact questions,
 --description-file, --readme-rmd, --renv and --citation. Use the existing
