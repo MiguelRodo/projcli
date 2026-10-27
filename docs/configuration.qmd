@@ -897,6 +897,7 @@ directories:
     path: _tmp
   docs:
     path: docs
+    ignore: [] # keep final documents visible in Git
 build:
   scripts: [scripts-l1, "!lessons/l1/**/draft-*"]
 ~~~

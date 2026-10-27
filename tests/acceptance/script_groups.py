@@ -84,7 +84,12 @@ for explicit in (False,True):
         membership=sorted(str(path.relative_to(root/"docs")) for path in (root/"docs").rglob("*") if path.is_file())
         run(root)
         assert source_bytes(root)==before
-        assert sorted(str(path.relative_to(root/"docs")) for path in (root/"docs").rglob("*") if path.is_file())==membership
+        repeated=sorted(str(path.relative_to(root/"docs")) for path in (root/"docs").rglob("*") if path.is_file())
+        difference={"case":"explicit" if explicit else "native","added":sorted(set(repeated)-set(membership)),"removed":sorted(set(membership)-set(repeated))}
+        if repeated!=membership:
+            evidence["website_repeat_failure"]=difference
+            Path(args.evidence).write_text(json.dumps(evidence,indent=2)+"\n")
+            raise AssertionError("Repeated website output membership changed: "+json.dumps(difference))
         assert not (root/"docs/docs").exists() and not (root/"docs/native-site").exists()
         assert (root/"native-site/previous.html").read_text()=="Prior native tree"
         assert sorted(str(path.relative_to(root/"native-site")) for path in (root/"native-site").rglob("*") if path.is_file())==["previous.html"]

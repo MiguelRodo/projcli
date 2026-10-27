@@ -1061,7 +1061,9 @@ Omitted script ignore policy leaves sources visible in Git and excludes the
 group from an R source package only when DESCRIPTION exists, while preserving
 standard package-source locations (R/man/inst/src/data/tests/vignettes) by default. Production builds
 add exact planned native document outputs/sidecars to managed Git rules; unrelated
-HTML/assets and final docs remain visible. Explicit ignore policies, including
+HTML/assets are not hidden by these source rules. A destination retains its own
+ignore policy: ordinary docs still use legacy ignore: all when omitted; choose
+ignore: [] explicitly to track final documents. Explicit ignore policies, including
 ignore: [], override automatic script rules. The remote suite includes actual grouped rendering and complete Quarto website
 fixtures. This is an unreleased candidate; final exact-commit results are recorded
 in draft PR234, without implying other project types or broader legacy parity.
