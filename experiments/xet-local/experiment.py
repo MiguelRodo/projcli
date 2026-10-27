@@ -30,9 +30,8 @@ def invoke(binary,op,store,source,out,receipt,root):
          "LANG":"C.UTF-8","HF_HUB_DISABLE_TELEMETRY":"1","DO_NOT_TRACK":"1"}
     usage=receipt.with_suffix(".resources.json")
     start=time.monotonic()
-    subprocess.run(["/usr/bin/time","-f",
-        '{"elapsed_s":%e,"user_s":%U,"system_s":%S,"max_rss_kib":%M,"exit":%x}',
-        "-o",str(usage),str(binary),op,str(store),str(source),str(out),str(receipt)],
+    subprocess.run([sys.executable,str(Path(__file__).with_name("timed.py")),
+        str(usage),str(binary),op,str(store),str(source),str(out),str(receipt)],
         env=env,check=True,timeout=180)
     result=json.loads(receipt.read_text())
     assert result["local"] and result["auth"] is False

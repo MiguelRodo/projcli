@@ -67,7 +67,7 @@ jobs:
           runuser -u rstudio -- rustc --version --verbose > xet-evidence/toolchain.txt
           runuser -u rstudio -- cargo --version --verbose >> xet-evidence/toolchain.txt
           cd "$RUNNER_TEMP/xet-upstream"
-          runuser -u rstudio -- /usr/bin/time -v -o "$GITHUB_WORKSPACE/xet-evidence/compile-resources.txt" cargo build --locked --package xet-data --bin projcli_local_probe 2>&1 | tee "$GITHUB_WORKSPACE/xet-evidence/compile.log"
+          runuser -u rstudio -- python3 "$GITHUB_WORKSPACE/experiments/xet-local/timed.py" "$GITHUB_WORKSPACE/xet-evidence/compile-resources.json" cargo build --locked --package xet-data --bin projcli_local_probe 2>&1 | tee "$GITHUB_WORKSPACE/xet-evidence/compile.log"
           python3 - <<'PY'
           import json,os,pathlib,shutil
           target=pathlib.Path(os.environ["CARGO_TARGET_DIR"])
