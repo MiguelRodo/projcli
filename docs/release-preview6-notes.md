@@ -10,7 +10,7 @@ This development preview adds project setup helpers and makes it easier to selec
 
 ## Limits
 
-For separate documents, proj copies the rendered output and its generated <stem>_files folder. If embedding is explicitly disabled, arbitrary authored images, CSS and downloads outside that folder are not collected automatically. Use embedded HTML or a Quarto project when you need a complete portable output tree.
+For separate documents, proj copies the rendered output and its generated `<stem>_files` folder. If embedding is explicitly disabled, arbitrary authored images, CSS and downloads outside that folder are not collected automatically. Use embedded HTML or a Quarto project when you need a complete portable output tree.
 
 This is not complete parity with every original projr helper. Multiple artifact destinations, broader initialization conveniences and general environment reproduction remain outside this release. One project per store is unchanged. Xet remains optional and experimental; its existing integrity and whole-store transfer limitations still apply.
 
