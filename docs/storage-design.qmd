@@ -658,3 +658,12 @@ version/label/digest tuple is new. Source pre-scan precedes coordination writes;
 claims cover authoritative lookup read through complete metadata/index writes.
 Different digests for the same version/label retain legacy behavior. No format,
 identity, garbage-collection or retention redesign is part of this safety fix.
+
+## Experimental Xet investigation
+
+See [the experimental local candidate](xet-storage.qmd) for the pinned optional
+engine, independent reconstruction verification and upstream suitability limits.
+It does not change supported storage defaults or reinterpret existing CAS IDs.
+Configured selection/GitHub complete-store transfer remain pending. The private
+preservation sync encountered a GitHub workflows-permission restriction; source
+copy/build independence is not yet established. No credential workaround is used.

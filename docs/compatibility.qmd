@@ -3798,3 +3798,21 @@ docs validation renders/links the new page and retains native browser screenshot
 The R guide/reference and CI additions passed independent source review. Native
 Linux/Windows execute the verbatim guide, and docs CI checks all14exports,28pages,
 links and browser screenshots. Consult PR231 for the final exact-head results.
+
+## Experimental local Xet candidate (27 October 2026)
+
+New unmerged/unverified source API using optional pinned upstream helper629562cd.
+No original projr edit, parity claim, installed binary or existing-store change.
+Reuses FlatSnapshot/DirectoryTree and guarded installer; BLAKE3+length independent
+of upstream pointer. Legacy IDs and ordinary manifest.csv stay unchanged.
+
+Ponytail full review reused claims/codecs/installer instead of adding upstream's
+large dependency graph to normal proj builds. Independent source review found
+mutable hard-link alias risk, missing helper timeout and arbitrary corruption-pack
+selection. Candidate now rejects multiply-linked mutable files on Unix, times out/
+reaps its own child, and damages the first-snapshot store clone. Windows runtime
+remains explicitly unsupported until equivalent link checks exist. Tests are
+unrun pending isolated remote compilation; no production-ready claim. Qualification
+40463702593 remains failing corruption evidence. Upstream LocalClient is intended
+for testing; keeping it opt-in experimental is a support/compatibility limitation.
+Config/build/CLI integration and GitHub transfer are still pending.

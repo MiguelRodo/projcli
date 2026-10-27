@@ -95,3 +95,7 @@ pub(crate) mod github_manifest;
 pub(crate) mod ordinary_tree;
 
 mod r_session;
+
+mod xet_engine;
+/// Optional pinned local Xet storage with independently verified reconstruction.
+pub mod xet;

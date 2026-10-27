@@ -1,0 +1,49 @@
+---
+title: "Experimental shared-content storage"
+---
+
+This unmerged source candidate is **experimental**. Keep independent backups.
+No installed executable or existing store changes. Config/build wiring and GitHub
+transport are pending; the current candidate provides a local source API only.
+
+Files are split into reusable pieces by the optional upstream Xet helper. This may
+save storage when large files share uncompressed bytes. Already-compressed files
+may benefit little. Synthetic results do not predict savings for real datasets.
+
+The planned selector is structure: xet for local and GitHub destinations.
+GitHub transports this same local engine/store as a complete ZIP, not a hosted
+Xet service. One long-running storage release holds it. No incremental pack
+transport, automatic migration or live data upload is implemented here.
+
+## Why this remains experimental
+
+Upstream's [local client is a testing/development backend](https://github.com/huggingface/xet-core/blob/629562cd9fc37432317eb57811faf13a6935c601/xet_client/src/cas_client/simulation/mod.rs).
+Its [README directs ordinary use through huggingface_hub](https://github.com/huggingface/xet-core/blob/629562cd9fc37432317eb57811faf13a6935c601/README.md).
+Apache-2.0 permits reuse but does not establish an archival compatibility/support
+promise. The helper requires the exact tested upstream revision and unknown
+formats fail; upgrading must not silently reinterpret stored data.
+
+[Restart tests](https://github.com/MiguelRodo/projcli/actions/runs/40459341098)
+passed. [Interruption/export qualification](https://github.com/MiguelRodo/projcli/actions/runs/40463702593)
+passed selected process interruption/retry and stopped-writer ZIP export/import,
+but failed corruption detection: the default upstream local download returned
+success with wrong bytes. Unfinished reads also panicked. Those failures remain
+recorded. The new core independently checks reconstructed length/BLAKE3 in private
+staging before using the existing guarded destination installer.
+
+A cooperative claim serializes one project's store operations, including reads
+which can mutate upstream caches. Finalized verified content precedes immutable
+snapshot references. No persistent full-file copy is kept, but ingest/restore
+needs temporary disk space. Sparse database allocation can grow on export/import.
+A stale claim fails closed; no automatic stale-lock removal or migration occurs.
+
+Snapshots reuse the existing complete file inventory and pure directory identities.
+A backend-specific binding maps whole-file digests to upstream reconstruction
+addresses. File digests, directory roots, version metadata and Xet IDs stay distinct.
+Legacy CAS IDs/readers are untouched.
+
+The new integration checks are still unrun. Unix runtime only until equivalent
+hard-link validation is implemented on Windows. No power-loss, concurrent hot-copy,
+arbitrary interruption-point or production-readiness guarantee follows. Reusing
+upstream chunk/hash/codec primitives with a proj-owned durable backend is another
+route, but requires real persistence/index/recovery engineering.
