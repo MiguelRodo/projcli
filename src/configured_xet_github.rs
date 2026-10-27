@@ -391,7 +391,11 @@ pub fn restore(
     options: crate::restore::SnapshotRestoreOptions<'_>,
 ) -> Result<crate::restore::RestoreResult> {
     let crate::restore::SnapshotRestoreOptions {
-        profile, remote_version, clear, max_bytes, max_expanded,
+        profile,
+        remote_version,
+        clear,
+        max_bytes,
+        max_expanded,
     } = options;
     let (config, engine, imported, snapshot) =
         recover(root, title, id, profile, max_bytes, max_expanded)?;

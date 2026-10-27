@@ -1260,9 +1260,11 @@ fn configured_restore(
                     profile: profile.as_deref(),
                     remote_version: remote_version.as_deref(),
                     clear: *clear,
-                    max_bytes: max_bytes.ok_or_else(|| anyhow::anyhow!("GitHub Xet requires --max-bytes"))?,
-                    max_expanded: max_expanded_bytes
-                        .ok_or_else(|| anyhow::anyhow!("GitHub Xet requires --max-expanded-bytes"))?,
+                    max_bytes: max_bytes
+                        .ok_or_else(|| anyhow::anyhow!("GitHub Xet requires --max-bytes"))?,
+                    max_expanded: max_expanded_bytes.ok_or_else(|| {
+                        anyhow::anyhow!("GitHub Xet requires --max-expanded-bytes")
+                    })?,
                 },
             );
         }
@@ -1284,9 +1286,11 @@ fn configured_restore(
                     profile: profile.as_deref(),
                     remote_version: remote_version.as_deref(),
                     clear: *clear,
-                    max_bytes: max_bytes.ok_or_else(|| anyhow::anyhow!("GitHub CAS requires --max-bytes"))?,
-                    max_expanded: max_expanded_bytes
-                        .ok_or_else(|| anyhow::anyhow!("GitHub CAS requires --max-expanded-bytes"))?,
+                    max_bytes: max_bytes
+                        .ok_or_else(|| anyhow::anyhow!("GitHub CAS requires --max-bytes"))?,
+                    max_expanded: max_expanded_bytes.ok_or_else(|| {
+                        anyhow::anyhow!("GitHub CAS requires --max-expanded-bytes")
+                    })?,
                 },
             );
         }

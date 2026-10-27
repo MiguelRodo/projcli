@@ -208,96 +208,97 @@ fn select_source(raw: &Value, label: &str, request: &RestoreRequest) -> anyhow::
         && let Some(sources) = raw["directories"][label]
             .get("source")
             .filter(|v| !v.is_null())
+    {
+        for (provider, entries) in sources
+            .as_object()
+            .context("Directory source must be a provider mapping")?
         {
-            for (provider, entries) in sources
-                .as_object()
-                .context("Directory source must be a provider mapping")?
-            {
-                anyhow::ensure!(
-                    matches!(provider.as_str(), "local" | "github"),
-                    "Unsupported source provider"
-                );
-                if !provider_allowed(provider, request) {
-                    continue;
-                }
-                let candidates: Vec<(String, Option<&Value>)> = match entries {
-                    Value::String(title) => vec![(title.clone(), None)],
-                    Value::Array(titles) => titles
-                        .iter()
-                        .map(|v| {
-                            Ok((
-                                v.as_str()
-                                    .context("Source references must be strings")?
-                                    .into(),
-                                None,
-                            ))
-                        })
-                        .collect::<anyhow::Result<_>>()?,
-                    Value::Object(titles) => titles
-                        .iter()
-                        .map(|(title, value)| (title.clone(), Some(value)))
-                        .collect(),
-                    Value::Null => vec![],
-                    _ => anyhow::bail!(
-                        "Directory source must contain a title, title list or inline definitions"
-                    ),
-                };
-                for (title, inline) in candidates {
-                    if title_allowed(&title, request) {
-                        return Ok(Source {
-                            definition: referenced(raw, provider, &title, inline)?,
-                            provider: provider.clone(),
-                            title,
-                        });
-                    }
+            anyhow::ensure!(
+                matches!(provider.as_str(), "local" | "github"),
+                "Unsupported source provider"
+            );
+            if !provider_allowed(provider, request) {
+                continue;
+            }
+            let candidates: Vec<(String, Option<&Value>)> = match entries {
+                Value::String(title) => vec![(title.clone(), None)],
+                Value::Array(titles) => titles
+                    .iter()
+                    .map(|v| {
+                        Ok((
+                            v.as_str()
+                                .context("Source references must be strings")?
+                                .into(),
+                            None,
+                        ))
+                    })
+                    .collect::<anyhow::Result<_>>()?,
+                Value::Object(titles) => titles
+                    .iter()
+                    .map(|(title, value)| (title.clone(), Some(value)))
+                    .collect(),
+                Value::Null => vec![],
+                _ => anyhow::bail!(
+                    "Directory source must contain a title, title list or inline definitions"
+                ),
+            };
+            for (title, inline) in candidates {
+                if title_allowed(&title, request) {
+                    return Ok(Source {
+                        definition: referenced(raw, provider, &title, inline)?,
+                        provider: provider.clone(),
+                        title,
+                    });
                 }
             }
+        }
     }
     let mut fallback = None;
     if request.position.as_deref() != Some("source")
-        && let Some(build) = raw.get("build").and_then(Value::as_object) {
-            for (provider, entries) in build {
-                if !matches!(provider.as_str(), "local" | "github")
-                    || !provider_allowed(provider, request)
+        && let Some(build) = raw.get("build").and_then(Value::as_object)
+    {
+        for (provider, entries) in build {
+            if !matches!(provider.as_str(), "local" | "github")
+                || !provider_allowed(provider, request)
+            {
+                continue;
+            }
+            for (title, value) in entries
+                .as_object()
+                .context("Build remote provider must contain named definitions")?
+            {
+                let definition = definition(value)?;
+                if !title_allowed(title, request)
+                    || !content_has(definition.content.as_ref(), label, raw)?
                 {
                     continue;
                 }
-                for (title, value) in entries
-                    .as_object()
-                    .context("Build remote provider must contain named definitions")?
-                {
-                    let definition = definition(value)?;
-                    if !title_allowed(title, request)
-                        || !content_has(definition.content.as_ref(), label, raw)?
-                    {
-                        continue;
+                let preferred = match definition.source.as_ref() {
+                    Some(Value::Bool(false)) => continue,
+                    Some(Value::Bool(true)) => true,
+                    Some(Value::Array(labels)) => {
+                        anyhow::ensure!(
+                            labels.iter().all(Value::is_string),
+                            "Remote source preference must contain label strings"
+                        );
+                        labels.iter().any(|v| v.as_str() == Some(label))
                     }
-                    let preferred = match definition.source.as_ref() {
-                        Some(Value::Bool(false)) => continue,
-                        Some(Value::Bool(true)) => true,
-                        Some(Value::Array(labels)) => {
-                            anyhow::ensure!(
-                                labels.iter().all(Value::is_string),
-                                "Remote source preference must contain label strings"
-                            );
-                            labels.iter().any(|v| v.as_str() == Some(label))
-                        }
-                        None | Some(Value::Null) => false,
-                        _ => anyhow::bail!("Destination source must be boolean or a label list"),
-                    };
-                    let source = Source {
-                        provider: provider.clone(),
-                        title: title.clone(),
-                        definition,
-                    };
-                    if preferred {
-                        return Ok(source);
-                    }
-                    if fallback.is_none() {
-                        fallback = Some(source);
-                    }
+                    None | Some(Value::Null) => false,
+                    _ => anyhow::bail!("Destination source must be boolean or a label list"),
+                };
+                let source = Source {
+                    provider: provider.clone(),
+                    title: title.clone(),
+                    definition,
+                };
+                if preferred {
+                    return Ok(source);
+                }
+                if fallback.is_none() {
+                    fallback = Some(source);
                 }
             }
+        }
     }
     let mut registry_fallback = None;
     if let Some(registry) = raw.get("remotes").and_then(Value::as_object) {
@@ -713,7 +714,8 @@ pub fn restore_label(root: &Utf8Path, request: &RestoreRequest) -> anyhow::Resul
             vec![label.as_str()]
         } {
             let versions = crate::local_remote::list_versions(&base, remote_label, layout, append)?;
-            if !versions.is_empty() && !catalogs.iter().any(
+            if !versions.is_empty()
+                && !catalogs.iter().any(
                     |(_, previous): &(&str, Vec<crate::local_remote::LocalVersion>)| {
                         previous
                             .iter()
@@ -736,8 +738,9 @@ pub fn restore_label(root: &Utf8Path, request: &RestoreRequest) -> anyhow::Resul
                                 )
                             }))
                     },
-                ) {
-                    catalogs.push((remote_label, versions));
+                )
+            {
+                catalogs.push((remote_label, versions));
             }
         }
         anyhow::ensure!(
