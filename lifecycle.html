@@ -253,12 +253,35 @@ ul.task-list li input[type="checkbox"] {
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
- <span class="menu-text">Design and progress</span></a>
+ <span class="menu-text">Storage guides</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./xet-storage.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Experimental shared-content storage</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cas-github.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Shared-file stores on GitHub</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Design and progress</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./behavior.html" class="sidebar-item-text sidebar-link">
@@ -292,7 +315,13 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./storage-design.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">title: “Storage and release catalogue design”</span></a>
+ <span class="menu-text">Storage and release catalogue design</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./development-quality.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Code formatting and lint checks</span></a>
   </div>
 </li>
       </ul>
@@ -333,6 +362,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#github-tree-history-in-preview.4" id="toc-github-tree-history-in-preview.4" class="nav-link" data-scroll-target="#github-tree-history-in-preview.4">GitHub tree history in preview.4</a></li>
   </ul></li>
   <li><a href="#m4-draft-r-session-boundary" id="toc-m4-draft-r-session-boundary" class="nav-link" data-scroll-target="#m4-draft-r-session-boundary">M4 draft: R session boundary</a></li>
+  <li><a href="#experimental-local-xet-candidate" id="toc-experimental-local-xet-candidate" class="nav-link" data-scroll-target="#experimental-local-xet-candidate">Experimental local Xet candidate</a></li>
   </ul>
 </nav>
     </div>
@@ -1017,6 +1047,40 @@ Figure&nbsp;12: M4 draft process boundaries inside the existing build lifecycle.
 </div>
 </div>
 <p>This draft adds a process choice inside analysis, without moving hooks, clearing, promotion or publication. Python and document steps retain their place between R scripts. Shared R state never becomes the Rust driver’s or hook processes’ state.</p>
+</section>
+<section id="experimental-local-xet-candidate" class="level2">
+<h2 class="anchored" data-anchor-id="experimental-local-xet-candidate">Experimental local Xet candidate</h2>
+<p>This unmerged provider enters the existing distribution slot after ordinary/CAS, before Git, end hooks and next-dev. Earlier clear/render/promotion order is unchanged. Missing helper/invalid mapping fails preflight. Provider-entry failure retains local release/distribution evidence, as for the other providers.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div id="fig-lifecycle-xet-experimental" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-lifecycle-xet-experimental-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<pre class="mermaid mermaid-js" data-label="fig-lifecycle-xet-experimental">flowchart LR
+  A["Preflight paths; freeze helper"] --&gt; B["Existing analysis and final output preparation"]
+  B --&gt; C["Existing ordinary/CAS providers"]
+  C --&gt; D["Shared store: closed local operation"]
+  D --&gt; E["Finalize or observe CAS; independently check bytes"]
+  E --&gt; F["Publish full immutable snapshot"]
+  F --&gt; L["Local: retain store snapshot"]
+  F --&gt; Z["GitHub CAS/Xet: closed ZIP; upload new asset; verify download"]
+  L --&gt; G["Write trusted project references"]
+  Z --&gt; G
+  G --&gt; H["Existing Git, end hooks, next-dev"]
+  A --&gt; P["Preview: no helper/backend entry"]
+</pre>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-lifecycle-xet-experimental-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;13: Unmerged experimental Xet provider at the existing distribution boundary.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>These ordered writes are not a cross-location transaction. A later project-ref failure preserves the complete store snapshot for retry. No power-loss guarantee or upstream archival-support promise follows.</p>
+<p>Experimental GitHub Xet uses the existing distribution stage: verified immutable ZIP first, guarded project locators next, normal Git stage last. Failure retains old remote bytes; no remote rollback or new stage ordering is claimed.</p>
 
 
 </section>

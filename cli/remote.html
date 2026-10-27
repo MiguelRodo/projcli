@@ -285,12 +285,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
- <span class="menu-text">Design and progress</span></a>
+ <span class="menu-text">Storage guides</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../xet-storage.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Experimental shared-content storage</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../cas-github.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Shared-file stores on GitHub</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Design and progress</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../behavior.html" class="sidebar-item-text sidebar-link">
@@ -324,7 +347,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../storage-design.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">title: “Storage and release catalogue design”</span></a>
+ <span class="menu-text">Storage and release catalogue design</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../development-quality.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Code formatting and lint checks</span></a>
   </div>
 </li>
       </ul>
@@ -707,6 +736,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="legacy-cas-publication-retries" class="level3">
 <h3 class="anchored" data-anchor-id="legacy-cas-publication-retries">Legacy CAS publication retries</h3>
 <p>Existing legacy name-list builds retain raw-JSON IDs and the old project lookup CSV. Repeating the same version/label/digest no longer appends another row. Store and shared-ledger ownership prevent cooperative callers from losing lookup updates; busy/stale claims return an error without overwriting their owner. Explicit verification/recovery remains read-only and does not create writer claims. This changes no command or configuration spelling.</p>
+<p>Experimental GitHub Xet candidate: remotes.github.<name>.structure: xet uses the same optional local engine with immutable complete-store ZIP transport. Build selection remains build.dest. Explicit snapshot restore/verify requires –max-bytes and –max-expanded-bytes plus Git-tracked locators. See <a href="../xet-storage.html">experimental Xet storage</a> for defaults, prerequisites, trusted-reference paths, quotas and current limitations. Tests pending; this is not released or installed.</name></p>
+<p>Complete-store GitHub CAS candidate: remotes.github.<name>.structure: cas requires explicit manifest-style: tree or flat. Flat accepts csv/json and their opt-in -dedupe-file forms. Initial auto/remote full metadata only; Git project locators remain required for explicit budgeted snapshot recovery. See <a href="../cas-github.html">shared-file stores</a>. This is distinct from ordinary latest/archive data ZIPs.</name></p>
 
 
 </section>

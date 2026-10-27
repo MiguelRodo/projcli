@@ -285,12 +285,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
- <span class="menu-text">Design and progress</span></a>
+ <span class="menu-text">Storage guides</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./xet-storage.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Experimental shared-content storage</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cas-github.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Shared-file stores on GitHub</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Design and progress</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./behavior.html" class="sidebar-item-text sidebar-link">
@@ -324,7 +347,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./storage-design.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">title: “Storage and release catalogue design”</span></a>
+ <span class="menu-text">Storage and release catalogue design</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./development-quality.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Code formatting and lint checks</span></a>
   </div>
 </li>
       </ul>
@@ -341,7 +370,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">Your analysis, ready to run again.</h1>
-<p class="subtitle lead">Keep the steps, paths and outputs of a research project together.</p>
+<p class="subtitle lead">Run a research project from R or the command line, with consistent paths and repeatable builds.</p>
 </div>
 
 
@@ -372,8 +401,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <div class="hero">
-<p>projcli runs the analysis steps you choose from a small project configuration. Start with the preview example below; production build safety is still being improved.</p>
-<p><a href="./tutorial.html" class="btn btn-primary">Get started</a> <a href="./install.html" class="btn btn-outline-primary">Check installation options</a></p>
+<p>projcli runs the analysis steps you choose from a small project configuration. Use its <strong>R package</strong> from an R console, or use the standalone command in a terminal. Both use the same build engine and project configuration.</p>
+<p><a href="./r-frontend.html" class="btn btn-primary">Start from R</a> <a href="./tutorial.html" class="btn btn-outline-primary">Start from the command line</a> <a href="./install.html" class="btn btn-outline-primary">Check installation options</a></p>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -385,7 +414,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p><a href="./install.html">v0.4.0-preview.4 is available</a> for Linux and Windows x86-64, without compiling Rust. It includes the local build workflow, M2 build records and M3 verified local recovery. Later milestones remain unfinished. Stable Latest is still v0.3.0. Read <a href="./features.html">what works</a> before choosing a version.</p>
+<p><a href="./install.html">v0.4.0-preview.4 is available</a> for Linux and Windows x86-64, without compiling Rust. It includes the local build workflow, M2 build records and M3 verified local recovery. The R package and newer R build features are available in source; they need a matching source CLI and are not in that published binary. The R package is not on CRAN. Stable Latest is still v0.3.0. Read <a href="./features.html">what works</a> before choosing a version.</p>
 </div>
 </div>
 <div class="grid">
@@ -402,21 +431,40 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><code>proj build-dev</code> runs analysis without the CLI publishing outputs or changing the project version. Your scripts still control the files they write.</p>
 </section>
 </div>
+<section id="work-from-r" class="level2">
+<h2 class="anchored" data-anchor-id="work-from-r">Work from R</h2>
+<p>The <strong>projcli</strong> R package provides familiar R functions for previewing and building a configured analysis, reading its settings, and finding project files. It calls the separately installed <code>proj</code> command; it does not replace or require the original projr package.</p>
+<p>For an existing configured project:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(projcli)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">projr_build_dev</span>(<span class="at">project =</span> <span class="st">"path/to/project"</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">projr_path_get</span>(</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"output"</span>, <span class="st">"results.csv"</span>,</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">project =</span> <span class="st">"path/to/project"</span>, <span class="at">format =</span> <span class="st">"absolute"</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The preview runs your analysis without publishing final outputs or changing its version. Your scripts can still write files. The <a href="./r-frontend.html#quick-start">R quick start</a> provides a complete temporary-project example, including the analysis script.</p>
+<ul>
+<li><strong>Install:</strong> R 4.1+, processx, jsonlite, and a separate compatible command are required. <a href="./r-frontend.html#installation">Install the R package from source</a>.</li>
+<li><strong>Learn:</strong> <a href="./r-frontend.html">Build and preview from R</a>, or browse the <a href="./r-reference.html">function reference</a>.</li>
+<li><strong>Optional R tasks:</strong> the source CLI can initialize renv, create README.Rmd, generate package documentation, render the README, and snapshot dependencies. <a href="./r-frontend.html#optional-r-setup-and-maintenance">Choose these tasks explicitly</a>; they are off by default and require their own installed R packages.</li>
+</ul>
+<p>This is a supported subset of the original projr workflow, not complete API compatibility. <a href="./compatibility.html">Compare the supported behavior</a>.</p>
+</section>
 <section id="a-small-first-project" class="level2">
 <h2 class="anchored" data-anchor-id="a-small-first-project">A small first project</h2>
 <p>Put the analysis steps in <code>_proj.yml</code>:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">directories</span><span class="kw">:</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">raw-data</span><span class="kw">:</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">path</span><span class="kw">:</span><span class="at"> _raw_data</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">cache</span><span class="kw">:</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">path</span><span class="kw">:</span><span class="at"> _tmp</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">output</span><span class="kw">:</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">path</span><span class="kw">:</span><span class="at"> _output</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">build</span><span class="kw">:</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">scripts</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">analysis.py</span><span class="kw">]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">directories</span><span class="kw">:</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">raw-data</span><span class="kw">:</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">path</span><span class="kw">:</span><span class="at"> _raw_data</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">cache</span><span class="kw">:</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">path</span><span class="kw">:</span><span class="at"> _tmp</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">output</span><span class="kw">:</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">path</span><span class="kw">:</span><span class="at"> _output</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="fu">build</span><span class="kw">:</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">scripts</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">analysis.py</span><span class="kw">]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>These paths are explicit, not runtime defaults. The Python example uses <code>cache</code>; <code>raw-data</code> and <code>output</code> match the local setup preset. The <a href="./tutorial.html">tutorial</a> explains their roles and local-only initialization.</p>
 <p>Run the preview from your project folder:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> <span class="at">--project</span> . <span class="at">--non-interactive</span> build-dev</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> <span class="at">--project</span> . <span class="at">--non-interactive</span> build-dev</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The <a href="./tutorial.html">step-by-step example</a> supplies the script, a tiny dataset, and the result to check. It uses Python’s standard library.</p>
 </section>
 <section id="find-the-detail-you-need" class="level2">

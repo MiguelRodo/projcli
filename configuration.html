@@ -285,12 +285,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
- <span class="menu-text">Design and progress</span></a>
+ <span class="menu-text">Storage guides</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./xet-storage.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Experimental shared-content storage</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cas-github.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Shared-file stores on GitHub</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Design and progress</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./behavior.html" class="sidebar-item-text sidebar-link">
@@ -324,7 +347,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./storage-design.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">title: “Storage and release catalogue design”</span></a>
+ <span class="menu-text">Storage and release catalogue design</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./development-quality.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Code formatting and lint checks</span></a>
   </div>
 </li>
       </ul>
@@ -373,6 +402,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </ul></li>
   <li><a href="#r-processes-and-executable" id="toc-r-processes-and-executable" class="nav-link" data-scroll-target="#r-processes-and-executable">R processes and executable</a></li>
   <li><a href="#optional-r-project-setup-and-build-maintenance-local-candidate" id="toc-optional-r-project-setup-and-build-maintenance-local-candidate" class="nav-link" data-scroll-target="#optional-r-project-setup-and-build-maintenance-local-candidate">Optional R project setup and build maintenance</a></li>
+  <li><a href="#experimental-xet-structure-unmerged-candidate" id="toc-experimental-xet-structure-unmerged-candidate" class="nav-link" data-scroll-target="#experimental-xet-structure-unmerged-candidate">Experimental Xet structure (unmerged candidate)</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -744,6 +774,12 @@ build:
 <p>Fixed man/, NAMESPACE, DESCRIPTION, README.md, README_files/ and renv.lock effects join existing bounded build recovery, before distribution. Linked/special paths are rejected before launch; Unix additionally rejects multiply linked fixed files. Native R code, package loading/compilation, custom README output hooks and user-defined roxygen extensions can write elsewhere: there is no whole-project sandbox or rollback guarantee, and no new Windows hard-link guarantee. No citation generation or citation metadata update is included.</p>
 <p>The existing named R build/version helpers retain their M4 DESCRIPTION restriction. Package projects can invoke these CLI tasks through proj_cli(“build”, “–patch”). This slice does not synchronize DESCRIPTION’s Version with VERSION or add legacy package-version authority; generated package documentation may reflect its existing DESCRIPTION. Use the original R backend when that broader behavior is required.</p>
 <p>When migrating from projr, set renv-snapshot explicitly if you relied on its automatic snapshots for an existing renv project. Select document/readme explicitly if you want those maintenance tasks. Merely creating README.Rmd or initializing renv does not enable any build task.</p>
+</section>
+<section id="experimental-xet-structure-unmerged-candidate" class="level2">
+<h2 class="anchored" data-anchor-id="experimental-xet-structure-unmerged-candidate">Experimental Xet structure (unmerged candidate)</h2>
+<p>Named remotes.local entries can opt into structure: xet; existing defaults do not change. Production publication/recovery needs the exact pinned optional helper; ordinary init/query/preview does not. See <a href="./xet-storage.html">the experimental guide</a>. Initial configured support is Unix/local, remote full metadata and tree JSON binding. Other placement/format choices fail preflight. GitHub transport is still pending. This is not a supported long-term archival-storage claim.</p>
+<p>Experimental GitHub Xet candidate: remotes.github.<name>.structure: xet uses the same optional local engine with immutable complete-store ZIP transport. Build selection remains build.dest. Explicit snapshot restore/verify requires –max-bytes and –max-expanded-bytes plus Git-tracked locators. See <a href="./xet-storage.html">experimental Xet storage</a> for defaults, prerequisites, trusted-reference paths, quotas and current limitations. Tests pending; this is not released or installed.</name></p>
+<p>Complete-store GitHub CAS candidate: remotes.github.<name>.structure: cas requires explicit manifest-style: tree or flat. Flat accepts csv/json and their opt-in -dedupe-file forms. Initial auto/remote full metadata only; Git project locators remain required for explicit budgeted snapshot recovery. See <a href="./cas-github.html">shared-file stores</a>. This is distinct from ordinary latest/archive data ZIPs.</name></p>
 
 
 </section>
