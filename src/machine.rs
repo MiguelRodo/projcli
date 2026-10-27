@@ -104,9 +104,17 @@ pub(crate) fn run(cli: &Cli) -> i32 {
         }
     };
     let result = match &cli.command {
-        Commands::Init {command:Some(crate::InitCommands::Plan),..} =>
-            proj::init_setup::inspect(&root).map(|state|json!({"initialization":state}))
-                .map_err(|_|failure(ErrorCode::QueryFailed,"Cannot inspect existing project setup.")),
+        Commands::Init {
+            command: Some(crate::InitCommands::Plan),
+            ..
+        } => proj::init_setup::inspect(&root)
+            .map(|state| json!({"initialization":state}))
+            .map_err(|_| {
+                failure(
+                    ErrorCode::QueryFailed,
+                    "Cannot inspect existing project setup.",
+                )
+            }),
         Commands::History { attempt, limit } => {
             proj::history::read(&root, attempt.as_deref(), *limit)
                 .map(|history| json!({"history":history}))

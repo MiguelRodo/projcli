@@ -1,8 +1,7 @@
-
 use std::env;
 
+use crate::yml::{IgnoreConfig, ValidatedConfig};
 use std::fs;
-use crate::yml::{ValidatedConfig, IgnoreConfig};
 
 /// Filter selection for ignore targeting.
 ///
@@ -71,7 +70,10 @@ impl Default for IgnoreType {
 /// ```
 /// The supplied project root must use its resolved identity; controlled writes
 /// reject symlinks in the root or metadata path rather than following them.
-pub fn update_ignores_for(project_root: &camino::Utf8Path, validated: &ValidatedConfig) -> anyhow::Result<()> {
+pub fn update_ignores_for(
+    project_root: &camino::Utf8Path,
+    validated: &ValidatedConfig,
+) -> anyhow::Result<()> {
     let mut git_ignores = Vec::new();
     let mut rbuild_ignores = Vec::new();
 
@@ -85,8 +87,12 @@ pub fn update_ignores_for(project_root: &camino::Utf8Path, validated: &Validated
             }
             IgnoreConfig::Multiple(vec) => {
                 let lower_vec: Vec<String> = vec.iter().map(|s| s.to_lowercase()).collect();
-                (lower_vec.contains(&"all".to_string()) || lower_vec.contains(&"git".to_string()),
-                 lower_vec.contains(&"all".to_string()) || lower_vec.contains(&"rbuild".to_string()))
+                (
+                    lower_vec.contains(&"all".to_string())
+                        || lower_vec.contains(&"git".to_string()),
+                    lower_vec.contains(&"all".to_string())
+                        || lower_vec.contains(&"rbuild".to_string()),
+                )
             }
         };
 
@@ -103,18 +109,31 @@ pub fn update_ignores_for(project_root: &camino::Utf8Path, validated: &Validated
             };
 
             if let Some(path_str) = path_str_opt {
-                let path_str = if cfg!(windows) {path_str.replace('\\',"/")}else{path_str};
+                let path_str = if cfg!(windows) {
+                    path_str.replace('\\', "/")
+                } else {
+                    path_str
+                };
                 if should_git {
-                    let literal=path_str.chars().flat_map(|character| {
-                        if matches!(character,'\\'|'#'|'!'|'*'|'?'|'['|']') {vec!['\\',character]}else{vec![character]}
-                    }).collect::<String>();
-                    let git_pattern=format!("{}/**",literal.trim_end_matches('/'));
+                    let literal = path_str
+                        .chars()
+                        .flat_map(|character| {
+                            if matches!(character, '\\' | '#' | '!' | '*' | '?' | '[' | ']') {
+                                vec!['\\', character]
+                            } else {
+                                vec![character]
+                            }
+                        })
+                        .collect::<String>();
+                    let git_pattern = format!("{}/**", literal.trim_end_matches('/'));
                     git_ignores.push(git_pattern);
                 }
                 if should_rbuild {
-                    let rbuild_pattern = format!("^{}/$", regex::escape(path_str.trim_end_matches('/')));
+                    let rbuild_pattern =
+                        format!("^{}/$", regex::escape(path_str.trim_end_matches('/')));
                     rbuild_ignores.push(rbuild_pattern);
-                    let rbuild_pattern_2 = format!("^{}$", regex::escape(path_str.trim_end_matches('/')));
+                    let rbuild_pattern_2 =
+                        format!("^{}$", regex::escape(path_str.trim_end_matches('/')));
                     rbuild_ignores.push(rbuild_pattern_2);
                 }
             }
@@ -122,11 +141,25 @@ pub fn update_ignores_for(project_root: &camino::Utf8Path, validated: &Validated
     }
 
     if project_root.join("DESCRIPTION").exists() {
-        rbuild_ignores.extend([
-            r"^\.git$", r"^\.proj$", r"^\.projr$", r"^_proj(r)?(-[^/]+)?\.ya?ml$",
-            r"^VERSION$", r"^manifest\.csv$", r"^CITATION\.cff$", r"^_quarto\.ya?ml$",
-            r"^_bookdown\.ya?ml$", r"^README\.Rmd$", r"^README_files$", r"^.*\.Rproj$", r"^\.Rproj\.user$"
-        ].into_iter().map(str::to_owned));
+        rbuild_ignores.extend(
+            [
+                r"^\.git$",
+                r"^\.proj$",
+                r"^\.projr$",
+                r"^_proj(r)?(-[^/]+)?\.ya?ml$",
+                r"^VERSION$",
+                r"^manifest\.csv$",
+                r"^CITATION\.cff$",
+                r"^_quarto\.ya?ml$",
+                r"^_bookdown\.ya?ml$",
+                r"^README\.Rmd$",
+                r"^README_files$",
+                r"^.*\.Rproj$",
+                r"^\.Rproj\.user$",
+            ]
+            .into_iter()
+            .map(str::to_owned),
+        );
     }
     // Sort and deduplicate
     git_ignores.sort();
@@ -161,15 +194,27 @@ fn update_ignore_file(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Re
         Vec::new()
     };
 
-    let starts=content_lines.iter().filter(|line|line.as_str()==start_marker).count();
-    let ends=content_lines.iter().filter(|line|line.as_str()==end_marker).count();
-    anyhow::ensure!((starts==0&&ends==0)||(starts==1&&ends==1),
-        "Malformed or repeated managed ignore markers in {path}");
+    let starts = content_lines
+        .iter()
+        .filter(|line| line.as_str() == start_marker)
+        .count();
+    let ends = content_lines
+        .iter()
+        .filter(|line| line.as_str() == end_marker)
+        .count();
+    anyhow::ensure!(
+        (starts == 0 && ends == 0) || (starts == 1 && ends == 1),
+        "Malformed or repeated managed ignore markers in {path}"
+    );
     let start_idx = content_lines.iter().position(|line| line == start_marker);
     let end_idx = content_lines.iter().position(|line| line == end_marker);
 
-    anyhow::ensure!(start_idx.zip(end_idx).is_none_or(|(start,end)|start<end),
-        "Reversed managed ignore markers in {path}");
+    anyhow::ensure!(
+        start_idx
+            .zip(end_idx)
+            .is_none_or(|(start, end)| start < end),
+        "Reversed managed ignore markers in {path}"
+    );
     let mut new_lines = Vec::new();
 
     match (start_idx, end_idx) {
@@ -209,8 +254,11 @@ fn update_ignore_file(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Re
         }
     }
 
-    if path.exists() {crate::fs_utils::replace_managed_file(path, final_content)?;}
-    else {crate::fs_utils::write_managed_file(path, final_content)?;}
+    if path.exists() {
+        crate::fs_utils::replace_managed_file(path, final_content)?;
+    } else {
+        crate::fs_utils::write_managed_file(path, final_content)?;
+    }
     Ok(())
 }
 
@@ -233,19 +281,34 @@ pub fn root_from(start_path: &camino::Utf8Path) -> Option<camino::Utf8PathBuf> {
     if !start.is_dir() {
         return None;
     }
-    let found = start.ancestors().find(|path| has_project_marker(path)).map(|path| path.to_owned());
+    let found = start
+        .ancestors()
+        .find(|path| has_project_marker(path))
+        .map(|path| path.to_owned());
     found.or(Some(start))
 }
 
 fn has_line_prefix(path: &camino::Utf8Path, prefix: &str) -> bool {
-    fs::read_to_string(path).map(|text| text.lines().any(|line| line.starts_with(prefix))).unwrap_or(false)
+    fs::read_to_string(path)
+        .map(|text| text.lines().any(|line| line.starts_with(prefix)))
+        .unwrap_or(false)
 }
 
 fn has_project_marker(path: &camino::Utf8Path) -> bool {
-    if ["VERSION", "README.md", "_quarto.yml", "_proj.yml", "_projr.yml",
-        "pyproject.toml", "Project.toml", "JuliaProject.toml"]
-        .iter().any(|name| path.join(name).is_file())
-        || path.join(".git").is_dir() || path.join(".svn").is_dir()
+    if [
+        "VERSION",
+        "README.md",
+        "_quarto.yml",
+        "_proj.yml",
+        "_projr.yml",
+        "pyproject.toml",
+        "Project.toml",
+        "JuliaProject.toml",
+    ]
+    .iter()
+    .any(|name| path.join(name).is_file())
+        || path.join(".git").is_dir()
+        || path.join(".svn").is_dir()
         || has_line_prefix(&path.join(".git"), "gitdir: ")
         || has_line_prefix(&path.join("DESCRIPTION"), "Package: ")
     {
@@ -260,8 +323,15 @@ fn has_project_marker(path: &camino::Utf8Path) -> bool {
     if let Ok(entries) = fs::read_dir(path) {
         return entries.flatten().any(|entry| {
             let file = entry.path();
-            file.is_file() && file.extension().and_then(|extension| extension.to_str()) == Some("Rproj")
-                && fs::read_to_string(file).map(|text| text.lines().next().is_some_and(|line| line.starts_with("Version: "))).unwrap_or(false)
+            file.is_file()
+                && file.extension().and_then(|extension| extension.to_str()) == Some("Rproj")
+                && fs::read_to_string(file)
+                    .map(|text| {
+                        text.lines()
+                            .next()
+                            .is_some_and(|line| line.starts_with("Version: "))
+                    })
+                    .unwrap_or(false)
         });
     }
     false
@@ -303,7 +373,10 @@ pub fn root() -> Option<camino::Utf8PathBuf> {
 /// use proj::ignore::update_ignores;
 /// update_ignores(project_root, validated_config).unwrap();
 /// ```
-pub fn update_ignores(project_root: &camino::Utf8Path, validated: &ValidatedConfig) -> anyhow::Result<()> {
+pub fn update_ignores(
+    project_root: &camino::Utf8Path,
+    validated: &ValidatedConfig,
+) -> anyhow::Result<()> {
     update_ignores_for(project_root, validated)
 }
 
@@ -340,10 +413,7 @@ fn format_rbuildignore_path(path_str: &str, is_dir: bool) -> Vec<String> {
     trimmed = trimmed.replace("?", ".");
 
     if is_dir {
-        vec![
-            format!("^{}/", trimmed),
-            format!("^{}$", trimmed),
-        ]
+        vec![format!("^{}/", trimmed), format!("^{}$", trimmed)]
     } else {
         vec![format!("^{}$", trimmed)]
     }
@@ -357,10 +427,7 @@ fn format_unignore_rbuildignore_path(path_str: &str, is_dir: bool) -> Vec<String
     trimmed = trimmed.replace("?", ".");
 
     if is_dir {
-        vec![
-            format!("^!{}/", trimmed),
-            format!("^!{}$", trimmed),
-        ]
+        vec![format!("^!{}/", trimmed), format!("^!{}$", trimmed)]
     } else {
         vec![format!("^!{}$", trimmed)]
     }
@@ -488,7 +555,10 @@ fn append_unignores(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Resu
                 }
             }
 
-            if !lower_lines.is_empty() && new_lines.last().map(|s| s.as_str()) != Some("") && lower_lines.first().map(|s| s.as_str()) != Some("") {
+            if !lower_lines.is_empty()
+                && new_lines.last().map(|s| s.as_str()) != Some("")
+                && lower_lines.first().map(|s| s.as_str()) != Some("")
+            {
                 // Connection formatting lines can be wired here if needed
             }
 
@@ -536,7 +606,6 @@ fn append_unignores(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Resu
     Ok(())
 }
 
-
 /// Adds raw paths to tracking ignores manually outside the managed block.
 ///
 /// Converts a list of raw string paths into properly formatted regular expressions
@@ -570,7 +639,7 @@ pub fn add_manual_ignores(
     project_root: &camino::Utf8Path,
     paths: &[String],
     force_create: bool,
-    ignore_type: IgnoreType
+    ignore_type: IgnoreType,
 ) -> anyhow::Result<()> {
     let mut git_ignores = Vec::new();
     let mut rbuild_ignores = Vec::new();
@@ -645,7 +714,7 @@ pub fn add_manual_ignores(
 pub fn remove_manual_ignores(
     project_root: &camino::Utf8Path,
     paths: &[String],
-    ignore_type: IgnoreType
+    ignore_type: IgnoreType,
 ) -> anyhow::Result<()> {
     let mut git_ignores = Vec::new();
     let mut rbuild_ignores = Vec::new();
