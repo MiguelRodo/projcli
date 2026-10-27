@@ -286,8 +286,11 @@ fn recursive_groups_never_execute_nested_project_metadata() {
         String::from_utf8_lossy(&output.stderr)
     );
     assert_eq!(
-        fs::read_to_string(temp.path().join("cache/order")).unwrap(),
-        "a\nnested/b\nskip\n"
+        fs::read_to_string(temp.path().join("cache/order"))
+            .unwrap()
+            .lines()
+            .collect::<Vec<_>>(),
+        ["a", "nested/b", "skip"]
     );
 }
 
