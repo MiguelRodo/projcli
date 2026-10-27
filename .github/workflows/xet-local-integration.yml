@@ -1,11 +1,12 @@
 name: Experimental local Xet integration
 on:
-  push:
-    branches: ['codex/xet-local-20261027']
   pull_request:
     paths: ['src/xet*', 'tools/xet-engine/**', 'tests/test_xet.rs', '.github/workflows/xet-local-integration.yml']
 permissions:
   contents: read
+concurrency:
+  group: xet-local-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   pinned-local-engine:
     runs-on: ubuntu-latest

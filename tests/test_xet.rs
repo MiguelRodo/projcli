@@ -44,7 +44,8 @@ fn actual_xet_restart_versions_corruption_and_destination_preservation() {
     proj::xet::restore(&project,&store,&second,"raw-data",&recovered,true,&engine).unwrap();
     assert_eq!(fs::read(recovered.join("nested/data.bin")).unwrap(),bytes);
     assert!(recovered.join("empty").is_dir());
-    let saved=fs::read(recovered.join("nested/data.bin")).unwrap();
+    fs::write(recovered.join("keep-extra-sentinel"),b"destination-only data").unwrap();
+    let saved=tree(&recovered);
     // Modify an owned payload-pack clone by replacing the read-only inode, never original data.
     let damaged=root.join("damaged");copy(&seed,&damaged);
     let packs=damaged.join("engine/xet/xorbs/xorbs");
@@ -53,17 +54,17 @@ fn actual_xet_restart_versions_corruption_and_destination_preservation() {
     let mut data=fs::read(&pack).unwrap();let index=data.len()/2;data[index]^=0x80;
     let replacement=pack.with_extension("replacement");fs::write(&replacement,&data).unwrap();fs::rename(replacement,&pack).unwrap();
     assert!(proj::xet::restore(&project,&damaged,&first,"raw-data",&recovered,true,&engine).is_err());
-    assert_eq!(fs::read(recovered.join("nested/data.bin")).unwrap(),saved);
+    assert_eq!(tree(&recovered),saved);
     // Missing content also fails, even if earlier reads populated local client caches.
     fs::remove_dir_all(&packs).unwrap();
     assert!(proj::xet::restore(&project,&damaged,&first,"raw-data",&recovered,true,&engine).is_err());
-    assert_eq!(fs::read(recovered.join("nested/data.bin")).unwrap(),saved);
+    assert_eq!(tree(&recovered),saved);
     // Invalid reference and stale cooperative claim are failures, without replacing outputs.
     assert!(proj::xet::verify(&project,&store,&"0".repeat(64),&engine).is_err());
     fs::create_dir_all(store.join(".proj")).unwrap();fs::write(store.join(".proj/build.lock"),"other-writer").unwrap();
     assert!(proj::xet::restore(&project,&store,&second,"raw-data",&recovered,true,&engine).is_err());
     assert_eq!(fs::read(store.join(".proj/build.lock")).unwrap(),b"other-writer");
-    assert_eq!(fs::read(recovered.join("nested/data.bin")).unwrap(),saved);
+    assert_eq!(tree(&recovered),saved);
 }
 fn copy(source:&Utf8Path,target:&Utf8Path) {
     fs::create_dir(target).unwrap();
@@ -89,4 +90,17 @@ fn malformed_metadata_is_bounded_and_requires_explicit_backend() {
     // Pure metadata checks are always exercised by ordinary platform CI.
     let invalid=r#"{"schema":"legacy","backend":"xet","upstream":"latest","inventory":{},"roots":{},"payloads":{}}"#;
     assert!(serde_json::from_str::<Snapshot>(invalid).is_err());
+}
+
+fn tree(root:&Utf8Path)->std::collections::BTreeMap<String,Option<Vec<u8>>> {
+    fn visit(root:&Utf8Path,path:&Utf8Path,result:&mut std::collections::BTreeMap<String,Option<Vec<u8>>>) {
+        for entry in fs::read_dir(path).unwrap() {
+            let entry=entry.unwrap();let value=crate::path(entry.path());
+            let relative=value.strip_prefix(root).unwrap().as_str().replace('\\',"/");
+            let directory=entry.file_type().unwrap().is_dir();
+            result.insert(relative,if directory {None}else{Some(fs::read(&value).unwrap())});
+            if directory {visit(root,&value,result);}
+        }
+    }
+    let mut result=std::collections::BTreeMap::new();visit(root,root,&mut result);result
 }

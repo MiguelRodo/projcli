@@ -3816,3 +3816,8 @@ unrun pending isolated remote compilation; no production-ready claim. Qualificat
 40463702593 remains failing corruption evidence. Upstream LocalClient is intended
 for testing; keeping it opt-in experimental is a support/compatibility limitation.
 Config/build/CLI integration and GitHub transfer are still pending.
+
+Follow-up source review strengthened failure probes to compare complete destination
+membership and bytes (Unicode file, empty directory, extra sentinel included), not
+only the largest file. Dedicated CI triggers once per PR/head and requires the
+actual helper. Remote compilation/runtime results remain pending.
