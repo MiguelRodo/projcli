@@ -263,9 +263,20 @@ fn recursive_groups_never_execute_nested_project_metadata() {
     for directory in [".git", "nested/.proj", "nested/.projr"] {
         let metadata = temp.path().join("source with spaces").join(directory);
         fs::create_dir_all(&metadata).unwrap();
-        fs::write(metadata.join("must-not-run.py"), "raise RuntimeError('metadata must not execute')\n").unwrap();
+        fs::write(
+            metadata.join("must-not-run.py"),
+            "raise RuntimeError('metadata must not execute')\n",
+        )
+        .unwrap();
     }
     let output = run(temp.path(), &["build-dev"]);
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
-    assert_eq!(fs::read_to_string(temp.path().join("cache/order")).unwrap(), "a\nnested/b\nskip\n");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        fs::read_to_string(temp.path().join("cache/order")).unwrap(),
+        "a\nnested/b\nskip\n"
+    );
 }

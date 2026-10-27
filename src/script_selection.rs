@@ -66,7 +66,10 @@ fn walk(
         .with_context(|| format!("Cannot read script entry at {directory}"))?;
     entries.sort_by_key(|entry| entry.file_name());
     for entry in entries {
-        if matches!(entry.file_name().to_str(), Some(".git" | ".proj" | ".projr")) {
+        if matches!(
+            entry.file_name().to_str(),
+            Some(".git" | ".proj" | ".projr")
+        ) {
             continue;
         }
         let path = Utf8PathBuf::from_path_buf(entry.path())
