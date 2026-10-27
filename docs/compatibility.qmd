@@ -3982,3 +3982,14 @@ change. The publication marker remains pending until actual release verification
 Ponytail full review: reuse existing commands and source build helper; do not add
 unimplemented install helpers, automatic credentials or a hosted Xet dependency.
 Remote render/link checks and independent review remain required.
+
+
+### Preview.5 publication follow-up
+
+Public CLI release pins now identify verified source
+87b5149c679a87796513e775c54ba98e4811aa9b and independently checked platform
+assets. R availability now distinguishes the separately installed source package
+from the CLI which includes its supported API. No pending PR232–234 APIs are
+claimed. The evaluated R quick-start block is unchanged. The live CAS/Xet
+round-trip, formatter/linter and actual-main evidence are linked in delivery notes.
+Website deployment/readback remains to be verified after this documentation merge.

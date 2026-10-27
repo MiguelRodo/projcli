@@ -768,8 +768,8 @@ there is no automatic dependency restore, clean-room or sandbox guarantee.
 
 ## Optional R project setup and build maintenance {#optional-r-project-setup-and-build-maintenance-local-candidate}
 
-This section describes source features added after preview.4. They are not in that
-published binary; use a matching source command until a release includes them. Plain Markdown
+These features are included in preview.5. They were added after preview.4;
+use the matching command and separately installed R task dependencies. Plain Markdown
 remains supported. To create an R Markdown README without replacing README.md:
 
 ~~~sh

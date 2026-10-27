@@ -3,8 +3,8 @@ title: "Experimental shared-content storage"
 ---
 
 <!-- VERIFIED_RELEASE_STATUS -->
-This guide accompanies the experimental preview.5 candidate. Final publication
-and installation are still pending. Keep an independent backup.
+Available in [preview.5](install.qmd). The Xet option remains experimental and
+requires its separate pinned helper. Keep independent backups.
 
 Use Xet when large changed files share repeated pieces of bytes. Choose ordinary
 backups or [whole-file sharing](cas-github.qmd) when chunk sharing is unnecessary.
@@ -208,8 +208,8 @@ must not silently choose one or claim a merged history. Configured builds use th
 Complete exports accumulate until an explicit future retention policy is chosen.
 No automatic deletion is performed. GitHub's per-asset limit is below 2 GiB; this
 client rejects larger exports before upload. Temporary expanded database copies
-can be much larger than the compressed ZIP. Tests use only a loopback mock REST
-service and synthetic bytes, not a live GitHub data release.
+can be much larger than the compressed ZIP. Failure tests use a loopback mock REST service. A separate real GitHub
+round-trip passed with public synthetic bytes; no user datasets were used.
 
 ## Keep the store on GitHub
 

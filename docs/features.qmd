@@ -5,7 +5,7 @@ subtitle: "A clear view of the release, the development preview and the work ahe
 
 ## Available development release
 
-[**v0.4.0-preview.4**](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.4)
+[**v0.4.0-preview.5**](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.5)
 provides checked Linux x86-64 (glibc 2.35+) and Windows x86-64 binaries.
 No Rust compilation is needed. [Install that explicit version](install.qmd);
 GitHub's stable Latest remains the older v0.3.0.
@@ -56,9 +56,25 @@ the current implementation and the [behavior contract](behavior.qmd) for limits.
 
 The existing projr R package is unchanged. The new source package projcli is
 available in this repository: see its [installation and quick start](r-frontend.qmd)
-and [function reference](r-reference.qmd). It is not on CRAN, and preview.4 predates
-the full M4 CLI support. Python/Julia frontends and complete R/IDE parity remain
+and [function reference](r-reference.qmd). It is not on CRAN; preview.5 includes
+the supported M4 CLI subset and optional R maintenance. Python/Julia frontends and complete R/IDE parity remain
 separate work.
+
+## Added in preview.5
+
+Use the separate [R package](r-frontend.qmd) for supported build, path and
+configuration functions. Optional production actions can generate documentation,
+render README.Rmd and snapshot renv dependencies; they default off.
+
+[Complete CAS stores on GitHub](cas-github.qmd) share identical files inside one
+store. [Experimental Xet](xet-storage.qmd) shares pieces of files locally and uses
+the same local engine through GitHub ZIPs. Both GitHub options transfer the whole
+store, keep old immutable exports, and need trusted project references for restore.
+Xet's helper is separate and qualified on Linux/WSL; native Windows Xet is unsupported.
+
+The [real synthetic round-trip](https://github.com/MiguelRodo/projcli/actions/runs/40510154990)
+uploaded two versions per structure and restored both into fresh projects.
+This is bounded test evidence, not whole-projr parity or a dataset savings promise.
 
 ## Planned work
 

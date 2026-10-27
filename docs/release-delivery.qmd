@@ -35,6 +35,43 @@ Known limits include bounded captured-state recovery, arbitrary external script
 effects, incomplete direct R/IDE parity, analysis-free publication retry and broader environment reproduction.
 Preview.4 includes the agreed M2/M3 scope described below.
 
+
+## Verified preview.5 delivery {#verified-preview5-delivery}
+
+[Preview.5](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.5)
+was published on 27 October 2026 from
+87b5149c679a87796513e775c54ba98e4811aa9b. Its tree equals reviewed and
+live-tested cd4bcf42dfa35f441fb9ea43f88aa83e9ef5903d.
+
+| Public binary | SHA256 |
+|---|---|
+| Linux x86-64 | 1af3f562362f878c2056f9598eaa5427bbc7d7e5c21eb0449e86992bd504cc7e |
+| Windows x86-64 | 49fb9b5b5b9bc7fb3e77667706e582e95faf5c3212868d1de6af3b438323b3db |
+
+All five public assets were independently downloaded; source/version and every
+checksum were checked. [Exact-tag CI](https://github.com/MiguelRodo/projcli/actions/runs/40512776709)
+ran tests, actual release-binary version/protocol checks and installer fixtures.
+Actual-main [native](https://github.com/MiguelRodo/projcli/actions/runs/40510857853),
+[pinned M1–M3](https://github.com/MiguelRodo/projcli/actions/runs/40511192759) and
+[R](https://github.com/MiguelRodo/projcli/actions/runs/40511200183) gates passed.
+
+The [real GitHub test](https://github.com/MiguelRodo/projcli/actions/runs/40510154990)
+used dedicated public synthetic
+[CAS](https://github.com/MiguelRodo/projcli/releases/tag/projcli-cas-store-acceptance-20261027)
+and [Xet](https://github.com/MiguelRodo/projcli/releases/tag/projcli-xet-store-acceptance-20261027)
+storage releases. Two immutable ZIPs per structure were retained. After both
+uploads, both versions were restored and verified into fresh projects; complete
+file SHA256 sets and unchanged VERSION were asserted. CAS also changed new-write
+style from tree to flat CSV while retaining recovery of the earlier tree snapshot.
+
+[Changed-source formatting/lint](https://github.com/MiguelRodo/projcli/actions/runs/40508676360)
+and [actual Xet/CAS](https://github.com/MiguelRodo/projcli/actions/runs/40508676595)
+passed. Tests do not establish long-term archival durability, all GitHub outage
+behaviors, empty-directory restoration in this live fixture, whole-projr parity
+or real-dataset deduplication savings. Failure/empty-directory cases have separate
+fixture coverage. The optional helper remains experimental and separate.
+
+
 ## Verified preview.2 delivery
 
 [0.4.0-preview.2](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.2)

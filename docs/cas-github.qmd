@@ -3,8 +3,8 @@ title: "Shared-file stores on GitHub"
 ---
 
 <!-- VERIFIED_RELEASE_STATUS -->
-This guide accompanies the preview.5 candidate; final publication and installation
-are still pending. No Xet helper, R package or DVC installation is needed for CAS.
+Available in [preview.5](install.qmd). The Xet option remains experimental and
+requires its separate pinned helper. Keep independent backups.
 
 The existing ordinary GitHub backups keep one ZIP per folder or version.
 A complete CAS store is different: each distinct whole file is stored once, and
@@ -45,7 +45,7 @@ No delete-old-before-upload replacement or automatic retention cleanup is used.
 Recovery downloads the selected complete ZIP and uses the ordinary local CAS
 readers. It needs no Xet engine or Hugging Face account. Current library tests use
 only disposable synthetic files and a loopback mocked REST service, not live
-GitHub archives. Real GitHub validation and configured examples are provided below; final live GitHub evidence is recorded separately. No multi-project/shared-store namespace, distributed linear-head merge,
+GitHub archives. A separate [real GitHub round-trip](https://github.com/MiguelRodo/projcli/actions/runs/40510154990) also passed; configured examples follow. No multi-project/shared-store namespace, distributed linear-head merge,
 hot-copy or power-loss guarantee is introduced.
 
 All existing ordinary latest/archive paths and metadata ZIPs remain unchanged.
