@@ -10,7 +10,7 @@ def sha(p):
     return h.hexdigest()
 def write_json(p,value):p.write_text(json.dumps(value,indent=2)+"\n")
 def measure(p):
-    entries=[];directory_blocks=0
+    entries=[];directory_blocks=p.stat().st_blocks*512
     for item in sorted(p.rglob("*")):
         s=item.lstat()
         if item.is_symlink():raise RuntimeError("unexpected link in synthetic store")
@@ -46,7 +46,8 @@ def baseline_add(base,source):
     else:assert sha(target)==digest
     return digest
 def gzip_add(base,source):
-    digest=sha(source);target=base/digest
+    digest=sha(source);target=base/"objects"/digest[:2]/digest[2:]
+    target.parent.mkdir(parents=True,exist_ok=True)
     if not target.exists():
         with source.open("rb") as fin,target.open("wb") as raw,gzip.GzipFile(filename="",fileobj=raw,mode="wb",mtime=0,compresslevel=6) as out:
             shutil.copyfileobj(fin,out)
@@ -65,12 +66,15 @@ def case(root,label,a,b,binary,evidence):
         result=invoke(binary,"upload",store,source/(v+".bin"),pointers/(name+".json"),receipt,case_root)
         assert result["result"]["file"]["sha256"]==expected[v]["sha256"]
         result["phase"]=name;result["store_after_process_exit"]=measure(store)
-        baseline_add(whole,source/(v+".bin"));gzip_add(zipped,source/(v+".bin"))
+        digest=baseline_add(whole,source/(v+".bin"));gzip_add(zipped,source/(v+".bin"))
+        for baseline in [whole,zipped]:
+            refs=baseline/"pointers";refs.mkdir(exist_ok=True)
+            write_json(refs/(name+".json"),{"hash":digest,"file_size":expected[v]["size"],"sha256":digest})
         operations.append(result)
         write_json(receipt,result)
     assert operations[0]["result"]["file"]==operations[1]["result"]["file"]
     assert operations[2]["result"]["file"]==operations[3]["result"]["file"]
-    store_size=measure(store);whole_size=measure(whole);compressed_size=measure(zipped)
+    store_size=measure(store);whole_size=measure(whole);compressed_size=measure(zipped);pointer_size=measure(pointers)
     # Exact quiescent full-store export: processes have exited and DB handles closed.
     exported=case_root/"relocated-store";shutil.copytree(store,exported)
     # Remove client caches only; keep the upstream local service's durable redb/xorb/shard tree.
@@ -98,10 +102,12 @@ def case(root,label,a,b,binary,evidence):
     result={"case":label,"expected":expected,"operations":operations,"recoveries":recovery,
       "store_including_client_metadata":store_size,"relocated_without_client_cache":durable_only,
       "whole_file_dedup_baseline":whole_size,"gzip_whole_file_dedup_baseline":compressed_size,
-      "pointer_metadata":measure(pointers),"removed_client_cache_paths":removed,
+      "pointer_metadata":pointer_size,
+      "metadata_inclusive_xet_file_bytes":store_size["file_bytes"]+pointer_size["file_bytes"],
+      "metadata_inclusive_xet_allocated_bytes":sum(store_size[k]+pointer_size[k] for k in ["allocated_file_bytes","allocated_directory_bytes"]),"removed_client_cache_paths":removed,
       "source_and_original_store_deleted":True,"two_fresh_process_recoveries_sha256_exact":True,
-      "store_file_byte_ratio_to_whole_baseline":store_size["file_bytes"]/whole_size["file_bytes"],
-      "store_allocated_ratio_to_whole_baseline":store_size["allocated_file_bytes"]/whole_size["allocated_file_bytes"],
+      "store_file_byte_ratio_to_whole_baseline":(store_size["file_bytes"]+pointer_size["file_bytes"])/whole_size["file_bytes"],
+      "store_allocated_ratio_to_whole_baseline":sum(store_size[k]+pointer_size[k] for k in ["allocated_file_bytes","allocated_directory_bytes"])/sum(whole_size[k] for k in ["allocated_file_bytes","allocated_directory_bytes"]),
       "note":"File and directory allocated blocks measured; filesystem inode/superblock overhead not attributed. Export copy may change sparse allocation. Default upstream compression is enabled; compare gzip baseline, not dedup metrics alone."}
     write_json(evidence/(label+"-summary.json"),result)
     # Keep metadata evidence only; synthetic payload/store are not uploaded as artifacts.
@@ -125,7 +131,7 @@ def main():
     for label,a,b in cases:
         summaries.append(case(root,label,a,b,args.binary.resolve(),evidence));gc.collect()
     compact={"upstream_commit":PIN,"python":platform.python_version(),"payloads":"synthetic deterministic seed20261027;16MiB originals;64KiB insertion+32KiB replacement",
-      "baseline":"one stored copy per distinct whole-file SHA256; separate gzip level6 baseline with same whole-file dedup",
+      "baseline":"one stored copy per distinct whole-file SHA256 plus matching four pointer records; separate gzip level6 baseline with identical version references",
       "cases":[{k:v for k,v in s.items() if k not in ["operations","recoveries"]} for s in summaries],
       "passed":True,"no_hf_auth_or_server":True,"unchanged_repeat_in_new_process":True,
       "limits":"Synthetic local backend experiment, not crash durability, transfer efficiency, arbitrary RDS/PDF behavior or production integration proof"}

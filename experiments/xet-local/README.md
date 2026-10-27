@@ -15,7 +15,8 @@ Independent stores use deterministic high-entropy, compressible and gzip inputs:
 v1, unchanged v1, changed v2, unchanged v2, each in a separate OS process.
 Measure all files including redb/shards/client metadata and report apparent bytes,
 allocated blocks and pointer metadata separately. Compare whole-file-deduplicated
-raw and gzip-level6 baselines. Default Xet compression is enabled: physical savings
+raw and gzip-level6 baselines including matching four version-pointer records.
+Metadata-inclusive Xet ratios include its external pointer files too. Default Xet compression is enabled: physical savings
 are not all deduplication; gzip is a control, not the same compressor. Filesystem
 inode/superblock overhead is not attributable and copying can alter sparse allocation.
 
