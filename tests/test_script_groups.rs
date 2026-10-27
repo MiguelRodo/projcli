@@ -269,6 +269,16 @@ fn recursive_groups_never_execute_nested_project_metadata() {
         )
         .unwrap();
     }
+    #[cfg(windows)]
+    for directory in ["upper/.GIT", "upper/.PrOj", "upper/.PrOjR"] {
+        let metadata = temp.path().join("source with spaces").join(directory);
+        fs::create_dir_all(&metadata).unwrap();
+        fs::write(
+            metadata.join("must-not-run.py"),
+            "raise RuntimeError('metadata must not execute')\n",
+        )
+        .unwrap();
+    }
     let output = run(temp.path(), &["build-dev"]);
     assert!(
         output.status.success(),

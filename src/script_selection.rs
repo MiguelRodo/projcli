@@ -76,10 +76,7 @@ fn walk(
         .with_context(|| format!("Cannot read script entry at {directory}"))?;
     entries.sort_by_key(|entry| entry.file_name());
     for entry in entries {
-        if matches!(
-            entry.file_name().to_str(),
-            Some(".git" | ".proj" | ".projr")
-        ) {
+        if entry.file_name().to_str().is_some_and(metadata_component) {
             continue;
         }
         let path = Utf8PathBuf::from_path_buf(entry.path())
