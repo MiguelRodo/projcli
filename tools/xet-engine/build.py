@@ -32,8 +32,7 @@ for line in clippy.stdout.splitlines():
     if entry.get("reason")!="compiler-message": continue
     message=entry["message"]
     if message["level"] not in ["warning","error"]: continue
-    if any(span["file_name"].replace(chr(92),"/").endswith("xet_data/src/bin/proj-xet-engine.rs")
-           for span in message["spans"]):
+    if entry.get("target",{}).get("name")=="proj-xet-engine":
         findings.append(message)
 a.output.with_suffix(".clippy.json").write_text(json.dumps(findings,indent=2)+chr(10))
 a.output.with_suffix(".clippy.log").write_text(clippy.stdout+clippy.stderr)

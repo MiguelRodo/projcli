@@ -347,7 +347,7 @@ fn configured_github_cas_flat_modes_keep_version_references_and_support_fresh_re
         assert_eq!(snapshots.len(), 2);
         assert!(snapshots.values().all(|value| value == "flat"));
         let asset = binding["reference"]["asset"].as_str().unwrap();
-        let archive = temp.path().join("store.zip");
+        let archive = fs::canonicalize(temp.path()).unwrap().join("store.zip");
         fs::write(&archive, &server.state.lock().unwrap().assets[asset].1).unwrap();
         let imported = proj::cas_archive::import(
             &camino::Utf8PathBuf::from_path_buf(archive).unwrap(),

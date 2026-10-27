@@ -49,14 +49,24 @@ jobs:
         shell: bash
         run: |
           runuser -u rstudio -- env PROJCLI_TEST_XET_REQUIRED=1 PROJCLI_TEST_XET_ENGINE="/tmp/optional engine/proj-xet-engine" cargo test --locked --test test_xet --test test_xet_configured --test test_xet_github --test test_xet_github_configured --test test_cas_github --test test_cas_github_configured -- --nocapture 2>&1 | tee xet-integration-evidence/integration.log
-      - name: Retain tested helper and provenance for independent verification
+      - name: Retain helper provenance and failure diagnostics
+        if: always()
         shell: bash
         run: |
-          mkdir -p xet-integration-evidence/helper
-          cp "$CARGO_TARGET_DIR/debug/proj" xet-integration-evidence/helper/proj
-          git rev-parse HEAD > xet-integration-evidence/helper/source-commit.txt
-          sha256sum xet-integration-evidence/helper/proj > xet-integration-evidence/helper/proj.sha256
-          cp "/tmp/optional engine/proj-xet-engine" "/tmp/optional engine/proj-xet-engine.provenance.json" "/tmp/optional engine/proj-xet-engine.upstream-LICENSE" "/tmp/optional engine/proj-xet-engine.clippy.json" "/tmp/optional engine/proj-xet-engine.clippy.log" xet-integration-evidence/helper/
+          python3 - <<'PY'
+          import hashlib,os,pathlib,shutil,subprocess
+          out=pathlib.Path("xet-integration-evidence/helper");out.mkdir(parents=True,exist_ok=True)
+          for name in ["proj-xet-engine","proj-xet-engine.provenance.json",
+                       "proj-xet-engine.upstream-LICENSE","proj-xet-engine.clippy.json",
+                       "proj-xet-engine.clippy.log"]:
+              source=pathlib.Path("/tmp/optional engine")/name
+              if source.is_file():shutil.copyfile(source,out/name)
+          binary=pathlib.Path(os.environ["CARGO_TARGET_DIR"])/"debug/proj"
+          if binary.is_file():
+              shutil.copyfile(binary,out/"proj")
+              (out/"proj.sha256").write_text(hashlib.sha256(binary.read_bytes()).hexdigest()+"  proj"+chr(10))
+          (out/"source-commit.txt").write_bytes(subprocess.check_output(["git","rev-parse","HEAD"]))
+          PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:

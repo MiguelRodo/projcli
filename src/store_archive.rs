@@ -35,7 +35,11 @@ pub(crate) fn inventory(root: &Utf8Path) -> Result<BTreeMap<String, File>> {
             let entry = entry?;
             let item = path(entry.path())?;
             crate::path_safety::resolve_path(item.as_std_path(), true)?;
-            let relative = item.strip_prefix(root)?.iter().collect::<Vec<_>>().join("/");
+            let relative = item
+                .strip_prefix(root)?
+                .iter()
+                .collect::<Vec<_>>()
+                .join("/");
             crate::path_safety::portable_relative(&relative)?;
             let metadata = fs::symlink_metadata(&item)?;
             anyhow::ensure!(
