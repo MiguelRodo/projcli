@@ -72,6 +72,25 @@ def main():
                     'stopifnot(as.character(packageVersion("lintr")) == "3.4.0")'],
                    env=environment, check=True)
 
+    # Object-usage lint needs the candidate namespace, not an installed old release.
+    # Existing Imports must already exist in the pinned image; no package updates.
+    if any(Path(name).parts[:3] == ("frontends", "r", "projcli") for name in selected["r"]):
+        package = Path(__file__).resolve().parents[1] / "frontends/r/projcli"
+        subprocess.run(["R", "CMD", "INSTALL", "--no-multiarch",
+                        f"--library={library}", str(package)], env=environment, check=True)
+        probe = r"""
+        probe <- tempfile("lint-context-", tmpdir="frontends/r/projcli/R", fileext=".R")
+        tryCatch({
+          writeLines('probe <- function() .proj_error("fixture", "fixture")', probe)
+          stopifnot(length(lintr::lint(probe, linters=lintr::object_usage_linter(), cache=FALSE)) == 0L)
+          writeLines('probe <- function() .proj_lint_unknown()', probe)
+          findings <- lintr::lint(probe, linters=lintr::object_usage_linter(), cache=FALSE)
+          stopifnot(any(vapply(findings, function(x) grepl(".proj_lint_unknown", x$message, fixed=TRUE), logical(1))))
+          cat("PASS candidate namespace context and undefined-helper detection\n")
+        }, finally=unlink(probe))
+        """
+        subprocess.run(["Rscript", "--vanilla", "-e", probe], env=environment, check=True)
+
 
 if __name__ == "__main__":
     main()

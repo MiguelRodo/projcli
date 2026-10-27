@@ -1,4 +1,4 @@
-use crate::version::{version_get_from, version_set_at};
+use crate::version::{version_get_from, version_set_at_with_sync};
 use crate::yml::ProjConfig;
 use std::fs;
 use std::path::Path;
@@ -468,6 +468,9 @@ pub fn build_project_with_policies(
             build.r
         };
         crate::r_housekeeping::preflight(project_root, r_actions, &environment)?;
+
+        let sync_description = config.settings.sync_description_version.unwrap_or(true);
+        crate::version::diagnose_description(project_root, sync_description)?;
 
         // 4. VERSION Initialization Check
         let original_version = match version_get_from(project_root) {
@@ -1220,7 +1223,7 @@ pub fn build_project_with_policies(
                 if let Some(transition) = transition {
                     crate::git::record_dev_transition(project_root, &environment, transition)?;
                 }
-                version_set_at(project_root, &next_version.to_string(false))?;
+                version_set_at_with_sync(project_root, &next_version, sync_description)?;
             }
             Ok(())
         };
@@ -1295,7 +1298,9 @@ pub fn build_project_with_policies(
         }
         // Keep recovery until provider/Git entry. Later errors preserve the local release;
         // a configured target or saved intent alone does not mean distribution began.
-        if let Err(error) = version_set_at(project_root, &initial_version.to_string(false)) {
+        if let Err(error) =
+            version_set_at_with_sync(project_root, &initial_version, sync_description)
+        {
             return Err(backup.restore(error));
         }
         let mut publication_backup = Some(backup);
@@ -1467,6 +1472,7 @@ pub fn build_project_with_policies(
                         &environment,
                         &initial_version,
                         &next_version,
+                        sync_description,
                     )?
                 } else {
                     None

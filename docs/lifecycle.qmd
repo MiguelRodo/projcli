@@ -516,7 +516,7 @@ flowchart TB
   S["Preflight; bounded startup observations;<br/>existing pre-build, analysis,<br/>promotion and recovery"]
   P{"Production local success?"}
   D{"Publication enabled?"}
-  L["End hooks; next dev;<br/>observe outputs; retain final CSV;<br/>install completed log"]
+  L["End hooks; next dev VERSION + existing DESCRIPTION;<br/>observe outputs; retain final CSV;<br/>install completed log"]
   G["Retain snapshot; distribution/Git;<br/>existing finalization; observe outputs;<br/>retain final CSV and log or Git receipt"]
   R["Release owned claim on normal exit"]
   W --> S --> P
@@ -789,3 +789,7 @@ failure preserves the complete store snapshot for retry. No power-loss guarantee
 or upstream archival-support promise follows.
 
 Experimental GitHub Xet uses the existing distribution stage: verified immutable ZIP first, guarded project locators next, normal Git stage last. Failure retains old remote bytes; no remote rollback or new stage ordering is claimed.
+
+Source candidate: release and next-dev VERSION writes synchronize existing DESCRIPTION
+by default; previews and pre-distribution recovery retain exact prior bytes. The
+settings.sync-description-version switch is captured before hooks.

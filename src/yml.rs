@@ -85,6 +85,8 @@ pub struct ProjConfig {
 #[derive(Deserialize, Debug, Default, Clone)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub struct SettingsConfig {
+    /// Keep an existing DESCRIPTION Version aligned with VERSION (default true).
+    pub sync_description_version: Option<bool>,
     pub output_clear_stage: Option<OutputClearStage>,
     /// Native runner cwd by default; explicit command policy takes precedence.
     pub execution_directory: Option<crate::build::ExecutionDirectory>,
@@ -94,7 +96,11 @@ pub struct SettingsConfig {
 
 #[derive(Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
-pub enum OutputClearStage { None, Pre, Post }
+pub enum OutputClearStage {
+    None,
+    Pre,
+    Post,
+}
 
 impl OutputClearStage {
     pub fn parse(value: &str) -> anyhow::Result<Self> {
@@ -102,15 +108,28 @@ impl OutputClearStage {
             "none" | "never" => Ok(Self::None),
             "pre" => Ok(Self::Pre),
             "post" => Ok(Self::Post),
-            _ => anyhow::bail!("output-clear-stage must be none, pre or post (legacy never means none)"),
+            _ => anyhow::bail!(
+                "output-clear-stage must be none, pre or post (legacy never means none)"
+            ),
         }
     }
 }
 
 impl SettingsConfig {
-    pub(crate) fn clear_stage(&self, explicit: Option<OutputClearStage>, legacy_yaml: Option<&str>, environment: Option<&str>) -> anyhow::Result<OutputClearStage> {
-        if let Some(value) = explicit.or(self.output_clear_stage) { return Ok(value); }
-        legacy_yaml.or(environment).map(OutputClearStage::parse).transpose().map(|value| value.unwrap_or(OutputClearStage::None))
+    pub(crate) fn clear_stage(
+        &self,
+        explicit: Option<OutputClearStage>,
+        legacy_yaml: Option<&str>,
+        environment: Option<&str>,
+    ) -> anyhow::Result<OutputClearStage> {
+        if let Some(value) = explicit.or(self.output_clear_stage) {
+            return Ok(value);
+        }
+        legacy_yaml
+            .or(environment)
+            .map(OutputClearStage::parse)
+            .transpose()
+            .map(|value| value.unwrap_or(OutputClearStage::None))
     }
 }
 
@@ -162,19 +181,38 @@ impl RConfig {
     /// Resolve a configured executable without launching it or modifying the project.
     /// Omission retains PATH lookup. Missing/non-file paths and nonexecutables fail.
     pub fn executable(&self, root: &Utf8Path) -> anyhow::Result<Option<std::path::PathBuf>> {
-        let Some(value) = &self.rscript else { return Ok(None); };
-        anyhow::ensure!(!value.as_str().is_empty(), "config.r.rscript must be a nonempty executable path");
-        let path = if value.is_absolute() {value.clone()} else {root.join(value)};
-        let path = std::fs::canonicalize(path).context("Cannot resolve config.r.rscript executable")?;
-        anyhow::ensure!(path.is_file(), "config.r.rscript must name an executable file");
-        #[cfg(unix)] {
+        let Some(value) = &self.rscript else {
+            return Ok(None);
+        };
+        anyhow::ensure!(
+            !value.as_str().is_empty(),
+            "config.r.rscript must be a nonempty executable path"
+        );
+        let path = if value.is_absolute() {
+            value.clone()
+        } else {
+            root.join(value)
+        };
+        let path =
+            std::fs::canonicalize(path).context("Cannot resolve config.r.rscript executable")?;
+        anyhow::ensure!(
+            path.is_file(),
+            "config.r.rscript must name an executable file"
+        );
+        #[cfg(unix)]
+        {
             use std::os::unix::fs::PermissionsExt;
-            anyhow::ensure!(std::fs::metadata(&path)?.permissions().mode() & 0o111 != 0,
-                "config.r.rscript is not executable");
+            anyhow::ensure!(
+                std::fs::metadata(&path)?.permissions().mode() & 0o111 != 0,
+                "config.r.rscript is not executable"
+            );
         }
         #[cfg(windows)]
-        anyhow::ensure!(path.extension().is_some_and(|ext|ext.eq_ignore_ascii_case("exe")),
-            "config.r.rscript must name a native .exe, not a command script");
+        anyhow::ensure!(
+            path.extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("exe")),
+            "config.r.rscript must name a native .exe, not a command script"
+        );
         Ok(Some(path))
     }
 }
@@ -339,7 +377,9 @@ pub struct DirConfig {
     pub ignore: IgnoreConfig,
 }
 
-fn deserialize_explicit_bool<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Option<bool>, D::Error> {
+fn deserialize_explicit_bool<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<bool>, D::Error> {
     // Missing is unspecified; explicitly present null/string/number is not a boolean.
     bool::deserialize(deserializer).map(Some)
 }
@@ -377,7 +417,11 @@ pub(crate) fn validate_ignore(value: &IgnoreConfig) -> anyhow::Result<()> {
         IgnoreConfig::Single(value) => std::slice::from_ref(value),
         IgnoreConfig::Multiple(values) => values,
     };
-    if values.iter().any(|value| !["all", "git", "rbuild"].iter().any(|allowed| value.eq_ignore_ascii_case(allowed))) {
+    if values.iter().any(|value| {
+        !["all", "git", "rbuild"]
+            .iter()
+            .any(|allowed| value.eq_ignore_ascii_case(allowed))
+    }) {
         anyhow::bail!("Directory ignore values must be all, git, or rbuild; use [] for no ignores");
     }
     Ok(())
@@ -477,10 +521,15 @@ impl ProjConfig {
         self.config.r.executable(project_root)?;
         let mut resolved = HashMap::new();
         crate::path_safety::validate_directory_labels(self.directories.keys().map(String::as_str))?;
-        crate::paths::select_safe_cache(self.directories.iter().map(|(label, directory)| (label.as_str(), directory.safe)), &[])?;
+        crate::paths::select_safe_cache(
+            self.directories
+                .iter()
+                .map(|(label, directory)| (label.as_str(), directory.safe)),
+            &[],
+        )?;
 
         // Names/subsets fail before any build mutation; transport credentials are not loaded.
-        let destinations=crate::remote_registry::selected(self)?;
+        let destinations = crate::remote_registry::selected(self)?;
 
         // 1. Process explicit user configurations
         for (label, config) in &self.directories {
@@ -503,15 +552,25 @@ impl ProjConfig {
             let path = if lower_label == "output-r-data" {
                 let fixed = project_root.join("data");
                 if let Some(path) = &config.path {
-                    anyhow::ensure!(crate::path_safety::resolve_path(make_absolute(project_root, path).as_std_path(), true)?
-                        == crate::path_safety::resolve_path(fixed.as_std_path(), true)?,
-                        "output-r-data has the fixed final destination <project>/data; redirection is forbidden");
+                    anyhow::ensure!(
+                        crate::path_safety::resolve_path(
+                            make_absolute(project_root, path).as_std_path(),
+                            true
+                        )? == crate::path_safety::resolve_path(fixed.as_std_path(), true)?,
+                        "output-r-data has the fixed final destination <project>/data; redirection is forbidden"
+                    );
                 }
                 Utf8PathBuf::from("data")
             } else {
-                config.path.as_ref().with_context(|| format!("Directory '{label}' requires an explicit path"))?.clone()
+                config
+                    .path
+                    .as_ref()
+                    .with_context(|| format!("Directory '{label}' requires an explicit path"))?
+                    .clone()
             };
-            if path.as_str().trim().is_empty() { anyhow::bail!("Directory '{label}' requires a nonempty explicit path"); }
+            if path.as_str().trim().is_empty() {
+                anyhow::bail!("Directory '{label}' requires a nonempty explicit path");
+            }
 
             resolved.insert(
                 label.clone(),
@@ -526,18 +585,29 @@ impl ProjConfig {
 
         // Normalize explicit storage locations against this captured project root.
         let mut remotes = self.remotes.clone();
-        if let Some(local)=&mut remotes.local {
-            for (name,content) in &destinations.legacy_content {
-                local.get_mut(name).context("Selected legacy CAS target disappeared")?.content=content.clone();
+        if let Some(local) = &mut remotes.local {
+            for (name, content) in &destinations.legacy_content {
+                local
+                    .get_mut(name)
+                    .context("Selected legacy CAS target disappeared")?
+                    .content = content.clone();
             }
         }
         if let Some(local) = &mut remotes.local {
             for (name, remote) in local {
-                if remote.path.as_str().trim().is_empty() { anyhow::bail!("Remote '{name}' requires an explicit nonempty path"); }
+                if remote.path.as_str().trim().is_empty() {
+                    anyhow::bail!("Remote '{name}' requires an explicit nonempty path");
+                }
                 remote.path = make_absolute(project_root, &remote.path);
                 for label in &remote.content {
-                    if !self.directories.keys().any(|declared| declared.eq_ignore_ascii_case(label)) {
-                        anyhow::bail!("Remote '{name}' content label '{label}' is not declared in directories");
+                    if !self
+                        .directories
+                        .keys()
+                        .any(|declared| declared.eq_ignore_ascii_case(label))
+                    {
+                        anyhow::bail!(
+                            "Remote '{name}' content label '{label}' is not declared in directories"
+                        );
                     }
                 }
             }
@@ -588,9 +658,14 @@ impl ProjConfig {
             old_dev_remove: self.dev.old_dev_remove,
             parameters: self.parameters.clone(),
         };
-        let ordinary=crate::publication::configured(project_root,destinations.local.as_ref(),&validated)?;
-        crate::github_publication::validate(project_root,destinations.github.as_ref(),&validated)?;
-        crate::cas_remote::configured(project_root,&destinations.cas,&validated,&ordinary)?;
+        let ordinary =
+            crate::publication::configured(project_root, destinations.local.as_ref(), &validated)?;
+        crate::github_publication::validate(
+            project_root,
+            destinations.github.as_ref(),
+            &validated,
+        )?;
+        crate::cas_remote::configured(project_root, &destinations.cas, &validated, &ordinary)?;
         Ok(validated)
     }
 }
@@ -621,7 +696,7 @@ impl ValidatedConfig {
     ///     remotes: Default::default(),
     ///     dest: vec![],
     ///     config: GlobalConfig::default(),
-///     settings: Default::default(),
+    ///     settings: Default::default(),
     ///     directories: dirs,
     ///     git: ResolvedGitConfig { commit: false, push: false },
     ///     restrictions: RestrictionsConfig::default(),
@@ -635,9 +710,16 @@ impl ValidatedConfig {
     /// ```
     pub fn get_path(&self, project_root: &Utf8Path, label: &str) -> anyhow::Result<Utf8PathBuf> {
         crate::path_safety::validate_directory_label(label)?;
-        let directory = self.directories.iter().find(|(key, _)| key.eq_ignore_ascii_case(label))
+        let directory = self
+            .directories
+            .iter()
+            .find(|(key, _)| key.eq_ignore_ascii_case(label))
             .map(|(_, directory)| directory)
-            .with_context(|| format!("Directory label '{label}' is not declared; add an explicit directories mapping"))?;
+            .with_context(|| {
+                format!(
+                    "Directory label '{label}' is not declared; add an explicit directories mapping"
+                )
+            })?;
         Ok(make_absolute(project_root, &directory.path))
     }
 }
@@ -708,13 +790,22 @@ pub(crate) fn base_configuration_path(base_dir: &Utf8Path) -> anyhow::Result<Opt
     let primary_exists = configuration_entry_exists(&primary)?;
     let legacy_exists = configuration_entry_exists(&legacy)?;
     if primary_exists && legacy_exists {
-        anyhow::bail!("Ambiguous configuration: both _proj.yml and _projr.yml exist; keep one base file.");
+        anyhow::bail!(
+            "Ambiguous configuration: both _proj.yml and _projr.yml exist; keep one base file."
+        );
     }
-    Ok(if primary_exists { Some(primary) } else if legacy_exists { Some(legacy) } else { None })
+    Ok(if primary_exists {
+        Some(primary)
+    } else if legacy_exists {
+        Some(legacy)
+    } else {
+        None
+    })
 }
 
 fn read_configuration_file(path: &Utf8Path) -> anyhow::Result<Value> {
-    let content = fs::read_to_string(path).with_context(|| format!("Failed to read configuration {path}"))?;
+    let content =
+        fs::read_to_string(path).with_context(|| format!("Failed to read configuration {path}"))?;
     // YAML's mapping visitor rejects duplicate keys; JSON's visitor overwrites them.
     let yaml: serde_yaml::Value = serde_yaml::from_str(&content)
         .with_context(|| format!("Failed to parse configuration {path}"))?;
@@ -731,7 +822,10 @@ fn read_configuration_file(path: &Utf8Path) -> anyhow::Result<Value> {
         for (label, directory) in directories {
             for key in ["safe", "hash"] {
                 if let Some(marker) = directory.get(key) {
-                    anyhow::ensure!(marker.is_boolean(), "Directory '{label}' {key} selection must be boolean in {path}");
+                    anyhow::ensure!(
+                        marker.is_boolean(),
+                        "Directory '{label}' {key} selection must be boolean in {path}"
+                    );
                 }
             }
         }
@@ -739,14 +833,32 @@ fn read_configuration_file(path: &Utf8Path) -> anyhow::Result<Value> {
     if let Some(settings) = value.get("settings") {
         let _: SettingsConfig = serde_json::from_value(settings.clone())
             .with_context(|| format!("Invalid settings in {path}"))?;
-        for key in ["output-clear-stage", "execution-directory", "path-representation"] {
+        if let Some(marker) = settings.get("sync-description-version") {
+            anyhow::ensure!(
+                marker.is_boolean(),
+                "settings.sync-description-version must be boolean in {path}"
+            );
+        }
+        for key in [
+            "output-clear-stage",
+            "execution-directory",
+            "path-representation",
+        ] {
             if let Some(marker) = settings.get(key) {
-                anyhow::ensure!(marker.is_string(), "settings.{key} must be a string in {path}");
+                anyhow::ensure!(
+                    marker.is_string(),
+                    "settings.{key} must be a string in {path}"
+                );
             }
         }
     }
     let aliases = ["parameters", "parameter", "params", "param"];
-    if aliases.iter().filter(|key| value.get(**key).is_some()).count() > 1 {
+    if aliases
+        .iter()
+        .filter(|key| value.get(**key).is_some())
+        .count()
+        > 1
+    {
         anyhow::bail!("Configuration error: multiple 'parameters' aliases found in {path}.");
     }
     if let Value::Object(map) = &mut value {
@@ -774,13 +886,20 @@ pub fn get_combined_yml(
         None => Value::Object(serde_json::Map::new()),
     };
     let profiles = if let Some(explicit) = explicit_profile {
-        explicit.split(|c| c == ',' || c == ';')
-            .map(str::trim).filter(|s| !s.is_empty() && *s != "default" && *s != "local")
-            .map(str::to_string).collect()
+        explicit
+            .split([',', ';'])
+            .map(str::trim)
+            .filter(|s| !s.is_empty() && *s != "default" && *s != "local")
+            .map(str::to_string)
+            .collect()
     } else {
         get_active_profiles()
     };
-    if profiles.iter().any(|name| !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')) {
+    if profiles.iter().any(|name| {
+        !name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    }) {
         anyhow::bail!("Invalid active profile name.");
     }
     for profile in profiles.into_iter().rev() {
@@ -806,11 +925,16 @@ pub fn get_combined_yml(
 /// Errors include alias conflicts, malformed files, invalid profiles and, when
 /// checking, unsupported runtime configuration.
 pub fn merged_configuration_from(
-    root: &Utf8Path, profile: Option<&str>, check: bool,
+    root: &Utf8Path,
+    profile: Option<&str>,
+    check: bool,
 ) -> anyhow::Result<Value> {
     let profiles = crate::run_context::configuration_profiles_from(root, profile)?;
     let combined = get_combined_yml(Some(&profiles.join(",")), root)?;
-    anyhow::ensure!(combined.is_object(), "Project configuration must be a mapping");
+    anyhow::ensure!(
+        combined.is_object(),
+        "Project configuration must be a mapping"
+    );
     if check {
         let config: ProjConfig = serde_json::from_value(combined.clone())
             .context("Cannot decode selected runtime configuration")?;
@@ -826,27 +950,40 @@ pub fn merged_configuration_from(
 /// a missing key returns JSON null. Existing runtime validation and parameter
 /// aliases apply. No files, ignore rules, directories or dependencies are changed.
 pub fn parameter_value_from(
-    root: &Utf8Path, profile: Option<&str>, keys: &[String],
+    root: &Utf8Path,
+    profile: Option<&str>,
+    keys: &[String],
 ) -> anyhow::Result<Value> {
     let combined = merged_configuration_from(root, profile, false)?;
-    let config: ProjConfig = serde_json::from_value(combined)
-        .context("Cannot decode selected runtime configuration")?;
+    let config: ProjConfig =
+        serde_json::from_value(combined).context("Cannot decode selected runtime configuration")?;
     let validated = config.validate_and_resolve(root, false)?;
     let keys: Vec<_> = keys.iter().map(String::as_str).collect();
     match get_parameter(&validated, &keys) {
-        Some(value) => serde_json::to_value(value).context("Parameter is not representable as JSON"),
+        Some(value) => {
+            serde_json::to_value(value).context("Parameter is not representable as JSON")
+        }
         None => Ok(Value::Null),
     }
 }
 
 /// Requires a base file or an explicitly active profile configuration before building.
 /// Local overrides and inactive profiles alone do not establish an active configuration.
-pub(crate) fn require_active_configuration_for_profiles(base_dir: &Utf8Path, profiles: &[String]) -> anyhow::Result<()> {
-    if base_configuration_path(base_dir)?.is_some() { return Ok(()); }
-    for profile in profiles {
-        if configuration_entry_exists(&base_dir.join(format!("_projr-{profile}.yml")))? { return Ok(()); }
+pub(crate) fn require_active_configuration_for_profiles(
+    base_dir: &Utf8Path,
+    profiles: &[String],
+) -> anyhow::Result<()> {
+    if base_configuration_path(base_dir)?.is_some() {
+        return Ok(());
     }
-    anyhow::bail!("Build requires active project configuration at the project root: _proj.yml, legacy _projr.yml, or an activated profile file. Create or activate root-level project configuration before building.");
+    for profile in profiles {
+        if configuration_entry_exists(&base_dir.join(format!("_projr-{profile}.yml")))? {
+            return Ok(());
+        }
+    }
+    anyhow::bail!(
+        "Build requires active project configuration at the project root: _proj.yml, legacy _projr.yml, or an activated profile file. Create or activate root-level project configuration before building."
+    );
 }
 
 /// Reads, merges and validates configuration without modifying the filesystem.
@@ -948,64 +1085,109 @@ pub fn yml_get() -> String {
 }
 
 fn normalize_r_data_layer(value: &mut Value, file: &Utf8Path) -> anyhow::Result<()> {
-    let legacy = file.file_name().is_some_and(|name| name == "_projr.yml" || (name.starts_with("_projr-") && name.ends_with(".yml")));
+    let legacy = file.file_name().is_some_and(|name| {
+        name == "_projr.yml" || (name.starts_with("_projr-") && name.ends_with(".yml"))
+    });
     if let Some(directories) = value.get_mut("directories").and_then(Value::as_object_mut) {
-        let aliases: Vec<_> = directories.keys().filter(|label| label.eq_ignore_ascii_case("data") || label.eq_ignore_ascii_case("output-r-data")).cloned().collect();
-        anyhow::ensure!(aliases.len() <= 1, "Conflicting data/output-r-data declarations in {file}");
+        let aliases: Vec<_> = directories
+            .keys()
+            .filter(|label| {
+                label.eq_ignore_ascii_case("data") || label.eq_ignore_ascii_case("output-r-data")
+            })
+            .cloned()
+            .collect();
+        anyhow::ensure!(
+            aliases.len() <= 1,
+            "Conflicting data/output-r-data declarations in {file}"
+        );
         if let Some(label) = aliases.first() {
-            anyhow::ensure!(legacy || !label.eq_ignore_ascii_case("data"), "Use output-r-data in _proj.yml; data is an R-package alias only in legacy _projr files");
-            let mut directory = directories.get(label).unwrap().as_object().context("output-r-data declaration must be a mapping")?.clone();
+            anyhow::ensure!(
+                legacy || !label.eq_ignore_ascii_case("data"),
+                "Use output-r-data in _proj.yml; data is an R-package alias only in legacy _projr files"
+            );
+            let mut directory = directories
+                .get(label)
+                .unwrap()
+                .as_object()
+                .context("output-r-data declaration must be a mapping")?
+                .clone();
             if let Some(path) = directory.get("path") {
-                let path = path.as_str().context("output-r-data path must be a string when present")?;
+                let path = path
+                    .as_str()
+                    .context("output-r-data path must be a string when present")?;
                 let root = file.parent().context("Configuration has no project root")?;
-                anyhow::ensure!(crate::path_safety::resolve_path(make_absolute(root, Utf8Path::new(path)).as_std_path(), true)?
-                    == crate::path_safety::resolve_path(root.join("data").as_std_path(), true)?,
-                    "output-r-data has fixed final destination <project>/data in {file}");
+                anyhow::ensure!(
+                    crate::path_safety::resolve_path(
+                        make_absolute(root, Utf8Path::new(path)).as_std_path(),
+                        true
+                    )? == crate::path_safety::resolve_path(root.join("data").as_std_path(), true)?,
+                    "output-r-data has fixed final destination <project>/data in {file}"
+                );
             }
             directory.insert("path".to_owned(), Value::String("data".to_owned()));
             let original = std::mem::take(directories);
             for (key, entry) in original {
-                if &key == label { directories.insert("output-r-data".to_owned(), Value::Object(directory.clone())); }
-                else { directories.insert(key, entry); }
-            }
-        }
-    }
-    if legacy {
-        if let Some(remotes) = value.get_mut("remotes").and_then(|value| value.get_mut("local")).and_then(Value::as_object_mut) {
-            for remote in remotes.values_mut() {
-                if let Some(content) = remote.get_mut("content").and_then(Value::as_array_mut) {
-                    for label in content {
-                        if label.as_str().is_some_and(|label| label.eq_ignore_ascii_case("data")) { *label = Value::String("output-r-data".to_owned()); }
-                    }
+                if &key == label {
+                    directories
+                        .insert("output-r-data".to_owned(), Value::Object(directory.clone()));
+                } else {
+                    directories.insert(key, entry);
                 }
             }
         }
     }
     if legacy {
-        fn remote_labels(remote:&mut Value) {
-            for key in ["content","source"] {
-                if let Some(labels)=remote.get_mut(key).and_then(Value::as_array_mut) {
-                    for label in labels {
-                        if label.as_str().is_some_and(|v|v.eq_ignore_ascii_case("data")) {
-                            *label=Value::String("output-r-data".into());
+        if let Some(remotes) = value
+            .get_mut("remotes")
+            .and_then(|value| value.get_mut("local"))
+            .and_then(Value::as_object_mut)
+        {
+            for remote in remotes.values_mut() {
+                if let Some(content) = remote.get_mut("content").and_then(Value::as_array_mut) {
+                    for label in content {
+                        if label
+                            .as_str()
+                            .is_some_and(|label| label.eq_ignore_ascii_case("data"))
+                        {
+                            *label = Value::String("output-r-data".to_owned());
                         }
                     }
                 }
             }
         }
-        if let Some(build)=value.get_mut("build").and_then(Value::as_object_mut) {
-            for provider in ["local","github"] {
-                if let Some(remotes)=build.get_mut(provider).and_then(Value::as_object_mut) {
-                    for remote in remotes.values_mut() {remote_labels(remote);}
+    }
+    if legacy {
+        fn remote_labels(remote: &mut Value) {
+            for key in ["content", "source"] {
+                if let Some(labels) = remote.get_mut(key).and_then(Value::as_array_mut) {
+                    for label in labels {
+                        if label
+                            .as_str()
+                            .is_some_and(|v| v.eq_ignore_ascii_case("data"))
+                        {
+                            *label = Value::String("output-r-data".into());
+                        }
+                    }
                 }
             }
         }
-        if let Some(directories)=value.get_mut("directories").and_then(Value::as_object_mut) {
+        if let Some(build) = value.get_mut("build").and_then(Value::as_object_mut) {
+            for provider in ["local", "github"] {
+                if let Some(remotes) = build.get_mut(provider).and_then(Value::as_object_mut) {
+                    for remote in remotes.values_mut() {
+                        remote_labels(remote);
+                    }
+                }
+            }
+        }
+        if let Some(directories) = value.get_mut("directories").and_then(Value::as_object_mut) {
             for directory in directories.values_mut() {
-                if let Some(sources)=directory.get_mut("source").and_then(Value::as_object_mut) {
+                if let Some(sources) = directory.get_mut("source").and_then(Value::as_object_mut) {
                     for provider in sources.values_mut() {
-                        if let Some(remotes)=provider.as_object_mut() {
-                            for remote in remotes.values_mut() {remote_labels(remote);}
+                        if let Some(remotes) = provider.as_object_mut() {
+                            for remote in remotes.values_mut() {
+                                remote_labels(remote);
+                            }
                         }
                     }
                 }

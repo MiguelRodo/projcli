@@ -53,8 +53,8 @@ Callbacks retain their original results.}
 \description{Thin calls to the standalone CLI for a documented subset. No renderer,
 YAML, version parser, Git workflow or dependency installer is duplicated in R.}
 \details{
-CLI build/version wrappers reject DESCRIPTION projects because legacy authority
-may be DESCRIPTION while Rust owns VERSION. Bookdown builds with _bookdown.yml
+CLI build/version wrappers use VERSION authority and synchronize an existing
+DESCRIPTION Version by default; settings.sync-description-version can disable this. Bookdown builds with _bookdown.yml
 require explicit existing R callbacks: legacy render_book and the CLI site driver
 are different. Direct proj_cli still exposes its documented core capabilities.
 Arbitrary renderer objects, ad-hoc dev files, dev bump and prior-cache removal are

@@ -895,3 +895,26 @@ Both are included in preview.5 and completed a
 That bounded test does not establish full projr compatibility or savings for your
 data. Neither backend automatically finds missing project records or deletes
 older exports.
+
+## VERSION and DESCRIPTION synchronization (source candidate)
+
+VERSION remains the version authority. By default, writing it also updates only the
+Version field of an existing DESCRIPTION. Other fields, continuation text and line
+endings are preserved. No DESCRIPTION is created by a build or version update.
+
+~~~yaml
+settings:
+  sync-description-version: true
+~~~
+
+Set false to leave DESCRIPTION untouched. Active profile/local layers apply normally;
+null, strings and numbers are rejected for this switch. If the two versions differ,
+the command explains that VERSION wins. Previews report the mismatch without changing
+either file. Production release and next-development writes synchronize both, and
+pre-distribution failure restores their exact prior bytes, including dev counters.
+Duplicate/continued Version fields or invalid DESCRIPTION field syntax fail before hooks.
+Two file replacements are recoverable on ordinary errors, not crash-atomic.
+
+Named R build/version helpers accept these projects under this VERSION-authoritative
+contract; an explicit legacy backend retains its original authority rules. Bookdown
+and arbitrary legacy arguments remain separate unsupported mappings.

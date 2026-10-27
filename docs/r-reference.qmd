@@ -59,7 +59,8 @@ A production build can modify managed outputs and publish configured destination
 The supported preview controls are file=NULL, bump=FALSE, old_dev_remove=FALSE and
 empty args_engine. Arbitrary renderer objects, old archive switches and implicit
 production bump require an explicit existing R callback, not guessed translation.
-DESCRIPTION projects and Bookdown markers are rejected by these named wrappers;
+VERSION is authoritative; existing DESCRIPTION versions are synchronized by default.
+Bookdown markers remain rejected by the named build wrappers;
 generic proj_cli exposes documented CLI behavior. Help topic:
 help("projr_build", package="projcli").
 
@@ -74,7 +75,8 @@ help("projr_build", package="projcli").
 The common backend/project/binary/env/timeout controls apply. Path lookup never
 creates folders; create=TRUE and legacy code/data special lookups need an existing
 R callback. safe=FALSE selects the final configured location. VERSION helpers do
-not synchronize DESCRIPTION. Help topic: help("projr_build", package="projcli").
+synchronize an existing DESCRIPTION by default (settings.sync-description-version).
+This source candidate does not create DESCRIPTION. Help topic: help("projr_build", package="projcli").
 
 ## Dependencies {#dependencies}
 

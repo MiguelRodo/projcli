@@ -45,3 +45,10 @@ When using `--format=json`, the output consists of the separated standard semant
 - `minor` (integer)
 - `patch` (integer)
 - `dev` (integer, optional, indicating build cycles or pre-release versioning)
+
+
+## Existing DESCRIPTION metadata
+
+In this source candidate, VERSION writes also synchronize the Version field of an
+existing DESCRIPTION by default. No DESCRIPTION is created. Disable with
+settings.sync-description-version: false. See the [policy and preservation limits](../configuration.qmd#version-and-description-synchronization-source-candidate).

@@ -992,7 +992,7 @@ execution is deliberately in the caller's R session, not a promised clean child.
 Draft R build/dev/path/version helpers delegate to the existing workflow and
 require explicit legacy callbacks where semantics differ. Read-only path lookup
 uses format and safe; it never activates folder creation. High-level VERSION
-helpers reject DESCRIPTION projects, and high-level build helpers reject Bookdown
+helpers use VERSION authority and default DESCRIPTION synchronization; high-level build helpers still reject Bookdown
 markers rather than equating render_book with render_site. Generic proj_cli still
 exposes the documented standalone CLI. This does not change renderer/hook ordering.
 
@@ -1014,3 +1014,12 @@ general initialization parity are excluded.
 Experimental GitHub Xet candidate uses trusted Git project locators, the same local engine, immutable complete-store ZIPs, and independent verification before project references and optional Git publication. Existing provider lifecycle ordering is preserved. No remote-only discovery or distributed latest-head guarantee. Tests pending.
 
 Configured complete-store GitHub CAS candidate follows the same verified immutable-export-before-project-locators/Git boundary as Xet. It uses file-level CAS with no helper. Explicit new-backend style and auto/remote metadata placement only are currently supported; no implicit intersection default, migration, remote-only discovery or distributed head. Ordinary latest/archive and local CAS semantics remain unchanged.
+
+## VERSION-authoritative DESCRIPTION synchronization (source candidate)
+
+VERSION remains authoritative. settings.sync-description-version defaults true:
+update an existing DESCRIPTION Version on release/dev/set writes, never create it.
+Preserve other bytes and exact pre-distribution recovery. Previews do not synchronize.
+Malformed/multi-record metadata fails before hooks. Named R helpers support this
+explicit core policy; legacy callbacks retain their original authority.
+See [configuration](configuration.qmd#version-and-description-synchronization-source-candidate).

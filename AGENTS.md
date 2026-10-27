@@ -802,3 +802,13 @@ Complete CAS GitHub transport is separate from ordinary archive ZIPs and Xet. Re
 Configured complete-CAS-store GitHub uses existing file CAS readers/writers, not Xet. Preserve old snapshot kinds and selected style on new writes. Explicit style required while prior GitHub/CAS default intersection is unsettled. No silent metadata placement fallback: auto/remote only initially. Verify immutable downloadable ZIP before Git-authoritative locators; hold Import owner through recovery. Cross-provider tag normalization must retain ordinary literal title semantics. No distributed head/multiple-project store redesign.
 
 User-required changed-source quality: use rustfmt/Clippy and Air/lintr for maintained PR changes. Read docs/development-quality.qmd. Never format untouched modules or original projr; CI must not commit/push contributor edits. Use merge-base NUL-separated paths, safe argument arrays, explicit no-file skips, pinned tools and secret-free read-only fork jobs. Clippy analyzes workspace/all targets with a visible baseline; current-head errors and new diagnostics block; unchanged baseline warnings remain visible, including in formatted files. Verify exact artifact run/head/path scope before applying remote formatting patches. Formatting success does not replace backend acceptance.
+
+## Approved VERSION authority extension (overnight 26 October)
+
+Latest user decision supersedes the DESCRIPTION rejection boundary: VERSION is
+authoritative; synchronize existing DESCRIPTION by default under
+settings.sync-description-version. No implicit DESCRIPTION creation. Freeze the
+policy before hooks, preserve exact previous bytes/counters on recoverable failure,
+and admit dirty DESCRIPTION for consecutive Git builds only with exact committed
+and framework-created development-byte evidence. Keep Bookdown's explicit boundary.
+Do not merge, release or update installed tools for this overnight candidate.

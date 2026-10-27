@@ -4037,3 +4037,36 @@ Final dark screenshot review found fixed-light-palette lifecycle connectors on a
 dark transparent SVG canvas. Keep those thirteen existing diagrams on an explicit
 light canvas in dark mode; do not change stage ordering or re-encode the diagrams.
 The browser checks the rendered canvas and retains light/dark screenshots.
+
+## VERSION-authoritative DESCRIPTION updates (overnight candidate)
+
+Approved user deviation from original projr: VERSION is the default authority, and
+an existing DESCRIPTION Version follows it unless settings.sync-description-version
+is false. No metadata file or package scaffold is implicitly created. Original
+projr version helpers may use DESCRIPTION as authority; explicit callbacks preserve
+that behavior. The original candidate was checked against ea323355; the currently installed
+preview.5 remains unchanged by this unmerged draft.
+
+Ponytail: extend the shared version writer, existing bounded BuildState recovery and
+exact Git dev-transition witness; do not add a second version engine. Atomic
+same-directory replacement preserves hard-link aliases. Existing metadata other
+than Version remains byte-identical. The Git witness binds both committed and
+expected development DESCRIPTION bytes by digest and still rejects arbitrary edits.
+Local capped verification passed: seven synchronization tests, eighteen real-Git tests (two subprocess entrypoints ignored), existing fourteen recovery and ten housekeeping tests, native R wrapper execution and the documented preview/full-build example. Independent review found and fixed orphan/multi-record DCF handling, Git CRLF normalization and stale installed help. Final exact-head remote checks remain pending.
+
+Native CI exposed roxygen's valid Config/roxygen2/version DCF field after documentation. Field-name validation now accepts nonwhitespace/noncontrol names (including slash), preserving actual native extension fields. Added a byte-preservation regression and bounded native-fixture error tail; assertions unchanged. The seven sync regressions and native R housekeeping gate passed locally after this fix; independent source delta cleared. Final exact-head remote gates pending.
+
+
+### PR232 integration with current main (27 October)
+
+The original reviewed draft heads are preserved. Current main9592d1d, including
+verified CAS/Xet publication and the public researcher website, is integrated into
+this candidate. Reapply only the VERSION/DESCRIPTION policy at existing version
+write and Git-development-transition points; preserve the newer storage stages and
+R housekeeping preflight. Named R wrapper tests exercise DESCRIPTION projects;
+Bookdown and arbitrary legacy callbacks retain their explicit boundaries.
+
+Ponytail full review: extend the existing writer and bounded recovery, rather than
+adding a second version engine. Remote native/R acceptance, rustfmt/Air formatting,
+Clippy/lintr and renewed independent review are pending on this integrated head.
+No original projr, installed tool or public release is changed.

@@ -70,3 +70,18 @@ integration job runs Clippy on that actual binary target too, records diagnostic
 and rejects helper warnings or target compilation failures. The proj workspace
 check alone does not cover an injected external-workspace source file. Upstream
 warnings outside our helper remain upstream findings, not edits to preserved code.
+
+
+### R package context and formatter agreement
+
+When changed sources belong to the R frontend, quality CI installs that candidate
+package into its isolated tool library before linting. Its existing Imports must
+already be available; no user library, old installed projcli, or optional Suggests
+are updated. This follows [lintr's package-context requirement](https://lintr.r-lib.org/articles/lintr.html).
+A positive/negative probe checks that real private helpers resolve and a misspelled
+helper still produces a finding. Object-usage checking stays enabled.
+
+Air owns indentation. lintr's competing indentation rule is disabled because its
+hanging-indent convention disagrees with Air; the separate pinned Air check still
+blocks indentation changes. Other default lint rules, including line length,
+remain active. Long messages are split without changing their text.
