@@ -3863,3 +3863,8 @@ xet-references namespace, not just the shared CAS namespace, with a Unix symlink
 regression requiring failure before helper/hooks/store entry. Native Windows R
 CI's first attempt hit HTTPS timeout fetching its unchanged pinned renv source;
 only the failed job was retried without changing dependency checks.
+
+Initial native suite40475371837 passed Linux/macOS; Windows rejected an unused
+Unix-only fixture helper under strict warnings. The helper is now cfg(unix),
+without lint suppression. R adapter40475309335 passed after retrying only its
+Windows pinned-dependency HTTPS timeout. New final-head tests remain required.

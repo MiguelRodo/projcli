@@ -147,6 +147,7 @@ fn unsafe_second_store_fails_preflight_before_any_first_store_publication_or_hoo
     assert!(!root.join(".proj/remotes").exists());
 }
 
+#[cfg(unix)]
 fn tree(root:&Path)->std::collections::BTreeMap<PathBuf,Option<Vec<u8>>> {
     fn visit(root:&Path,path:&Path,result:&mut std::collections::BTreeMap<PathBuf,Option<Vec<u8>>>) {
         for entry in fs::read_dir(path).unwrap() {
