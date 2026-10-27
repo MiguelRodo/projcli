@@ -334,18 +334,22 @@ pub fn build_project_with_policies(
 
         // Pre-flight Environment Verification
         let mut resolved_files = Vec::new();
-    if let Some(scripts) = &build_scripts {
-        resolved_files = crate::script_selection::resolve(project_root, scripts, &config)?;
-    } else {
-        if !quarto_exists && !bookdown_exists {
+        if let Some(scripts) = &build_scripts {
+            resolved_files = crate::script_selection::resolve(project_root, scripts, &config)?;
+        } else {
+            if !quarto_exists && !bookdown_exists {
                 resolved_files = resolve_fallback_scripts(project_root)?;
+            }
         }
-    }
 
-    if is_dev {
-        eprintln!("Selected analysis scripts (include order; project documents render together):");
-        for file in &resolved_files {eprintln!("  {}",file.strip_prefix(project_root).unwrap_or(file));}
-    }
+        if is_dev {
+            eprintln!(
+                "Selected analysis scripts (include order; project documents render together):"
+            );
+            for file in &resolved_files {
+                eprintln!("  {}", file.strip_prefix(project_root).unwrap_or(file));
+            }
+        }
 
         // Upfront check for hooks
         let resolved_hooks = resolve_explicit_scripts(project_root, &raw_hooks)?;
@@ -391,13 +395,18 @@ pub fn build_project_with_policies(
             Ok(())
         };
 
-    check_explicit_missing(&raw_hooks)?;
+        check_explicit_missing(&raw_hooks)?;
 
         // An explicit empty list selects no analysis; it never enables discovery or
-    // renderer setup. Hooks are still validated and executed independently.
-    let run_analysis = build_scripts.as_ref().map_or(true, |_| !resolved_files.is_empty());
-    let selected_documents = build_scripts.is_none() || resolved_files.iter().any(|file| matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")));
-    let quarto_exists = quarto_exists && run_analysis && selected_documents;
+        // renderer setup. Hooks are still validated and executed independently.
+        let run_analysis = build_scripts
+            .as_ref()
+            .is_none_or(|_| !resolved_files.is_empty());
+        let selected_documents = build_scripts.is_none()
+            || resolved_files
+                .iter()
+                .any(|file| matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")));
+        let quarto_exists = quarto_exists && run_analysis && selected_documents;
         let bookdown_exists = bookdown_exists && run_analysis && selected_documents;
         if bookdown_exists && execution == ExecutionDirectory::Project {
             anyhow::bail!(
@@ -452,26 +461,50 @@ pub fn build_project_with_policies(
         }
         if has_document_analysis && !quarto_exists && !bookdown_exists {
             let docs = config.get_path(project_root, "docs")?;
-        for file in &validation_files {
-            if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) { document_output_paths(file, &crate::script_selection::document_directory(project_root,file,&docs,&config)?, project_root)?; }
-        }
-    }
-
-    // Distinct inputs must not silently overwrite a shared final file or asset tree.
-    if has_document_analysis && !quarto_exists && !bookdown_exists {
-        let mut destinations:Vec<camino::Utf8PathBuf>=Vec::new();
-        for file in &resolved_files {
-            if !matches!(file.extension(),Some("qmd"|"Rmd"|"rmd")) {continue;}
-            let docs=crate::script_selection::document_directory(project_root,file,&config.get_path(project_root,"docs")?,&config)?;
-            let plan=document_output_paths(file,&docs,project_root)?;
-            for target in [&plan.destination,&plan.destination_assets] {
-                let identity=crate::path_safety::resolve_path(target.as_std_path(),true)?;
-                let identity=camino::Utf8PathBuf::from_path_buf(identity).map_err(|_|anyhow::anyhow!("Output path must be UTF-8"))?;
-                anyhow::ensure!(!destinations.iter().any(|previous|crate::path_safety::portable_paths_overlap(previous,&identity)),"Selected documents collide at final output: {target}");
-                destinations.push(identity);
+            for file in &validation_files {
+                if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) {
+                    document_output_paths(
+                        file,
+                        &crate::script_selection::document_directory(
+                            project_root,
+                            file,
+                            &docs,
+                            &config,
+                        )?,
+                        project_root,
+                    )?;
+                }
             }
         }
-    }
+
+        // Distinct inputs must not silently overwrite a shared final file or asset tree.
+        if has_document_analysis && !quarto_exists && !bookdown_exists {
+            let mut destinations: Vec<camino::Utf8PathBuf> = Vec::new();
+            for file in &resolved_files {
+                if !matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) {
+                    continue;
+                }
+                let docs = crate::script_selection::document_directory(
+                    project_root,
+                    file,
+                    &config.get_path(project_root, "docs")?,
+                    &config,
+                )?;
+                let plan = document_output_paths(file, &docs, project_root)?;
+                for target in [&plan.destination, &plan.destination_assets] {
+                    let identity = crate::path_safety::resolve_path(target.as_std_path(), true)?;
+                    let identity = camino::Utf8PathBuf::from_path_buf(identity)
+                        .map_err(|_| anyhow::anyhow!("Output path must be UTF-8"))?;
+                    anyhow::ensure!(
+                        !destinations.iter().any(|previous| {
+                            crate::path_safety::portable_paths_overlap(previous, &identity)
+                        }),
+                        "Selected documents collide at final output: {target}"
+                    );
+                    destinations.push(identity);
+                }
+            }
+        }
 
         let r_actions = if is_dev {
             crate::yml::RBuildConfig::default()
@@ -603,10 +636,20 @@ pub fn build_project_with_policies(
                     crate::path_safety::validate_project_source_overlap(project_root, &config)?;
                 } else {
                     for file in &resolved_files {
-                    if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) {
-                        let outputs = document_output_paths(file, &crate::script_selection::document_directory(project_root,file,&config.get_path(project_root,"docs")?,&config)?, project_root)?;
-                        for input in &validation_files {
-                            let identity = crate::path_safety::resolve_path(input.as_std_path(), false)?;
+                        if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) {
+                            let outputs = document_output_paths(
+                                file,
+                                &crate::script_selection::document_directory(
+                                    project_root,
+                                    file,
+                                    &config.get_path(project_root, "docs")?,
+                                    &config,
+                                )?,
+                                project_root,
+                            )?;
+                            for input in &validation_files {
+                                let identity =
+                                    crate::path_safety::resolve_path(input.as_std_path(), false)?;
                                 for target in [
                                     &outputs.target,
                                     &outputs.destination,
@@ -750,10 +793,24 @@ pub fn build_project_with_policies(
         if has_document_analysis && !quarto_exists && !bookdown_exists {
             let docs = config.get_path(project_root, "docs")?;
             for file in &resolved_files {
-            if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) {
-                let paths = document_output_paths(file, &crate::script_selection::document_directory(project_root,file,&docs,&config)?, project_root)?;
-                native_layouts.push((file.clone(), paths.target.clone(), paths.assets.clone(), paths.intermediate.clone()));
-                if let Some(intermediate) = &paths.intermediate {
+                if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) {
+                    let paths = document_output_paths(
+                        file,
+                        &crate::script_selection::document_directory(
+                            project_root,
+                            file,
+                            &docs,
+                            &config,
+                        )?,
+                        project_root,
+                    )?;
+                    native_layouts.push((
+                        file.clone(),
+                        paths.target.clone(),
+                        paths.assets.clone(),
+                        paths.intermediate.clone(),
+                    ));
+                    if let Some(intermediate) = &paths.intermediate {
                         native_artifacts.push(intermediate.clone().into_std_path_buf());
                         managed.push(intermediate.clone().into_std_path_buf());
                     }
@@ -879,10 +936,25 @@ pub fn build_project_with_policies(
                         }
                     }
                 }
-        for (file, expected_target, expected_assets, expected_intermediate) in &native_layouts {
-            let current = document_output_paths(file, &crate::script_selection::document_directory(project_root,file,&config.get_path(project_root,"docs")?,&config)?, project_root)?;
-            anyhow::ensure!(&current.target == expected_target && &current.assets == expected_assets && &current.intermediate == expected_intermediate,
-                "Renderer output layout changed after preflight: {file}");
+                for (file, expected_target, expected_assets, expected_intermediate) in
+                    &native_layouts
+                {
+                    let current = document_output_paths(
+                        file,
+                        &crate::script_selection::document_directory(
+                            project_root,
+                            file,
+                            &config.get_path(project_root, "docs")?,
+                            &config,
+                        )?,
+                        project_root,
+                    )?;
+                    anyhow::ensure!(
+                        &current.target == expected_target
+                            && &current.assets == expected_assets
+                            && &current.intermediate == expected_intermediate,
+                        "Renderer output layout changed after preflight: {file}"
+                    );
                 }
                 if let Some(expected) = &frozen_book_assets {
                     anyhow::ensure!(
@@ -894,10 +966,14 @@ pub fn build_project_with_policies(
                         "Bookdown output layout changed after preflight"
                     );
                 }
-        if !is_dev {
-            crate::ignore::update_ignores_for_generated(project_root, &config, &native_artifacts)?;
-        }
-        if has_document_analysis {
+                if !is_dev {
+                    crate::ignore::update_ignores_for_generated(
+                        project_root,
+                        &config,
+                        &native_artifacts,
+                    )?;
+                }
+                if has_document_analysis {
                     let cache = cache_root
                         .as_ref()
                         .context("Document rendering requires cache")?;
@@ -905,16 +981,45 @@ pub fn build_project_with_policies(
                     let versioned_cache = cache.join("projr").join(initial_version.cache_key());
                     crate::path_safety::resolve_path(versioned_cache.as_std_path(), true)?;
                     fs::create_dir_all(&versioned_cache)?;
-                    document_stage = Some(tempfile::Builder::new().prefix(".proj-render-").tempdir_in(&versioned_cache)?);
-            let staging = camino::Utf8Path::from_path(document_stage.as_ref().unwrap().path()).context("Render staging path must be UTF-8")?;
-            if quarto_exists {
-                let excluded=config.directories.keys().filter(|label|label.to_ascii_lowercase().starts_with("cache")||crate::paths::is_managed_output(label))
-                    .map(|label|config.get_path(project_root,label)).collect::<anyhow::Result<Vec<_>>>()?;
-                rewrite_engine_output_dir(project_root.as_std_path(), "quarto", staging.as_str(), &excluded)?;
-            }
-            if bookdown_exists { rewrite_engine_output_dir(project_root.as_std_path(), "bookdown", staging.as_str(), &[])?; }
-        }
-        let selected_documents: Vec<_> = resolved_files.iter().filter(|file| matches!(file.extension(), Some("qmd" | "Rmd" | "rmd"))).cloned().collect();
+                    document_stage = Some(
+                        tempfile::Builder::new()
+                            .prefix(".proj-render-")
+                            .tempdir_in(&versioned_cache)?,
+                    );
+                    let staging =
+                        camino::Utf8Path::from_path(document_stage.as_ref().unwrap().path())
+                            .context("Render staging path must be UTF-8")?;
+                    if quarto_exists {
+                        let excluded = config
+                            .directories
+                            .keys()
+                            .filter(|label| {
+                                label.to_ascii_lowercase().starts_with("cache")
+                                    || crate::paths::is_managed_output(label)
+                            })
+                            .map(|label| config.get_path(project_root, label))
+                            .collect::<anyhow::Result<Vec<_>>>()?;
+                        rewrite_engine_output_dir(
+                            project_root.as_std_path(),
+                            "quarto",
+                            staging.as_str(),
+                            &excluded,
+                        )?;
+                    }
+                    if bookdown_exists {
+                        rewrite_engine_output_dir(
+                            project_root.as_std_path(),
+                            "bookdown",
+                            staging.as_str(),
+                            &[],
+                        )?;
+                    }
+                }
+                let selected_documents: Vec<_> = resolved_files
+                    .iter()
+                    .filter(|file| matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")))
+                    .cloned()
+                    .collect();
                 if build_scripts.is_some() && !selected_documents.is_empty() {
                     if quarto_exists {
                         rewrite_quarto_yml(project_root.as_std_path(), &selected_documents)?;
@@ -949,11 +1054,27 @@ pub fn build_project_with_policies(
                                 "Quarto project identity changed after individual-render preflight"
                             );
                         }
-                        let (_, target, assets, intermediate) = native_layouts.iter().find(|(input, _, _, _)| input == file)
-                    .context("Missing frozen document layout")?;
-                let current = document_output_paths(file, &crate::script_selection::document_directory(project_root,file,&config.get_path(project_root,"docs")?,&config)?, project_root)?;
-                anyhow::ensure!(&current.target == target && &current.assets == assets && &current.intermediate == intermediate, "Renderer output layout changed after preflight: {file}");
-                remove_native_artifact(target)?;
+                        let (_, target, assets, intermediate) = native_layouts
+                            .iter()
+                            .find(|(input, _, _, _)| input == file)
+                            .context("Missing frozen document layout")?;
+                        let current = document_output_paths(
+                            file,
+                            &crate::script_selection::document_directory(
+                                project_root,
+                                file,
+                                &config.get_path(project_root, "docs")?,
+                                &config,
+                            )?,
+                            project_root,
+                        )?;
+                        anyhow::ensure!(
+                            &current.target == target
+                                && &current.assets == assets
+                                && &current.intermediate == intermediate,
+                            "Renderer output layout changed after preflight: {file}"
+                        );
+                        remove_native_artifact(target)?;
                         remove_native_artifact(assets)?;
                         if let Some(intermediate) = intermediate {
                             remove_native_artifact(intermediate)?;
@@ -1046,12 +1167,22 @@ pub fn build_project_with_policies(
                             .context("Render staging path must be UTF-8")?;
                     if !quarto_exists && !bookdown_exists {
                         for file in &resolved_files {
-                    if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) { let (_, target, assets, _) = native_layouts.iter().find(|(input, _, _, _)| input == file).context("Missing frozen document collection layout")?;
-                        let destination=crate::script_selection::document_directory(project_root,file,staging,&config)?;
-                        fs::create_dir_all(&destination)?;
-                        stage_frozen_document(target, assets, &destination)?; }
-                }
-            } else if bookdown_exists {
+                            if matches!(file.extension(), Some("qmd" | "Rmd" | "rmd")) {
+                                let (_, target, assets, _) = native_layouts
+                                    .iter()
+                                    .find(|(input, _, _, _)| input == file)
+                                    .context("Missing frozen document collection layout")?;
+                                let destination = crate::script_selection::document_directory(
+                                    project_root,
+                                    file,
+                                    staging,
+                                    &config,
+                                )?;
+                                fs::create_dir_all(&destination)?;
+                                stage_frozen_document(target, assets, &destination)?;
+                            }
+                        }
+                    } else if bookdown_exists {
                         let assets = frozen_book_assets
                             .as_ref()
                             .context("Missing frozen Bookdown assets")?;
@@ -1836,12 +1967,21 @@ fn rewrite_quarto_yml(
     }
 
     let out_content = serde_yaml::to_string(&yaml).context("Failed to serialize _quarto.yml")?;
-    crate::fs_utils::replace_managed_file(camino::Utf8Path::from_path(&quarto_path).context("Quarto path must be UTF-8")?, out_content).context("Failed to write _quarto.yml")?;
+    crate::fs_utils::replace_managed_file(
+        camino::Utf8Path::from_path(&quarto_path).context("Quarto path must be UTF-8")?,
+        out_content,
+    )
+    .context("Failed to write _quarto.yml")?;
     Ok(())
 }
 
 /// Dynamically rewrites the output directory for external engines (`_quarto.yml` or `_bookdown.yml`).
-pub(crate) fn rewrite_engine_output_dir(project_root: &Path, engine: &str, out_dir: &str, excluded_resources: &[camino::Utf8PathBuf]) -> anyhow::Result<()> {
+pub(crate) fn rewrite_engine_output_dir(
+    project_root: &Path,
+    engine: &str,
+    out_dir: &str,
+    excluded_resources: &[camino::Utf8PathBuf],
+) -> anyhow::Result<()> {
     if engine == "quarto" {
         let quarto_path = project_root.join("_quarto.yml");
         if !quarto_path.exists() {
@@ -1868,50 +2008,112 @@ pub(crate) fn rewrite_engine_output_dir(project_root: &Path, engine: &str, out_d
 
             if let Some(serde_yaml::Value::Mapping(proj_map)) = map.get_mut(&proj_key) {
                 let out_dir_key = serde_yaml::Value::String("output-dir".to_string());
-                let root=camino::Utf8Path::from_path(project_root).context("Quarto root must be UTF-8")?;
-                let mut excluded=excluded_resources.to_vec();
-                excluded.extend([root.join(".proj"),root.join(".projr")]);
-                let native=proj_map.get(&out_dir_key).and_then(serde_yaml::Value::as_str).or_else(||{
-                    match proj_map.get(&serde_yaml::Value::String("type".to_owned())).and_then(serde_yaml::Value::as_str) {
-                        Some("website")=>Some("_site"),Some("book")=>Some("_book"),_=>None
+                let root = camino::Utf8Path::from_path(project_root)
+                    .context("Quarto root must be UTF-8")?;
+                let mut excluded = excluded_resources.to_vec();
+                excluded.extend([root.join(".proj"), root.join(".projr")]);
+                let native = proj_map
+                    .get(&out_dir_key)
+                    .and_then(serde_yaml::Value::as_str)
+                    .or_else(|| {
+                        match proj_map
+                            .get(serde_yaml::Value::String("type".to_owned()))
+                            .and_then(serde_yaml::Value::as_str)
+                        {
+                            Some("website") => Some("_site"),
+                            Some("book") => Some("_book"),
+                            _ => None,
+                        }
+                    });
+                if let Some(native) = native {
+                    excluded.push(root.join(native));
+                }
+                let resources_key = serde_yaml::Value::String("resources".to_owned());
+                let mut resources = match proj_map.remove(&resources_key) {
+                    None | Some(serde_yaml::Value::Null) => Vec::new(),
+                    Some(serde_yaml::Value::String(value)) => {
+                        vec![serde_yaml::Value::String(value)]
                     }
-                });
-                if let Some(native)=native {excluded.push(root.join(native));}
-                let resources_key=serde_yaml::Value::String("resources".to_owned());
-                let mut resources=match proj_map.remove(&resources_key) {
-                    None|Some(serde_yaml::Value::Null)=>Vec::new(),
-                    Some(serde_yaml::Value::String(value))=>vec![serde_yaml::Value::String(value)],
-                    Some(serde_yaml::Value::Sequence(values))=>values,
-                    _=>anyhow::bail!("Quarto project.resources must be a path string or list"),
+                    Some(serde_yaml::Value::Sequence(values)) => values,
+                    _ => anyhow::bail!("Quarto project.resources must be a path string or list"),
                 };
-                anyhow::ensure!(resources.iter().all(|value|value.is_string()),"Quarto project.resources entries must be strings");
+                anyhow::ensure!(
+                    resources.iter().all(|value| value.is_string()),
+                    "Quarto project.resources entries must be strings"
+                );
                 for directory in excluded {
-                    let directory=camino::Utf8PathBuf::from_path_buf(crate::path_safety::resolve_path(directory.as_std_path(),true)?)
-                        .map_err(|_|anyhow::anyhow!("Quarto resource path must be UTF-8"))?;
-                    let Ok(relative)=directory.strip_prefix(root) else {continue;};
-                    if relative.as_str().is_empty() {continue;}
+                    let directory = camino::Utf8PathBuf::from_path_buf(
+                        crate::path_safety::resolve_path(directory.as_std_path(), true)?,
+                    )
+                    .map_err(|_| anyhow::anyhow!("Quarto resource path must be UTF-8"))?;
+                    let Ok(relative) = directory.strip_prefix(root) else {
+                        continue;
+                    };
+                    if relative.as_str().is_empty() {
+                        continue;
+                    }
                     // Quarto smart resource globs otherwise match prior copies at every depth.
                     // Deno stats a non-glob prefix literally, without decoding its escapes.
                     // An empty optional extglob consumes no characters but forces escape-aware matching.
-                    let relative=if cfg!(windows){relative.as_str().replace('\\',"/")}else{relative.to_string()};
-                    let escape=if cfg!(windows){char::from(96)}else{'\\'};
-                    let path=relative.split('/').map(|part|{
-                        let quoted=part.chars().flat_map(|c|{
-                            if c==escape||matches!(c,'['|']'|'*'|'?'|'{'|'}'|'('|')'|'+'|'@'|'!'|'|') {vec![escape,c]}else{vec![c]}
-                        }).collect::<String>();
-                        if quoted==part {quoted}else{format!("?(){quoted}")}
-                    }).collect::<Vec<_>>().join("/");
-                    let rule=serde_yaml::Value::String(format!("!/{path}/**"));
-                    if !resources.contains(&rule) {resources.push(rule);}
+                    let relative = if cfg!(windows) {
+                        relative.as_str().replace('\\', "/")
+                    } else {
+                        relative.to_string()
+                    };
+                    let escape = if cfg!(windows) { char::from(96) } else { '\\' };
+                    let path = relative
+                        .split('/')
+                        .map(|part| {
+                            let quoted = part
+                                .chars()
+                                .flat_map(|c| {
+                                    if c == escape
+                                        || matches!(
+                                            c,
+                                            '[' | ']'
+                                                | '*'
+                                                | '?'
+                                                | '{'
+                                                | '}'
+                                                | '('
+                                                | ')'
+                                                | '+'
+                                                | '@'
+                                                | '!'
+                                                | '|'
+                                        )
+                                    {
+                                        vec![escape, c]
+                                    } else {
+                                        vec![c]
+                                    }
+                                })
+                                .collect::<String>();
+                            if quoted == part {
+                                quoted
+                            } else {
+                                format!("?(){quoted}")
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                        .join("/");
+                    let rule = serde_yaml::Value::String(format!("!/{path}/**"));
+                    if !resources.contains(&rule) {
+                        resources.push(rule);
+                    }
                 }
-                proj_map.insert(resources_key,serde_yaml::Value::Sequence(resources));
+                proj_map.insert(resources_key, serde_yaml::Value::Sequence(resources));
                 proj_map.insert(out_dir_key, serde_yaml::Value::String(out_dir.to_string()));
             }
         }
 
-        let out_content = serde_yaml::to_string(&yaml).context("Failed to serialize _quarto.yml")?;
-        crate::fs_utils::replace_managed_file(camino::Utf8Path::from_path(&quarto_path).context("Quarto path must be UTF-8")?, out_content).context("Failed to write _quarto.yml")?;
-
+        let out_content =
+            serde_yaml::to_string(&yaml).context("Failed to serialize _quarto.yml")?;
+        crate::fs_utils::replace_managed_file(
+            camino::Utf8Path::from_path(&quarto_path).context("Quarto path must be UTF-8")?,
+            out_content,
+        )
+        .context("Failed to write _quarto.yml")?;
     } else if engine == "bookdown" {
         let bookdown_path = project_root.join("_bookdown.yml");
         if !bookdown_path.exists() {
@@ -1932,8 +2134,13 @@ pub(crate) fn rewrite_engine_output_dir(project_root: &Path, engine: &str, out_d
             map.insert(out_dir_key, serde_yaml::Value::String(out_dir.to_string()));
         }
 
-        let out_content = serde_yaml::to_string(&yaml).context("Failed to serialize _bookdown.yml")?;
-        crate::fs_utils::replace_managed_file(camino::Utf8Path::from_path(&bookdown_path).context("Bookdown path must be UTF-8")?, out_content).context("Failed to write _bookdown.yml")?;
+        let out_content =
+            serde_yaml::to_string(&yaml).context("Failed to serialize _bookdown.yml")?;
+        crate::fs_utils::replace_managed_file(
+            camino::Utf8Path::from_path(&bookdown_path).context("Bookdown path must be UTF-8")?,
+            out_content,
+        )
+        .context("Failed to write _bookdown.yml")?;
     }
 
     Ok(())
@@ -1970,7 +2177,11 @@ fn rewrite_bookdown_yml(
     }
 
     let out_content = serde_yaml::to_string(&yaml).context("Failed to serialize _bookdown.yml")?;
-    crate::fs_utils::replace_managed_file(camino::Utf8Path::from_path(&bookdown_path).context("Bookdown path must be UTF-8")?, out_content).context("Failed to write _bookdown.yml")?;
+    crate::fs_utils::replace_managed_file(
+        camino::Utf8Path::from_path(&bookdown_path).context("Bookdown path must be UTF-8")?,
+        out_content,
+    )
+    .context("Failed to write _bookdown.yml")?;
     Ok(())
 }
 
