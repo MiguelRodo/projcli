@@ -109,3 +109,38 @@ fn tree(root:&Utf8Path)->std::collections::BTreeMap<String,Option<Vec<u8>>> {
     }
     let mut result=std::collections::BTreeMap::new();visit(root,root,&mut result);result
 }
+
+#[test]
+fn actual_closed_export_fresh_import_preserves_every_version_and_rejects_damage() {
+    let Some(engine)=engine() else{return};
+    let temp=tempfile::tempdir().unwrap();let root=path(temp.path());
+    let project=root.join("project");let source=project.join("raw");let store=root.join("store");
+    fs::create_dir_all(source.join("nested")).unwrap();
+    fs::write(source.join("nested/data.txt"),b"first version bytes").unwrap();
+    fs::create_dir(source.join("empty")).unwrap();
+    let inputs=vec![("raw-data".into(),source.clone())];
+    let first=proj::xet::publish(&project,&store,&inputs,"v1.0.0",&engine).unwrap();
+    fs::write(source.join("nested/data.txt"),b"second version bytes").unwrap();
+    let second=proj::xet::publish(&project,&store,&inputs,"v1.0.1",&engine).unwrap();
+    let before=tree(&store);
+    let export=proj::xet_archive::export(&project,&store,&engine).unwrap();
+    assert_eq!(tree(&store),before,"export must not alter original payload/cache bytes or membership");
+    assert!(export.snapshots.contains(&first)&&export.snapshots.contains(&second));
+    let archive=root.join("portable.zip");fs::copy(export.path(),&archive).unwrap();
+    let hash=export.hash.clone();let length=export.length;
+    drop(export);fs::remove_dir_all(&store).unwrap();fs::remove_dir_all(source).unwrap();
+    let imported=proj::xet_archive::import(&project,&archive,&hash,length,64*1024*1024,&engine).unwrap();
+    assert_eq!(imported.snapshots().len(),2);
+    let restored=project.join("fresh");
+    for (id,expected) in [(&first,b"first version bytes".as_slice()),(&second,b"second version bytes".as_slice())] {
+        proj::xet::restore(&project,imported.path(),id,"raw-data",&restored,true,&engine).unwrap();
+        assert_eq!(fs::read(restored.join("nested/data.txt")).unwrap(),expected);
+        assert!(restored.join("empty").is_dir());
+    }
+    assert!(proj::xet_archive::import(&project,&archive,&hash,length,1,&engine).is_err());
+    assert!(proj::xet_archive::import(&project,&archive,&"0".repeat(64),length,64*1024*1024,&engine).is_err());
+    let mut bytes=fs::read(&archive).unwrap();let offset=bytes.len()/2;bytes[offset]^=0x80;fs::write(&archive,bytes).unwrap();
+    assert!(proj::xet_archive::import(&project,&archive,&hash,length,64*1024*1024,&engine).is_err());
+    assert_eq!(fs::read(restored.join("nested/data.txt")).unwrap(),b"second version bytes");
+    println!("Closed Xet export/import restored every version after original store/source removal; transport corruption and expansion limits rejected.");
+}

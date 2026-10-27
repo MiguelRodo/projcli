@@ -3,7 +3,7 @@ title: "Experimental shared-content storage"
 ---
 
 This unmerged source candidate is **experimental**. Keep independent backups.
-No installed executable or existing store changes. This stacked candidate adds configured local build/restore; its tests are pending.
+No installed executable or existing store changes. Configured local build/restore passed exact-head remote checks and independent review in draft PR #236.
 GitHub transport remains unimplemented.
 
 Files are split into reusable pieces by the optional upstream Xet helper. This may
@@ -108,3 +108,24 @@ project-only claim. It never opens the engine, even with an existing busy store.
 Arbitrary script/hook store edits are outside that preview guarantee. Every
 production target's types/format are checked before hooks, independently of
 one-time helper discovery. The multi-store and busy-store regressions are pending.
+
+## Portable complete-store export candidate
+
+The next stacked source slice prepares the same local store for complete ZIP
+transfer. It takes the cooperative store claim while copying stopped-writer
+persistent data, excludes client caches and writer claims, and validates every
+committed version using the pinned helper. A separate export manifest records
+exact file paths, byte lengths and BLAKE3 digests. Unknown store files fail rather
+than disappearing silently. This is a full-history copy, including orphan packs;
+it does not reclaim space.
+
+Import first checks the trusted ZIP digest and byte length, then bounded safe
+extraction, exact file membership, and independent reconstruction of every
+committed snapshot in a fresh private tree. It never replaces an existing store.
+Keep the ZIP digest in trusted project/reference metadata; an internal checksum
+alone does not authenticate an archive.
+
+This slice is a library transport foundation, not yet configured GitHub upload.
+Tests are pending remote execution. Sparse databases can consume more temporary
+disk space than their allocated size in the original store. No live-copy or
+system power-loss guarantee is claimed.

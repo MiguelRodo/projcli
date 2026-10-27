@@ -3868,3 +3868,15 @@ Initial native suite40475371837 passed Linux/macOS; Windows rejected an unused
 Unix-only fixture helper under strict warnings. The helper is now cfg(unix),
 without lint suppression. R adapter40475309335 passed after retrying only its
 Windows pinned-dependency HTTPS timeout. New final-head tests remain required.
+
+## Experimental Xet complete-store transfer candidate (27 October)
+
+New, not projr parity: closed-writer full-store ZIP export/import using the
+existing guarded ZIP implementation and the same pinned local engine. Full
+snapshot inventories and pure tree identities remain authoritative; no legacy
+CAS/CSV migration or hosted Xet protocol. Every committed snapshot is reconstructed
+and independently checked before an imported store is usable. Configured local
+Xet exact-head checks at71b4e44 and final independent review passed; archive checks
+are pending remote execution. Ponytail full review reused existing ZIP safety,
+store claims, snapshot readers and independent BLAKE3 checks, with no dependencies.
+GitHub publication and final reference sequencing remain separate unfinished work.

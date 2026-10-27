@@ -101,3 +101,6 @@ mod xet_engine;
 pub mod xet;
 
 mod xet_remote;
+
+/// Closed-writer portable Xet store exports and verified private imports.
+pub mod xet_archive;
