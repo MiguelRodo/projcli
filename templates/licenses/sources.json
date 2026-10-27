@@ -1,0 +1,22 @@
+[
+  {
+    "file": "Apache-2.0.txt",
+    "source": "https://github.com/apache/.github/blob/main/LICENSE",
+    "git_blob": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+    "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+  },
+  {
+    "file": "CC-BY-4.0.txt",
+    "source": "https://github.com/cc-archive/legalcode-pre-2014-06-26/blob/main/by_4.0.txt",
+    "version_url": "https://creativecommons.org/licenses/by/4.0/legalcode.txt",
+    "git_blob": "dc8853a70cfa9d7e8933c080caa147815c659fab",
+    "sha256": "8ae9438818c26e4873b91d8c6ad620526c011e27e125677f13031eda903f007c"
+  },
+  {
+    "file": "CC0-1.0.txt",
+    "source": "https://github.com/cc-archive/legalcode-pre-2014-06-26/blob/main/zero_1.0.txt",
+    "version_url": "https://creativecommons.org/publicdomain/zero/1.0/legalcode.txt",
+    "git_blob": "0e259d42c996742e9e3cba14c677129b2c1b6311",
+    "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
+  }
+]

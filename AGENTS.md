@@ -812,3 +812,27 @@ policy before hooks, preserve exact previous bytes/counters on recoverable failu
 and admit dirty DESCRIPTION for consecutive Git builds only with exact committed
 and framework-created development-byte evidence. Keep Bookdown's explicit boundary.
 Do not merge, release or update installed tools for this overnight candidate.
+
+## Explicit init candidate boundary
+
+Latest user authority: Markdown default; DESCRIPTION/renv/citation creation only
+when opted in, no R/NAMESPACE scaffold. Ask real purpose/contact questions in a
+terminal; noninteractive calls require explicit values/options and never hang.
+CFF authors are explicit and distinct from contacts; no inferred DOI/licence or
+dependency harvesting. Root licensing concerns code; folder licensing is a separate
+declared-label action, not general init. Any existing Git remote suffices.
+
+Preserve equivalent DESCRIPTION Version bytes when seeding VERSION; genuine
+mismatches use the approved synchronization setting. General setup is incremental,
+not a filesystem/network transaction. Do not claim a valid R package from generic
+DESCRIPTION metadata. Keep explicit ignore policies authoritative. Remote compile/
+tests only after local compilation denial. The user subsequently approved named init helpers in frontends/r/projcli; keep shared CLI semantics. Original SATVILab/projr remains the protected reference.
+
+Multiple final-destination routing is deferred to private planning issue773.
+Only the agreed single-docs script-group behavior may proceed. Keep source/released/installed status distinct and original projr/thesis unchanged;
+substantive changes require independent review and exact-head checks.
+
+
+Named init optional packages: renv remains in Suggests, checked only for selected
+renv setup. NULL consent asks interactively outside CI; FALSE never installs;
+TRUE explicitly permits it. No load/plan/CFF bootstrap or original projr edits.

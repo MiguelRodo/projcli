@@ -73,7 +73,7 @@ pub(crate) fn emit_argument_error() -> i32 {
 pub(crate) fn emit_capabilities() -> i32 {
     emit(Ok(json!({
         "capability_version": CAPABILITY_VERSION,
-        "machine_commands": ["capabilities", "history", "remote restore", "remote verify", "remote versions", "remote download", "remote store", "remote github assets", "remote github upload", "remote github download", "remote github upload-directory", "remote github upload-metadata", "remote github download-directory", "path get", "version get", "version set", "yml read", "yml get", "yml parameter", "init", "ignore add", "ignore remove", "build", "build-dev"],
+        "machine_commands": ["capabilities", "init plan", "init readme", "init license", "init renv", "history", "remote restore", "remote verify", "remote versions", "remote download", "remote store", "remote github assets", "remote github upload", "remote github download", "remote github upload-directory", "remote github upload-metadata", "remote github download-directory", "path get", "version get", "version set", "yml read", "yml get", "yml parameter", "init", "ignore add", "ignore remove", "build", "build-dev"],
         "non_interactive": true,
         "path_targets": ["safe", "final"],
         "path_fragments": true,
@@ -83,7 +83,7 @@ pub(crate) fn emit_capabilities() -> i32 {
         "default_path_format": "auto",
         "logs": "stderr",
         "attempt_history": true,
-        "queries": {"remote verify": "snapshot","history": "history","remote github assets": "assets", "remote store --dry-run": "plan", "remote versions": "versions", "path get": "path", "version get": "version", "yml read": "validated", "yml get": "configuration", "yml parameter": "value"},
+        "queries": {"init plan":"initialization","remote verify": "snapshot","history": "history","remote github assets": "assets", "remote store --dry-run": "plan", "remote versions": "versions", "path get": "path", "version get": "version", "yml read": "validated", "yml get": "configuration", "yml parameter": "value"},
         "preview_output_isolation": false,
         "attempt_release_records": false,
         "direct_r_ide_parity": false
@@ -104,6 +104,17 @@ pub(crate) fn run(cli: &Cli) -> i32 {
         }
     };
     let result = match &cli.command {
+        Commands::Init {
+            command: Some(crate::InitCommands::Plan),
+            ..
+        } => proj::init_setup::inspect(&root)
+            .map(|state| json!({"initialization":state}))
+            .map_err(|_| {
+                failure(
+                    ErrorCode::QueryFailed,
+                    "Cannot inspect existing project setup.",
+                )
+            }),
         Commands::History { attempt, limit } => {
             proj::history::read(&root, attempt.as_deref(), *limit)
                 .map(|history| json!({"history":history}))

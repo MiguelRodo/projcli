@@ -198,3 +198,19 @@ does not establish whole-paper/historical-runtime reproduction, CRAN acceptance 
 full legacy parity. The existing projr package is unchanged.
 
 Browse the [function index](r-reference.qmd) or use help(package="projcli") locally.
+
+## Explicit init options in the source candidate
+
+The [project setup reference](cli/init.qmd) covers purpose/contact questions,
+--description-file, --readme-rmd, --renv and --citation. Use the existing
+proj_cli("init", args, project = ...) transport for those exact options. The named R helpers below adapt those same CLI actions. R package scaffolding and automatic
+citation-author inference are not implied.
+
+
+## R initialization helpers
+
+The unmerged source candidate adds projr_init, projr_init_plan, projr_init_readme,
+projr_init_license and projr_init_renv. They use the shared CLI, with explicit R
+metadata values. Only opted-in renv setup checks its optional suggested package;
+installation requires interactive consent or explicit install_missing=TRUE.
+See the [named R reference](r-reference.qmd#initialization) for examples, defaults and library details.

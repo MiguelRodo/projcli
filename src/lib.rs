@@ -8,6 +8,7 @@ pub mod fs_utils;
 pub mod git;
 pub mod ignore;
 pub mod init;
+pub mod init_setup;
 pub mod profile;
 mod r_housekeeping;
 pub mod snapshot_format;

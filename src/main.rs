@@ -61,6 +61,8 @@ pub enum Commands {
     },
     /// Init related operations
     Init {
+        #[command(flatten)]
+        options: proj::init_setup::InitOptions,
         #[command(subcommand)]
         command: Option<InitCommands>,
     },
@@ -821,63 +823,81 @@ fn main() {
                 }
             }
         },
-        Commands::Init { command } => match command {
-            Some(InitCommands::Version) => {
-                if let Err(e) = proj::init_version() {
-                    fail(format_args!("Initialization failed: {:#}", e));
+        Commands::Init { command, options } => {
+            if command.is_some() && *options != proj::init_setup::InitOptions::default() {
+                fail(format_args!(
+                    "Use general init options with proj init, not with a subcommand"
+                ));
+            }
+            match command {
+                Some(InitCommands::Plan) => match proj::init_setup::inspect(&root) {
+                    Ok(state) => println!(
+                        "{}",
+                        serde_json::to_string_pretty(&state).expect("Serializable init state")
+                    ),
+                    Err(error) => fail(format_args!("Cannot inspect setup: {error:#}")),
+                },
+                Some(InitCommands::Version) => {
+                    if let Err(e) = proj::init_version() {
+                        fail(format_args!("Initialization failed: {:#}", e));
+                    }
+                }
+                Some(InitCommands::Directories) => {
+                    if let Err(e) = proj::init_directories() {
+                        fail(format_args!("Initialization failed: {:#}", e));
+                    }
+                }
+                Some(InitCommands::Readme {
+                    title,
+                    description,
+                    rmd,
+                }) => {
+                    let result = if *rmd {
+                        proj::init_readme_rmd(title.clone(), description.clone())
+                    } else {
+                        proj::init_readme(title.clone(), description.clone())
+                    };
+                    if let Err(e) = result {
+                        fail(format_args!("Initialization failed: {:#}", e));
+                    }
+                }
+                Some(InitCommands::Renv) => {
+                    if let Err(e) = proj::init_renv() {
+                        fail(format_args!("R dependency initialization failed: {:#}", e));
+                    }
+                }
+                Some(InitCommands::License {
+                    label,
+                    license,
+                    first_name,
+                    last_name,
+                }) => {
+                    if let Err(e) = proj::init::init_license_for(
+                        label.as_deref(),
+                        license.clone(),
+                        first_name.clone(),
+                        last_name.clone(),
+                    ) {
+                        fail(format_args!("Initialization failed: {:#}", e));
+                    }
+                }
+                Some(InitCommands::Git { commit }) => {
+                    if let Err(e) = proj::init_git(*commit) {
+                        fail(format_args!("Initialization failed: {:#}", e));
+                    }
+                }
+                Some(InitCommands::Github { public }) => {
+                    if let Err(e) = proj::init_github(*public) {
+                        fail(format_args!("Initialization failed: {:#}", e));
+                    }
+                }
+                None => {
+                    if let Err(e) = proj::init_setup::initialize(options.clone()) {
+                        fail(format_args!("Initialization failed: {:#}", e));
+                    }
                 }
             }
-            Some(InitCommands::Directories) => {
-                if let Err(e) = proj::init_directories() {
-                    fail(format_args!("Initialization failed: {:#}", e));
-                }
-            }
-            Some(InitCommands::Readme {
-                title,
-                description,
-                rmd,
-            }) => {
-                let result = if *rmd {
-                    proj::init_readme_rmd(title.clone(), description.clone())
-                } else {
-                    proj::init_readme(title.clone(), description.clone())
-                };
-                if let Err(e) = result {
-                    fail(format_args!("Initialization failed: {:#}", e));
-                }
-            }
-            Some(InitCommands::Renv) => {
-                if let Err(e) = proj::init_renv() {
-                    fail(format_args!("R dependency initialization failed: {:#}", e));
-                }
-            }
-            Some(InitCommands::License {
-                license,
-                first_name,
-                last_name,
-            }) => {
-                if let Err(e) =
-                    proj::init_license(license.clone(), first_name.clone(), last_name.clone())
-                {
-                    fail(format_args!("Initialization failed: {:#}", e));
-                }
-            }
-            Some(InitCommands::Git { commit }) => {
-                if let Err(e) = proj::init_git(*commit) {
-                    fail(format_args!("Initialization failed: {:#}", e));
-                }
-            }
-            Some(InitCommands::Github { public }) => {
-                if let Err(e) = proj::init_github(*public) {
-                    fail(format_args!("Initialization failed: {:#}", e));
-                }
-            }
-            None => {
-                if let Err(e) = proj::init_full() {
-                    fail(format_args!("Initialization failed: {:#}", e));
-                }
-            }
-        },
+        }
         Commands::Version { command } => match command {
             VersionCommands::Get { no_v, format } => {
                 if let Ok(version) = proj::run_version_from(&root) {
@@ -915,6 +935,8 @@ fn main() {
 /// ```
 #[derive(Subcommand)]
 pub enum InitCommands {
+    /// Inspect existing setup without writes or network access.
+    Plan,
     /// Initialize version
     Version,
     /// Initialize directories
@@ -935,6 +957,9 @@ pub enum InitCommands {
     },
     /// Initialize License
     License {
+        /// Explicit declared folder label; omission selects root source code only.
+        #[arg(long)]
+        label: Option<String>,
         /// License type (ccby, apache, cc0, proprietary)
         #[arg(long)]
         license: Option<String>,

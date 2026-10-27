@@ -24,6 +24,46 @@ withheld. Timeout/failure can follow partial effects; inspect before retrying.
 No binary is installed automatically. Use help("proj_cli", package="projcli")
 for the protocol, environment and response-size contract.
 
+
+
+## Named initialization {#initialization}
+
+These helpers require the unmerged candidate CLI/package together. They are absent
+from installed ea323355 and published preview.4.
+
+| Function | Purpose |
+|---|---|
+| projr_init(...) | Create missing project files with explicit metadata. |
+| projr_init_plan(...) | Read-only metadata/Git/remote state. |
+| projr_init_readme(readme_rmd=FALSE, title=NULL, purpose=NULL, ...) | Missing plain/Rmd README, without rendering. |
+| projr_init_license(license, label=NULL, ...) | Root code licence or one declared project-contained directory. |
+| projr_init_renv(install_missing=NULL, ...) | Explicit bare renv setup, not restore. |
+
+~~~r
+projcli::projr_init(project = ".", title = "Example analysis",
+  purpose = "Compare models.", readme_rmd = TRUE, description_file = TRUE)
+projcli::projr_init_plan(project = ".")
+~~~
+
+Common controls: project=getwd(), binary=NULL, env=character(), timeout=Inf.
+General init accepts title/purpose/contact_name/contact_email and separate
+author_family/author_given/author_name vectors for citation=TRUE. Contacts are not
+inferred as authors. description_file/renv/citation default FALSE; no R/NAMESPACE
+scaffold. git/github default FALSE; any existing remote is preserved. R supplies
+metadata explicitly; the terminal CLI retains setup questions.
+
+Only selected renv initialization checks the optional suggested renv package.
+install_missing=NULL asks only interactively outside CI; otherwise absence fails
+with instructions. FALSE never installs; TRUE explicitly permits installation,
+including noninteractive/CI use. Installation uses configured repositories and the
+first active R library, which must be writable. No packages install on load, during plans or for
+native CFF/README creation. No cffr/rmarkdown is needed to create those files.
+Existing build/restore no-bootstrap behavior remains. config.r.rscript/PATH may
+select a different R: ensure compatibility with forwarded caller libraries.
+Package installation effects are outside rollback; setup itself is incremental.
+Existing files are preserved except configured DESCRIPTION Version synchronization.
+See help("projr_init", package="projcli") for complete arguments.
+
 ## Configuration {#configuration}
 
 | Function | Result / purpose |
@@ -76,7 +116,7 @@ The common backend/project/binary/env/timeout controls apply. Path lookup never
 creates folders; create=TRUE and legacy code/data special lookups need an existing
 R callback. safe=FALSE selects the final configured location. VERSION helpers do
 synchronize an existing DESCRIPTION by default (settings.sync-description-version).
-This source candidate does not create DESCRIPTION. Help topic: help("projr_build", package="projcli").
+Explicit creation is available through projr_init(description_file=TRUE). Help topic: help("projr_build", package="projcli").
 
 ## Dependencies {#dependencies}
 

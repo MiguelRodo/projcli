@@ -4070,3 +4070,45 @@ Ponytail full review: extend the existing writer and bounded recovery, rather th
 adding a second version engine. Remote native/R acceptance, rustfmt/Air formatting,
 Clippy/lintr and renewed independent review are pending on this integrated head.
 No original projr, installed tool or public release is changed.
+
+## Explicit metadata init candidate (overnight 26 October)
+
+Reference: original projr032cba1ec8a2ccb59ce45dfc009da7d73f61297c,
+R/init-helper.R351-599 and823-841, R/init-std.R and R/license-dir.R.
+Same four root licence choices, purpose/contact intent and optional desc. Deliberate
+user overrides: Markdown default; no R/NAMESPACE scaffold; DESCRIPTION/renv explicitly
+opt-in; contact is not an inferred author; generic native CFF rather than cffr.
+General init's optional GitHub route is conservatively private/empty, without
+automatic commits/pushes; standalone existing commands retain their own behavior.
+
+Existing DESCRIPTION seeds VERSION without normalizing an equivalent valid literal
+Version line; genuine mismatches follow VERSION under the approved default setting.
+Invalid R package folder names omit Package rather than invent a sanitized identity.
+Named R helpers now adapt the same CLI alongside generic transport. Original R package/thesis remain untouched.
+
+Complete licence bodies come from official Apache/Creative Commons sources, with
+URLs/checksums in templates/licenses/sources.json. Separate labelled folder licensing
+is project-contained and create-only, without automatic propagation. Automatic
+ignore updates use escaped paths, preserve explicit directory policy and user blocks,
+and do not create Rbuildignore without DESCRIPTION.
+
+Ponytail: one init-options module, the existing CLI/machine dispatch and managed
+file helpers; no new dependency or citation framework. Authored fixtures cover
+metadata/idempotence, Git worktrees, a no-network gh shim, CFF official-schema
+validation, existing generic R transport and path/marker preservation.
+The initial generic-only candidate passed remote CI. The follow-up below adds named wrappers under subsequent user approval; its revised-head checks are separate.
+
+
+### Named R initialization follow-up (27 October)
+
+Original projr R/misc.R .dep_install_only checks on demand, asks interactively,
+fails noninteractively with instructions and permits explicit auto-install.
+The new frontend adapts this pattern only for selected renv setup using
+install_missing=NULL/FALSE/TRUE. renv already belongs to Suggests; no native CFF
+or README dependency is added. Original projr is unchanged.
+
+Ponytail/source review retained one thin module and existing machine transport.
+It fixed named-boolean flag propagation and a pre-existing standalone plain README
+dangling-link write by reusing guarded create-only writing. Authored no-network
+consent/present/missing/failure fixtures and actual named Linux/Windows fixtures
+await revised-head remote verification. The first native run exposed missing advertised init subcommands; advertise the existing readme/license/renv worker commands and assert negotiation rather than bypassing it. No merge/install/deployment is included.

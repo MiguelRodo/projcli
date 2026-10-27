@@ -1,0 +1,134 @@
+---
+title: "Set up a project"
+---
+
+These additions are an unmerged source candidate. They are not in the published
+or installed preview.5. Use the candidate source only when testing these additions.
+
+## Start with the files you need
+
+From the project folder, run:
+
+~~~bash
+proj --project . init
+~~~
+
+In a terminal, proj asks for a title, purpose and optional contact details. The
+purpose appears near the top of README.md. Blank optional answers are skipped;
+end-of-input cancels before setup starts. Existing README and metadata files are
+preserved. VERSION is authoritative: its synchronization setting can update only
+an existing DESCRIPTION Version when the two version values differ. Equivalent
+version spellings retain their original DESCRIPTION bytes.
+
+DESCRIPTION is optional project metadata, not an automatic R package. Request it
+explicitly; this does not create R/ or NAMESPACE:
+
+~~~bash
+proj --project . --non-interactive init --description-file \
+  --title "Example analysis" --purpose "Compare the two models." \
+  --contact-name "Project contact" --contact-email "contact@example.invalid" \
+  --git=false --github=false
+~~~
+
+If the folder name is a valid R package name it supplies Package. Otherwise that
+field is omitted, rather than inventing a package identity. Other project metadata
+can still be useful; adding DESCRIPTION alone does not make a valid R package.
+
+README.md is the default. --readme-rmd explicitly chooses README.Rmd. Setup does
+not render it or replace the other README format. In R, the existing generic
+transport can select exactly the same CLI flags:
+
+~~~r
+projcli::proj_cli("init",
+  c("--readme-rmd", "--title", "Example analysis", "--git=false", "--github=false"),
+  project = ".")
+~~~
+
+Named R helpers now expose these same shared CLI actions.
+
+## Choose Git and a remote deliberately
+
+Interactive init asks about Git only when the folder is outside a repository.
+Enclosing repositories and linked worktrees count. Any existing Git remote is
+enough, regardless of host, and is never replaced.
+
+When there is no remote, GitHub is an optional setup route using an already
+installed, authenticated gh command. General init creates a private empty remote;
+it does not commit or push project files. No credentials are installed or changed.
+Use --git=true and --github=true only when intentionally selecting those actions.
+Omitted noninteractive options skip both. The existing standalone init git/github
+commands retain their separate, explicit commit/push behavior.
+
+## Choose a code licence, or defer
+
+The general-init choices match projr: CC-BY, Apache 2.0, CC0 and Proprietary. Choose
+later to defer. Noninteractive init does not choose one for you.
+
+~~~bash
+proj --project . --non-interactive init --code-license apache
+~~~
+
+The root LICENSE notice applies to source code, not automatically to input data
+or third-party material. Existing LICENSE or LICENSE.md is preserved. Public
+licence texts are bundled from their publishers; Proprietary requires an explicit
+copyright holder, for example --copyright-holder "Example organisation".
+
+Folder licensing is a separate explicit operation, never a general-init loop:
+
+~~~bash
+proj --project . init license --label raw-data --license ccby
+~~~
+
+This uses a declared project-contained label, writes only that folder's missing
+LICENSE and preserves existing licences. External mappings and root aliases are
+not supported by label mode. It does not license sibling directories.
+
+## Add a citation without R
+
+Citation creation is opt-in and requires explicit authors. Contact details are
+not taken as authors. No DOI, licence, dependency citations or other identifiers
+are invented.
+
+~~~bash
+proj --project . --non-interactive init --citation --title "Example analysis" \
+  --author-family "Example" --author-given "Ada" --author-name "Research team"
+~~~
+
+CITATION.cff uses schema1.2.0. Repeat person flags in author order; supply one given
+name value per family name, or omit all given names. Team names follow person
+authors. Existing CITATION.cff is preserved. This does not require cffr or any R
+installation. The remote fixture validates emitted files with the
+[official schema](https://github.com/citation-file-format/citation-file-format/tree/1.2.0).
+
+## Initialize renv only when selected
+
+init renv remains a separate action using already installed renv. General init
+calls it only with --renv, default off. It does not restore dependencies. Existing
+renv state or .Rprofile is protected by that action's existing refusal behavior.
+
+## Inspect and preserve
+
+proj init plan reads existing setup without creating files or contacting a server.
+Machine mode returns the initialization object for frontends.
+
+Automatic .Rbuildignore creation requires DESCRIPTION; an existing .Rbuildignore
+can still retain its managed block. Generated project-control exclusions do not
+exclude R/, man/ or inst/. Explicit per-directory ignore settings remain
+authoritative. Paths are escaped as R regular expressions, separately from
+.gitignore glob escaping. Custom rules outside the delimited managed block survive;
+malformed/repeated markers fail clearly rather than accumulating new blocks.
+
+Initialization is incremental: successful local steps remain if a later optional
+renv/Git/GitHub action fails. It is not a whole-project or network transaction.
+Linked/special metadata targets fail before setup writes. Repeating metadata setup
+does not overwrite existing files; synchronization of a genuinely different
+DESCRIPTION Version is the stated exception.
+
+
+## R initialization helpers
+
+The unmerged source candidate adds projr_init, projr_init_plan, projr_init_readme,
+projr_init_license and projr_init_renv. They use the shared CLI, with explicit R
+metadata values. Only opted-in renv setup checks its optional suggested package;
+installation requires interactive consent or explicit install_missing=TRUE.
+See the [named R reference](../r-reference.qmd#initialization) for examples, defaults and library details.

@@ -918,3 +918,16 @@ Two file replacements are recoverable on ordinary errors, not crash-atomic.
 Named R build/version helpers accept these projects under this VERSION-authoritative
 contract; an explicit legacy backend retains its original authority rules. Bookdown
 and arbitrary legacy arguments remain separate unsupported mappings.
+
+## Optional init metadata (source candidate)
+
+[Project setup reference](cli/init.qmd) documents explicit --description-file,
+--readme-rmd, --renv and --citation choices. These are action parameters, not new
+configuration blocks. DESCRIPTION/renv/citation creation defaults off. General
+init uses settings.sync-description-version for an already-existing DESCRIPTION,
+preserves equivalent literal version spelling, and changes no other existing
+DESCRIPTION metadata.
+
+Any existing Git remote satisfies setup. General-init Git/GitHub actions remain
+opt-in when noninteractive; no automatic commit/push occurs there. Folder licensing
+is explicitly selected with init license --label, never inferred from init.
