@@ -2,9 +2,13 @@
 title: "Experimental shared-content storage"
 ---
 
-This unmerged source candidate is **experimental**. Keep independent backups.
-No installed executable or existing store changes. Configured local build/restore passed exact-head remote checks and independent review in draft PR #236.
-The stacked transport candidate adds library-level GitHub ZIP transfer; configured GitHub build/restore is in the next unverified draft.
+<!-- VERIFIED_RELEASE_STATUS -->
+This guide accompanies the experimental preview.5 candidate. Final publication
+and installation are still pending. Keep an independent backup.
+
+Use Xet when large changed files share repeated pieces of bytes. Choose ordinary
+backups or [whole-file sharing](cas-github.qmd) when chunk sharing is unnecessary.
+The helper is optional and separate from the CLI and R package.
 
 Files are split into reusable pieces by the optional upstream Xet helper. This may
 save storage when large files share uncompressed bytes. Already-compressed files
@@ -14,6 +18,56 @@ Both local and GitHub destinations use structure: xet.
 GitHub transports this same local engine/store as a complete ZIP, not a hosted
 Xet service. One long-running storage release holds it. No incremental pack
 transport, automatic migration or live data upload is implemented here.
+
+## Install the optional helper
+
+The helper is qualified on Linux/WSL. A macOS helper has not been qualified;
+native Windows Xet execution is rejected. Other storage backends remain available
+on Windows. The normal CLI download needs no Rust compiler, but building this
+optional helper needs Python 3, Git, Rust/Cargo 1.95.0 with Clippy, and network
+access to pinned source and locked registry dependencies.
+
+From the matching projcli source checkout:
+
+```sh
+rustup toolchain install 1.95.0 --component clippy
+work=$(mktemp -d)
+python3 tools/xet-engine/build.py \
+  --source "$work/upstream" \
+  --output "$HOME/.local/bin/proj-xet-engine"
+export PATH="$HOME/.local/bin:$PATH"
+proj-xet-engine info
+```
+
+The source directory must not already exist. This substantial optional build
+fetches the exact upstream pin into that disposable directory, checks Cargo.lock,
+builds and lints the helper, and writes provenance beside it. It does not modify
+the original projr checkout or require a Hugging Face account/server. Keep the
+provenance with your store; no automatic helper upgrade occurs.
+
+## Choose the storage options
+
+| Setting | Current support |
+|---|---|
+| Provider | local or github; both use the same local helper |
+| structure | xet |
+| manifest | auto or remote: full records in the store, small references in the project |
+| manifest-style | tree |
+| manifest-format | Fixed JSON binding; flat/CSV/dictionary overrides are rejected |
+| content / build.dest content | Declared logical folders; destination selection can narrow the set |
+
+Local and GitHub examples below archive existing raw-data with scripts: [] and
+Git disabled. Use explicit paths and an existing VERSION file. Preview first;
+the production build updates version and saves selected data:
+
+```sh
+proj build-dev
+proj build --patch
+```
+
+Since these examples disable Git integration, commit .proj/remotes references
+yourself if you need recovery from a future checkout. Removing a destination
+from build.dest stops uploads without removing restore access.
 
 ## Why this remains experimental
 
@@ -48,9 +102,9 @@ arbitrary interruption-point or production-readiness guarantee follows. Reusing
 upstream chunk/hash/codec primitives with a proj-owned durable backend is another
 route, but requires real persistence/index/recovery engineering.
 
-## Try the configured local candidate
+## Save a local copy
 
-This is source-only experimental functionality, not an installed-release guide.
+Use the matching CLI and helper; no automatic helper installation occurs.
 The separately built pinned helper must already be on PATH as proj-xet-engine.
 No build/init/query automatically installs it or logs into Hugging Face.
 Current runtime support is Unix; Windows proj still works with ordinary backends.
@@ -109,9 +163,9 @@ Arbitrary script/hook store edits are outside that preview guarantee. Every
 production target's types/format are checked before hooks, independently of
 one-time helper discovery. The configured integration gate covers multiple targets and busy-store handling.
 
-## Portable complete-store export candidate
+## How the complete store is transferred
 
-The next stacked source slice prepares the same local store for complete ZIP
+The transport prepares the same local store for complete ZIP
 transfer. It takes the cooperative store claim while copying stopped-writer
 persistent data, excludes client caches and writer claims, and validates every
 committed version using the pinned helper. A separate export manifest records
@@ -125,12 +179,12 @@ committed snapshot in a fresh private tree. It never replaces an existing store.
 Keep the ZIP digest in trusted project/reference metadata; an internal checksum
 alone does not authenticate an archive.
 
-This slice is a library transport foundation, not yet configured GitHub upload.
-Tests are pending remote execution. Sparse databases can consume more temporary
+Configured GitHub publication uses this same transport.
+Engine and mocked-transport tests passed; final real GitHub evidence is recorded separately. Sparse databases can consume more temporary
 disk space than their allocated size in the original store. No live-copy or
 system power-loss guarantee is claimed.
 
-## GitHub complete-store transport candidate
+## GitHub transfer and failed uploads
 
 One long-running storage release can hold complete ZIPs of the same local store.
 The source library uploads a uniquely named ZIP without deleting the previous
@@ -145,12 +199,10 @@ engine as local storage. The updated complete store is then exported again.
 GitHub does not run a Xet service, and this initial design transfers the entire
 ZIP rather than only changed pieces.
 
-This is an experimental **library** candidate, not yet a configured build/restore
-option. There is no automatic latest-export lookup, shared remote writer
+There is no automatic latest-export lookup, shared remote writer
 coordination or cleanup policy. Local engine operations retain their cooperative
 writer claim. Independent writers can leave separate immutable exports; callers
-must not silently choose one or claim a merged history. Configured integration
-must resolve its source/reference boundary before exposing that workflow.
+must not silently choose one or claim a merged history. Configured builds use the Git-tracked locators described below.
 
 Complete exports accumulate until an explicit future retention policy is chosen.
 No automatic deletion is performed. GitHub's per-asset limit is below 2 GiB; this
@@ -158,15 +210,19 @@ client rejects larger exports before upload. Temporary expanded database copies
 can be much larger than the compressed ZIP. Tests use only a loopback mock REST
 service and synthetic bytes, not a live GitHub data release.
 
-## Configured GitHub candidate
+## Keep the store on GitHub
 
-This draft needs remote verification before release. It uses the same local
-engine and the same structure selector:
+The same local engine and structure selector apply:
 
 ```yaml
 directories:
   raw-data:
     path: raw-data
+  cache:
+    path: cache
+    safe: true
+  output:
+    path: output
 remotes:
   github:
     project-data-store:
@@ -213,7 +269,8 @@ remote-only locator recovery is not implemented.
 Production caps ZIPs below 2 GiB and expanded stores at 8 GiB; explicit recovery
 requires caller-selected budgets. Bounds are not disk reservations. Temporary
 copies can need much more space than the original sparse database. Every update
-transfers the complete ZIP. Previous exports and failed/orphan uploads remain:
+transfers the complete ZIP; retaining old ZIPs also repeats history on GitHub.
+Previous exports and failed/orphan uploads remain:
 there is no automatic retention cleanup, and GitHub asset quotas still apply.
 
 One project uses each store. Project writer exclusion and immutable exports protect

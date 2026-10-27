@@ -3969,3 +3969,16 @@ directory, matching existing ZIP extraction. The fixture root is canonicalized
 too. Caller-supplied symlinks and portable-path validation remain rejected.
 A Unix literal-backslash regression accompanies the existing nested-file
 Windows/macOS round-trips. These corrections require new exact-head platform CI.
+
+
+## Preview.5 user-guide follow-up (candidate)
+
+The CAS/Xet guides now lead with choosing a backend, explicit project examples,
+helper prerequisites, supported options and restore tasks. Source implementation,
+whole-store transfer cost, Git-tracked locators and experimental limits stay
+distinct; obsolete intermediate library-only/pending-draft statements are removed.
+This is documentation alignment, not a new projr compatibility claim or runtime
+change. The publication marker remains pending until actual release verification.
+Ponytail full review: reuse existing commands and source build helper; do not add
+unimplemented install helpers, automatic credentials or a hosted Xet dependency.
+Remote render/link checks and independent review remain required.
