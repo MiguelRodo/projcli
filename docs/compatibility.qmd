@@ -4016,3 +4016,18 @@ CI; no new runtime dependency or custom persistence mechanism. Preserve existing
 technical identifiers and evaluated quick-start code blocks. Correct the old
 claims that configuration queries edit ignore rules, every R script is isolated,
 and only local CAS remotes exist, using current source and its existing tests.
+
+
+### Rendered-site review follow-up
+
+Initial docs validation40529300562 passed and its artifact12745831290 was
+independently SHA256-verified. Homepage light/dark, configuration lists and R
+reference table/code screenshots were visually inspected. The expanded all-page
+check exposed SVG labels being compared against the HTML background rather than
+the painted diagram shapes, and a browser-profile cleanup race hid that assertion.
+Keep SVG diagrams in the visual review evidence, measure HTML/code/button text
+against their actual CSS backgrounds, preserve the original assertion, and allow
+bounded cleanup retries. The icon image is visually reviewed; its anchor's text
+colour is not reported as proof of SVG-pixel contrast. Dark heading inline-code
+backgrounds are corrected from the screenshot. Final amended checks remain pending.
+No runtime, release, package or legacy-projr files changed.

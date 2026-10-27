@@ -57,3 +57,9 @@ body.quarto-dark .btn-outline-primary:hover { color: #fff; background: #104f45; 
 body.quarto-dark pre { border-color: #70818a; }
 body.quarto-dark :is(a, button):focus-visible { outline-color: #ffd166; }
 .quarto-color-scheme-toggle:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+/* Inline code in headings also needs a dark background, not Bootstrap's light one. */
+body.quarto-dark :not(pre) > code {
+  color: #f2f6f8;
+  background-color: #3d4143;
+}
