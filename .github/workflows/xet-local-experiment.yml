@@ -82,7 +82,7 @@ jobs:
         timeout-minutes: 10
         shell: bash
         run: |
-          runuser -u rstudio -- python3 experiments/xet-local/experiment.py --binary "$CARGO_TARGET_DIR/debug/projcli_local_probe" --root "$RUNNER_TEMP/xet-local-probe-work" --evidence "$GITHUB_WORKSPACE/xet-evidence"
+          runuser -u rstudio -- python3 experiments/xet-local/experiment.py --binary "$CARGO_TARGET_DIR/debug/projcli_local_probe" --root "/tmp/projcli-xet-local-probe-work" --evidence "$GITHUB_WORKSPACE/xet-evidence"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
