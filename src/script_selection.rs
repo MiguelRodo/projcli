@@ -108,7 +108,9 @@ pub(crate) fn resolve(
 ) -> anyhow::Result<Vec<Utf8PathBuf>> {
     let metadata_directory = |path: &Utf8Path| {
         path.strip_prefix(root).is_ok_and(|relative| {
-            relative.components().any(|part| metadata_component(part.as_str()))
+            relative
+                .components()
+                .any(|part| metadata_component(part.as_str()))
         })
     };
     let mut blocked = vec![root.join(".git"), root.join(".proj"), root.join(".projr")];
@@ -191,7 +193,10 @@ pub(crate) fn resolve(
         if target.exists() {
             crate::path_safety::resolve_path(target.as_std_path(), true)?;
             if target.is_dir() {
-                anyhow::ensure!(!metadata_directory(&target), "Script directory selection enters project metadata: {value}");
+                anyhow::ensure!(
+                    !metadata_directory(&target),
+                    "Script directory selection enters project metadata: {value}"
+                );
                 anyhow::ensure!(
                     !blocked.iter().any(|base| target.starts_with(base)),
                     "Script directory selection overlaps generated output or project state: {value}"
@@ -217,7 +222,10 @@ pub(crate) fn resolve(
                 directory.push(part);
             }
             crate::path_safety::resolve_path(directory.as_std_path(), true)?;
-            anyhow::ensure!(!metadata_directory(&directory), "Script glob selection enters project metadata: {value}");
+            anyhow::ensure!(
+                !metadata_directory(&directory),
+                "Script glob selection enters project metadata: {value}"
+            );
             if directory.is_dir() && !blocked.iter().any(|base| directory.starts_with(base)) {
                 let remainder = &parts[first..];
                 let depth = if remainder.contains(&"**") {
