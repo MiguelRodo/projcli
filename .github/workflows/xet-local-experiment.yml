@@ -15,9 +15,9 @@ jobs:
       image: ghcr.io/miguelrodo/devcontainers-projcli@sha256:a58a8a4dd6f0be83879d08b3a43ab92e256425bbfb81372b257d77a7ff9077f9
       options: --cpus 2 --memory 6g --memory-swap 6g
     env:
-      CARGO_HOME: ${{ runner.temp }}/xet-cargo
-      RUSTUP_HOME: ${{ runner.temp }}/xet-rustup
-      CARGO_TARGET_DIR: ${{ runner.temp }}/xet-target
+      CARGO_HOME: /tmp/projcli-xet-cargo
+      RUSTUP_HOME: /tmp/projcli-xet-rustup
+      CARGO_TARGET_DIR: /tmp/projcli-xet-target
       CARGO_BUILD_JOBS: '2'
       CARGO_PROFILE_DEV_DEBUG: '0'
       CARGO_PROFILE_DEV_OPT_LEVEL: '1'
