@@ -651,6 +651,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#named-r-initialization-follow-up-27-october" id="toc-named-r-initialization-follow-up-27-october" class="nav-link" data-scroll-target="#named-r-initialization-follow-up-27-october">Named R initialization follow-up (27 October)</a></li>
   </ul></li>
   <li><a href="#script-source-groups-candidate" id="toc-script-source-groups-candidate" class="nav-link" data-scroll-target="#script-source-groups-candidate">Script source groups (candidate)</a></li>
+  <li><a href="#preview.6-release-preparation" id="toc-preview.6-release-preparation" class="nav-link" data-scroll-target="#preview.6-release-preparation">Preview.6 release preparation</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -1766,6 +1767,10 @@ ul.task-list li input[type="checkbox"] {
 <p>Literal path quoting uses the native escape prefix and an empty optional group that adds no characters but forces escape-aware filesystem matching (<a href="https://github.com/denoland/std/blob/0.224.0/path/posix/glob_to_regexp.ts#L9">POSIX</a>, <a href="https://github.com/denoland/std/blob/0.224.0/path/windows/glob_to_regexp.ts#L9">Windows</a>). The real Linux fixture includes spaces and square brackets in both cache and final-docs paths; Windows Quarto execution is not established by the Rust check.</p>
 <p>Deno’s <a href="https://github.com/denoland/std/blob/0.224.0/fs/expand_glob.ts#L302">fixed-prefix filesystem scan</a> does not remove escape characters from a non-glob segment, so escape-only prefixes do not suffice for bracketed directory names. The native <a href="https://github.com/denoland/std/blob/0.224.0/path/_common/glob_to_reg_exp.ts#L177">optional-group parser</a> accepts an empty group; its question mark selects glob expansion and its empty body leaves the matched name unchanged. The actual bracket-path repeat fixture remains unchanged. Automatic local-environment-file ignores now use the same managed updater as directory rules, so a plain non-R build does not create .Rbuildignore merely because _environment.local exists. Explicit manual ignore commands are unchanged.</p>
 <p>The script-group refresh preserves the existing separate-document resource boundary: rendered output plus <code>&lt;stem&gt;_files</code>, with the existing embedding fallback. Authored resources elsewhere are not newly discovered or copied when embedding is explicitly disabled. The whole-Quarto-project fixture separately checks shared SVG resources, navigation and <code>site_libs</code>. This is a pre-existing limit, not evidence of complete standalone resource-copy parity. Recursive source selection excludes framework metadata at every depth and rejects a directory or fixed glob base inside it; existing explicit external file paths remain supported.</p>
+</section>
+<section id="preview.6-release-preparation" class="level2">
+<h2 class="anchored" data-anchor-id="preview.6-release-preparation">Preview.6 release preparation</h2>
+<p>PRs232–234 are integrated: VERSION/DESCRIPTION synchronization, optional native metadata setup and named R adapters, script groups/globs and coherent Quarto project output. The release version changes no runtime algorithm or storage ID. Ponytail review retained existing primitives and optional dependency boundaries; no package scaffold, destination-routing redesign or persistent R daemon was added. The external authored-resource limit for explicitly nonembedded separate reports remains documented. Final source and public installation evidence are recorded after verification; preparation alone is not publication.</p>
 
 
 </section>

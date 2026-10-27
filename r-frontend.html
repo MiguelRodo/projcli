@@ -558,7 +558,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#restore-packages-explicitly" id="toc-restore-packages-explicitly" class="nav-link" data-scroll-target="#restore-packages-explicitly">Restore packages explicitly</a></li>
   <li><a href="#keep-an-explicit-legacy-backend" id="toc-keep-an-explicit-legacy-backend" class="nav-link" data-scroll-target="#keep-an-explicit-legacy-backend">Keep an explicit legacy backend</a></li>
   <li><a href="#evidence-and-limits" id="toc-evidence-and-limits" class="nav-link" data-scroll-target="#evidence-and-limits">Evidence and limits</a></li>
-  <li><a href="#explicit-init-options-in-the-source-candidate" id="toc-explicit-init-options-in-the-source-candidate" class="nav-link" data-scroll-target="#explicit-init-options-in-the-source-candidate">Explicit init options in the source candidate</a></li>
+  <li><a href="#explicit-init-options-in-the-source-candidate" id="toc-explicit-init-options-in-the-source-candidate" class="nav-link" data-scroll-target="#explicit-init-options-in-the-source-candidate">Explicit init options in preview.6 source</a></li>
   <li><a href="#r-initialization-helpers" id="toc-r-initialization-helpers" class="nav-link" data-scroll-target="#r-initialization-helpers">R initialization helpers</a></li>
   </ul>
 </nav>
@@ -693,7 +693,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">readme</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
 <span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">renv-snapshot</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>They default off. document uses installed devtools to generate documentation; readme uses rmarkdown to render README.Rmd to README.md; renv-snapshot records dependencies before start hooks and again before post-build documentation/README. It does not restore packages. Install optional task dependencies deliberately.</p>
-<p>In this source candidate, VERSION remains authoritative and the named build/version helpers synchronize an existing DESCRIPTION by default. Set settings.sync-description-version: false to leave DESCRIPTION unchanged. An explicit legacy backend retains its original version policy. Citation support is separate. <a href="./configuration.html#optional-r-project-setup-and-build-maintenance-local-candidate">Exact task reference</a> covers prerequisites, order and bounded recovery.</p>
+<p>In the merged preview.6 source, VERSION remains authoritative and the named build/version helpers synchronize an existing DESCRIPTION by default. Set settings.sync-description-version: false to leave DESCRIPTION unchanged. An explicit legacy backend retains its original version policy. Citation support is separate. <a href="./configuration.html#optional-r-project-setup-and-build-maintenance-local-candidate">Exact task reference</a> covers prerequisites, order and bounded recovery.</p>
 </section>
 <section id="restore-packages-explicitly" class="level2">
 <h2 class="anchored" data-anchor-id="restore-packages-explicitly">Restore packages explicitly</h2>
@@ -715,12 +715,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Browse the <a href="./r-reference.html">function index</a> or use help(package=“projcli”) locally.</p>
 </section>
 <section id="explicit-init-options-in-the-source-candidate" class="level2">
-<h2 class="anchored" data-anchor-id="explicit-init-options-in-the-source-candidate">Explicit init options in the source candidate</h2>
+<h2 class="anchored" data-anchor-id="explicit-init-options-in-the-source-candidate">Explicit init options in preview.6 source</h2>
 <p>The <a href="./cli/init.html">project setup reference</a> covers purpose/contact questions, –description-file, –readme-rmd, –renv and –citation. Use the existing proj_cli(“init”, args, project = …) transport for those exact options. The named R helpers below adapt those same CLI actions. R package scaffolding and automatic citation-author inference are not implied.</p>
 </section>
 <section id="r-initialization-helpers" class="level2">
 <h2 class="anchored" data-anchor-id="r-initialization-helpers">R initialization helpers</h2>
-<p>The unmerged source candidate adds projr_init, projr_init_plan, projr_init_readme, projr_init_license and projr_init_renv. They use the shared CLI, with explicit R metadata values. Only opted-in renv setup checks its optional suggested package; installation requires interactive consent or explicit install_missing=TRUE. See the <a href="./r-reference.html#initialization">named R reference</a> for examples, defaults and library details.</p>
+<p>The merged preview.6 source adds projr_init, projr_init_plan, projr_init_readme, projr_init_license and projr_init_renv. They use the shared CLI, with explicit R metadata values. Only opted-in renv setup checks its optional suggested package; installation requires interactive consent or explicit install_missing=TRUE. See the <a href="./r-reference.html#initialization">named R reference</a> for examples, defaults and library details.</p>
 
 
 </section>
