@@ -2,8 +2,8 @@
 title: "Set up a project"
 ---
 
-These additions are an unmerged source candidate. They are not in the published
-or installed preview.5. Use the candidate source only when testing these additions.
+These additions are merged for preview.6. They are absent from preview.5.
+Until preview.6 is published, use matching source builds when testing them.
 
 ## Start with the files you need
 
@@ -127,7 +127,7 @@ DESCRIPTION Version is the stated exception.
 
 ## R initialization helpers
 
-The unmerged source candidate adds projr_init, projr_init_plan, projr_init_readme,
+The merged preview.6 source adds projr_init, projr_init_plan, projr_init_readme,
 projr_init_license and projr_init_renv. They use the shared CLI, with explicit R
 metadata values. Only opted-in renv setup checks its optional suggested package;
 installation requires interactive consent or explicit install_missing=TRUE.

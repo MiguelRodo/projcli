@@ -5,8 +5,8 @@ local snapshot recovery documented below. Historical slice notes retain their
 original verification scope. See [verified delivery](release-delivery.qmd#verified-preview4-delivery).
 
 Use `_proj.yml` to name your project folders, choose the analysis steps to run,
-and decide where results are saved. The examples below describe preview.5;
-unmerged initialization and script-group proposals are not available yet.
+and decide where results are saved. The examples cover preview.5 and the labelled merged preview.6 additions.
+The latter require matching source until preview.6 is published.
 
 ## Name your project folders
 
@@ -16,7 +16,7 @@ Directory names must start with one of these prefixes:
 - `raw`
 - `output`
 - `docs`
-- `scripts` or `scripts-<name>` (new source-group candidate; not in installed preview.4)
+- `scripts` or `scripts-<name>` (merged for preview.6; absent from preview.5)
 
 These prefixes are **case-insensitive**. Ordinary labels begin with cache, raw, output or docs. Source groups use exactly scripts or scripts- followed by a nonempty name.
 
@@ -897,7 +897,7 @@ That bounded test does not establish full projr compatibility or savings for you
 data. Neither backend automatically finds missing project records or deletes
 older exports.
 
-## VERSION and DESCRIPTION synchronization (source candidate)
+## VERSION and DESCRIPTION synchronization (preview.6 source)
 
 VERSION remains the version authority. By default, writing it also updates only the
 Version field of an existing DESCRIPTION. Other fields, continuation text and line
@@ -920,7 +920,7 @@ Named R build/version helpers accept these projects under this VERSION-authorita
 contract; an explicit legacy backend retains its original authority rules. Bookdown
 and arbitrary legacy arguments remain separate unsupported mappings.
 
-## Optional init metadata (source candidate)
+## Optional init metadata (preview.6 source)
 
 [Project setup reference](cli/init.qmd) documents explicit --description-file,
 --readme-rmd, --renv and --citation choices. These are action parameters, not new
@@ -933,7 +933,7 @@ Any existing Git remote satisfies setup. General-init Git/GitHub actions remain
 opt-in when noninteractive; no automatic commit/push occurs there. Folder licensing
 is explicitly selected with init license --label, never inferred from init.
 
-## Selecting a script source group (candidate)
+## Selecting a script source group
 
 ~~~yaml
 directories:

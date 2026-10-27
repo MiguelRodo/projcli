@@ -206,3 +206,12 @@ transactions and full environment reproduction remain outside this claim. New
 GitHub metadata formats have real CLI/mocked REST coverage, not a new live format
 round-trip. Ordinary restore remains single-label. Wrappers/IDE parity and richer
 initialisation remain separate work. Implementation stops after this M3 delivery.
+
+## Preview.6 preparation
+
+The next reviewed candidate is 0.4.0-preview.6. Read the
+[release notes](release-preview6-notes.md) for setup, VERSION/DESCRIPTION and
+script-group changes, including the separate-report external-resource limit.
+Public download pins remain on preview.5 until new assets pass validation and
+are published. The R source interface keeps development version 0.0.0.9000;
+installation must verify its source and named initialization exports.
