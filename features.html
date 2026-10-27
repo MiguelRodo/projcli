@@ -338,6 +338,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#preview-has-a-boundary" id="toc-preview-has-a-boundary" class="nav-link" data-scroll-target="#preview-has-a-boundary">Preview has a boundary</a></li>
   </ul></li>
   <li><a href="#known-limits-of-the-published-preview" id="toc-known-limits-of-the-published-preview" class="nav-link" data-scroll-target="#known-limits-of-the-published-preview">Known limits of the published preview</a></li>
+  <li><a href="#added-in-preview.5" id="toc-added-in-preview.5" class="nav-link" data-scroll-target="#added-in-preview.5">Added in preview.5</a></li>
   <li><a href="#planned-work" id="toc-planned-work" class="nav-link" data-scroll-target="#planned-work">Planned work</a></li>
   <li><a href="#included-in-preview.2" id="toc-included-in-preview.2" class="nav-link" data-scroll-target="#included-in-preview.2">Included in preview.2</a></li>
   <li><a href="#remote-work-in-preview.3" id="toc-remote-work-in-preview.3" class="nav-link" data-scroll-target="#remote-work-in-preview.3">Remote work in preview.3</a></li>
@@ -376,7 +377,7 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="available-development-release" class="level2">
 <h2 class="anchored" data-anchor-id="available-development-release">Available development release</h2>
-<p><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.4"><strong>v0.4.0-preview.4</strong></a> provides checked Linux x86-64 (glibc 2.35+) and Windows x86-64 binaries. No Rust compilation is needed. <a href="./install.html">Install that explicit version</a>; GitHub’s stable Latest remains the older v0.3.0.</p>
+<p><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.5"><strong>v0.4.0-preview.5</strong></a> provides checked Linux x86-64 (glibc 2.35+) and Windows x86-64 binaries. No Rust compilation is needed. <a href="./install.html">Install that explicit version</a>; GitHub’s stable Latest remains the older v0.3.0.</p>
 <p>This development prerelease includes local builds, inspectable build records, readable backup histories and verified recovery of saved local folders. The table summarizes supported Rust CLI behavior; it does not establish R/IDE parity. See the <a href="./preview-status.html">detailed status</a> and <a href="./release-delivery.html">delivery evidence</a> for exact verification and limits. Newer changes on main need their own evidence.</p>
 <table class="caption-top table">
 <colgroup>
@@ -440,7 +441,13 @@ ul.task-list li input[type="checkbox"] {
 <li>This preview supplies only Linux and Windows x86-64 binaries; macOS and ARM delivery are unavailable.</li>
 <li>Production recovery is bounded. It does not undo arbitrary script writes or partial external publication effects.</li>
 </ul>
-<p>The existing projr R package is unchanged. The new source package projcli is available in this repository: see its <a href="./r-frontend.html">installation and quick start</a> and <a href="./r-reference.html">function reference</a>. It is not on CRAN, and preview.4 predates the full M4 CLI support. Python/Julia frontends and complete R/IDE parity remain separate work.</p>
+<p>The existing projr R package is unchanged. The new source package projcli is available in this repository: see its <a href="./r-frontend.html">installation and quick start</a> and <a href="./r-reference.html">function reference</a>. It is not on CRAN; preview.5 includes the supported M4 CLI subset and optional R maintenance. Python/Julia frontends and complete R/IDE parity remain separate work.</p>
+</section>
+<section id="added-in-preview.5" class="level2">
+<h2 class="anchored" data-anchor-id="added-in-preview.5">Added in preview.5</h2>
+<p>Use the separate <a href="./r-frontend.html">R package</a> for supported build, path and configuration functions. Optional production actions can generate documentation, render README.Rmd and snapshot renv dependencies; they default off.</p>
+<p><a href="./cas-github.html">Complete CAS stores on GitHub</a> share identical files inside one store. <a href="./xet-storage.html">Experimental Xet</a> shares pieces of files locally and uses the same local engine through GitHub ZIPs. Both GitHub options transfer the whole store, keep old immutable exports, and need trusted project references for restore. Xet’s helper is separate and qualified on Linux/WSL; native Windows Xet is unsupported.</p>
+<p>The <a href="https://github.com/MiguelRodo/projcli/actions/runs/40510154990">real synthetic round-trip</a> uploaded two versions per structure and restored both into fresh projects. This is bounded test evidence, not whole-projr parity or a dataset savings promise.</p>
 </section>
 <section id="planned-work" class="level2">
 <h2 class="anchored" data-anchor-id="planned-work">Planned work</h2>

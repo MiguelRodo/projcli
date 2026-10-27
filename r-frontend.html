@@ -420,30 +420,30 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 <tr class="even">
 <td>M4 R helpers and complete CLI queries/session controls</td>
-<td>Implemented in merged source; not included in the published preview.4 CLI.</td>
+<td>Included in published preview.5 and merged source.</td>
 </tr>
 <tr class="odd">
 <td>Optional R setup/maintenance below</td>
-<td>Implemented in this source revision; not included in published preview.4.</td>
+<td>Included in published preview.5 and merged source.</td>
 </tr>
 <tr class="even">
 <td>Published command download</td>
-<td><a href="./install.html">Preview.4</a>; installing the R package does not replace it.</td>
+<td><a href="./install.html">Preview.5</a>; installing the R package does not replace it.</td>
 </tr>
 </tbody>
 </table>
-<p>Use the matching source command for the full source API. An older compatible CLI can support basic calls, but new commands/configuration may be unavailable. Errors do not silently trigger an engine switch or binary download.</p>
+<p>Use preview.5 or a matching newer source command for the supported API. Preview.4 can support basic calls, but does not include the complete R queries/session controls. Errors do not silently trigger an engine switch or binary download.</p>
 </section>
 <section id="installation" class="level2">
 <h2 class="anchored" data-anchor-id="installation">Installation</h2>
 <p>Requirements: R 4.1 or newer, processx 3.8 or newer, jsonlite 1.8 or newer, and a separately installed proj command. The package does not embed Rust. There is no CRAN install.packages(“projcli”) release.</p>
 <p>Install the ordinary dependencies deliberately in an R console:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="fu">c</span>(<span class="st">"processx"</span>, <span class="st">"jsonlite"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Download or clone the <a href="https://github.com/MiguelRodo/projcli">source repository</a>, set the R working folder to its root, then install the R subdirectory:</p>
+<p>Download the <a href="https://github.com/MiguelRodo/projcli/archive/refs/tags/v0.4.0-preview.5.tar.gz">preview.5 source archive</a>, set the R working folder to its root, then install the R subdirectory:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"frontends/r/projcli"</span>, <span class="at">repos =</span> <span class="cn">NULL</span>, <span class="at">type =</span> <span class="st">"source"</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(projcli)</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">help</span>(<span class="at">package =</span> <span class="st">"projcli"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>This does not install proj, renv or analysis dependencies. The <a href="./install.html">CLI install guide</a> covers the released binary and its limits. Until a new release includes the source features, they require a matching source command; building that command needs Rust and Cargo, as described in the repository README.</p>
+<p>This does not install proj, renv or analysis dependencies. The <a href="./install.html">CLI install guide</a> covers the released binary and its limits. Use the published preview.5 command for these features. Building the command from source is optional and needs Rust/Cargo, as described in the repository README.</p>
 <p>proj can also name unrelated software. You can select an exact command:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">projcli.binary =</span> <span class="st">"/absolute/path/to/proj"</span>)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">proj_cli</span>(<span class="st">"capabilities"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -490,14 +490,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="read-settings-and-parameters" class="level2">
 <h2 class="anchored" data-anchor-id="read-settings-and-parameters">Read settings and parameters</h2>
-<p>These helpers require the M4 source CLI’s typed query commands:</p>
+<p>These helpers use the CLI’s typed query commands:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>settings <span class="ot">&lt;-</span> <span class="fu">projr_yml_get</span>(<span class="at">project =</span> <span class="st">"."</span>)</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>seed <span class="ot">&lt;-</span> <span class="fu">projr_par_get</span>(<span class="st">"model"</span>, <span class="st">"seed"</span>, <span class="at">project =</span> <span class="st">"."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Keys are literal names. Missing parameters return NULL. Requested configuration values can include secrets; avoid publishing them. See the <a href="./r-reference.html#configuration">configuration functions</a>.</p>
 </section>
 <section id="optional-r-setup-and-maintenance" class="level2">
 <h2 class="anchored" data-anchor-id="optional-r-setup-and-maintenance">Optional R setup and maintenance</h2>
-<p>The source CLI adds explicit setup commands:</p>
+<p>The CLI provides explicit setup commands:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">proj_cli</span>(<span class="st">"init"</span>, <span class="fu">c</span>(<span class="st">"readme"</span>, <span class="st">"--rmd"</span>))</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">proj_cli</span>(<span class="st">"init"</span>, <span class="st">"renv"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>README.Rmd is created without replacing plain README.md. The renv command uses already installed renv to set up an empty project and initial lockfile; it refuses existing renv state or .Rprofile. Setup does not enable build actions.</p>

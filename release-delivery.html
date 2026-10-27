@@ -335,6 +335,7 @@ ul.task-list li input[type="checkbox"] {
   <ul>
   <li><a href="#preview-release-delivery" id="toc-preview-release-delivery" class="nav-link active" data-scroll-target="#preview-release-delivery">Preview release delivery</a>
   <ul class="collapse">
+  <li><a href="#verified-preview5-delivery" id="toc-verified-preview5-delivery" class="nav-link" data-scroll-target="#verified-preview5-delivery">Verified preview.5 delivery</a></li>
   <li><a href="#verified-preview.2-delivery" id="toc-verified-preview.2-delivery" class="nav-link" data-scroll-target="#verified-preview.2-delivery">Verified preview.2 delivery</a></li>
   <li><a href="#verified-preview3-delivery" id="toc-verified-preview3-delivery" class="nav-link" data-scroll-target="#verified-preview3-delivery">Verified preview.3 delivery</a></li>
   <li><a href="#verified-preview4-delivery" id="toc-verified-preview4-delivery" class="nav-link" data-scroll-target="#verified-preview4-delivery">Verified preview.4 delivery</a></li>
@@ -355,6 +356,35 @@ ul.task-list li input[type="checkbox"] {
 <p>Installers default to MiguelRodo/projcli, require version metadata and exactly one matching SHA256 entry, and verify downloaded bytes before replacement. They stage on the installation filesystem and need only an existing user-writable directory. <code>PROJ_RELEASE_VERSION</code> pins a release (with optional <code>v</code>); preview releases should always be pinned because GitHub’s latest URL normally selects stable releases. <code>PROJ_INSTALL_DIR</code> selects an existing absolute user directory without changing PATH or system settings. Existing older releases lacking the new metadata fail closed instead of installing an unverified fallback binary.</p>
 <p>Before publication: reconcile reviewed supported behavior and limits, update the Cargo/Cargo.lock preview version in a reviewed change, verify required checks, then create the exact reviewed tag. Inspect the resulting draft assets/version/ checksums and retain disposable-project warnings. Publish only after those checks. For WSL, download the pinned binary/manifest, verify SHA256, preserve any existing user-local binary, install into the chosen user-local directory and smoke help, version, capabilities and a disposable configured preview. No local compilation, sudo, persistent authentication change or R package modification is needed.</p>
 <p>Known limits include bounded captured-state recovery, arbitrary external script effects, incomplete direct R/IDE parity, analysis-free publication retry and broader environment reproduction. Preview.4 includes the agreed M2/M3 scope described below.</p>
+<section id="verified-preview5-delivery" class="level2">
+<h2 class="anchored" data-anchor-id="verified-preview5-delivery">Verified preview.5 delivery</h2>
+<p><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.5">Preview.5</a> was published on 27 October 2026 from 87b5149c679a87796513e775c54ba98e4811aa9b. Its tree equals reviewed and live-tested cd4bcf42dfa35f441fb9ea43f88aa83e9ef5903d.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Public binary</th>
+<th>SHA256</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Linux x86-64</td>
+<td>1af3f562362f878c2056f9598eaa5427bbc7d7e5c21eb0449e86992bd504cc7e</td>
+</tr>
+<tr class="even">
+<td>Windows x86-64</td>
+<td>49fb9b5b5b9bc7fb3e77667706e582e95faf5c3212868d1de6af3b438323b3db</td>
+</tr>
+</tbody>
+</table>
+<p>All five public assets were independently downloaded; source/version and every checksum were checked. <a href="https://github.com/MiguelRodo/projcli/actions/runs/40512776709">Exact-tag CI</a> ran tests, actual release-binary version/protocol checks and installer fixtures. Actual-main <a href="https://github.com/MiguelRodo/projcli/actions/runs/40510857853">native</a>, <a href="https://github.com/MiguelRodo/projcli/actions/runs/40511192759">pinned M1–M3</a> and <a href="https://github.com/MiguelRodo/projcli/actions/runs/40511200183">R</a> gates passed.</p>
+<p>The <a href="https://github.com/MiguelRodo/projcli/actions/runs/40510154990">real GitHub test</a> used dedicated public synthetic <a href="https://github.com/MiguelRodo/projcli/releases/tag/projcli-cas-store-acceptance-20261027">CAS</a> and <a href="https://github.com/MiguelRodo/projcli/releases/tag/projcli-xet-store-acceptance-20261027">Xet</a> storage releases. Two immutable ZIPs per structure were retained. After both uploads, both versions were restored and verified into fresh projects; complete file SHA256 sets and unchanged VERSION were asserted. CAS also changed new-write style from tree to flat CSV while retaining recovery of the earlier tree snapshot.</p>
+<p><a href="https://github.com/MiguelRodo/projcli/actions/runs/40508676360">Changed-source formatting/lint</a> and <a href="https://github.com/MiguelRodo/projcli/actions/runs/40508676595">actual Xet/CAS</a> passed. Tests do not establish long-term archival durability, all GitHub outage behaviors, empty-directory restoration in this live fixture, whole-projr parity or real-dataset deduplication savings. Failure/empty-directory cases have separate fixture coverage. The optional helper remains experimental and separate.</p>
+</section>
 <section id="verified-preview.2-delivery" class="level2">
 <h2 class="anchored" data-anchor-id="verified-preview.2-delivery">Verified preview.2 delivery</h2>
 <p><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.2">0.4.0-preview.2</a> is published as a prerelease; stable Latest remains v0.3.0. The exact tag/source is 768da1bf1b83be83b657b36219f299f37130ba03. Cargo.toml and the root Cargo.lock package agree with the CLI’s reported version; protocol version is 1. An analysis project’s VERSION remains a separate value.</p>
