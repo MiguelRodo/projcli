@@ -113,13 +113,20 @@ pub fn export(project:&Utf8Path,store:&Utf8Path,engine:&Engine)->Result<Export> 
         }
     }
     let files=inventory(&copied)?;let ids=snapshots(project,&copied,&files)?;
-    let manifest=Manifest {schema:SCHEMA.into(),backend:BACKEND.into(),upstream:UPSTREAM.into(),files,snapshots:ids};
+    let mut manifest=Manifest {schema:SCHEMA.into(),backend:BACKEND.into(),upstream:UPSTREAM.into(),files,snapshots:ids};
     validate(project,&copied,&manifest,engine)?;
     // Validation can create client caches; they are not portable authoritative state.
     for relative in [".proj","engine/xet/shard-cache","engine/xet/shard-session"] {
         let target=copied.join(relative);if target.exists(){fs::remove_dir_all(target)?;}
     }
-    anyhow::ensure!(inventory(&copied)?==manifest.files,"Engine changed persistent state during export validation");
+    let final_files=inventory(&copied)?;
+    // Even reconstruction updates LocalClient's copied database/index. Record its
+    // final closed bytes, while immutable bindings/trees must remain unchanged.
+    let metadata=|files:&BTreeMap<String,File>|files.iter().filter(|(name,_)|!name.starts_with("engine/"))
+        .map(|(name,file)|(name.clone(),file.clone())).collect::<BTreeMap<_,_>>();
+    anyhow::ensure!(metadata(&final_files)==metadata(&manifest.files),"Engine changed immutable snapshot metadata during validation");
+    for name in final_files.keys(){anyhow::ensure!(persistent(name),"Engine created unknown persistent state");}
+    manifest.files=final_files;
     let bytes=serde_json::to_vec_pretty(&manifest)?;
     anyhow::ensure!(bytes.len()<=crate::snapshot_format::MAX_METADATA_BYTES,"Xet export metadata exceeds limit");
     fs::write(copied.join(METADATA),bytes)?;

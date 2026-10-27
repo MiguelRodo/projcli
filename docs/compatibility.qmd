@@ -3880,3 +3880,5 @@ Xet exact-head checks at71b4e44 and final independent review passed; archive che
 are pending remote execution. Ponytail full review reused existing ZIP safety,
 store claims, snapshot readers and independent BLAKE3 checks, with no dependencies.
 GitHub publication and final reference sequencing remain separate unfinished work.
+
+Actual-engine export test found reconstruction mutates the copied LocalClient persistent index. The export now records its final closed bytes after successful reconstruction, while requiring immutable snapshot/tree metadata unchanged. Original-store byte/membership preservation remains asserted; no byte-read-only engine claim.
