@@ -1,0 +1,92 @@
+name: Isolated Xet local experiment
+on:
+  push:
+    branches: ['codex/xet-local-probe-20261027']
+    paths:
+      - 'experiments/xet-local/**'
+      - '.github/workflows/xet-local-experiment.yml'
+permissions:
+  contents: read
+jobs:
+  local-disk-engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    container:
+      image: ghcr.io/miguelrodo/devcontainers-projcli@sha256:a58a8a4dd6f0be83879d08b3a43ab92e256425bbfb81372b257d77a7ff9077f9
+      options: --cpus 2 --memory 6g --memory-swap 6g
+    env:
+      CARGO_HOME: ${{ runner.temp }}/xet-cargo
+      RUSTUP_HOME: ${{ runner.temp }}/xet-rustup
+      CARGO_TARGET_DIR: ${{ runner.temp }}/xet-target
+      CARGO_BUILD_JOBS: '2'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_DEV_OPT_LEVEL: '1'
+      CARGO_INCREMENTAL: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Prepare isolated official source and evidence
+        shell: bash
+        run: |
+          mkdir -p xet-evidence
+          git init "$RUNNER_TEMP/xet-upstream"
+          git -C "$RUNNER_TEMP/xet-upstream" fetch --depth 1 https://github.com/huggingface/xet-core.git 629562cd9fc37432317eb57811faf13a6935c601
+          git -C "$RUNNER_TEMP/xet-upstream" checkout --detach FETCH_HEAD
+          test "$(git -C "$RUNNER_TEMP/xet-upstream" rev-parse HEAD)" = 629562cd9fc37432317eb57811faf13a6935c601
+          python3 - <<'PY'
+          import hashlib,json,os,re,pathlib,shutil
+          source=pathlib.Path(os.environ["RUNNER_TEMP"])/"xet-upstream"
+          lock=(source/"Cargo.lock").read_bytes()
+          assert hashlib.sha256(lock).hexdigest()=="ecb897ce0eaa6e3d2ec4f55ab903104d3ebe4345b7a0c8752d2b16d381c7fd7c"
+          sources=set(re.findall(r'^source = "([^"]+)"',lock.decode(),re.M))
+          assert sources=={"registry+https://github.com/rust-lang/crates.io-index"},sources
+          for manifest in source.rglob("Cargo.toml"):
+              assert not re.search(r'^[^#\n]*\bgit\s*=',manifest.read_text(),re.M),str(manifest)
+          out=pathlib.Path("xet-evidence")
+          (out/"Cargo.lock").write_bytes(lock)
+          (out/"provenance.json").write_text(json.dumps({
+            "upstream_commit":"629562cd9fc37432317eb57811faf13a6935c601",
+            "experiment_commit":os.environ["GITHUB_SHA"],
+            "lock_sha256":hashlib.sha256(lock).hexdigest(),"sources":sorted(sources),
+            "locked_packages":lock.decode().count("[[package]]"),
+            "limits":{"cpus":2,"memory_gib":6,"cargo_jobs":2,"timeout_min":40}},indent=2))
+          shutil.copyfile("experiments/xet-local/probe.rs",out/"probe.rs")
+          target=source/"xet_data/src/bin/projcli_local_probe.rs";target.parent.mkdir(exist_ok=True)
+          shutil.copyfile("experiments/xet-local/probe.rs",target)
+          PY
+      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f
+        with:
+          toolchain: 1.95.0
+      - name: Compile actual upstream local pipeline
+        timeout-minutes: 25
+        shell: bash
+        run: |
+          mkdir -p "$CARGO_HOME" "$RUSTUP_HOME" "$CARGO_TARGET_DIR"
+          chown -R rstudio:rstudio "$CARGO_HOME" "$RUSTUP_HOME" "$CARGO_TARGET_DIR" "$RUNNER_TEMP/xet-upstream" "$GITHUB_WORKSPACE/xet-evidence"
+          runuser -u rstudio -- rustc --version --verbose > xet-evidence/toolchain.txt
+          runuser -u rstudio -- cargo --version --verbose >> xet-evidence/toolchain.txt
+          cd "$RUNNER_TEMP/xet-upstream"
+          runuser -u rstudio -- /usr/bin/time -v -o "$GITHUB_WORKSPACE/xet-evidence/compile-resources.txt" cargo build --locked --package xet-data --bin projcli_local_probe 2>&1 | tee "$GITHUB_WORKSPACE/xet-evidence/compile.log"
+          python3 - <<'PY'
+          import json,os,pathlib,shutil
+          target=pathlib.Path(os.environ["CARGO_TARGET_DIR"])
+          cache=pathlib.Path(os.environ["CARGO_HOME"])
+          def total(p): return sum(x.stat().st_size for x in p.rglob("*") if x.is_file())
+          result={"target_bytes":total(target),"cargo_cache_bytes":total(cache),
+                  "runner_disk_free":shutil.disk_usage(target).free}
+          assert result["target_bytes"]<8*1024**3
+          (pathlib.Path(os.environ["GITHUB_WORKSPACE"])/"xet-evidence/build-footprint.json").write_text(json.dumps(result,indent=2))
+          PY
+      - name: Separate-process round trip and physical measurements
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          runuser -u rstudio -- python3 experiments/xet-local/experiment.py --binary "$CARGO_TARGET_DIR/debug/projcli_local_probe" --root "$RUNNER_TEMP/xet-local-probe-work" --evidence "$GITHUB_WORKSPACE/xet-evidence"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: isolated-xet-local-evidence
+          path: xet-evidence
+          retention-days: 14
+          if-no-files-found: error
