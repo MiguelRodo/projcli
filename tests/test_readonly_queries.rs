@@ -129,7 +129,7 @@ fn init_preserves_custom_ignores_when_config_permission_is_denied() {
     let before = snapshot(root);
     let config = root.join("_proj.yml");
     let original = fs::metadata(&config).unwrap().permissions();
-    fs::set_permissions(&config, fs::Permissions::from_mode(0)).unwrap();
+    fs::set_permissions(&config, fs::Permissions::from_mode(0o000)).unwrap();
     let output = init_directories(root);
     fs::set_permissions(&config, original).unwrap();
     assert!(!output.status.success());

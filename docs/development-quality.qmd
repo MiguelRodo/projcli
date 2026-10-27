@@ -52,3 +52,14 @@ CRAN rex 1.2.1 imports lazyeval 0.2.2, which cannot load against that R C API
 7a8fb36a29919c3d447cc823c672af9b5cf1fd68, checksum-verified, which uses withr
 instead. This is an isolated CI tool dependency, not an analysis dependency or
 an alteration to a user's R library. Lintr remains pinned to 3.4.0.
+
+
+Clippy's initial full-stack run found a pre-existing deny-by-default permission
+literal lint in an untouched fixture; the equivalent octal spelling is corrected.
+For diagnostic comparison only, the old baseline uses --cap-lints warn so that
+pre-existing deny-by-default lints can be inventoried. The current head does not
+use that cap: errors and new warnings block. Existing warnings remain visible
+when their code, message and normalized source expression are unchanged, even
+when rustfmt changes whitespace in the containing file. This avoids converting
+a feature delivery into a general cleanup of historic build code. Compiler
+failures in either checkout remain blocking.

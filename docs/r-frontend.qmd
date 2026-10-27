@@ -17,7 +17,7 @@ separate package from the existing projr package.
 | R package projcli 0.0.0.9000 | Available in frontends/r/projcli in this repository; not on CRAN. |
 | M4 R helpers and complete CLI queries/session controls | Implemented in merged source; not included in the published preview.4 CLI. |
 | Optional R setup/maintenance below | Implemented in this source revision; not included in published preview.4. |
-| Downloadable/installed command | [Preview.4](install.qmd); installing the R package does not replace it. |
+| Published command download | [Preview.4](install.qmd); installing the R package does not replace it. |
 
 Use the matching source command for the full source API. An older compatible CLI
 can support basic calls, but new commands/configuration may be unavailable. Errors

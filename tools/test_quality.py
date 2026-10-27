@@ -4,6 +4,8 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
+import json
 import quality
 
 
@@ -45,6 +47,17 @@ class ChangedSourceTests(unittest.TestCase):
             git("commit", "--allow-empty", "-m", "unchanged")
             empty = quality.selection(root, head, git("rev-parse", "HEAD"))
             self.assertEqual(empty["rust"] + empty["r"], []);self.assertFalse(empty["clippy"])
+
+    def test_explicit_base_cannot_bypass_pr_head_check(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            event = root / "event.json"
+            event.write_text(json.dumps({"pull_request": {
+                "base": {"sha": "a" * 40}, "head": {"sha": "b" * 40}}}))
+            with mock.patch.dict(os.environ, {"GITHUB_EVENT_PATH": str(event)}):
+                with mock.patch.object(quality, "git", return_value=("c" * 40).encode()):
+                    with self.assertRaisesRegex(ValueError, "declared pull-request head"):
+                        quality.refs(root, "a" * 40)
 
     def test_stdin_rustfmt_never_visits_or_modifies_unchanged_child(self):
         with tempfile.TemporaryDirectory() as temporary:

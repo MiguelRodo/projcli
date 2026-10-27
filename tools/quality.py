@@ -146,9 +146,11 @@ def lint_r(root, selected, evidence):
     return {"returncode": process.returncode, "files": selected["r"]}
 
 
-def diagnostics(root):
-    process = command(["cargo", "clippy", "--workspace", "--all-targets", "--locked",
-                       "--message-format=json"], root)
+def diagnostics(root, baseline=False):
+    args = ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--message-format=json"]
+    if baseline:
+        args += ["--", "--cap-lints", "warn"]
+    process = command(args, root)
     output = []
     for line in process.stdout.splitlines():
         try:
@@ -182,7 +184,7 @@ def lint_rust(root, selected, evidence):
         if add.returncode:
             raise RuntimeError("Cannot prepare the read-only baseline checkout")
         try:
-            base_code, base, base_log = diagnostics(baseline)
+            base_code, base, base_log = diagnostics(baseline, baseline=True)
         finally:
             removed = command(["git", "worktree", "remove", "--force", str(baseline)], root, env=git_environment())
             if removed.returncode:
@@ -196,7 +198,7 @@ def lint_rust(root, selected, evidence):
     blocking = []
     for item in head:
         key = fingerprint(item)
-        if item["level"] == "error" or item["file"] in selected["rust"] or counts[key] == 0:
+        if item["level"] == "error" or counts[key] == 0:
             blocking.append(item)
         counts[key] -= 1
     # Existing warnings in untouched files remain visible, never blanket-disabled.
