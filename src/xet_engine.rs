@@ -2,7 +2,7 @@
 //! Engine panics/nonzero exits never become successful reconstructions.
 use std::{fs,path::{Path,PathBuf},process::{Command,Stdio}};
 use anyhow::{Context,Result};
-use camino::{Utf8Path,Utf8PathBuf};
+use camino::Utf8Path;
 use serde::{Deserialize,Serialize};
 /// Audited upstream revision; no implicit backend-format upgrades.
 pub const UPSTREAM:&str="629562cd9fc37432317eb57811faf13a6935c601";
@@ -43,15 +43,6 @@ impl Engine {
         anyhow::ensure!(info["protocol"]==1&&info["upstream"]==UPSTREAM&&info["backend"]==BACKEND,
             "Unsupported Xet helper protocol/upstream; install the documented pinned optional engine");
         Ok(result)
-    }
-    pub(crate) fn discover(environment:&crate::run_environment::RunEnvironment)->Result<Self> {
-        let name=if cfg!(windows) {"proj-xet-engine.exe"}else{"proj-xet-engine"};
-        for directory in std::env::split_paths(environment.value("PATH").unwrap_or_default()) {
-            if directory.as_os_str().is_empty()||!directory.is_absolute(){continue}
-            let candidate=directory.join(name);
-            if candidate.is_file(){return Self::new(candidate)}
-        }
-        anyhow::bail!("structure: xet requires the optional pinned proj-xet-engine on PATH; see the Xet storage guide")
     }
     fn command(&self,work:&Utf8Path)->Result<Command> {
         let mut command=Command::new(&self.program);

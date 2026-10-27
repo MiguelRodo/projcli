@@ -3821,3 +3821,8 @@ Follow-up source review strengthened failure probes to compare complete destinat
 membership and bytes (Unicode file, empty directory, extra sentinel included), not
 only the largest file. Dedicated CI triggers once per PR/head and requires the
 actual helper. Remote compilation/runtime results remain pending.
+
+Initial remote platform compilation exposed two warnings-as-errors: an unused
+import and a future discovery helper. Removed both instead of weakening lints.
+Unix-only store validation now has an explicit platform branch, keeping ordinary
+Windows builds supported without claiming Windows Xet runtime support.

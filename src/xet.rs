@@ -71,23 +71,26 @@ fn snapshot_path(store:&Utf8Path,id:&str)->Result<Utf8PathBuf> {
 /// Reject links/devices in the engine-owned tree before allowing native library access.
 /// Bounds prevent malicious imported directory graphs from becoming unbounded traversals.
 pub(crate) fn guard_tree(root:&Utf8Path)->Result<()> {
-    fn visit(path:&Utf8Path,depth:usize,work:&mut usize)->Result<()> {
-        anyhow::ensure!(depth<=64&&*work<=100_000,"Xet store tree exceeds bounds");
-        crate::path_safety::resolve_path(path.as_std_path(),true)?;
-        let meta=fs::symlink_metadata(path)?;
-        #[cfg(unix)] {
-            use std::os::unix::fs::MetadataExt;
-            anyhow::ensure!(!meta.is_file()||meta.nlink()==1,"Xet mutable store contains a multiply-linked file");
-        }
-        #[cfg(not(unix))]
-        anyhow::bail!("Experimental Xet store mutation currently requires Unix hard-link validation");
-        anyhow::ensure!(meta.is_file()||meta.is_dir(),"Xet store contains a linked/special entry");
-        if meta.is_dir() {for entry in fs::read_dir(path)? {
-            *work+=1;visit(&Utf8PathBuf::try_from(entry?.path())?,depth+1,work)?;
-        }}Ok(())
+    #[cfg(not(unix))] {
+        let _=root;
+        anyhow::bail!("Experimental Xet store access currently requires Unix hard-link validation");
     }
-    if crate::yml::configuration_entry_exists(root)? {visit(root,0,&mut 0)?;}Ok(())
+    #[cfg(unix)] {
+        fn visit(path:&Utf8Path,depth:usize,work:&mut usize)->Result<()> {
+            use std::os::unix::fs::MetadataExt;
+            anyhow::ensure!(depth<=64&&*work<=100_000,"Xet store tree exceeds bounds");
+            crate::path_safety::resolve_path(path.as_std_path(),true)?;
+            let meta=fs::symlink_metadata(path)?;
+            anyhow::ensure!(!meta.is_file()||meta.nlink()==1,"Xet mutable store contains a multiply-linked file");
+            anyhow::ensure!(meta.is_file()||meta.is_dir(),"Xet store contains a linked/special entry");
+            if meta.is_dir() {for entry in fs::read_dir(path)? {
+                *work+=1;visit(&Utf8PathBuf::try_from(entry?.path())?,depth+1,work)?;
+            }}Ok(())
+        }
+        if crate::yml::configuration_entry_exists(root)? {visit(root,0,&mut 0)?;}Ok(())
+    }
 }
+
 fn marker(store:&Utf8Path,create:bool)->Result<()> {
     let path=crate::cas_tree::native(store,"xet-format.json")?;
     let bytes=serde_json::to_vec(&serde_json::json!({"schema":"projcli.xet-store.v1","backend":BACKEND,"upstream":UPSTREAM}))?;
