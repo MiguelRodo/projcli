@@ -4,9 +4,13 @@ Get the project version based on the `VERSION` file.
 
 ## Standard Behavior
 
-The command searches upwards from the current directory to discover the project root containing the `VERSION` file. It parses the version text (supporting both raw strings like `v1.0.0` or JSON objects) and resolves it to a standard output.
+Select a project with `--project PATH`, or let the command find the nearest
+recognized project folder. It reads VERSION and prints a version such as `v1.0.0`.
+VERSION can contain plain version text or the supported JSON object.
 
-If the `VERSION` file is missing, the tool attempts to fall back and parse the version from an R package `DESCRIPTION` file if one is present in the project root. If neither a `VERSION` file nor a `DESCRIPTION` file exists, it defaults to a newly initialized `v0.0.1`.
+If the `VERSION` file is missing, the tool attempts to fall back and parse the version from an R package `DESCRIPTION` file if one is present in the project root. If neither a `VERSION` file nor a `DESCRIPTION` file exists, it reports `v0.0.1` without creating a file.
+Reading a version does not synchronize VERSION and DESCRIPTION. That proposed
+synchronization remains in an unmerged change.
 
 ```bash
 proj version get
@@ -25,6 +29,7 @@ proj version get --no-v
 ### `--format <FORMAT>`
 
 Specifies the output format:
+
 - `text` (default): Outputs the version as a standard string identifier.
 - `json`: Outputs the version as a serialized JSON object, detailing its properties (`major`, `minor`, `patch`, and optionally `dev`).
 
@@ -35,6 +40,7 @@ proj version get --format json
 ## JSON Output Properties
 
 When using `--format=json`, the output consists of the separated standard semantic components:
+
 - `major` (integer)
 - `minor` (integer)
 - `patch` (integer)

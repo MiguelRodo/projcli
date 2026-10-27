@@ -64,7 +64,11 @@ website:
 
 format:
   html:
-    theme: cosmo
+    theme:
+      light: cosmo
+      dark: darkly
+    respect-user-color-scheme: true
+    include-after-body: theme-accessibility.html
     css: styles.css
     toc: true
     code-copy: true

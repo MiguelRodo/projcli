@@ -3993,3 +3993,47 @@ from the CLI which includes its supported API. No pending PR232–234 APIs are
 claimed. The evaluated R quick-start block is unchanged. The live CAS/Xet
 round-trip, formatter/linter and actual-main evidence are linked in delivery notes.
 Website deployment/readback remains to be verified after this documentation merge.
+
+
+## Researcher website readability and themes (candidate)
+
+Documentation-only follow-up to preview.5: repair missing blank lines before
+lists, clarify the practical guides and stale command descriptions, and retain
+technical detail in reference pages. VERSION/DESCRIPTION synchronization and
+named R initialization helpers in PR232–234 remain unmerged. No runtime, legacy
+projr or installed-package changes are included.
+
+The verified reference is MiguelRodo/writing-in-the-sciences (not a guessed
+writing-for-the-sciences repository). Reuse its Quarto Cosmo/Darkly theme pair;
+Quarto controls persisted choice and system preference. Add keyboard labels and
+theme-scoped colours rather than a competing theme state manager. Browser checks
+must inspect actual lists, text/link/focus contrast, code, tables, navigation,
+keyboard switching, persisted choice and fresh system-default sessions. Render
+and independent review are pending; a draft preview is not a live deployment.
+
+Ponytail full review: use native Quarto themes and existing remote documentation
+CI; no new runtime dependency or custom persistence mechanism. Preserve existing
+technical identifiers and evaluated quick-start code blocks. Correct the old
+claims that configuration queries edit ignore rules, every R script is isolated,
+and only local CAS remotes exist, using current source and its existing tests.
+
+
+### Rendered-site review follow-up
+
+Initial docs validation40529300562 passed and its artifact12745831290 was
+independently SHA256-verified. Homepage light/dark, configuration lists and R
+reference table/code screenshots were visually inspected. The expanded all-page
+check exposed SVG labels being compared against the HTML background rather than
+the painted diagram shapes, and a browser-profile cleanup race hid that assertion.
+Keep SVG diagrams in the visual review evidence, measure HTML/code/button text
+against their actual CSS backgrounds, preserve the original assertion, and allow
+bounded cleanup retries. The icon image is visually reviewed; its anchor's text
+colour is not reported as proof of SVG-pixel contrast. Dark heading inline-code
+backgrounds are corrected from the screenshot. Final amended checks remain pending.
+No runtime, release, package or legacy-projr files changed.
+
+
+Final dark screenshot review found fixed-light-palette lifecycle connectors on a
+dark transparent SVG canvas. Keep those thirteen existing diagrams on an explicit
+light canvas in dark mode; do not change stage ordering or re-encode the diagrams.
+The browser checks the rendered canvas and retains light/dark screenshots.

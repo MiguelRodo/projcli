@@ -84,21 +84,21 @@ passed selected process interruption/retry and stopped-writer ZIP export/import,
 but failed corruption detection: the default upstream local download returned
 success with wrong bytes. Unfinished reads also panicked. Those failures remain
 recorded. The new core independently checks reconstructed length/BLAKE3 in private
-staging before using the existing guarded destination installer.
+staging before using the existing checked destination replacement.
 
-A cooperative claim serializes one project's store operations, including reads
-which can mutate upstream caches. Finalized verified content precedes immutable
-snapshot references. No persistent full-file copy is kept, but ingest/restore
+A store lock serializes one project's store operations, including reads
+which can mutate upstream caches. File storage finishes and the recovered bytes are checked before the project
+records the saved version. No persistent full-file copy is kept, but ingest/restore
 needs temporary disk space. Sparse database allocation can grow on export/import.
 A stale claim fails closed; no automatic stale-lock removal or migration occurs.
 
-Snapshots reuse the existing complete file inventory and pure directory identities.
-A backend-specific binding maps whole-file digests to upstream reconstruction
-addresses. File digests, directory roots, version metadata and Xet IDs stay distinct.
-Legacy CAS IDs/readers are untouched.
+Each saved version records its complete file list. Separate records connect each
+file checksum to the Xet information needed to recover its bytes. The directory
+fingerprint, project version, whole-file checksum and Xet identifier serve
+different purposes. Existing shared-file backups remain readable.
 
-The dedicated remote integration gate checks exact recovery and complete destination preservation; see the draft PR's exact-head results. These checks do not establish long-term archival support. Unix runtime only until equivalent
-hard-link validation is implemented on Windows. No power-loss, concurrent hot-copy,
+The automated storage tests check exact recovered bytes and preservation of
+existing destination files after failures. These checks do not establish long-term archival support. Linux/WSL is qualified; macOS is not yet qualified and Windows execution is rejected. No power-loss, concurrent hot-copy,
 arbitrary interruption-point or production-readiness guarantee follows. Reusing
 upstream chunk/hash/codec primitives with a proj-owned durable backend is another
 route, but requires real persistence/index/recovery engineering.
@@ -108,7 +108,7 @@ route, but requires real persistence/index/recovery engineering.
 Use the matching CLI and helper; no automatic helper installation occurs.
 The separately built pinned helper must already be on PATH as proj-xet-engine.
 No build/init/query automatically installs it or logs into Hugging Face.
-Current runtime support is Unix; Windows proj still works with ordinary backends.
+The tested runtime is Linux/WSL; Windows proj still works with ordinary backends.
 
 For a project that only archives existing data, an explicit empty script list
 avoids rerunning an analysis:
@@ -153,9 +153,9 @@ verify private reconstructed bytes before replacement. Verify/restore take the
 store claim and can update backend caches; they are not byte-for-byte read-only
 store operations. They leave project VERSION unchanged and need no old project CSV.
 
-Initial configured support is remote full metadata (manifest auto/remote), tree
-identities and JSON binding. Project/both, flat/CSV/dictionary overrides fail
-preflight rather than being ignored. Root manifest.csv and old ordinary/CAS
+Full file records must stay in the store (`manifest: auto` or `remote`), with
+`manifest-style: tree` and fixed JSON records. The unsupported `project`, `both`,
+flat and CSV options stop the command before a build rather than being ignored. Root manifest.csv and old ordinary/CAS
 formats remain unchanged. Broader format parity is not implemented. GitHub transfer uses this same engine through the complete-store transport described below.
 
 Experimental Xet preview does not copy/restore mutable engine stores under the
@@ -167,7 +167,7 @@ one-time helper discovery. The configured integration gate covers multiple targe
 ## How the complete store is transferred
 
 The transport prepares the same local store for complete ZIP
-transfer. It takes the cooperative store claim while copying stopped-writer
+transfer. It takes the store lock while copying stopped-writer
 persistent data, excludes client caches and writer claims, and validates every
 committed version using the pinned helper. A separate export manifest records
 exact file paths, byte lengths and BLAKE3 digests. Unknown store files fail rather
@@ -243,8 +243,8 @@ The optional pinned engine is required for production only. Preview and queries
 do not open the engine or contact the release.
 
 Each upload is downloaded and fully checked before writing project metadata under
-.proj/remotes/<remote-name-hash>/xet-github/v1/. The file current.json selects the
-trusted store for the next build; immutable snapshots/<first2>/<rest>.json locators
+`.proj/remotes/<remote-name-hash>/xet-github/v1/`. The file `current.json` selects the
+trusted store for the next build; immutable `snapshots/<first2>/<rest>.json` locators
 retain each earlier snapshot's exact ZIP. Each binds repository, API origin, tag,
 ZIP name/digest/length, backend/upstream and included snapshot IDs.
 Keep these files in project Git history. Config relocation must not silently
@@ -274,11 +274,11 @@ transfers the complete ZIP; retaining old ZIPs also repeats history on GitHub.
 Previous exports and failed/orphan uploads remain:
 there is no automatic retention cleanup, and GitHub asset quotas still apply.
 
-One project uses each store. Project writer exclusion and immutable exports protect
-local operations and old bytes, but there is no distributed linear-head protocol.
-Concurrent checkouts can create separate exports and conflicting Git locators;
-there is no automatic multi-machine history merge.
+Use one project per store. Locks protect cooperating local operations, and
+previous exports are retained. Two checkouts can still upload different exports
+and create conflicting Git records. Resolve those conflicts explicitly; projcli
+does not merge upload histories across machines.
 
-Xet still repeats a complete readable inventory and file-address binding for each
-version. Shared directory identities and engine chunk deduplication do not imply
-version-level inventory deduplication.
+Xet shares repeated pieces of file content, but still saves a complete file list
+and recovery addresses for each version. Sharing file content does not also
+remove repeated rows from those lists.

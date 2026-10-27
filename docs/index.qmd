@@ -80,7 +80,7 @@ provides a complete temporary-project example, including the analysis script.
   required. [Install the R package from source](r-frontend.qmd#installation).
 - **Learn:** [Build and preview from R](r-frontend.qmd), or browse the
   [function reference](r-reference.qmd).
-- **Optional R tasks:** the source CLI can initialize renv, create README.Rmd,
+- **Optional R tasks:** the CLI can initialize renv, create README.Rmd,
   generate package documentation, render the README, and snapshot dependencies.
   [Choose these tasks explicitly](r-frontend.qmd#optional-r-setup-and-maintenance);
   they are off by default and require their own installed R packages.
