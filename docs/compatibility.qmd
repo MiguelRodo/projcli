@@ -3829,8 +3829,7 @@ automatic commits/pushes; standalone existing commands retain their own behavior
 Existing DESCRIPTION seeds VERSION without normalizing an equivalent valid literal
 Version line; genuine mismatches follow VERSION under the approved default setting.
 Invalid R package folder names omit Package rather than invent a sanitized identity.
-Named R init convenience is not implemented; the existing generic transport fixture
-covers explicit CLI init. Original R package/thesis remain untouched.
+Named R helpers now adapt the same CLI alongside generic transport. Original R package/thesis remain untouched.
 
 Complete licence bodies come from official Apache/Creative Commons sources, with
 URLs/checksums in templates/licenses/sources.json. Separate labelled folder licensing
@@ -3842,8 +3841,22 @@ Ponytail: one init-options module, the existing CLI/machine dispatch and managed
 file helpers; no new dependency or citation framework. Authored fixtures cover
 metadata/idempotence, Git worktrees, a no-network gh shim, CFF official-schema
 validation, existing generic R transport and path/marker preservation.
-Compilation and execution are pending remote CI. The existing generic R transport is exercised; a named R init helper is not added
-by this slice. No source-completion or installed-version claim follows from authored tests.
+The initial generic-only candidate passed remote CI. The follow-up below adds named wrappers under subsequent user approval; its revised-head checks are separate.
+
+
+### Named R initialization follow-up (27 October)
+
+Original projr R/misc.R .dep_install_only checks on demand, asks interactively,
+fails noninteractively with instructions and permits explicit auto-install.
+The new frontend adapts this pattern only for selected renv setup using
+install_missing=NULL/FALSE/TRUE. renv already belongs to Suggests; no native CFF
+or README dependency is added. Original projr is unchanged.
+
+Ponytail/source review retained one thin module and existing machine transport.
+It fixed named-boolean flag propagation and a pre-existing standalone plain README
+dangling-link write by reusing guarded create-only writing. Authored no-network
+consent/present/missing/failure fixtures and actual named Linux/Windows fixtures
+await revised-head remote verification. No merge/install/deployment is included.
 
 ## Script source groups (candidate)
 

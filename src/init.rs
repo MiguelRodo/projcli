@@ -187,18 +187,19 @@ pub fn init_readme(title_opt: Option<String>, description_opt: Option<String>) -
     let project_root = root().context("Failed to find project root.")?;
     let readme_path = project_root.join("README.md");
 
-    if !readme_path.exists() {
+    crate::path_safety::resolve_path(readme_path.as_std_path(), true)?;
+    if readme_path.exists() {
+        anyhow::ensure!(fs::symlink_metadata(&readme_path)?.is_file(), "Existing README.md must be a regular file");
+    } else {
         if ask_yes_no("Create a README.md?", true) {
             let title = title_opt.unwrap_or_else(|| ask_string("Project Title", Some("My Project")));
             let description = description_opt.unwrap_or_else(|| ask_string("Project Description", Some("A projr project.")));
 
             anyhow::ensure!(!title.is_empty(), "README initialization cancelled before writing");
             let content = format!("# {}\n\n{}\n", title, description);
-            fs::write(readme_path.as_std_path(), content).context("Failed to write README.md.")?;
+            crate::init_setup::create(&project_root, "README.md", content.as_bytes())?;
             println!("Created README.md.");
         }
-    } else {
-        println!("README.md already exists. Skipping.");
     }
 
     Ok(())
