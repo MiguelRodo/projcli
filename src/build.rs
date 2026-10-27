@@ -1127,11 +1127,12 @@ pub(crate) fn rewrite_engine_output_dir(project_root: &Path, engine: &str, out_d
                     let Ok(relative)=directory.strip_prefix(root) else {continue;};
                     if relative.as_str().is_empty() {continue;}
                     // Quarto smart resource globs otherwise match prior copies at every depth.
-                    // Character classes quote extended glob metacharacters portably.
-                    let path=relative.as_str().replace('\\',"/").chars().map(|c|match c {
-                        '['=>"[[]".to_owned(),']'=>"[]]".to_owned(),
-                        '*'|'?'|'{'|'}'|'('|')'|'+'|'@'|'!'=>format!("[{c}]"),
-                        _=>c.to_string(),
+                    // Native Deno globs use backslash on POSIX and character 96 on Windows.
+                    // Rust's glob character-class quoting is not compatible with Deno's closing bracket.
+                    let relative=if cfg!(windows){relative.as_str().replace('\\',"/")}else{relative.to_string()};
+                    let escape=if cfg!(windows){char::from(96)}else{'\\'};
+                    let path=relative.chars().flat_map(|c|{
+                        if c==escape||matches!(c,'['|']'|'*'|'?'|'{'|'}'|'('|')'|'+'|'@'|'!'|'|') {vec![escape,c]}else{vec![c]}
                     }).collect::<String>();
                     let rule=serde_yaml::Value::String(format!("!/{path}/**"));
                     if !resources.contains(&rule) {resources.push(rule);}
