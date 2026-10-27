@@ -87,12 +87,12 @@ def refs(root, explicit_base):
     head = git(root, "rev-parse", "HEAD").decode().strip()
     event_path = os.environ.get("GITHUB_EVENT_PATH")
     event = json.loads(Path(event_path).read_text()) if event_path else {}
+    if "pull_request" in event and head != event["pull_request"]["head"]["sha"]:
+        raise ValueError("Quality checkout must be the declared pull-request head")
     if explicit_base:
         base = explicit_base
     elif "pull_request" in event:
         base = event["pull_request"]["base"]["sha"]
-        if head != event["pull_request"]["head"]["sha"]:
-            raise ValueError("Quality checkout must be the declared pull-request head")
     else:
         base = git(root, "rev-parse", "origin/main").decode().strip()
     return selection(root, base, head)
@@ -184,7 +184,9 @@ def lint_rust(root, selected, evidence):
         try:
             base_code, base, base_log = diagnostics(baseline)
         finally:
-            command(["git", "worktree", "remove", "--force", str(baseline)], root, env=git_environment())
+            removed = command(["git", "worktree", "remove", "--force", str(baseline)], root, env=git_environment())
+            if removed.returncode:
+                raise RuntimeError("Cannot clean the disposable baseline checkout")
     head_code, head, head_log = diagnostics(root)
     (evidence / "clippy-base.json").write_text(json.dumps(base, indent=2) + "\n")
     (evidence / "clippy-head.json").write_text(json.dumps(head, indent=2) + "\n")

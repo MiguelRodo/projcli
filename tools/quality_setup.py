@@ -13,8 +13,6 @@ import urllib.request
 AIR_URL = "https://github.com/posit-dev/air/releases/download/0.8.2/air-x86_64-unknown-linux-gnu.tar.gz"
 AIR_SHA = "94d03a402d0a86947f9093f0db015a627d4f2035c23f4ab110d01bb363855704"
 PACKAGES = [
-    ("lazyeval", "0.2.2", "d6904112a21056222cfcd5eb8175a78aa063afe648a562d9c42c6b960a8820d4"),
-    ("rex", "1.2.1", "af42e649c06e4bbdba94d5a1870a7e8347903571c90cd5e5ca40f52307a3bfd6"),
     ("xmlparsedata", "1.0.5", "766034ab5e9728609bd240c9954d23ca0cdb881a98a31b9d3e1c8767c7b7cbb0"),
     ("lintr", "3.4.0", "54144e68b70289edff7eed4fc8d00efacd1ddd51c032dc1e88bfb657c10a89dc"),
 ]
@@ -50,6 +48,14 @@ def main():
     library.mkdir(exist_ok=True)
     environment = dict(os.environ, R_LIBS_USER=str(library),
                        R_PROFILE_USER="/dev/null", R_ENVIRON_USER="/dev/null")
+    # CRAN rex 1.2.1 pulls lazyeval, whose C API cannot load on the pinned R 4.6.
+    # Official upstream rex removes that dependency; use an immutable reviewed pin.
+    rex_url = "https://codeload.github.com/r-lib/rex/tar.gz/7a8fb36a29919c3d447cc823c672af9b5cf1fd68"
+    rex_sha = "ecc117587a7d1cd970d2cfac9d038eeafcfa9036268ac31354eda987b9af812e"
+    rex_source = args.tools / "rex-pinned.tar.gz"
+    rex_source.write_bytes(fetch(rex_url, rex_sha))
+    subprocess.run(["R", "CMD", "INSTALL", "--no-multiarch",
+                    f"--library={library}", str(rex_source)], env=environment, check=True)
     for name, version, sha in PACKAGES:
         prefix = "https://cran.r-project.org/src/contrib"
         try:

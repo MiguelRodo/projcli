@@ -44,3 +44,11 @@ Use Rust Analyzer/rustfmt and the official
 [Air VS Code/Positron extension](https://posit-dev.github.io/air/editor-vscode.html)
 for editor formatting. Enable format-on-save in personal editor settings if
 desired; this repository does not change those settings.
+
+
+The pinned diagnostic image uses R 4.6. The first remote setup exposed that
+CRAN rex 1.2.1 imports lazyeval 0.2.2, which cannot load against that R C API
+(undefined PREXPR symbol). The lint tools therefore use official rex source at
+7a8fb36a29919c3d447cc823c672af9b5cf1fd68, checksum-verified, which uses withr
+instead. This is an isolated CI tool dependency, not an analysis dependency or
+an alteration to a user's R library. Lintr remains pinned to 3.4.0.
