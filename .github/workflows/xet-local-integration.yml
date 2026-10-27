@@ -52,6 +52,9 @@ jobs:
         shell: bash
         run: |
           mkdir -p xet-integration-evidence/helper
+          cp "$CARGO_TARGET_DIR/debug/proj" xet-integration-evidence/helper/proj
+          git rev-parse HEAD > xet-integration-evidence/helper/source-commit.txt
+          sha256sum xet-integration-evidence/helper/proj > xet-integration-evidence/helper/proj.sha256
           cp "/tmp/optional engine/proj-xet-engine" "/tmp/optional engine/proj-xet-engine.provenance.json" "/tmp/optional engine/proj-xet-engine.upstream-LICENSE" xet-integration-evidence/helper/
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

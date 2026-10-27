@@ -23,8 +23,8 @@ Only touched maintained files are formatted.
   Quarto chunks keep their separate renderer/example checks; whole markup files
   are not passed to a plain-R parser.
 - Clippy analyzes the workspace and all targets when Rust/Cargo inputs change.
-  It is not per-file lint. Compiler failures, new diagnostics anywhere and
-  diagnostics in changed Rust files fail. Existing warnings in untouched files
+  It is not per-file lint. Compiler failures and new diagnostics anywhere fail.
+  Existing warnings with unchanged code, message and normalized expression
   remain visible in a same-toolchain merge-base report, avoiding unrelated cleanup.
   No lint is globally disabled.
 - Rename destinations, deleted files, spaces/newlines and no-file cases are
