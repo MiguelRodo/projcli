@@ -215,7 +215,7 @@ pub(crate) fn prepare(root: &Utf8Path, target: &Target) -> Result<()> {
 /// Missing local authority with existing remote exports fails, never guesses latest.
 pub(crate) fn publish(root: &Utf8Path, target: &Target, version: &str) -> Result<String> {
     prepare(root, target)?;
-    let temporary = tempfile::tempdir()?;
+    let temporary = crate::store_archive::scratch()?;
     let fresh = Utf8PathBuf::try_from(temporary.path().join("store"))?;
     let imported = target
         .binding

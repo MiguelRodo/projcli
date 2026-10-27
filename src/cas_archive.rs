@@ -201,7 +201,7 @@ pub fn export(project: &Utf8Path, store: &Utf8Path) -> Result<Export> {
         fs::symlink_metadata(store)?.is_dir(),
         "CAS export requires an existing real store"
     );
-    let copy = tempfile::tempdir()?;
+    let copy = crate::store_archive::scratch()?;
     let copied = path(copy.path())?;
     {
         let _claim = crate::attempt::Attempt::acquire(store)?;

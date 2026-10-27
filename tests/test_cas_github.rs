@@ -42,7 +42,7 @@ fn files(root: &Utf8Path) -> BTreeMap<String, Vec<u8>> {
 }
 fn fixture() -> (tempfile::TempDir, Utf8PathBuf, Utf8PathBuf, Utf8PathBuf) {
     let temp = tempfile::tempdir().unwrap();
-    let root = path(temp.path());
+    let root = path(fs::canonicalize(temp.path()).unwrap());
     let project = root.join("project");
     let source = project.join("raw");
     let store = root.join("store");
@@ -59,7 +59,7 @@ fn fixture() -> (tempfile::TempDir, Utf8PathBuf, Utf8PathBuf, Utf8PathBuf) {
 #[test]
 fn complete_cas_export_fresh_import_deep_corruption_and_reexport() {
     let (temp, project, source, store) = fixture();
-    let root = path(temp.path());
+    let root = path(fs::canonicalize(temp.path()).unwrap());
     let first = publish(&project, &store, &source, "v1.0.0");
     fs::write(source.join("nested/data.csv"), b"second bytes\n").unwrap();
     let second = publish(&project, &store, &source, "v1.0.1");
@@ -377,4 +377,17 @@ fn cas_export_busy_claim_relative_paths_unknown_metadata_and_missing_objects_fai
     let object = fs::read_dir(shard).unwrap().next().unwrap().unwrap().path();
     fs::remove_file(object).unwrap();
     assert!(proj::cas_archive::export(&project, &store).is_err());
+}
+
+#[cfg(unix)]
+#[test]
+fn native_inventory_does_not_reinterpret_literal_backslash_filenames() {
+    let (_temp, project, source, store) = fixture();
+    publish(&project, &store, &source, "v1.0.0");
+    fs::write(store.join("literal\\\\backslash"), b"not a portable member").unwrap();
+    let error = match proj::cas_archive::export(&project, &store) {
+        Ok(_) => panic!("A literal backslash must not become a directory separator"),
+        Err(error) => error,
+    };
+    assert!(error.to_string().contains("relative portable path"));
 }

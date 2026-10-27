@@ -43,7 +43,7 @@ pub(crate) fn download(
 ) -> Result<Download> {
     crate::cas::validate_digest(hash)?;
     anyhow::ensure!(length <= max_bytes, "Store exceeds download budget");
-    let directory = tempfile::tempdir()?;
+    let directory = crate::store_archive::scratch()?;
     let root = Utf8Path::from_path(directory.path()).context("Store download path is not UTF-8")?;
     let archive = root.join("store.zip");
     client.download_asset(project, tag, name, &archive, max_bytes)?;

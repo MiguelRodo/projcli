@@ -46,7 +46,7 @@ impl Engine {
             program: fs::canonicalize(program)
                 .context("Cannot resolve optional proj-xet-engine executable")?,
         };
-        let home = tempfile::tempdir()?;
+        let home = crate::store_archive::scratch()?;
         let work = Utf8Path::from_path(home.path()).context("Xet temporary path is not UTF-8")?;
         let mut command = result.command(work)?;
         command.arg("info");
@@ -155,7 +155,7 @@ impl Engine {
         input: &Utf8Path,
         output: &Utf8Path,
     ) -> Result<()> {
-        let temp = tempfile::tempdir()?;
+        let temp = crate::store_archive::scratch()?;
         let work = Utf8Path::from_path(temp.path()).context("Xet temporary path is not UTF-8")?;
         let receipt = work.join("receipt.json");
         let mut command = self.command(work)?;
@@ -176,7 +176,7 @@ impl Engine {
         Ok(())
     }
     pub(crate) fn upload(&self, store: &Utf8Path, input: &Utf8Path) -> Result<Pointer> {
-        let temp = tempfile::tempdir()?;
+        let temp = crate::store_archive::scratch()?;
         let work = Utf8Path::from_path(temp.path()).context("Xet temporary path is not UTF-8")?;
         let output = work.join("pointer.json");
         self.operation("upload", store, input, &output)?;
@@ -196,7 +196,7 @@ impl Engine {
             !crate::yml::configuration_entry_exists(output)?,
             "Xet reconstruction requires a fresh private output"
         );
-        let temp = tempfile::tempdir()?;
+        let temp = crate::store_archive::scratch()?;
         let work = Utf8Path::from_path(temp.path()).context("Xet temporary path is not UTF-8")?;
         let input = work.join("pointer.json");
         fs::write(&input, serde_json::to_vec(pointer)?)?;

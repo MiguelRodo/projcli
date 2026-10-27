@@ -288,7 +288,7 @@ pub fn publish(
     let _claim = crate::attempt::Attempt::acquire(&store)?;
     marker(&store, true)?;
     guard_tree(&store)?;
-    let work = tempfile::tempdir()?;
+    let work = crate::store_archive::scratch()?;
     let stage = Utf8Path::from_path(work.path()).context("Xet staging path is not UTF-8")?;
     let mut payloads = BTreeMap::new();
     for directory in &inventory.directories {
@@ -386,7 +386,7 @@ pub fn verify(project: &Utf8Path, store: &Utf8Path, id: &str, engine: &Engine) -
     guard_tree(&store)?;
     let _claim = crate::attempt::Attempt::acquire(&store)?;
     let snapshot = read_snapshot(project, &store, id)?;
-    let temp = tempfile::tempdir()?;
+    let temp = crate::store_archive::scratch()?;
     let stage = Utf8Path::from_path(temp.path()).context("Xet scratch is not UTF-8")?;
     for (hash, pointer) in &snapshot.payloads {
         let target = stage.join("file");

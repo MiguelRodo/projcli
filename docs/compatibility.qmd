@@ -3957,3 +3957,15 @@ still needs rendered-page and post-deployment verification.
 Ponytail full review: retain the existing evaluated quick-start block unchanged;
 reuse the current R guide/reference rather than duplicating API documentation;
 keep source-only capability and published preview.4 availability distinct.
+
+
+### Native complete-store transport correction (candidate)
+
+The first final platform suite exposed Windows inventory separators and macOS
+temporary-directory aliases. Envelope membership now joins native relative
+components with portable slashes; it does not reinterpret literal backslashes on
+Unix. Owned private scratch roots are created beneath the physical OS temporary
+directory, matching existing ZIP extraction. The fixture root is canonicalized
+too. Caller-supplied symlinks and portable-path validation remain rejected.
+A Unix literal-backslash regression accompanies the existing nested-file
+Windows/macOS round-trips. These corrections require new exact-head platform CI.

@@ -7,6 +7,13 @@ fn path(value: impl AsRef<std::path::Path>) -> Result<Utf8PathBuf> {
     Utf8PathBuf::from_path_buf(value.as_ref().to_owned())
         .map_err(|_| anyhow::anyhow!("Store archive path is not UTF-8"))
 }
+/// Create an owned private scratch root beneath the physical OS temp directory.
+/// Resolve only this trusted parent; caller-supplied symlinks remain rejected.
+pub(crate) fn scratch() -> Result<tempfile::TempDir> {
+    Ok(tempfile::Builder::new()
+        .prefix("proj-store-")
+        .tempdir_in(fs::canonicalize(std::env::temp_dir())?)?)
+}
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct File {
@@ -28,7 +35,7 @@ pub(crate) fn inventory(root: &Utf8Path) -> Result<BTreeMap<String, File>> {
             let entry = entry?;
             let item = path(entry.path())?;
             crate::path_safety::resolve_path(item.as_std_path(), true)?;
-            let relative = item.strip_prefix(root)?.as_str().to_owned();
+            let relative = item.strip_prefix(root)?.iter().collect::<Vec<_>>().join("/");
             crate::path_safety::portable_relative(&relative)?;
             let metadata = fs::symlink_metadata(&item)?;
             anyhow::ensure!(

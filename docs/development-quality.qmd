@@ -63,3 +63,10 @@ when their code, message and normalized source expression are unchanged, even
 when rustfmt changes whitespace in the containing file. This avoids converting
 a feature delivery into a general cleanup of historic build code. Compiler
 failures in either checkout remain blocking.
+
+
+The optional Xet helper is compiled inside the pinned upstream workspace. Its
+integration job runs Clippy on that actual binary target too, records diagnostics,
+and rejects helper warnings or target compilation failures. The proj workspace
+check alone does not cover an injected external-workspace source file. Upstream
+warnings outside our helper remain upstream findings, not edits to preserved code.
