@@ -1,0 +1,50 @@
+---
+title: "Shared-file stores on GitHub"
+---
+
+This is an unmerged experimental source candidate, not an installed feature yet.
+
+The existing ordinary GitHub backups keep one ZIP per folder or version.
+A complete CAS store is different: each distinct whole file is stored once, and
+small directory/version records identify which files belong together. CAS means
+content-addressed storage: file contents determine their identifiers. Xet instead
+can share smaller pieces within files. Neither changes your analysis source paths.
+
+This new library slice packages the complete existing CAS store as a ZIP for one
+long-running GitHub storage release. It preserves existing file hashes, tree
+identifiers and legacy readers. It does not convert or migrate local archives.
+Configured build/restore wiring is the next separate slice.
+
+## What is verified before a reference can be saved
+
+Export holds the cooperative store writer claim while copying. It excludes
+coordination state, then checks every copied file, every content-addressed object
+including orphan objects, directory identities and each tree, flat-catalogue or
+legacy snapshot. Complete metadata must be present in the exported store.
+Project-only metadata is not silently invented or copied from another project.
+
+The ZIP has a bounded, versioned file-membership/length/digest envelope. Import
+first checks the trusted external ZIP digest and length, uses the existing
+traversal/link/duplicate/expansion guards, and then deeply checks the whole store
+in a fresh private location. The envelope is removed after checking so that new
+versions can be added and the store exported again.
+
+A checksum inside the ZIP alone does not authenticate it. Keep the exact store
+reference, including ZIP digest, in trusted project Git history.
+
+## GitHub transfer and failure behavior
+
+A new immutable ZIP is uploaded, then downloaded and independently checked before
+the library returns a reference eligible for project commit. A failed upload or
+verification leaves the previous good asset/reference intact; an unreferenced new
+ZIP can remain. Same-name retries accept only independently verified exact bytes.
+No delete-old-before-upload replacement or automatic retention cleanup is used.
+
+Recovery downloads the selected complete ZIP and uses the ordinary local CAS
+readers. It needs no Xet engine or Hugging Face account. Current library tests use
+only disposable synthetic files and a loopback mocked REST service, not live
+GitHub archives. Real GitHub validation and configured command examples remain
+pending. No multi-project/shared-store namespace, distributed linear-head merge,
+hot-copy or power-loss guarantee is introduced.
+
+All existing ordinary latest/archive paths and metadata ZIPs remain unchanged.

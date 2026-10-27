@@ -54,12 +54,8 @@ impl Reference {
 pub fn download(project:&Utf8Path,client:&GithubReleaseClient,reference:&Reference,
     max_bytes:u64,max_expanded:u64,engine:&Engine)->Result<crate::xet_archive::Import> {
     reference.validate()?;
-    anyhow::ensure!(reference.length<=max_bytes,"Xet store exceeds download budget");
-    let temporary=tempfile::tempdir()?;
-    let stage=Utf8Path::from_path(temporary.path()).context("Xet download path is not UTF-8")?;
-    let archive=stage.join("store.zip");
-    client.download_asset(project,&reference.tag,&reference.asset,&archive,max_bytes)?;
-    let imported=crate::xet_archive::import(project,&archive,&reference.hash,reference.length,max_expanded,engine)?;
+    let archive=crate::store_github::download(project,client,&reference.tag,&reference.asset,&reference.hash,reference.length,max_bytes)?;
+    let imported=crate::xet_archive::import(project,&archive.path(),&reference.hash,reference.length,max_expanded,engine)?;
     anyhow::ensure!(imported.snapshots()==reference.snapshots,"Downloaded Xet snapshot membership differs from trusted reference");
     Ok(imported)
 }
@@ -78,13 +74,7 @@ pub fn upload(project:&Utf8Path,store:&Utf8Path,client:&GithubReleaseClient,tag:
         asset:format!("proj-xet-store-{}.zip",export.hash),hash:export.hash.clone(),
         length:export.length,snapshots:export.snapshots.clone()};
     reference.validate()?;
-    let existing=client.assets_if_exists(tag)?.unwrap_or_default();
-    let matches:Vec<_>=existing.iter().filter(|asset|asset.name==reference.asset).collect();
-    anyhow::ensure!(matches.len()<=1,"Ambiguous Xet store asset; no overwrite performed");
-    if matches.is_empty() {
-        client.upload_asset(tag,&reference.asset,export.path(),create_release)
-            .context("Xet store upload was not verified; keep prior reference and inspect remote state before retry")?;
-    }
+    crate::store_github::upload(client,tag,&reference.asset,export.path(),create_release)?;
     download(project,client,&reference,reference.length,max_expanded,engine)
         .context("Xet uploaded/downloaded store was not verified; retain prior reference; a new orphan ZIP may remain")?;
     Ok(reference)

@@ -796,3 +796,5 @@ library APIs. Preserve explicit references and leave source-selection coordinati
 for the configured slice. Tests are synthetic loopback REST only; no live uploads.
 
 Configured GitHub Xet remains one-project-per-store, with Git-authoritative current/snapshot locators and immutable ZIP exports. Missing authority cannot silently bootstrap into a nonempty release. Bind repository/API/tag and validate nested references before hooks. Restore owns its private imported tree until verified installation completes. No distributed linear-head/retention or Xet inventory-sharing redesign is authorized by this slice. Keep CI actual-engine evidence distinct from mocked/live transport.
+
+Complete CAS GitHub transport is separate from ordinary archive ZIPs and Xet. Reuse bounded store inventory/ZIP/immutable transfer primitives while preserving backend-specific graph/object verification. File-level CAS IDs/readers remain unchanged; no remote-only discovery, migration or destructive retention. Current slice is library + synthetic mocked transport; configured integration follows separately.

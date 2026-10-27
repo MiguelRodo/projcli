@@ -5,11 +5,9 @@ use anyhow::{Context,Result};
 use camino::{Utf8Path,Utf8PathBuf};
 use serde::{Deserialize,Serialize};
 use crate::xet::{Engine,BACKEND,UPSTREAM};
+use crate::store_archive::{File,inventory};
 const SCHEMA:&str="projcli.xet-export.v1";
 const METADATA:&str="xet-export.json";
-#[derive(Clone,Debug,Serialize,Deserialize,PartialEq,Eq)]
-#[serde(deny_unknown_fields)]
-struct File {hash:String,length:u64}
 #[derive(Clone,Debug,Serialize,Deserialize,PartialEq,Eq)]
 #[serde(deny_unknown_fields)]
 struct Manifest {schema:String,backend:String,upstream:String,files:BTreeMap<String,File>,snapshots:Vec<String>}
@@ -47,22 +45,6 @@ fn persistent(name:&str)->bool {
 fn disposable(name:&str)->bool {
     name==".proj"||name.starts_with(".proj/")||name=="engine/xet/shard-cache"||name.starts_with("engine/xet/shard-cache/")
         ||name=="engine/xet/shard-session"||name.starts_with("engine/xet/shard-session/")
-}
-fn inventory(root:&Utf8Path)->Result<BTreeMap<String,File>> {
-    fn visit(root:&Utf8Path,current:&Utf8Path,depth:usize,work:&mut usize,result:&mut BTreeMap<String,File>)->Result<()> {
-        anyhow::ensure!(depth<=64,"Xet export exceeds depth bound");
-        for entry in fs::read_dir(current)? {
-            *work+=1;anyhow::ensure!(*work<=100_000,"Xet export exceeds entry bound");
-            let entry=entry?;let item=path(entry.path())?;
-            let relative=item.strip_prefix(root)?.as_str().to_owned();
-            crate::path_safety::portable_relative(&relative)?;
-            let metadata=fs::symlink_metadata(&item)?;
-            anyhow::ensure!(metadata.is_dir()||metadata.is_file(),"Xet export contains linked/special entry");
-            if metadata.is_dir(){visit(root,&item,depth+1,work,result)?;}
-            else {result.insert(relative,File {hash:crate::cas::hash_file(&item)?,length:metadata.len()});}
-        }Ok(())
-    }
-    let mut result=BTreeMap::new();visit(root,root,0,&mut 0,&mut result)?;Ok(result)
 }
 fn snapshots(project:&Utf8Path,root:&Utf8Path,files:&BTreeMap<String,File>)->Result<Vec<String>> {
     let mut ids=Vec::new();

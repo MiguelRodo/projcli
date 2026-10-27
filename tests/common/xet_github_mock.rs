@@ -2,7 +2,7 @@
 use std::{collections::BTreeMap,io::{Read,Write},net::TcpListener,sync::{Arc,Mutex,atomic::{AtomicBool,Ordering}},thread,time::Duration};
 use serde_json::json;
 #[derive(Default)]
-pub(crate) struct State {pub(crate) exists:bool,pub(crate) next:u64,pub(crate) assets:BTreeMap<String,(u64,Vec<u8>)>,pub(crate) uploads:Vec<String>,pub(crate) deleted:Vec<String>,pub(crate) fail_version:bool,pub(crate) fail_data:bool,pub(crate) corrupt:bool,pub(crate) fail_xet:bool,pub(crate) disconnect_xet:bool}
+pub(crate) struct State {pub(crate) exists:bool,pub(crate) next:u64,pub(crate) assets:BTreeMap<String,(u64,Vec<u8>)>,pub(crate) uploads:Vec<String>,pub(crate) deleted:Vec<String>,pub(crate) fail_version:bool,pub(crate) fail_data:bool,pub(crate) corrupt:bool,pub(crate) fail_xet:bool,pub(crate) fail_cas:bool,pub(crate) disconnect_xet:bool}
 pub(crate) struct Server {pub(crate) base:String,pub(crate) state:Arc<Mutex<State>>,stop:Arc<AtomicBool>,thread:Option<thread::JoinHandle<()>>}
 impl Server {
     pub(crate) fn start()->Self {
@@ -32,7 +32,7 @@ impl Server {
                     serde_json::to_vec(&data.assets.iter().map(|(name,(id,bytes))|json!({"id":id,"name":name,"size":bytes.len()})).collect::<Vec<_>>()).unwrap()
                 }else if method=="POST"&&path.starts_with("/upload?name=") {
                     let name=path.strip_prefix("/upload?name=").unwrap().to_owned();
-                    if (data.fail_xet&&name.starts_with("proj-xet-store-"))||(data.fail_version&&name=="VERSION.zip")||(data.fail_data&&name.starts_with("output")) {status=503;b"{}".to_vec()}else{
+                    if (data.fail_cas&&name.starts_with("proj-cas-store-"))||(data.fail_xet&&name.starts_with("proj-xet-store-"))||(data.fail_version&&name=="VERSION.zip")||(data.fail_data&&name.starts_with("output")) {status=503;b"{}".to_vec()}else{
                         assert!(!data.assets.contains_key(&name));data.next+=1;let id=data.next;
                         data.uploads.push(name.clone());let size=body.len();data.assets.insert(name.clone(),(id,body));
                         status=201;json!({"id":id,"name":name,"size":size}).to_string().into_bytes()

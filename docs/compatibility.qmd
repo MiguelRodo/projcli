@@ -3907,3 +3907,17 @@ caller archive budgets. Missing authority with existing exports fails rather tha
 guessing. Local writer exclusion is not distributed linear-head coordination.
 Full Xet per-version inventories remain repeated. No sharing-format redesign.
 Tests pending remote execution; no live synthetic release created for this slice.
+
+## Complete CAS-store GitHub transport candidate (27 October)
+
+New separately reviewable slice, not ordinary projr ZIP parity: complete local CAS
+stores retain existing object and tree/flat/legacy snapshot identities inside an
+immutable GitHub ZIP. File-level CAS stays separate from Xet chunk-level storage.
+Shared bounded physical inventory, safe ZIP codec and immutable transport functions
+are reused by CAS and Xet; backend-specific deep verification remains separate.
+All objects, including orphan objects, must match their addresses. Snapshot
+bindings/graphs/catalogues verify before a fresh imported store is returned.
+Original stores and old remote exports are unchanged; no migrations or deletion.
+Ponytail full review extracts only actual shared hashing/transport logic, without
+a new plugin/trait framework. No dependencies. Library/mocked tests pending remote
+execution. Configured CAS GitHub publication/recovery remains next slice.

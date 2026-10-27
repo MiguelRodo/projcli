@@ -110,3 +110,11 @@ pub mod xet_github;
 
 /// Configured experimental GitHub Xet build and explicit snapshot recovery.
 pub mod configured_xet_github;
+
+mod store_archive;
+/// Portable verified complete CAS store exports/imports.
+pub mod cas_archive;
+
+mod store_github;
+/// Immutable complete CAS-store ZIPs over the existing GitHub transport.
+pub mod cas_github;
