@@ -86,7 +86,7 @@ flowchart TB
   B["[R] Resolve profiles and<br/>environment; merge config;<br/>settings HOW / build WHAT"]
   C["[R/T] Validate typed configuration<br/>and explicit resource mappings"]
   D["[R] Capture root, profiles,<br/>mappings, mode and active run<br/>version"]
-  E["[R/T] Preflight inputs and exclusion<br/>syntax, targets, dependencies and<br/>enabled Git prerequisites"]
+  E["[R/T] Preflight source groups / globs,<br/>exclusions, output collisions,<br/>dependencies and enabled Git"]
   F["[R] Enumerate and capture managed<br/>recovery state before controlled<br/>writes"]
   G["[R] Run configured start hooks"]
   R["Local candidate: optional R snapshot<br/>before start hooks"]

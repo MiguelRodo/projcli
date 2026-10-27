@@ -36,12 +36,12 @@ jobs:
       - name: Rust API documentation in pinned environment
         shell: bash
         run: runuser -u rstudio -- env CARGO_HOME="$RUNNER_TEMP/projcli-cargo" RUSTUP_AUTO_INSTALL=0 cargo doc --locked --no-deps
-      - name: Actual CLI R Python and embedded HTML acceptance
-        shell: bash
-        run: runuser -u rstudio -- python3 tests/acceptance/path_contract.py target/debug/proj --evidence path-contract-evidence.json
       - name: Script groups and complete Quarto website output
         shell: bash
         run: runuser -u rstudio -- python3 tests/acceptance/script_groups.py target/debug/proj --evidence script-groups-evidence.json
+      - name: Actual CLI R Python and embedded HTML acceptance
+        shell: bash
+        run: runuser -u rstudio -- python3 tests/acceptance/path_contract.py target/debug/proj --evidence path-contract-evidence.json
       - name: Combined M1 actual CLI acceptance
         shell: bash
         run: runuser -u rstudio -- python3 tests/acceptance/m1_contract.py target/debug/proj --evidence m1-contract-evidence.json --artifacts m1-acceptance-artifacts

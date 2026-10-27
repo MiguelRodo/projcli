@@ -23,6 +23,7 @@ fn directory_references_and_globs_keep_order_filter_assets_and_use_zero_depth_do
         ("[scripts-l1]",vec!["a","nested/b","skip"]),
         ("['source with spaces/*.py']",vec!["a","skip"]),
         ("['source with spaces/**/*.py','!source with spaces/skip*']",vec!["a","nested/b"]),
+        ("['./source with spaces/**/*.py','!./source with spaces/skip*']",vec!["a","nested/b"]),
         ("['source with spaces/nested/b.py','source with spaces/**/*','!**/skip*']",vec!["nested/b","a"]),
         ("['source with spaces/**/*.py','!source with spaces/*.py']",vec!["nested/b"]),
     ] {
@@ -100,5 +101,22 @@ fn grouped_file_and_asset_ancestor_collisions_fail_before_start_hooks() {
         assert!(String::from_utf8_lossy(&output.stderr).contains("collide"),"{}",String::from_utf8_lossy(&output.stderr));
         assert!(!root.join("hook-ran").exists());
         assert!(!root.join("cache").exists());
+    }
+}
+
+#[test]
+fn default_script_ignores_keep_package_sources_but_explicit_policy_wins() {
+    for directory in ["R","man","inst"] {
+        for explicit in [false,true] {
+            let temp=tempfile::tempdir().unwrap();
+            fs::write(temp.path().join("DESCRIPTION"),"Title: Package metadata\nVersion: 1.2.3\n").unwrap();
+            let policy=if explicit {", ignore: rbuild"}else{""};
+            fs::write(temp.path().join("_proj.yml"),format!(
+                "directories:\n  scripts: {{path: {directory}{policy}}}\nbuild:\n  git: false\n  scripts: []\n")).unwrap();
+            let output=run(temp.path(),&["init","directories"]);
+            assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
+            let ignore=fs::read_to_string(temp.path().join(".Rbuildignore")).unwrap();
+            assert_eq!(ignore.contains(&format!("^{directory}$")),explicit);
+        }
     }
 }

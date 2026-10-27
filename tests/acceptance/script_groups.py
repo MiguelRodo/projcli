@@ -52,7 +52,13 @@ with tempfile.TemporaryDirectory(prefix="proj-script-groups-") as temporary:
     assert "manual.html" not in git and "docs" not in git
     rbuild=(root/".Rbuildignore").read_text()
     assert "^source/l1$" in rbuild and "^source/l2$" in rbuild and "^R$" not in rbuild
-    evidence["independent_groups"]={"htmls":2,"png_sha256":pngs,"local_references_checked":local_links(root/"docs"),"sources_preserved":True}
+    membership=sorted(str(path.relative_to(root/"docs")) for path in (root/"docs").rglob("*") if path.is_file())
+    run(root)
+    assert source_bytes(root)==before
+    assert (root/".gitignore").read_text()==git and (root/".Rbuildignore").read_text()==rbuild
+    assert sorted(str(path.relative_to(root/"docs")) for path in (root/"docs").rglob("*") if path.is_file())==membership
+    assert sorted(digest(path) for path in (root/"docs").rglob("*.png"))==sorted(pngs)
+    evidence["independent_groups"]={"repeat_build_stable":True,"htmls":2,"png_sha256":pngs,"local_references_checked":local_links(root/"docs"),"sources_preserved":True}
 for explicit in (False,True):
     with tempfile.TemporaryDirectory(prefix="proj-quarto-website-") as temporary:
         root=Path(temporary);(root/"chapters").mkdir();(root/"assets").mkdir()
@@ -75,6 +81,11 @@ for explicit in (False,True):
             assert (root/"docs"/relative).is_file(),relative
         assert not (root/"docs/draft.html").exists()
         assert (root/"docs/site_libs").is_dir()
-        evidence[f"website_{'explicit' if explicit else 'native'}"]={"htmls":len(list((root/"docs").rglob("*.html"))),"local_references_checked":local_links(root/"docs"),"source_and_native_output_preserved":True,"excluded_draft_absent":True}
+        membership=sorted(str(path.relative_to(root/"docs")) for path in (root/"docs").rglob("*") if path.is_file())
+        run(root)
+        assert source_bytes(root)==before
+        assert sorted(str(path.relative_to(root/"docs")) for path in (root/"docs").rglob("*") if path.is_file())==membership
+        assert not (root/"docs/docs").exists() and not (root/"docs/native-site").exists()
+        evidence[f"website_{'explicit' if explicit else 'native'}"]={"repeat_build_stable":True,"htmls":len(list((root/"docs").rglob("*.html"))),"local_references_checked":local_links(root/"docs"),"source_and_native_output_preserved":True,"excluded_draft_absent":True}
 Path(args.evidence).write_text(json.dumps(evidence,indent=2)+"\n")
 print("PASS grouped nested HTML/figures, source-safe ignore rules and complete native/explicit Quarto websites")

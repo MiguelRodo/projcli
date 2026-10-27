@@ -21,7 +21,10 @@ fn portable(value: &str) -> anyhow::Result<String> {
         && !value.chars().any(char::is_control)
         && Utf8Path::new(&value).components().all(|part| matches!(part,camino::Utf8Component::Normal(_) | camino::Utf8Component::CurDir)),
         "Script patterns must be nonempty project-relative paths without parent traversal");
-    Ok(value)
+    let normalized=Utf8Path::new(&value).components().filter_map(|part|match part {
+        camino::Utf8Component::Normal(name)=>Some(name),_=>None
+    }).collect::<Vec<_>>().join("/");
+    Ok(if normalized.is_empty() {".".to_owned()}else{normalized})
 }
 
 fn walk(directory: &Utf8Path, depth: Option<usize>, blocked: &[Utf8PathBuf], files: &mut Vec<Utf8PathBuf>) -> anyhow::Result<()> {

@@ -83,7 +83,14 @@ pub(crate) fn update_ignores_for_generated(project_root: &camino::Utf8Path, vali
         crate::yml::validate_ignore(&dir.ignore)?;
         // Collect ignores based on the ignore config
         let (should_git, should_rbuild) = match &dir.ignore {
-            IgnoreConfig::Unspecified => (!crate::script_selection::is_scripts(label),true),
+            IgnoreConfig::Unspecified => {
+                let scripts=crate::script_selection::is_scripts(label);
+                let path=validated.get_path(project_root,label)?;
+                let package_source=path.strip_prefix(project_root).ok()
+                    .and_then(|path|path.components().next())
+                    .is_some_and(|part|["R","man","inst","src","data","tests","vignettes"].iter().any(|name|part.as_str().eq_ignore_ascii_case(name)));
+                (!scripts,!(scripts&&package_source))
+            },
             IgnoreConfig::Single(s) => {
                 let s = s.to_lowercase();
                 (s == "all" || s == "git", s == "all" || s == "rbuild")

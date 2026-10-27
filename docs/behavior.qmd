@@ -1058,7 +1058,8 @@ Overlapping groups fail. Multiple final destinations and name-matching proposals
 are deferred to [the routing design issue](https://github.com/MiguelRodo/issues/issues/773).
 
 Omitted script ignore policy leaves sources visible in Git and excludes the
-group from an R source package only when DESCRIPTION exists. Production builds
+group from an R source package only when DESCRIPTION exists, while preserving
+standard package-source locations (R/man/inst/src/data/tests/vignettes) by default. Production builds
 add exact planned native document outputs/sidecars to managed Git rules; unrelated
 HTML/assets and final docs remain visible. Explicit ignore policies, including
 ignore: [], override automatic script rules. The remote suite includes actual grouped rendering and complete Quarto website
