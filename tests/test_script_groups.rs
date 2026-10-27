@@ -120,3 +120,22 @@ fn default_script_ignores_keep_package_sources_but_explicit_policy_wins() {
         }
     }
 }
+
+#[test]
+fn automatic_local_environment_ignore_does_not_create_an_rbuild_file_without_metadata() {
+    for (description,existing) in [(false,false),(false,true),(true,false)] {
+        let temp=fixture("[]");
+        fs::write(temp.path().join("_environment.local"),"INIT_IGNORE_FIXTURE=1\n").unwrap();
+        if description {fs::write(temp.path().join("DESCRIPTION"),"Title: Generic metadata\nVersion: 1.2.3\n").unwrap();}
+        if existing {fs::write(temp.path().join(".Rbuildignore"),"manual-rule\n").unwrap();}
+        let output=run(temp.path(),&["build"]);
+        assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
+        assert!(fs::read_to_string(temp.path().join(".gitignore")).unwrap().contains("/_environment.local"));
+        assert_eq!(temp.path().join(".Rbuildignore").exists(),description||existing);
+        if description||existing {
+            let contents=fs::read_to_string(temp.path().join(".Rbuildignore")).unwrap();
+            assert!(contents.contains(r"^_environment\.local$"));
+            if existing {assert!(contents.contains("manual-rule"));}
+        }
+    }
+}

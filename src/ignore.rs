@@ -133,6 +133,11 @@ pub(crate) fn update_ignores_for_generated(project_root: &camino::Utf8Path, vali
         }
     }
 
+    // Automatic metadata ignores share the same conditional Rbuild policy.
+    if project_root.join("_environment.local").exists() {
+        git_ignores.push("/_environment.local".to_owned());
+        rbuild_ignores.push(r"^_environment\.local$".to_owned());
+    }
     if project_root.join("DESCRIPTION").exists() {
         rbuild_ignores.extend([
             r"^\.git$", r"^\.proj$", r"^\.projr$", r"^_proj(r)?(-[^/]+)?\.ya?ml$",

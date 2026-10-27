@@ -533,9 +533,6 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
                 "Bookdown output layout changed after preflight");
         }
         if !is_dev {
-            if project_root.join("_environment.local").exists() {
-                crate::ignore::add_manual_ignores(project_root, &["_environment.local".to_string()], true, crate::ignore::IgnoreType::All)?;
-            }
             crate::ignore::update_ignores_for_generated(project_root, &config, &native_artifacts)?;
         }
         if has_document_analysis {
@@ -1127,12 +1124,12 @@ pub(crate) fn rewrite_engine_output_dir(project_root: &Path, engine: &str, out_d
                     let Ok(relative)=directory.strip_prefix(root) else {continue;};
                     if relative.as_str().is_empty() {continue;}
                     // Quarto smart resource globs otherwise match prior copies at every depth.
-                    // Native Deno globs use backslash on POSIX and character 96 on Windows.
-                    // Rust's glob character-class quoting is not compatible with Deno's closing bracket.
+                    // Keep a visible class so Deno expands rather than stat-ing an escaped literal.
+                    // Escape inside that class with the native POSIX/Windows prefix.
                     let relative=if cfg!(windows){relative.as_str().replace('\\',"/")}else{relative.to_string()};
                     let escape=if cfg!(windows){char::from(96)}else{'\\'};
-                    let path=relative.chars().flat_map(|c|{
-                        if c==escape||matches!(c,'['|']'|'*'|'?'|'{'|'}'|'('|')'|'+'|'@'|'!'|'|') {vec![escape,c]}else{vec![c]}
+                    let path=relative.chars().map(|c|{
+                        if c==escape||matches!(c,'['|']'|'*'|'?'|'{'|'}'|'('|')'|'+'|'@'|'!'|'|') {format!("[{escape}{c}]")}else{c.to_string()}
                     }).collect::<String>();
                     let rule=serde_yaml::Value::String(format!("!/{path}/**"));
                     if !resources.contains(&rule) {resources.push(rule);}
