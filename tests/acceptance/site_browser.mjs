@@ -100,6 +100,9 @@ async function browser(systemTheme) {
       assert.deepEqual(result.low, [], `${page} ${systemTheme}: low contrast ${JSON.stringify(result.low)}`);
       assert(result.toggle?.role === 'button' && result.toggle.tab === 0 && result.toggle.label, `${page}: accessible toggle`);
       if (page === 'configuration') assert.equal(result.prefixes.length, 4, 'Each directory prefix must be its own rendered list item');
+      if (page === 'lifecycle' && systemTheme === 'dark') {
+        assert(await evaluate(`(() => { const figures = [...document.querySelectorAll('svg.flowchart')]; return figures.length === 13 && figures.every(svg => getComputedStyle(svg).backgroundColor === 'rgb(248, 250, 249)'); })()`), 'Fixed-palette diagrams need a visible light canvas in dark mode');
+      }
       if (['index','configuration','xet-storage','r-reference','lifecycle'].includes(page)) {
         const shot = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
         await writeFile(join(evidence, `${page}-${systemTheme}.png`), Buffer.from(shot.data, 'base64'));

@@ -4031,3 +4031,9 @@ bounded cleanup retries. The icon image is visually reviewed; its anchor's text
 colour is not reported as proof of SVG-pixel contrast. Dark heading inline-code
 backgrounds are corrected from the screenshot. Final amended checks remain pending.
 No runtime, release, package or legacy-projr files changed.
+
+
+Final dark screenshot review found fixed-light-palette lifecycle connectors on a
+dark transparent SVG canvas. Keep those thirteen existing diagrams on an explicit
+light canvas in dark mode; do not change stage ordering or re-encode the diagrams.
+The browser checks the rendered canvas and retains light/dark screenshots.

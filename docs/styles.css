@@ -63,3 +63,9 @@ body.quarto-dark :not(pre) > code {
   color: #f2f6f8;
   background-color: #3d4143;
 }
+
+/* The existing lifecycle SVGs have fixed light palettes; keep their connectors visible. */
+body.quarto-dark svg.flowchart {
+  background-color: #f8faf9;
+  border-radius: .35rem;
+}
