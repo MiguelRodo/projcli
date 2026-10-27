@@ -77,10 +77,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-b626d73c4c936ccc3cb08be7d45d1df6.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-594fc4564f848ab358ed4d83e83f085a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -113,7 +117,178 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link rel="stylesheet" href="styles.css">
 </head>
 
-<body class="nav-sidebar docked nav-fixed quarto-light">
+<body class="nav-sidebar docked nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const queryPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkModeDefault = queryPrefersDark.matches;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    queryPrefersDark.addEventListener("change", e => {
+      if(window.localStorage.getItem("quarto-color-scheme") !== null)
+        return;
+      const alternate = e.matches
+      toggleColorMode(alternate);
+      localAlternateSentinel = e.matches ? 'alternate' : 'default'; // this is used alongside local storage!
+      toggleGiscusIfUsed(alternate, darkModeDefault);
+    });
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -160,6 +335,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
           </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
 </div>
       </div> <!-- /container-fluid -->
     </nav>
@@ -329,7 +505,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./flow.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Build execution flow</span></a>
+ <span class="menu-text">What happens during a build</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -368,14 +544,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#what-is-verified-before-a-reference-can-be-saved" id="toc-what-is-verified-before-a-reference-can-be-saved" class="nav-link active" data-scroll-target="#what-is-verified-before-a-reference-can-be-saved">What is verified before a reference can be saved</a></li>
+  <li><a href="#save-and-restore-a-shared-file-store" id="toc-save-and-restore-a-shared-file-store" class="nav-link active" data-scroll-target="#save-and-restore-a-shared-file-store">Save and restore a shared-file store</a></li>
+  <li><a href="#what-is-verified-before-a-reference-can-be-saved" id="toc-what-is-verified-before-a-reference-can-be-saved" class="nav-link" data-scroll-target="#what-is-verified-before-a-reference-can-be-saved">What is verified before a reference can be saved</a></li>
   <li><a href="#github-transfer-and-failure-behavior" id="toc-github-transfer-and-failure-behavior" class="nav-link" data-scroll-target="#github-transfer-and-failure-behavior">GitHub transfer and failure behavior</a></li>
-  <li><a href="#save-and-restore-a-shared-file-store" id="toc-save-and-restore-a-shared-file-store" class="nav-link" data-scroll-target="#save-and-restore-a-shared-file-store">Save and restore a shared-file store</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
+
 
 <header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./xet-storage.html">Storage guides</a></li><li class="breadcrumb-item"><a href="./cas-github.html">Shared-file stores on GitHub</a></li></ol></nav>
 <div class="quarto-title">
@@ -400,19 +577,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Available in <a href="./install.html">preview.5</a>. The Xet option remains experimental and requires its separate pinned helper. Keep independent backups.</p>
 <p>The existing ordinary GitHub backups keep one ZIP per folder or version. A complete CAS store is different: each distinct whole file is stored once, and small directory/version records identify which files belong together. CAS means content-addressed storage: file contents determine their identifiers. Xet instead can share smaller pieces within files. Neither changes your analysis source paths.</p>
 <p>This option packages the complete existing CAS store as a ZIP for one long-running GitHub storage release. It preserves existing file hashes, tree identifiers and legacy readers. It does not convert or migrate local archives. Use the configured build/restore example below.</p>
-<section id="what-is-verified-before-a-reference-can-be-saved" class="level2">
-<h2 class="anchored" data-anchor-id="what-is-verified-before-a-reference-can-be-saved">What is verified before a reference can be saved</h2>
-<p>Export holds the cooperative store writer claim while copying. It excludes coordination state, then checks every copied file, every content-addressed object including orphan objects, directory identities and each tree, flat-catalogue or legacy snapshot. Complete metadata must be present in the exported store. Project-only metadata is not silently invented or copied from another project.</p>
-<p>The ZIP has a bounded, versioned file-membership/length/digest envelope. Import first checks the trusted external ZIP digest and length, uses the existing traversal/link/duplicate/expansion guards, and then deeply checks the whole store in a fresh private location. The envelope is removed after checking so that new versions can be added and the store exported again.</p>
-<p>A checksum inside the ZIP alone does not authenticate it. Keep the exact store reference, including ZIP digest, in trusted project Git history.</p>
-</section>
-<section id="github-transfer-and-failure-behavior" class="level2">
-<h2 class="anchored" data-anchor-id="github-transfer-and-failure-behavior">GitHub transfer and failure behavior</h2>
-<p>A new immutable ZIP is uploaded, then downloaded and independently checked before the library returns a reference eligible for project commit. A failed upload or verification leaves the previous good asset/reference intact; an unreferenced new ZIP can remain. Same-name retries accept only independently verified exact bytes. No delete-old-before-upload replacement or automatic retention cleanup is used.</p>
-<p>Recovery downloads the selected complete ZIP and uses the ordinary local CAS readers. It needs no Xet engine or Hugging Face account. Current library tests use only disposable synthetic files and a loopback mocked REST service, not live GitHub archives. A separate <a href="https://github.com/MiguelRodo/projcli/actions/runs/40510154990">real GitHub round-trip</a> also passed; configured examples follow. No multi-project/shared-store namespace, distributed linear-head merge, hot-copy or power-loss guarantee is introduced.</p>
-<p>All existing ordinary latest/archive paths and metadata ZIPs remain unchanged.</p>
-<p>The claim is cooperative: not every low-level existing tree writer acquires it. Stop all store writers before export. The tests cover busy-claim rejection; this is not a safe concurrent hot-copy mechanism. New acceptance also exercises all four flat encodings with direct version references, original legacy flat snapshots without the project ledger, missing objects and unknown catalogue files.</p>
-</section>
 <section id="save-and-restore-a-shared-file-store" class="level2">
 <h2 class="anchored" data-anchor-id="save-and-restore-a-shared-file-store">Save and restore a shared-file store</h2>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">directories</span><span class="kw">:</span></span>
@@ -439,8 +603,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> build <span class="at">--patch</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>This example disables Git. Commit .proj/remotes together with VERSION and the configuration yourself if you need recovery from a future checkout.</p>
 <p>The name project-file-store selects one long-running storage release, using the project’s Git origin and existing GitHub credentials. No Xet helper is needed. For this new backend, specify manifest-style explicitly: tree or flat. Earlier defaults said flat for GitHub and tree for CAS; an implicit default for their intersection has not been silently selected. With flat, manifest-format can be csv (the flat default), json, csv-dedupe-file or json-dedupe-file. Tree uses its fixed JSON encoding. This does not alter existing local CAS defaults.</p>
-<p>The GitHub complete-store option supports manifest: auto or remote, keeping full metadata in the store ZIP and small trusted project locators in Git. Project-only or both full-copy placement is not implemented for this transport and is rejected explicitly. Existing local CAS supports its wider placement policy.</p>
-<p>After a verified upload, project metadata lives under .proj/remotes/<remote-name-hash>/cas-github/v1/. current.json selects the trusted base for the next build; snapshots/<first2>/<rest>.json retains each version’s exact ZIP locator. These records bind repository, API origin, release tag, ZIP digest/length and snapshot IDs/encoding kinds. Full per-version manifests and directory objects remain inside the ZIP. Keep project locators in Git. The project build commit supplies the version context; locators do not create Git tags on their own.</rest></first2></remote-name-hash></p>
+<p>The GitHub complete-store option supports manifest: auto or remote, keeping full metadata in the store ZIP and small trusted project records identifying saved ZIPs in Git. Project-only or both full-copy placement is not implemented for this transport and is rejected explicitly. Existing local CAS supports its wider placement policy.</p>
+<p>After a verified upload, project metadata lives under <code>.proj/remotes/&lt;remote-name-hash&gt;/cas-github/v1/</code>. <code>current.json</code> selects the trusted base for the next build; <code>snapshots/&lt;first2&gt;/&lt;rest&gt;.json</code> retains each version’s exact ZIP locator. These records bind repository, API origin, release tag, ZIP digest/length and snapshot IDs/encoding kinds. Full per-version manifests and directory objects remain inside the ZIP. Keep project locators in Git. The project build commit supplies the version context; locators do not create Git tags on their own.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> remote restore <span class="at">--provider</span> github <span class="at">--title</span> project-file-store <span class="dt">\</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--snapshot</span> SNAPSHOT_ID <span class="at">--label</span> raw-data <span class="at">--clear</span> <span class="dt">\</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--max-bytes</span> 1073741824 <span class="at">--max-expanded-bytes</span> 4294967296</span>
@@ -449,14 +613,56 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">--max-bytes</span> 1073741824 <span class="at">--max-expanded-bytes</span> 4294967296</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>A fresh checkout needs its config, trusted locators and existing authentication, but no previous local store or root CSV. Removing the name from build.dest stops uploads without removing recovery lookup. Missing locators with existing store exports fail clearly; automatic remote-only discovery is not implemented. Style changes affect new writes while stored encoding kinds select old readers.</p>
 <p>Each update transfers the whole ZIP; retained older ZIPs repeat stored history. Production limits store ZIPs below 2 GiB and expanded data to 8 GiB. Recovery requires explicit budgets. Every update transfers the complete ZIP, and old exports/orphans remain until an explicit retention policy is chosen. These limits are not disk reservations. Store assets follow the repository’s visibility.</p>
-<p>This is one project per store, with Git-authoritative base locators. Local claims and immutable exports are not distributed linear-head coordination: concurrent checkouts can produce distinct exports and Git conflicts. No automatic history merge, multi-project namespace or cleanup is provided.</p>
+<p>Use one project per store. If two checkouts upload at the same time, they can produce different saved ZIPs and conflicting project records. projcli does not merge those histories or delete older exports automatically.</p>
+</section>
+<section id="what-is-verified-before-a-reference-can-be-saved" class="level2">
+<h2 class="anchored" data-anchor-id="what-is-verified-before-a-reference-can-be-saved">What is verified before a reference can be saved</h2>
+<p>Export holds the store lock for cooperating projcli operations while copying. It excludes coordination state, then checks every copied file, every content-addressed object including orphan objects, directory identities and each tree, flat-catalogue or legacy snapshot. Complete metadata must be present in the exported store. Project-only metadata is not silently invented or copied from another project.</p>
+<p>The ZIP includes a file list with sizes and checksums. On import, projcli first compares the ZIP with the checksum and size saved in your project. It rejects unsafe paths, links, duplicate entries and files beyond the size limits. It then checks the complete extracted store in a new temporary folder. The ZIP-only file list is removed after checking, so the imported store can later be updated and exported again.</p>
+<p>A checksum inside the ZIP alone does not authenticate it. Keep the exact store reference, including ZIP digest, in trusted project Git history.</p>
+</section>
+<section id="github-transfer-and-failure-behavior" class="level2">
+<h2 class="anchored" data-anchor-id="github-transfer-and-failure-behavior">GitHub transfer and failure behavior</h2>
+<p>A new immutable ZIP is uploaded, then downloaded and independently checked before the library returns a reference eligible for project commit. A failed upload or verification leaves the previous good asset/reference intact; an unreferenced new ZIP can remain. Same-name retries accept only independently verified exact bytes. No delete-old-before-upload replacement or automatic retention cleanup is used.</p>
+<p>Recovery downloads the selected complete ZIP and uses the ordinary local CAS readers. It needs no Xet engine or Hugging Face account. Failure tests use disposable synthetic files and a simulated GitHub API. A separate <a href="https://github.com/MiguelRodo/projcli/actions/runs/40510154990">real GitHub round-trip</a> also passed; configured examples follow. Use one project per store. These tests do not prove safe copying while another program writes, automatic merging of uploads, or recovery after a power failure.</p>
+<p>All existing ordinary latest/archive paths and metadata ZIPs remain unchanged.</p>
+<p>The claim is cooperative: not every low-level existing tree writer acquires it. Stop all store writers before export. The tests cover busy-claim rejection; this is not a safe concurrent hot-copy mechanism. New acceptance also exercises all four flat encodings with direct version references, original legacy flat snapshots without the project ledger, missing objects and unknown catalogue files.</p>
 
 
 </section>
 
 </main> <!-- /main -->
+<script>
+// Quarto owns theme state and persistence; supply a clear keyboard button label.
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.quarto-color-scheme-toggle').forEach(toggle => {
+    toggle.setAttribute('role', 'button');
+    toggle.setAttribute('aria-label', 'Toggle light and dark theme');
+    toggle.setAttribute('tabindex', '0');
+    toggle.addEventListener('keydown', event => {
+      if (event.key === ' ' || event.key === 'Enter') {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+  });
+});
+</script>
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
     const icon = "";
     const anchorJS = new window.AnchorJS();
     anchorJS.options = {

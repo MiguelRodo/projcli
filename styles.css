@@ -1,10 +1,11 @@
 /* Reuse Quarto layout and Bootstrap; no extra frontend dependencies. */
-:root {
+body.quarto-light {
   --bs-body-color: #243447;
   --bs-link-color: #146859;
 }
 body { font-size: 1.05rem; line-height: 1.7; }
-h1, h2, h3 { color: #142d3b; font-weight: 650; }
+h1, h2, h3 { font-weight: 650; }
+body.quarto-light :is(h1, h2, h3) { color: #142d3b; }
 h1 { letter-spacing: -.035em; line-height: 1.15; }
 h2 { margin-top: 2.1rem; letter-spacing: -.02em; }
 .navbar .navbar-brand, .navbar .nav-link { color: #fff; }
@@ -39,4 +40,32 @@ table { font-size: .95rem; }
   .hero { font-size: 1.08rem; padding-top: .5rem; }
   .hero .btn { display: block; width: fit-content; }
   table { display: block; overflow-x: auto; }
+}
+
+/* Use Quarto's built-in toggle, system preference and persisted reader choice.
+   Keep overrides scoped so light colours never leak into the dark theme. */
+body.quarto-dark {
+  --bs-body-color: #dee2e6;
+  --bs-link-color: #8cdec9;
+  --bs-link-hover-color: #c3f5e8;
+  color: #dee2e6;
+}
+body.quarto-dark :is(h1, h2, h3) { color: #f2f6f8; }
+body.quarto-dark a:not(.btn):not(.nav-link):not(.navbar-brand) { color: #8cdec9; }
+body.quarto-dark .btn-outline-primary { color: #8cdec9; border-color: #8cdec9; }
+body.quarto-dark .btn-outline-primary:hover { color: #fff; background: #104f45; }
+body.quarto-dark pre { border-color: #70818a; }
+body.quarto-dark :is(a, button):focus-visible { outline-color: #ffd166; }
+.quarto-color-scheme-toggle:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+/* Inline code in headings also needs a dark background, not Bootstrap's light one. */
+body.quarto-dark :not(pre) > code {
+  color: #f2f6f8;
+  background-color: #3d4143;
+}
+
+/* The existing lifecycle SVGs have fixed light palettes; keep their connectors visible. */
+body.quarto-dark svg.flowchart {
+  background-color: #f8faf9;
+  border-radius: .35rem;
 }

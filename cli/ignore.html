@@ -42,10 +42,14 @@ ul.task-list li input[type="checkbox"] {
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-b626d73c4c936ccc3cb08be7d45d1df6.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-594fc4564f848ab358ed4d83e83f085a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -78,7 +82,178 @@ ul.task-list li input[type="checkbox"] {
 <link rel="stylesheet" href="../styles.css">
 </head>
 
-<body class="nav-sidebar docked nav-fixed quarto-light">
+<body class="nav-sidebar docked nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const queryPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkModeDefault = queryPrefersDark.matches;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    queryPrefersDark.addEventListener("change", e => {
+      if(window.localStorage.getItem("quarto-color-scheme") !== null)
+        return;
+      const alternate = e.matches
+      toggleColorMode(alternate);
+      localAlternateSentinel = e.matches ? 'alternate' : 'default'; // this is used alongside local storage!
+      toggleGiscusIfUsed(alternate, darkModeDefault);
+    });
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -125,6 +300,7 @@ ul.task-list li input[type="checkbox"] {
 </ul>
           </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
 </div>
       </div> <!-- /container-fluid -->
     </nav>
@@ -294,7 +470,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../flow.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Build execution flow</span></a>
+ <span class="menu-text">What happens during a build</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -343,10 +519,9 @@ ul.task-list li input[type="checkbox"] {
   <ul class="collapse">
   <li><a href="#arguments-flags-1" id="toc-arguments-flags-1" class="nav-link" data-scroll-target="#arguments-flags-1">Arguments &amp; Flags</a></li>
   </ul></li>
-  <li><a href="#automated-synchronization" id="toc-automated-synchronization" class="nav-link" data-scroll-target="#automated-synchronization">Automated Synchronization</a></li>
-  <li><a href="#automated-root-scans" id="toc-automated-root-scans" class="nav-link" data-scroll-target="#automated-root-scans">Automated Root Scans</a></li>
-  <li><a href="#protected-exceptions-file-list" id="toc-protected-exceptions-file-list" class="nav-link" data-scroll-target="#protected-exceptions-file-list">Protected Exceptions File List</a></li>
-  <li><a href="#demarcation-slice-logic" id="toc-demarcation-slice-logic" class="nav-link" data-scroll-target="#demarcation-slice-logic">Demarcation Slice Logic</a></li>
+  <li><a href="#when-automatic-rules-are-updated" id="toc-when-automatic-rules-are-updated" class="nav-link" data-scroll-target="#when-automatic-rules-are-updated">When automatic rules are updated</a></li>
+  <li><a href="#git-and-r-package-exclusions" id="toc-git-and-r-package-exclusions" class="nav-link" data-scroll-target="#git-and-r-package-exclusions">Git and R package exclusions</a></li>
+  <li><a href="#your-rules-are-preserved" id="toc-your-rules-are-preserved" class="nav-link" data-scroll-target="#your-rules-are-preserved">Your rules are preserved</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -357,9 +532,10 @@ ul.task-list li input[type="checkbox"] {
 
 
 
+
 <section id="proj-ignore" class="level1">
 <h1><code>proj ignore</code></h1>
-<p>Commands for interacting with tracking file exclusions, handling operations to manually or automatically modify <code>.gitignore</code> and <code>.Rbuildignore</code> files.</p>
+<p>Choose which project paths Git or R package builds should exclude. Existing user-written rules are preserved outside the managed block.</p>
 <section id="proj-ignore-add" class="level2">
 <h2 class="anchored" data-anchor-id="proj-ignore-add"><code>proj ignore add</code></h2>
 <p>Manually appends one or more raw file or directory paths to the project ignore files.</p>
@@ -368,8 +544,8 @@ ul.task-list li input[type="checkbox"] {
 <h3 class="anchored" data-anchor-id="arguments-flags">Arguments &amp; Flags</h3>
 <ul>
 <li><code>&lt;PATHS&gt;...</code>: One or more raw file or directory paths to be ignored.</li>
-<li><code>--force-create</code>: Boolean flag (default <code>true</code>). If true, creates ignore files if they don’t exist. If false, skips file creation unless inherently warranted by environmental cues (e.g.&nbsp;finding a <code>.git</code> folder or a <code>DESCRIPTION</code> file).</li>
-<li><code>--type</code>: Optional filter selection (<code>all</code> [default], <code>git</code>, <code>rbuild</code>). Determines which tracking surface receives the manual path entries. Note that <code>.Rbuildignore</code> is skipped entirely if no <code>DESCRIPTION</code> file exists at the project root.</li>
+<li><code>--force-create</code>: Boolean flag (default <code>true</code>). If true, creates ignore files if they don’t exist. If false, skips file creation unless the project requires it (e.g.&nbsp;finding a <code>.git</code> folder or a <code>DESCRIPTION</code> file).</li>
+<li><code>--type</code>: Optional filter selection (<code>all</code> [default], <code>git</code>, <code>rbuild</code>). Determines which ignore file receives the manual path entries. Note that <code>.Rbuildignore</code> is skipped entirely if no <code>DESCRIPTION</code> file exists at the project root.</li>
 </ul>
 </section>
 </section>
@@ -381,37 +557,66 @@ ul.task-list li input[type="checkbox"] {
 <h3 class="anchored" data-anchor-id="arguments-flags-1">Arguments &amp; Flags</h3>
 <ul>
 <li><code>&lt;PATHS&gt;...</code>: One or more raw file or directory paths to force tracking.</li>
-<li><code>--type</code>: Optional filter selection (<code>all</code> [default], <code>git</code>, <code>rbuild</code>). Determines which tracking surface receives the negated entries. Note that <code>.Rbuildignore</code> is skipped entirely if no <code>DESCRIPTION</code> file exists at the project root.</li>
+<li><code>--type</code>: Optional filter selection (<code>all</code> [default], <code>git</code>, <code>rbuild</code>). Determines which ignore file receives the negated entries. Note that <code>.Rbuildignore</code> is skipped entirely if no <code>DESCRIPTION</code> file exists at the project root.</li>
 </ul>
 </section>
 </section>
-<section id="automated-synchronization" class="level2">
-<h2 class="anchored" data-anchor-id="automated-synchronization">Automated Synchronization</h2>
-<p>The library core automatically synchronizes ignore rules dynamically across <code>.gitignore</code> and <code>.Rbuildignore</code> based on the configuration of <code>_proj.yml</code>.</p>
-<blockquote class="blockquote">
-<p><strong>Note:</strong> While the automated ignore synchronization is invoked implicitly by the CLI via commands like <code>proj yml read</code> (and acts seamlessly under the hood), the <code>ignore</code> subcommand namespace exists openly to support explicit manual additions via <code>proj ignore add</code>.</p>
-</blockquote>
+<section id="when-automatic-rules-are-updated" class="level2">
+<h2 class="anchored" data-anchor-id="when-automatic-rules-are-updated">When automatic rules are updated</h2>
+<p>Directory initialization and production builds update the managed ignore rules from <code>_proj.yml</code>. Reading configuration (<code>proj yml read</code>) and looking up paths leave ignore files unchanged. A preview does not add ignore rules.</p>
+<p>The project is selected by <code>--project</code>, an inherited build context, or the nearest recognized parent project folder. A VERSION file is one possible marker; it is not required for every query. See <a href="../cli/path.html#nearest-root-discovery">project discovery</a>.</p>
 </section>
-<section id="automated-root-scans" class="level2">
-<h2 class="anchored" data-anchor-id="automated-root-scans">Automated Root Scans</h2>
-<p>The tool automatically locates the project boundaries via a heuristic upward path traversal. It begins checking from the user’s current working directory upward: - It discovers the conceptual root by finding a directory containing a <code>VERSION</code> file. - It continues upward through up to 5 directory levels seeking an optimal foundational root confirming the presence of either <code>_proj.yml</code> or a <code>.git</code> tracking context alongside the <code>VERSION</code>.</p>
+<section id="git-and-r-package-exclusions" class="level2">
+<h2 class="anchored" data-anchor-id="git-and-r-package-exclusions">Git and R package exclusions</h2>
+<ul>
+<li><code>.gitignore</code> controls which untracked files Git normally ignores.</li>
+<li><code>.Rbuildignore</code> excludes files when building an R source package. It is only updated when the project has a DESCRIPTION file; it does not prove CRAN compliance.</li>
+</ul>
+<p>These files use different pattern languages: Git uses ignore patterns, while R uses regular expressions. projcli converts configured paths for each file. Check manual patterns carefully, especially when keeping a file that a parent folder rule excludes.</p>
 </section>
-<section id="protected-exceptions-file-list" class="level2">
-<h2 class="anchored" data-anchor-id="protected-exceptions-file-list">Protected Exceptions File List</h2>
-<p>The tool targets specifically two core exception list files: - <code>.gitignore</code> (safeguards <code>git</code> commit environments) - <code>.Rbuildignore</code> (safeguards strict CRAN environments and <code>rbuild</code> processes)</p>
-<p>Based on the individual block <code>ignore</code> settings within <code>_proj.yml</code> (e.g.&nbsp;<code>ignore: all</code>), properties are intelligently resolved as standard <code>git</code> glob patterns and <code>Rbuild</code> regex match patterns appropriately.</p>
-</section>
-<section id="demarcation-slice-logic" class="level2">
-<h2 class="anchored" data-anchor-id="demarcation-slice-logic">Demarcation Slice Logic</h2>
-<p>Modifications made by the tool into <code>.gitignore</code> and <code>.Rbuildignore</code> are safely strictly demarcated with protected slice logic block comments. This preserves user-defined modifications outside the managed span: - Operations scan for <code># --- PROJ MANAGED ---</code> and <code># --- END PROJ MANAGED ---</code>. - Targeted slice elements are swapped or appended into existing scopes only between these exact markers. - If the boundary blocks are absent, the tool automatically injects them natively at the base end.</p>
+<section id="your-rules-are-preserved" class="level2">
+<h2 class="anchored" data-anchor-id="your-rules-are-preserved">Your rules are preserved</h2>
+<p>Automatic rules are kept between these comments:</p>
+<pre class="text"><code># --- PROJ MANAGED ---
+# --- END PROJ MANAGED ---</code></pre>
+<p>projcli replaces only the content inside its managed block. Existing rules outside it are preserved. If the block is missing, it is appended. Manual add entries go before the block; manual remove entries go after it.</p>
 
 
 </section>
 </section>
 
 </main> <!-- /main -->
+<script>
+// Quarto owns theme state and persistence; supply a clear keyboard button label.
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.quarto-color-scheme-toggle').forEach(toggle => {
+    toggle.setAttribute('role', 'button');
+    toggle.setAttribute('aria-label', 'Toggle light and dark theme');
+    toggle.setAttribute('tabindex', '0');
+    toggle.addEventListener('keydown', event => {
+      if (event.key === ' ' || event.key === 'Enter') {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+  });
+});
+</script>
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
     const icon = "";
     const anchorJS = new window.AnchorJS();
     anchorJS.options = {

@@ -77,10 +77,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-b626d73c4c936ccc3cb08be7d45d1df6.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-594fc4564f848ab358ed4d83e83f085a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -113,7 +117,178 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link rel="stylesheet" href="styles.css">
 </head>
 
-<body class="nav-sidebar docked nav-fixed quarto-light">
+<body class="nav-sidebar docked nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const queryPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkModeDefault = queryPrefersDark.matches;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    queryPrefersDark.addEventListener("change", e => {
+      if(window.localStorage.getItem("quarto-color-scheme") !== null)
+        return;
+      const alternate = e.matches
+      toggleColorMode(alternate);
+      localAlternateSentinel = e.matches ? 'alternate' : 'default'; // this is used alongside local storage!
+      toggleGiscusIfUsed(alternate, darkModeDefault);
+    });
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -160,6 +335,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
           </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
 </div>
       </div> <!-- /container-fluid -->
     </nav>
@@ -329,7 +505,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./flow.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Build execution flow</span></a>
+ <span class="menu-text">What happens during a build</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -380,6 +556,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
+
 
 <header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./xet-storage.html">Storage guides</a></li><li class="breadcrumb-item"><a href="./xet-storage.html">Experimental shared-content storage</a></li></ol></nav>
 <div class="quarto-title">
@@ -466,14 +643,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="why-this-remains-experimental" class="level2">
 <h2 class="anchored" data-anchor-id="why-this-remains-experimental">Why this remains experimental</h2>
 <p>Upstream’s <a href="https://github.com/huggingface/xet-core/blob/629562cd9fc37432317eb57811faf13a6935c601/xet_client/src/cas_client/simulation/mod.rs">local client is a testing/development backend</a>. Its <a href="https://github.com/huggingface/xet-core/blob/629562cd9fc37432317eb57811faf13a6935c601/README.md">README directs ordinary use through huggingface_hub</a>. Apache-2.0 permits reuse but does not establish an archival compatibility/support promise. The helper requires the exact tested upstream revision and unknown formats fail; upgrading must not silently reinterpret stored data.</p>
-<p><a href="https://github.com/MiguelRodo/projcli/actions/runs/40459341098">Restart tests</a> passed. <a href="https://github.com/MiguelRodo/projcli/actions/runs/40463702593">Interruption/export qualification</a> passed selected process interruption/retry and stopped-writer ZIP export/import, but failed corruption detection: the default upstream local download returned success with wrong bytes. Unfinished reads also panicked. Those failures remain recorded. The new core independently checks reconstructed length/BLAKE3 in private staging before using the existing guarded destination installer.</p>
-<p>A cooperative claim serializes one project’s store operations, including reads which can mutate upstream caches. Finalized verified content precedes immutable snapshot references. No persistent full-file copy is kept, but ingest/restore needs temporary disk space. Sparse database allocation can grow on export/import. A stale claim fails closed; no automatic stale-lock removal or migration occurs.</p>
-<p>Snapshots reuse the existing complete file inventory and pure directory identities. A backend-specific binding maps whole-file digests to upstream reconstruction addresses. File digests, directory roots, version metadata and Xet IDs stay distinct. Legacy CAS IDs/readers are untouched.</p>
-<p>The dedicated remote integration gate checks exact recovery and complete destination preservation; see the draft PR’s exact-head results. These checks do not establish long-term archival support. Unix runtime only until equivalent hard-link validation is implemented on Windows. No power-loss, concurrent hot-copy, arbitrary interruption-point or production-readiness guarantee follows. Reusing upstream chunk/hash/codec primitives with a proj-owned durable backend is another route, but requires real persistence/index/recovery engineering.</p>
+<p><a href="https://github.com/MiguelRodo/projcli/actions/runs/40459341098">Restart tests</a> passed. <a href="https://github.com/MiguelRodo/projcli/actions/runs/40463702593">Interruption/export qualification</a> passed selected process interruption/retry and stopped-writer ZIP export/import, but failed corruption detection: the default upstream local download returned success with wrong bytes. Unfinished reads also panicked. Those failures remain recorded. The new core independently checks reconstructed length/BLAKE3 in private staging before using the existing checked destination replacement.</p>
+<p>A store lock serializes one project’s store operations, including reads which can mutate upstream caches. File storage finishes and the recovered bytes are checked before the project records the saved version. No persistent full-file copy is kept, but ingest/restore needs temporary disk space. Sparse database allocation can grow on export/import. A stale claim fails closed; no automatic stale-lock removal or migration occurs.</p>
+<p>Each saved version records its complete file list. Separate records connect each file checksum to the Xet information needed to recover its bytes. The directory fingerprint, project version, whole-file checksum and Xet identifier serve different purposes. Existing shared-file backups remain readable.</p>
+<p>The automated storage tests check exact recovered bytes and preservation of existing destination files after failures. These checks do not establish long-term archival support. Linux/WSL is qualified; macOS is not yet qualified and Windows execution is rejected. No power-loss, concurrent hot-copy, arbitrary interruption-point or production-readiness guarantee follows. Reusing upstream chunk/hash/codec primitives with a proj-owned durable backend is another route, but requires real persistence/index/recovery engineering.</p>
 </section>
 <section id="save-a-local-copy" class="level2">
 <h2 class="anchored" data-anchor-id="save-a-local-copy">Save a local copy</h2>
-<p>Use the matching CLI and helper; no automatic helper installation occurs. The separately built pinned helper must already be on PATH as proj-xet-engine. No build/init/query automatically installs it or logs into Hugging Face. Current runtime support is Unix; Windows proj still works with ordinary backends.</p>
+<p>Use the matching CLI and helper; no automatic helper installation occurs. The separately built pinned helper must already be on PATH as proj-xet-engine. No build/init/query automatically installs it or logs into Hugging Face. The tested runtime is Linux/WSL; Windows proj still works with ordinary backends.</p>
 <p>For a project that only archives existing data, an explicit empty script list avoids rerunning an analysis:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">directories</span><span class="kw">:</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">raw-data</span><span class="kw">:</span></span>
@@ -497,12 +674,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> remote verify <span class="at">--title</span> shared-content <span class="at">--snapshot</span> SNAPSHOT_ID</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> remote restore <span class="at">--title</span> shared-content <span class="at">--snapshot</span> SNAPSHOT_ID <span class="at">--label</span> raw-data <span class="at">--clear</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Restore uses the label’s configured final directory. Without –clear, extra destination files survive; with it, membership matches the snapshot. Both paths verify private reconstructed bytes before replacement. Verify/restore take the store claim and can update backend caches; they are not byte-for-byte read-only store operations. They leave project VERSION unchanged and need no old project CSV.</p>
-<p>Initial configured support is remote full metadata (manifest auto/remote), tree identities and JSON binding. Project/both, flat/CSV/dictionary overrides fail preflight rather than being ignored. Root manifest.csv and old ordinary/CAS formats remain unchanged. Broader format parity is not implemented. GitHub transfer uses this same engine through the complete-store transport described below.</p>
+<p>Full file records must stay in the store (<code>manifest: auto</code> or <code>remote</code>), with <code>manifest-style: tree</code> and fixed JSON records. The unsupported <code>project</code>, <code>both</code>, flat and CSV options stop the command before a build rather than being ignored. Root manifest.csv and old ordinary/CAS formats remain unchanged. Broader format parity is not implemented. GitHub transfer uses this same engine through the complete-store transport described below.</p>
 <p>Experimental Xet preview does not copy/restore mutable engine stores under the project-only claim. It never opens the engine, even with an existing busy store. Arbitrary script/hook store edits are outside that preview guarantee. Every production target’s types/format are checked before hooks, independently of one-time helper discovery. The configured integration gate covers multiple targets and busy-store handling.</p>
 </section>
 <section id="how-the-complete-store-is-transferred" class="level2">
 <h2 class="anchored" data-anchor-id="how-the-complete-store-is-transferred">How the complete store is transferred</h2>
-<p>The transport prepares the same local store for complete ZIP transfer. It takes the cooperative store claim while copying stopped-writer persistent data, excludes client caches and writer claims, and validates every committed version using the pinned helper. A separate export manifest records exact file paths, byte lengths and BLAKE3 digests. Unknown store files fail rather than disappearing silently. This is a full-history copy, including orphan packs; it does not reclaim space.</p>
+<p>The transport prepares the same local store for complete ZIP transfer. It takes the store lock while copying stopped-writer persistent data, excludes client caches and writer claims, and validates every committed version using the pinned helper. A separate export manifest records exact file paths, byte lengths and BLAKE3 digests. Unknown store files fail rather than disappearing silently. This is a full-history copy, including orphan packs; it does not reclaim space.</p>
 <p>Import first checks the trusted ZIP digest and byte length, then bounded safe extraction, exact file membership, and independent reconstruction of every committed snapshot in a fresh private tree. It never replaces an existing store. Keep the ZIP digest in trusted project/reference metadata; an internal checksum alone does not authenticate an archive.</p>
 <p>Configured GitHub publication uses this same transport. Engine and mocked-transport tests passed; final real GitHub evidence is recorded separately. Sparse databases can consume more temporary disk space than their allocated size in the original store. No live-copy or system power-loss guarantee is claimed.</p>
 </section>
@@ -535,7 +712,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">dest</span><span class="kw">:</span></span>
 <span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">project-data-store</span><span class="kw">:</span><span class="at"> </span><span class="kw">{}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The remote name selects one long-running storage release. The repository comes from the project’s Git origin. Existing GitHub authentication is used; no account, token, engine or R package is installed automatically. Keep credentials out of YAML. The optional pinned engine is required for production only. Preview and queries do not open the engine or contact the release.</p>
-<p>Each upload is downloaded and fully checked before writing project metadata under .proj/remotes/<remote-name-hash>/xet-github/v1/. The file current.json selects the trusted store for the next build; immutable snapshots/<first2>/<rest>.json locators retain each earlier snapshot’s exact ZIP. Each binds repository, API origin, tag, ZIP name/digest/length, backend/upstream and included snapshot IDs. Keep these files in project Git history. Config relocation must not silently reinterpret old locators; explicit migration is required.</rest></first2></remote-name-hash></p>
+<p>Each upload is downloaded and fully checked before writing project metadata under <code>.proj/remotes/&lt;remote-name-hash&gt;/xet-github/v1/</code>. The file <code>current.json</code> selects the trusted store for the next build; immutable <code>snapshots/&lt;first2&gt;/&lt;rest&gt;.json</code> locators retain each earlier snapshot’s exact ZIP. Each binds repository, API origin, tag, ZIP name/digest/length, backend/upstream and included snapshot IDs. Keep these files in project Git history. Config relocation must not silently reinterpret old locators; explicit migration is required.</p>
 <p>Recover the exact snapshot ID from the project’s locator, then:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> remote restore <span class="at">--provider</span> github <span class="at">--title</span> project-data-store <span class="dt">\</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--snapshot</span> SNAPSHOT_ID <span class="at">--label</span> raw-data <span class="at">--clear</span> <span class="dt">\</span></span>
@@ -545,15 +722,44 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">--max-bytes</span> 1073741824 <span class="at">--max-expanded-bytes</span> 4294967296</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>A fresh checkout needs its trusted locators, config, existing authentication and pinned engine. It needs no previous local store, caches, root CSV or current upload selection. If locators are lost, recover them from project Git history instead of guessing by hash or upload time. Full manifests remain in exports; automatic remote-only locator recovery is not implemented.</p>
 <p>Production caps ZIPs below 2 GiB and expanded stores at 8 GiB; explicit recovery requires caller-selected budgets. Bounds are not disk reservations. Temporary copies can need much more space than the original sparse database. Every update transfers the complete ZIP; retaining old ZIPs also repeats history on GitHub. Previous exports and failed/orphan uploads remain: there is no automatic retention cleanup, and GitHub asset quotas still apply.</p>
-<p>One project uses each store. Project writer exclusion and immutable exports protect local operations and old bytes, but there is no distributed linear-head protocol. Concurrent checkouts can create separate exports and conflicting Git locators; there is no automatic multi-machine history merge.</p>
-<p>Xet still repeats a complete readable inventory and file-address binding for each version. Shared directory identities and engine chunk deduplication do not imply version-level inventory deduplication.</p>
+<p>Use one project per store. Locks protect cooperating local operations, and previous exports are retained. Two checkouts can still upload different exports and create conflicting Git records. Resolve those conflicts explicitly; projcli does not merge upload histories across machines.</p>
+<p>Xet shares repeated pieces of file content, but still saves a complete file list and recovery addresses for each version. Sharing file content does not also remove repeated rows from those lists.</p>
 
 
 </section>
 
 </main> <!-- /main -->
+<script>
+// Quarto owns theme state and persistence; supply a clear keyboard button label.
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.quarto-color-scheme-toggle').forEach(toggle => {
+    toggle.setAttribute('role', 'button');
+    toggle.setAttribute('aria-label', 'Toggle light and dark theme');
+    toggle.setAttribute('tabindex', '0');
+    toggle.addEventListener('keydown', event => {
+      if (event.key === ' ' || event.key === 'Enter') {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+  });
+});
+</script>
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
     const icon = "";
     const anchorJS = new window.AnchorJS();
     anchorJS.options = {

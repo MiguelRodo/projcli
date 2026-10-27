@@ -77,10 +77,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-b626d73c4c936ccc3cb08be7d45d1df6.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-594fc4564f848ab358ed4d83e83f085a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -113,7 +117,178 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link rel="stylesheet" href="styles.css">
 </head>
 
-<body class="nav-sidebar docked nav-fixed quarto-light">
+<body class="nav-sidebar docked nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const queryPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkModeDefault = queryPrefersDark.matches;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    queryPrefersDark.addEventListener("change", e => {
+      if(window.localStorage.getItem("quarto-color-scheme") !== null)
+        return;
+      const alternate = e.matches
+      toggleColorMode(alternate);
+      localAlternateSentinel = e.matches ? 'alternate' : 'default'; // this is used alongside local storage!
+      toggleGiscusIfUsed(alternate, darkModeDefault);
+    });
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -160,6 +335,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
           </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
 </div>
       </div> <!-- /container-fluid -->
     </nav>
@@ -329,7 +505,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./flow.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Build execution flow</span></a>
+ <span class="menu-text">What happens during a build</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -370,10 +546,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul>
   <li><a href="#configuration-_proj.yml" id="toc-configuration-_proj.yml" class="nav-link active" data-scroll-target="#configuration-_proj.yml">Configuration <code>_proj.yml</code></a>
   <ul class="collapse">
-  <li><a href="#schema-rules-and-foundational-prefixes" id="toc-schema-rules-and-foundational-prefixes" class="nav-link" data-scroll-target="#schema-rules-and-foundational-prefixes">Schema Rules and Foundational Prefixes</a></li>
+  <li><a href="#name-your-project-folders" id="toc-name-your-project-folders" class="nav-link" data-scroll-target="#name-your-project-folders">Name your project folders</a></li>
   <li><a href="#explicit-paths-and-local-initialization" id="toc-explicit-paths-and-local-initialization" class="nav-link" data-scroll-target="#explicit-paths-and-local-initialization">Explicit paths and local initialization</a></li>
   <li><a href="#selecting-the-safe-cache" id="toc-selecting-the-safe-cache" class="nav-link" data-scroll-target="#selecting-the-safe-cache">Selecting the safe cache</a></li>
-  <li><a href="#strict-validation-error-behaviors" id="toc-strict-validation-error-behaviors" class="nav-link" data-scroll-target="#strict-validation-error-behaviors">Strict Validation Error Behaviors</a></li>
+  <li><a href="#configuration-errors" id="toc-configuration-errors" class="nav-link" data-scroll-target="#configuration-errors">Configuration errors</a></li>
   <li><a href="#top-level-configuration" id="toc-top-level-configuration" class="nav-link" data-scroll-target="#top-level-configuration">Top-Level Configuration</a></li>
   <li><a href="#parameters-configuration" id="toc-parameters-configuration" class="nav-link" data-scroll-target="#parameters-configuration">Parameters Configuration</a></li>
   <li><a href="#remotes-configuration" id="toc-remotes-configuration" class="nav-link" data-scroll-target="#remotes-configuration">Remotes Configuration</a></li>
@@ -402,7 +578,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </ul></li>
   <li><a href="#r-processes-and-executable" id="toc-r-processes-and-executable" class="nav-link" data-scroll-target="#r-processes-and-executable">R processes and executable</a></li>
   <li><a href="#optional-r-project-setup-and-build-maintenance-local-candidate" id="toc-optional-r-project-setup-and-build-maintenance-local-candidate" class="nav-link" data-scroll-target="#optional-r-project-setup-and-build-maintenance-local-candidate">Optional R project setup and build maintenance</a></li>
-  <li><a href="#experimental-xet-structure-unmerged-candidate" id="toc-experimental-xet-structure-unmerged-candidate" class="nav-link" data-scroll-target="#experimental-xet-structure-unmerged-candidate">Experimental Xet structure (unmerged candidate)</a></li>
+  <li><a href="#experimental-xet-structure-unmerged-candidate" id="toc-experimental-xet-structure-unmerged-candidate" class="nav-link" data-scroll-target="#experimental-xet-structure-unmerged-candidate">Experimental Xet storage</a>
+  <ul class="collapse">
+  <li><a href="#complete-stores-on-github" id="toc-complete-stores-on-github" class="nav-link" data-scroll-target="#complete-stores-on-github">Complete stores on GitHub</a></li>
+  </ul></li>
   </ul></li>
   </ul>
 </nav>
@@ -413,13 +592,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
+
 <section id="configuration-_proj.yml" class="level1">
 <h1>Configuration <code>_proj.yml</code></h1>
 <p>Preview.4 includes the named remote definitions, file-history formats and explicit local snapshot recovery documented below. Historical slice notes retain their original verification scope. See <a href="./release-delivery.html#verified-preview4-delivery">verified delivery</a>.</p>
-<p>The <code>_proj.yml</code> file dictates the structural map of your project. It configures the foundational paths and mapping logic used by the CLI.</p>
-<section id="schema-rules-and-foundational-prefixes" class="level2">
-<h2 class="anchored" data-anchor-id="schema-rules-and-foundational-prefixes">Schema Rules and Foundational Prefixes</h2>
-<p>Custom directory labels are strictly validated against a set of foundational prefixes: - <code>cache</code> - <code>raw</code> - <code>output</code> - <code>docs</code></p>
+<p>Use <code>_proj.yml</code> to name your project folders, choose the analysis steps to run, and decide where results are saved. The examples below describe preview.5; unmerged initialization and script-group proposals are not available yet.</p>
+<section id="name-your-project-folders" class="level2">
+<h2 class="anchored" data-anchor-id="name-your-project-folders">Name your project folders</h2>
+<p>Directory names must start with one of these prefixes:</p>
+<ul>
+<li><code>cache</code></li>
+<li><code>raw</code></li>
+<li><code>output</code></li>
+<li><code>docs</code></li>
+</ul>
 <p>These prefixes are <strong>case-insensitive</strong>. Any label defined in the configuration must begin with one of these approved identifiers.</p>
 </section>
 <section id="explicit-paths-and-local-initialization" class="level2">
@@ -439,9 +625,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">safe</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>This selects <code>_analysis_cache</code> for explicit safe logical output lookup. Multiple true selections, non-boolean values (including null), selection flags on non-cache roles, and all declared cache candidates excluded are validation errors. Each layer’s explicit values are checked before merging; null cannot inherit a previous boolean. Cache-free queries and operations that do not consume a cache remain valid. The chosen safe cache is frozen in child run context. Cleanup, safe lookup and renderer staging consume that same selected mapping; no literal <code>cache</code> label is required when another eligible cache is selected.</p>
 </section>
-<section id="strict-validation-error-behaviors" class="level2">
-<h2 class="anchored" data-anchor-id="strict-validation-error-behaviors">Strict Validation Error Behaviors</h2>
-<p>The system performs strict validation on <code>_proj.yml</code>: - If a defined directory label uses an unsupported prefix layout, a validation error string will be returned and execution will fail. - All references must resolve correctly; otherwise, the CLI will output an error detailing the structurally invalid labels or malformed content.</p>
+<section id="configuration-errors" class="level2">
+<h2 class="anchored" data-anchor-id="configuration-errors">Configuration errors</h2>
+<p>projcli checks the configuration before running the selected work:</p>
+<ul>
+<li>An unsupported directory name stops the command with an explanation.</li>
+<li>A reference to a missing directory or storage destination stops the command. The error identifies the setting that needs correcting.</li>
+</ul>
 </section>
 <section id="top-level-configuration" class="level2">
 <h2 class="anchored" data-anchor-id="top-level-configuration">Top-Level Configuration</h2>
@@ -453,27 +643,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="parameters-configuration" class="level2">
 <h2 class="anchored" data-anchor-id="parameters-configuration">Parameters Configuration</h2>
-<p>The <code>_proj.yml</code> file supports a top-level <code>parameters</code> block for arbitrary nested parameter evaluation. This allows you to define custom metadata and deeply queried values throughout your execution environment.</p>
+<p>The <code>_proj.yml</code> file supports a top-level <code>parameters</code> block for arbitrary nested parameter evaluation. Use it for analysis inputs such as a model name, random seed or reporting date.</p>
 <p>The configuration engine also supports several aliases for this block: <code>parameter</code>, <code>params</code>, and <code>param</code>. However, <strong>multiple alias conflicts within the same configuration file are structurally rejected during validation</strong> to prevent mapping confusion.</p>
 </section>
 <section id="remotes-configuration" class="level2">
 <h2 class="anchored" data-anchor-id="remotes-configuration">Remotes Configuration</h2>
-<p>The <code>_proj.yml</code> file supports a top-level <code>remotes</code> block, which currently supports a <code>local</code> mapping of standalone storage vaults.</p>
-<ul>
-<li><strong><code>local</code></strong>: A mapping where keys represent remote titles and values configure the vault:
-<ul>
-<li><strong><code>path</code></strong>: The physical absolute or relative path to the remote storage directory.</li>
-<li><strong><code>structure</code></strong>: Specifies the storage structure algorithm. Must be <code>cas</code> (Content-Addressable Storage).</li>
-<li><strong><code>content</code></strong>: An array of string tags (matching foundational prefixes or defined directories) specifying which project output directories to sync into the remote upon build completion.</li>
-<li><strong><code>inspect</code></strong>: <code>manifest</code> validates JSON, logical paths/digests and manifest filename/content identity; <code>file</code> additionally hashes every referenced object and compares actual bytes. Manifest-only inspection does not verify object bytes.</li>
-</ul></li>
-</ul>
+<p>Define named storage locations under <code>remotes.local</code> or <code>remotes.github</code>. Local locations can use ordinary latest/archive folders, shared whole-file storage (<code>cas</code>), or experimental shared-pieces storage (<code>xet</code>). GitHub supports ordinary latest/archive uploads and complete-store ZIPs for <code>cas</code> and <code>xet</code>.</p>
+<p>Choose uploads with <code>build.dest</code>. Removing a destination from that selection leaves its definition available for restoring older data. The detailed examples below explain <code>content</code>, comparison/upload controls, and manifest options. See <a href="./cas-github.html">shared-file GitHub backups</a> and <a href="./xet-storage.html">experimental Xet</a> for their additional requirements and limits.</p>
 </section>
 <section id="build-configuration" class="level2">
 <h2 class="anchored" data-anchor-id="build-configuration">Build Configuration</h2>
 <p>The <code>_proj.yml</code> file can also contain a <code>build</code> block to configure the behavior of the <code>proj build</code> and <code>proj build-dev</code> execution engine. The <code>build</code> block supports the following sub-keys:</p>
 <ul>
-<li><strong><code>dest</code></strong>: An optional list of remote target strings. These targets must be mapped to explicit configurations within the <code>remotes.local</code> block. During post-build execution, resolved content directories matching these tags are piped to the CAS engine for deduplicated storage synchronization.</li>
+<li><strong><code>dest</code></strong>: Select named destinations defined under <code>remotes.local</code> or <code>remotes.github</code>. Use a list of names, or the documented name-to-options mapping to narrow each destination’s <code>content</code>. The destination’s structure controls how files are saved. Removing a name from <code>build.dest</code> stops uploads without removing that remote as a restore source.</li>
 <li><strong><code>scripts</code></strong>: An optional list of explicit script paths or glob patterns to execute during the build pipeline.
 <ul>
 <li>Globbing patterns are supported.</li>
@@ -776,18 +958,52 @@ build:
 <p>When migrating from projr, set renv-snapshot explicitly if you relied on its automatic snapshots for an existing renv project. Select document/readme explicitly if you want those maintenance tasks. Merely creating README.Rmd or initializing renv does not enable any build task.</p>
 </section>
 <section id="experimental-xet-structure-unmerged-candidate" class="level2">
-<h2 class="anchored" data-anchor-id="experimental-xet-structure-unmerged-candidate">Experimental Xet structure (unmerged candidate)</h2>
-<p>Named remotes.local entries can opt into structure: xet; existing defaults do not change. Production publication/recovery needs the exact pinned optional helper; ordinary init/query/preview does not. See <a href="./xet-storage.html">the experimental guide</a>. Initial configured support is Unix/local, remote full metadata and tree JSON binding. Other placement/format choices fail preflight. GitHub transport is still pending. This is not a supported long-term archival-storage claim.</p>
-<p>Experimental GitHub Xet candidate: remotes.github.<name>.structure: xet uses the same optional local engine with immutable complete-store ZIP transport. Build selection remains build.dest. Explicit snapshot restore/verify requires –max-bytes and –max-expanded-bytes plus Git-tracked locators. See <a href="./xet-storage.html">experimental Xet storage</a> for defaults, prerequisites, trusted-reference paths, quotas and current limitations. Tests pending; this is not released or installed.</name></p>
-<p>Complete-store GitHub CAS candidate: remotes.github.<name>.structure: cas requires explicit manifest-style: tree or flat. Flat accepts csv/json and their opt-in -dedupe-file forms. Initial auto/remote full metadata only; Git project locators remain required for explicit budgeted snapshot recovery. See <a href="./cas-github.html">shared-file stores</a>. This is distinct from ordinary latest/archive data ZIPs.</name></p>
+<h2 class="anchored" data-anchor-id="experimental-xet-structure-unmerged-candidate">Experimental Xet storage</h2>
+<p>Available in preview.5. Set <code>structure: xet</code> on a named local or GitHub remote. Both use the same optional, pinned local helper; GitHub transfers the complete store as a ZIP. Existing default storage choices do not change. The helper is qualified on Linux/WSL; macOS is unqualified and native Windows Xet is rejected. Initialization, queries and previews do not open or install the helper.</p>
+<p>Use <code>manifest: auto</code> or <code>remote</code> for complete records in the store, with <code>manifest-style: tree</code> and fixed JSON records. Other placement and format choices are rejected before a build. This remains experimental, with no inherited promise of long-term upstream archival support. See the <a href="./xet-storage.html">Xet guide</a> for installation, examples, format limits and the actual corruption-test results.</p>
+<section id="complete-stores-on-github" class="level3">
+<h3 class="anchored" data-anchor-id="complete-stores-on-github">Complete stores on GitHub</h3>
+<p><code>remotes.github.&lt;name&gt;.structure: xet</code> uses one long-running storage release for whole-store ZIPs. Select uploads with <code>build.dest</code>. Exact snapshot restore and verification require <code>--max-bytes</code>, <code>--max-expanded-bytes</code> and the trusted Git-tracked project records identifying the uploaded ZIP. Old exports are retained.</p>
+<p><code>remotes.github.&lt;name&gt;.structure: cas</code> shares whole files instead of file pieces and needs no Xet helper. Set <code>manifest-style: tree</code> or <code>flat</code> explicitly. Flat accepts <code>csv</code>, <code>json</code>, <code>csv-dedupe-file</code> and <code>json-dedupe-file</code>; tree has fixed JSON records. This transport initially supports only <code>manifest: auto</code> or <code>remote</code>. See the <a href="./cas-github.html">shared-file GitHub guide</a> for commands, placement and recovery limits. A complete CAS-store ZIP differs from an ordinary latest/archive folder ZIP.</p>
+<p>Both are included in preview.5 and completed a <a href="https://github.com/MiguelRodo/projcli/actions/runs/40510154990">real synthetic GitHub round-trip</a>. That bounded test does not establish full projr compatibility or savings for your data. Neither backend automatically finds missing project records or deletes older exports.</p>
 
 
+</section>
 </section>
 </section>
 
 </main> <!-- /main -->
+<script>
+// Quarto owns theme state and persistence; supply a clear keyboard button label.
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.quarto-color-scheme-toggle').forEach(toggle => {
+    toggle.setAttribute('role', 'button');
+    toggle.setAttribute('aria-label', 'Toggle light and dark theme');
+    toggle.setAttribute('tabindex', '0');
+    toggle.addEventListener('keydown', event => {
+      if (event.key === ' ' || event.key === 'Enter') {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+  });
+});
+</script>
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
     const icon = "";
     const anchorJS = new window.AnchorJS();
     anchorJS.options = {

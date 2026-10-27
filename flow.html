@@ -26,6 +26,41 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -42,10 +77,14 @@ ul.task-list li input[type="checkbox"] {
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-b626d73c4c936ccc3cb08be7d45d1df6.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-594fc4564f848ab358ed4d83e83f085a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -78,7 +117,178 @@ ul.task-list li input[type="checkbox"] {
 <link rel="stylesheet" href="styles.css">
 </head>
 
-<body class="nav-sidebar docked nav-fixed quarto-light">
+<body class="nav-sidebar docked nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const queryPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkModeDefault = queryPrefersDark.matches;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    queryPrefersDark.addEventListener("change", e => {
+      if(window.localStorage.getItem("quarto-color-scheme") !== null)
+        return;
+      const alternate = e.matches
+      toggleColorMode(alternate);
+      localAlternateSentinel = e.matches ? 'alternate' : 'default'; // this is used alongside local storage!
+      toggleGiscusIfUsed(alternate, darkModeDefault);
+    });
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -125,6 +335,7 @@ ul.task-list li input[type="checkbox"] {
 </ul>
           </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
 </div>
       </div> <!-- /container-fluid -->
     </nav>
@@ -133,7 +344,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./behavior.html">Design and progress</a></li><li class="breadcrumb-item"><a href="./flow.html">Build execution flow</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./behavior.html">Design and progress</a></li><li class="breadcrumb-item"><a href="./flow.html">What happens during a build</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -294,7 +505,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./flow.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text">Build execution flow</span></a>
+ <span class="menu-text">What happens during a build</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -333,53 +544,88 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#build-execution-flow" id="toc-build-execution-flow" class="nav-link active" data-scroll-target="#build-execution-flow">Build execution flow</a>
+  <li><a href="#what-happens-during-a-build" id="toc-what-happens-during-a-build" class="nav-link active" data-scroll-target="#what-happens-during-a-build">What happens during a build</a>
   <ul class="collapse">
-  <li><a href="#read-only-resolution-and-preflight" id="toc-read-only-resolution-and-preflight" class="nav-link" data-scroll-target="#read-only-resolution-and-preflight">Read-only resolution and preflight</a></li>
-  <li><a href="#local-production-build-and-restoration-boundary" id="toc-local-production-build-and-restoration-boundary" class="nav-link" data-scroll-target="#local-production-build-and-restoration-boundary">Local production build and restoration boundary</a></li>
-  <li><a href="#publication-after-local-success" id="toc-publication-after-local-success" class="nav-link" data-scroll-target="#publication-after-local-success">Publication after local success</a></li>
-  <li><a href="#development-previews-and-remaining-renderer-gaps" id="toc-development-previews-and-remaining-renderer-gaps" class="nav-link" data-scroll-target="#development-previews-and-remaining-renderer-gaps">Development previews and remaining renderer gaps</a></li>
+  <li><a href="#read-only-resolution-and-preflight" id="toc-read-only-resolution-and-preflight" class="nav-link" data-scroll-target="#read-only-resolution-and-preflight">Check the project and tools</a></li>
+  <li><a href="#local-production-build-and-restoration-boundary" id="toc-local-production-build-and-restoration-boundary" class="nav-link" data-scroll-target="#local-production-build-and-restoration-boundary">Prepare and run the analysis</a></li>
+  <li><a href="#publication-after-local-success" id="toc-publication-after-local-success" class="nav-link" data-scroll-target="#publication-after-local-success">Save results after local success</a></li>
+  <li><a href="#development-previews-and-remaining-renderer-gaps" id="toc-development-previews-and-remaining-renderer-gaps" class="nav-link" data-scroll-target="#development-previews-and-remaining-renderer-gaps">What a preview changes</a></li>
   </ul></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./behavior.html">Design and progress</a></li><li class="breadcrumb-item"><a href="./flow.html">Build execution flow</a></li></ol></nav></header>
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./behavior.html">Design and progress</a></li><li class="breadcrumb-item"><a href="./flow.html">What happens during a build</a></li></ol></nav></header>
 
 
 
 
-<section id="build-execution-flow" class="level1">
-<h1>Build execution flow</h1>
-<p>This describes the current Rust implementation, not a complete correctness or reproducibility guarantee. The <a href="./behavior.html">behavior contract</a> records approved semantics and the <a href="./compatibility.html">compatibility log</a> records evidence and gaps.</p>
+
+<section id="what-happens-during-a-build" class="level1">
+<h1>What happens during a build</h1>
+<p>A build runs the analysis steps you selected, prepares the final results, then saves or uploads them as configured. Start with a preview when checking your scripts. Use a disposable copy before trying production settings on important work.</p>
+<p>The <a href="./lifecycle.html">stage-by-stage diagram</a> shows the detailed order. This guide summarizes the supported workflow in preview.5. It does not promise that arbitrary scripts can be undone or that every original projr feature is supported.</p>
 <section id="read-only-resolution-and-preflight" class="level2">
-<h2 class="anchored" data-anchor-id="read-only-resolution-and-preflight">Read-only resolution and preflight</h2>
-<p>Capture the project root, resolve a private per-run environment without changing the parent process, require active root configuration, and merge base/profile/local settings. Validate fields, explicit directory paths, targets, hooks and destructive destinations. Explicit empty scripts select no analysis. Otherwise explicit globs or shallow root discovery select inputs; project rendering may use its own input discovery. Explicit Python-only selection does not activate an unused Quarto/Bookdown project marker.</p>
-<p>Read VERSION with DESCRIPTION/default fallbacks. Check selected interpreters and configured Git restrictions before controlled project writes. Existing preflight can still invoke Git/network checks or R package remediation; these are known limitations, not a clean-environment guarantee.</p>
+<h2 class="anchored" data-anchor-id="read-only-resolution-and-preflight">Check the project and tools</h2>
+<p>projcli first selects the project folder and reads its configuration, including active profiles and local overrides. It checks the selected scripts, hooks, folder paths, storage destinations and required tools. An explicit <code>scripts: []</code> means no analysis scripts; it does not trigger automatic discovery instead.</p>
+<p>Each child command keeps the selected project identity, even if a script changes its working folder. The parent R console or terminal environment is not rewritten. Project identity and the folder where a script executes are separate choices.</p>
+<p>These checks are not necessarily offline: Git checks can contact a remote, and optional package setup can require separate consent. A check is not a security sandbox. Reading configuration and looking up paths do not create directories or edit ignore files.</p>
 </section>
 <section id="local-production-build-and-restoration-boundary" class="level2">
-<h2 class="anchored" data-anchor-id="local-production-build-and-restoration-boundary">Local production build and restoration boundary</h2>
-<p>Before authoritative writes, capture exact bytes, permissions and presence/absence for the managed set documented in the compatibility log. This includes VERSION, ignore/configuration files, existing root regular files, selected in-project inputs, declared output/docs trees and planned individual rendering artifacts. External declared output/docs directories are allowed. Linked managed trees are rejected. Backups stream into private OS temporary storage outside disposable project cache. Backup creation failure prevents authoritative project writes.</p>
-<p>One local error/panic boundary covers ignore synchronization, requested pre-cleanup, pre/both hooks, script/document execution, renderer configuration, promotion and post/both hooks. Required output promotion errors propagate. Renderer configuration is restored exactly, retaining comments and originally absent keys. Candidate version changes stay in memory; VERSION is written only after those stages succeed. No pre-build Git commit is created.</p>
-<p>On local failure, restore the captured managed set, including originally absent files/directories. Attempt all restorations; retain recovery backups and report both the primary and restoration errors when recovery fails. This does not undo arbitrary script effects outside the captured set or provide a filesystem sandbox, power-loss atomicity or protection against concurrent filesystem replacement.</p>
+<h2 class="anchored" data-anchor-id="local-production-build-and-restoration-boundary">Prepare and run the analysis</h2>
+<p>Before changing managed files, projcli saves recovery copies outside the project’s disposable cache. The recorded set includes VERSION, managed configuration and ignore files, recorded inputs and final output/document folders. Declared output folders may be outside the project. Linked managed trees are rejected. If the recovery copy cannot be made, the controlled changes do not start.</p>
+<p>The production build then performs the selected local steps: cleanup, hooks, analysis, document rendering and copying successful results to final folders. Optional <code>build.r</code> actions can snapshot renv, generate documentation and render README.Rmd. They are off by default; see <a href="./r-frontend.html#optional-r-setup-and-maintenance">R build tasks</a> and the detailed lifecycle for their ordering. Temporary renderer configuration is restored, including comments and settings that were originally absent. VERSION is written after the local stages succeed. There is no pre-build Git commit.</p>
+<p>If a local step fails, projcli attempts to restore the recorded files and folders, including removing recorded paths that did not previously exist. If recovery also fails, it reports both errors and retains the backup location. This cannot undo arbitrary writes outside the recorded set, other programs’ changes or a power failure. Always keep an independent backup.</p>
 </section>
 <section id="publication-after-local-success" class="level2">
-<h2 class="anchored" data-anchor-id="publication-after-local-success">Publication after local success</h2>
-<p>Storage export and Git publication start after successful local completion. Export actual declared content before requested <code>clear_output: post</code> cleanup. Create one configured final Git commit, then push when enabled. A publication or later cleanup failure reports that local analysis succeeded and retains its release/version; external publication is not rolled back.</p>
-<p>Git upstream/authentication policy, stable attempt/release records and an analysis-free publication retry command remain unfinished. Push uses the captured current-branch upstream; custom push-only routing remains unsupported and fails before authoritative writes. Native authentication is the default.</p>
+<h2 class="anchored" data-anchor-id="publication-after-local-success">Save results after local success</h2>
+<p>After the local work succeeds, projcli saves the selected folders to the locations chosen by <code>build.dest</code>. It uses the actual prepared files before any requested post-build output cleanup. Git integration can then make the configured build commit and push to the current branch’s upstream. It uses installed Git and your existing authentication; custom push-only routing is not supported.</p>
+<p>If an upload, push or later cleanup fails, the analysis may already have succeeded and some files may already have been uploaded. The command reports failure while retaining the successful local release and version. It does not claim to undo completed external changes. Check the error and <a href="./cli/history.html">build records</a> before retrying. A dedicated analysis-free publication retry command remains future work.</p>
+<p>Successful builds and failures with distribution activity retain useful Git-eligible records when Git integration is enabled. Earlier failures retain local diagnostics excluded from Git. The pre-Git record is prepared for the normal build commit. After Git is attempted, its final outcome is saved locally for the next normal commit, even if that attempt failed. No extra bookkeeping commit is made. See the history reference for exact files and limits.</p>
 </section>
 <section id="development-previews-and-remaining-renderer-gaps" class="level2">
-<h2 class="anchored" data-anchor-id="development-previews-and-remaining-renderer-gaps">Development previews and remaining renderer gaps</h2>
-<p>Previews skip production version changes, cleanup, commits and exports. They run selected hooks/analysis and restore captured managed state after success and failure, while cache output remains. Scripts still choose preview output locations; this is not automatic output redirection or an OS sandbox. Script/hook subprocesses start with the captured invocation cwd by default. Only an explicit project execution mode passes Quarto an execution-directory override; individual R Markdown receives a non-null knit_root_dir only in project mode. Direct R/IDE parity remains unfinished and is not established by these CLI controls. The existing R package remains untouched.</p>
-<p>Native execution policy (supersedes earlier unconditional root-cwd wording): <code>build</code> and <code>build-dev</code> default to <code>--execution-dir native</code>. Plain scripts/hooks inherit the invocation cwd, not each source file’s parent; R <code>source()</code> normally inherits its caller cwd. Individual Rmd rendering leaves <code>knit_root_dir</code> unset and Quarto receives no execution-dir override, preserving native document/project settings. <code>--execution-dir project</code> explicitly requests captured-root execution for scripts/hooks, Quarto and individual Rmd. Project render drivers run from the selected project root to select the project, independently of chunk cwd. Project-wide Bookdown root override is currently rejected early because its render_site entrypoint does not expose the individual knit-root argument. Captured project/profile/version and logical path identity do not change with execution cwd. No existing R helper bridge or literal Markdown resource rewriting is implied.</p>
+<h2 class="anchored" data-anchor-id="development-previews-and-remaining-renderer-gaps">What a preview changes</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> build-dev</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>A preview runs the selected analysis and hooks, but skips production version changes, cleanup, Git commits and uploads. It restores recorded managed files after success or failure while leaving preview results in the cache. Your own scripts and hooks can still write elsewhere; preview is not an operating-system sandbox and does not automatically redirect every output.</p>
+<p>By default, plain scripts and hooks use the folder from which you invoked the command. Individual R Markdown and Quarto documents keep their native working-folder rules. <code>--execution-dir project</code> explicitly requests project-folder execution. Bookdown project-wide root overrides are rejected because that renderer entry point cannot apply the same control. Selecting a project does not rewrite literal Markdown links or guarantee identical results from an IDE’s Render/Knit button.</p>
+<p>Plain R analysis scripts use separate child sessions by default; <code>config.r.session: shared</code> selects one shared child for those scripts. This is separate from your live R console and does not combine hooks or document renderers into that session. The original projr package remains unchanged. See the <a href="./cli/build.html">build reference</a>, <a href="./r-frontend.html">R guide</a> and <a href="./compatibility.html">compatibility record</a> for the supported subset and remaining gaps.</p>
 
 
 </section>
 </section>
 
 </main> <!-- /main -->
+<script>
+// Quarto owns theme state and persistence; supply a clear keyboard button label.
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.quarto-color-scheme-toggle').forEach(toggle => {
+    toggle.setAttribute('role', 'button');
+    toggle.setAttribute('aria-label', 'Toggle light and dark theme');
+    toggle.setAttribute('tabindex', '0');
+    toggle.addEventListener('keydown', event => {
+      if (event.key === ' ' || event.key === 'Enter') {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+  });
+});
+</script>
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
     const icon = "";
     const anchorJS = new window.AnchorJS();
     anchorJS.options = {
