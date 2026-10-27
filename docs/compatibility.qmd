@@ -3856,3 +3856,10 @@ project-only claim. It never opens the engine, even with an existing busy store.
 Arbitrary script/hook store edits are outside that preview guarantee. Every
 production target's types/format are checked before hooks, independently of
 one-time helper discovery. The multi-store and busy-store regressions are pending.
+
+Configured gate40475309325 passed the initial real CLI selection/build/fresh
+restore and busy-preview probes. A final preflight correction checks the actual
+xet-references namespace, not just the shared CAS namespace, with a Unix symlink
+regression requiring failure before helper/hooks/store entry. Native Windows R
+CI's first attempt hit HTTPS timeout fetching its unchanged pinned renv source;
+only the failed job was retried without changing dependency checks.

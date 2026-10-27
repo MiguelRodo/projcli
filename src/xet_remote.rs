@@ -28,6 +28,11 @@ pub(crate) struct Target {
 fn physical(path:&Utf8Path)->Result<Utf8PathBuf> {
     Ok(Utf8PathBuf::try_from(crate::path_safety::resolve_path(path.as_std_path(),true)?)?)
 }
+fn references(root:&Utf8Path,project:&Utf8Path)->Result<Utf8PathBuf> {
+    let namespace=crate::cas_tree::native(project,"xet-references/v1")?;
+    crate::cas_tree::project_target(root,&namespace,true)?;
+    crate::cas::checked_directory(&namespace)?;Ok(namespace)
+}
 /// Validate mappings before hooks. Preview never starts/requires the optional helper.
 pub(crate) fn configured(root:&Utf8Path,selections:&[Selection],config:&crate::yml::ValidatedConfig,
     ordinary:&[crate::publication::LocalPublication],cas:&[crate::cas_remote::Target],
@@ -52,6 +57,7 @@ pub(crate) fn configured(root:&Utf8Path,selections:&[Selection],config:&crate::y
         crate::cas_tree::preflight_storage(root,&base,&base,&sources.iter().map(|(_,p)|p.clone()).collect::<Vec<_>>())?;
         let project=crate::cas_remote::project_metadata(root,&selection.title);
         crate::cas_tree::preflight_project_reference(root,&project)?;
+        references(root,&project)?;
         if !preview {
             crate::xet::preflight(root,&base)?;
             if engine.is_none(){engine=Some(crate::xet_engine::Engine::discover(environment)?);}
@@ -69,7 +75,7 @@ pub(crate) fn publish(root:&Utf8Path,target:&Target,version:&str)->Result<String
     let engine=target.engine.as_ref().context("Preview Xet target cannot publish")?;
     let id=crate::xet::publish(root,&target.base,&target.sources,version,engine)?;
     let snapshot=crate::xet::read_snapshot(root,&target.base,&id)?;
-    let path=crate::cas_tree::native(&target.project,&format!("xet-references/v1/{}/{}.json",&id[..2],&id[2..]))?;
+    let path=crate::cas_tree::native(&references(root,&target.project)?,&format!("{}/{}.json",&id[..2],&id[2..]))?;
     crate::cas_tree::project_target(root,&path,true)?;
     let bytes=serde_json::to_vec_pretty(&serde_json::json!({"schema":"projcli.xet-project-reference.v1",
         "backend":crate::xet::BACKEND,"upstream":crate::xet::UPSTREAM,"snapshot":id,"roots":snapshot.roots}))?;

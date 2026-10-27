@@ -170,3 +170,23 @@ fn unsupported_existing_store_format_fails_before_helper_lookup_and_hooks() {
     failed(output);assert_eq!(fs::read(root.join("VERSION")).unwrap(),before);
     assert_eq!(fs::read(store.join("xet-format.json")).unwrap(),b"{}");assert!(!root.join("hook-ran").exists());
 }
+
+#[cfg(unix)]
+#[test]
+fn unsafe_project_reference_namespace_fails_before_helper_and_store_entry() {
+    let (_temp,root,mut config)=setup();
+    let mut hash=blake3::Hasher::new_derive_key("projcli.remote-name.v1");hash.update(b"BACKUP");
+    let key=hash.finalize().to_hex().to_string();let metadata=root.join(".proj/remotes").join(&key[..2]).join(&key[2..]);
+    fs::create_dir_all(&metadata).unwrap();
+    let external=root.parent().unwrap().join("foreign");fs::create_dir(&external).unwrap();
+    fs::write(external.join("keep"),b"protected").unwrap();
+    std::os::unix::fs::symlink(&external,metadata.join("xet-references")).unwrap();
+    config["build"]["hooks"]=json!({"pre":["start.py"]});
+    fs::write(root.join("start.py"),"from pathlib import Path\nPath('hook-ran').write_text('bad')\n").unwrap();
+    save(&root,&config);let version=fs::read(root.join("VERSION")).unwrap();
+    let output=command(&root,None).arg("build").output().unwrap();
+    assert!(String::from_utf8_lossy(&output.stderr).contains("symlink"));
+    failed(output);assert_eq!(fs::read(root.join("VERSION")).unwrap(),version);
+    assert!(!root.parent().unwrap().join("store").exists());assert!(!root.join("hook-ran").exists());
+    assert_eq!(fs::read(external.join("keep")).unwrap(),b"protected");
+}
