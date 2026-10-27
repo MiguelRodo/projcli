@@ -10,7 +10,7 @@ Files are split into reusable pieces by the optional upstream Xet helper. This m
 save storage when large files share uncompressed bytes. Already-compressed files
 may benefit little. Synthetic results do not predict savings for real datasets.
 
-The local candidate uses structure: xet. GitHub will use the same structure selector.
+Both local and GitHub destinations use structure: xet.
 GitHub transports this same local engine/store as a complete ZIP, not a hosted
 Xet service. One long-running storage release holds it. No incremental pack
 transport, automatic migration or live data upload is implemented here.
@@ -101,13 +101,13 @@ store operations. They leave project VERSION unchanged and need no old project C
 Initial configured support is remote full metadata (manifest auto/remote), tree
 identities and JSON binding. Project/both, flat/CSV/dictionary overrides fail
 preflight rather than being ignored. Root manifest.csv and old ordinary/CAS
-formats remain unchanged. Broader format parity and GitHub transfer are pending.
+formats remain unchanged. Broader format parity is not implemented. GitHub transfer uses this same engine through the complete-store transport described below.
 
 Experimental Xet preview does not copy/restore mutable engine stores under the
 project-only claim. It never opens the engine, even with an existing busy store.
 Arbitrary script/hook store edits are outside that preview guarantee. Every
 production target's types/format are checked before hooks, independently of
-one-time helper discovery. The multi-store and busy-store regressions are pending.
+one-time helper discovery. The configured integration gate covers multiple targets and busy-store handling.
 
 ## Portable complete-store export candidate
 

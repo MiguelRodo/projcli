@@ -19,3 +19,20 @@ subprocess.run(["cargo","+1.95.0","build","--locked","--package","xet-data","--b
 import os
 compiled=pathlib.Path(os.environ.get("CARGO_TARGET_DIR",str(a.source/"target")))/"debug"/("proj-xet-engine.exe" if os.name=="nt" else "proj-xet-engine")
 a.output.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(compiled,a.output);a.output.chmod(0o755)
+
+# Portable provenance accompanies the optional helper, never user datasets/credentials.
+import json
+metadata=json.loads(subprocess.check_output(["cargo","+1.95.0","metadata","--locked","--format-version","1"],cwd=a.source,text=True))
+licenses=sorted([{"name":x["name"],"version":x["version"],"license":x.get("license"),
+                  "license_file":x.get("license_file"),"source":x.get("source")}
+                 for x in metadata["packages"]],key=lambda x:(x["name"],x["version"]))
+# This conservative workspace inventory is not a claim about the final linked binary.
+provenance={"schema":"projcli.xet-helper-build.v1","upstream":"https://github.com/huggingface/xet-core",
+            "upstream_commit":COMMIT,"lock_sha256":LOCK,
+            "helper_source_sha256":hashlib.sha256(pathlib.Path(__file__).with_name("main.rs").read_bytes()).hexdigest(),
+            "binary_sha256":hashlib.sha256(a.output.read_bytes()).hexdigest(),
+            "toolchain":subprocess.check_output(["rustc","+1.95.0","--version"],text=True).strip(),
+            "dependency_inventory_scope":"resolved upstream workspace; conservative, not a linked-binary SBOM",
+            "dependencies":licenses}
+a.output.with_suffix(".provenance.json").write_text(json.dumps(provenance,indent=2)+"\n")
+shutil.copyfile(a.source/"LICENSE",a.output.with_suffix(".upstream-LICENSE"))
