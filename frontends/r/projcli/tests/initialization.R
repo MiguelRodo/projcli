@@ -105,7 +105,10 @@ state$calls <- list()
 scope <- new.env(parent = asNamespace("projcli"))
 scope$.proj_init_prepare <- function(...) NULL
 scope$proj_cli <- function(command, args = character(), ...) {
-  state$calls[[length(state$calls) + 1L]] <- list(command = command, args = args)
+  state$calls[[length(state$calls) + 1L]] <- list(
+    command = command,
+    args = args
+  )
   list(result = list(completed = TRUE))
 }
 adapt <- function(name) {
@@ -127,9 +130,15 @@ stopifnot(
   !any(c("--", "--author-name=") %in% state$calls[[2]]$args)
 )
 adapt("projr_init_readme")(readme_rmd = TRUE, purpose = "Some purpose")
-stopifnot(identical(state$calls[[3]]$args, c("--rmd", "--description=Some purpose")))
+stopifnot(identical(
+  state$calls[[3]]$args,
+  c("--rmd", "--description=Some purpose")
+))
 adapt("projr_init_license")("ccby", label = "raw-data")
-stopifnot(identical(state$calls[[4]]$args, c("--license=ccby", "--label=raw-data")))
+stopifnot(identical(
+  state$calls[[4]]$args,
+  c("--license=ccby", "--label=raw-data")
+))
 cat(
   "PASS named init adapters and optional dependency consent without network\n"
 )
@@ -137,4 +146,6 @@ adapt("projr_init")(
   description_file = c(named = TRUE),
   readme_rmd = c(named = TRUE)
 )
-stopifnot(all(c("--description-file", "--readme-rmd") %in% state$calls[[5]]$args))
+stopifnot(all(
+  c("--description-file", "--readme-rmd") %in% state$calls[[5]]$args
+))
