@@ -47,9 +47,9 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="site_libs/bootstrap/bootstrap-dark-594fc4564f848ab358ed4d83e83f085a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-2c381e549dcdf5586be8a2da26e70e7c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -574,6 +574,7 @@ ul.task-list li input[type="checkbox"] {
   </ul></li>
   <li><a href="#version-authoritative-description-synchronization-source-candidate" id="toc-version-authoritative-description-synchronization-source-candidate" class="nav-link" data-scroll-target="#version-authoritative-description-synchronization-source-candidate">VERSION-authoritative DESCRIPTION synchronization (source candidate)</a></li>
   <li><a href="#explicit-init-metadata-candidate" id="toc-explicit-init-metadata-candidate" class="nav-link" data-scroll-target="#explicit-init-metadata-candidate">Explicit init metadata candidate</a></li>
+  <li><a href="#script-source-groups-candidate" id="toc-script-source-groups-candidate" class="nav-link" data-scroll-target="#script-source-groups-candidate">Script source groups (candidate)</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -904,6 +905,14 @@ ul.task-list li input[type="checkbox"] {
 <p>Any existing remote satisfies setup. GitHub remains optional, with general init creating an empty private remote only after opt-in; no initial commit/push. Project-contained folder licensing stays a standalone labelled command. Generated automatic Rbuildignore requires DESCRIPTION and preserves explicit directory policy.</p>
 <p>This candidate changes no installed CLI, original projr or thesis. No merge/release is approved. Named init wrappers now adapt the shared CLI; generic transport remains available.</p>
 <p>Named R init checks suggested renv only for explicitly selected renv setup. install_missing=NULL asks only interactively outside CI; FALSE never installs, TRUE explicitly permits it. No installation on load/plans/native metadata creation; build and restore retain no-bootstrap policy. Caller libraries must match the CLI selected Rscript. Package installation is outside project rollback.</p>
+</section>
+<section id="script-source-groups-candidate" class="level2">
+<h2 class="anchored" data-anchor-id="script-source-groups-candidate">Script source groups (candidate)</h2>
+<p>A configured scripts or scripts-<name> resource is a source, never an output or cache. build.scripts may select its name, a project-relative directory, source files, or globs. Directories recurse; patterns expand lexically in include order, duplicates run once, and all ! exclusions apply last. A *.R pattern is shallow; **/*.R includes current and nested files. Data and assets are not executed. Unmatched includes fail. Discovery skips declared cache/output/docs and framework metadata, rejects symbolic links, and does not use shell expansion. Preview prints the resolved order. Existing explicit empty selection remains empty.</name></p>
+<p>Independent documents below scripts-l1 go to the one docs destination’s l1 subfolder, retaining nested paths and renderer sidecars. Bare scripts retains relative paths directly under docs. Other inputs keep existing flat placement. Overlapping groups fail. Multiple final destinations and name-matching proposals are deferred to <a href="https://github.com/MiguelRodo/issues/issues/773">the routing design issue</a>.</p>
+<p>Omitted script ignore policy leaves sources visible in Git and excludes the group from an R source package only when DESCRIPTION exists, while preserving standard package-source locations (R/man/inst/src/data/tests/vignettes) by default. Production builds add exact planned native document outputs/sidecars to managed Git rules; unrelated HTML/assets are not hidden by these source rules. A destination retains its own ignore policy: ordinary docs still use legacy ignore: all when omitted; choose ignore: [] explicitly to track final documents. Explicit ignore policies, including ignore: [], override automatic script rules. The remote suite includes actual grouped rendering and complete Quarto website fixtures. This is an unreleased candidate; final exact-commit results are recorded in draft PR234, without implying other project types or broader legacy parity.</p>
+<p>Existing explicitly named external files remain supported with guarded paths and redacted provenance. Discovery directories/globs remain project-scoped; the existing cleanup/input-overlap guards still own rejection of literal files inside managed outputs.</p>
+<p>Quarto project rendering temporarily excludes the captured cache/final-output trees and its prior native output tree from additional resource globs. This prevents a later render from copying the previous site/cache resources into itself. Existing resource includes/excludes are retained and original metadata restored; temporary renderer metadata replacements preserve hard-link aliases. The regression keeps whole native website output and checks repeated builds, shared SVGs, navigation, nested local links and original configuration bytes. Snapshot discovery, multi-destination routing and broad Quarto type parity are not added by this fix.</p>
 
 
 </section>

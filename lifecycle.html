@@ -47,9 +47,9 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="site_libs/bootstrap/bootstrap-dark-594fc4564f848ab358ed4d83e83f085a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-2c381e549dcdf5586be8a2da26e70e7c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -679,7 +679,7 @@ flowchart TB
   B["[R] Resolve profiles and&lt;br/&gt;environment; merge config;&lt;br/&gt;settings HOW / build WHAT"]
   C["[R/T] Validate typed configuration&lt;br/&gt;and explicit resource mappings"]
   D["[R] Capture root, profiles,&lt;br/&gt;mappings, mode and active run&lt;br/&gt;version"]
-  E["[R/T] Preflight inputs and exclusion&lt;br/&gt;syntax, targets, dependencies and&lt;br/&gt;enabled Git prerequisites"]
+  E["[R/T] Preflight source groups / globs,&lt;br/&gt;exclusions, output collisions,&lt;br/&gt;dependencies and enabled Git"]
   F["[R] Enumerate and capture managed&lt;br/&gt;recovery state before controlled&lt;br/&gt;writes"]
   G["[R] Run configured start hooks"]
   R["Local candidate: optional R snapshot&lt;br/&gt;before start hooks"]
@@ -704,7 +704,7 @@ Figure&nbsp;2: Released pre-build order.
 <ul>
 <li>Root selection, effective profiles, merged configuration and environment must agree before analysis starts. The target assigns <strong>HOW</strong> choices to <code>settings</code> and <strong>WHAT</strong> is selected/run to <code>build</code>; this is not permission to add unknown fields to the installed preview.</li>
 <li>The captured context fixes resource identity and the active run version. In the released implementation, preview retains an existing dev version or uses dev1 of a release without writing VERSION; an output run uses its requested release version throughout the run and leaves the subsequent dev1 only on success.</li>
-<li>Validate declared paths, script/hook include and exclusion syntax, supported renderer plans, dependencies and explicitly enabled Git actions before controlled build writes. Probes can have their own effects: this is not a blanket read-only/environment sanitization guarantee. The malformed-exclusion correction is included in preview.3; it fails in this preflight stage, without changing stage order or recovery scope. Fallback directory/entry errors also stop here. The recovery capture stage reports its own enumeration phase and OS cause before controlled project writes. These diagnostics are included in preview.3; ordering is unchanged.</li>
+<li>Validate declared paths, ordered source groups/globs, script/hook exclusions, supported renderer plans, dependencies and explicitly enabled Git actions before controlled build writes. Probes can have their own effects: this is not a blanket read-only/environment sanitization guarantee. The malformed-exclusion correction is included in preview.3; it fails in this preflight stage, without changing stage order or recovery scope. Fallback directory/entry errors also stop here. The recovery capture stage reports its own enumeration phase and OS cause before controlled project writes. These diagnostics are included in preview.3; ordering is unchanged.</li>
 <li>Start/end refer to the existing pre/both and post/both hook sets, not new hook types. Their placement follows the controlled lifecycle shown here.</li>
 <li>Recovery capture must precede hooks and managed mutations. Cache/staging setup, supported renderer preparation and permitted metadata/ignore work finish before the final pre-clear gate. No new metadata/provenance record is implied here.</li>
 <li>A script’s working directory is separate from project identity. Native cwd with an explicit project override, safe resource targets and render-context path presentation are included in preview.2.</li>
@@ -1266,6 +1266,7 @@ Figure&nbsp;13: Unmerged experimental Xet provider at the existing distribution 
 <p>Experimental GitHub Xet uses the existing distribution stage: verified immutable ZIP first, guarded project locators next, normal Git stage last. Failure retains old remote bytes; no remote rollback or new stage ordering is claimed.</p>
 <p>Source candidate: release and next-dev VERSION writes synchronize existing DESCRIPTION by default; previews and pre-distribution recovery retain exact prior bytes. The settings.sync-description-version switch is captured before hooks.</p>
 <p>Init is a separate incremental setup workflow, documented in <a href="./cli/init.html">project setup</a>. Its opt-in renv action is not a build dependency restore. The existing production ignore-preparation stage now creates automatic .Rbuildignore only for DESCRIPTION projects (or updates an existing file); analysis, rendering and publication order is unchanged by this metadata slice.</p>
+<p>Candidate script groups retain nested document/sidecar paths inside the single docs destination. Exact frozen native output paths generate source ignores; final docs are not blanket ignored. Remote fixtures cover grouped documents and complete Quarto websites; exact-commit outcomes are recorded in draft PR234.</p>
 
 
 </section>

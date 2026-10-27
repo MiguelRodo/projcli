@@ -82,9 +82,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="site_libs/bootstrap/bootstrap-dark-594fc4564f848ab358ed4d83e83f085a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-2c381e549dcdf5586be8a2da26e70e7c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -590,6 +590,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </ul></li>
   <li><a href="#version-and-description-synchronization-source-candidate" id="toc-version-and-description-synchronization-source-candidate" class="nav-link" data-scroll-target="#version-and-description-synchronization-source-candidate">VERSION and DESCRIPTION synchronization (source candidate)</a></li>
   <li><a href="#optional-init-metadata-source-candidate" id="toc-optional-init-metadata-source-candidate" class="nav-link" data-scroll-target="#optional-init-metadata-source-candidate">Optional init metadata (source candidate)</a></li>
+  <li><a href="#selecting-a-script-source-group-candidate" id="toc-selecting-a-script-source-group-candidate" class="nav-link" data-scroll-target="#selecting-a-script-source-group-candidate">Selecting a script source group (candidate)</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -613,8 +614,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>raw</code></li>
 <li><code>output</code></li>
 <li><code>docs</code></li>
+<li><code>scripts</code> or <code>scripts-&lt;name&gt;</code> (new source-group candidate; not in installed preview.4)</li>
 </ul>
-<p>These prefixes are <strong>case-insensitive</strong>. Any label defined in the configuration must begin with one of these approved identifiers.</p>
+<p>These prefixes are <strong>case-insensitive</strong>. Ordinary labels begin with cache, raw, output or docs. Source groups use exactly scripts or scripts- followed by a nonempty name.</p>
 </section>
 <section id="explicit-paths-and-local-initialization" class="level2">
 <h2 class="anchored" data-anchor-id="explicit-paths-and-local-initialization">Explicit paths and local initialization</h2>
@@ -988,6 +990,22 @@ build:
 <h2 class="anchored" data-anchor-id="optional-init-metadata-source-candidate">Optional init metadata (source candidate)</h2>
 <p><a href="./cli/init.html">Project setup reference</a> documents explicit –description-file, –readme-rmd, –renv and –citation choices. These are action parameters, not new configuration blocks. DESCRIPTION/renv/citation creation defaults off. General init uses settings.sync-description-version for an already-existing DESCRIPTION, preserves equivalent literal version spelling, and changes no other existing DESCRIPTION metadata.</p>
 <p>Any existing Git remote satisfies setup. General-init Git/GitHub actions remain opt-in when noninteractive; no automatic commit/push occurs there. Folder licensing is explicitly selected with init license –label, never inferred from init.</p>
+</section>
+<section id="selecting-a-script-source-group-candidate" class="level2">
+<h2 class="anchored" data-anchor-id="selecting-a-script-source-group-candidate">Selecting a script source group (candidate)</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">directories</span><span class="kw">:</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">scripts-l1</span><span class="kw">:</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">path</span><span class="kw">:</span><span class="at"> lessons/l1</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">cache</span><span class="kw">:</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">path</span><span class="kw">:</span><span class="at"> _tmp</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">docs</span><span class="kw">:</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">path</span><span class="kw">:</span><span class="at"> docs</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ignore</span><span class="kw">:</span><span class="at"> </span><span class="kw">[]</span><span class="co"> # keep final documents visible in Git</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a><span class="fu">build</span><span class="kw">:</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">scripts</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">scripts-l1</span><span class="kw">,</span><span class="at"> </span><span class="st">"!lessons/l1/**/draft-*"</span><span class="kw">]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>A source group can also be selected with lessons/l1 or lessons/l1/**/<em>.R. Patterns are project-relative, independent of the caller’s working directory. Directory selection includes supported R, Python, QMD and Rmd sources recursively. The pattern lessons/l1/</em> selects immediate supported sources only. The docs role remains the single final document destination; independent documents in this group use docs/l1 and keep paths below lessons/l1.</p>
+<p>Preview shows resolved source include order. Existing project renderer grouping still applies: Quarto/Bookdown documents render together as one coherent project.</p>
+<p>For separate documents, proj copies the rendered file and its generated <code>&lt;document&gt;_files</code> folder. HTML embeds its resources by default when the document has not selected otherwise. If you explicitly turn embedding off, arbitrary hand-authored images, CSS or downloads outside that generated folder are not copied automatically. Keep embedding enabled for a portable individual HTML report, or use a Quarto project when you need a complete website with shared resources. Quarto projects keep their whole rendered output tree together.</p>
 
 
 </section>

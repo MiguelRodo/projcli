@@ -47,9 +47,9 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="site_libs/bootstrap/bootstrap-dark-594fc4564f848ab358ed4d83e83f085a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-2c381e549dcdf5586be8a2da26e70e7c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -650,6 +650,7 @@ ul.task-list li input[type="checkbox"] {
   <ul class="collapse">
   <li><a href="#named-r-initialization-follow-up-27-october" id="toc-named-r-initialization-follow-up-27-october" class="nav-link" data-scroll-target="#named-r-initialization-follow-up-27-october">Named R initialization follow-up (27 October)</a></li>
   </ul></li>
+  <li><a href="#script-source-groups-candidate" id="toc-script-source-groups-candidate" class="nav-link" data-scroll-target="#script-source-groups-candidate">Script source groups (candidate)</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -1752,9 +1753,21 @@ ul.task-list li input[type="checkbox"] {
 <h3 class="anchored" data-anchor-id="named-r-initialization-follow-up-27-october">Named R initialization follow-up (27 October)</h3>
 <p>Original projr R/misc.R .dep_install_only checks on demand, asks interactively, fails noninteractively with instructions and permits explicit auto-install. The new frontend adapts this pattern only for selected renv setup using install_missing=NULL/FALSE/TRUE. renv already belongs to Suggests; no native CFF or README dependency is added. Original projr is unchanged.</p>
 <p>Ponytail/source review retained one thin module and existing machine transport. It fixed named-boolean flag propagation and a pre-existing standalone plain README dangling-link write by reusing guarded create-only writing. Authored no-network consent/present/missing/failure fixtures and actual named Linux/Windows fixtures await revised-head remote verification. The first native run exposed missing advertised init subcommands; advertise the existing readme/license/renv worker commands and assert negotiation rather than bypassing it. No merge/install/deployment is included.</p>
-
-
 </section>
+</section>
+<section id="script-source-groups-candidate" class="level2">
+<h2 class="anchored" data-anchor-id="script-source-groups-candidate">Script source groups (candidate)</h2>
+<p>A configured scripts or scripts-<name> resource is a source, never an output or cache. build.scripts may select its name, a project-relative directory, source files, or globs. Directories recurse; patterns expand lexically in include order, duplicates run once, and all ! exclusions apply last. A *.R pattern is shallow; **/*.R includes current and nested files. Data and assets are not executed. Unmatched includes fail. Discovery skips declared cache/output/docs and framework metadata, rejects symbolic links, and does not use shell expansion. Preview prints the resolved order. Existing explicit empty selection remains empty.</name></p>
+<p>Independent documents below scripts-l1 go to the one docs destination’s l1 subfolder, retaining nested paths and renderer sidecars. Bare scripts retains relative paths directly under docs. Other inputs keep existing flat placement. Overlapping groups fail. Multiple final destinations and name-matching proposals are deferred to <a href="https://github.com/MiguelRodo/issues/issues/773">the routing design issue</a>.</p>
+<p>Omitted script ignore policy leaves sources visible in Git and excludes the group from an R source package only when DESCRIPTION exists, while preserving standard package-source locations (R/man/inst/src/data/tests/vignettes) by default. Production builds add exact planned native document outputs/sidecars to managed Git rules; unrelated HTML/assets are not hidden by these source rules. A destination retains its own ignore policy: ordinary docs still use legacy ignore: all when omitted; choose ignore: [] explicitly to track final documents. Explicit ignore policies, including ignore: [], override automatic script rules. The remote suite includes actual grouped rendering and complete Quarto website fixtures. This is an unreleased candidate; final exact-commit results are recorded in draft PR234, without implying other project types or broader legacy parity.</p>
+<p>Existing explicitly named external files remain supported with guarded paths and redacted provenance. Discovery directories/globs remain project-scoped; the existing cleanup/input-overlap guards still own rejection of literal files inside managed outputs.</p>
+<p>Quarto project rendering temporarily excludes the captured cache/final-output trees and its prior native output tree from additional resource globs. This prevents a later render from copying the previous site/cache resources into itself. Existing resource includes/excludes are retained and original metadata restored; temporary renderer metadata replacements preserve hard-link aliases. The regression keeps whole native website output and checks repeated builds, shared SVGs, navigation, nested local links and original configuration bytes. Snapshot discovery, multi-destination routing and broad Quarto type parity are not added by this fix.</p>
+<p>The renderer behavior is grounded in pinned Quarto 1.10.19: <a href="https://github.com/quarto-dev/quarto-cli/blob/v1.10.19/src/core/path.ts#L223">smart glob expansion</a> and <a href="https://github.com/quarto-dev/quarto-cli/blob/v1.10.19/src/project/project-resources.ts#L27">additional project resources</a>. The exclusions address the observed nested cached/final SVG copies; they do not replace native navigation, rendering or resource-selection implementation.</p>
+<p>Literal path quoting uses the native escape prefix and an empty optional group that adds no characters but forces escape-aware filesystem matching (<a href="https://github.com/denoland/std/blob/0.224.0/path/posix/glob_to_regexp.ts#L9">POSIX</a>, <a href="https://github.com/denoland/std/blob/0.224.0/path/windows/glob_to_regexp.ts#L9">Windows</a>). The real Linux fixture includes spaces and square brackets in both cache and final-docs paths; Windows Quarto execution is not established by the Rust check.</p>
+<p>Deno’s <a href="https://github.com/denoland/std/blob/0.224.0/fs/expand_glob.ts#L302">fixed-prefix filesystem scan</a> does not remove escape characters from a non-glob segment, so escape-only prefixes do not suffice for bracketed directory names. The native <a href="https://github.com/denoland/std/blob/0.224.0/path/_common/glob_to_reg_exp.ts#L177">optional-group parser</a> accepts an empty group; its question mark selects glob expansion and its empty body leaves the matched name unchanged. The actual bracket-path repeat fixture remains unchanged. Automatic local-environment-file ignores now use the same managed updater as directory rules, so a plain non-R build does not create .Rbuildignore merely because _environment.local exists. Explicit manual ignore commands are unchanged.</p>
+<p>The script-group refresh preserves the existing separate-document resource boundary: rendered output plus <code>&lt;stem&gt;_files</code>, with the existing embedding fallback. Authored resources elsewhere are not newly discovered or copied when embedding is explicitly disabled. The whole-Quarto-project fixture separately checks shared SVG resources, navigation and <code>site_libs</code>. This is a pre-existing limit, not evidence of complete standalone resource-copy parity. Recursive source selection excludes framework metadata at every depth and rejects a directory or fixed glob base inside it; existing explicit external file paths remain supported.</p>
+
+
 </section>
 </section>
 
