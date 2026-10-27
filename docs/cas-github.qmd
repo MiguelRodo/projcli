@@ -45,8 +45,7 @@ No delete-old-before-upload replacement or automatic retention cleanup is used.
 Recovery downloads the selected complete ZIP and uses the ordinary local CAS
 readers. It needs no Xet engine or Hugging Face account. Current library tests use
 only disposable synthetic files and a loopback mocked REST service, not live
-GitHub archives. Real GitHub validation and configured command examples remain
-pending. No multi-project/shared-store namespace, distributed linear-head merge,
+GitHub archives. Real GitHub validation and configured examples are provided below; final live GitHub evidence is recorded separately. No multi-project/shared-store namespace, distributed linear-head merge,
 hot-copy or power-loss guarantee is introduced.
 
 All existing ordinary latest/archive paths and metadata ZIPs remain unchanged.
@@ -76,6 +75,17 @@ build:
   dest:
     project-file-store: {}
 ```
+
+For an existing project with VERSION, preview first and then archive the selected
+folder with a production version bump:
+
+```sh
+proj build-dev
+proj build --patch
+```
+
+This example disables Git. Commit .proj/remotes together with VERSION and the
+configuration yourself if you need recovery from a future checkout.
 
 The name project-file-store selects one long-running storage release, using the
 project's Git origin and existing GitHub credentials. No Xet helper is needed.

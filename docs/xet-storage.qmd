@@ -16,15 +16,16 @@ may benefit little. Synthetic results do not predict savings for real datasets.
 
 Both local and GitHub destinations use structure: xet.
 GitHub transports this same local engine/store as a complete ZIP, not a hosted
-Xet service. One long-running storage release holds it. No incremental pack
-transport, automatic migration or live data upload is implemented here.
+Xet service. One long-running storage release holds it. No incremental pack transport or automatic migration is implemented. Tests use
+synthetic bytes; existing user datasets are not uploaded by the test workflow.
 
 ## Install the optional helper
 
 The helper is qualified on Linux/WSL. A macOS helper has not been qualified;
 native Windows Xet execution is rejected. Other storage backends remain available
 on Windows. The normal CLI download needs no Rust compiler, but building this
-optional helper needs Python 3, Git, Rust/Cargo 1.95.0 with Clippy, and network
+optional helper needs Python 3, Git, a native C/C++ compiler/linker and CMake,
+Rust/Cargo 1.95.0 with Clippy, and network
 access to pinned source and locked registry dependencies.
 
 From the matching projcli source checkout:
@@ -65,7 +66,7 @@ proj build-dev
 proj build --patch
 ```
 
-Since these examples disable Git integration, commit .proj/remotes references
+Since these examples disable Git integration, commit .proj/remotes references alongside VERSION/configuration
 yourself if you need recovery from a future checkout. Removing a destination
 from build.dest stops uploads without removing restore access.
 
