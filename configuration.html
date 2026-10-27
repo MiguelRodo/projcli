@@ -381,6 +381,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./cli/init.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Set up a project</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./cli/build.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text"><code>proj build</code></span></a>
   </div>
@@ -583,6 +589,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#complete-stores-on-github" id="toc-complete-stores-on-github" class="nav-link" data-scroll-target="#complete-stores-on-github">Complete stores on GitHub</a></li>
   </ul></li>
   <li><a href="#version-and-description-synchronization-source-candidate" id="toc-version-and-description-synchronization-source-candidate" class="nav-link" data-scroll-target="#version-and-description-synchronization-source-candidate">VERSION and DESCRIPTION synchronization (source candidate)</a></li>
+  <li><a href="#optional-init-metadata-source-candidate" id="toc-optional-init-metadata-source-candidate" class="nav-link" data-scroll-target="#optional-init-metadata-source-candidate">Optional init metadata (source candidate)</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -976,6 +983,11 @@ build:
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">sync-description-version</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Set false to leave DESCRIPTION untouched. Active profile/local layers apply normally; null, strings and numbers are rejected for this switch. If the two versions differ, the command explains that VERSION wins. Previews report the mismatch without changing either file. Production release and next-development writes synchronize both, and pre-distribution failure restores their exact prior bytes, including dev counters. Duplicate/continued Version fields or invalid DESCRIPTION field syntax fail before hooks. Two file replacements are recoverable on ordinary errors, not crash-atomic.</p>
 <p>Named R build/version helpers accept these projects under this VERSION-authoritative contract; an explicit legacy backend retains its original authority rules. Bookdown and arbitrary legacy arguments remain separate unsupported mappings.</p>
+</section>
+<section id="optional-init-metadata-source-candidate" class="level2">
+<h2 class="anchored" data-anchor-id="optional-init-metadata-source-candidate">Optional init metadata (source candidate)</h2>
+<p><a href="./cli/init.html">Project setup reference</a> documents explicit –description-file, –readme-rmd, –renv and –citation choices. These are action parameters, not new configuration blocks. DESCRIPTION/renv/citation creation defaults off. General init uses settings.sync-description-version for an already-existing DESCRIPTION, preserves equivalent literal version spelling, and changes no other existing DESCRIPTION metadata.</p>
+<p>Any existing Git remote satisfies setup. General-init Git/GitHub actions remain opt-in when noninteractive; no automatic commit/push occurs there. Folder licensing is explicitly selected with init license –label, never inferred from init.</p>
 
 
 </section>

@@ -349,6 +349,12 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./cli/init.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Set up a project</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./cli/build.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text"><code>proj build</code></span></a>
   </div>
@@ -1259,6 +1265,7 @@ Figure&nbsp;13: Unmerged experimental Xet provider at the existing distribution 
 <p>These ordered writes are not a cross-location transaction. A later project-ref failure preserves the complete store snapshot for retry. No power-loss guarantee or upstream archival-support promise follows.</p>
 <p>Experimental GitHub Xet uses the existing distribution stage: verified immutable ZIP first, guarded project locators next, normal Git stage last. Failure retains old remote bytes; no remote rollback or new stage ordering is claimed.</p>
 <p>Source candidate: release and next-dev VERSION writes synchronize existing DESCRIPTION by default; previews and pre-distribution recovery retain exact prior bytes. The settings.sync-description-version switch is captured before hooks.</p>
+<p>Init is a separate incremental setup workflow, documented in <a href="./cli/init.html">project setup</a>. Its opt-in renv action is not a build dependency restore. The existing production ignore-preparation stage now creates automatic .Rbuildignore only for DESCRIPTION projects (or updates an existing file); analysis, rendering and publication order is unchanged by this metadata slice.</p>
 
 
 </section>

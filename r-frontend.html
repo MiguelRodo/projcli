@@ -381,6 +381,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./cli/init.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Set up a project</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./cli/build.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text"><code>proj build</code></span></a>
   </div>
@@ -552,6 +558,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#restore-packages-explicitly" id="toc-restore-packages-explicitly" class="nav-link" data-scroll-target="#restore-packages-explicitly">Restore packages explicitly</a></li>
   <li><a href="#keep-an-explicit-legacy-backend" id="toc-keep-an-explicit-legacy-backend" class="nav-link" data-scroll-target="#keep-an-explicit-legacy-backend">Keep an explicit legacy backend</a></li>
   <li><a href="#evidence-and-limits" id="toc-evidence-and-limits" class="nav-link" data-scroll-target="#evidence-and-limits">Evidence and limits</a></li>
+  <li><a href="#explicit-init-options-in-the-source-candidate" id="toc-explicit-init-options-in-the-source-candidate" class="nav-link" data-scroll-target="#explicit-init-options-in-the-source-candidate">Explicit init options in the source candidate</a></li>
+  <li><a href="#r-initialization-helpers" id="toc-r-initialization-helpers" class="nav-link" data-scroll-target="#r-initialization-helpers">R initialization helpers</a></li>
   </ul>
 </nav>
     </div>
@@ -705,6 +713,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="evidence-and-limits">Evidence and limits</h2>
 <p>The named M4 gate compared unchanged Weisberger01+04 scripts and complete CSVs between clean projr and the new engine on matched R4.6.1, with report checks, local archive, fresh data/dependency restore, rerun and deliberate failures. <a href="https://github.com/MiguelRodo/projcli/actions/runs/40268103232">Integrated evidence</a> does not establish whole-paper/historical-runtime reproduction, CRAN acceptance or full legacy parity. The existing projr package is unchanged.</p>
 <p>Browse the <a href="./r-reference.html">function index</a> or use help(package=“projcli”) locally.</p>
+</section>
+<section id="explicit-init-options-in-the-source-candidate" class="level2">
+<h2 class="anchored" data-anchor-id="explicit-init-options-in-the-source-candidate">Explicit init options in the source candidate</h2>
+<p>The <a href="./cli/init.html">project setup reference</a> covers purpose/contact questions, –description-file, –readme-rmd, –renv and –citation. Use the existing proj_cli(“init”, args, project = …) transport for those exact options. The named R helpers below adapt those same CLI actions. R package scaffolding and automatic citation-author inference are not implied.</p>
+</section>
+<section id="r-initialization-helpers" class="level2">
+<h2 class="anchored" data-anchor-id="r-initialization-helpers">R initialization helpers</h2>
+<p>The unmerged source candidate adds projr_init, projr_init_plan, projr_init_readme, projr_init_license and projr_init_renv. They use the shared CLI, with explicit R metadata values. Only opted-in renv setup checks its optional suggested package; installation requires interactive consent or explicit install_missing=TRUE. See the <a href="./r-reference.html#initialization">named R reference</a> for examples, defaults and library details.</p>
 
 
 </section>

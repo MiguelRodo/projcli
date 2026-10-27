@@ -346,6 +346,12 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./cli/init.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Set up a project</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./cli/build.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text"><code>proj build</code></span></a>
   </div>
@@ -567,6 +573,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#r-specific-housekeeping-in-unreleased-source" id="toc-r-specific-housekeeping-in-unreleased-source" class="nav-link" data-scroll-target="#r-specific-housekeeping-in-unreleased-source">R-specific housekeeping in unreleased source</a></li>
   </ul></li>
   <li><a href="#version-authoritative-description-synchronization-source-candidate" id="toc-version-authoritative-description-synchronization-source-candidate" class="nav-link" data-scroll-target="#version-authoritative-description-synchronization-source-candidate">VERSION-authoritative DESCRIPTION synchronization (source candidate)</a></li>
+  <li><a href="#explicit-init-metadata-candidate" id="toc-explicit-init-metadata-candidate" class="nav-link" data-scroll-target="#explicit-init-metadata-candidate">Explicit init metadata candidate</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -890,6 +897,13 @@ ul.task-list li input[type="checkbox"] {
 <section id="version-authoritative-description-synchronization-source-candidate" class="level2">
 <h2 class="anchored" data-anchor-id="version-authoritative-description-synchronization-source-candidate">VERSION-authoritative DESCRIPTION synchronization (source candidate)</h2>
 <p>VERSION remains authoritative. settings.sync-description-version defaults true: update an existing DESCRIPTION Version on release/dev/set writes, never create it. Preserve other bytes and exact pre-distribution recovery. Previews do not synchronize. Malformed/multi-record metadata fails before hooks. Named R helpers support this explicit core policy; legacy callbacks retain their original authority. See <a href="./configuration.html#version-and-description-synchronization-source-candidate">configuration</a>.</p>
+</section>
+<section id="explicit-init-metadata-candidate" class="level2">
+<h2 class="anchored" data-anchor-id="explicit-init-metadata-candidate">Explicit init metadata candidate</h2>
+<p>General init creates VERSION, declared directories and plain README by default. It asks purpose/contact metadata in a terminal, supports complete explicit noninteractive values, and cancels on EOF. DESCRIPTION, README.Rmd, renv and CFF creation are separate explicit choices (DESCRIPTION/renv/CFF default false). No R/NAMESPACE scaffold or author/DOI/dependency harvesting occurs. Existing files are create-only except the approved DESCRIPTION Version synchronization policy; equivalent valid version spellings preserve exact existing bytes.</p>
+<p>Any existing remote satisfies setup. GitHub remains optional, with general init creating an empty private remote only after opt-in; no initial commit/push. Project-contained folder licensing stays a standalone labelled command. Generated automatic Rbuildignore requires DESCRIPTION and preserves explicit directory policy.</p>
+<p>This candidate changes no installed CLI, original projr or thesis. No merge/release is approved. Named init wrappers now adapt the shared CLI; generic transport remains available.</p>
+<p>Named R init checks suggested renv only for explicitly selected renv setup. install_missing=NULL asks only interactively outside CI; FALSE never installs, TRUE explicitly permits it. No installation on load/plans/native metadata creation; build and restore retain no-bootstrap policy. Caller libraries must match the CLI selected Rscript. Package installation is outside project rollback.</p>
 
 
 </section>

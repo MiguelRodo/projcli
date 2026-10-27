@@ -381,6 +381,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./cli/init.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Set up a project</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./cli/build.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text"><code>proj build</code></span></a>
   </div>
@@ -548,6 +554,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#proj-cli" id="toc-proj-cli" class="nav-link" data-scroll-target="#proj-cli">proj_cli()</a></li>
   </ul></li>
+  <li><a href="#initialization" id="toc-initialization" class="nav-link" data-scroll-target="#initialization">Named initialization</a></li>
   <li><a href="#configuration" id="toc-configuration" class="nav-link" data-scroll-target="#configuration">Configuration</a></li>
   <li><a href="#builds" id="toc-builds" class="nav-link" data-scroll-target="#builds">Builds and previews</a></li>
   <li><a href="#paths" id="toc-paths" class="nav-link" data-scroll-target="#paths">Paths and versions</a></li>
@@ -592,6 +599,49 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>         <span class="at">binary =</span> <span class="cn">NULL</span>, <span class="at">env =</span> <span class="fu">character</span>(), <span class="at">timeout =</span> <span class="cn">Inf</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Pass each argument separately without shell quoting. Returns the validated command result envelope as a list; result contains the requested data. A failure raises projcli_error with a safe code and optional status. Raw child diagnostics are withheld. Timeout/failure can follow partial effects; inspect before retrying. No binary is installed automatically. Use help(“proj_cli”, package=“projcli”) for the protocol, environment and response-size contract.</p>
 </section>
+</section>
+<section id="initialization" class="level2">
+<h2 class="anchored" data-anchor-id="initialization">Named initialization</h2>
+<p>These helpers require the unmerged candidate CLI/package together. They are absent from installed ea323355 and published preview.4.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>projr_init(…)</td>
+<td>Create missing project files with explicit metadata.</td>
+</tr>
+<tr class="even">
+<td>projr_init_plan(…)</td>
+<td>Read-only metadata/Git/remote state.</td>
+</tr>
+<tr class="odd">
+<td>projr_init_readme(readme_rmd=FALSE, title=NULL, purpose=NULL, …)</td>
+<td>Missing plain/Rmd README, without rendering.</td>
+</tr>
+<tr class="even">
+<td>projr_init_license(license, label=NULL, …)</td>
+<td>Root code licence or one declared project-contained directory.</td>
+</tr>
+<tr class="odd">
+<td>projr_init_renv(install_missing=NULL, …)</td>
+<td>Explicit bare renv setup, not restore.</td>
+</tr>
+</tbody>
+</table>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>projcli<span class="sc">::</span><span class="fu">projr_init</span>(<span class="at">project =</span> <span class="st">"."</span>, <span class="at">title =</span> <span class="st">"Example analysis"</span>,</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">purpose =</span> <span class="st">"Compare models."</span>, <span class="at">readme_rmd =</span> <span class="cn">TRUE</span>, <span class="at">description_file =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>projcli<span class="sc">::</span><span class="fu">projr_init_plan</span>(<span class="at">project =</span> <span class="st">"."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Common controls: project=getwd(), binary=NULL, env=character(), timeout=Inf. General init accepts title/purpose/contact_name/contact_email and separate author_family/author_given/author_name vectors for citation=TRUE. Contacts are not inferred as authors. description_file/renv/citation default FALSE; no R/NAMESPACE scaffold. git/github default FALSE; any existing remote is preserved. R supplies metadata explicitly; the terminal CLI retains setup questions.</p>
+<p>Only selected renv initialization checks the optional suggested renv package. install_missing=NULL asks only interactively outside CI; otherwise absence fails with instructions. FALSE never installs; TRUE explicitly permits installation, including noninteractive/CI use. Installation uses configured repositories and the first active R library, which must be writable. No packages install on load, during plans or for native CFF/README creation. No cffr/rmarkdown is needed to create those files. Existing build/restore no-bootstrap behavior remains. config.r.rscript/PATH may select a different R: ensure compatibility with forwarded caller libraries. Package installation effects are outside rollback; setup itself is incremental. Existing files are preserved except configured DESCRIPTION Version synchronization. See help(“projr_init”, package=“projcli”) for complete arguments.</p>
 </section>
 <section id="configuration" class="level2">
 <h2 class="anchored" data-anchor-id="configuration">Configuration</h2>
@@ -694,14 +744,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 </tbody>
 </table>
-<p>The common backend/project/binary/env/timeout controls apply. Path lookup never creates folders; create=TRUE and legacy code/data special lookups need an existing R callback. safe=FALSE selects the final configured location. VERSION helpers do synchronize an existing DESCRIPTION by default (settings.sync-description-version). This source candidate does not create DESCRIPTION. Help topic: help(“projr_build”, package=“projcli”).</p>
+<p>The common backend/project/binary/env/timeout controls apply. Path lookup never creates folders; create=TRUE and legacy code/data special lookups need an existing R callback. safe=FALSE selects the final configured location. VERSION helpers do synchronize an existing DESCRIPTION by default (settings.sync-description-version). Explicit creation is available through projr_init(description_file=TRUE). Help topic: help(“projr_build”, package=“projcli”).</p>
 </section>
 <section id="dependencies" class="level2">
 <h2 class="anchored" data-anchor-id="dependencies">Dependencies</h2>
 <section id="proj-renv-restore" class="level3">
 <h3 class="anchored" data-anchor-id="proj-renv-restore">proj_renv_restore()</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">proj_renv_restore</span>(project, library, <span class="at">lockfile =</span> <span class="st">"renv.lock"</span>,</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>                  <span class="at">rscript =</span> <span class="cn">NULL</span>, <span class="at">env =</span> <span class="fu">character</span>(), <span class="at">timeout =</span> <span class="cn">Inf</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">proj_renv_restore</span>(project, library, <span class="at">lockfile =</span> <span class="st">"renv.lock"</span>,</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>                  <span class="at">rscript =</span> <span class="cn">NULL</span>, <span class="at">env =</span> <span class="fu">character</span>(), <span class="at">timeout =</span> <span class="cn">Inf</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>An explicit operation using already installed renv in a fresh –vanilla Rscript. Project, library and lockfile must exist; library/lockfile remain inside project. It uses transactional=TRUE, clean=FALSE and prompt=FALSE, checks locked package versions and unchanged lockfile, and returns lockfile_md5, renv_version and packages. That checksum identifies bytes, not a security guarantee. It does not install renv, update/activate the project or reproduce all legacy package-source/update selectors. rscript defaults to the calling R; config.r.rscript separately controls CLI drivers. Help topic: help(“proj_renv_restore”, package=“projcli”).</p>
 </section>
 </section>
