@@ -1,0 +1,72 @@
+---
+title: "Code formatting and lint checks"
+---
+
+These are contributor tools, not prerequisites for using proj.
+
+Each PR checks existing changed Rust/R source against its Git merge base. Rust
+uses rustfmt and Clippy from Rust 1.95.0. R uses
+[Air 0.12.0](https://posit-dev.github.io/air/) and
+[lintr 3.4.0](https://lintr.r-lib.org/). Air is the formatter used by the official
+VS Code Air extension and Positron. CI checksums bind the official tool downloads.
+No tools are installed in a user's R library.
+
+The repository rustfmt.toml, air.toml and .lintr files are shared settings:
+Rust 2024 style, Air's 80-column/two-space layout and lintr's default checks.
+Only touched maintained files are formatted.
+
+## Checks and warning policy
+
+- rustfmt reads selected .rs files through stdin, without traversing or changing
+  untouched child modules.
+- R source scripts (.R, .r, .Rprofile) use Air, then lintr. Embedded R Markdown/
+  Quarto chunks keep their separate renderer/example checks; whole markup files
+  are not passed to a plain-R parser.
+- Clippy analyzes the workspace and all targets when Rust/Cargo inputs change.
+  It is not per-file lint. Compiler failures and new diagnostics anywhere fail.
+  Existing warnings with unchanged code, message and normalized expression
+  remain visible in a same-toolchain merge-base report, avoiding unrelated cleanup.
+  No lint is globally disabled.
+- Rename destinations, deleted files, spaces/newlines and no-file cases are
+  handled explicitly. Filenames are argument-array values, never shell expansion.
+
+Check mode preserves source bytes and never pushes commits. Artifacts contain a
+formatting patch and lint reports. Explicit format mode changes only a disposable
+runner checkout; it never commits or pushes. Verify its exact run/head, review
+the patch and apply with git apply -p2, then rerun checks.
+
+Fork PRs use pull_request, a read-only token, no persisted checkout credentials,
+no custom secrets and no write-back. They never use pull_request_target.
+R tools install only in a temporary CI library. The pinned image supplies base
+R/dependencies; extra lintr/rex/lazyeval/xmlparsedata sources have fixed checksums.
+
+Use Rust Analyzer/rustfmt and the official
+[Air VS Code/Positron extension](https://posit-dev.github.io/air/editor-vscode.html)
+for editor formatting. Enable format-on-save in personal editor settings if
+desired; this repository does not change those settings.
+
+
+The pinned diagnostic image uses R 4.6. The first remote setup exposed that
+CRAN rex 1.2.1 imports lazyeval 0.2.2, which cannot load against that R C API
+(undefined PREXPR symbol). The lint tools therefore use official rex source at
+7a8fb36a29919c3d447cc823c672af9b5cf1fd68, checksum-verified, which uses withr
+instead. This is an isolated CI tool dependency, not an analysis dependency or
+an alteration to a user's R library. Lintr remains pinned to 3.4.0.
+
+
+Clippy's initial full-stack run found a pre-existing deny-by-default permission
+literal lint in an untouched fixture; the equivalent octal spelling is corrected.
+For diagnostic comparison only, the old baseline uses --cap-lints warn so that
+pre-existing deny-by-default lints can be inventoried. The current head does not
+use that cap: errors and new warnings block. Existing warnings remain visible
+when their code, message and normalized source expression are unchanged, even
+when rustfmt changes whitespace in the containing file. This avoids converting
+a feature delivery into a general cleanup of historic build code. Compiler
+failures in either checkout remain blocking.
+
+
+The optional Xet helper is compiled inside the pinned upstream workspace. Its
+integration job runs Clippy on that actual binary target too, records diagnostics,
+and rejects helper warnings or target compilation failures. The proj workspace
+check alone does not cover an injected external-workspace source file. Upstream
+warnings outside our helper remain upstream findings, not edits to preserved code.

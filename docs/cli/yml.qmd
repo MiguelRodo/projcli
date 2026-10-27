@@ -39,10 +39,10 @@ Directory initialization stops on configuration read/validation errors before
 changing ignore rules or creating directories.
 
 
-## Explicit configuration and parameter queries (M4 candidate)
+## Read configuration values and analysis parameters
 
-The existing yml read command still reports validation only. The new commands
-explicitly return requested data; that data can include private configuration
+The existing yml read command still reports validation only. These commands
+return the requested values; that data can include private configuration
 values, so do not publish their output as a diagnostic log.
 
 ~~~bash

@@ -1,87 +1,63 @@
-# projcli 0.4.0-preview.4
+# projcli 0.4.0-preview.5
 
-This development preview adds inspectable build records and verified local
-recovery, including the approved remote configuration and file-list choices.
-Exact source: f6f4510a806ea302a2ceee5177707fbde9bed5bf. Both platform downloads
-are identified by checksums.txt; source-commit.txt binds them to this source.
+This preview adds experimental Xet storage and complete CAS/Xet store transfer
+through GitHub Releases, plus the R interface and optional R build tasks introduced
+since preview.4. Release assets include source-commit.txt and checksums.txt; use
+those files to identify the exact reviewed source and platform download.
 
-## What changed since preview.3
+## What changed
 
-- Define named backup locations once, then choose the locations and declared
-  folders each build sends. Removing an upload destination does not remove
-  that location as a restore source.
-- Save readable CSV or JSON file histories. An unchanged folder version points
-  directly to an earlier complete listing. Optional file dictionaries shorten
-  repeated content hashes while retaining every current file path. CSV stays
-  rectangular for spreadsheet filtering; a reference row identifies the earlier
-  version to filter.
-- Choose where full listings live: project, remote, both, or automatic. Even
-  remote-only metadata keeps a small project reference. Existing ordinary root
-  manifest.csv and projr-compatible transport metadata retain their separate
-  meanings and are not removed by this setting.
-- Save content-addressed local archives: identical file bytes share storage and
-  directory fingerprints describe their complete membership. Tree metadata is
-  the modern local CAS default; ordinary local and GitHub backups default to
-  flat listings. Explicit style changes preserve old snapshots/readers.
-- Verify and restore an explicitly selected local snapshot after losing its
-  working project. Required metadata and bytes are checked before replacing
-  a good destination. Earlier flat CAS IDs remain readable; no destructive
-  conversion occurs. Older lookup records keep their original bytes on exact
-  retries, and shared lookup updates are coordinated across stores.
-- Keep useful per-attempt records, source/configuration/dependency fingerprints,
-  inspectable final file rows and human-readable history. Failed builds restore
-  the exact prior development version where rollback applies. Failures with
-  possible distribution keep evidence; earlier failures retain local diagnostics
-  excluded from Git. Optional Git records a pre-commit snapshot and saves the
-  final Git outcome locally for the next normal commit, without recursive commits.
+- From R, preview/build projects, query configuration and resolve file paths using
+  the separate thin projcli package. See the website's R package guide and function
+  reference. It is available from source, not CRAN; the standalone command is
+  installed separately. The original SATVILab/projr package is unchanged.
+- Optional build.r actions generate documentation, render README.Rmd and snapshot
+  renv dependencies. Each is off by default. Snapshot ordering follows projr.
+  Explicit init readme --rmd and init renv commands do not replace existing state.
+- Optional local structure: xet shares chunks within files using a separately built
+  exact-pinned helper. Upstream's local backend is experimental. The core verifies
+  independent whole-file BLAKE3 and length in private staging before installing
+  restored files; successful upstream return values alone are insufficient.
+- GitHub structure: xet uses the same local engine through complete-store ZIPs.
+  GitHub structure: cas transports the existing whole-file store and preserves
+  tree, flat CSV/JSON/dictionary and legacy snapshots. Ordinary latest/archive
+  uploads and local file CAS remain compatible.
+- Each configured store uses one long-running storage release. A new immutable,
+  checksum-named ZIP is uploaded, downloaded and validated before its trusted
+  project reference can change. Prior good assets are retained. Failed or uncertain
+  operations can leave an unreferenced ZIP; they do not delete the old store.
+- The website introduces the R package prominently and provides storage guides.
+  Changed-source CI checks Rustfmt/Clippy and Air/lintr without contributor writes.
 
-## Verification and boundaries
+## Requirements and limits
 
-The exact release source was checked remotely with all-platform Rust suites, API examples,
-installers, native browser documentation and actual R/Python/HTML analysis.
-The bounded M3 gate combines an actual analysis, ordinary backup and native local
-archive, removes only a disposable working project, then restores both selected
-labels by explicit snapshot ID. Retained bytes and corruption failures have a
-separate Rust verification step. The integrated gate and its independent byte checks passed.
+Xet runtime is currently Linux/Unix only, needs the separately pinned optional
+helper, and is not a production archival guarantee. No Hugging Face account or
+service is required for this local engine. File/chunk sharing depends on actual
+bytes; already-compressed files may share little. Xet snapshot inventories remain
+complete per-version documents; chunk sharing is not metadata delta encoding.
 
-New GitHub listing/tree formats use actual CLI commands against mocked REST.
-The earlier synthetic real GitHub transport round-trip remains evidence for its
-tested latest/archive operations, not a new live test of every metadata format.
-Ordinary data ZIP names, CSV/VERSION metadata, transfer decisions and guarded
-single-label restore retain their documented compatibility behavior.
+GitHub transfers complete ZIPs, not incremental chunks. Initial configured
+support requires full metadata in the remote store (manifest: auto or remote);
+unsupported placement/style options fail before hooks. GitHub CAS requires an
+explicit manifest-style: tree or flat. Both use project Git metadata to identify
+the trusted ZIP; missing project authority is an error, not permission to guess
+a latest export. Back up that metadata. Each store belongs to one project.
 
-A remote store currently belongs to one project. Automatic snapshot discovery,
-garbage collection, retention redesign, chunking, network packing and performance
-optimisation are deferred. Hashing guarantees observed bytes/membership, not a
-live consistent dataset or ownership/permission restoration. No size or speed
-saving is promised for JSON or tree metadata. Full metadata is still needed for
-recovery; a small root reference alone is insufficient.
+Exports require stopped/cooperative writers; no hot-copy, power-loss, distributed
+locking, automatic migration, retention cleanup or garbage collection guarantee.
+Outer hashes, strict ZIP membership/path/size checks and deep reconstruction
+verification precede guarded installation. Temporary disk requirements can exceed
+the ZIP size, and sparse databases can expand. Arbitrary scripts remain able to
+modify files; this is not a sandbox.
 
-Publication is not an atomic transaction across locations or GitHub assets.
-A failure can leave earlier uploads or complete metadata copies; diagnostics
-preserve the local release and possible distribution evidence. Do not infer
-full rollback or automatically retry an ambiguous failed publication. Existing
-Windows backup-cleanup and arbitrary-script/power-loss limitations remain.
-Project builds and mutable CAS history/lookup updates use cooperative writer claims;
-standalone ordinary file-copy operations keep their documented concurrency limits.
-This is not a distributed lock.
+The unrelated pending initialization/scripts PRs are not part of this release.
+No new general citation helpers, DESCRIPTION synchronization or glob/routing
+features are claimed here. End-hook mutation enforcement remains deferred.
 
-The existing R package, helpers and thesis are unchanged. Language wrappers,
-R/IDE parity, richer initialisation, Bookdown site embedding and linked-resource
-portability remain separate work. Ordinary restore is still single-label.
-Individual-file/listing/trusted-version conveniences and additional credential
-inference remain follow-ups. Git is optional for ordinary local work and is not
-bundled; no credentials or permissions are installed. DVC is not required.
+## Verification
 
-Linux/WSL x86-64 and Windows x86-64 binaries are supplied. Linux requires glibc
-2.35 or newer; macOS/ARM binaries are not supplied. Installation needs no Rust
-compiler or administrator access. Evaluate with sample data or a backed-up copy.
-
-Reference and delivery checks:
-https://miguelrodo.github.io/projcli/release-candidate.html
-
-Exact-tag Linux/Windows tests, binary version/protocol and installer checks:
-https://github.com/MiguelRodo/projcli/actions/runs/40124525153
-
-Full pinned acceptance on the identical reviewed release tree:
-https://github.com/MiguelRodo/projcli/actions/runs/40122746225
+Final exact-head/main, platform, real synthetic GitHub round-trip, independently
+verified artifacts, release checksum and installed-path results must be attached
+to the delivery checkpoint before this candidate is described as published.
+Synthetic tests do not establish all real workload savings or whole projr parity.

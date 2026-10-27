@@ -659,7 +659,7 @@ required archive limits.
 
 The initial command slice read v1 trees. Support for original flat snapshots is
 described below; their IDs are never reinterpreted as trees. Automatic CAS
-discovery and new flat CSV/JSON publication remain separately tracked work.
+discovery remains separate; new flat CSV/JSON publication is described below.
 
 
 ## Recover existing flat CAS snapshots
@@ -680,8 +680,8 @@ missing content and conflicting same-ID namespace entries fail explicitly before
 destination changes. Metadata is bounded at 16 MiB and 100,000 file entries, with
 the existing portable path bounds. Ordinary root manifest.csv remains separate.
 
-Automatic snapshot discovery and new flat CSV/JSON catalogue publication remain
-pending; this is compatibility recovery, not a format conversion or migration.
+Automatic snapshot discovery remains separate. New flat CSV/JSON publication is
+covered below; reading old snapshots does not convert or migrate them.
 
 ## Verify and restore new flat CSV/JSON snapshots
 
@@ -739,3 +739,21 @@ Store and shared-ledger ownership prevent cooperative callers from losing lookup
 updates; busy/stale claims return an error without overwriting their owner.
 Explicit verification/recovery remains read-only and does not create writer
 claims. This changes no command or configuration spelling.
+
+## GitHub complete-store recovery
+
+Preview.5 supports `structure: xet` and `structure: cas` on named GitHub remotes.
+They download and check a complete store ZIP before restoring the selected saved
+folder. This differs from an ordinary latest/archive folder download.
+
+Use the copyable commands in the [Xet guide](../xet-storage.qmd) or
+[shared-file guide](../cas-github.qmd). Exact snapshot restore/verification requires
+`--max-bytes`, `--max-expanded-bytes` and trusted Git-tracked project upload records.
+Xet requires the separate pinned Linux/WSL helper; CAS does not. Both keep full
+records in the store ZIP and support `manifest: auto` or `remote` initially.
+
+For GitHub CAS, choose `manifest-style: tree` or `flat` explicitly; flat accepts
+CSV/JSON with version-level references and the optional file-deduplication formats.
+Existing stored formats remain readable. Xet uses its fixed tree/JSON records and
+remains experimental. The guides document upload verification, previous-export
+preservation, size limits and the real synthetic GitHub test.
