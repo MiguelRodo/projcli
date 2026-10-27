@@ -47,9 +47,9 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="site_libs/bootstrap/bootstrap-dark-2c381e549dcdf5586be8a2da26e70e7c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-594fc4564f848ab358ed4d83e83f085a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -531,6 +531,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#keep-a-readable-file-history-with-github-backups" id="toc-keep-a-readable-file-history-with-github-backups" class="nav-link" data-scroll-target="#keep-a-readable-file-history-with-github-backups">Keep a readable file history with GitHub backups</a></li>
   <li><a href="#keep-folder-fingerprints-with-local-backups" id="toc-keep-folder-fingerprints-with-local-backups" class="nav-link" data-scroll-target="#keep-folder-fingerprints-with-local-backups">Keep folder fingerprints with local backups</a></li>
   <li><a href="#github-tree-backups" id="toc-github-tree-backups" class="nav-link" data-scroll-target="#github-tree-backups">Keep folder fingerprints with GitHub backups</a></li>
+  <li><a href="#added-in-preview.6" id="toc-added-in-preview.6" class="nav-link" data-scroll-target="#added-in-preview.6">Added in preview.6</a></li>
   </ul>
 </nav>
     </div>
@@ -560,7 +561,7 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="available-development-release" class="level2">
 <h2 class="anchored" data-anchor-id="available-development-release">Available development release</h2>
-<p><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.5"><strong>v0.4.0-preview.5</strong></a> provides checked Linux x86-64 (glibc 2.35+) and Windows x86-64 binaries. No Rust compilation is needed. <a href="./install.html">Install that explicit version</a>; GitHub’s stable Latest remains the older v0.3.0.</p>
+<p><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.6"><strong>v0.4.0-preview.6</strong></a> provides checked Linux x86-64 (glibc 2.35+) and Windows x86-64 binaries. No Rust compilation is needed. <a href="./install.html">Install that explicit version</a>; GitHub’s stable Latest remains the older v0.3.0.</p>
 <p>This development prerelease includes local builds, inspectable build records, readable backup histories and verified recovery of saved local folders. The table summarizes supported Rust CLI behavior; it does not establish R/IDE parity. See the <a href="./preview-status.html">detailed status</a> and <a href="./release-delivery.html">delivery evidence</a> for exact verification and limits. Newer changes on main need their own evidence.</p>
 <table class="caption-top table">
 <colgroup>
@@ -624,7 +625,7 @@ ul.task-list li input[type="checkbox"] {
 <li>This preview supplies only Linux and Windows x86-64 binaries; macOS and ARM delivery are unavailable.</li>
 <li>Production recovery is bounded. It does not undo arbitrary script writes or partial external publication effects.</li>
 </ul>
-<p>The existing projr R package is unchanged. The new source package projcli is available in this repository: see its <a href="./r-frontend.html">installation and quick start</a> and <a href="./r-reference.html">function reference</a>. It is not on CRAN; preview.5 includes the supported M4 CLI subset and optional R maintenance. Python/Julia frontends and complete R/IDE parity remain separate work.</p>
+<p>The existing projr R package is unchanged. The new source package projcli is available in this repository: see its <a href="./r-frontend.html">installation and quick start</a> and <a href="./r-reference.html">function reference</a>. It is not on CRAN; preview.6 includes the supported M4 CLI subset and optional R maintenance. Python/Julia frontends and complete R/IDE parity remain separate work.</p>
 </section>
 <section id="added-in-preview.5" class="level2">
 <h2 class="anchored" data-anchor-id="added-in-preview.5">Added in preview.5</h2>
@@ -686,6 +687,16 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="github-tree-backups">Keep folder fingerprints with GitHub backups</h2>
 <p>GitHub backups normally keep a flat file list. You can also save fingerprints for each folder and its children, while keeping the same downloadable data ZIPs. Set manifest-style: tree on that remote; the <a href="./configuration.html#github-tree-history">configuration reference</a> gives a complete example and explains where the listings are saved.</p>
 <p>The saved file list describes what actually reached the ZIP, including retained older files when your upload settings request them. Identical folder contents have the same fingerprint across versions. A small project record identifies the saved root even when full listings live on GitHub. Earlier flat records remain readable when you change this setting. This feature is included in preview.4.</p>
+</section>
+<section id="added-in-preview.6" class="level2">
+<h2 class="anchored" data-anchor-id="added-in-preview.6">Added in preview.6</h2>
+<ul>
+<li>Create project metadata from the CLI or named R helpers, with optional DESCRIPTION, README.Rmd, citation metadata and renv initialization.</li>
+<li>Keep an existing DESCRIPTION Version synchronized with VERSION by default.</li>
+<li>Select named script directories or globs, with exclusions and stable ordering.</li>
+<li>Put grouped reports under the configured docs folder and retain complete Quarto website output trees.</li>
+</ul>
+<p>Separate reports copy their output and generated <code>&lt;stem&gt;_files</code> folder. When embedding is explicitly disabled, authored assets elsewhere are not collected automatically. Use embedded HTML or a Quarto project for portable output.</p>
 
 
 </section>

@@ -82,9 +82,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="site_libs/bootstrap/bootstrap-dark-2c381e549dcdf5586be8a2da26e70e7c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-594fc4564f848ab358ed4d83e83f085a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -588,8 +588,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#complete-stores-on-github" id="toc-complete-stores-on-github" class="nav-link" data-scroll-target="#complete-stores-on-github">Complete stores on GitHub</a></li>
   </ul></li>
-  <li><a href="#version-and-description-synchronization-source-candidate" id="toc-version-and-description-synchronization-source-candidate" class="nav-link" data-scroll-target="#version-and-description-synchronization-source-candidate">VERSION and DESCRIPTION synchronization (preview.6 source)</a></li>
-  <li><a href="#optional-init-metadata-source-candidate" id="toc-optional-init-metadata-source-candidate" class="nav-link" data-scroll-target="#optional-init-metadata-source-candidate">Optional init metadata (preview.6 source)</a></li>
+  <li><a href="#version-and-description-synchronization-source-candidate" id="toc-version-and-description-synchronization-source-candidate" class="nav-link" data-scroll-target="#version-and-description-synchronization-source-candidate">VERSION and DESCRIPTION synchronization (preview.6)</a></li>
+  <li><a href="#optional-init-metadata-source-candidate" id="toc-optional-init-metadata-source-candidate" class="nav-link" data-scroll-target="#optional-init-metadata-source-candidate">Optional init metadata (preview.6)</a></li>
   <li><a href="#selecting-a-script-source-group-candidate" id="toc-selecting-a-script-source-group-candidate" class="nav-link" data-scroll-target="#selecting-a-script-source-group-candidate">Selecting a script source group</a></li>
   </ul></li>
   </ul>
@@ -605,7 +605,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="configuration-_proj.yml" class="level1">
 <h1>Configuration <code>_proj.yml</code></h1>
 <p>Preview.4 includes the named remote definitions, file-history formats and explicit local snapshot recovery documented below. Historical slice notes retain their original verification scope. See <a href="./release-delivery.html#verified-preview4-delivery">verified delivery</a>.</p>
-<p>Use <code>_proj.yml</code> to name your project folders, choose the analysis steps to run, and decide where results are saved. The examples cover preview.5 and the labelled merged preview.6 additions. The latter require matching source until preview.6 is published.</p>
+<p>Use <code>_proj.yml</code> to name your project folders, choose the analysis steps to run, and decide where results are saved. The examples describe published preview.6. Older previews lack the new initialization and script-group options.</p>
 <section id="name-your-project-folders" class="level2">
 <h2 class="anchored" data-anchor-id="name-your-project-folders">Name your project folders</h2>
 <p>Directory names must start with one of these prefixes:</p>
@@ -614,7 +614,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>raw</code></li>
 <li><code>output</code></li>
 <li><code>docs</code></li>
-<li><code>scripts</code> or <code>scripts-&lt;name&gt;</code> (merged for preview.6; absent from preview.5)</li>
+<li><code>scripts</code> or <code>scripts-&lt;name&gt;</code> (added in preview.6)</li>
 </ul>
 <p>These prefixes are <strong>case-insensitive</strong>. Ordinary labels begin with cache, raw, output or docs. Source groups use exactly scripts or scripts- followed by a nonempty name.</p>
 </section>
@@ -979,7 +979,7 @@ build:
 </section>
 </section>
 <section id="version-and-description-synchronization-source-candidate" class="level2">
-<h2 class="anchored" data-anchor-id="version-and-description-synchronization-source-candidate">VERSION and DESCRIPTION synchronization (preview.6 source)</h2>
+<h2 class="anchored" data-anchor-id="version-and-description-synchronization-source-candidate">VERSION and DESCRIPTION synchronization (preview.6)</h2>
 <p>VERSION remains the version authority. By default, writing it also updates only the Version field of an existing DESCRIPTION. Other fields, continuation text and line endings are preserved. No DESCRIPTION is created by a build or version update.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">settings</span><span class="kw">:</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">sync-description-version</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -987,7 +987,7 @@ build:
 <p>Named R build/version helpers accept these projects under this VERSION-authoritative contract; an explicit legacy backend retains its original authority rules. Bookdown and arbitrary legacy arguments remain separate unsupported mappings.</p>
 </section>
 <section id="optional-init-metadata-source-candidate" class="level2">
-<h2 class="anchored" data-anchor-id="optional-init-metadata-source-candidate">Optional init metadata (preview.6 source)</h2>
+<h2 class="anchored" data-anchor-id="optional-init-metadata-source-candidate">Optional init metadata (preview.6)</h2>
 <p><a href="./cli/init.html">Project setup reference</a> documents explicit –description-file, –readme-rmd, –renv and –citation choices. These are action parameters, not new configuration blocks. DESCRIPTION/renv/citation creation defaults off. General init uses settings.sync-description-version for an already-existing DESCRIPTION, preserves equivalent literal version spelling, and changes no other existing DESCRIPTION metadata.</p>
 <p>Any existing Git remote satisfies setup. General-init Git/GitHub actions remain opt-in when noninteractive; no automatic commit/push occurs there. Folder licensing is explicitly selected with init license –label, never inferred from init.</p>
 </section>

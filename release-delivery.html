@@ -47,9 +47,9 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="site_libs/bootstrap/bootstrap-dark-2c381e549dcdf5586be8a2da26e70e7c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-594fc4564f848ab358ed4d83e83f085a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -517,6 +517,7 @@ ul.task-list li input[type="checkbox"] {
   <ul>
   <li><a href="#preview-release-delivery" id="toc-preview-release-delivery" class="nav-link active" data-scroll-target="#preview-release-delivery">Preview release delivery</a>
   <ul class="collapse">
+  <li><a href="#verified-preview6-delivery" id="toc-verified-preview6-delivery" class="nav-link" data-scroll-target="#verified-preview6-delivery">Verified preview.6 delivery</a></li>
   <li><a href="#verified-preview5-delivery" id="toc-verified-preview5-delivery" class="nav-link" data-scroll-target="#verified-preview5-delivery">Verified preview.5 delivery</a></li>
   <li><a href="#verified-preview.2-delivery" id="toc-verified-preview.2-delivery" class="nav-link" data-scroll-target="#verified-preview.2-delivery">Verified preview.2 delivery</a></li>
   <li><a href="#verified-preview3-delivery" id="toc-verified-preview3-delivery" class="nav-link" data-scroll-target="#verified-preview3-delivery">Verified preview.3 delivery</a></li>
@@ -540,6 +541,36 @@ ul.task-list li input[type="checkbox"] {
 <p>Installers default to MiguelRodo/projcli, require version metadata and exactly one matching SHA256 entry, and verify downloaded bytes before replacement. They stage on the installation filesystem and need only an existing user-writable directory. <code>PROJ_RELEASE_VERSION</code> pins a release (with optional <code>v</code>); preview releases should always be pinned because GitHub’s latest URL normally selects stable releases. <code>PROJ_INSTALL_DIR</code> selects an existing absolute user directory without changing PATH or system settings. Existing older releases lacking the new metadata fail closed instead of installing an unverified fallback binary.</p>
 <p>Before publication: reconcile reviewed supported behavior and limits, update the Cargo/Cargo.lock preview version in a reviewed change, verify required checks, then create the exact reviewed tag. Inspect the resulting draft assets/version/ checksums and retain disposable-project warnings. Publish only after those checks. For WSL, download the pinned binary/manifest, verify SHA256, preserve any existing user-local binary, install into the chosen user-local directory and smoke help, version, capabilities and a disposable configured preview. No local compilation, sudo, persistent authentication change or R package modification is needed.</p>
 <p>Known limits include bounded captured-state recovery, arbitrary external script effects, incomplete direct R/IDE parity, analysis-free publication retry and broader environment reproduction. Preview.4 includes the agreed M2/M3 scope described below.</p>
+<section id="verified-preview6-delivery" class="level2">
+<h2 class="anchored" data-anchor-id="verified-preview6-delivery">Verified preview.6 delivery</h2>
+<p><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.6">Preview.6</a> was published on 27 October 2026 from <code>712cd9a2daffa9e0a04448252a24ac2de5754194</code>. Its tree equals reviewed <code>03306c4fcabf2daa3bcba9d955d76639501357d9</code>. PRs 232–234 supplied the setup, VERSION/DESCRIPTION and script-group features; <a href="https://github.com/MiguelRodo/projcli/pull/245">PR245</a> prepared the version and release notes.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Binary</th>
+<th>SHA256</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Linux x86-64</td>
+<td>bcd82b96f419b4e6fe8761b5df745d041fe79d9a51e7ebc70fd697150448f03b</td>
+</tr>
+<tr class="even">
+<td>Windows x86-64</td>
+<td>b313ae90460cfdce4560f19a097f7aba34203266c809ed837cf70b9dd2297d94</td>
+</tr>
+</tbody>
+</table>
+<p><a href="https://github.com/MiguelRodo/projcli/actions/runs/40571768200">Exact-tag build/protocol/installer checks</a>, <a href="https://github.com/MiguelRodo/projcli/actions/runs/40571706216">actual-main core/render acceptance</a> and <a href="https://github.com/MiguelRodo/projcli/actions/runs/40571712488">actual-main R acceptance</a> passed. Both platform CI ZIPs and all five draft assets were independently hashed. The combined manifest has exactly four unique records and identifies both binaries plus source/version metadata. All five unauthenticated public downloads matched the verified draft bytes. Stable Latest remains v0.3.0.</p>
+<p>The existing WSL user-local CLI was backed up, then replaced by the verified public Linux binary. Fresh-login version/protocol checks passed. Disposable installed checks covered metadata setup, script exclusion/order, preview preservation, production DESCRIPTION synchronization and exact failure rollback. The matching R source was installed in the existing user library and verified with 19 exports, init plan, metadata/README setup, build-dev and version calls. Its development package version remains 0.0.0.9000; the installed source is this release tag. No optional dependency installation or original projr modification was needed. The optional Xet helper was retained unchanged.</p>
+<p>A non-login R process whose PATH lacks the user-local binary can find the unrelated system geographical <code>proj</code> utility. The <a href="./r-frontend.html">R guide</a> explains session-only binary selection; installation changes no global R profile or system utility. Existing R sessions need to reload the package to see new exports.</p>
+<p>Separate reports still copy rendered output plus <code>&lt;stem&gt;_files</code>. Explicitly nonembedded authored assets elsewhere are not automatically collected. Whole Quarto projects retain their complete output tree. One project per store, experimental Xet and the other documented limits remain; no full projr parity is claimed. See the <a href="./release-preview6-notes.html">release notes</a>.</p>
+</section>
 <section id="verified-preview5-delivery" class="level2">
 <h2 class="anchored" data-anchor-id="verified-preview5-delivery">Verified preview.5 delivery</h2>
 <p><a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.5">Preview.5</a> was published on 27 October 2026 from 87b5149c679a87796513e775c54ba98e4811aa9b. Its tree equals reviewed and live-tested cd4bcf42dfa35f441fb9ea43f88aa83e9ef5903d.</p>
@@ -597,7 +628,7 @@ ul.task-list li input[type="checkbox"] {
 </tbody>
 </table>
 <p>The WSL user-local binary was backed up before replacement. Installed bytes match the public Linux asset; full-path help/version/capabilities passed. Tiny disposable Python preview success and deliberate structured failure preserved prior final, archive and project VERSION bytes while retaining the computed cached result. The shell resolves the checked user-local command. No local compilation, system binary replacement, container operation or R-package change was involved.</p>
-<p>This historical delivery pinned PROJ_RELEASE_VERSION=0.4.0-preview.2. The <a href="./install.html">current install guide</a> now pins preview.4. Linux/Windows x86-64 delivery is verified; macOS/ARM binaries remain unavailable. Bookdown site embedding, direct R/IDE parity, linked-output portability and M2 records/provenance/retry remain outside the accepted CLI workflow.</p>
+<p>This historical delivery pinned PROJ_RELEASE_VERSION=0.4.0-preview.2. Use the <a href="./install.html">current install guide</a> for the currently published preview. Linux/Windows x86-64 delivery is verified; macOS/ARM binaries remain unavailable. Bookdown site embedding, direct R/IDE parity, linked-output portability and M2 records/provenance/retry remain outside the accepted CLI workflow.</p>
 <p>The <a href="./release-candidate.html">release checklist</a> preserves the review and delivery sequence for future candidates. The delivered M1 boundary is the configured local CLI workflow above, including fresh init, ordered explicit file targets and bounded preservation. Stronger command schemas/process confinement and broader maintenance audits remain follow-ups. No new runtime or binary change was needed to reconcile this accepted scope; M2 remains unfinished.</p>
 </section>
 <section id="verified-preview3-delivery" class="level2">
@@ -663,7 +694,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="preview.6-preparation" class="level2">
 <h2 class="anchored" data-anchor-id="preview.6-preparation">Preview.6 preparation</h2>
-<p>The next reviewed candidate is 0.4.0-preview.6. Read the <a href="./release-preview6-notes.html">release notes</a> for setup, VERSION/DESCRIPTION and script-group changes, including the separate-report external-resource limit. Public download pins remain on preview.5 until new assets pass validation and are published. The R source interface keeps development version 0.0.0.9000; installation must verify its source and named initialization exports.</p>
+<p>The completed preparation for 0.4.0-preview.6 is recorded above. Read the <a href="./release-preview6-notes.html">release notes</a> for setup, VERSION/DESCRIPTION and script-group changes, including the separate-report external-resource limit. Public download pins were updated to preview.6 only after all assets passed validation and were published. The R source interface keeps development version 0.0.0.9000; installation must verify its source and named initialization exports.</p>
 
 
 </section>

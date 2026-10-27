@@ -47,9 +47,9 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="site_libs/bootstrap/bootstrap-dark-2c381e549dcdf5586be8a2da26e70e7c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-594fc4564f848ab358ed4d83e83f085a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -652,6 +652,7 @@ ul.task-list li input[type="checkbox"] {
   </ul></li>
   <li><a href="#script-source-groups-candidate" id="toc-script-source-groups-candidate" class="nav-link" data-scroll-target="#script-source-groups-candidate">Script source groups (candidate)</a></li>
   <li><a href="#preview.6-release-preparation" id="toc-preview.6-release-preparation" class="nav-link" data-scroll-target="#preview.6-release-preparation">Preview.6 release preparation</a></li>
+  <li><a href="#preview.6-public-installation-verification" id="toc-preview.6-public-installation-verification" class="nav-link" data-scroll-target="#preview.6-public-installation-verification">Preview.6 public installation verification</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -1771,6 +1772,10 @@ ul.task-list li input[type="checkbox"] {
 <section id="preview.6-release-preparation" class="level2">
 <h2 class="anchored" data-anchor-id="preview.6-release-preparation">Preview.6 release preparation</h2>
 <p>PRs232–234 are integrated: VERSION/DESCRIPTION synchronization, optional native metadata setup and named R adapters, script groups/globs and coherent Quarto project output. The release version changes no runtime algorithm or storage ID. Ponytail review retained existing primitives and optional dependency boundaries; no package scaffold, destination-routing redesign or persistent R daemon was added. The external authored-resource limit for explicitly nonembedded separate reports remains documented. Final source and public installation evidence are recorded after verification; preparation alone is not publication.</p>
+</section>
+<section id="preview.6-public-installation-verification" class="level2">
+<h2 class="anchored" data-anchor-id="preview.6-public-installation-verification">Preview.6 public installation verification</h2>
+<p>The reviewed preview.6 tag was published after final-main and tagged acceptance. Public bytes match the independently checked draft and platform artifacts. The WSL CLI and matching 19-export R frontend passed disposable installed tests; package development version 0.0.0.9000 is unchanged and source identity is recorded. One smoke assumption was corrected to parse the existing <code>Version: v...</code> file format; another direct non-login launch selected the unrelated system <code>proj</code>. Fresh-login discovery and explicit binary selection passed. No system utility or R profile was replaced. Current public pins/source expectations move together after publication. Runtime algorithms and storage formats are unchanged by this documentation update; the standalone authored-resource limit remains explicit.</p>
 
 
 </section>

@@ -82,9 +82,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="site_libs/bootstrap/bootstrap-dark-2c381e549dcdf5586be8a2da26e70e7c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-594fc4564f848ab358ed4d83e83f085a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -558,7 +558,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#restore-packages-explicitly" id="toc-restore-packages-explicitly" class="nav-link" data-scroll-target="#restore-packages-explicitly">Restore packages explicitly</a></li>
   <li><a href="#keep-an-explicit-legacy-backend" id="toc-keep-an-explicit-legacy-backend" class="nav-link" data-scroll-target="#keep-an-explicit-legacy-backend">Keep an explicit legacy backend</a></li>
   <li><a href="#evidence-and-limits" id="toc-evidence-and-limits" class="nav-link" data-scroll-target="#evidence-and-limits">Evidence and limits</a></li>
-  <li><a href="#explicit-init-options-in-the-source-candidate" id="toc-explicit-init-options-in-the-source-candidate" class="nav-link" data-scroll-target="#explicit-init-options-in-the-source-candidate">Explicit init options in preview.6 source</a></li>
+  <li><a href="#explicit-init-options-in-the-source-candidate" id="toc-explicit-init-options-in-the-source-candidate" class="nav-link" data-scroll-target="#explicit-init-options-in-the-source-candidate">Explicit init options in preview.6</a></li>
   <li><a href="#r-initialization-helpers" id="toc-r-initialization-helpers" class="nav-link" data-scroll-target="#r-initialization-helpers">R initialization helpers</a></li>
   </ul>
 </nav>
@@ -605,107 +605,114 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 <tr class="even">
 <td>M4 R helpers and complete CLI queries/session controls</td>
-<td>Included in published preview.5 and merged source.</td>
+<td>Included in published preview.6 and merged source.</td>
 </tr>
 <tr class="odd">
 <td>Optional R setup/maintenance below</td>
-<td>Included in published preview.5 and merged source.</td>
+<td>Included in published preview.6 and merged source.</td>
 </tr>
 <tr class="even">
+<td>Named initialization helpers and DESCRIPTION synchronization</td>
+<td>Included in preview.6 with the matching R source package.</td>
+</tr>
+<tr class="odd">
 <td>Published command download</td>
-<td><a href="./install.html">Preview.5</a>; installing the R package does not replace it.</td>
+<td><a href="./install.html">Preview.6</a>; installing the R package does not replace it.</td>
 </tr>
 </tbody>
 </table>
-<p>Use preview.5 or a matching newer source command for the supported API. Preview.4 can support basic calls, but does not include the complete R queries/session controls. Errors do not silently trigger an engine switch or binary download.</p>
+<p>Use preview.6 or a matching newer source command for the supported API. Preview.4 can support basic calls, but does not include the complete R queries/session controls. Errors do not silently trigger an engine switch or binary download.</p>
 </section>
 <section id="installation" class="level2">
 <h2 class="anchored" data-anchor-id="installation">Installation</h2>
 <p>Requirements: R 4.1 or newer, processx 3.8 or newer, jsonlite 1.8 or newer, and a separately installed proj command. The package does not embed Rust. There is no CRAN install.packages(“projcli”) release.</p>
 <p>Install the ordinary dependencies deliberately in an R console:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="fu">c</span>(<span class="st">"processx"</span>, <span class="st">"jsonlite"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Download the <a href="https://github.com/MiguelRodo/projcli/archive/refs/tags/v0.4.0-preview.5.tar.gz">preview.5 source archive</a>, set the R working folder to its root, then install the R subdirectory:</p>
+<p>Download the <a href="https://github.com/MiguelRodo/projcli/archive/refs/tags/v0.4.0-preview.6.tar.gz">preview.6 source archive</a>, set the R working folder to its root, then install the R subdirectory:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"frontends/r/projcli"</span>, <span class="at">repos =</span> <span class="cn">NULL</span>, <span class="at">type =</span> <span class="st">"source"</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(projcli)</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">help</span>(<span class="at">package =</span> <span class="st">"projcli"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>This does not install proj, renv or analysis dependencies. The <a href="./install.html">CLI install guide</a> covers the released binary and its limits. Use the published preview.5 command for these features. Building the command from source is optional and needs Rust/Cargo, as described in the repository README.</p>
+<p>This does not install proj, renv or analysis dependencies. The <a href="./install.html">CLI install guide</a> covers the released binary and its limits. Use the published preview.6 command for these features. Building the command from source is optional and needs Rust/Cargo, as described in the repository README.</p>
 <p>proj can also name unrelated software. You can select an exact command:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">projcli.binary =</span> <span class="st">"/absolute/path/to/proj"</span>)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">proj_cli</span>(<span class="st">"capabilities"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>For the documented Linux/WSL user-local installation, choose it directly if R’s PATH differs from your terminal:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">projcli.binary =</span> <span class="fu">path.expand</span>(<span class="st">"~/.local/bin/proj"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The system <code>/usr/bin/proj</code> can be an unrelated geographical-coordinate tool. This option selects the build command for the current R session; installation does not edit your R profiles or replace the system utility.</p>
 <p>Selection checks an explicit binary argument, that option, PROJCLI_BIN, then PATH. Analysis children do not inherit interactive R options. For the example below, put the intended command on PATH so parent and child R processes find it.</p>
 </section>
 <section id="quick-start" class="level2">
 <h2 class="anchored" data-anchor-id="quick-start">Quick start</h2>
 <p>This example creates and removes its own temporary project. The selected CLI and R package must be available to its R analysis child.</p>
 <!-- R_QUICKSTART_BEGIN -->
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(projcli)</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>project <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(<span class="st">"proj-r-example-"</span>)</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">dir.create</span>(project)</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">writeLines</span>(<span class="fu">c</span>(</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"directories:"</span>,</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"  cache: {path: _tmp}"</span>,</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">"  output: {path: _output}"</span>,</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">"build:"</span>,</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">"  scripts: [analysis.R]"</span>,</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="st">"  git: false"</span></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>), <span class="fu">file.path</span>(project, <span class="st">"_proj.yml"</span>))</span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="fu">writeLines</span>(<span class="fu">c</span>(</span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  <span class="st">"out &lt;- projcli::projr_path_get('output', 'results.csv', format = 'absolute')"</span>,</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  <span class="st">"dir.create(dirname(out), recursive = TRUE, showWarnings = FALSE)"</span>,</span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>  <span class="st">"write.csv(data.frame(value = 42), out, row.names = FALSE)"</span></span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>), <span class="fu">file.path</span>(project, <span class="st">"analysis.R"</span>))</span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="fu">projr_version_set</span>(<span class="st">"0.1.0.1"</span>, <span class="at">only_if_exists =</span> <span class="cn">FALSE</span>, <span class="at">project =</span> project)</span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="fu">projr_build_dev</span>(<span class="at">project =</span> project, <span class="at">execution_dir =</span> <span class="st">"project"</span>)</span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>preview_file <span class="ot">&lt;-</span> <span class="fu">projr_path_get</span>(</span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>  <span class="st">"output"</span>, <span class="st">"results.csv"</span>, <span class="at">project =</span> project, <span class="at">format =</span> <span class="st">"absolute"</span>)</span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="fu">read.csv</span>(preview_file)<span class="sc">$</span>value <span class="sc">==</span> <span class="dv">42</span>)</span>
-<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a><span class="fu">projr_build_patch</span>(</span>
-<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>  <span class="at">msg =</span> <span class="st">"Example build"</span>, <span class="at">project =</span> project, <span class="at">execution_dir =</span> <span class="st">"project"</span>)</span>
-<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>final_file <span class="ot">&lt;-</span> <span class="fu">projr_path_get</span>(</span>
-<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>  <span class="st">"output"</span>, <span class="st">"results.csv"</span>, <span class="at">project =</span> project, <span class="at">safe =</span> <span class="cn">FALSE</span>, <span class="at">format =</span> <span class="st">"absolute"</span>)</span>
-<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="fu">read.csv</span>(final_file)<span class="sc">$</span>value <span class="sc">==</span> <span class="dv">42</span>)</span>
-<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a><span class="fu">read.csv</span>(final_file)</span>
-<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a><span class="fu">unlink</span>(project, <span class="at">recursive =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(projcli)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>project <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(<span class="st">"proj-r-example-"</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="fu">dir.create</span>(project)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="fu">writeLines</span>(<span class="fu">c</span>(</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"directories:"</span>,</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"  cache: {path: _tmp}"</span>,</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">"  output: {path: _output}"</span>,</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">"build:"</span>,</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">"  scripts: [analysis.R]"</span>,</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  <span class="st">"  git: false"</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>), <span class="fu">file.path</span>(project, <span class="st">"_proj.yml"</span>))</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="fu">writeLines</span>(<span class="fu">c</span>(</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  <span class="st">"out &lt;- projcli::projr_path_get('output', 'results.csv', format = 'absolute')"</span>,</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>  <span class="st">"dir.create(dirname(out), recursive = TRUE, showWarnings = FALSE)"</span>,</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  <span class="st">"write.csv(data.frame(value = 42), out, row.names = FALSE)"</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>), <span class="fu">file.path</span>(project, <span class="st">"analysis.R"</span>))</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="fu">projr_version_set</span>(<span class="st">"0.1.0.1"</span>, <span class="at">only_if_exists =</span> <span class="cn">FALSE</span>, <span class="at">project =</span> project)</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="fu">projr_build_dev</span>(<span class="at">project =</span> project, <span class="at">execution_dir =</span> <span class="st">"project"</span>)</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>preview_file <span class="ot">&lt;-</span> <span class="fu">projr_path_get</span>(</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>  <span class="st">"output"</span>, <span class="st">"results.csv"</span>, <span class="at">project =</span> project, <span class="at">format =</span> <span class="st">"absolute"</span>)</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="fu">read.csv</span>(preview_file)<span class="sc">$</span>value <span class="sc">==</span> <span class="dv">42</span>)</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="fu">projr_build_patch</span>(</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>  <span class="at">msg =</span> <span class="st">"Example build"</span>, <span class="at">project =</span> project, <span class="at">execution_dir =</span> <span class="st">"project"</span>)</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>final_file <span class="ot">&lt;-</span> <span class="fu">projr_path_get</span>(</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>  <span class="st">"output"</span>, <span class="st">"results.csv"</span>, <span class="at">project =</span> project, <span class="at">safe =</span> <span class="cn">FALSE</span>, <span class="at">format =</span> <span class="st">"absolute"</span>)</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="fu">read.csv</span>(final_file)<span class="sc">$</span>value <span class="sc">==</span> <span class="dv">42</span>)</span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a><span class="fu">read.csv</span>(final_file)</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a><span class="fu">unlink</span>(project, <span class="at">recursive =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <!-- R_QUICKSTART_END -->
 <p>Expected: one value,42. The preview keeps the project version and does not publish final outputs. The patch build promotes successful output. Git is disabled and no upload target is configured in this example. Paths are explicit; lookup itself does not create directories. Your analysis still controls its own writes.</p>
 </section>
 <section id="read-settings-and-parameters" class="level2">
 <h2 class="anchored" data-anchor-id="read-settings-and-parameters">Read settings and parameters</h2>
 <p>These helpers use the CLI’s typed query commands:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>settings <span class="ot">&lt;-</span> <span class="fu">projr_yml_get</span>(<span class="at">project =</span> <span class="st">"."</span>)</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>seed <span class="ot">&lt;-</span> <span class="fu">projr_par_get</span>(<span class="st">"model"</span>, <span class="st">"seed"</span>, <span class="at">project =</span> <span class="st">"."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>settings <span class="ot">&lt;-</span> <span class="fu">projr_yml_get</span>(<span class="at">project =</span> <span class="st">"."</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>seed <span class="ot">&lt;-</span> <span class="fu">projr_par_get</span>(<span class="st">"model"</span>, <span class="st">"seed"</span>, <span class="at">project =</span> <span class="st">"."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Keys are literal names. Missing parameters return NULL. Requested configuration values can include secrets; avoid publishing them. See the <a href="./r-reference.html#configuration">configuration functions</a>.</p>
 </section>
 <section id="optional-r-setup-and-maintenance" class="level2">
 <h2 class="anchored" data-anchor-id="optional-r-setup-and-maintenance">Optional R setup and maintenance</h2>
 <p>The CLI provides explicit setup commands:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">proj_cli</span>(<span class="st">"init"</span>, <span class="fu">c</span>(<span class="st">"readme"</span>, <span class="st">"--rmd"</span>))</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">proj_cli</span>(<span class="st">"init"</span>, <span class="st">"renv"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">proj_cli</span>(<span class="st">"init"</span>, <span class="fu">c</span>(<span class="st">"readme"</span>, <span class="st">"--rmd"</span>))</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">proj_cli</span>(<span class="st">"init"</span>, <span class="st">"renv"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>README.Rmd is created without replacing plain README.md. The renv command uses already installed renv to set up an empty project and initial lockfile; it refuses existing renv state or .Rprofile. Setup does not enable build actions.</p>
 <p>Choose production tasks independently:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">build</span><span class="kw">:</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">r</span><span class="kw">:</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">document</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">readme</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">renv-snapshot</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">build</span><span class="kw">:</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">r</span><span class="kw">:</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">document</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">readme</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">renv-snapshot</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>They default off. document uses installed devtools to generate documentation; readme uses rmarkdown to render README.Rmd to README.md; renv-snapshot records dependencies before start hooks and again before post-build documentation/README. It does not restore packages. Install optional task dependencies deliberately.</p>
-<p>In the merged preview.6 source, VERSION remains authoritative and the named build/version helpers synchronize an existing DESCRIPTION by default. Set settings.sync-description-version: false to leave DESCRIPTION unchanged. An explicit legacy backend retains its original version policy. Citation support is separate. <a href="./configuration.html#optional-r-project-setup-and-build-maintenance-local-candidate">Exact task reference</a> covers prerequisites, order and bounded recovery.</p>
+<p>Starting in preview.6, VERSION remains authoritative and the named build/version helpers synchronize an existing DESCRIPTION by default. Set settings.sync-description-version: false to leave DESCRIPTION unchanged. An explicit legacy backend retains its original version policy. Citation support is separate. <a href="./configuration.html#optional-r-project-setup-and-build-maintenance-local-candidate">Exact task reference</a> covers prerequisites, order and bounded recovery.</p>
 </section>
 <section id="restore-packages-explicitly" class="level2">
 <h2 class="anchored" data-anchor-id="restore-packages-explicitly">Restore packages explicitly</h2>
 <p>For a trusted project with renv.lock and already installed renv:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dir.create</span>(<span class="st">"restored-library"</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>receipt <span class="ot">&lt;-</span> <span class="fu">proj_renv_restore</span>(<span class="st">"."</span>, <span class="st">"restored-library"</span>)</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>receipt<span class="sc">$</span>packages</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dir.create</span>(<span class="st">"restored-library"</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>receipt <span class="ot">&lt;-</span> <span class="fu">proj_renv_restore</span>(<span class="st">"."</span>, <span class="st">"restored-library"</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>receipt<span class="sc">$</span>packages</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>This restores locked versions in an existing project-contained library. It does not install renv, update the lockfile, activate your interactive session or run automatically during builds. Installation can execute package code and affect its cache. See the <a href="./r-reference.html#dependencies">dependency reference</a>.</p>
 </section>
 <section id="keep-an-explicit-legacy-backend" class="level2">
 <h2 class="anchored" data-anchor-id="keep-an-explicit-legacy-backend">Keep an explicit legacy backend</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">projr_build_patch</span>(<span class="at">backend =</span> projr<span class="sc">::</span>projr_build_patch)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">projr_build_patch</span>(<span class="at">backend =</span> projr<span class="sc">::</span>projr_build_patch)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>That existing function runs in your R session with its original arguments, results and effects; the old package must already be installed. No automatic fallback occurs. Bookdown render_book, legacy DESCRIPTION authority, arbitrary renderer objects, dev bump/ cache deletion, implicit path creation and caller-state hooks are outside the supported CLI-wrapper subset.</p>
 <p>Plain analysis R processes are isolated by default. config.r.session: shared reuses a child for plain scripts in a build, not your interactive process. Hooks and renderers remain separate; config.r.rscript selects an installed executable. <a href="./configuration.html#r-processes-and-executable">Execution reference</a> covers libraries, working folders and startup behavior. The maintenance post batch is separate; there is no permanent background daemon.</p>
 </section>
@@ -715,12 +722,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Browse the <a href="./r-reference.html">function index</a> or use help(package=“projcli”) locally.</p>
 </section>
 <section id="explicit-init-options-in-the-source-candidate" class="level2">
-<h2 class="anchored" data-anchor-id="explicit-init-options-in-the-source-candidate">Explicit init options in preview.6 source</h2>
+<h2 class="anchored" data-anchor-id="explicit-init-options-in-the-source-candidate">Explicit init options in preview.6</h2>
 <p>The <a href="./cli/init.html">project setup reference</a> covers purpose/contact questions, –description-file, –readme-rmd, –renv and –citation. Use the existing proj_cli(“init”, args, project = …) transport for those exact options. The named R helpers below adapt those same CLI actions. R package scaffolding and automatic citation-author inference are not implied.</p>
 </section>
 <section id="r-initialization-helpers" class="level2">
 <h2 class="anchored" data-anchor-id="r-initialization-helpers">R initialization helpers</h2>
-<p>The merged preview.6 source adds projr_init, projr_init_plan, projr_init_readme, projr_init_license and projr_init_renv. They use the shared CLI, with explicit R metadata values. Only opted-in renv setup checks its optional suggested package; installation requires interactive consent or explicit install_missing=TRUE. See the <a href="./r-reference.html#initialization">named R reference</a> for examples, defaults and library details.</p>
+<p>Preview.6 adds projr_init, projr_init_plan, projr_init_readme, projr_init_license and projr_init_renv. They use the shared CLI, with explicit R metadata values. Only opted-in renv setup checks its optional suggested package; installation requires interactive consent or explicit install_missing=TRUE. See the <a href="./r-reference.html#initialization">named R reference</a> for examples, defaults and library details.</p>
 
 
 </section>

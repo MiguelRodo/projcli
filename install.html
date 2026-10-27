@@ -82,9 +82,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="site_libs/bootstrap/bootstrap-dark-2c381e549dcdf5586be8a2da26e70e7c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="site_libs/bootstrap/bootstrap-395ca77dd8ad109e53bd21181c13c108.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-594fc4564f848ab358ed4d83e83f085a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-ff7d801e50a871cdedd85b1a3c47a81b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -599,7 +599,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <section id="choose-the-preview-explicitly" class="level2">
 <h2 class="anchored" data-anchor-id="choose-the-preview-explicitly">Choose the preview explicitly</h2>
-<p>The published <a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.5">v0.4.0-preview.5</a> is an early development release. These instructions pin that version. The release passed the integrated analysis, renderer and archive checks. Both platform downloads were checked against the tagged source and their checksums. See <a href="./release-delivery.html">delivery evidence</a>.</p>
+<p>The published <a href="https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.6">v0.4.0-preview.6</a> is an early development release. These instructions pin that version. The release passed the integrated analysis, renderer and archive checks. Both platform downloads were checked against the tagged source and their checksums. See <a href="./release-delivery.html">delivery evidence</a>.</p>
 <p>GitHub’s stable <strong>Latest</strong> release is still v0.3.0; it does not contain the current preview features or the new binary-delivery metadata.</p>
 <table class="caption-top table">
 <colgroup>
@@ -634,14 +634,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Run this <strong>inside Ubuntu</strong>, not in a Windows terminal. Check that <code>uname -m</code> reports <code>x86_64</code> and <code>getconf GNU_LIBC_VERSION</code> reports glibc 2.35 or newer.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> <span class="st">"</span><span class="va">$HOME</span><span class="st">/.local/bin"</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="va">installer</span><span class="op">=</span><span class="st">"</span><span class="va">$(</span><span class="fu">mktemp</span><span class="va">)</span><span class="st">"</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-fsSL</span> <span class="st">"https://raw.githubusercontent.com/MiguelRodo/projcli/87b5149c679a87796513e775c54ba98e4811aa9b/install-local.sh"</span> <span class="at">-o</span> <span class="st">"</span><span class="va">$installer</span><span class="st">"</span> <span class="kw">&amp;&amp;</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="va">PROJ_RELEASE_VERSION</span><span class="op">=</span>0.4.0-preview.5 <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-fsSL</span> <span class="st">"https://raw.githubusercontent.com/MiguelRodo/projcli/712cd9a2daffa9e0a04448252a24ac2de5754194/install-local.sh"</span> <span class="at">-o</span> <span class="st">"</span><span class="va">$installer</span><span class="st">"</span> <span class="kw">&amp;&amp;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="va">PROJ_RELEASE_VERSION</span><span class="op">=</span>0.4.0-preview.6 <span class="dt">\</span></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="va">PROJ_INSTALL_DIR</span><span class="op">=</span><span class="st">"</span><span class="va">$HOME</span><span class="st">/.local/bin"</span> <span class="fu">bash</span> <span class="st">"</span><span class="va">$installer</span><span class="st">"</span></span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span> <span class="at">-f</span> <span class="st">"</span><span class="va">$installer</span><span class="st">"</span></span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">PATH</span><span class="op">=</span><span class="st">"</span><span class="va">$HOME</span><span class="st">/.local/bin:</span><span class="va">$PATH</span><span class="st">"</span></span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="bu">hash</span> <span class="at">-r</span></span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> <span class="at">--version</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Expected version: <code>proj 0.4.0-preview.5</code>.</p>
+<p>Expected version: <code>proj 0.4.0-preview.6</code>.</p>
 <p>The script comes from the reviewed source commit. It downloads the pinned Linux binary, checks its SHA256 against the release manifest, and installs it as <code>~/.local/bin/proj</code>. It replaces an existing <code>proj</code> in that folder only after verification succeeds. No <code>sudo</code> or local compilation is involved.</p>
 </section>
 <section id="windows" class="level2">
@@ -650,14 +650,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">$installDir</span> <span class="op">=</span> <span class="fu">Join-Path</span> <span class="va">$env</span><span class="op">:</span><span class="va">USERPROFILE</span> <span class="st">".local\bin"</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">New-Item</span> <span class="op">-</span>ItemType Directory <span class="op">-</span>Force <span class="op">-</span>Path <span class="va">$installDir</span> <span class="op">|</span> <span class="fu">Out-Null</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="va">$installer</span> <span class="op">=</span> <span class="fu">Join-Path</span> <span class="op">([</span>IO<span class="op">.</span><span class="fu">Path</span><span class="op">]::</span>GetTempPath<span class="op">())</span> <span class="op">(</span><span class="st">"proj-install-"</span> <span class="op">+</span> <span class="op">[</span>guid<span class="op">]::</span>NewGuid<span class="op">()</span> <span class="op">+</span> <span class="st">".ps1"</span><span class="op">)</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">Invoke-WebRequest</span> <span class="op">-</span>Uri <span class="st">"https://raw.githubusercontent.com/MiguelRodo/projcli/87b5149c679a87796513e775c54ba98e4811aa9b/install.ps1"</span> <span class="op">-</span>OutFile <span class="va">$installer</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="va">$env</span><span class="op">:</span><span class="va">PROJ_RELEASE_VERSION</span> <span class="op">=</span> <span class="st">"0.4.0-preview.5"</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">Invoke-WebRequest</span> <span class="op">-</span>Uri <span class="st">"https://raw.githubusercontent.com/MiguelRodo/projcli/712cd9a2daffa9e0a04448252a24ac2de5754194/install.ps1"</span> <span class="op">-</span>OutFile <span class="va">$installer</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="va">$env</span><span class="op">:</span><span class="va">PROJ_RELEASE_VERSION</span> <span class="op">=</span> <span class="st">"0.4.0-preview.6"</span></span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="va">$env</span><span class="op">:</span><span class="va">PROJ_INSTALL_DIR</span> <span class="op">=</span> <span class="va">$installDir</span></span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="op">&amp;</span> <span class="va">$installer</span></span>
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="fu">Remove-Item</span> <span class="op">-</span>LiteralPath <span class="va">$installer</span></span>
 <span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="va">$env</span><span class="op">:</span><span class="va">Path</span> <span class="op">=</span> <span class="st">"</span><span class="va">$installDir</span><span class="st">;</span><span class="va">$env</span><span class="op">:</span><span class="va">Path</span><span class="st">"</span></span>
 <span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>proj <span class="op">--</span>version</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Expected version: <code>proj 0.4.0-preview.5</code>.</p>
+<p>Expected version: <code>proj 0.4.0-preview.6</code>.</p>
 <p>The script checks the Windows binary’s SHA256 before installing <code>proj.exe</code> in <code>$HOME\.local\bin</code>. It does not change system settings or require an administrator terminal. This installer is checked with PowerShell 7; these instructions do not claim Windows PowerShell 5.1 compatibility.</p>
 </section>
 <section id="finding-the-command-later" class="level2">
@@ -667,8 +667,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="what-the-checksum-proves" class="level2">
 <h2 class="anchored" data-anchor-id="what-the-checksum-proves">What the checksum proves</h2>
-<p>The installer requires the release’s <code>version.txt</code> and exactly one matching entry in <a href="https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.5/checksums.txt">checksums.txt</a>. A missing or incorrect checksum stops installation before the existing binary is replaced. For a manual download, use <code>sha256sum</code> on Linux or <code>Get-FileHash -Algorithm SHA256</code> in PowerShell and compare the result with the manifest’s exact filename entry before running it.</p>
-<p>The manifest comes from the same GitHub release. Checksums detect corruption and mismatches; they are not independent signatures or proof of a reproducible build. The release also includes <a href="https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.5/source-commit.txt">source-commit.txt</a> and <a href="https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.5/version.txt">version.txt</a>. The reviewed source is <code>87b5149c679a87796513e775c54ba98e4811aa9b</code>.</p>
+<p>The installer requires the release’s <code>version.txt</code> and exactly one matching entry in <a href="https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.6/checksums.txt">checksums.txt</a>. A missing or incorrect checksum stops installation before the existing binary is replaced. For a manual download, use <code>sha256sum</code> on Linux or <code>Get-FileHash -Algorithm SHA256</code> in PowerShell and compare the result with the manifest’s exact filename entry before running it.</p>
+<p>The manifest comes from the same GitHub release. Checksums detect corruption and mismatches; they are not independent signatures or proof of a reproducible build. The release also includes <a href="https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.6/source-commit.txt">source-commit.txt</a> and <a href="https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.6/version.txt">version.txt</a>. The reviewed source is <code>712cd9a2daffa9e0a04448252a24ac2de5754194</code>.</p>
 </section>
 <section id="start-small" class="level2">
 <h2 class="anchored" data-anchor-id="start-small">Start small</h2>
