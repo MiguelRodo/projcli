@@ -180,3 +180,24 @@ fn text(root:&Path,name:&str)->String {fs::read_to_string(root.join(name)).unwra
   assert_eq!(text(&target,"LICENSE.md"),"existing chosen licence\n");assert!(!target.join("LICENSE").exists());
  }
 }
+
+#[test]
+fn standalone_readme_preserves_existing_bytes_and_rejects_special_targets() {
+ let f=Fixture::new();
+ fs::write(f.root.join("README.md"),"Existing source bytes\n").unwrap();
+ good(f.cli(&["init","readme","--title","Replacement"]));
+ assert_eq!(text(&f.root,"README.md"),"Existing source bytes\n");
+ fs::remove_file(f.root.join("README.md")).unwrap();
+ fs::create_dir(f.root.join("README.md")).unwrap();
+ assert!(!f.cli(&["init","readme"]).status.success());
+}
+#[cfg(unix)]
+#[test]
+fn standalone_readme_rejects_dangling_link_without_external_write() {
+ let f=Fixture::new();
+ let target=f.temp.path().join("external-readme");
+ std::os::unix::fs::symlink(&target,f.root.join("README.md")).unwrap();
+ assert!(!f.cli(&["init","readme","--title","Do not write"]).status.success());
+ assert!(!target.exists());
+ assert!(fs::symlink_metadata(f.root.join("README.md")).unwrap().file_type().is_symlink());
+}

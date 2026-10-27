@@ -1037,5 +1037,11 @@ Project-contained folder licensing stays a standalone labelled command. Generate
 automatic Rbuildignore requires DESCRIPTION and preserves explicit directory policy.
 
 This candidate changes no installed CLI, original projr or thesis. No merge/release
-is approved. New named R init convenience remains absent; the existing generic
-R transport supports the CLI interface.
+is approved. Named init wrappers now adapt the shared CLI; generic transport remains available.
+
+
+Named R init checks suggested renv only for explicitly selected renv setup.
+install_missing=NULL asks only interactively outside CI; FALSE never installs,
+TRUE explicitly permits it. No installation on load/plans/native metadata creation;
+build and restore retain no-bootstrap policy. Caller libraries must match the CLI
+selected Rscript. Package installation is outside project rollback.

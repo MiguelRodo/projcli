@@ -789,9 +789,13 @@ Preserve equivalent DESCRIPTION Version bytes when seeding VERSION; genuine
 mismatches use the approved synchronization setting. General setup is incremental,
 not a filesystem/network transaction. Do not claim a valid R package from generic
 DESCRIPTION metadata. Keep explicit ignore policies authoritative. Remote compile/
-tests only after local compilation denial. This slice exposes init through the existing generic R transport; it does not add
-a named R init helper. Original SATVILab/projr remains the protected reference.
+tests only after local compilation denial. The user subsequently approved named init helpers in frontends/r/projcli; keep shared CLI semantics. Original SATVILab/projr remains the protected reference.
 
 Multiple final-destination routing is deferred to private planning issue773.
 Only the agreed single-docs script-group behavior may proceed. Keep source/released/installed status distinct and original projr/thesis unchanged;
 substantive changes require independent review and exact-head checks.
+
+
+Named init optional packages: renv remains in Suggests, checked only for selected
+renv setup. NULL consent asks interactively outside CI; FALSE never installs;
+TRUE explicitly permits it. No load/plan/CFF bootstrap or original projr edits.

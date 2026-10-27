@@ -44,7 +44,7 @@ projcli::proj_cli("init",
   project = ".")
 ~~~
 
-There is no new named R init helper in this candidate.
+Named R helpers now expose these same shared CLI actions.
 
 ## Choose Git and a remote deliberately
 
@@ -123,3 +123,12 @@ renv/Git/GitHub action fails. It is not a whole-project or network transaction.
 Linked/special metadata targets fail before setup writes. Repeating metadata setup
 does not overwrite existing files; synchronization of a genuinely different
 DESCRIPTION Version is the stated exception.
+
+
+## R initialization helpers
+
+The unmerged source candidate adds projr_init, projr_init_plan, projr_init_readme,
+projr_init_license and projr_init_renv. They use the shared CLI, with explicit R
+metadata values. Only opted-in renv setup checks its optional suggested package;
+installation requires interactive consent or explicit install_missing=TRUE.
+See the [named R reference](../r-reference.qmd#initialization) for examples, defaults and library details.
