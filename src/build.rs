@@ -546,8 +546,12 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
             fs::create_dir_all(&versioned_cache)?;
             document_stage = Some(tempfile::Builder::new().prefix(".proj-render-").tempdir_in(&versioned_cache)?);
             let staging = camino::Utf8Path::from_path(document_stage.as_ref().unwrap().path()).context("Render staging path must be UTF-8")?;
-            if quarto_exists { rewrite_engine_output_dir(project_root.as_std_path(), "quarto", staging.as_str())?; }
-            if bookdown_exists { rewrite_engine_output_dir(project_root.as_std_path(), "bookdown", staging.as_str())?; }
+            if quarto_exists {
+                let excluded=config.directories.keys().filter(|label|label.to_ascii_lowercase().starts_with("cache")||crate::paths::is_managed_output(label))
+                    .map(|label|config.get_path(project_root,label)).collect::<anyhow::Result<Vec<_>>>()?;
+                rewrite_engine_output_dir(project_root.as_std_path(), "quarto", staging.as_str(), &excluded)?;
+            }
+            if bookdown_exists { rewrite_engine_output_dir(project_root.as_std_path(), "bookdown", staging.as_str(), &[])?; }
         }
         let selected_documents: Vec<_> = resolved_files.iter().filter(|file| matches!(file.extension(), Some("qmd" | "Rmd" | "rmd"))).cloned().collect();
         if build_scripts.is_some() && !selected_documents.is_empty() {
@@ -1073,12 +1077,12 @@ fn rewrite_quarto_yml(project_root: &Path, qmd_files: &[camino::Utf8PathBuf]) ->
     }
 
     let out_content = serde_yaml::to_string(&yaml).context("Failed to serialize _quarto.yml")?;
-    crate::fs_utils::write_managed_file(&quarto_path, out_content).context("Failed to write _quarto.yml")?;
+    crate::fs_utils::replace_managed_file(camino::Utf8Path::from_path(&quarto_path).context("Quarto path must be UTF-8")?, out_content).context("Failed to write _quarto.yml")?;
     Ok(())
 }
 
 /// Dynamically rewrites the output directory for external engines (`_quarto.yml` or `_bookdown.yml`).
-pub(crate) fn rewrite_engine_output_dir(project_root: &Path, engine: &str, out_dir: &str) -> anyhow::Result<()> {
+pub(crate) fn rewrite_engine_output_dir(project_root: &Path, engine: &str, out_dir: &str, excluded_resources: &[camino::Utf8PathBuf]) -> anyhow::Result<()> {
     if engine == "quarto" {
         let quarto_path = project_root.join("_quarto.yml");
         if !quarto_path.exists() {
@@ -1100,12 +1104,45 @@ pub(crate) fn rewrite_engine_output_dir(project_root: &Path, engine: &str, out_d
 
             if let Some(serde_yaml::Value::Mapping(proj_map)) = map.get_mut(&proj_key) {
                 let out_dir_key = serde_yaml::Value::String("output-dir".to_string());
+                let root=camino::Utf8Path::from_path(project_root).context("Quarto root must be UTF-8")?;
+                let mut excluded=excluded_resources.to_vec();
+                excluded.extend([root.join(".proj"),root.join(".projr")]);
+                let native=proj_map.get(&out_dir_key).and_then(serde_yaml::Value::as_str).or_else(||{
+                    match proj_map.get(&serde_yaml::Value::String("type".to_owned())).and_then(serde_yaml::Value::as_str) {
+                        Some("website")=>Some("_site"),Some("book")=>Some("_book"),_=>None
+                    }
+                });
+                if let Some(native)=native {excluded.push(root.join(native));}
+                let resources_key=serde_yaml::Value::String("resources".to_owned());
+                let mut resources=match proj_map.remove(&resources_key) {
+                    None|Some(serde_yaml::Value::Null)=>Vec::new(),
+                    Some(serde_yaml::Value::String(value))=>vec![serde_yaml::Value::String(value)],
+                    Some(serde_yaml::Value::Sequence(values))=>values,
+                    _=>anyhow::bail!("Quarto project.resources must be a path string or list"),
+                };
+                anyhow::ensure!(resources.iter().all(|value|value.is_string()),"Quarto project.resources entries must be strings");
+                for directory in excluded {
+                    let directory=camino::Utf8PathBuf::from_path_buf(crate::path_safety::resolve_path(directory.as_std_path(),true)?)
+                        .map_err(|_|anyhow::anyhow!("Quarto resource path must be UTF-8"))?;
+                    let Ok(relative)=directory.strip_prefix(root) else {continue;};
+                    if relative.as_str().is_empty() {continue;}
+                    // Quarto smart resource globs otherwise match prior copies at every depth.
+                    // Character classes quote extended glob metacharacters portably.
+                    let path=relative.as_str().replace('\\',"/").chars().map(|c|match c {
+                        '['=>"[[]".to_owned(),']'=>"[]]".to_owned(),
+                        '*'|'?'|'{'|'}'|'('|')'|'+'|'@'|'!'=>format!("[{c}]"),
+                        _=>c.to_string(),
+                    }).collect::<String>();
+                    let rule=serde_yaml::Value::String(format!("!/{path}/**"));
+                    if !resources.contains(&rule) {resources.push(rule);}
+                }
+                proj_map.insert(resources_key,serde_yaml::Value::Sequence(resources));
                 proj_map.insert(out_dir_key, serde_yaml::Value::String(out_dir.to_string()));
             }
         }
 
         let out_content = serde_yaml::to_string(&yaml).context("Failed to serialize _quarto.yml")?;
-        crate::fs_utils::write_managed_file(&quarto_path, out_content).context("Failed to write _quarto.yml")?;
+        crate::fs_utils::replace_managed_file(camino::Utf8Path::from_path(&quarto_path).context("Quarto path must be UTF-8")?, out_content).context("Failed to write _quarto.yml")?;
 
     } else if engine == "bookdown" {
         let bookdown_path = project_root.join("_bookdown.yml");
@@ -1126,7 +1163,7 @@ pub(crate) fn rewrite_engine_output_dir(project_root: &Path, engine: &str, out_d
         }
 
         let out_content = serde_yaml::to_string(&yaml).context("Failed to serialize _bookdown.yml")?;
-        crate::fs_utils::write_managed_file(&bookdown_path, out_content).context("Failed to write _bookdown.yml")?;
+        crate::fs_utils::replace_managed_file(camino::Utf8Path::from_path(&bookdown_path).context("Bookdown path must be UTF-8")?, out_content).context("Failed to write _bookdown.yml")?;
     }
 
     Ok(())
@@ -1150,7 +1187,7 @@ fn rewrite_bookdown_yml(project_root: &Path, rmd_files: &[camino::Utf8PathBuf]) 
     }
 
     let out_content = serde_yaml::to_string(&yaml).context("Failed to serialize _bookdown.yml")?;
-    crate::fs_utils::write_managed_file(&bookdown_path, out_content).context("Failed to write _bookdown.yml")?;
+    crate::fs_utils::replace_managed_file(camino::Utf8Path::from_path(&bookdown_path).context("Bookdown path must be UTF-8")?, out_content).context("Failed to write _bookdown.yml")?;
     Ok(())
 }
 

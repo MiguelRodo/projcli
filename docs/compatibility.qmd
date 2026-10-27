@@ -3874,3 +3874,19 @@ fixtures. This is an unreleased candidate; final exact-commit results are record
 in draft PR234, without implying other project types or broader legacy parity.
 
 Existing explicitly named external files remain supported with guarded paths and redacted provenance. Discovery directories/globs remain project-scoped; the existing cleanup/input-overlap guards still own rejection of literal files inside managed outputs.
+
+Quarto project rendering temporarily excludes the captured cache/final-output
+trees and its prior native output tree from additional resource globs. This
+prevents a later render from copying the previous site/cache resources into
+itself. Existing resource includes/excludes are retained and original metadata
+restored; temporary renderer metadata replacements preserve hard-link aliases.
+The regression keeps whole native website output and checks repeated builds,
+shared SVGs, navigation, nested local links and original configuration bytes.
+Snapshot discovery, multi-destination routing and broad Quarto type parity are
+not added by this fix.
+
+The renderer behavior is grounded in pinned Quarto 1.10.19:
+[smart glob expansion](https://github.com/quarto-dev/quarto-cli/blob/v1.10.19/src/core/path.ts#L223)
+and [additional project resources](https://github.com/quarto-dev/quarto-cli/blob/v1.10.19/src/project/project-resources.ts#L27).
+The exclusions address the observed nested cached/final SVG copies; they do not
+replace native navigation, rendering or resource-selection implementation.

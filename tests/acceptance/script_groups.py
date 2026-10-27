@@ -11,8 +11,8 @@ def run(root):
     result=subprocess.run([binary,"--non-interactive","--project",str(root),"build"],cwd=root,env=env,capture_output=True,text=True)
     assert result.returncode==0,result.stderr[-5000:]+result.stdout[-1000:]
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
-def source_bytes(root):
-    return {str(path.relative_to(root)):path.read_bytes() for path in root.rglob("*") if path.is_file() and (path.suffix in (".qmd",".svg") or path.name=="_quarto.yml") and not any(part in ("_tmp","docs") for part in path.relative_to(root).parts)}
+def source_bytes(root, output_names=("docs","_tmp")):
+    return {str(path.relative_to(root)):path.read_bytes() for path in root.rglob("*") if path.is_file() and (path.suffix in (".qmd",".svg") or path.name=="_quarto.yml") and not any(part in output_names for part in path.relative_to(root).parts)}
 def local_links(root):
     checked=0
     for html in root.rglob("*.html"):
@@ -60,39 +60,54 @@ with tempfile.TemporaryDirectory(prefix="proj-script-groups-") as temporary:
     assert sorted(digest(path) for path in (root/"docs").rglob("*.png"))==sorted(pngs)
     evidence["independent_groups"]={"repeat_build_stable":True,"htmls":2,"png_sha256":pngs,"local_references_checked":local_links(root/"docs"),"sources_preserved":True}
 for explicit in (False,True):
-    with tempfile.TemporaryDirectory(prefix="proj-quarto-website-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="proj-quarto-website-") as temporary, tempfile.TemporaryDirectory(prefix="proj-quarto-config-alias-") as alias_directory:
         root=Path(temporary);(root/"chapters").mkdir();(root/"assets").mkdir()
-        config="directories:\n  cache: {path: _tmp}\n  docs: {path: docs, ignore: []}\nbuild:\n  git: false\n"
+        cache_name="_tmp [cache]" if explicit else "_tmp"
+        docs_name="docs [final]" if explicit else "docs"
+        docs=root/docs_name
+        config=f"directories:\n  cache: {{path: {json.dumps(cache_name)}}}\n  docs: {{path: {json.dumps(docs_name)}, ignore: []}}\nbuild:\n  git: false\n"
         if explicit:config+='  scripts: ["**/*.qmd", "!draft.qmd"]\n'
         (root/"_proj.yml").write_text(config)
         (root/"VERSION").write_text("v1.2.3-4\n")
-        (root/"_quarto.yml").write_text("project:\n  type: website\n  output-dir: native-site\n  render: [index.qmd, chapters/about.qmd, '!draft.qmd']\n  resources: [assets/shared.svg]\nwebsite:\n  title: Teaching site\n  navbar:\n    left: [index.qmd, chapters/about.qmd]\nformat:\n  html:\n    embed-resources: false\n")
+        (root/"_quarto.yml").write_text("project:\n  type: website\n  output-dir: native-site\n  render: [index.qmd, chapters/about.qmd, '!draft.qmd']\n  resources: [assets/shared.svg, '!draft-assets/**']\nwebsite:\n  title: Teaching site\n  navbar:\n    left: [index.qmd, chapters/about.qmd]\nformat:\n  html:\n    embed-resources: false\n")
+        if explicit:
+            quarto=(root/"_quarto.yml").read_text().replace("resources: [assets/shared.svg, '!draft-assets/**']","resources: assets/shared.svg")
+            (root/"_quarto.yml").write_text(quarto)
+        if not explicit:
+            (root/"draft-assets/assets").mkdir(parents=True)
+            (root/"draft-assets/assets/shared.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg"/>')
         (root/"index.qmd").write_text("---\ntitle: Home\n---\n\n[About](chapters/about.qmd)\n\n![](assets/shared.svg)\n")
         (root/"chapters/about.qmd").write_text("---\ntitle: About\n---\n\n[Home](../index.qmd)\n")
         (root/"draft.qmd").write_text("---\nengine: no-such-engine\n---\nExcluded draft\n")
         (root/"assets/shared.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>')
         (root/"native-site").mkdir();(root/"native-site/previous.html").write_text("Prior native tree")
-        before=source_bytes(root)
+        alias=Path(alias_directory)/"shared-quarto.yml"
+        os.link(root/"_quarto.yml",alias)
+        original_alias=alias.read_bytes()
+        before=source_bytes(root,(cache_name,docs_name))
         run(root)
-        assert source_bytes(root)==before
+        assert alias.read_bytes()==original_alias,"Temporary renderer metadata changed an external hard-link alias"
+        assert source_bytes(root,(cache_name,docs_name))==before
         assert (root/"native-site/previous.html").read_text()=="Prior native tree"
         assert sorted(str(path.relative_to(root/"native-site")) for path in (root/"native-site").rglob("*") if path.is_file())==["previous.html"]
         for relative in ("index.html","chapters/about.html","assets/shared.svg"):
-            assert (root/"docs"/relative).is_file(),relative
-        assert not (root/"docs/draft.html").exists()
-        assert (root/"docs/site_libs").is_dir()
-        membership=sorted(str(path.relative_to(root/"docs")) for path in (root/"docs").rglob("*") if path.is_file())
+            assert (docs/relative).is_file(),relative
+        assert not (docs/"draft.html").exists()
+        assert not (docs/"draft-assets").exists()
+        assert (docs/"site_libs").is_dir()
+        membership=sorted(str(path.relative_to(docs)) for path in (docs).rglob("*") if path.is_file())
         run(root)
-        assert source_bytes(root)==before
-        repeated=sorted(str(path.relative_to(root/"docs")) for path in (root/"docs").rglob("*") if path.is_file())
+        assert source_bytes(root,(cache_name,docs_name))==before
+        repeated=sorted(str(path.relative_to(docs)) for path in (docs).rglob("*") if path.is_file())
         difference={"case":"explicit" if explicit else "native","added":sorted(set(repeated)-set(membership)),"removed":sorted(set(membership)-set(repeated))}
         if repeated!=membership:
             evidence["website_repeat_failure"]=difference
             Path(args.evidence).write_text(json.dumps(evidence,indent=2)+"\n")
             raise AssertionError("Repeated website output membership changed: "+json.dumps(difference))
-        assert not (root/"docs/docs").exists() and not (root/"docs/native-site").exists()
+        assert not (docs/docs_name).exists() and not (docs/cache_name).exists() and not (docs/"native-site").exists()
         assert (root/"native-site/previous.html").read_text()=="Prior native tree"
         assert sorted(str(path.relative_to(root/"native-site")) for path in (root/"native-site").rglob("*") if path.is_file())==["previous.html"]
-        evidence[f"website_{'explicit' if explicit else 'native'}"]={"repeat_build_stable":True,"htmls":len(list((root/"docs").rglob("*.html"))),"local_references_checked":local_links(root/"docs"),"source_and_native_output_preserved":True,"excluded_draft_absent":True}
+        assert alias.read_bytes()==original_alias
+        evidence[f"website_{'explicit' if explicit else 'native'}"]={"repeat_build_stable":True,"htmls":len(list((docs).rglob("*.html"))),"local_references_checked":local_links(docs),"source_and_native_output_preserved":True,"excluded_draft_absent":True}
 Path(args.evidence).write_text(json.dumps(evidence,indent=2)+"\n")
 print("PASS grouped nested HTML/figures, source-safe ignore rules and complete native/explicit Quarto websites")
