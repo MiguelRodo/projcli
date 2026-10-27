@@ -5,7 +5,7 @@ saves or uploads them as configured. Start with a preview when checking your
 scripts. Use a disposable copy before trying production settings on important work.
 
 The [stage-by-stage diagram](lifecycle.qmd) shows the detailed order. This guide
-summarizes the supported workflow in preview.5. It does not promise that arbitrary
+summarizes the supported workflow in preview.6. It does not promise that arbitrary
 scripts can be undone or that every original projr feature is supported.
 
 ## Check the project and tools {#read-only-resolution-and-preflight}

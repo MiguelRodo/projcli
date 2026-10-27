@@ -16,4 +16,4 @@ This is not complete parity with every original projr helper. Multiple artifact 
 
 The CLI provides Linux/WSL and Windows x86-64 binaries. The R interface is a development source package using the separate CLI; no CRAN release is claimed. Its package development version remains 0.0.0.9000, so identify this update by source revision and exported functions.
 
-Checks and exact source/artifact evidence are recorded in the release PR and release-delivery page. Existing public download instructions stay pinned to preview.5 until preview.6 is published and verified.
+The published release and verified artifact/installation evidence are recorded in the [delivery page](release-delivery.qmd#verified-preview6-delivery). Public installation instructions now pin preview.6.

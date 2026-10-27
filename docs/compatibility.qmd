@@ -4195,3 +4195,16 @@ no package scaffold, destination-routing redesign or persistent R daemon was add
 The external authored-resource limit for explicitly nonembedded separate reports
 remains documented. Final source and public installation evidence are recorded
 after verification; preparation alone is not publication.
+
+## Preview.6 public installation verification
+
+The reviewed preview.6 tag was published after final-main and tagged acceptance.
+Public bytes match the independently checked draft and platform artifacts. The
+WSL CLI and matching 19-export R frontend passed disposable installed tests;
+package development version 0.0.0.9000 is unchanged and source identity is recorded.
+One smoke assumption was corrected to parse the existing `Version: v...` file
+format; another direct non-login launch selected the unrelated system `proj`.
+Fresh-login discovery and explicit binary selection passed. No system utility
+or R profile was replaced. Current public pins/source expectations move together
+after publication. Runtime algorithms and storage formats are unchanged by this
+documentation update; the standalone authored-resource limit remains explicit.
