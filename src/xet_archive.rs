@@ -144,5 +144,8 @@ pub fn import(project:&Utf8Path,archive:&Utf8Path,expected_hash:&str,expected_le
     let manifest:Manifest=serde_json::from_slice(&crate::fs_utils::read_managed_bounded(&root.join(METADATA),
         crate::snapshot_format::MAX_METADATA_BYTES as u64)?)?;
     validate(project,&root,&manifest,engine)?;
+    // Transport envelope is not mutable engine state. Keeping it would either
+    // block re-export or make an old inventory look authoritative after ingest.
+    fs::remove_file(root.join(METADATA))?;
     Ok(Import {tree,snapshots:manifest.snapshots})
 }

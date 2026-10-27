@@ -137,10 +137,18 @@ fn actual_closed_export_fresh_import_preserves_every_version_and_rejects_damage(
         assert_eq!(fs::read(restored.join("nested/data.txt")).unwrap(),expected);
         assert!(restored.join("empty").is_dir());
     }
+    fs::create_dir_all(&source).unwrap();fs::write(source.join("third.txt"),b"new imported-store version").unwrap();
+    let third=proj::xet::publish(&project,imported.path(),&[("raw-data".into(),source.clone())],"v1.0.2",&engine).unwrap();
+    let again=proj::xet_archive::export(&project,imported.path(),&engine).unwrap();
+    let fresh=proj::xet_archive::import(&project,again.path(),&again.hash,again.length,64*1024*1024,&engine).unwrap();
+    assert_eq!(fresh.snapshots().len(),3);
+    assert!(fresh.snapshots().contains(&first)&&fresh.snapshots().contains(&second)&&fresh.snapshots().contains(&third));
+    proj::xet::restore(&project,fresh.path(),&third,"raw-data",&restored,true,&engine).unwrap();
+    assert_eq!(fs::read(restored.join("third.txt")).unwrap(),b"new imported-store version");
     assert!(proj::xet_archive::import(&project,&archive,&hash,length,1,&engine).is_err());
     assert!(proj::xet_archive::import(&project,&archive,&"0".repeat(64),length,64*1024*1024,&engine).is_err());
     let mut bytes=fs::read(&archive).unwrap();let offset=bytes.len()/2;bytes[offset]^=0x80;fs::write(&archive,bytes).unwrap();
     assert!(proj::xet_archive::import(&project,&archive,&hash,length,64*1024*1024,&engine).is_err());
-    assert_eq!(fs::read(restored.join("nested/data.txt")).unwrap(),b"second version bytes");
+    assert_eq!(fs::read(restored.join("third.txt")).unwrap(),b"new imported-store version");
     println!("Closed Xet export/import restored every version after original store/source removal; transport corruption and expansion limits rejected.");
 }
