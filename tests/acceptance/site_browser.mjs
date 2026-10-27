@@ -118,7 +118,7 @@ async function browser(systemTheme) {
       const l = s => rgb(s).slice(0,3).map(v => { v /= 255; return v <= .04045 ? v/12.92 : ((v+.055)/1.055)**2.4; }).reduce((a,v,i) => a+v*[.2126,.7152,.0722][i],0);
       const ratio = (a,b) => (Math.max(a,b)+.05)/(Math.min(a,b)+.05);
       const background = l(getComputedStyle(bg).backgroundColor);
-      return { outline: style.outlineStyle, width: parseFloat(style.outlineWidth), contrast: ratio(l(style.outlineColor),background), controlForegroundContrast: ratio(l(style.color),background), icon: getComputedStyle(el.querySelector('.bi')).backgroundImage };
+      return { outline: style.outlineStyle, width: parseFloat(style.outlineWidth), contrast: ratio(l(style.outlineColor),background), controlForegroundContrast: ratio(l(style.color),background), icon: getComputedStyle(el.querySelector('.bi'), '::before').backgroundImage };
     })()`);
     assert(focus.outline !== 'none' && focus.width >= 2 && focus.contrast >= 3, JSON.stringify(focus));
     assert(focus.icon !== 'none', 'Theme icon image must be present');
