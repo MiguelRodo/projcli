@@ -509,7 +509,10 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#checks-and-warning-policy" id="toc-checks-and-warning-policy" class="nav-link active" data-scroll-target="#checks-and-warning-policy">Checks and warning policy</a></li>
+  <li><a href="#checks-and-warning-policy" id="toc-checks-and-warning-policy" class="nav-link active" data-scroll-target="#checks-and-warning-policy">Checks and warning policy</a>
+  <ul class="collapse">
+  <li><a href="#r-package-context-and-formatter-agreement" id="toc-r-package-context-and-formatter-agreement" class="nav-link" data-scroll-target="#r-package-context-and-formatter-agreement">R package context and formatter agreement</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -553,8 +556,13 @@ ul.task-list li input[type="checkbox"] {
 <p>The pinned diagnostic image uses R 4.6. The first remote setup exposed that CRAN rex 1.2.1 imports lazyeval 0.2.2, which cannot load against that R C API (undefined PREXPR symbol). The lint tools therefore use official rex source at 7a8fb36a29919c3d447cc823c672af9b5cf1fd68, checksum-verified, which uses withr instead. This is an isolated CI tool dependency, not an analysis dependency or an alteration to a user’s R library. Lintr remains pinned to 3.4.0.</p>
 <p>Clippy’s initial full-stack run found a pre-existing deny-by-default permission literal lint in an untouched fixture; the equivalent octal spelling is corrected. For diagnostic comparison only, the old baseline uses –cap-lints warn so that pre-existing deny-by-default lints can be inventoried. The current head does not use that cap: errors and new warnings block. Existing warnings remain visible when their code, message and normalized source expression are unchanged, even when rustfmt changes whitespace in the containing file. This avoids converting a feature delivery into a general cleanup of historic build code. Compiler failures in either checkout remain blocking.</p>
 <p>The optional Xet helper is compiled inside the pinned upstream workspace. Its integration job runs Clippy on that actual binary target too, records diagnostics, and rejects helper warnings or target compilation failures. The proj workspace check alone does not cover an injected external-workspace source file. Upstream warnings outside our helper remain upstream findings, not edits to preserved code.</p>
+<section id="r-package-context-and-formatter-agreement" class="level3">
+<h3 class="anchored" data-anchor-id="r-package-context-and-formatter-agreement">R package context and formatter agreement</h3>
+<p>When changed sources belong to the R frontend, quality CI installs that candidate package into its isolated tool library before linting. Its existing Imports must already be available; no user library, old installed projcli, or optional Suggests are updated. This follows <a href="https://lintr.r-lib.org/articles/lintr.html">lintr’s package-context requirement</a>. A positive/negative probe checks that real private helpers resolve and a misspelled helper still produces a finding. Object-usage checking stays enabled.</p>
+<p>Air owns indentation. lintr’s competing indentation rule is disabled because its hanging-indent convention disagrees with Air; the separate pinned Air check still blocks indentation changes. Other default lint rules, including line length, remain active. Long messages are split without changing their text.</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

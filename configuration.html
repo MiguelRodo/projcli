@@ -582,6 +582,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#complete-stores-on-github" id="toc-complete-stores-on-github" class="nav-link" data-scroll-target="#complete-stores-on-github">Complete stores on GitHub</a></li>
   </ul></li>
+  <li><a href="#version-and-description-synchronization-source-candidate" id="toc-version-and-description-synchronization-source-candidate" class="nav-link" data-scroll-target="#version-and-description-synchronization-source-candidate">VERSION and DESCRIPTION synchronization (source candidate)</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -966,9 +967,17 @@ build:
 <p><code>remotes.github.&lt;name&gt;.structure: xet</code> uses one long-running storage release for whole-store ZIPs. Select uploads with <code>build.dest</code>. Exact snapshot restore and verification require <code>--max-bytes</code>, <code>--max-expanded-bytes</code> and the trusted Git-tracked project records identifying the uploaded ZIP. Old exports are retained.</p>
 <p><code>remotes.github.&lt;name&gt;.structure: cas</code> shares whole files instead of file pieces and needs no Xet helper. Set <code>manifest-style: tree</code> or <code>flat</code> explicitly. Flat accepts <code>csv</code>, <code>json</code>, <code>csv-dedupe-file</code> and <code>json-dedupe-file</code>; tree has fixed JSON records. This transport initially supports only <code>manifest: auto</code> or <code>remote</code>. See the <a href="./cas-github.html">shared-file GitHub guide</a> for commands, placement and recovery limits. A complete CAS-store ZIP differs from an ordinary latest/archive folder ZIP.</p>
 <p>Both are included in preview.5 and completed a <a href="https://github.com/MiguelRodo/projcli/actions/runs/40510154990">real synthetic GitHub round-trip</a>. That bounded test does not establish full projr compatibility or savings for your data. Neither backend automatically finds missing project records or deletes older exports.</p>
-
-
 </section>
+</section>
+<section id="version-and-description-synchronization-source-candidate" class="level2">
+<h2 class="anchored" data-anchor-id="version-and-description-synchronization-source-candidate">VERSION and DESCRIPTION synchronization (source candidate)</h2>
+<p>VERSION remains the version authority. By default, writing it also updates only the Version field of an existing DESCRIPTION. Other fields, continuation text and line endings are preserved. No DESCRIPTION is created by a build or version update.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">settings</span><span class="kw">:</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">sync-description-version</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Set false to leave DESCRIPTION untouched. Active profile/local layers apply normally; null, strings and numbers are rejected for this switch. If the two versions differ, the command explains that VERSION wins. Previews report the mismatch without changing either file. Production release and next-development writes synchronize both, and pre-distribution failure restores their exact prior bytes, including dev counters. Duplicate/continued Version fields or invalid DESCRIPTION field syntax fail before hooks. Two file replacements are recoverable on ordinary errors, not crash-atomic.</p>
+<p>Named R build/version helpers accept these projects under this VERSION-authoritative contract; an explicit legacy backend retains its original authority rules. Bookdown and arbitrary legacy arguments remain separate unsupported mappings.</p>
+
+
 </section>
 </section>
 

@@ -1052,7 +1052,7 @@ flowchart TB
   S["Preflight; bounded startup observations;&lt;br/&gt;existing pre-build, analysis,&lt;br/&gt;promotion and recovery"]
   P{"Production local success?"}
   D{"Publication enabled?"}
-  L["End hooks; next dev;&lt;br/&gt;observe outputs; retain final CSV;&lt;br/&gt;install completed log"]
+  L["End hooks; next dev VERSION + existing DESCRIPTION;&lt;br/&gt;observe outputs; retain final CSV;&lt;br/&gt;install completed log"]
   G["Retain snapshot; distribution/Git;&lt;br/&gt;existing finalization; observe outputs;&lt;br/&gt;retain final CSV and log or Git receipt"]
   R["Release owned claim on normal exit"]
   W --&gt; S --&gt; P
@@ -1258,6 +1258,7 @@ Figure&nbsp;13: Unmerged experimental Xet provider at the existing distribution 
 </div>
 <p>These ordered writes are not a cross-location transaction. A later project-ref failure preserves the complete store snapshot for retry. No power-loss guarantee or upstream archival-support promise follows.</p>
 <p>Experimental GitHub Xet uses the existing distribution stage: verified immutable ZIP first, guarded project locators next, normal Git stage last. Failure retains old remote bytes; no remote rollback or new stage ordering is claimed.</p>
+<p>Source candidate: release and next-dev VERSION writes synchronize existing DESCRIPTION by default; previews and pre-distribution recovery retain exact prior bytes. The settings.sync-description-version switch is captured before hooks.</p>
 
 
 </section>

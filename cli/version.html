@@ -553,6 +553,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#format-format" id="toc-format-format" class="nav-link" data-scroll-target="#format-format"><code>--format &lt;FORMAT&gt;</code></a></li>
   </ul></li>
   <li><a href="#json-output-properties" id="toc-json-output-properties" class="nav-link" data-scroll-target="#json-output-properties">JSON Output Properties</a></li>
+  <li><a href="#existing-description-metadata" id="toc-existing-description-metadata" class="nav-link" data-scroll-target="#existing-description-metadata">Existing DESCRIPTION metadata</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -599,6 +600,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>patch</code> (integer)</li>
 <li><code>dev</code> (integer, optional, indicating build cycles or pre-release versioning)</li>
 </ul>
+</section>
+<section id="existing-description-metadata" class="level2">
+<h2 class="anchored" data-anchor-id="existing-description-metadata">Existing DESCRIPTION metadata</h2>
+<p>In this source candidate, VERSION writes also synchronize the Version field of an existing DESCRIPTION by default. No DESCRIPTION is created. Disable with settings.sync-description-version: false. See the <a href="../configuration.html#version-and-description-synchronization-source-candidate">policy and preservation limits</a>.</p>
 
 
 </section>

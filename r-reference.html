@@ -664,7 +664,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tbody>
 </table>
 <p>Build/dev return invisible TRUE on CLI success. Common build options include msg, profile, clear_output and execution_dir; transport options are backend/project/ binary/env/timeout. Unspecified execution_dir follows configured/native behavior; “project” explicitly selects root execution. Clearing accepts none/never/pre/post. A production build can modify managed outputs and publish configured destinations.</p>
-<p>The supported preview controls are file=NULL, bump=FALSE, old_dev_remove=FALSE and empty args_engine. Arbitrary renderer objects, old archive switches and implicit production bump require an explicit existing R callback, not guessed translation. DESCRIPTION projects and Bookdown markers are rejected by these named wrappers; generic proj_cli exposes documented CLI behavior. Help topic: help(“projr_build”, package=“projcli”).</p>
+<p>The supported preview controls are file=NULL, bump=FALSE, old_dev_remove=FALSE and empty args_engine. Arbitrary renderer objects, old archive switches and implicit production bump require an explicit existing R callback, not guessed translation. VERSION is authoritative; existing DESCRIPTION versions are synchronized by default. Bookdown markers remain rejected by the named build wrappers; generic proj_cli exposes documented CLI behavior. Help topic: help(“projr_build”, package=“projcli”).</p>
 </section>
 <section id="paths" class="level2">
 <h2 class="anchored" data-anchor-id="paths">Paths and versions</h2>
@@ -694,7 +694,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 </tbody>
 </table>
-<p>The common backend/project/binary/env/timeout controls apply. Path lookup never creates folders; create=TRUE and legacy code/data special lookups need an existing R callback. safe=FALSE selects the final configured location. VERSION helpers do not synchronize DESCRIPTION. Help topic: help(“projr_build”, package=“projcli”).</p>
+<p>The common backend/project/binary/env/timeout controls apply. Path lookup never creates folders; create=TRUE and legacy code/data special lookups need an existing R callback. safe=FALSE selects the final configured location. VERSION helpers do synchronize an existing DESCRIPTION by default (settings.sync-description-version). This source candidate does not create DESCRIPTION. Help topic: help(“projr_build”, package=“projcli”).</p>
 </section>
 <section id="dependencies" class="level2">
 <h2 class="anchored" data-anchor-id="dependencies">Dependencies</h2>
