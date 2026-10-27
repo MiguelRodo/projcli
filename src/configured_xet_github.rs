@@ -150,7 +150,7 @@ fn recover(root:&Utf8Path,title:&str,id:&str,profile:Option<&str>,max_bytes:u64,
     let (repository,client)=crate::github_publication::connection(root,&environment,Some(&binding.repository))?;
     let api=environment.text("GITHUB_API_URL").unwrap_or("https://api.github.com");
     binding.check(&repository,api,&tag)?;
-    anyhow::ensure!(binding.reference.snapshots.contains(&id),"Snapshot locator does not contain requested binding");
+    anyhow::ensure!(binding.reference.snapshots.iter().any(|candidate|candidate==id),"Snapshot locator does not contain requested binding");
     let engine=discover(&environment)?;
     let imported=crate::xet_github::download(root,&client,&binding.reference,max_bytes,max_expanded,&engine)?;
     let snapshot=crate::xet::read_snapshot(root,imported.path(),id)?;

@@ -1,5 +1,5 @@
 
-use std::{collections::BTreeMap,fs,io::{Read,Write},net::TcpListener,sync::{Arc,Mutex,atomic::{AtomicBool,Ordering}},thread,time::Duration};
+use std::{collections::BTreeMap,io::{Read,Write},net::TcpListener,sync::{Arc,Mutex,atomic::{AtomicBool,Ordering}},thread,time::Duration};
 use serde_json::json;
 #[derive(Default)]
 pub(crate) struct State {pub(crate) exists:bool,pub(crate) next:u64,pub(crate) assets:BTreeMap<String,(u64,Vec<u8>)>,pub(crate) uploads:Vec<String>,pub(crate) deleted:Vec<String>,pub(crate) fail_version:bool,pub(crate) fail_data:bool,pub(crate) corrupt:bool,pub(crate) fail_xet:bool,pub(crate) disconnect_xet:bool}

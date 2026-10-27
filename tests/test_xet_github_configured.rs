@@ -106,7 +106,12 @@ fn actual_configured_github_xet_refs_fresh_restore_and_failure_preservation() {
     let old_assets=server.state.lock().unwrap().assets.clone();
     let mut corrupt=binding.clone();corrupt["reference"]["hash"]=json!("bad");
     fs::write(namespace.join("current.json"),serde_json::to_vec(&corrupt).unwrap()).unwrap();
-    failed(invoke(&root,None,&server).arg("build").output().unwrap());assert_eq!(server.state.lock().unwrap().assets,old_assets);
+    fs::write(root.join("spy.py"),"from pathlib import Path\nPath('hook-ran').write_text('bad')\n").unwrap();
+    config["build"]["hooks"]=json!({"pre":["spy.py"]});save(&root,&config);
+    let malformed=invoke(&root,None,&server).arg("build").output().unwrap();
+    assert!(String::from_utf8_lossy(&malformed.stderr).contains("CAS digest must be 64"));failed(malformed);
+    assert!(!root.join("hook-ran").exists());assert_eq!(server.state.lock().unwrap().assets,old_assets);
+    config["build"].as_object_mut().unwrap().remove("hooks");save(&root,&config);
     fs::write(namespace.join("current.json"),&current).unwrap();
     fs::write(root.join("input/data.csv"),b"second configured version\n").unwrap();
     server.state.lock().unwrap().fail_xet=true;
