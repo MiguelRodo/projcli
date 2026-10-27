@@ -784,3 +784,13 @@ project-only claim. It never opens the engine, even with an existing busy store.
 Arbitrary script/hook store edits are outside that preview guarantee. Every
 production target's types/format are checked before hooks, independently of
 one-time helper discovery. The multi-store and busy-store regressions are pending.
+
+## Experimental immutable Xet transfer candidate
+
+The GitHub library uses the same local engine and structure xet, with one explicit
+long-running Release tag. Whole-store ZIP assets are immutable and independently
+download-verified before returning a trusted-project-reference candidate. Never
+delete an old sole copy to publish a new store. No implicit remote latest,
+multi-writer convergence or configured GitHub workflow is implemented by these
+library APIs. Preserve explicit references and leave source-selection coordination
+for the configured slice. Tests are synthetic loopback REST only; no live uploads.

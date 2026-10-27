@@ -104,3 +104,6 @@ mod xet_remote;
 
 /// Closed-writer portable Xet store exports and verified private imports.
 pub mod xet_archive;
+
+/// Immutable complete-store Xet ZIP transfer over the existing GitHub client.
+pub mod xet_github;

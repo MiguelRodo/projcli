@@ -3880,3 +3880,16 @@ Xet exact-head checks at71b4e44 and final independent review passed; archive che
 are pending remote execution. Ponytail full review reused existing ZIP safety,
 store claims, snapshot readers and independent BLAKE3 checks, with no dependencies.
 GitHub publication and final reference sequencing remain separate unfinished work.
+
+## Experimental GitHub Xet ZIP transport candidate (27 October)
+
+New rather than projr parity: immutable complete-store ZIP upload/download uses
+the same local Xet content engine and structure xet. Trusted project references
+carry backend/upstream/schema, exact asset/digest/length and snapshot membership.
+Upload returns a reference only after downloading and independently validating
+all snapshots; no previous asset is deleted. A failed verification may leave an
+orphan ZIP. Mocked actual-engine tests are pending; no live data uploaded.
+Configured GitHub source/destination selection and remote writer/reference
+coordination remain unfinished, explicitly not parity completion. Ponytail full
+reuse: existing Release client, safe ZIP import and pinned local engine; no new
+dependencies, credentials, replacement protocol or hosted service.

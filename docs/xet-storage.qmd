@@ -4,7 +4,7 @@ title: "Experimental shared-content storage"
 
 This unmerged source candidate is **experimental**. Keep independent backups.
 No installed executable or existing store changes. Configured local build/restore passed exact-head remote checks and independent review in draft PR #236.
-GitHub transport remains unimplemented.
+The stacked transport candidate adds library-level GitHub ZIP transfer; configured GitHub build/restore selection is not yet implemented.
 
 Files are split into reusable pieces by the optional upstream Xet helper. This may
 save storage when large files share uncompressed bytes. Already-compressed files
@@ -129,3 +129,31 @@ This slice is a library transport foundation, not yet configured GitHub upload.
 Tests are pending remote execution. Sparse databases can consume more temporary
 disk space than their allocated size in the original store. No live-copy or
 system power-loss guarantee is claimed.
+
+## GitHub complete-store transport candidate
+
+One long-running storage release can hold complete ZIPs of the same local store.
+The source library uploads a uniquely named ZIP without deleting the previous
+one, downloads it again, and checks both transport bytes and every stored version
+before returning a reference. The project must save that reference only after
+success. A failed or interrupted upload can leave an unreferenced ZIP; the
+previous reference and export remain available.
+
+Recovery starts from a trusted explicit project reference. The downloaded ZIP
+opens as a fresh private local store, so adding a version uses exactly the same
+engine as local storage. The updated complete store is then exported again.
+GitHub does not run a Xet service, and this initial design transfers the entire
+ZIP rather than only changed pieces.
+
+This is an experimental **library** candidate, not yet a configured build/restore
+option. There is no automatic latest-export lookup, shared remote writer
+coordination or cleanup policy. Local engine operations retain their cooperative
+writer claim. Independent writers can leave separate immutable exports; callers
+must not silently choose one or claim a merged history. Configured integration
+must resolve its source/reference boundary before exposing that workflow.
+
+Complete exports accumulate until an explicit future retention policy is chosen.
+No automatic deletion is performed. GitHub's per-asset limit is below 2 GiB; this
+client rejects larger exports before upload. Temporary expanded database copies
+can be much larger than the compressed ZIP. Tests use only a loopback mock REST
+service and synthetic bytes, not a live GitHub data release.
