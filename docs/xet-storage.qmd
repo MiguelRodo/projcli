@@ -4,7 +4,7 @@ title: "Experimental shared-content storage"
 
 This unmerged source candidate is **experimental**. Keep independent backups.
 No installed executable or existing store changes. Configured local build/restore passed exact-head remote checks and independent review in draft PR #236.
-The stacked transport candidate adds library-level GitHub ZIP transfer; configured GitHub build/restore selection is not yet implemented.
+The stacked transport candidate adds library-level GitHub ZIP transfer; configured GitHub build/restore is in the next unverified draft.
 
 Files are split into reusable pieces by the optional upstream Xet helper. This may
 save storage when large files share uncompressed bytes. Already-compressed files
@@ -157,3 +157,70 @@ No automatic deletion is performed. GitHub's per-asset limit is below 2 GiB; thi
 client rejects larger exports before upload. Temporary expanded database copies
 can be much larger than the compressed ZIP. Tests use only a loopback mock REST
 service and synthetic bytes, not a live GitHub data release.
+
+## Configured GitHub candidate
+
+This draft needs remote verification before release. It uses the same local
+engine and the same structure selector:
+
+```yaml
+directories:
+  raw-data:
+    path: raw-data
+remotes:
+  github:
+    project-data-store:
+      structure: xet
+      content: [raw-data]
+build:
+  scripts: []
+  git: false
+  dest:
+    project-data-store: {}
+```
+
+The remote name selects one long-running storage release. The repository comes
+from the project's Git origin. Existing GitHub authentication is used; no account,
+token, engine or R package is installed automatically. Keep credentials out of YAML.
+The optional pinned engine is required for production only. Preview and queries
+do not open the engine or contact the release.
+
+Each upload is downloaded and fully checked before writing project metadata under
+.proj/remotes/<remote-name-hash>/xet-github/v1/. The file current.json selects the
+trusted store for the next build; immutable snapshots/<first2>/<rest>.json locators
+retain each earlier snapshot's exact ZIP. Each binds repository, API origin, tag,
+ZIP name/digest/length, backend/upstream and included snapshot IDs.
+Keep these files in project Git history. Config relocation must not silently
+reinterpret old locators; explicit migration is required.
+
+Recover the exact snapshot ID from the project's locator, then:
+
+```sh
+proj remote restore --provider github --title project-data-store \
+  --snapshot SNAPSHOT_ID --label raw-data --clear \
+  --max-bytes 1073741824 --max-expanded-bytes 4294967296
+
+proj remote verify --title project-data-store --snapshot SNAPSHOT_ID \
+  --max-bytes 1073741824 --max-expanded-bytes 4294967296
+```
+
+A fresh checkout needs its trusted locators, config, existing authentication and
+pinned engine. It needs no previous local store, caches, root CSV or current upload
+selection. If locators are lost, recover them from project Git history instead of
+guessing by hash or upload time. Full manifests remain in exports; automatic
+remote-only locator recovery is not implemented.
+
+Production caps ZIPs below 2 GiB and expanded stores at 8 GiB; explicit recovery
+requires caller-selected budgets. Bounds are not disk reservations. Temporary
+copies can need much more space than the original sparse database. Every update
+transfers the complete ZIP. Previous exports and failed/orphan uploads remain:
+there is no automatic retention cleanup, and GitHub asset quotas still apply.
+
+One project uses each store. Project writer exclusion and immutable exports protect
+local operations and old bytes, but there is no distributed linear-head protocol.
+Concurrent checkouts can create separate exports and conflicting Git locators;
+there is no automatic multi-machine history merge.
+
+Xet still repeats a complete readable inventory and file-address binding for each
+version. Shared directory identities and engine chunk deduplication do not imply
+version-level inventory deduplication.

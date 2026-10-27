@@ -72,8 +72,8 @@ pub(crate) fn run(cli: &Cli) -> i32 {
         Commands::History {attempt,limit} => proj::history::read(&root,attempt.as_deref(),*limit)
             .map(|history|json!({"history":history}))
             .map_err(|_|failure(ErrorCode::QueryFailed,"Cannot inspect the requested build history.")),
-        Commands::Remote {command:RemoteCommands::Verify {title,snapshot,profile}} =>
-            proj::configured_cas::verify(&root,title,snapshot,profile.as_deref())
+        Commands::Remote {command:RemoteCommands::Verify {title,snapshot,profile,max_bytes,max_expanded_bytes}} =>
+            crate::configured_verify(&root,title,snapshot,profile.as_deref(),*max_bytes,*max_expanded_bytes)
                 .map(|result|json!({"snapshot":result}))
                 .map_err(|error|{
                     eprintln!("Snapshot verification failed: {error:#}");

@@ -776,7 +776,10 @@ flowchart LR
   C --> D["Experimental Xet: claim store"]
   D --> E["Finalize; reconstruct privately; check full bytes"]
   E --> F["Publish full immutable snapshot"]
-  F --> G["Write small project root reference"]
+  F --> L["Local: retain store snapshot"]
+  F --> Z["GitHub: closed ZIP; upload new asset; download and verify"]
+  L --> G["Write trusted project references"]
+  Z --> G
   G --> H["Existing Git, end hooks, next-dev"]
   A --> P["Preview: no helper/backend entry"]
 ```
@@ -784,3 +787,5 @@ flowchart LR
 These ordered writes are not a cross-location transaction. A later project-ref
 failure preserves the complete store snapshot for retry. No power-loss guarantee
 or upstream archival-support promise follows.
+
+Experimental GitHub Xet uses the existing distribution stage: verified immutable ZIP first, guarded project locators next, normal Git stage last. Failure retains old remote bytes; no remote rollback or new stage ordering is claimed.

@@ -794,3 +794,5 @@ delete an old sole copy to publish a new store. No implicit remote latest,
 multi-writer convergence or configured GitHub workflow is implemented by these
 library APIs. Preserve explicit references and leave source-selection coordination
 for the configured slice. Tests are synthetic loopback REST only; no live uploads.
+
+Configured GitHub Xet remains one-project-per-store, with Git-authoritative current/snapshot locators and immutable ZIP exports. Missing authority cannot silently bootstrap into a nonempty release. Bind repository/API/tag and validate nested references before hooks. Restore owns its private imported tree until verified installation completes. No distributed linear-head/retention or Xet inventory-sharing redesign is authorized by this slice. Keep CI actual-engine evidence distinct from mocked/live transport.

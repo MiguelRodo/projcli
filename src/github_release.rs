@@ -27,6 +27,7 @@ struct Release { id: u64, tag_name: String, upload_url: Option<String> }
 /// Embedders must not enable ureq DEBUG/TRACE logging for sensitive requests:
 /// dependency wire/URI logging is not redacted. Redirect targets are not a
 /// network sandbox; caller-selected HTTPS services can redirect to other hosts.
+#[derive(Clone)]
 pub struct GithubReleaseClient {
     agent: ureq::Agent,
     api: String,

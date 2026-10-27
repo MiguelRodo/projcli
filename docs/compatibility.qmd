@@ -3894,3 +3894,16 @@ coordination remain unfinished, explicitly not parity completion. Ponytail full
 reuse: existing Release client, safe ZIP import and pinned local engine; no new
 dependencies, credentials, replacement protocol or hosted service.
 Actual-engine export test found reconstruction mutates the copied LocalClient persistent index. The export now records its final closed bytes after successful reconstruction, while requiring immutable snapshot/tree metadata unchanged. Original-store byte/membership preservation remains asserted; no byte-read-only engine claim.
+
+## Configured GitHub Xet candidate (27 October)
+
+New optional experimental structure; ordinary latest/archive and local CAS are
+unchanged. Credentials/repository/API are frozen before hooks through the shared
+GitHub connection policy. Normalized selected-title collisions and malformed
+nested references fail preflight. Verified immutable ZIP upload precedes guarded
+snapshot locator/current-reference writes, then normal Git publication.
+Explicit recovery retains its private store owner through installation and uses
+caller archive budgets. Missing authority with existing exports fails rather than
+guessing. Local writer exclusion is not distributed linear-head coordination.
+Full Xet per-version inventories remain repeated. No sharing-format redesign.
+Tests pending remote execution; no live synthetic release created for this slice.

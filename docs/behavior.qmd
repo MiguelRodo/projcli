@@ -1010,3 +1010,5 @@ README, snapshots and deliberate failures. The R workflow runs native Linux and
 Windows acceptance and the guide's exact quick start; docs CI renders/checks the
 website. See [PR231](https://github.com/MiguelRodo/projcli/pull/231) for exact-head evidence. Citation work, background daemon, package restore during build and
 general initialization parity are excluded.
+
+Experimental GitHub Xet candidate uses trusted Git project locators, the same local engine, immutable complete-store ZIPs, and independent verification before project references and optional Git publication. Existing provider lifecycle ordering is preserved. No remote-only discovery or distributed latest-head guarantee. Tests pending.

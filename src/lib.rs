@@ -107,3 +107,6 @@ pub mod xet_archive;
 
 /// Immutable complete-store Xet ZIP transfer over the existing GitHub client.
 pub mod xet_github;
+
+/// Configured experimental GitHub Xet build and explicit snapshot recovery.
+pub mod configured_xet_github;

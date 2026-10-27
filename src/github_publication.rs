@@ -92,8 +92,20 @@ pub(crate) fn validate(root:&Utf8Path,raw:Option<&Map<String,Value>>,config:&cra
 /// Freeze all security-sensitive routing before hooks. No request is sent.
 pub(crate) fn capture(root:&Utf8Path,specs:Vec<Spec>,environment:&crate::run_environment::RunEnvironment,version:&str)->anyhow::Result<Vec<Target>> {
     if specs.is_empty(){return Ok(Vec::new());}
+    let (repository,client)=connection(root,environment,None)?;
+    let mut tags=BTreeSet::new();let mut targets=Vec::new();
+    for spec in specs {
+        let tag=if spec.title=="@version" {version.into()}else{spec.title.trim_matches(' ').replace(' ',"-")};
+        anyhow::ensure!(tags.insert(tag.clone()),"Configured GitHub titles resolve to the same Release tag");
+        targets.push(Target{spec,client:client.clone(),tag,repository:repository.clone()});
+    }
+    Ok(targets)
+}
+/// Shared frozen GitHub connection policy; never installs credentials.
+pub(crate) fn connection(root:&Utf8Path,environment:&crate::run_environment::RunEnvironment,
+    repository_override:Option<&str>)->anyhow::Result<(String,GithubReleaseClient)> {
     let api=environment.text("GITHUB_API_URL").unwrap_or("https://api.github.com");
-    let repository=crate::restore::repository_in(root,None,api,environment)?;
+    let repository=crate::restore::repository_in(root,repository_override,api,environment)?;
     let explicit=["GITHUB_PAT","GH_TOKEN","GITHUB_TOKEN"].iter()
         .find_map(|key|environment.text(key).filter(|value|!value.trim().is_empty()).map(str::to_owned));
     let origin:ureq::http::Uri=api.parse().context("Invalid GitHub API base")?;
@@ -104,15 +116,10 @@ pub(crate) fn capture(root:&Utf8Path,specs:Vec<Spec>,environment:&crate::run_env
         None=>{anyhow::ensure!(public,"A non-public GitHub API requires an explicit environment token; github.com credential helpers are not used");
             crate::git::get_github_token_in(environment)?},
     };
-    let mut tags=BTreeSet::new();let mut targets=Vec::new();
-    for spec in specs {
-        let tag=if spec.title=="@version" {version.into()}else{spec.title.trim_matches(' ').replace(' ',"-")};
-        anyhow::ensure!(tags.insert(tag.clone()),"Configured GitHub titles resolve to the same Release tag");
-        let client=GithubReleaseClient::new(&repository,api,Some(token.clone()))?;
-        targets.push(Target{spec,client,tag,repository:repository.clone()});
-    }
-    Ok(targets)
+
+    Ok((repository.clone(),GithubReleaseClient::new(&repository,api,Some(token))?))
 }
+
 fn metadata(client:&GithubReleaseClient,tag:&str,kind:MetadataKind,stage:&Utf8Path,assets:&BTreeSet<String>)->anyhow::Result<()> {
     let (name,member)=kind.names();
     if !assets.contains(name){return Ok(());}

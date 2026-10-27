@@ -30,7 +30,7 @@ pub struct Reference {
     pub snapshots:Vec<String>,
 }
 impl Reference {
-    fn validate(&self)->Result<()> {
+    pub(crate) fn validate(&self)->Result<()> {
         anyhow::ensure!(self.schema=="projcli.xet-github-reference.v1"&&self.structure=="xet"
             &&self.backend==BACKEND&&self.upstream==UPSTREAM,"Unsupported Xet GitHub reference");
         crate::cas::validate_digest(&self.hash)?;

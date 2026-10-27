@@ -157,7 +157,7 @@ pub enum RemoteCommands {
         #[arg(long,required_unless_present="snapshot")]
         max_expanded_bytes:Option<u64>,
     },
-    /// Check exact bytes in a local CAS/Xet snapshot; Xet may update backend caches.
+    /// Check an exact local or GitHub snapshot; GitHub Xet requires archive byte budgets.
     Verify {
         #[arg(long)]
         title:String,
@@ -165,6 +165,12 @@ pub enum RemoteCommands {
         snapshot:String,
         #[arg(long)]
         profile:Option<String>,
+        /// Required for GitHub Xet; maximum complete-store ZIP bytes.
+        #[arg(long)]
+        max_bytes:Option<u64>,
+        /// Required for GitHub Xet; maximum expanded store bytes.
+        #[arg(long)]
+        max_expanded_bytes:Option<u64>,
     },
     /// Explicit GitHub Release assets; does not change configured destinations.
     Github {
@@ -516,8 +522,8 @@ fn main() {
             Ok(history)=>print!("{}",history.markdown()),
             Err(error)=>fail(format_args!("Cannot inspect build history: {error:#}")),
         },
-        Commands::Remote {command:RemoteCommands::Verify {title,snapshot,profile}} => {
-            match proj::configured_cas::verify(&root,title,snapshot,profile.as_deref()) {
+        Commands::Remote {command:RemoteCommands::Verify {title,snapshot,profile,max_bytes,max_expanded_bytes}} => {
+            match configured_verify(&root,title,snapshot,profile.as_deref(),*max_bytes,*max_expanded_bytes) {
                 Ok(result)=>println!("{}",serde_json::to_string_pretty(&result).expect("CAS observation is serializable")),
                 Err(error)=>fail(format_args!("CAS verification failed: {error:#}")),
             }
@@ -905,6 +911,14 @@ fn configured_restore(root:&camino::Utf8Path,command:&RemoteCommands)->anyhow::R
     let RemoteCommands::Restore {label,position,provider,title,remote_version,snapshot,repository,profile,clear,max_bytes,max_expanded_bytes}=command
         else {anyhow::bail!("Expected configured restore command");};
     if let Some(snapshot)=snapshot {
+        let named=title.as_deref().ok_or_else(||anyhow::anyhow!("Snapshot restore requires --title"))?;
+        if proj::configured_xet_github::selected(root,named,profile.as_deref())? {
+            anyhow::ensure!(position.is_none()&&repository.is_none(),"GitHub Xet uses its trusted project locator, not position/repository overrides");
+            anyhow::ensure!(provider.as_deref().is_none_or(|value|value=="github"),"Selected Xet snapshot uses GitHub transport");
+            return proj::configured_xet_github::restore(root,named,snapshot,label,profile.as_deref(),remote_version.as_deref(),*clear,
+                max_bytes.ok_or_else(||anyhow::anyhow!("GitHub Xet requires --max-bytes"))?,
+                max_expanded_bytes.ok_or_else(||anyhow::anyhow!("GitHub Xet requires --max-expanded-bytes"))?);
+        }
         anyhow::ensure!(position.is_none()&&repository.is_none(),"Explicit CAS snapshot restore does not use position or GitHub repository filters");
         anyhow::ensure!(provider.as_deref().is_none_or(|value|value=="local"),"Explicit CAS snapshots require a local source");
         anyhow::ensure!(max_bytes.is_none()&&max_expanded_bytes.is_none(),"CAS snapshots use bounded tree readers, not ordinary archive byte-limit flags");
@@ -916,4 +930,18 @@ fn configured_restore(root:&camino::Utf8Path,command:&RemoteCommands)->anyhow::R
         clear:*clear,max_bytes:max_bytes.ok_or_else(||anyhow::anyhow!("Ordinary restore requires --max-bytes"))?,
         max_expanded_bytes:max_expanded_bytes.ok_or_else(||anyhow::anyhow!("Ordinary restore requires --max-expanded-bytes"))?};
     proj::restore::restore_label(root,&request)
+}
+
+
+fn configured_verify(root:&camino::Utf8Path,title:&str,snapshot:&str,profile:Option<&str>,
+    max_bytes:Option<u64>,max_expanded:Option<u64>)->anyhow::Result<proj::configured_cas::SnapshotVerification> {
+    if proj::configured_xet_github::selected(root,title,profile)? {
+        let observation=proj::configured_xet_github::verify(root,title,snapshot,profile,
+            max_bytes.ok_or_else(||anyhow::anyhow!("GitHub Xet requires --max-bytes"))?,
+            max_expanded.ok_or_else(||anyhow::anyhow!("GitHub Xet requires --max-expanded-bytes"))?)?;
+        Ok(proj::configured_cas::SnapshotVerification::Xet {snapshot_id:snapshot.into(),observation})
+    }else{
+        anyhow::ensure!(max_bytes.is_none()&&max_expanded.is_none(),"Local snapshots use bounded readers, not archive budgets");
+        proj::configured_cas::verify(root,title,snapshot,profile)
+    }
 }
