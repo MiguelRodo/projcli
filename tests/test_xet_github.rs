@@ -2,7 +2,7 @@
 use std::{collections::BTreeMap,fs,io::{Read,Write},net::TcpListener,sync::{Arc,Mutex,atomic::{AtomicBool,Ordering}},thread,time::Duration};
 use serde_json::json;
 #[derive(Default)]
-struct State {exists:bool,next:u64,assets:BTreeMap<String,(u64,Vec<u8>)>,uploads:Vec<String>,deleted:Vec<String>,fail_version:bool,fail_data:bool,corrupt:bool}
+struct State {exists:bool,next:u64,assets:BTreeMap<String,(u64,Vec<u8>)>,uploads:Vec<String>,deleted:Vec<String>,fail_version:bool,fail_data:bool,corrupt:bool,fail_xet:bool,disconnect_xet:bool}
 struct Server {base:String,state:Arc<Mutex<State>>,stop:Arc<AtomicBool>,thread:Option<thread::JoinHandle<()>>}
 impl Server {
     fn start()->Self {
@@ -32,7 +32,7 @@ impl Server {
                     serde_json::to_vec(&data.assets.iter().map(|(name,(id,bytes))|json!({"id":id,"name":name,"size":bytes.len()})).collect::<Vec<_>>()).unwrap()
                 }else if method=="POST"&&path.starts_with("/upload?name=") {
                     let name=path.strip_prefix("/upload?name=").unwrap().to_owned();
-                    if (data.fail_version&&name=="VERSION.zip")||(data.fail_data&&name.starts_with("output")) {status=503;b"{}".to_vec()}else{
+                    if (data.fail_xet&&name.starts_with("proj-xet-store-"))||(data.fail_version&&name=="VERSION.zip")||(data.fail_data&&name.starts_with("output")) {status=503;b"{}".to_vec()}else{
                         assert!(!data.assets.contains_key(&name));data.next+=1;let id=data.next;
                         data.uploads.push(name.clone());let size=body.len();data.assets.insert(name.clone(),(id,body));
                         status=201;json!({"id":id,"name":name,"size":size}).to_string().into_bytes()
@@ -41,6 +41,7 @@ impl Server {
                     let id:u64=id.parse().unwrap();let name=data.assets.iter().find(|(_,value)|value.0==id).map(|(name,_)|name.clone()).unwrap();
                     if method=="DELETE" {data.deleted.push(name.clone());data.assets.remove(&name);status=204;Vec::new()}else{let mut bytes=data.assets[&name].1.clone();if data.corrupt&&!bytes.is_empty(){let index=bytes.len()/2;bytes[index]^=0x80;}bytes}
                 }else {panic!("Unexpected fixture route {method} {path}")};
+                if data.disconnect_xet&&method=="POST"&&path.starts_with("/upload?name=proj-xet-store-")&&status==201 {continue;}
                 write!(stream,"HTTP/1.1 {status} Fixture\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",response.len()).unwrap();
                 stream.write_all(&response).unwrap();
             }
@@ -76,6 +77,13 @@ fn actual_xet_github_whole_store_round_trip_retains_prior_export_on_failure() {
     assert_eq!(fs::read(restored.join("data.csv")).unwrap(),b"original bytes\n");
     fs::create_dir_all(&source).unwrap();fs::write(source.join("data.csv"),b"updated bytes\n").unwrap();
     let second=proj::xet::publish(&project,imported.path(),&[("raw-data".into(),source)],"v1.0.1",&engine).unwrap();
+    server.state.lock().unwrap().fail_xet=true;
+    assert!(proj::xet_github::upload(&project,imported.path(),&client,"data",true,64*1024*1024,&engine).is_err());
+    {let state=server.state.lock().unwrap();assert_eq!(state.assets,prior);assert!(state.deleted.is_empty());}
+    {let mut state=server.state.lock().unwrap();state.fail_xet=false;state.disconnect_xet=true;}
+    let uncertain=proj::xet_github::upload(&project,imported.path(),&client,"data",true,64*1024*1024,&engine).unwrap_err();
+    assert!(format!("{uncertain:#}").contains("uncertain"));
+    {let mut state=server.state.lock().unwrap();state.disconnect_xet=false;assert!(state.deleted.is_empty());for (name,value) in &prior {assert_eq!(&state.assets[name],value);}}
     // Return corrupt downloadable bytes after accepting the unique new upload.
     server.state.lock().unwrap().corrupt=true;
     assert!(proj::xet_github::upload(&project,imported.path(),&client,"data",true,64*1024*1024,&engine).is_err());
