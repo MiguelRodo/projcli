@@ -3936,3 +3936,24 @@ required rather than silently resolving prior GitHub-flat/CAS-tree default overl
 Ponytail full reuse retains shared inventory/ZIP/immutable transfer and actual CAS
 readers; backend-specific verification stays separate. Namespace/tag preflight also
 preserves ordinary literal titles containing @version. Tests pending remote run.
+
+## Changed-source quality gates and R-package discoverability (candidate)
+
+New development checks select changed Rust and R sources from the PR merge base.
+Rustfmt and Air check formatting; lintr checks changed R files; Clippy analyzes the
+affected workspace against the merge-base diagnostics. This is development
+tooling, not a runtime change relative to projr. Checks never push contributor
+edits. The proposed gate and generated formatting patch require remote execution
+before claiming success; local runtime verification remains restricted.
+
+The homepage now introduces the R package before the command-line tutorial and
+links its source installation, tested quick start and actual exported-function
+reference. No unmerged initialization wrappers are advertised. Public inspection
+on 27 October confirmed the existing homepage, R guide and function reference
+return HTTP 200; the guide already contained source installation instructions,
+but the homepage made the R interface difficult to discover. The revised homepage
+still needs rendered-page and post-deployment verification.
+
+Ponytail full review: retain the existing evaluated quick-start block unchanged;
+reuse the current R guide/reference rather than duplicating API documentation;
+keep source-only capability and published preview.4 availability distinct.
