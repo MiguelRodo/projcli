@@ -30,6 +30,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f
         with:
           toolchain: 1.95.0
+          components: clippy
       - name: Prepare isolated paths
         shell: bash
         run: |
@@ -65,7 +66,7 @@ jobs:
           if binary.is_file():
               shutil.copyfile(binary,out/"proj")
               (out/"proj.sha256").write_text(hashlib.sha256(binary.read_bytes()).hexdigest()+"  proj"+chr(10))
-          (out/"source-commit.txt").write_bytes(subprocess.check_output(["git","rev-parse","HEAD"]))
+          (out/"source-commit.txt").write_bytes(subprocess.check_output(["runuser","-u","rstudio","--","git","rev-parse","HEAD"]))
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
