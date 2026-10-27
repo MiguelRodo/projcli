@@ -46,8 +46,10 @@ fn path(value:impl AsRef<std::path::Path>)->Result<Utf8PathBuf> {
     Utf8PathBuf::from_path_buf(value.as_ref().to_owned()).map_err(|_|anyhow::anyhow!("CAS export path is not UTF-8"))
 }
 fn persistent(name:&str)->bool {
-    ["objects/","trees/v1/","tree-snapshots/v1/","flat-snapshots/v1/","catalogues/v1/","manifests/"]
+    ["objects/","trees/v1/","tree-snapshots/v1/","flat-snapshots/v1/","manifests/"]
         .iter().any(|prefix|name.starts_with(prefix))
+        ||[crate::catalogue::Format::Csv,crate::catalogue::Format::Json,crate::catalogue::Format::CsvDedupeFile,crate::catalogue::Format::JsonDedupeFile]
+            .iter().any(|format|name==crate::cas_flat::filename(*format))
 }
 fn snapshot_id(name:&str,prefix:&str,sharded:bool)->Result<String> {
     let relative=name.strip_prefix(prefix).context("Invalid CAS snapshot namespace")?;
@@ -102,9 +104,12 @@ fn validate(root:&Utf8Path,manifest:&Manifest)->Result<()> {
 /// coordination files. Recheck all objects (including orphans), directory identities
 /// and every tree/flat/legacy snapshot. Full metadata must be present in this store:
 /// project-only metadata must not be silently invented or migrated.
-/// The original store is unchanged. No GC, hot-copy or power-loss claim.
+/// The original store is unchanged. Low-level tree writers do not all honor this
+/// claim: callers must stop all writers first. No GC, hot-copy or power-loss claim.
 pub fn export(project:&Utf8Path,store:&Utf8Path)->Result<Export> {
-    crate::path_safety::resolve_path(store.as_std_path(),true)?;
+    anyhow::ensure!(project.is_absolute()&&store.is_absolute(),"CAS export project/store paths must be absolute");
+    let physical=Utf8PathBuf::try_from(crate::path_safety::resolve_path(store.as_std_path(),true)?)?;
+    let store=physical.as_path();
     crate::cas_tree::project_target(project,store,false)?;
     anyhow::ensure!(fs::symlink_metadata(store)?.is_dir(),"CAS export requires an existing real store");
     let copy=tempfile::tempdir()?;let copied=path(copy.path())?;

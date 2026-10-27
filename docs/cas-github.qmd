@@ -48,3 +48,5 @@ pending. No multi-project/shared-store namespace, distributed linear-head merge,
 hot-copy or power-loss guarantee is introduced.
 
 All existing ordinary latest/archive paths and metadata ZIPs remain unchanged.
+
+The claim is cooperative: not every low-level existing tree writer acquires it. Stop all store writers before export. The tests cover busy-claim rejection; this is not a safe concurrent hot-copy mechanism. New acceptance also exercises all four flat encodings with direct version references, original legacy flat snapshots without the project ledger, missing objects and unknown catalogue files.
