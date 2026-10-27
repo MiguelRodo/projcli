@@ -10,8 +10,8 @@ import tarfile
 import urllib.error
 import urllib.request
 
-AIR_URL = "https://github.com/posit-dev/air/releases/download/0.8.2/air-x86_64-unknown-linux-gnu.tar.gz"
-AIR_SHA = "94d03a402d0a86947f9093f0db015a627d4f2035c23f4ab110d01bb363855704"
+AIR_URL = "https://github.com/posit-dev/air/releases/download/0.12.0/air-x86_64-unknown-linux-gnu.tar.gz"
+AIR_SHA = "d2b9452bfc44d55f0e61c2d8906ca3fbaac5e63f40726017acf8bad6bfd3ba37"
 PACKAGES = [
     ("xmlparsedata", "1.0.5", "766034ab5e9728609bd240c9954d23ca0cdb881a98a31b9d3e1c8767c7b7cbb0"),
     ("lintr", "3.4.0", "54144e68b70289edff7eed4fc8d00efacd1ddd51c032dc1e88bfb657c10a89dc"),

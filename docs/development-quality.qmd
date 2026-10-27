@@ -6,7 +6,7 @@ These are contributor tools, not prerequisites for using proj.
 
 Each PR checks existing changed Rust/R source against its Git merge base. Rust
 uses rustfmt and Clippy from Rust 1.95.0. R uses
-[Air 0.8.2](https://posit-dev.github.io/air/) and
+[Air 0.12.0](https://posit-dev.github.io/air/) and
 [lintr 3.4.0](https://lintr.r-lib.org/). Air is the formatter used by the official
 VS Code Air extension and Positron. CI checksums bind the official tool downloads.
 No tools are installed in a user's R library.
