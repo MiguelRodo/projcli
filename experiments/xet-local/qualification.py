@@ -1,5 +1,5 @@
 """Remote-only qualification of actual pinned Xet; owned synthetic fixtures only."""
-import argparse,gzip,hashlib,json,os,random,re,shutil,signal,subprocess,time,zipfile
+import argparse,gzip,hashlib,json,os,random,re,shutil,signal,subprocess,tempfile,time,zipfile
 from pathlib import Path,PurePosixPath
 import experiment as base
 
@@ -66,7 +66,7 @@ def fault_case(root,evidence,binary,stage,seed,pointer_a,pointer_b,expected_a,ex
         assert observed["exact_bytes"],"safe retry lost committed content"
     assert base.sha(a)==before
     result={"stage":stage,"passed":True,"barrier":point,"writer_exit":status,
-      "barrier_to_exit_elapsed_s":time.monotonic()-started,"prior_version_exact":True,
+      "whole_case_elapsed_s":time.monotonic()-started,"prior_version_exact":True,
       "reference_present_after_kill":should_commit,"candidate_after_kill":candidate,
       "retry_both_versions_exact":True,"manual_lock_or_index_repair":False,
       "store_after_retry":base.measure(store)}
@@ -81,9 +81,14 @@ def damage_case(root,evidence,binary,seed,pointer_a,expected_a,mode,payload_rel)
     before=base.sha(target);size=target.stat().st_size
     if mode=="missing":target.unlink()
     else:
-        with target.open("r+b") as f:
+        # Upstream packs are read-only. Replace only this owned disposable copy
+        # with a newly written corrupt inode; never change seed permissions/content.
+        with tempfile.NamedTemporaryFile(dir=target.parent,prefix=".corrupt-copy-",delete=False) as f:
+            temporary=Path(f.name)
+            with target.open("rb") as source:shutil.copyfileobj(source,f)
             f.seek(size//2);old=f.read(1);assert old;f.seek(size//2);f.write(bytes([old[0]^0x80]));f.flush();os.fsync(f.fileno())
-        assert base.sha(target)!=before
+        os.replace(temporary,target)
+        assert base.sha(target)!=before and base.sha(seed/payload_rel)==before
     observation=download(binary,store,pointer_a,own/"private-stage-A",evidence,"damage-"+mode,own,expected_a)
     assert observation["status"]!=0,"missing/corrupt content was not rejected"
     result={"mode":mode,"passed":True,"target":payload_rel,"original_sha256":before,
