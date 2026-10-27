@@ -42,7 +42,7 @@ A backend-specific binding maps whole-file digests to upstream reconstruction
 addresses. File digests, directory roots, version metadata and Xet IDs stay distinct.
 Legacy CAS IDs/readers are untouched.
 
-The new integration checks are still unrun. Unix runtime only until equivalent
+The dedicated remote integration gate checks exact recovery and complete destination preservation; see the draft PR's exact-head results. These checks do not establish long-term archival support. Unix runtime only until equivalent
 hard-link validation is implemented on Windows. No power-loss, concurrent hot-copy,
 arbitrary interruption-point or production-readiness guarantee follows. Reusing
 upstream chunk/hash/codec primitives with a proj-owned durable backend is another

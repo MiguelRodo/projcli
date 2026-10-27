@@ -3826,3 +3826,13 @@ Initial remote platform compilation exposed two warnings-as-errors: an unused
 import and a future discovery helper. Removed both instead of weakening lints.
 Unix-only store validation now has an explicit platform branch, keeping ordinary
 Windows builds supported without claiming Windows Xet runtime support.
+
+At code head dcaf989, actual-engine run40470529739 passed two pure codec checks and
+three integration checks (no ignored tests); checksum-verified artifact12718299537
+SHA256 f2e9951fd88eed8eaacf8c287eb5f85e1f360970f2eb67514c01db293c5f41e0.
+A final fixture refinement selects the known first-snapshot large payload pack and
+requires the independent digest-mismatch path specifically, instead of accepting
+any upstream error for corruption. Its new exact-head gate is pending. Source
+preservation's local full-history bundle independently restored/fsck verified, but
+the private GitHub source import remains permission-blocked; this integration CI
+still obtains the fixed official source and is not preserved-source build proof.

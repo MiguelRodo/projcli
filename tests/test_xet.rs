@@ -50,10 +50,15 @@ fn actual_xet_restart_versions_corruption_and_destination_preservation() {
     let damaged=root.join("damaged");copy(&seed,&damaged);
     let packs=damaged.join("engine/xet/xorbs/xorbs");
     let pack=fs::read_dir(&packs).unwrap().map(|e|e.unwrap().path())
-        .find(|p|p.file_name().unwrap().to_str().unwrap().starts_with("default.")&&p.extension().unwrap_or_default()!="tagset").unwrap();
+        .filter(|p|p.file_name().unwrap().to_str().unwrap().starts_with("default.")&&p.extension().unwrap_or_default()!="tagset")
+        .max_by_key(|p|fs::metadata(p).unwrap().len()).unwrap();
+    assert!(fs::metadata(&pack).unwrap().len()>1_000_000,"select the first snapshot's large payload, not a tiny/footer-only fixture");
     let mut data=fs::read(&pack).unwrap();let index=data.len()/2;data[index]^=0x80;
     let replacement=pack.with_extension("replacement");fs::write(&replacement,&data).unwrap();fs::rename(replacement,&pack).unwrap();
-    assert!(proj::xet::restore(&project,&damaged,&first,"raw-data",&recovered,true,&engine).is_err());
+    let corrupt=proj::xet::restore(&project,&damaged,&first,"raw-data",&recovered,true,&engine).unwrap_err();
+    assert!(format!("{corrupt:#}").contains("digest mismatch"),
+        "the deterministic payload flip must exercise independent full-file verification: {corrupt:#}");
+    println!("Actual upstream reconstruction returned; independent BLAKE3 verification rejected damaged payload before install.");
     assert_eq!(tree(&recovered),saved);
     // Missing content also fails, even if earlier reads populated local client caches.
     fs::remove_dir_all(&packs).unwrap();
