@@ -86,7 +86,7 @@ flowchart TB
   B["[R] Resolve profiles and<br/>environment; merge config;<br/>settings HOW / build WHAT"]
   C["[R/T] Validate typed configuration<br/>and explicit resource mappings"]
   D["[R] Capture root, profiles,<br/>mappings, mode and active run<br/>version"]
-  E["[R/T] Preflight inputs and exclusion<br/>syntax, targets, dependencies and<br/>enabled Git prerequisites"]
+  E["[R/T] Preflight source groups / globs,<br/>exclusions, output collisions,<br/>dependencies and enabled Git"]
   F["[R] Enumerate and capture managed<br/>recovery state before controlled<br/>writes"]
   G["[R] Run configured start hooks"]
   R["Local candidate: optional R snapshot<br/>before start hooks"]
@@ -108,7 +108,7 @@ flowchart TB
   In the released implementation, preview retains an existing dev version or uses dev1 of a
   release without writing VERSION; an output run uses its requested release
   version throughout the run and leaves the subsequent dev1 only on success.
-- Validate declared paths, script/hook include and exclusion syntax, supported renderer plans,
+- Validate declared paths, ordered source groups/globs, script/hook exclusions, supported renderer plans,
   dependencies and explicitly enabled Git actions before controlled build writes.
   Probes can have their own effects: this is not a blanket read-only/environment
   sanitization guarantee.
@@ -799,3 +799,5 @@ Its opt-in renv action is not a build dependency restore. The existing productio
 ignore-preparation stage now creates automatic .Rbuildignore only for DESCRIPTION
 projects (or updates an existing file); analysis, rendering and publication order
 is unchanged by this metadata slice.
+
+Candidate script groups retain nested document/sidecar paths inside the single docs destination. Exact frozen native output paths generate source ignores; final docs are not blanket ignored. Remote fixtures cover grouped documents and complete Quarto websites; exact-commit outcomes are recorded in draft PR234.

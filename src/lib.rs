@@ -122,3 +122,5 @@ mod store_github;
 
 /// Configured complete-CAS-store GitHub publication and explicit recovery.
 pub mod configured_cas_github;
+
+mod script_selection;

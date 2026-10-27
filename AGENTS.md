@@ -836,3 +836,9 @@ substantive changes require independent review and exact-head checks.
 Named init optional packages: renv remains in Suggests, checked only for selected
 renv setup. NULL consent asks interactively outside CI; FALSE never installs;
 TRUE explicitly permits it. No load/plan/CFF bootstrap or original projr edits.
+
+Script groups are source directories, never managed outputs. Preserve ordered
+source-only discovery and zero-depth **/ semantics. Generate source ignore rules
+from frozen selected native output plans, not blanket HTML/assets or final docs.
+Multiple destinations/name matching remain deferred in issues#773. Verify actual
+grouped rendering and Quarto projects remotely before claiming compatibility.

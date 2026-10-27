@@ -1048,3 +1048,43 @@ install_missing=NULL asks only interactively outside CI; FALSE never installs,
 TRUE explicitly permits it. No installation on load/plans/native metadata creation;
 build and restore retain no-bootstrap policy. Caller libraries must match the CLI
 selected Rscript. Package installation is outside project rollback.
+
+## Script source groups (candidate)
+
+A configured scripts or scripts-<name> resource is a source, never an output or
+cache. build.scripts may select its name, a project-relative directory, source
+files, or globs. Directories recurse; patterns expand lexically in include order,
+duplicates run once, and all ! exclusions apply last. A *.R pattern is shallow;
+**/*.R includes current and nested files. Data and assets are not executed.
+Unmatched includes fail. Discovery skips declared cache/output/docs and framework
+metadata, rejects symbolic links, and does not use shell expansion. Preview prints
+the resolved order. Existing explicit empty selection remains empty.
+
+Independent documents below scripts-l1 go to the one docs destination's l1
+subfolder, retaining nested paths and renderer sidecars. Bare scripts retains
+relative paths directly under docs. Other inputs keep existing flat placement.
+Overlapping groups fail. Multiple final destinations and name-matching proposals
+are deferred to [the routing design issue](https://github.com/MiguelRodo/issues/issues/773).
+
+Omitted script ignore policy leaves sources visible in Git and excludes the
+group from an R source package only when DESCRIPTION exists, while preserving
+standard package-source locations (R/man/inst/src/data/tests/vignettes) by default. Production builds
+add exact planned native document outputs/sidecars to managed Git rules; unrelated
+HTML/assets are not hidden by these source rules. A destination retains its own
+ignore policy: ordinary docs still use legacy ignore: all when omitted; choose
+ignore: [] explicitly to track final documents. Explicit ignore policies, including
+ignore: [], override automatic script rules. The remote suite includes actual grouped rendering and complete Quarto website
+fixtures. This is an unreleased candidate; final exact-commit results are recorded
+in draft PR234, without implying other project types or broader legacy parity.
+
+Existing explicitly named external files remain supported with guarded paths and redacted provenance. Discovery directories/globs remain project-scoped; the existing cleanup/input-overlap guards still own rejection of literal files inside managed outputs.
+
+Quarto project rendering temporarily excludes the captured cache/final-output
+trees and its prior native output tree from additional resource globs. This
+prevents a later render from copying the previous site/cache resources into
+itself. Existing resource includes/excludes are retained and original metadata
+restored; temporary renderer metadata replacements preserve hard-link aliases.
+The regression keeps whole native website output and checks repeated builds,
+shared SVGs, navigation, nested local links and original configuration bytes.
+Snapshot discovery, multi-destination routing and broad Quarto type parity are
+not added by this fix.

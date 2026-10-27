@@ -79,6 +79,7 @@ jobs:
         run: |
           install -d -o rstudio -g rstudio "$RUNNER_TEMP/r-adapter-cargo"
           runuser -u rstudio -- env CARGO_HOME="$RUNNER_TEMP/r-adapter-cargo" RUSTUP_AUTO_INSTALL=0 cargo build --locked --bin proj
+          runuser -u rstudio -- python3 tests/acceptance/script_groups.py "$GITHUB_WORKSPACE/target/debug/proj" --evidence r-script-groups-evidence.json
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla frontends/r/projcli/tests/configuration.R
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla frontends/r/projcli/tests/project.R
           runuser -u rstudio -- env R_LIBS_USER="$RUNNER_TEMP/r-adapter-library" PROJCLI_R_API_TEST_BINARY="$GITHUB_WORKSPACE/target/debug/proj" Rscript --vanilla frontends/r/projcli/tests/sessions.R
@@ -107,6 +108,12 @@ jobs:
         with:
           name: r-adapter-pinned-check
           path: projcli.Rcheck
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r-script-groups-evidence
+          path: r-script-groups-evidence.json
           if-no-files-found: warn
   windows:
     runs-on: windows-latest

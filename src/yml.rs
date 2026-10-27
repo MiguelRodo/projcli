@@ -401,6 +401,9 @@ fn deserialize_explicit_bool<'de, D: serde::Deserializer<'de>>(
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum IgnoreConfig {
+    /// Omitted policy; ordinary resources ignore all, script sources use generated-only Git rules.
+    #[serde(skip_deserializing)]
+    Unspecified,
     Single(String),
     Multiple(Vec<String>),
 }
@@ -416,6 +419,7 @@ pub(crate) fn validate_ignore(value: &IgnoreConfig) -> anyhow::Result<()> {
     let values: &[String] = match value {
         IgnoreConfig::Single(value) => std::slice::from_ref(value),
         IgnoreConfig::Multiple(values) => values,
+        IgnoreConfig::Unspecified => &[],
     };
     if values.iter().any(|value| {
         !["all", "git", "rbuild"]
@@ -428,7 +432,7 @@ pub(crate) fn validate_ignore(value: &IgnoreConfig) -> anyhow::Result<()> {
 }
 
 fn default_ignore() -> IgnoreConfig {
-    IgnoreConfig::Single("all".to_string())
+    IgnoreConfig::Unspecified
 }
 
 /// The fully resolved and validated project configuration.
@@ -498,7 +502,7 @@ impl ProjConfig {
     /// Validates explicit directory paths without injecting missing mappings.
     ///
     /// It iterates through all specified configuration blocks to ensure custom label names
-    /// start with approved identifiers (`cache`, `raw`, `output`, `docs`).
+    /// use cache/raw/output/docs prefixes or scripts[-name] source groups.
     ///
     /// # Errors
     ///
@@ -541,10 +545,11 @@ impl ProjConfig {
                 && !lower_label.starts_with("raw")
                 && !lower_label.starts_with("output")
                 && !lower_label.starts_with("docs")
+                && !crate::script_selection::is_scripts(label)
             {
                 anyhow::bail!(
                     "Invalid directory label '{}' found in _proj.yml. \
-                    All custom labels must begin with 'raw', 'output', 'docs', or 'cache'.",
+                    All custom labels must begin with 'raw', 'output', 'docs', 'cache', or scripts[-name].",
                     label
                 );
             }
