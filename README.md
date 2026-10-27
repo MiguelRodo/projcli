@@ -9,8 +9,8 @@ paths together and explore the documented preview workflow.
 > **Never run production builds on the only copy of important work.**
 > Previews are not a security sandbox; code you run can still change files.
 
-**Status:** [v0.4.0-preview.4](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.4)
-adds inspectable build records, named backup locations, readable file histories and verified local recovery.
+**Status:** [v0.4.0-preview.5](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.5)
+adds the supported R interface, optional R build tasks, and experimental local Xet plus complete CAS/Xet store transfer through GitHub.
 It remains a development prerelease. Stable Latest is v0.3.0 and predates these features.
 
 This release includes versioned temporary output paths, explicit R-package data
@@ -20,7 +20,7 @@ M2 build records and the agreed M3 local recovery workflow are included. Complet
 projr compatibility and broader initialisation remain separate work. A new R package
 is available from source; see [R installation and quick start](docs/r-frontend.qmd)
 and the [function reference](docs/r-reference.qmd). It is not on CRAN, and full M4
-CLI support is newer than the published preview.4.
+CLI support is included in preview.5; the R package is installed separately.
 See [what works](docs/features.qmd) for supported workflows and limits.
 
 [Website](https://miguelrodo.github.io/projcli/) ·
@@ -29,9 +29,10 @@ See [what works](docs/features.qmd) for supported workflows and limits.
 
 ## Installation
 
-Use the pinned [v0.4.0-preview.4 development release](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.4).
+Use the pinned [v0.4.0-preview.5 development release](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.5).
 It supplies Linux x86-64 (glibc 2.35 or newer) and Windows x86-64 binaries.
-**No Rust compiler or administrator access is needed.** macOS and ARM binaries
+**The CLI needs no Rust compiler or administrator access.** The optional Xet helper
+has separate [build requirements](docs/xet-storage.qmd#install-the-optional-helper). macOS and ARM binaries
 are not supplied.
 
 For Ubuntu / WSL Ubuntu, you need Bash, `curl` and `sha256sum` or `shasum`.
@@ -40,8 +41,8 @@ Run this inside Ubuntu:
 ```bash
 mkdir -p "$HOME/.local/bin"
 installer="$(mktemp)"
-curl -fsSL "https://raw.githubusercontent.com/MiguelRodo/projcli/f6f4510a806ea302a2ceee5177707fbde9bed5bf/install-local.sh" -o "$installer" &&
-  PROJ_RELEASE_VERSION=0.4.0-preview.4 \
+curl -fsSL "https://raw.githubusercontent.com/MiguelRodo/projcli/87b5149c679a87796513e775c54ba98e4811aa9b/install-local.sh" -o "$installer" &&
+  PROJ_RELEASE_VERSION=0.4.0-preview.5 \
   PROJ_INSTALL_DIR="$HOME/.local/bin" bash "$installer"
 rm -f "$installer"
 export PATH="$HOME/.local/bin:$PATH"
@@ -49,7 +50,7 @@ hash -r
 proj --version
 ```
 
-Expected version: `proj 0.4.0-preview.4`. The installer verifies SHA256 before
+Expected version: `proj 0.4.0-preview.5`. The installer verifies SHA256 before
 replacing `~/.local/bin/proj`. The PATH change applies to the current terminal.
 The explicit version pin matters: GitHub's stable **Latest** is still v0.3.0.
 
@@ -60,7 +61,7 @@ publisher identity or reproducible builds.
 
 ## Quickstart: a small Python analysis
 
-This example targets `0.4.0-preview.4`. Remote docs checks run it through the
+This example targets `0.4.0-preview.5`. Remote docs checks run it through the
 downloaded release binary and the current PR code. You need Python 3 available
 as `python3`; the shell commands below assume Ubuntu / WSL Ubuntu.
 

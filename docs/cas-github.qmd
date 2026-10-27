@@ -2,7 +2,9 @@
 title: "Shared-file stores on GitHub"
 ---
 
-This is an unmerged experimental source candidate, not an installed feature yet.
+<!-- VERIFIED_RELEASE_STATUS -->
+Available in [preview.5](install.qmd). The Xet option remains experimental and
+requires its separate pinned helper. Keep independent backups.
 
 The existing ordinary GitHub backups keep one ZIP per folder or version.
 A complete CAS store is different: each distinct whole file is stored once, and
@@ -10,10 +12,10 @@ small directory/version records identify which files belong together. CAS means
 content-addressed storage: file contents determine their identifiers. Xet instead
 can share smaller pieces within files. Neither changes your analysis source paths.
 
-This new library slice packages the complete existing CAS store as a ZIP for one
+This option packages the complete existing CAS store as a ZIP for one
 long-running GitHub storage release. It preserves existing file hashes, tree
 identifiers and legacy readers. It does not convert or migrate local archives.
-Configured build/restore is the next separate source candidate described below.
+Use the configured build/restore example below.
 
 ## What is verified before a reference can be saved
 
@@ -43,20 +45,24 @@ No delete-old-before-upload replacement or automatic retention cleanup is used.
 Recovery downloads the selected complete ZIP and uses the ordinary local CAS
 readers. It needs no Xet engine or Hugging Face account. Current library tests use
 only disposable synthetic files and a loopback mocked REST service, not live
-GitHub archives. Real GitHub validation and configured command examples remain
-pending. No multi-project/shared-store namespace, distributed linear-head merge,
+GitHub archives. A separate [real GitHub round-trip](https://github.com/MiguelRodo/projcli/actions/runs/40510154990) also passed; configured examples follow. No multi-project/shared-store namespace, distributed linear-head merge,
 hot-copy or power-loss guarantee is introduced.
 
 All existing ordinary latest/archive paths and metadata ZIPs remain unchanged.
 
 The claim is cooperative: not every low-level existing tree writer acquires it. Stop all store writers before export. The tests cover busy-claim rejection; this is not a safe concurrent hot-copy mechanism. New acceptance also exercises all four flat encodings with direct version references, original legacy flat snapshots without the project ledger, missing objects and unknown catalogue files.
 
-## Configure the shared-file store candidate
+## Save and restore a shared-file store
 
 ```yaml
 directories:
   raw-data:
     path: raw-data
+  cache:
+    path: cache
+    safe: true
+  output:
+    path: output
 remotes:
   github:
     project-file-store:
@@ -70,6 +76,17 @@ build:
     project-file-store: {}
 ```
 
+For an existing project with VERSION, preview first and then archive the selected
+folder with a production version bump:
+
+```sh
+proj build-dev
+proj build --patch
+```
+
+This example disables Git. Commit .proj/remotes together with VERSION and the
+configuration yourself if you need recovery from a future checkout.
+
 The name project-file-store selects one long-running storage release, using the
 project's Git origin and existing GitHub credentials. No Xet helper is needed.
 For this new backend, specify manifest-style explicitly: tree or flat.
@@ -78,7 +95,7 @@ their intersection has not been silently selected. With flat, manifest-format
 can be csv (the flat default), json, csv-dedupe-file or json-dedupe-file.
 Tree uses its fixed JSON encoding. This does not alter existing local CAS defaults.
 
-The initial GitHub complete-store option supports manifest: auto or remote,
+The GitHub complete-store option supports manifest: auto or remote,
 keeping full metadata in the store ZIP and small trusted project locators in Git.
 Project-only or both full-copy placement is not implemented for this transport
 and is rejected explicitly. Existing local CAS supports its wider placement policy.
@@ -107,6 +124,7 @@ uploads without removing recovery lookup. Missing locators with existing store
 exports fail clearly; automatic remote-only discovery is not implemented.
 Style changes affect new writes while stored encoding kinds select old readers.
 
+Each update transfers the whole ZIP; retained older ZIPs repeat stored history.
 Production limits store ZIPs below 2 GiB and expanded data to 8 GiB. Recovery
 requires explicit budgets. Every update transfers the complete ZIP, and old
 exports/orphans remain until an explicit retention policy is chosen. These limits

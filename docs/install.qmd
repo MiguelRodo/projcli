@@ -13,7 +13,7 @@ Previews are not a security sandbox; code you run can still change files.
 
 ## Choose the preview explicitly
 
-The published [v0.4.0-preview.4](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.4)
+The published [v0.4.0-preview.5](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.5)
 is an early development release. These instructions pin that version.
 The release passed the integrated analysis, renderer and archive checks. Both
 platform downloads were checked against the tagged source and their checksums.
@@ -40,8 +40,8 @@ reports `x86_64` and `getconf GNU_LIBC_VERSION` reports glibc 2.35 or newer.
 ```bash
 mkdir -p "$HOME/.local/bin"
 installer="$(mktemp)"
-curl -fsSL "https://raw.githubusercontent.com/MiguelRodo/projcli/f6f4510a806ea302a2ceee5177707fbde9bed5bf/install-local.sh" -o "$installer" &&
-  PROJ_RELEASE_VERSION=0.4.0-preview.4 \
+curl -fsSL "https://raw.githubusercontent.com/MiguelRodo/projcli/87b5149c679a87796513e775c54ba98e4811aa9b/install-local.sh" -o "$installer" &&
+  PROJ_RELEASE_VERSION=0.4.0-preview.5 \
   PROJ_INSTALL_DIR="$HOME/.local/bin" bash "$installer"
 rm -f "$installer"
 export PATH="$HOME/.local/bin:$PATH"
@@ -49,7 +49,7 @@ hash -r
 proj --version
 ```
 
-Expected version: `proj 0.4.0-preview.4`.
+Expected version: `proj 0.4.0-preview.5`.
 
 The script comes from the reviewed source commit. It downloads the pinned Linux
 binary, checks its SHA256 against the release manifest, and installs it as
@@ -64,8 +64,8 @@ Open **PowerShell 7** (`pwsh`) as your normal user:
 $installDir = Join-Path $env:USERPROFILE ".local\bin"
 New-Item -ItemType Directory -Force -Path $installDir | Out-Null
 $installer = Join-Path ([IO.Path]::GetTempPath()) ("proj-install-" + [guid]::NewGuid() + ".ps1")
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/MiguelRodo/projcli/f6f4510a806ea302a2ceee5177707fbde9bed5bf/install.ps1" -OutFile $installer
-$env:PROJ_RELEASE_VERSION = "0.4.0-preview.4"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/MiguelRodo/projcli/87b5149c679a87796513e775c54ba98e4811aa9b/install.ps1" -OutFile $installer
+$env:PROJ_RELEASE_VERSION = "0.4.0-preview.5"
 $env:PROJ_INSTALL_DIR = $installDir
 & $installer
 Remove-Item -LiteralPath $installer
@@ -73,7 +73,7 @@ $env:Path = "$installDir;$env:Path"
 proj --version
 ```
 
-Expected version: `proj 0.4.0-preview.4`.
+Expected version: `proj 0.4.0-preview.5`.
 
 The script checks the Windows binary's SHA256 before installing
 `proj.exe` in `$HOME\.local\bin`. It does not change system settings or require
@@ -93,7 +93,7 @@ help or results.
 ## What the checksum proves
 
 The installer requires the release's `version.txt` and exactly one matching
-entry in [checksums.txt](https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.4/checksums.txt).
+entry in [checksums.txt](https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.5/checksums.txt).
 A missing or incorrect checksum stops installation before the existing binary is
 replaced. For a manual download, use `sha256sum` on Linux or `Get-FileHash -Algorithm SHA256`
 in PowerShell and compare the result with the manifest's exact filename entry
@@ -102,9 +102,9 @@ before running it.
 The manifest comes from the same GitHub release. Checksums detect corruption and
 mismatches; they are not independent signatures or proof of a reproducible build.
 The release also includes
-[source-commit.txt](https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.4/source-commit.txt)
-and [version.txt](https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.4/version.txt).
-The reviewed source is `f6f4510a806ea302a2ceee5177707fbde9bed5bf`.
+[source-commit.txt](https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.5/source-commit.txt)
+and [version.txt](https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.5/version.txt).
+The reviewed source is `87b5149c679a87796513e775c54ba98e4811aa9b`.
 
 ## Start small
 
@@ -122,5 +122,9 @@ See [what works](features.qmd), [detailed preview status](preview-status.qmd) an
 A separate R package is now available in the repository. It calls the CLI rather
 than embedding it. Read the [R installation and quick start](r-frontend.qmd) for
 R/package requirements, source installation and its [function reference](r-reference.qmd).
-It is not on CRAN, and installing it does not update preview.4 or supply all newer
-source CLI commands.
+It is not on CRAN. Installing the R package does not install or replace the CLI;
+use the separate preview.5 command for the supported interface.
+
+The optional [Xet helper](xet-storage.qmd#install-the-optional-helper) is separate
+from these CLI downloads and qualified on Linux/WSL. Building that helper needs
+the documented pinned Rust toolchain and native build tools; ordinary CLI/CAS use does not.
