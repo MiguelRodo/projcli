@@ -128,7 +128,7 @@ fn actual_closed_export_fresh_import_preserves_every_version_and_rejects_damage(
     assert!(export.snapshots.contains(&first)&&export.snapshots.contains(&second));
     let archive=root.join("portable.zip");fs::copy(export.path(),&archive).unwrap();
     let hash=export.hash.clone();let length=export.length;
-    drop(export);fs::remove_dir_all(&store).unwrap();fs::remove_dir_all(source).unwrap();
+    drop(export);fs::remove_dir_all(&store).unwrap();fs::remove_dir_all(&source).unwrap();
     let imported=proj::xet_archive::import(&project,&archive,&hash,length,64*1024*1024,&engine).unwrap();
     assert_eq!(imported.snapshots().len(),2);
     let restored=project.join("fresh");
