@@ -4184,3 +4184,14 @@ limit, not evidence of complete standalone resource-copy parity. Recursive
 source selection excludes framework metadata at every depth and rejects a
 directory or fixed glob base inside it; existing explicit external file paths
 remain supported.
+
+## Preview.6 release preparation
+
+PRs232–234 are integrated: VERSION/DESCRIPTION synchronization, optional native
+metadata setup and named R adapters, script groups/globs and coherent Quarto
+project output. The release version changes no runtime algorithm or storage ID.
+Ponytail review retained existing primitives and optional dependency boundaries;
+no package scaffold, destination-routing redesign or persistent R daemon was added.
+The external authored-resource limit for explicitly nonembedded separate reports
+remains documented. Final source and public installation evidence are recorded
+after verification; preparation alone is not publication.

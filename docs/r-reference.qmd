@@ -28,8 +28,8 @@ for the protocol, environment and response-size contract.
 
 ## Named initialization {#initialization}
 
-These helpers require the unmerged candidate CLI/package together. They are absent
-from installed ea323355 and published preview.4.
+These helpers require the matching preview.6 CLI/package source together. They are absent
+from published preview.5.
 
 | Function | Purpose |
 |---|---|

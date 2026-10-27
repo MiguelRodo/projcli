@@ -147,7 +147,7 @@ readme uses rmarkdown to render README.Rmd to README.md; renv-snapshot records
 dependencies before start hooks and again before post-build documentation/README.
 It does not restore packages. Install optional task dependencies deliberately.
 
-In this source candidate, VERSION remains authoritative and the named build/version
+In the merged preview.6 source, VERSION remains authoritative and the named build/version
 helpers synchronize an existing DESCRIPTION by default. Set
 settings.sync-description-version: false to leave DESCRIPTION unchanged. An explicit
 legacy backend retains its original version policy. Citation support is separate.
@@ -199,7 +199,7 @@ full legacy parity. The existing projr package is unchanged.
 
 Browse the [function index](r-reference.qmd) or use help(package="projcli") locally.
 
-## Explicit init options in the source candidate
+## Explicit init options in preview.6 source {#explicit-init-options-in-the-source-candidate}
 
 The [project setup reference](cli/init.qmd) covers purpose/contact questions,
 --description-file, --readme-rmd, --renv and --citation. Use the existing
@@ -209,7 +209,7 @@ citation-author inference are not implied.
 
 ## R initialization helpers
 
-The unmerged source candidate adds projr_init, projr_init_plan, projr_init_readme,
+The merged preview.6 source adds projr_init, projr_init_plan, projr_init_readme,
 projr_init_license and projr_init_renv. They use the shared CLI, with explicit R
 metadata values. Only opted-in renv setup checks its optional suggested package;
 installation requires interactive consent or explicit install_missing=TRUE.
