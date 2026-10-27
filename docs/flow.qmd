@@ -62,9 +62,9 @@ before retrying. A dedicated analysis-free publication retry command remains fut
 
 Successful builds and failures with distribution activity retain useful Git-eligible
 records when Git integration is enabled. Earlier failures retain local diagnostics
-excluded from Git. The final Git outcome is saved locally after the build record's
-commit, for inclusion in the next normal commit; bookkeeping does not create a
-recursive sequence of commits. See the history reference for exact files and limits.
+excluded from Git. The pre-Git record is prepared for the normal build commit. After Git is
+attempted, its final outcome is saved locally for the next normal commit, even
+if that attempt failed. No extra bookkeeping commit is made. See the history reference for exact files and limits.
 
 ## What a preview changes {#development-previews-and-remaining-renderer-gaps}
 
