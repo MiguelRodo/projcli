@@ -24,9 +24,9 @@ Both use the same build engine and project configuration.
 
 ::: {.callout-note}
 ## Development preview
-[Preview.5 is available](install.qmd) for Linux and Windows x86-64, without
-compiling the CLI. It includes the supported R interface and optional R build
-tasks, along with shared-file stores on GitHub and experimental Xet storage.
+[Preview.6 is available](install.qmd) for Linux and Windows x86-64, without
+compiling the CLI. It adds project setup, matching VERSION/DESCRIPTION metadata and script groups,
+alongside the R interface, shared-file stores on GitHub and experimental Xet storage.
 The R package is installed separately from source and is not on CRAN. Xet needs
 its own pinned helper and remains experimental. Stable Latest is still v0.3.0.
 Read [what works](features.qmd) and the [storage guides](xet-storage.qmd).

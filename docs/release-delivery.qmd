@@ -36,6 +36,51 @@ effects, incomplete direct R/IDE parity, analysis-free publication retry and bro
 Preview.4 includes the agreed M2/M3 scope described below.
 
 
+## Verified preview.6 delivery {#verified-preview6-delivery}
+
+[Preview.6](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.6)
+was published on 27 October 2026 from
+`712cd9a2daffa9e0a04448252a24ac2de5754194`. Its tree equals reviewed
+`03306c4fcabf2daa3bcba9d955d76639501357d9`. PRs 232–234 supplied the setup,
+VERSION/DESCRIPTION and script-group features; [PR245](https://github.com/MiguelRodo/projcli/pull/245)
+prepared the version and release notes.
+
+| Binary | SHA256 |
+|---|---|
+| Linux x86-64 | bcd82b96f419b4e6fe8761b5df745d041fe79d9a51e7ebc70fd697150448f03b |
+| Windows x86-64 | b313ae90460cfdce4560f19a097f7aba34203266c809ed837cf70b9dd2297d94 |
+
+[Exact-tag build/protocol/installer checks](https://github.com/MiguelRodo/projcli/actions/runs/40571768200),
+[actual-main core/render acceptance](https://github.com/MiguelRodo/projcli/actions/runs/40571706216)
+and [actual-main R acceptance](https://github.com/MiguelRodo/projcli/actions/runs/40571712488)
+passed. Both platform CI ZIPs and all five draft assets were independently
+hashed. The combined manifest has exactly four unique records and identifies
+both binaries plus source/version metadata. All five unauthenticated public
+downloads matched the verified draft bytes. Stable Latest remains v0.3.0.
+
+The existing WSL user-local CLI was backed up, then replaced by the verified
+public Linux binary. Fresh-login version/protocol checks passed. Disposable
+installed checks covered metadata setup, script exclusion/order, preview
+preservation, production DESCRIPTION synchronization and exact failure rollback.
+The matching R source was installed in the existing user library and verified
+with 19 exports, init plan, metadata/README setup, build-dev and version calls.
+Its development package version remains 0.0.0.9000; the installed source is this
+release tag. No optional dependency installation or original projr modification
+was needed. The optional Xet helper was retained unchanged.
+
+A non-login R process whose PATH lacks the user-local binary can find the
+unrelated system geographical `proj` utility. The [R guide](r-frontend.qmd)
+explains session-only binary selection; installation changes no global R profile
+or system utility. Existing R sessions need to reload the package to see new
+exports.
+
+Separate reports still copy rendered output plus `<stem>_files`. Explicitly
+nonembedded authored assets elsewhere are not automatically collected. Whole
+Quarto projects retain their complete output tree. One project per store,
+experimental Xet and the other documented limits remain; no full projr parity
+is claimed. See the [release notes](release-preview6-notes.md).
+
+
 ## Verified preview.5 delivery {#verified-preview5-delivery}
 
 [Preview.5](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.5)
@@ -104,7 +149,7 @@ The shell resolves the checked user-local command. No local compilation, system
 binary replacement, container operation or R-package change was involved.
 
 This historical delivery pinned PROJ_RELEASE_VERSION=0.4.0-preview.2.
-The [current install guide](install.qmd) now pins preview.4.
+Use the [current install guide](install.qmd) for the currently published preview.
 Linux/Windows x86-64 delivery is verified; macOS/ARM binaries remain unavailable.
 Bookdown site embedding, direct R/IDE parity, linked-output portability and
 M2 records/provenance/retry remain outside the accepted CLI workflow.
@@ -209,9 +254,9 @@ initialisation remain separate work. Implementation stops after this M3 delivery
 
 ## Preview.6 preparation
 
-The next reviewed candidate is 0.4.0-preview.6. Read the
+The completed preparation for 0.4.0-preview.6 is recorded above. Read the
 [release notes](release-preview6-notes.md) for setup, VERSION/DESCRIPTION and
 script-group changes, including the separate-report external-resource limit.
-Public download pins remain on preview.5 until new assets pass validation and
-are published. The R source interface keeps development version 0.0.0.9000;
+Public download pins were updated to preview.6 only after all assets passed
+validation and were published. The R source interface keeps development version 0.0.0.9000;
 installation must verify its source and named initialization exports.

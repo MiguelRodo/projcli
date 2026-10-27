@@ -5,7 +5,7 @@ subtitle: "A clear view of the release, the development preview and the work ahe
 
 ## Available development release
 
-[**v0.4.0-preview.5**](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.5)
+[**v0.4.0-preview.6**](https://github.com/MiguelRodo/projcli/releases/tag/v0.4.0-preview.6)
 provides checked Linux x86-64 (glibc 2.35+) and Windows x86-64 binaries.
 No Rust compilation is needed. [Install that explicit version](install.qmd);
 GitHub's stable Latest remains the older v0.3.0.
@@ -56,7 +56,7 @@ the current implementation and the [behavior contract](behavior.qmd) for limits.
 
 The existing projr R package is unchanged. The new source package projcli is
 available in this repository: see its [installation and quick start](r-frontend.qmd)
-and [function reference](r-reference.qmd). It is not on CRAN; preview.5 includes
+and [function reference](r-reference.qmd). It is not on CRAN; preview.6 includes
 the supported M4 CLI subset and optional R maintenance. Python/Julia frontends and complete R/IDE parity remain
 separate work.
 
@@ -232,3 +232,16 @@ older files when your upload settings request them. Identical folder contents
 have the same fingerprint across versions. A small project record identifies
 the saved root even when full listings live on GitHub. Earlier flat records
 remain readable when you change this setting. This feature is included in preview.4.
+
+## Added in preview.6
+
+- Create project metadata from the CLI or named R helpers, with optional
+  DESCRIPTION, README.Rmd, citation metadata and renv initialization.
+- Keep an existing DESCRIPTION Version synchronized with VERSION by default.
+- Select named script directories or globs, with exclusions and stable ordering.
+- Put grouped reports under the configured docs folder and retain complete
+  Quarto website output trees.
+
+Separate reports copy their output and generated `<stem>_files` folder. When
+embedding is explicitly disabled, authored assets elsewhere are not collected
+automatically. Use embedded HTML or a Quarto project for portable output.

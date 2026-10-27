@@ -143,7 +143,7 @@ jobs:
           reference=" ".join(MainText((site/"r-reference.html").read_text()).text)
           assert exports and all(name in reference for name in exports), "Missing exported function reference"
           guide=" ".join(" ".join(MainText((site/"r-frontend.html").read_text()).text).split())
-          assert "not on CRAN" in guide and "preview.5" in guide and "Quick start" in guide
+          assert "not on CRAN" in guide and "preview.6" in guide and "Quick start" in guide
           home=" ".join(" ".join(MainText((site/"index.html").read_text()).text).split())
           assert "Work from R" in home and "Start from R" in home
           assert "projr_build_dev" in home and "not on CRAN" in home
@@ -302,9 +302,9 @@ jobs:
           PY
           bash --noprofile --norc -e -o pipefail validation-evidence/install-linux.sh 2>&1 | tee validation-evidence/release-install.txt
           test -x "$HOME/.local/bin/proj"
-          test "$("$HOME/.local/bin/proj" --version)" = "proj 0.4.0-preview.5"
-          curl -fsSL https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.5/source-commit.txt | tee validation-evidence/release-source.txt
-          test "$(cat validation-evidence/release-source.txt)" = "87b5149c679a87796513e775c54ba98e4811aa9b"
+          test "$("$HOME/.local/bin/proj" --version)" = "proj 0.4.0-preview.6"
+          curl -fsSL https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.6/source-commit.txt | tee validation-evidence/release-source.txt
+          test "$(cat validation-evidence/release-source.txt)" = "712cd9a2daffa9e0a04448252a24ac2de5754194"
       - name: Run documented examples using the downloaded preview
         run: python3 validation-evidence/check-examples.py "$HOME/.local/bin/proj" 2>&1 | tee validation-evidence/release-examples.txt
       - name: Build the exact PR core revision
@@ -346,7 +346,7 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw 'Documented installation command failed' }
             $binary = Join-Path $env:USERPROFILE '.local\bin\proj.exe'
             $version = (& $binary --version).Trim()
-            if ($version -cne 'proj 0.4.0-preview.5') { throw "Unexpected installed version: $version" }
+            if ($version -cne 'proj 0.4.0-preview.6') { throw "Unexpected installed version: $version" }
             & $binary --help
             if ($LASTEXITCODE -ne 0) { throw 'Installed binary help failed' }
             Get-FileHash -Algorithm SHA256 -LiteralPath $binary | Format-List

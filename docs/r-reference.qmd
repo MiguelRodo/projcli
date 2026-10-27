@@ -6,7 +6,7 @@ subtitle: "The exported projcli API, grouped by task."
 This documents the source package projcli 0.0.0.9000 (R >= 4.1, MIT licence).
 It is not a CRAN release or a drop-in replacement for every projr export.
 See [installation and quick start](r-frontend.qmd) and
-[source package help](https://github.com/MiguelRodo/projcli/tree/v0.4.0-preview.5/frontends/r/projcli/man).
+[source package help](https://github.com/MiguelRodo/projcli/tree/v0.4.0-preview.6/frontends/r/projcli/man).
 
 ## Command interface {#transport}
 
@@ -28,7 +28,7 @@ for the protocol, environment and response-size contract.
 
 ## Named initialization {#initialization}
 
-These helpers require the matching preview.6 CLI/package source together. They are absent
+These helpers require the matching preview.6 CLI and R package together. They are absent
 from published preview.5.
 
 | Function | Purpose |

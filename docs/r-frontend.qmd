@@ -15,11 +15,12 @@ separate package from the existing projr package.
 | Component | Status |
 |---|---|
 | R package projcli 0.0.0.9000 | Available in frontends/r/projcli in this repository; not on CRAN. |
-| M4 R helpers and complete CLI queries/session controls | Included in published preview.5 and merged source. |
-| Optional R setup/maintenance below | Included in published preview.5 and merged source. |
-| Published command download | [Preview.5](install.qmd); installing the R package does not replace it. |
+| M4 R helpers and complete CLI queries/session controls | Included in published preview.6 and merged source. |
+| Optional R setup/maintenance below | Included in published preview.6 and merged source. |
+| Named initialization helpers and DESCRIPTION synchronization | Included in preview.6 with the matching R source package. |
+| Published command download | [Preview.6](install.qmd); installing the R package does not replace it. |
 
-Use preview.5 or a matching newer source command for the supported API. Preview.4
+Use preview.6 or a matching newer source command for the supported API. Preview.4
 can support basic calls, but does not include the complete R queries/session controls. Errors
 do not silently trigger an engine switch or binary download.
 
@@ -35,7 +36,7 @@ Install the ordinary dependencies deliberately in an R console:
 install.packages(c("processx", "jsonlite"))
 ~~~
 
-Download the [preview.5 source archive](https://github.com/MiguelRodo/projcli/archive/refs/tags/v0.4.0-preview.5.tar.gz),
+Download the [preview.6 source archive](https://github.com/MiguelRodo/projcli/archive/refs/tags/v0.4.0-preview.6.tar.gz),
 set the R working folder to its root, then install the R subdirectory:
 
 ~~~r
@@ -45,7 +46,7 @@ help(package = "projcli")
 ~~~
 
 This does not install proj, renv or analysis dependencies. The [CLI install guide](install.qmd)
-covers the released binary and its limits. Use the published preview.5 command for these features. Building the command from
+covers the released binary and its limits. Use the published preview.6 command for these features. Building the command from
 source is optional and needs Rust/Cargo, as described in the repository README.
 
 proj can also name unrelated software. You can select an exact command:
@@ -54,6 +55,17 @@ proj can also name unrelated software. You can select an exact command:
 options(projcli.binary = "/absolute/path/to/proj")
 proj_cli("capabilities")
 ~~~
+
+For the documented Linux/WSL user-local installation, choose it directly if R's
+PATH differs from your terminal:
+
+~~~r
+options(projcli.binary = path.expand("~/.local/bin/proj"))
+~~~
+
+The system `/usr/bin/proj` can be an unrelated geographical-coordinate tool.
+This option selects the build command for the current R session; installation
+does not edit your R profiles or replace the system utility.
 
 Selection checks an explicit binary argument, that option, PROJCLI_BIN, then PATH.
 Analysis children do not inherit interactive R options. For the example below,
@@ -147,7 +159,7 @@ readme uses rmarkdown to render README.Rmd to README.md; renv-snapshot records
 dependencies before start hooks and again before post-build documentation/README.
 It does not restore packages. Install optional task dependencies deliberately.
 
-In the merged preview.6 source, VERSION remains authoritative and the named build/version
+Starting in preview.6, VERSION remains authoritative and the named build/version
 helpers synchronize an existing DESCRIPTION by default. Set
 settings.sync-description-version: false to leave DESCRIPTION unchanged. An explicit
 legacy backend retains its original version policy. Citation support is separate.
@@ -199,7 +211,7 @@ full legacy parity. The existing projr package is unchanged.
 
 Browse the [function index](r-reference.qmd) or use help(package="projcli") locally.
 
-## Explicit init options in preview.6 source {#explicit-init-options-in-the-source-candidate}
+## Explicit init options in preview.6 {#explicit-init-options-in-the-source-candidate}
 
 The [project setup reference](cli/init.qmd) covers purpose/contact questions,
 --description-file, --readme-rmd, --renv and --citation. Use the existing
@@ -209,7 +221,7 @@ citation-author inference are not implied.
 
 ## R initialization helpers
 
-The merged preview.6 source adds projr_init, projr_init_plan, projr_init_readme,
+Preview.6 adds projr_init, projr_init_plan, projr_init_readme,
 projr_init_license and projr_init_renv. They use the shared CLI, with explicit R
 metadata values. Only opted-in renv setup checks its optional suggested package;
 installation requires interactive consent or explicit install_missing=TRUE.
