@@ -145,6 +145,18 @@ fn actual_closed_export_fresh_import_preserves_every_version_and_rejects_damage(
     assert!(fresh.snapshots().contains(&first)&&fresh.snapshots().contains(&second)&&fresh.snapshots().contains(&third));
     proj::xet::restore(&project,fresh.path(),&third,"raw-data",&restored,true,&engine).unwrap();
     assert_eq!(fs::read(restored.join("third.txt")).unwrap(),b"new imported-store version");
+    // A valid outer transport digest must not bless a lying internal inventory.
+    let expanded=proj::github_zip::extract_zip(&archive,64*1024*1024).unwrap();
+    let expanded_root=path(expanded.path());
+    let envelope=expanded_root.join("xet-export.json");
+    let mut metadata:serde_json::Value=serde_json::from_slice(&fs::read(&envelope).unwrap()).unwrap();
+    metadata["files"]["xet-format.json"]["hash"]=serde_json::Value::String("0".repeat(64));
+    fs::write(&envelope,serde_json::to_vec(&metadata).unwrap()).unwrap();
+    let (forged,_)=proj::github_zip::directory_zip(&expanded_root).unwrap();
+    let forged_path=path(forged.path());
+    let bad=proj::xet_archive::import(&project,&forged_path,&proj::cas::hash_file(&forged_path).unwrap(),
+        forged.as_file().metadata().unwrap().len(),64*1024*1024,&engine).err().expect("forged membership must fail");
+    assert!(format!("{bad:#}").contains("membership, length or digest mismatch"));
     assert!(proj::xet_archive::import(&project,&archive,&hash,length,1,&engine).is_err());
     assert!(proj::xet_archive::import(&project,&archive,&"0".repeat(64),length,64*1024*1024,&engine).is_err());
     let mut bytes=fs::read(&archive).unwrap();let offset=bytes.len()/2;bytes[offset]^=0x80;fs::write(&archive,bytes).unwrap();
