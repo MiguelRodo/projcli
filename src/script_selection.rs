@@ -10,6 +10,16 @@ pub(crate) fn is_scripts(label: &str) -> bool {
             .is_some_and(|name| !name.is_empty())
 }
 
+fn metadata_component(value: &str) -> bool {
+    [".git", ".proj", ".projr"].iter().any(|name| {
+        if cfg!(windows) {
+            value.eq_ignore_ascii_case(name)
+        } else {
+            value == *name
+        }
+    })
+}
+
 enum Exclusion {
     File(Utf8PathBuf),
     Pattern(glob::Pattern),
@@ -101,7 +111,7 @@ pub(crate) fn resolve(
 ) -> anyhow::Result<Vec<Utf8PathBuf>> {
     let metadata_directory = |path: &Utf8Path| {
         path.strip_prefix(root).is_ok_and(|relative| {
-            relative.components().any(|part| matches!(part.as_str(), ".git" | ".proj" | ".projr"))
+            relative.components().any(|part| metadata_component(part.as_str()))
         })
     };
     let mut blocked = vec![root.join(".git"), root.join(".proj"), root.join(".projr")];
