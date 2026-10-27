@@ -1,8 +1,8 @@
 use std::io::{self, BufRead, IsTerminal, Write};
 
-use std::fs;
-use crate::version::version_set;
 use crate::ignore::root;
+use crate::version::version_set;
+use std::fs;
 
 pub fn is_prompt_enabled() -> bool {
     if crate::env::is_non_interactive() {
@@ -28,7 +28,10 @@ pub fn ask_yes_no(prompt: &str, default: bool) -> bool {
         print!("{} {} ", prompt, default_str);
         stdout.flush().unwrap();
         input.clear();
-        match stdin.lock().read_line(&mut input) { Ok(0) | Err(_) => return false, Ok(_) => {} }
+        match stdin.lock().read_line(&mut input) {
+            Ok(0) | Err(_) => return false,
+            Ok(_) => {}
+        }
         {
             let trimmed = input.trim().to_lowercase();
             if trimmed.is_empty() {
@@ -57,7 +60,10 @@ pub fn ask_string(prompt: &str, default: Option<&str>) -> String {
         print!("{}{}: ", prompt, default_prompt);
         stdout.flush().unwrap();
         input.clear();
-        match stdin.lock().read_line(&mut input) { Ok(0) | Err(_) => return String::new(), Ok(_) => {} }
+        match stdin.lock().read_line(&mut input) {
+            Ok(0) | Err(_) => return String::new(),
+            Ok(_) => {}
+        }
         {
             let trimmed = input.trim();
             if trimmed.is_empty() {
@@ -85,7 +91,10 @@ pub fn ask_choice(prompt: &str, choices: &[&str], default: Option<&str>) -> Stri
         print!("{} ({}) {}: ", prompt, choices.join("/"), default_prompt);
         stdout.flush().unwrap();
         input.clear();
-        match stdin.lock().read_line(&mut input) { Ok(0) | Err(_) => return "later".to_owned(), Ok(_) => {} }
+        match stdin.lock().read_line(&mut input) {
+            Ok(0) | Err(_) => return "later".to_owned(),
+            Ok(_) => {}
+        }
         {
             let trimmed = input.trim().to_lowercase();
             if trimmed.is_empty() {
@@ -143,29 +152,39 @@ pub fn init_directories() -> anyhow::Result<()> {
     let base = crate::yml::base_configuration_path(&project_root)?;
     let mut active_profile = false;
     for profile in crate::profile::get_active_profiles() {
-        active_profile |= crate::yml::configuration_entry_exists(&project_root.join(format!("_projr-{profile}.yml")))?;
+        active_profile |= crate::yml::configuration_entry_exists(
+            &project_root.join(format!("_projr-{profile}.yml")),
+        )?;
     }
     let create_base = base.is_none() && !active_profile;
     let combined = crate::yml::get_combined_yml(None, &project_root)?;
     let combined = if create_base {
         crate::yml::deep_merge(serde_yaml::from_str::<serde_json::Value>(PRESET)?, combined)
-    } else { combined };
-    let raw: crate::yml::ProjConfig = serde_json::from_value(combined).context("Invalid directory initialization configuration")?;
+    } else {
+        combined
+    };
+    let raw: crate::yml::ProjConfig = serde_json::from_value(combined)
+        .context("Invalid directory initialization configuration")?;
     let config = raw.validate_and_resolve(&project_root, false)?;
     crate::path_safety::validate_build_paths(&project_root, &config, &[])?;
     for name in [".gitignore", ".Rbuildignore"] {
         let path = project_root.join(name);
         crate::path_safety::resolve_path(path.as_std_path(), true)?;
-        if path.exists() { fs::read_to_string(&path).with_context(|| format!("Failed to read existing {name}"))?; }
+        if path.exists() {
+            fs::read_to_string(&path).with_context(|| format!("Failed to read existing {name}"))?;
+        }
     }
     for label in config.directories.keys() {
         let path = config.get_path(&project_root, label)?;
-        if path.exists() && !path.is_dir() { anyhow::bail!("Declared directory '{label}' is not a directory"); }
+        if path.exists() && !path.is_dir() {
+            anyhow::bail!("Declared directory '{label}' is not a directory");
+        }
     }
     if create_base {
         let mut file = tempfile::NamedTempFile::new_in(project_root.as_std_path())?;
         file.write_all(PRESET.as_bytes())?;
-        file.persist_noclobber(project_root.join("_proj.yml")).map_err(|error| error.error)
+        file.persist_noclobber(project_root.join("_proj.yml"))
+            .map_err(|error| error.error)
             .context("Failed to create _proj.yml without overwriting existing configuration")?;
         println!("Created _proj.yml with explicit directory paths.");
     }
@@ -176,26 +195,38 @@ pub fn init_directories() -> anyhow::Result<()> {
     for label in labels {
         let path = config.get_path(&project_root, label)?;
         if !path.exists() {
-            fs::create_dir_all(&path).with_context(|| format!("Failed to create declared directory '{label}'"))?;
+            fs::create_dir_all(&path)
+                .with_context(|| format!("Failed to create declared directory '{label}'"))?;
             println!("Created directory: {path}");
         }
     }
     Ok(())
 }
 
-pub fn init_readme(title_opt: Option<String>, description_opt: Option<String>) -> anyhow::Result<()> {
+pub fn init_readme(
+    title_opt: Option<String>,
+    description_opt: Option<String>,
+) -> anyhow::Result<()> {
     let project_root = root().context("Failed to find project root.")?;
     let readme_path = project_root.join("README.md");
 
     crate::path_safety::resolve_path(readme_path.as_std_path(), true)?;
     if readme_path.exists() {
-        anyhow::ensure!(fs::symlink_metadata(&readme_path)?.is_file(), "Existing README.md must be a regular file");
+        anyhow::ensure!(
+            fs::symlink_metadata(&readme_path)?.is_file(),
+            "Existing README.md must be a regular file"
+        );
     } else {
         if ask_yes_no("Create a README.md?", true) {
-            let title = title_opt.unwrap_or_else(|| ask_string("Project Title", Some("My Project")));
-            let description = description_opt.unwrap_or_else(|| ask_string("Project Description", Some("A projr project.")));
+            let title =
+                title_opt.unwrap_or_else(|| ask_string("Project Title", Some("My Project")));
+            let description = description_opt
+                .unwrap_or_else(|| ask_string("Project Description", Some("A projr project.")));
 
-            anyhow::ensure!(!title.is_empty(), "README initialization cancelled before writing");
+            anyhow::ensure!(
+                !title.is_empty(),
+                "README initialization cancelled before writing"
+            );
             let content = format!("# {}\n\n{}\n", title, description);
             crate::init_setup::create(&project_root, "README.md", content.as_bytes())?;
             println!("Created README.md.");
@@ -205,14 +236,21 @@ pub fn init_readme(title_opt: Option<String>, description_opt: Option<String>) -
     Ok(())
 }
 
-pub fn init_license(license_opt: Option<String>, first_name_opt: Option<String>, last_name_opt: Option<String>) -> anyhow::Result<()> {
+pub fn init_license(
+    license_opt: Option<String>,
+    first_name_opt: Option<String>,
+    last_name_opt: Option<String>,
+) -> anyhow::Result<()> {
     let project_root = root().context("Failed to find project root.")?;
     let license_path = project_root.join("LICENSE");
     for name in ["LICENSE", "LICENSE.md"] {
-        let path=project_root.join(name);
-        crate::path_safety::resolve_path(path.as_std_path(),true)?;
+        let path = project_root.join(name);
+        crate::path_safety::resolve_path(path.as_std_path(), true)?;
         if path.exists() {
-            anyhow::ensure!(fs::symlink_metadata(&path)?.is_file(),"Existing licence must be a regular file");
+            anyhow::ensure!(
+                fs::symlink_metadata(&path)?.is_file(),
+                "Existing licence must be a regular file"
+            );
             println!("Existing {name} preserved.");
             return Ok(());
         }
@@ -222,15 +260,25 @@ pub fn init_license(license_opt: Option<String>, first_name_opt: Option<String>,
         if ask_yes_no("Add a LICENSE?", true) {
             let choice = match license_opt {
                 Some(value) => value,
-                None if is_prompt_enabled() => ask_choice("Code licence", &["ccby", "apache", "cc0", "proprietary", "later"], Some("later")),
+                None if is_prompt_enabled() => ask_choice(
+                    "Code licence",
+                    &["ccby", "apache", "cc0", "proprietary", "later"],
+                    Some("later"),
+                ),
                 None => return Ok(()),
             };
             let holder = if choice.eq_ignore_ascii_case("proprietary") {
-                let first = first_name_opt.unwrap_or_else(|| ask_string("Copyright holder first name", None));
-                let last = last_name_opt.unwrap_or_else(|| ask_string("Copyright holder last name", None));
+                let first = first_name_opt
+                    .unwrap_or_else(|| ask_string("Copyright holder first name", None));
+                let last =
+                    last_name_opt.unwrap_or_else(|| ask_string("Copyright holder last name", None));
                 Some(format!("{first} {last}").trim().to_owned())
-            } else { None };
-            let Some(content) = crate::init_setup::licence(&choice, holder.as_deref())? else { return Ok(()); };
+            } else {
+                None
+            };
+            let Some(content) = crate::init_setup::licence(&choice, holder.as_deref())? else {
+                return Ok(());
+            };
 
             crate::init_setup::create(&project_root, "LICENSE", content.as_bytes())?;
             println!("Created LICENSE ({})", choice);
@@ -275,8 +323,11 @@ pub fn init_git(commit_opt: Option<bool>) -> anyhow::Result<()> {
             .current_dir(project_root.as_std_path())
             .output()
             .context("Failed to execute git add")?;
-        anyhow::ensure!(add_output.status.success(), "Failed to stage initial files: {}",
-            String::from_utf8_lossy(&add_output.stderr));
+        anyhow::ensure!(
+            add_output.status.success(),
+            "Failed to stage initial files: {}",
+            String::from_utf8_lossy(&add_output.stderr)
+        );
 
         let commit_output = Command::new("git")
             .args(["commit", "-m", "Initial commit from proj init"])
@@ -288,7 +339,9 @@ pub fn init_git(commit_opt: Option<bool>) -> anyhow::Result<()> {
             println!("Initial commit created.");
         } else {
             let err = String::from_utf8_lossy(&commit_output.stderr);
-            if err.contains("nothing to commit") || String::from_utf8_lossy(&commit_output.stdout).contains("nothing to commit") {
+            if err.contains("nothing to commit")
+                || String::from_utf8_lossy(&commit_output.stdout).contains("nothing to commit")
+            {
                 println!("Nothing to commit.");
             } else {
                 anyhow::bail!("Failed to create initial commit: {}", err);
@@ -308,17 +361,22 @@ pub fn init_github(public_opt: Option<bool>) -> anyhow::Result<()> {
         .output()
         .context("Failed to check git remotes.")?;
 
-    anyhow::ensure!(remote_output.status.success(), "Failed to check git remotes: {}",
-        String::from_utf8_lossy(&remote_output.stderr));
+    anyhow::ensure!(
+        remote_output.status.success(),
+        "Failed to check git remotes: {}",
+        String::from_utf8_lossy(&remote_output.stderr)
+    );
     let remotes = String::from_utf8_lossy(&remote_output.stdout);
     if remotes.trim().is_empty() {
         if ask_yes_no("Create a GitHub repository?", true) {
             let is_public = match public_opt {
                 Some(value) => value,
                 None => {
-                    let choice=ask_choice("Visibility", &["public", "private"], Some("private"));
-                    if choice=="later" { return Ok(()); }
-                    choice=="public"
+                    let choice = ask_choice("Visibility", &["public", "private"], Some("private"));
+                    if choice == "later" {
+                        return Ok(());
+                    }
+                    choice == "public"
                 }
             };
 
@@ -354,7 +412,6 @@ pub fn init_full() -> anyhow::Result<()> {
     crate::init_setup::initialize(crate::init_setup::InitOptions::default())
 }
 
-
 /// Create README.Rmd explicitly without replacing either existing README.
 /// The template renders to Markdown; generating README.md is a separate build action.
 /// Does not install packages, execute R or modify project configuration.
@@ -370,12 +427,16 @@ pub fn init_readme_rmd(title: Option<String>, description: Option<String>) -> an
         "title": title.unwrap_or_else(|| "My Project".into()),
         "output": "md_document"
     }))?;
-    let contents = format!("---\n{}---\n\n{}\n", header,
-        description.unwrap_or_else(|| "Describe your project here.".into()));
+    let contents = format!(
+        "---\n{}---\n\n{}\n",
+        header,
+        description.unwrap_or_else(|| "Describe your project here.".into())
+    );
     let mut file = tempfile::NamedTempFile::new_in(root.as_std_path())?;
     file.write_all(contents.as_bytes())?;
     crate::path_safety::resolve_path(path.as_std_path(), true)?;
-    file.persist_noclobber(path).map_err(|error| error.error)
+    file.persist_noclobber(path)
+        .map_err(|error| error.error)
         .context("Cannot create README.Rmd without overwriting an existing file")?;
     Ok(())
 }
@@ -392,40 +453,62 @@ pub fn init_renv() -> anyhow::Result<()> {
     crate::r_housekeeping::initialize_renv(&root, &environment)
 }
 
-
 /// Explicitly license one declared project-contained directory, or root source code.
 /// General init never applies licences to resource labels. Existing LICENSE is preserved.
 /// External paths and project-root aliases are rejected in label mode.
-pub fn init_license_for(label:Option<&str>,license:Option<String>,first:Option<String>,last:Option<String>)->anyhow::Result<()> {
-    let Some(label)=label else {return init_license(license,first,last)};
-    let root=root().context("Cannot find project root")?;
-    let config:crate::yml::ProjConfig=serde_json::from_value(crate::yml::merged_configuration_from(&root,None,false)?)?;
-    let target=config.validate_and_resolve(&root,false)?.get_path(&root,label)?;
-    let target=crate::path_safety::resolve_path(target.as_std_path(),true)?;
-    anyhow::ensure!(target.starts_with(root.as_std_path())&&target!=root.as_std_path(),
-        "Directory licensing requires a declared project-contained folder distinct from the root");
-    let target=camino::Utf8Path::from_path(&target).context("Non-UTF8 licence directory")?;
-    for name in ["LICENSE","LICENSE.md"] {
-        let path=target.join(name);
-        crate::path_safety::resolve_path(path.as_std_path(),true)?;
+pub fn init_license_for(
+    label: Option<&str>,
+    license: Option<String>,
+    first: Option<String>,
+    last: Option<String>,
+) -> anyhow::Result<()> {
+    let Some(label) = label else {
+        return init_license(license, first, last);
+    };
+    let root = root().context("Cannot find project root")?;
+    let config: crate::yml::ProjConfig =
+        serde_json::from_value(crate::yml::merged_configuration_from(&root, None, false)?)?;
+    let target = config
+        .validate_and_resolve(&root, false)?
+        .get_path(&root, label)?;
+    let target = crate::path_safety::resolve_path(target.as_std_path(), true)?;
+    anyhow::ensure!(
+        target.starts_with(root.as_std_path()) && target != root.as_std_path(),
+        "Directory licensing requires a declared project-contained folder distinct from the root"
+    );
+    let target = camino::Utf8Path::from_path(&target).context("Non-UTF8 licence directory")?;
+    for name in ["LICENSE", "LICENSE.md"] {
+        let path = target.join(name);
+        crate::path_safety::resolve_path(path.as_std_path(), true)?;
         if path.exists() {
-            anyhow::ensure!(fs::symlink_metadata(&path)?.is_file(),"Existing licence must be a regular file");
+            anyhow::ensure!(
+                fs::symlink_metadata(&path)?.is_file(),
+                "Existing licence must be a regular file"
+            );
             return Ok(());
         }
     }
-    let choice=match license {
-        Some(value)=>value,
-        None if is_prompt_enabled()=>ask_choice("Directory licence",&["ccby","apache","cc0","proprietary","later"],Some("later")),
-        None=>return Ok(()),
+    let choice = match license {
+        Some(value) => value,
+        None if is_prompt_enabled() => ask_choice(
+            "Directory licence",
+            &["ccby", "apache", "cc0", "proprietary", "later"],
+            Some("later"),
+        ),
+        None => return Ok(()),
     };
-    let holder=if choice.eq_ignore_ascii_case("proprietary") {
-        let first=first.unwrap_or_else(||ask_string("Copyright holder first name",None));
-        let last=last.unwrap_or_else(||ask_string("Copyright holder last name",None));
+    let holder = if choice.eq_ignore_ascii_case("proprietary") {
+        let first = first.unwrap_or_else(|| ask_string("Copyright holder first name", None));
+        let last = last.unwrap_or_else(|| ask_string("Copyright holder last name", None));
         Some(format!("{first} {last}").trim().to_owned())
-    }else{None};
-    let Some(text)=crate::init_setup::directory_licence(&choice,holder.as_deref())? else{return Ok(())};
-    crate::path_safety::resolve_path(target.as_std_path(),true)?;
+    } else {
+        None
+    };
+    let Some(text) = crate::init_setup::directory_licence(&choice, holder.as_deref())? else {
+        return Ok(());
+    };
+    crate::path_safety::resolve_path(target.as_std_path(), true)?;
     fs::create_dir_all(target)?;
-    crate::init_setup::create(target,"LICENSE",text.as_bytes())?;
+    crate::init_setup::create(target, "LICENSE", text.as_bytes())?;
     Ok(())
 }

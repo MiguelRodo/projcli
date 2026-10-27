@@ -104,7 +104,10 @@ impl ProjVersion {
         let major: u32 = caps.get(1)?.as_str().parse().ok()?;
         let minor: u32 = caps.get(2)?.as_str().parse().ok()?;
         let patch: u32 = caps.get(3)?.as_str().parse().ok()?;
-        let dev: u32 = match caps.get(4) { Some(value) => value.as_str().parse().ok()?, None => 0 };
+        let dev: u32 = match caps.get(4) {
+            Some(value) => value.as_str().parse().ok()?,
+            None => 0,
+        };
 
         Some(ProjVersion {
             major,
@@ -253,7 +256,9 @@ pub(crate) fn description_bytes(
             if previous_version {
                 anyhow::ensure!(!found, "DESCRIPTION has duplicate Version fields");
                 found = true;
-                if literal.is_match(value.trim()) && ProjVersion::parse(value.trim()).as_ref()==Some(version) {
+                if literal.is_match(value.trim())
+                    && ProjVersion::parse(value.trim()).as_ref() == Some(version)
+                {
                     output.push_str(line);
                     continue;
                 }

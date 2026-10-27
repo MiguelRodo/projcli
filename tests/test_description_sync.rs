@@ -168,9 +168,19 @@ fn missing_version_is_inserted_before_trailing_blank_lines() {
     );
 }
 
-#[test] fn overflowing_dev_counter_is_not_preserved_as_an_equal_release_version() {
- assert!(proj::ProjVersion::parse("1.2.3-4294967296").is_none());
- let t=project();let r=t.path();fs::write(r.join("DESCRIPTION"),"Package: fixture\nVersion: 1.2.3-4294967296\n").unwrap();
- good(cli(r,&["version","set","1.2.3"]));
- assert_eq!(fs::read_to_string(r.join("DESCRIPTION")).unwrap(),"Package: fixture\nVersion: 1.2.3\n");
+#[test]
+fn overflowing_dev_counter_is_not_preserved_as_an_equal_release_version() {
+    assert!(proj::ProjVersion::parse("1.2.3-4294967296").is_none());
+    let t = project();
+    let r = t.path();
+    fs::write(
+        r.join("DESCRIPTION"),
+        "Package: fixture\nVersion: 1.2.3-4294967296\n",
+    )
+    .unwrap();
+    good(cli(r, &["version", "set", "1.2.3"]));
+    assert_eq!(
+        fs::read_to_string(r.join("DESCRIPTION")).unwrap(),
+        "Package: fixture\nVersion: 1.2.3\n"
+    );
 }

@@ -100,7 +100,11 @@ fn library_config_reads_are_nonmutating() {
 fn production_build_still_requests_ignore_synchronization() {
     let project = tempfile::tempdir().unwrap();
     let root = project.path();
-    fs::write(root.join("DESCRIPTION"), "Package: fixture\nVersion: 1.2.3\n").unwrap();
+    fs::write(
+        root.join("DESCRIPTION"),
+        "Package: fixture\nVersion: 1.2.3\n",
+    )
+    .unwrap();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
     fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
     fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('_tmp').mkdir(exist_ok=True)\nPath('_tmp/production.txt').write_text('done')\n").unwrap();
