@@ -19,7 +19,7 @@ for exact verification and limits. Newer changes on main need their own evidence
 | Capability | What it means for you |
 |---|---|
 | Choose the project | `--project PATH` selects the folder for a command. Child queries retain that root. |
-| Preview an analysis | `build-dev` runs your selected steps without CLI version changes, output promotion or archive export. |
+| Preview an analysis | `build-dev` runs your selected steps without CLI version changes, copying preview results to final folders or uploading backups. |
 | Read without changing files | Configuration validation and path queries do not create target folders or edit ignore files. |
 | Detect command failures | Errors produce a nonzero exit status, so an automated run can stop. |
 | Run without questions | `--non-interactive` disables CLI prompts and automatic package installation, and closes runner input. |
@@ -31,7 +31,7 @@ for exact verification and limits. Newer changes on main need their own evidence
 
 The CLI skips its own release operations during a preview, including cleanup
 of released outputs and prior caches. **This is not a filesystem sandbox.**
-Scripts, hooks and renderers can still change files. Generated-output path queries default to the selected versioned cache. Use those
+Scripts, hooks and renderers can still change files. Queries for generated results point to the chosen temporary folder for that version. Use those
 paths from your scripts, as in the [tutorial](tutorial.qmd); arbitrary writes are
 still outside that rule.
 
@@ -69,7 +69,7 @@ render README.Rmd and snapshot renv dependencies; they default off.
 [Complete CAS stores on GitHub](cas-github.qmd) share identical files inside one
 store. [Experimental Xet](xet-storage.qmd) shares pieces of files locally and uses
 the same local engine through GitHub ZIPs. Both GitHub options transfer the whole
-store, keep old immutable exports, and need trusted project references for restore.
+store, keep old immutable exports, and need trusted project records identifying the saved ZIPs for restore.
 Xet's helper is separate and qualified on Linux/WSL; native Windows Xet is unsupported.
 
 The [real synthetic round-trip](https://github.com/MiguelRodo/projcli/actions/runs/40510154990)

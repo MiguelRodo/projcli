@@ -19,7 +19,7 @@ Use the configured build/restore example below.
 
 ## What is verified before a reference can be saved
 
-Export holds the cooperative store writer claim while copying. It excludes
+Export holds the store lock (which other projcli operations also respect) while copying. It excludes
 coordination state, then checks every copied file, every content-addressed object
 including orphan objects, directory identities and each tree, flat-catalogue or
 legacy snapshot. Complete metadata must be present in the exported store.
@@ -43,9 +43,7 @@ ZIP can remain. Same-name retries accept only independently verified exact bytes
 No delete-old-before-upload replacement or automatic retention cleanup is used.
 
 Recovery downloads the selected complete ZIP and uses the ordinary local CAS
-readers. It needs no Xet engine or Hugging Face account. Current library tests use
-only disposable synthetic files and a loopback mocked REST service, not live
-GitHub archives. A separate [real GitHub round-trip](https://github.com/MiguelRodo/projcli/actions/runs/40510154990) also passed; configured examples follow. No multi-project/shared-store namespace, distributed linear-head merge,
+readers. It needs no Xet engine or Hugging Face account. Failure tests use disposable synthetic files and a simulated GitHub API. A separate [real GitHub round-trip](https://github.com/MiguelRodo/projcli/actions/runs/40510154990) also passed; configured examples follow. No multi-project/shared-store project-name separation, distributed linear-head merge,
 hot-copy or power-loss guarantee is introduced.
 
 All existing ordinary latest/archive paths and metadata ZIPs remain unchanged.
@@ -96,7 +94,7 @@ can be csv (the flat default), json, csv-dedupe-file or json-dedupe-file.
 Tree uses its fixed JSON encoding. This does not alter existing local CAS defaults.
 
 The GitHub complete-store option supports manifest: auto or remote,
-keeping full metadata in the store ZIP and small trusted project locators in Git.
+keeping full metadata in the store ZIP and small trusted project records identifying saved ZIPs in Git.
 Project-only or both full-copy placement is not implemented for this transport
 and is rejected explicitly. Existing local CAS supports its wider placement policy.
 
@@ -130,7 +128,6 @@ requires explicit budgets. Every update transfers the complete ZIP, and old
 exports/orphans remain until an explicit retention policy is chosen. These limits
 are not disk reservations. Store assets follow the repository's visibility.
 
-This is one project per store, with Git-authoritative base locators. Local claims
-and immutable exports are not distributed linear-head coordination: concurrent
-checkouts can produce distinct exports and Git conflicts. No automatic history
-merge, multi-project namespace or cleanup is provided.
+Use one project per store. If two checkouts upload at the same time, they can
+produce different saved ZIPs and conflicting project records. projcli does not
+merge those histories or delete older exports automatically.

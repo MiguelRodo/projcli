@@ -6,6 +6,7 @@ on:
       - README.md
       - docs/**
       - .github/workflows/docs-validation.yml
+      - tests/acceptance/site_browser.mjs
 
 permissions:
   contents: read
@@ -167,6 +168,8 @@ jobs:
               server.shutdown();server.server_close()
           print("PASS documented exports:",len(exports))
           PY
+      - name: Check rendered lists, accessible themes and persisted preference
+        run: timeout --kill-after=10s 180s node tests/acceptance/site_browser.mjs docs/_site 2>&1 | tee validation-evidence/site-themes.txt
       - name: Check rendered navigation and local links
         run: |
           python3 - <<'PY' 2>&1 | tee validation-evidence/links.txt

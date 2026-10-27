@@ -1,6 +1,7 @@
 # `proj ignore`
 
-Commands for interacting with tracking file exclusions, handling operations to manually or automatically modify `.gitignore` and `.Rbuildignore` files.
+Choose which project paths Git or R package builds should exclude. Existing
+user-written rules are preserved outside the managed block.
 
 ## `proj ignore add`
 
@@ -11,8 +12,8 @@ Unlike automatic configurations driven by `_proj.yml`, these manual entries repr
 ### Arguments & Flags
 
 - `<PATHS>...`: One or more raw file or directory paths to be ignored.
-- `--force-create`: Boolean flag (default `true`). If true, creates ignore files if they don't exist. If false, skips file creation unless inherently warranted by environmental cues (e.g. finding a `.git` folder or a `DESCRIPTION` file).
-- `--type`: Optional filter selection (`all` [default], `git`, `rbuild`). Determines which tracking surface receives the manual path entries. Note that `.Rbuildignore` is skipped entirely if no `DESCRIPTION` file exists at the project root.
+- `--force-create`: Boolean flag (default `true`). If true, creates ignore files if they don't exist. If false, skips file creation unless the project requires it (e.g. finding a `.git` folder or a `DESCRIPTION` file).
+- `--type`: Optional filter selection (`all` [default], `git`, `rbuild`). Determines which ignore file receives the manual path entries. Note that `.Rbuildignore` is skipped entirely if no `DESCRIPTION` file exists at the project root.
 
 ## `proj ignore remove`
 
@@ -23,31 +24,38 @@ These unignore entries represent permanent, user-specified negations and are pla
 ### Arguments & Flags
 
 - `<PATHS>...`: One or more raw file or directory paths to force tracking.
-- `--type`: Optional filter selection (`all` [default], `git`, `rbuild`). Determines which tracking surface receives the negated entries. Note that `.Rbuildignore` is skipped entirely if no `DESCRIPTION` file exists at the project root.
+- `--type`: Optional filter selection (`all` [default], `git`, `rbuild`). Determines which ignore file receives the negated entries. Note that `.Rbuildignore` is skipped entirely if no `DESCRIPTION` file exists at the project root.
 
-## Automated Synchronization
+## When automatic rules are updated
 
-The library core automatically synchronizes ignore rules dynamically across `.gitignore` and `.Rbuildignore` based on the configuration of `_proj.yml`.
+Directory initialization and production builds update the managed ignore rules
+from `_proj.yml`. Reading configuration (`proj yml read`) and looking up paths
+leave ignore files unchanged. A preview does not add ignore rules.
 
-> **Note:** While the automated ignore synchronization is invoked implicitly by the CLI via commands like `proj yml read` (and acts seamlessly under the hood), the `ignore` subcommand namespace exists openly to support explicit manual additions via `proj ignore add`.
+The project is selected by `--project`, an inherited build context, or the nearest
+recognized parent project folder. A VERSION file is one possible marker; it is
+not required for every query. See [project discovery](path.qmd#nearest-root-discovery).
 
-## Automated Root Scans
+## Git and R package exclusions
 
-The tool automatically locates the project boundaries via a heuristic upward path traversal. It begins checking from the user's current working directory upward:
-- It discovers the conceptual root by finding a directory containing a `VERSION` file.
-- It continues upward through up to 5 directory levels seeking an optimal foundational root confirming the presence of either `_proj.yml` or a `.git` tracking context alongside the `VERSION`.
+- `.gitignore` controls which untracked files Git normally ignores.
+- `.Rbuildignore` excludes files when building an R source package. It is only
+  updated when the project has a DESCRIPTION file; it does not prove CRAN compliance.
 
-## Protected Exceptions File List
+These files use different pattern languages: Git uses ignore patterns, while
+R uses regular expressions. projcli converts configured paths for each file.
+Check manual patterns carefully, especially when keeping a file that a parent
+folder rule excludes.
 
-The tool targets specifically two core exception list files:
-- `.gitignore` (safeguards `git` commit environments)
-- `.Rbuildignore` (safeguards strict CRAN environments and `rbuild` processes)
+## Your rules are preserved
 
-Based on the individual block `ignore` settings within `_proj.yml` (e.g. `ignore: all`), properties are intelligently resolved as standard `git` glob patterns and `Rbuild` regex match patterns appropriately.
+Automatic rules are kept between these comments:
 
-## Demarcation Slice Logic
+```text
+# --- PROJ MANAGED ---
+# --- END PROJ MANAGED ---
+```
 
-Modifications made by the tool into `.gitignore` and `.Rbuildignore` are safely strictly demarcated with protected slice logic block comments. This preserves user-defined modifications outside the managed span:
-- Operations scan for `# --- PROJ MANAGED ---` and `# --- END PROJ MANAGED ---`.
-- Targeted slice elements are swapped or appended into existing scopes only between these exact markers.
-- If the boundary blocks are absent, the tool automatically injects them natively at the base end.
+projcli replaces only the content inside its managed block. Existing rules
+outside it are preserved. If the block is missing, it is appended. Manual add
+entries go before the block; manual remove entries go after it.
