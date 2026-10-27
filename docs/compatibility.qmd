@@ -3891,15 +3891,17 @@ and [additional project resources](https://github.com/quarto-dev/quarto-cli/blob
 The exclusions address the observed nested cached/final SVG copies; they do not
 replace native navigation, rendering or resource-selection implementation.
 
-Literal path quoting uses native-escaped character classes, preserving glob
-expansion while quoting the native engine's metacharacters ([POSIX](https://github.com/denoland/std/blob/0.224.0/path/posix/glob_to_regexp.ts#L9),
+Literal path quoting uses the native escape prefix and an empty optional group
+that adds no characters but forces escape-aware filesystem matching ([POSIX](https://github.com/denoland/std/blob/0.224.0/path/posix/glob_to_regexp.ts#L9),
 [Windows](https://github.com/denoland/std/blob/0.224.0/path/windows/glob_to_regexp.ts#L9)).
 The real Linux fixture includes spaces and square brackets in both cache and
 final-docs paths; Windows Quarto execution is not established by the Rust check.
 
 Deno's [fixed-prefix filesystem scan](https://github.com/denoland/std/blob/0.224.0/fs/expand_glob.ts#L302)
-does not remove escape characters from a non-glob segment, so quoting only outside
-a character class does not suffice for bracketed directory names. The actual
+does not remove escape characters from a non-glob segment, so escape-only prefixes do not suffice for bracketed directory names. The native
+[optional-group parser](https://github.com/denoland/std/blob/0.224.0/path/_common/glob_to_reg_exp.ts#L177)
+accepts an empty group; its question mark selects glob expansion and its empty
+body leaves the matched name unchanged. The actual
 bracket-path repeat fixture remains unchanged.
 Automatic local-environment-file ignores now use the same managed updater as
 directory rules, so a plain non-R build does not create .Rbuildignore merely

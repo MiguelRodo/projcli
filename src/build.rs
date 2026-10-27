@@ -1124,13 +1124,16 @@ pub(crate) fn rewrite_engine_output_dir(project_root: &Path, engine: &str, out_d
                     let Ok(relative)=directory.strip_prefix(root) else {continue;};
                     if relative.as_str().is_empty() {continue;}
                     // Quarto smart resource globs otherwise match prior copies at every depth.
-                    // Keep a visible class so Deno expands rather than stat-ing an escaped literal.
-                    // Escape inside that class with the native POSIX/Windows prefix.
+                    // Deno stats a non-glob prefix literally, without decoding its escapes.
+                    // An empty optional extglob consumes no characters but forces escape-aware matching.
                     let relative=if cfg!(windows){relative.as_str().replace('\\',"/")}else{relative.to_string()};
                     let escape=if cfg!(windows){char::from(96)}else{'\\'};
-                    let path=relative.chars().map(|c|{
-                        if c==escape||matches!(c,'['|']'|'*'|'?'|'{'|'}'|'('|')'|'+'|'@'|'!'|'|') {format!("[{escape}{c}]")}else{c.to_string()}
-                    }).collect::<String>();
+                    let path=relative.split('/').map(|part|{
+                        let quoted=part.chars().flat_map(|c|{
+                            if c==escape||matches!(c,'['|']'|'*'|'?'|'{'|'}'|'('|')'|'+'|'@'|'!'|'|') {vec![escape,c]}else{vec![c]}
+                        }).collect::<String>();
+                        if quoted==part {quoted}else{format!("?(){quoted}")}
+                    }).collect::<Vec<_>>().join("/");
                     let rule=serde_yaml::Value::String(format!("!/{path}/**"));
                     if !resources.contains(&rule) {resources.push(rule);}
                 }
