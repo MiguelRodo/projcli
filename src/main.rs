@@ -746,7 +746,7 @@ fn main() {
                 }
 
                 if let Err(e) = proj::build_project_with_policies(
-                    &camino::Utf8PathBuf::try_from(root).unwrap(),
+                    &root,
                     mode,
                     profile.as_deref(),
                     desc.as_deref(),
@@ -772,7 +772,7 @@ fn main() {
         } => {
             if let Some(root) = proj::root() {
                 if let Err(e) = proj::build_project_with_policies(
-                    &camino::Utf8PathBuf::try_from(root).unwrap(),
+                    &root,
                     proj::BuildMode::Dev,
                     profile.as_deref(),
                     None,
@@ -1256,12 +1256,14 @@ fn configured_restore(
                 named,
                 snapshot,
                 label,
-                profile.as_deref(),
-                remote_version.as_deref(),
-                *clear,
-                max_bytes.ok_or_else(|| anyhow::anyhow!("GitHub Xet requires --max-bytes"))?,
-                max_expanded_bytes
-                    .ok_or_else(|| anyhow::anyhow!("GitHub Xet requires --max-expanded-bytes"))?,
+                proj::restore::SnapshotRestoreOptions {
+                    profile: profile.as_deref(),
+                    remote_version: remote_version.as_deref(),
+                    clear: *clear,
+                    max_bytes: max_bytes.ok_or_else(|| anyhow::anyhow!("GitHub Xet requires --max-bytes"))?,
+                    max_expanded: max_expanded_bytes
+                        .ok_or_else(|| anyhow::anyhow!("GitHub Xet requires --max-expanded-bytes"))?,
+                },
             );
         }
         if proj::configured_cas_github::selected(root, named, profile.as_deref())? {
@@ -1278,12 +1280,14 @@ fn configured_restore(
                 named,
                 snapshot,
                 label,
-                profile.as_deref(),
-                remote_version.as_deref(),
-                *clear,
-                max_bytes.ok_or_else(|| anyhow::anyhow!("GitHub CAS requires --max-bytes"))?,
-                max_expanded_bytes
-                    .ok_or_else(|| anyhow::anyhow!("GitHub CAS requires --max-expanded-bytes"))?,
+                proj::restore::SnapshotRestoreOptions {
+                    profile: profile.as_deref(),
+                    remote_version: remote_version.as_deref(),
+                    clear: *clear,
+                    max_bytes: max_bytes.ok_or_else(|| anyhow::anyhow!("GitHub CAS requires --max-bytes"))?,
+                    max_expanded: max_expanded_bytes
+                        .ok_or_else(|| anyhow::anyhow!("GitHub CAS requires --max-expanded-bytes"))?,
+                },
             );
         }
         anyhow::ensure!(

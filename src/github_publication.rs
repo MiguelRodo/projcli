@@ -795,7 +795,7 @@ pub(crate) fn publish(root: &Utf8Path, targets: &[Target], version: &str) -> any
                     );
                 }
                 (Err(error), Ok(())) => return Err(error),
-                (Ok(()), Err(error)) => return Err(error.into()),
+                (Ok(()), Err(error)) => return Err(error),
                 (Ok(()), Ok(())) => {}
             }
         }

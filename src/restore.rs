@@ -187,11 +187,25 @@ pub(crate) fn content_has(value: Option<&Value>, label: &str, raw: &Value) -> an
         _ => anyhow::bail!("Remote content must be boolean or a label list"),
     }
 }
+/// Explicit immutable-store recovery settings; transport budgets are mandatory.
+pub struct SnapshotRestoreOptions<'a> {
+    /// Selected configuration profile, if any.
+    pub profile: Option<&'a str>,
+    /// Optional expected version; it must match the selected snapshot.
+    pub remote_version: Option<&'a str>,
+    /// Remove destination members absent from the verified snapshot.
+    pub clear: bool,
+    /// Maximum compressed store transfer length.
+    pub max_bytes: u64,
+    /// Maximum aggregate expanded archive length.
+    pub max_expanded: u64,
+}
+
 fn select_source(raw: &Value, label: &str, request: &RestoreRequest) -> anyhow::Result<Source> {
     // Registry lookup is independent of upload selection and legacy section filters.
     // Directory-specific references retain their existing priority.
-    if request.position.as_deref() != Some("dest") {
-        if let Some(sources) = raw["directories"][label]
+    if request.position.as_deref() != Some("dest")
+        && let Some(sources) = raw["directories"][label]
             .get("source")
             .filter(|v| !v.is_null())
         {
@@ -238,11 +252,10 @@ fn select_source(raw: &Value, label: &str, request: &RestoreRequest) -> anyhow::
                     }
                 }
             }
-        }
     }
     let mut fallback = None;
-    if request.position.as_deref() != Some("source") {
-        if let Some(build) = raw.get("build").and_then(Value::as_object) {
+    if request.position.as_deref() != Some("source")
+        && let Some(build) = raw.get("build").and_then(Value::as_object) {
             for (provider, entries) in build {
                 if !matches!(provider.as_str(), "local" | "github")
                     || !provider_allowed(provider, request)
@@ -285,7 +298,6 @@ fn select_source(raw: &Value, label: &str, request: &RestoreRequest) -> anyhow::
                     }
                 }
             }
-        }
     }
     let mut registry_fallback = None;
     if let Some(registry) = raw.get("remotes").and_then(Value::as_object) {
@@ -701,8 +713,7 @@ pub fn restore_label(root: &Utf8Path, request: &RestoreRequest) -> anyhow::Resul
             vec![label.as_str()]
         } {
             let versions = crate::local_remote::list_versions(&base, remote_label, layout, append)?;
-            if !versions.is_empty() {
-                if !catalogs.iter().any(
+            if !versions.is_empty() && !catalogs.iter().any(
                     |(_, previous): &(&str, Vec<crate::local_remote::LocalVersion>)| {
                         previous
                             .iter()
@@ -727,7 +738,6 @@ pub fn restore_label(root: &Utf8Path, request: &RestoreRequest) -> anyhow::Resul
                     },
                 ) {
                     catalogs.push((remote_label, versions));
-                }
             }
         }
         anyhow::ensure!(

@@ -388,12 +388,11 @@ pub fn restore(
     title: &str,
     id: &str,
     label: &str,
-    profile: Option<&str>,
-    remote_version: Option<&str>,
-    clear: bool,
-    max_bytes: u64,
-    max_expanded: u64,
+    options: crate::restore::SnapshotRestoreOptions<'_>,
 ) -> Result<crate::restore::RestoreResult> {
+    let crate::restore::SnapshotRestoreOptions {
+        profile, remote_version, clear, max_bytes, max_expanded,
+    } = options;
     let (config, engine, imported, snapshot) =
         recover(root, title, id, profile, max_bytes, max_expanded)?;
     let label = config

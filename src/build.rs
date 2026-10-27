@@ -122,7 +122,7 @@ fn publish_git_recorded_in(
             outcome.push = Status::Started;
         }
         let pushed = provider.push(&target.remote, &format!("HEAD:{}", target.reference));
-        if let Some(outcome) = outcome.as_deref_mut() {
+        if let Some(outcome) = outcome {
             outcome.push = if pushed.is_ok() {
                 Status::Completed
             } else {
@@ -1872,7 +1872,7 @@ fn rewrite_quarto_yml(
 
             let seq: Vec<serde_yaml::Value> = qmd_paths
                 .into_iter()
-                .map(|s| serde_yaml::Value::String(s))
+                .map(serde_yaml::Value::String)
                 .collect();
             proj_map.insert(render_key, serde_yaml::Value::Sequence(seq));
         }
@@ -1978,7 +1978,7 @@ fn rewrite_bookdown_yml(
         let key = serde_yaml::Value::String("rmd_files".to_string());
         let seq: Vec<serde_yaml::Value> = rmd_paths
             .into_iter()
-            .map(|s| serde_yaml::Value::String(s))
+            .map(serde_yaml::Value::String)
             .collect();
         map.insert(key, serde_yaml::Value::Sequence(seq));
     }

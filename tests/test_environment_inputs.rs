@@ -79,7 +79,7 @@ fn unreadable_required_file_does_not_silently_disable_validation() {
     let path = root.join("_environment.required");
     fs::write(&path, "PROJ_ENV_REQUIRED\n").unwrap();
     let permissions = fs::metadata(&path).unwrap().permissions();
-    fs::set_permissions(&path, fs::Permissions::from_mode(0)).unwrap();
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o000)).unwrap();
     let output = run(root);
     fs::set_permissions(&path, permissions).unwrap();
     assert!(!output.status.success());
