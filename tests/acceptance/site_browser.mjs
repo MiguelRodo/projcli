@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
-import { mkdtemp, readFile, writeFile, mkdir, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile, mkdir, rm, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join, extname, sep } from 'node:path';
 
@@ -73,7 +73,7 @@ async function browser(systemTheme) {
       await wait(`document.readyState === 'complete' && document.body.classList.contains('quarto-${theme}')`);
       await sleep(200);
     }
-    const pages = ['index', 'install', 'tutorial', 'features', 'configuration', 'r-frontend', 'r-reference', 'xet-storage', 'cas-github', 'cli/build', 'cli/version', 'cli/ignore', 'cli/path', 'cli/remote'];
+    const pages = (await readdir(site, { recursive: true })).filter(path => path.endsWith('.html')).map(path => path.slice(0, -5)).sort();
     for (const page of pages) {
       await navigate(page, systemTheme);
       const result = await evaluate(`(() => {
@@ -83,7 +83,7 @@ async function browser(systemTheme) {
         const bg = el => { for (; el; el = el.parentElement) { const c = rgba(getComputedStyle(el).backgroundColor); if (c.length === 3 || c[3] > 0.99) return c; } return [255,255,255]; };
         const lum = c => c.slice(0,3).map(x => { x /= 255; return x <= .04045 ? x/12.92 : ((x+.055)/1.055)**2.4; }).reduce((s,x,i) => s+x*[.2126,.7152,.0722][i],0);
         const contrast = el => { const a=lum(rgba(getComputedStyle(el).color)), b=lum(bg(el)); return (Math.max(a,b)+.05)/(Math.min(a,b)+.05); };
-        const samples = [...main.querySelectorAll('p,li,h1,h2,h3,a,pre code,td,th'), ...document.querySelectorAll('.navbar .nav-link,.sidebar-item-text')].filter(el => el.innerText.trim() && el.getBoundingClientRect().height > 0);
+        const samples = [...main.querySelectorAll('p,li,h1,h2,h3,a,code,code span,.btn,button,td,th'), ...document.querySelectorAll('.navbar .nav-link,.sidebar-item-text')].filter(el => el.innerText.trim() && el.getBoundingClientRect().height > 0);
         const low = samples.map(el => ({ tag: el.tagName, text: el.innerText.slice(0,65), ratio: contrast(el) })).filter(x => x.ratio < 4.5);
         const broken = [...main.querySelectorAll('p')].filter(el => /(?:^|\\n)\\s*(?:[-*+]|\\d+[.)])\\s+/.test(el.innerText)).map(el=>el.innerText.slice(0,150));
         return { title: document.title, theme: document.body.className, lists: main.querySelectorAll('li').length, code: main.querySelectorAll('pre').length, tables: main.querySelectorAll('table').length,
@@ -92,6 +92,10 @@ async function browser(systemTheme) {
       })()`);
       reports.push({ page, systemTheme, ...result });
       assert.deepEqual(result.broken, [], `${page}: unrendered list markup`);
+      if (page === 'cas-github' || page === 'xet-storage') {
+        const kind = page === 'cas-github' ? 'cas' : 'xet';
+        assert(await evaluate(`document.querySelector('main').innerText.includes('.proj/remotes/<remote-name-hash>/${kind}-github/v1/')`), 'Complete literal metadata path must remain visible');
+      }
       assert.deepEqual(result.low, [], `${page} ${systemTheme}: low contrast ${JSON.stringify(result.low)}`);
       assert(result.toggle?.role === 'button' && result.toggle.tab === 0 && result.toggle.label, `${page}: accessible toggle`);
       if (page === 'configuration') assert.equal(result.prefixes.length, 4, 'Each directory prefix must be its own rendered list item');
@@ -106,12 +110,29 @@ async function browser(systemTheme) {
     await call('Input.dispatchKeyEvent', { type: 'keyUp', key: ' ', code: 'Space', windowsVirtualKeyCode: 32 });
     const chosen = systemTheme === 'dark' ? 'light' : 'dark';
     await wait(`document.body.classList.contains('quarto-${chosen}')`);
-    assert(await evaluate(`getComputedStyle(document.activeElement).outlineStyle !== 'none'`), 'Keyboard focus must be visible');
+    const focus = await evaluate(`(() => {
+      const el = document.activeElement, style = getComputedStyle(el);
+      const rgb = s => s.match(/[\\d.]+/g).map(Number);
+      let bg = el; while (bg.parentElement && getComputedStyle(bg).backgroundColor === 'rgba(0, 0, 0, 0)') bg = bg.parentElement;
+      const l = s => rgb(s).slice(0,3).map(v => { v /= 255; return v <= .04045 ? v/12.92 : ((v+.055)/1.055)**2.4; }).reduce((a,v,i) => a+v*[.2126,.7152,.0722][i],0);
+      const ratio = (a,b) => (Math.max(a,b)+.05)/(Math.min(a,b)+.05);
+      const background = l(getComputedStyle(bg).backgroundColor);
+      return { outline: style.outlineStyle, width: parseFloat(style.outlineWidth), contrast: ratio(l(style.outlineColor),background), iconContrast: ratio(l(style.color),background), icon: getComputedStyle(el.querySelector('.bi')).backgroundImage };
+    })()`);
+    assert(focus.outline !== 'none' && focus.width >= 2 && focus.contrast >= 3, JSON.stringify(focus));
+    assert(focus.icon !== 'none' && focus.iconContrast >= 3, JSON.stringify(focus));
     await navigate('r-frontend', chosen);
     await call('Page.reload');
     await wait(`document.readyState === 'complete' && document.body.classList.contains('quarto-${chosen}')`);
-    reports.push({ systemTheme, keyboard: 'Space', persistedAcrossNavigationAndReload: chosen });
-    console.log(`PASS ${systemTheme} system default, fourteen pages, keyboard toggle, persisted navigation/reload`);
+    await evaluate(`document.querySelector('.quarto-color-scheme-toggle').focus()`);
+    await call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+    await call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+    await wait(`document.body.classList.contains('quarto-${systemTheme}')`);
+    await sleep(200);
+    assert(await evaluate(`document.body.classList.contains('quarto-${systemTheme}')`), 'Enter must toggle exactly once');
+    await navigate('configuration', systemTheme);
+    reports.push({ systemTheme, keyboard: ['Space','Enter'], focus, persistedAcrossNavigationAndReload: chosen, enterPersists: systemTheme });
+    console.log(`PASS ${systemTheme} system default, ${pages.length} pages, Space/Enter, persisted navigation/reload`);
   } finally {
     socket?.close();
     child.kill('SIGTERM');

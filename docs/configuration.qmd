@@ -105,7 +105,11 @@ for their additional requirements and limits.
 
 The `_proj.yml` file can also contain a `build` block to configure the behavior of the `proj build` and `proj build-dev` execution engine. The `build` block supports the following sub-keys:
 
-- **`dest`**: An optional list of remote target strings. These targets must be mapped to explicit configurations within the `remotes.local` block. During post-build execution, resolved content directories matching these tags are piped to the CAS engine for deduplicated storage synchronization.
+- **`dest`**: Select named destinations defined under `remotes.local` or
+  `remotes.github`. Use a list of names, or the documented name-to-options
+  mapping to narrow each destination's `content`. The destination's structure
+  controls how files are saved. Removing a name from `build.dest` stops uploads
+  without removing that remote as a restore source.
 - **`scripts`**: An optional list of explicit script paths or glob patterns to execute during the build pipeline.
   - Globbing patterns are supported.
   - Prefix a pattern with `!` to exclude matching files from execution.

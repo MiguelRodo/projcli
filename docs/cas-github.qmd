@@ -17,39 +17,6 @@ long-running GitHub storage release. It preserves existing file hashes, tree
 identifiers and legacy readers. It does not convert or migrate local archives.
 Use the configured build/restore example below.
 
-## What is verified before a reference can be saved
-
-Export holds the store lock (which other projcli operations also respect) while copying. It excludes
-coordination state, then checks every copied file, every content-addressed object
-including orphan objects, directory identities and each tree, flat-catalogue or
-legacy snapshot. Complete metadata must be present in the exported store.
-Project-only metadata is not silently invented or copied from another project.
-
-The ZIP has a bounded, versioned file-membership/length/digest envelope. Import
-first checks the trusted external ZIP digest and length, uses the existing
-traversal/link/duplicate/expansion guards, and then deeply checks the whole store
-in a fresh private location. The envelope is removed after checking so that new
-versions can be added and the store exported again.
-
-A checksum inside the ZIP alone does not authenticate it. Keep the exact store
-reference, including ZIP digest, in trusted project Git history.
-
-## GitHub transfer and failure behavior
-
-A new immutable ZIP is uploaded, then downloaded and independently checked before
-the library returns a reference eligible for project commit. A failed upload or
-verification leaves the previous good asset/reference intact; an unreferenced new
-ZIP can remain. Same-name retries accept only independently verified exact bytes.
-No delete-old-before-upload replacement or automatic retention cleanup is used.
-
-Recovery downloads the selected complete ZIP and uses the ordinary local CAS
-readers. It needs no Xet engine or Hugging Face account. Failure tests use disposable synthetic files and a simulated GitHub API. A separate [real GitHub round-trip](https://github.com/MiguelRodo/projcli/actions/runs/40510154990) also passed; configured examples follow. No multi-project/shared-store project-name separation, distributed linear-head merge,
-hot-copy or power-loss guarantee is introduced.
-
-All existing ordinary latest/archive paths and metadata ZIPs remain unchanged.
-
-The claim is cooperative: not every low-level existing tree writer acquires it. Stop all store writers before export. The tests cover busy-claim rejection; this is not a safe concurrent hot-copy mechanism. New acceptance also exercises all four flat encodings with direct version references, original legacy flat snapshots without the project ledger, missing objects and unknown catalogue files.
-
 ## Save and restore a shared-file store
 
 ```yaml
@@ -99,8 +66,8 @@ Project-only or both full-copy placement is not implemented for this transport
 and is rejected explicitly. Existing local CAS supports its wider placement policy.
 
 After a verified upload, project metadata lives under
-.proj/remotes/<remote-name-hash>/cas-github/v1/. current.json selects the trusted
-base for the next build; snapshots/<first2>/<rest>.json retains each version's
+`.proj/remotes/<remote-name-hash>/cas-github/v1/`. `current.json` selects the trusted
+base for the next build; `snapshots/<first2>/<rest>.json` retains each version's
 exact ZIP locator. These records bind repository, API origin, release tag,
 ZIP digest/length and snapshot IDs/encoding kinds. Full per-version manifests
 and directory objects remain inside the ZIP. Keep project locators in Git.
@@ -131,3 +98,37 @@ are not disk reservations. Store assets follow the repository's visibility.
 Use one project per store. If two checkouts upload at the same time, they can
 produce different saved ZIPs and conflicting project records. projcli does not
 merge those histories or delete older exports automatically.
+
+## What is verified before a reference can be saved
+
+Export holds the store lock for cooperating projcli operations while copying. It excludes
+coordination state, then checks every copied file, every content-addressed object
+including orphan objects, directory identities and each tree, flat-catalogue or
+legacy snapshot. Complete metadata must be present in the exported store.
+Project-only metadata is not silently invented or copied from another project.
+
+The ZIP includes a file list with sizes and checksums. On import, projcli first
+compares the ZIP with the checksum and size saved in your project. It rejects
+unsafe paths, links, duplicate entries and files beyond the size limits. It then
+checks the complete extracted store in a new temporary folder. The ZIP-only file
+list is removed after checking, so the imported store can later be updated and
+exported again.
+
+A checksum inside the ZIP alone does not authenticate it. Keep the exact store
+reference, including ZIP digest, in trusted project Git history.
+
+## GitHub transfer and failure behavior
+
+A new immutable ZIP is uploaded, then downloaded and independently checked before
+the library returns a reference eligible for project commit. A failed upload or
+verification leaves the previous good asset/reference intact; an unreferenced new
+ZIP can remain. Same-name retries accept only independently verified exact bytes.
+No delete-old-before-upload replacement or automatic retention cleanup is used.
+
+Recovery downloads the selected complete ZIP and uses the ordinary local CAS
+readers. It needs no Xet engine or Hugging Face account. Failure tests use disposable synthetic files and a simulated GitHub API. A separate [real GitHub round-trip](https://github.com/MiguelRodo/projcli/actions/runs/40510154990) also passed; configured examples follow. Use one project per store. These tests do not prove safe copying while another
+program writes, automatic merging of uploads, or recovery after a power failure.
+
+All existing ordinary latest/archive paths and metadata ZIPs remain unchanged.
+
+The claim is cooperative: not every low-level existing tree writer acquires it. Stop all store writers before export. The tests cover busy-claim rejection; this is not a safe concurrent hot-copy mechanism. New acceptance also exercises all four flat encodings with direct version references, original legacy flat snapshots without the project ledger, missing objects and unknown catalogue files.

@@ -153,9 +153,9 @@ verify private reconstructed bytes before replacement. Verify/restore take the
 store claim and can update backend caches; they are not byte-for-byte read-only
 store operations. They leave project VERSION unchanged and need no old project CSV.
 
-Initial configured support is remote full metadata (manifest auto/remote), tree
-identities and JSON binding. Project/both, flat/CSV/dictionary overrides fail
-preflight rather than being ignored. Root manifest.csv and old ordinary/CAS
+Full file records must stay in the store (`manifest: auto` or `remote`), with
+`manifest-style: tree` and fixed JSON records. The unsupported `project`, `both`,
+flat and CSV options stop the command before a build rather than being ignored. Root manifest.csv and old ordinary/CAS
 formats remain unchanged. Broader format parity is not implemented. GitHub transfer uses this same engine through the complete-store transport described below.
 
 Experimental Xet preview does not copy/restore mutable engine stores under the
@@ -243,8 +243,8 @@ The optional pinned engine is required for production only. Preview and queries
 do not open the engine or contact the release.
 
 Each upload is downloaded and fully checked before writing project metadata under
-.proj/remotes/<remote-name-hash>/xet-github/v1/. The file current.json selects the
-trusted store for the next build; immutable snapshots/<first2>/<rest>.json locators
+`.proj/remotes/<remote-name-hash>/xet-github/v1/`. The file `current.json` selects the
+trusted store for the next build; immutable `snapshots/<first2>/<rest>.json` locators
 retain each earlier snapshot's exact ZIP. Each binds repository, API origin, tag,
 ZIP name/digest/length, backend/upstream and included snapshot IDs.
 Keep these files in project Git history. Config relocation must not silently
@@ -274,11 +274,11 @@ transfers the complete ZIP; retaining old ZIPs also repeats history on GitHub.
 Previous exports and failed/orphan uploads remain:
 there is no automatic retention cleanup, and GitHub asset quotas still apply.
 
-One project uses each store. Project writer exclusion and immutable exports protect
-local operations and old bytes, but there is no distributed linear-head protocol.
-Concurrent checkouts can create separate exports and conflicting Git locators;
-there is no automatic multi-machine history merge.
+Use one project per store. Locks protect cooperating local operations, and
+previous exports are retained. Two checkouts can still upload different exports
+and create conflicting Git records. Resolve those conflicts explicitly; projcli
+does not merge upload histories across machines.
 
-Xet still repeats a complete readable inventory and file-address binding for each
-version. Shared directory identities and engine chunk deduplication do not imply
-version-level inventory deduplication.
+Xet shares repeated pieces of file content, but still saves a complete file list
+and recovery addresses for each version. Sharing file content does not also
+remove repeated rows from those lists.
