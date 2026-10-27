@@ -1298,7 +1298,9 @@ pub fn build_project_with_policies(
         }
         // Keep recovery until provider/Git entry. Later errors preserve the local release;
         // a configured target or saved intent alone does not mean distribution began.
-        if let Err(error) = version_set_at_with_sync(project_root, &initial_version, sync_description) {
+        if let Err(error) =
+            version_set_at_with_sync(project_root, &initial_version, sync_description)
+        {
             return Err(backup.restore(error));
         }
         let mut publication_backup = Some(backup);
