@@ -27,6 +27,9 @@ fn capability_negotiation_does_not_load_a_project() {
     let result = envelope(&output, true);
     assert_eq!(result["result"]["capability_version"], 1);
     assert_eq!(result["result"]["preview_output_isolation"], false);
+    for name in ["init plan","init","init readme","init license","init renv"] {
+        assert!(result["result"]["machine_commands"].as_array().unwrap().iter().any(|command| command==name), "{name}");
+    }
     assert!(result["result"]["machine_commands"].as_array().unwrap().iter().any(|command| command == "build-dev"));
 }
 
