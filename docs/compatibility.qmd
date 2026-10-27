@@ -3856,7 +3856,7 @@ Ponytail/source review retained one thin module and existing machine transport.
 It fixed named-boolean flag propagation and a pre-existing standalone plain README
 dangling-link write by reusing guarded create-only writing. Authored no-network
 consent/present/missing/failure fixtures and actual named Linux/Windows fixtures
-await revised-head remote verification. No merge/install/deployment is included.
+await revised-head remote verification. The first native run exposed missing advertised init subcommands; advertise the existing readme/license/renv worker commands and assert negotiation rather than bypassing it. No merge/install/deployment is included.
 
 ## Script source groups (candidate)
 
