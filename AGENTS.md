@@ -765,3 +765,22 @@ not new R package Imports or user auto-installs. Windows explicitly prepares Pan
 Docs CI renders/links all pages, checks every export appears in r-reference and
 retains native-browser screenshots of both R pages alongside twelve lifecycle SVGs.
 Publication/merge/install remains unapproved; validation artifacts are not deployment.
+
+## Experimental Xet configuration candidate
+
+Structure is xet for local and future GitHub transport. This first configured
+slice is local-only, tree JSON/full metadata remote; reject unsupported overrides
+clearly, never silently map Xet IDs to legacy CAS IDs. Explicit structure selection
+is opt-in experimental: upstream LocalClient is for testing, not an inherited
+archival support promise. Preview never requires/starts the helper or mutates
+backend caches. Production resolves the pinned optional helper once before hooks.
+Source queries do not install or publish. Store finalize plus independent full-file
+verification and complete binding precede the small Git-eligible root reference.
+Source lookup remains independent of build.dest. Explicit snapshot selection only.
+Use remote tests; keep original R package and installed CLI unchanged.
+
+Experimental Xet preview does not copy/restore mutable engine stores under the
+project-only claim. It never opens the engine, even with an existing busy store.
+Arbitrary script/hook store edits are outside that preview guarantee. Every
+production target's types/format are checked before hooks, independently of
+one-time helper discovery. The multi-store and busy-store regressions are pending.

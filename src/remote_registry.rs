@@ -15,6 +15,8 @@ pub struct Registry {
     pub github:Map<String,Value>,
     /// Modern local CAS definitions; legacy accepted CAS forms remain separately typed.
     pub cas:Map<String,Value>,
+    /// Experimental local Xet definitions, independent of current uploads.
+    pub xet:Map<String,Value>,
 }
 
 /// Compatibility name for the initially ordinary-only registry type.
@@ -40,7 +42,10 @@ impl<'de> Deserialize<'de> for RemotesConfig {
         let wire=RegistryWire::deserialize(deserializer)?;
         let mut legacy=HashMap::new();let mut registry=Registry::default();
         for (name,value) in wire.local.unwrap_or_default() {
-            if value.get("structure").and_then(Value::as_str)==Some("cas") {
+            if value.get("structure").and_then(Value::as_str)==Some("xet") {
+                crate::xet_remote::definition(&value).map_err(serde::de::Error::custom)?;
+                registry.xet.insert(name,value);
+            }else if value.get("structure").and_then(Value::as_str)==Some("cas") {
                 if crate::cas_remote::legacy_shape(&value) {
                     let remote:LocalRemoteConfig=serde_json::from_value(value).map_err(serde::de::Error::custom)?;
                     legacy.insert(name,remote);
@@ -68,25 +73,27 @@ pub(crate) struct Selected {
     pub(crate) legacy_cas:Vec<String>,
     pub(crate) legacy_content:HashMap<String,Vec<String>>,
     pub(crate) cas:Vec<crate::cas_remote::Selection>,
+    pub(crate) xet:Vec<crate::xet_remote::Selection>,
 }
 fn name(value:&str)->Result<String> {
     anyhow::ensure!(!value.trim().is_empty()&&!value.chars().any(char::is_control),"Remote names must be nonempty printable text");
     Ok(icu_normalizer::ComposingNormalizer::new_nfc().normalize(&value.to_uppercase()).into_owned())
 }
 fn legacy_only(config:&ProjConfig)->bool {
-    config.remotes.registry.local.is_empty()&&config.remotes.registry.github.is_empty()&&config.remotes.registry.cas.is_empty()
+    config.remotes.registry.local.is_empty()&&config.remotes.registry.github.is_empty()&&config.remotes.registry.cas.is_empty()&&config.remotes.registry.xet.is_empty()
         &&!matches!(&config.build.dest,Some(Destinations::Named(_)))
 }
 /// Validate registry/legacy lookup names without resolving upload selection.
 pub(crate) fn validate_names(config:&ProjConfig)->Result<()> {
     if legacy_only(config){return Ok(())}
     let mut names=HashSet::new();
-    for title in config.remotes.registry.local.keys().chain(config.remotes.registry.github.keys()).chain(config.remotes.registry.cas.keys())
+    for title in config.remotes.registry.local.keys().chain(config.remotes.registry.github.keys()).chain(config.remotes.registry.cas.keys()).chain(config.remotes.registry.xet.keys())
         .chain(config.remotes.local.iter().flat_map(|values|values.keys())) {
         anyhow::ensure!(names.insert(name(title)?),"Remote names are ambiguous across providers or portable spelling");
     }
     for (provider,registered,inline) in [("local",&config.remotes.registry.local,config.build.local.as_ref()),
         ("local",&config.remotes.registry.cas,config.build.local.as_ref()),
+        ("local",&config.remotes.registry.xet,config.build.local.as_ref()),
         ("github",&config.remotes.registry.github,config.build.github.as_ref())] {
         for title in registered.keys() {
             anyhow::ensure!(!inline.is_some_and(|values|values.contains_key(title)),
@@ -104,7 +111,9 @@ fn subset(value:&Value)->Result<Option<Vec<String>>> {
     }).transpose()
 }
 fn validate_definition(value:&Value)->Result<()> {
-    if value.get("structure").and_then(Value::as_str)==Some("cas") {
+    if value.get("structure").and_then(Value::as_str)==Some("xet") {
+        crate::xet_remote::definition(value)?;
+    }else if value.get("structure").and_then(Value::as_str)==Some("cas") {
         if crate::cas_remote::legacy_shape(value) {let _:LocalRemoteConfig=serde_json::from_value(value.clone())?;}
         else {crate::cas_remote::Definition::parse(value)?;}
     }else{crate::restore::definition(value)?;}
@@ -136,7 +145,7 @@ pub(crate) fn selected(config:&ProjConfig)->Result<Selected> {
     validate_names(config)?;
     validate_sources(config)?;
     let mut local=Map::new();let mut github=Map::new();let mut legacy_cas=Vec::new();
-    let mut legacy_content=HashMap::new();let mut cas=Vec::new();
+    let mut legacy_content=HashMap::new();let mut cas=Vec::new();let mut xet=Vec::new();
     let mut selected_names=HashSet::new();
     let choices:Vec<(String,Option<Vec<String>>)>=match config.build.dest.as_ref() {
         None=>vec![],
@@ -155,6 +164,9 @@ pub(crate) fn selected(config:&ProjConfig)->Result<Selected> {
             selected.as_object_mut().context("Remote definition must be a mapping")?
                 .entry("manifest-style").or_insert(Value::String("flat".into()));
             github.insert(title,selected);
+        } else if let Some(value)=config.remotes.registry.xet.get(&title) {
+            let value=selected_definition(config,value,subset)?;
+            xet.push(crate::xet_remote::Selection {title,definition:crate::xet_remote::definition(&value)?});
         } else if let Some(value)=config.remotes.registry.cas.get(&title) {
             let value=selected_definition(config,value,subset)?;
             cas.push(crate::cas_remote::Selection {title,definition:crate::cas_remote::Definition::parse(&value)?});
@@ -178,21 +190,21 @@ pub(crate) fn selected(config:&ProjConfig)->Result<Selected> {
             legacy_content.insert(title,content);
         } else {anyhow::bail!("Build destination '{title}' is not registered in remotes");}
     }
-    let modern=!local.is_empty()||!github.is_empty()||!cas.is_empty()||matches!(&config.build.dest,Some(Destinations::Named(_)));
+    let modern=!local.is_empty()||!github.is_empty()||!cas.is_empty()||!xet.is_empty()||matches!(&config.build.dest,Some(Destinations::Named(_)));
     let inline=config.build.local.as_ref().is_some_and(|values|!values.is_empty())
         ||config.build.github.as_ref().is_some_and(|values|!values.is_empty());
     anyhow::ensure!(!(modern&&inline),"Registry destination selection cannot be mixed with inline build.local/build.github; move the definitions to remotes");
     if !modern {
-        return Ok(Selected {local:config.build.local.clone(),github:config.build.github.clone(),legacy_cas,legacy_content,cas});
+        return Ok(Selected {local:config.build.local.clone(),github:config.build.github.clone(),legacy_cas,legacy_content,cas,xet});
     }
-    Ok(Selected {local:Some(local),github:Some(github),legacy_cas,legacy_content,cas})
+    Ok(Selected {local:Some(local),github:Some(github),legacy_cas,legacy_content,cas,xet})
 }
 
 
 fn shared(config:&ProjConfig,provider:&str,title:&str)->Result<Option<Value>> {
     name(title)?;
     let registered=match provider {
-        "local"=>config.remotes.registry.local.get(title).or_else(||config.remotes.registry.cas.get(title))
+        "local"=>config.remotes.registry.local.get(title).or_else(||config.remotes.registry.cas.get(title)).or_else(||config.remotes.registry.xet.get(title))
             .cloned().or_else(||config.remotes.local.as_ref().and_then(|values|values.get(title)).map(crate::cas_remote::legacy_value)),
         "github"=>config.remotes.registry.github.get(title).cloned(),
         _=>anyhow::bail!("Unsupported directory source provider"),

@@ -76,8 +76,8 @@ pub(crate) fn run(cli: &Cli) -> i32 {
             proj::configured_cas::verify(&root,title,snapshot,profile.as_deref())
                 .map(|result|json!({"snapshot":result}))
                 .map_err(|error|{
-                    eprintln!("CAS verification failed: {error:#}");
-                    failure(ErrorCode::QueryFailed,"Cannot verify the requested CAS snapshot; inspect stderr.")
+                    eprintln!("Snapshot verification failed: {error:#}");
+                    failure(ErrorCode::QueryFailed,"Cannot verify the requested snapshot; inspect stderr.")
                 }),
         Commands::Remote {command:command @ RemoteCommands::Restore {..}} => {
             crate::configured_restore(&root,command)

@@ -99,3 +99,5 @@ mod r_session;
 mod xet_engine;
 /// Optional pinned local Xet storage with independently verified reconstruction.
 pub mod xet;
+
+mod xet_remote;

@@ -848,3 +848,12 @@ When migrating from projr, set renv-snapshot explicitly if you relied on its
 automatic snapshots for an existing renv project. Select document/readme explicitly
 if you want those maintenance tasks. Merely creating README.Rmd or initializing
 renv does not enable any build task.
+
+## Experimental Xet structure (unmerged candidate)
+
+Named remotes.local entries can opt into structure: xet; existing defaults do not
+change. Production publication/recovery needs the exact pinned optional helper;
+ordinary init/query/preview does not. See [the experimental guide](xet-storage.qmd).
+Initial configured support is Unix/local, remote full metadata and tree JSON
+binding. Other placement/format choices fail preflight. GitHub transport is still
+pending. This is not a supported long-term archival-storage claim.

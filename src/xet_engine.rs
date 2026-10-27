@@ -44,6 +44,16 @@ impl Engine {
             "Unsupported Xet helper protocol/upstream; install the documented pinned optional engine");
         Ok(result)
     }
+    /// Resolve once from captured absolute PATH entries; never auto-install.
+    pub(crate) fn discover(environment:&crate::run_environment::RunEnvironment)->Result<Self> {
+        let name=if cfg!(windows) {"proj-xet-engine.exe"}else{"proj-xet-engine"};
+        for directory in std::env::split_paths(environment.value("PATH").unwrap_or_default()) {
+            if directory.as_os_str().is_empty()||!directory.is_absolute(){continue}
+            let candidate=directory.join(name);
+            if candidate.is_file(){return Self::new(candidate)}
+        }
+        anyhow::bail!("structure: xet requires the optional pinned proj-xet-engine on PATH; no automatic installation");
+    }
     fn command(&self,work:&Utf8Path)->Result<Command> {
         let mut command=Command::new(&self.program);
         command.env_clear().current_dir(work).stdin(Stdio::null());

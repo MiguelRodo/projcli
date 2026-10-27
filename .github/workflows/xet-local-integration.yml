@@ -1,7 +1,7 @@
 name: Experimental local Xet integration
 on:
   pull_request:
-    paths: ['src/xet*', 'tools/xet-engine/**', 'tests/test_xet.rs', '.github/workflows/xet-local-integration.yml']
+    paths: ['src/xet*', 'tools/xet-engine/**', 'tests/test_xet.rs', 'tests/test_xet_configured.rs', 'src/remote_registry.rs', 'src/build.rs', 'src/configured_cas.rs', '.github/workflows/xet-local-integration.yml']
 permissions:
   contents: read
 concurrency:
@@ -47,7 +47,7 @@ jobs:
         timeout-minutes: 10
         shell: bash
         run: |
-          runuser -u rstudio -- env PROJCLI_TEST_XET_REQUIRED=1 PROJCLI_TEST_XET_ENGINE="/tmp/optional engine/proj-xet-engine" cargo test --locked --test test_xet -- --nocapture 2>&1 | tee xet-integration-evidence/integration.log
+          runuser -u rstudio -- env PROJCLI_TEST_XET_REQUIRED=1 PROJCLI_TEST_XET_ENGINE="/tmp/optional engine/proj-xet-engine" cargo test --locked --test test_xet --test test_xet_configured -- --nocapture 2>&1 | tee xet-integration-evidence/integration.log
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:

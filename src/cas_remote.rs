@@ -89,7 +89,7 @@ pub(crate) fn project_metadata(root:&Utf8Path,title:&str)->Utf8PathBuf {
     let mut hash=blake3::Hasher::new_derive_key("projcli.remote-name.v1");hash.update(key.as_str().as_bytes());
     let id=hash.finalize().to_hex().to_string();root.join(".proj/remotes").join(&id[..2]).join(&id[2..])
 }
-fn selected_labels(config:&crate::yml::ValidatedConfig,content:&Value)->Result<Vec<String>> {
+pub(crate) fn selected_labels(config:&crate::yml::ValidatedConfig,content:&Value)->Result<Vec<String>> {
     let mut labels=match content {
         Value::Null|Value::Bool(false)=>vec![],
         Value::Bool(true)=>{

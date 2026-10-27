@@ -156,6 +156,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     let ordinary=crate::publication::configured(project_root,destinations.local.as_ref(),&config)?;
     let github_specs=crate::github_publication::validate(project_root,destinations.github.as_ref(),&config)?;
     let cas_trees=crate::cas_remote::configured(project_root,&destinations.cas,&config,&ordinary)?;
+    let xet=crate::xet_remote::configured(project_root,&destinations.xet,&config,&ordinary,&cas_trees,&environment,is_dev)?;
     let execution = execution_override.or(config.settings.execution_directory).unwrap_or(ExecutionDirectory::Native);
     environment.set_working_directory(match execution {
         ExecutionDirectory::Native => caller_directory,
@@ -442,7 +443,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     if is_dev {
         for target in &ordinary { managed.push(target.base.clone().into_std_path_buf()); }
         for target in &cas_trees {managed.push(target.base.clone().into_std_path_buf());}
-        if !cas_trees.is_empty(){managed.push(project_root.join(".proj/remotes").into_std_path_buf());}
+        if !cas_trees.is_empty()||!xet.is_empty(){managed.push(project_root.join(".proj/remotes").into_std_path_buf());}
         // Capture configured local publication stores without invoking publication.
         if let Some(remotes) = &config.remotes.local {
             for remote in remotes.values() {
@@ -685,7 +686,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
             crate::attempt_log::FinalOutputs::observed(rows,&initial_version.to_string(true))
         }else{Ok(crate::attempt_log::FinalOutputs::not_requested())}
     };
-    let publish = !is_dev && (config.git.commit || !config.dest.is_empty() || !cas_trees.is_empty()
+    let publish = !is_dev && (config.git.commit || !config.dest.is_empty() || !cas_trees.is_empty() || !xet.is_empty()
         || (config.output_run.unwrap_or(true) && (!ordinary.is_empty()||!github.is_empty())));
     if !publish {
         let finish = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -744,6 +745,12 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
             log.operation(crate::cas_remote::provider(target),1,
                 ||{distribution_started=true;drop(publication_backup.take());
                     crate::cas_remote::publish(project_root,target,&initial_version.to_string(true))},|_|None)?;
+        }
+        for target in &xet {
+            crate::xet_remote::prepare(project_root,target)?;
+            log.operation("xet_local",1,
+                ||{distribution_started=true;drop(publication_backup.take());
+                    crate::xet_remote::publish(project_root,target,&initial_version.to_string(true))},|_|None)?;
         }
         let transition = if config.git.commit {
             let version = initial_version.to_string(false);

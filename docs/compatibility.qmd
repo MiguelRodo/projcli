@@ -3836,3 +3836,23 @@ any upstream error for corruption. Its new exact-head gate is pending. Source
 preservation's local full-history bundle independently restored/fsck verified, but
 the private GitHub source import remains permission-blocked; this integration CI
 still obtains the fixed official source and is not preserved-source build proof.
+
+## Experimental configured local Xet follow-up (27 October 2026)
+
+New opt-in registry/build/explicit snapshot routing, stacked after plumbing PR235.
+Reuses name/label selection, path guards, preview preservation, distribution logs
+and installer. Helper freezes before production hooks; preview/query/empty dest
+never starts it. Full store snapshot precedes Git-eligible small reference.
+One project per store; no identity redesign.
+
+Deliberate current limit: remote full metadata and tree JSON binding. Unsupported
+project/both or flat/CSV overrides fail. Old defaults/readers/IDs, root manifest.csv,
+R package and installed binary unchanged. GitHub pending. Configured real-CLI tests
+and independent review are pending, not compiled evidence. Ponytail full-mode
+review reuses definition validation/codecs/publication slots, no competing catalogue.
+
+Experimental Xet preview does not copy/restore mutable engine stores under the
+project-only claim. It never opens the engine, even with an existing busy store.
+Arbitrary script/hook store edits are outside that preview guarantee. Every
+production target's types/format are checked before hooks, independently of
+one-time helper discovery. The multi-store and busy-store regressions are pending.

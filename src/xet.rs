@@ -108,6 +108,17 @@ fn marker(store:&Utf8Path,create:bool)->Result<()> {
         crate::cas::write_metadata(&path,&bytes,true)?;
     }Ok(())
 }
+/// Validate existing format/type boundaries before hooks without creating/opening the engine.
+pub(crate) fn preflight(project:&Utf8Path,store:&Utf8Path)->Result<()> {
+    let store=storage(project,store)?;guard_tree(&store)?;
+    if crate::yml::configuration_entry_exists(&store.join("xet-format.json"))? {marker(&store,false)?;}
+    else if crate::yml::configuration_entry_exists(&store)? {
+        for entry in fs::read_dir(&store)? {
+            anyhow::ensure!(entry?.file_name()==".proj","Unmarked nonempty Xet store requires explicit migration");
+        }
+    }Ok(())
+}
+
 fn verify_file(path:&Utf8Path,hash:&str,length:u64)->Result<()> {
     let metadata=fs::symlink_metadata(path)?;
     anyhow::ensure!(metadata.is_file()&&metadata.len()==length,"Xet reconstructed file length/type mismatch");

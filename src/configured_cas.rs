@@ -1,4 +1,4 @@
-//! Explicit recovery of a named local CAS snapshot; old flat and v1 trees retain distinct identities.
+//! Explicit recovery of a named local CAS or experimental Xet snapshot; old flat and v1 trees retain distinct identities.
 use anyhow::{Context,Result};
 use camino::{Utf8Path,Utf8PathBuf};
 use serde_json::Value;
@@ -9,6 +9,14 @@ use crate::cas_tree::{VerifiedSnapshot,VerifiedLegacySnapshot};
 #[derive(Clone,Debug,serde::Serialize)]
 #[serde(tag="snapshot_kind")]
 pub enum SnapshotVerification {
+    /// Experimental Xet binding, independently reconstructed and verified before success.
+    #[serde(rename="xet-local-v1")]
+    Xet {
+        /// Exact backend binding selected, separate from directory roots.
+        snapshot_id:String,
+        /// Complete inventory, roots and upstream reconstruction addresses.
+        observation:crate::xet::Snapshot,
+    },
     /// Existing v1 directory graph and complete observed inventories.
     #[serde(rename="tree-v1")]
     Tree {
@@ -33,12 +41,12 @@ pub enum SnapshotVerification {
 }
 impl SnapshotVerification {
     fn version(&self)->&str {
-        match self {Self::Tree {observation}=>&observation.snapshot.version,
+        match self {Self::Xet {observation,..}=>&observation.inventory.version,Self::Tree {observation}=>&observation.snapshot.version,
             Self::LegacyFlat {observation}=>&observation.version,
             Self::FlatCatalogue {observation}=>&observation.snapshot.version}
     }
     fn kind(&self)->&'static str {
-        match self {Self::Tree {..}=>"tree-v1",Self::LegacyFlat {..}=>"legacy-flat",Self::FlatCatalogue {..}=>"flat-catalogue-v1"}
+        match self {Self::Xet {..}=>"xet-local-v1",Self::Tree {..}=>"tree-v1",Self::LegacyFlat {..}=>"legacy-flat",Self::FlatCatalogue {..}=>"flat-catalogue-v1"}
     }
 }
 
@@ -51,6 +59,14 @@ fn observe(root:&Utf8Path,title:&str,id:&str,profile:Option<&str>)
     let config=crate::restore::projected_config(&raw,root)?;
     let value=raw.get("remotes").and_then(|value|value.get("local")).and_then(|value|value.get(title))
         .context("Explicit CAS recovery requires a named remotes.local definition")?;
+    if value.get("structure").and_then(Value::as_str)==Some("xet") {
+        let definition=crate::xet_remote::definition(value)?;
+        let content=if definition.path.is_absolute(){definition.path}else{root.join(definition.path)};
+        let environment=crate::run_environment::RunEnvironment::resolve(Some(&profiles.join(",")),root)?;
+        let engine=crate::xet_engine::Engine::discover(&environment)?;
+        let observation=crate::xet::verify(root,&content,id,&engine)?;
+        return Ok((config,content.clone(),content,SnapshotVerification::Xet {snapshot_id:id.into(),observation}));
+    }
     anyhow::ensure!(value.get("structure").and_then(Value::as_str)==Some("cas"),"Selected remote is not local CAS");
     let path=if crate::cas_remote::legacy_shape(value) {
         serde_json::from_value::<crate::yml::LocalRemoteConfig>(value.clone())?.path
@@ -86,9 +102,10 @@ fn observe(root:&Utf8Path,title:&str,id:&str,profile:Option<&str>)
     Ok((config,content,metadata,SnapshotVerification::Tree {observation:verified}))
 }
 
-/// Deeply verify one exact old flat or v1 tree snapshot from a named local CAS remote.
+/// Deeply verify one exact CAS or experimental Xet snapshot from a named local remote.
+/// Xet takes a cooperative claim and can update its private backend caches; no destination changes.
 /// Both remote and project full-metadata locations are considered independently of current
-/// upload selection/write style. Every present copy must verify. This is read-only and needs
+/// upload selection/write style. Every present copy must verify. CAS metadata reads are nonmutating; Xet may update backend caches under its claim. This needs
 /// no root manifest.csv or legacy project ledger. Missing/corrupt content fails explicitly;
 /// this command does not select latest or scan arbitrary stores. Legacy flat metadata uses
 /// its original raw-JSON identity/namespace and never becomes a v1 tree identity.
@@ -116,9 +133,15 @@ pub fn restore(root:&Utf8Path,title:&str,snapshot:&str,label:&str,profile:Option
     let destination=config.get_path(root,&label)?;
     let version=verified.version().to_owned();let kind=verified.kind().to_owned();
     match verified {
-        SnapshotVerification::Tree {..}=>crate::cas_tree::restore_label(root,&content,&metadata,snapshot,&label,&destination,clear)?,
-        SnapshotVerification::LegacyFlat {..}=>crate::cas_tree::restore_legacy_label(root,&content,snapshot,&label,&destination,clear)?,
-        SnapshotVerification::FlatCatalogue {..}=>crate::cas_flat::restore_label(root,&content,&metadata,snapshot,&label,&destination,clear)?,
+        SnapshotVerification::Tree {..}=>{crate::cas_tree::restore_label(root,&content,&metadata,snapshot,&label,&destination,clear)?;},
+        SnapshotVerification::LegacyFlat {..}=>{crate::cas_tree::restore_legacy_label(root,&content,snapshot,&label,&destination,clear)?;},
+        SnapshotVerification::FlatCatalogue {..}=>{crate::cas_flat::restore_label(root,&content,&metadata,snapshot,&label,&destination,clear)?;},
+        SnapshotVerification::Xet {..}=>{
+            let profiles=crate::run_context::select_profiles(profile,root)?;
+            let environment=crate::run_environment::RunEnvironment::resolve(Some(&profiles.join(",")),root)?;
+            let engine=crate::xet_engine::Engine::discover(&environment)?;
+            crate::xet::restore(root,&content,snapshot,&label,&destination,clear,&engine)?;
+        },
     };
     Ok(crate::restore::RestoreResult {label,destination,provider:Some("local".into()),title:Some(title.into()),
         version:Some(version),restored:true,skipped:None,snapshot_id:Some(snapshot.into()),snapshot_kind:Some(kind)})

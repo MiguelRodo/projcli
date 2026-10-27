@@ -3,14 +3,14 @@ title: "Experimental shared-content storage"
 ---
 
 This unmerged source candidate is **experimental**. Keep independent backups.
-No installed executable or existing store changes. Config/build wiring and GitHub
-transport are pending; the current candidate provides a local source API only.
+No installed executable or existing store changes. This stacked candidate adds configured local build/restore; its tests are pending.
+GitHub transport remains unimplemented.
 
 Files are split into reusable pieces by the optional upstream Xet helper. This may
 save storage when large files share uncompressed bytes. Already-compressed files
 may benefit little. Synthetic results do not predict savings for real datasets.
 
-The planned selector is structure: xet for local and GitHub destinations.
+The local candidate uses structure: xet. GitHub will use the same structure selector.
 GitHub transports this same local engine/store as a complete ZIP, not a hosted
 Xet service. One long-running storage release holds it. No incremental pack
 transport, automatic migration or live data upload is implemented here.
@@ -47,3 +47,64 @@ hard-link validation is implemented on Windows. No power-loss, concurrent hot-co
 arbitrary interruption-point or production-readiness guarantee follows. Reusing
 upstream chunk/hash/codec primitives with a proj-owned durable backend is another
 route, but requires real persistence/index/recovery engineering.
+
+## Try the configured local candidate
+
+This is source-only experimental functionality, not an installed-release guide.
+The separately built pinned helper must already be on PATH as proj-xet-engine.
+No build/init/query automatically installs it or logs into Hugging Face.
+Current runtime support is Unix; Windows proj still works with ordinary backends.
+
+For a project that only archives existing data, an explicit empty script list
+avoids rerunning an analysis:
+
+```yaml
+directories:
+  raw-data:
+    path: raw-data
+  cache:
+    path: cache
+    safe: true
+remotes:
+  local:
+    shared-content:
+      path: ../experimental-store
+      structure: xet
+      content: [raw-data]
+build:
+  scripts: []
+  git: false
+  dest:
+    shared-content: {}
+```
+
+A production build stores selected folders; preview does not upload, require the
+helper or update backend caches. Queries never activate writes. Removing the
+remote from build.dest stops uploads while preserving explicit recovery lookup.
+Optional build.dest content narrows the remote's eligible labels.
+
+After finalization/independent byte verification, the build saves a complete store
+snapshot and small project reference under .proj/remotes. The reference's snapshot
+field supplies the exact ID:
+
+```sh
+proj remote verify --title shared-content --snapshot SNAPSHOT_ID
+proj remote restore --title shared-content --snapshot SNAPSHOT_ID --label raw-data --clear
+```
+
+Restore uses the label's configured final directory. Without --clear, extra
+destination files survive; with it, membership matches the snapshot. Both paths
+verify private reconstructed bytes before replacement. Verify/restore take the
+store claim and can update backend caches; they are not byte-for-byte read-only
+store operations. They leave project VERSION unchanged and need no old project CSV.
+
+Initial configured support is remote full metadata (manifest auto/remote), tree
+identities and JSON binding. Project/both, flat/CSV/dictionary overrides fail
+preflight rather than being ignored. Root manifest.csv and old ordinary/CAS
+formats remain unchanged. Broader format parity and GitHub transfer are pending.
+
+Experimental Xet preview does not copy/restore mutable engine stores under the
+project-only claim. It never opens the engine, even with an existing busy store.
+Arbitrary script/hook store edits are outside that preview guarantee. Every
+production target's types/format are checked before hooks, independently of
+one-time helper discovery. The multi-store and busy-store regressions are pending.

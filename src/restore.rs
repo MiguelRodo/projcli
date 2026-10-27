@@ -108,6 +108,8 @@ fn referenced(raw:&Value,provider:&str,title:&str,inline:Option<&Value>)->anyhow
         (None,Some(inline))=>inline.clone(),
         (None,None)=>anyhow::bail!("Directory source references an undefined remote"),
     };
+    anyhow::ensure!(!matches!(value.get("structure").and_then(Value::as_str),Some("cas"|"xet")),
+        "CAS/Xet restore requires an explicit --snapshot and --title");
     definition(&value)
 }
 fn provider_allowed(provider:&str,request:&RestoreRequest)->bool {
@@ -185,7 +187,7 @@ fn select_source(raw:&Value,label:&str,request:&RestoreRequest)->anyhow::Result<
                 if !title_allowed(title,request){continue;}
                 // Legacy flat CAS is not an ordinary restore source. Tree-aware configured
                 // recovery remains a separately tracked implementation step.
-                if value.get("structure").and_then(Value::as_str)==Some("cas"){continue;}
+                if matches!(value.get("structure").and_then(Value::as_str),Some("cas"|"xet")){continue;}
                 let definition=definition(value)?;
                 if value.get("content").is_some()&&!content_has(value.get("content"),label,raw)? {continue;}
                 let preferred=match definition.source.as_ref() {
