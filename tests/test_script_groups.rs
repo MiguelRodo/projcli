@@ -280,3 +280,19 @@ fn recursive_groups_never_execute_nested_project_metadata() {
         "a\nnested/b\nskip\n"
     );
 }
+
+#[test]
+fn direct_directory_and_glob_bases_cannot_enter_project_metadata() {
+    for selection in ["['source with spaces/.git']", "['source with spaces/nested/.proj/*.py']", "['source with spaces/nested/.projr/**/*.py']"] {
+        let temp = fixture(selection);
+        for directory in [".git", "nested/.proj", "nested/.projr"] {
+            let metadata = temp.path().join("source with spaces").join(directory);
+            fs::create_dir_all(&metadata).unwrap();
+            fs::write(metadata.join("must-not-run.py"), "raise RuntimeError('metadata must not execute')\n").unwrap();
+        }
+        let output = run(temp.path(), &["build-dev"]);
+        assert!(!output.status.success());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("project metadata"));
+        assert!(!temp.path().join("cache").exists());
+    }
+}

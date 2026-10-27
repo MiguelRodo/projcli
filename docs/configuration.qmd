@@ -956,3 +956,11 @@ The docs role remains the single final document destination; independent documen
 in this group use docs/l1 and keep paths below lessons/l1.
 
 Preview shows resolved source include order. Existing project renderer grouping still applies: Quarto/Bookdown documents render together as one coherent project.
+
+For separate documents, proj copies the rendered file and its generated
+`<document>_files` folder. HTML embeds its resources by default when the document
+has not selected otherwise. If you explicitly turn embedding off, arbitrary
+hand-authored images, CSS or downloads outside that generated folder are not
+copied automatically. Keep embedding enabled for a portable individual HTML
+report, or use a Quarto project when you need a complete website with shared
+resources. Quarto projects keep their whole rendered output tree together.

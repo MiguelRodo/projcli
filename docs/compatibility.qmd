@@ -4174,3 +4174,13 @@ bracket-path repeat fixture remains unchanged.
 Automatic local-environment-file ignores now use the same managed updater as
 directory rules, so a plain non-R build does not create .Rbuildignore merely
 because _environment.local exists. Explicit manual ignore commands are unchanged.
+
+The script-group refresh preserves the existing separate-document resource
+boundary: rendered output plus `<stem>_files`, with the existing embedding
+fallback. Authored resources elsewhere are not newly discovered or copied when
+embedding is explicitly disabled. The whole-Quarto-project fixture separately
+checks shared SVG resources, navigation and `site_libs`. This is a pre-existing
+limit, not evidence of complete standalone resource-copy parity. Recursive
+source selection excludes framework metadata at every depth and rejects a
+directory or fixed glob base inside it; existing explicit external file paths
+remain supported.
