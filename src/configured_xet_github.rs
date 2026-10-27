@@ -56,13 +56,13 @@ fn discover(environment:&crate::run_environment::RunEnvironment)->Result<Engine>
 /// Preview does not request credentials, start helper, download or create a store.
 pub(crate) fn capture(root:&Utf8Path,raw:&Map<String,Value>,config:&crate::yml::ValidatedConfig,
     environment:&crate::run_environment::RunEnvironment,preview:bool,ordinary:Option<&Map<String,Value>>,version:&str)->Result<Vec<Target>> {
-    let mut result=Vec::new();
+    let mut result=Vec::new();let mut namespaces=std::collections::BTreeSet::new();
     let mut tags=std::collections::BTreeSet::new();
     for title in raw.keys() {
         let resolved=tag(title)?;
         anyhow::ensure!(tags.insert(resolved.clone()),"Configured Xet titles resolve to the same Release tag");
         for other in ordinary.into_iter().flat_map(|values|values.keys()) {
-            let ordinary_tag=if other=="@version"{version.to_owned()}else{tag(other)?};
+            let ordinary_tag=if other=="@version"{version.to_owned()}else{other.trim_matches(' ').replace(' ',"-")};
             anyhow::ensure!(ordinary_tag!=resolved,"GitHub ordinary/Xet titles resolve to the same Release tag");
         }
     }
@@ -70,6 +70,7 @@ pub(crate) fn capture(root:&Utf8Path,raw:&Map<String,Value>,config:&crate::yml::
         let policy=definition(value)?;let labels=crate::cas_remote::selected_labels(config,&policy.content)?;
         if labels.is_empty(){continue}
         let namespace=namespace(root,title)?;let tag=tag(title)?;
+        anyhow::ensure!(namespaces.insert(namespace.clone()),"Configured store project metadata namespaces collide");
         let sources=labels.into_iter().map(|label|Ok((label.clone(),config.get_path(root,&label)?))).collect::<Result<Vec<_>>>()?;
         for source in config.directories.keys().map(|label|config.get_path(root,label)) {
             anyhow::ensure!(!crate::path_safety::portable_paths_overlap(&namespace,&source?),"GitHub Xet metadata overlaps a declared resource");

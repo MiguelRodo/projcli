@@ -320,8 +320,12 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     let version_before=original_version.to_string(true);
     let (initial_version, next_version) = crate::run_context::version_plan(original_version, mode)?;
     let github=if !is_dev&&config.output_run.unwrap_or(true) {crate::github_publication::capture(project_root,github_specs,&environment,&initial_version.to_string(true))?}else{Vec::new()};
+    let mut xet_others=destinations.github.clone().unwrap_or_default();xet_others.extend(destinations.github_cas.clone());
     let github_xet=crate::configured_xet_github::capture(project_root,&destinations.github_xet,&config,&environment,
-        is_dev||!config.output_run.unwrap_or(true),destinations.github.as_ref(),&initial_version.to_string(true))?;
+        is_dev||!config.output_run.unwrap_or(true),Some(&xet_others),&initial_version.to_string(true))?;
+    let mut cas_others=destinations.github.clone().unwrap_or_default();cas_others.extend(destinations.github_xet.clone());
+    let github_cas=crate::configured_cas_github::capture(project_root,&destinations.github_cas,&config,&environment,
+        is_dev||!config.output_run.unwrap_or(true),Some(&cas_others),&initial_version.to_string(true))?;
     let run_context = crate::run_context::ContextFile::capture(project_root, &config, profiles, directory_order, initial_version.clone(), is_dev)?;
     environment.set(crate::RUN_CONTEXT_ENV, run_context.path().as_os_str());
     let mut staged_outputs = Vec::new();
@@ -445,7 +449,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
     if is_dev {
         for target in &ordinary { managed.push(target.base.clone().into_std_path_buf()); }
         for target in &cas_trees {managed.push(target.base.clone().into_std_path_buf());}
-        if !cas_trees.is_empty()||!xet.is_empty()||!destinations.github_xet.is_empty(){managed.push(project_root.join(".proj/remotes").into_std_path_buf());}
+        if !cas_trees.is_empty()||!xet.is_empty()||!destinations.github_xet.is_empty()||!destinations.github_cas.is_empty(){managed.push(project_root.join(".proj/remotes").into_std_path_buf());}
         // Capture configured local publication stores without invoking publication.
         if let Some(remotes) = &config.remotes.local {
             for remote in remotes.values() {
@@ -688,7 +692,7 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
             crate::attempt_log::FinalOutputs::observed(rows,&initial_version.to_string(true))
         }else{Ok(crate::attempt_log::FinalOutputs::not_requested())}
     };
-    let publish = !is_dev && (config.git.commit || !config.dest.is_empty() || !cas_trees.is_empty() || !xet.is_empty() || !github_xet.is_empty()
+    let publish = !is_dev && (config.git.commit || !config.dest.is_empty() || !cas_trees.is_empty() || !xet.is_empty() || !github_xet.is_empty() || !github_cas.is_empty()
         || (config.output_run.unwrap_or(true) && (!ordinary.is_empty()||!github.is_empty())));
     if !publish {
         let finish = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -759,6 +763,12 @@ pub fn build_project_with_policies(project_root: &camino::Utf8Path, mode: BuildM
             log.operation("xet_github",1,
                 ||{distribution_started=true;drop(publication_backup.take());
                     crate::configured_xet_github::publish(project_root,target,&initial_version.to_string(true))},|_|None)?;
+        }
+        for target in &github_cas {
+            crate::configured_cas_github::prepare(project_root,target)?;
+            log.operation("cas_github",1,
+                ||{distribution_started=true;drop(publication_backup.take());
+                    crate::configured_cas_github::publish(project_root,target,&initial_version.to_string(true))},|_|None)?;
         }
         let transition = if config.git.commit {
             let version = initial_version.to_string(false);

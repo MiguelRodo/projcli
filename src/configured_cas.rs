@@ -40,12 +40,12 @@ pub enum SnapshotVerification {
     },
 }
 impl SnapshotVerification {
-    fn version(&self)->&str {
+    pub(crate) fn version(&self)->&str {
         match self {Self::Xet {observation,..}=>&observation.inventory.version,Self::Tree {observation}=>&observation.snapshot.version,
             Self::LegacyFlat {observation}=>&observation.version,
             Self::FlatCatalogue {observation}=>&observation.snapshot.version}
     }
-    fn kind(&self)->&'static str {
+    pub(crate) fn kind(&self)->&'static str {
         match self {Self::Xet {..}=>"xet-local-v1",Self::Tree {..}=>"tree-v1",Self::LegacyFlat {..}=>"legacy-flat",Self::FlatCatalogue {..}=>"flat-catalogue-v1"}
     }
 }

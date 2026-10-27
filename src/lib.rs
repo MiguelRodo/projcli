@@ -118,3 +118,6 @@ pub mod cas_archive;
 mod store_github;
 /// Immutable complete CAS-store ZIPs over the existing GitHub transport.
 pub mod cas_github;
+
+/// Configured complete-CAS-store GitHub publication and explicit recovery.
+pub mod configured_cas_github;

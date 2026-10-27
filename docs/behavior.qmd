@@ -1012,3 +1012,5 @@ website. See [PR231](https://github.com/MiguelRodo/projcli/pull/231) for exact-h
 general initialization parity are excluded.
 
 Experimental GitHub Xet candidate uses trusted Git project locators, the same local engine, immutable complete-store ZIPs, and independent verification before project references and optional Git publication. Existing provider lifecycle ordering is preserved. No remote-only discovery or distributed latest-head guarantee. Tests pending.
+
+Configured complete-store GitHub CAS candidate follows the same verified immutable-export-before-project-locators/Git boundary as Xet. It uses file-level CAS with no helper. Explicit new-backend style and auto/remote metadata placement only are currently supported; no implicit intersection default, migration, remote-only discovery or distributed head. Ordinary latest/archive and local CAS semantics remain unchanged.

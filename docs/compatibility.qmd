@@ -3921,3 +3921,18 @@ Original stores and old remote exports are unchanged; no migrations or deletion.
 Ponytail full review extracts only actual shared hashing/transport logic, without
 a new plugin/trait framework. No dependencies. Library/mocked tests pending remote
 execution. Configured CAS GitHub publication/recovery remains next slice.
+
+## Configured complete-CAS-store GitHub candidate (27 October)
+
+Separate from ordinary archive/latest ZIPs and Xet: structure cas uses existing
+file objects, tree/flat catalogues and immutable snapshot formats in a whole-store
+ZIP. Credentials and trusted project authority freeze before hooks; verified
+downloadable export precedes guarded current/snapshot locator writes, then Git.
+Explicit recovery keeps its private imported owner alive and requires byte budgets.
+No Xet helper, shared-project store, distributed head or destructive retention.
+All four flat formats retain direct version references/dictionaries; tree roots
+remain content-addressed. Initial auto/remote placement only; explicit style is
+required rather than silently resolving prior GitHub-flat/CAS-tree default overlap.
+Ponytail full reuse retains shared inventory/ZIP/immutable transfer and actual CAS
+readers; backend-specific verification stays separate. Namespace/tag preflight also
+preserves ordinary literal titles containing @version. Tests pending remote run.

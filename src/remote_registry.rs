@@ -62,6 +62,8 @@ impl<'de> Deserialize<'de> for RemotesConfig {
         for value in registry.github.values() {
             if value.get("structure").and_then(Value::as_str)==Some("xet") {
                 crate::configured_xet_github::definition(value).map_err(serde::de::Error::custom)?;
+            }else if value.get("structure").and_then(Value::as_str)==Some("cas") {
+                crate::configured_cas_github::definition(value).map_err(serde::de::Error::custom)?;
             }else{crate::restore::definition(value).map_err(serde::de::Error::custom)?;}
         }
         Ok(RemotesConfig {local:if legacy.is_empty(){None}else{Some(legacy)},registry})
@@ -77,6 +79,7 @@ pub(crate) struct Selected {
     pub(crate) cas:Vec<crate::cas_remote::Selection>,
     pub(crate) xet:Vec<crate::xet_remote::Selection>,
     pub(crate) github_xet:Map<String,Value>,
+    pub(crate) github_cas:Map<String,Value>,
 }
 fn name(value:&str)->Result<String> {
     anyhow::ensure!(!value.trim().is_empty()&&!value.chars().any(char::is_control),"Remote names must be nonempty printable text");
@@ -119,7 +122,8 @@ fn validate_definition(value:&Value)->Result<()> {
         else{crate::configured_xet_github::definition(value)?;}
     }else if value.get("structure").and_then(Value::as_str)==Some("cas") {
         if crate::cas_remote::legacy_shape(value) {let _:LocalRemoteConfig=serde_json::from_value(value.clone())?;}
-        else {crate::cas_remote::Definition::parse(value)?;}
+        else if value.get("path").is_some(){crate::cas_remote::Definition::parse(value)?;}
+        else {crate::configured_cas_github::definition(value)?;}
     }else{crate::restore::definition(value)?;}
     Ok(())
 }
@@ -149,7 +153,7 @@ pub(crate) fn selected(config:&ProjConfig)->Result<Selected> {
     validate_names(config)?;
     validate_sources(config)?;
     let mut local=Map::new();let mut github=Map::new();let mut legacy_cas=Vec::new();
-    let mut legacy_content=HashMap::new();let mut cas=Vec::new();let mut xet=Vec::new();let mut github_xet=Map::new();
+    let mut legacy_content=HashMap::new();let mut cas=Vec::new();let mut xet=Vec::new();let mut github_xet=Map::new();let mut github_cas=Map::new();
     let mut selected_names=HashSet::new();
     let choices:Vec<(String,Option<Vec<String>>)>=match config.build.dest.as_ref() {
         None=>vec![],
@@ -167,6 +171,8 @@ pub(crate) fn selected(config:&ProjConfig)->Result<Selected> {
             let mut selected=selected_definition(config,value,subset)?;
             if value.get("structure").and_then(Value::as_str)==Some("xet") {
                 github_xet.insert(title,selected);
+            }else if value.get("structure").and_then(Value::as_str)==Some("cas") {
+                github_cas.insert(title,selected);
             }else{
                 selected.as_object_mut().context("Remote definition must be a mapping")?
                     .entry("manifest-style").or_insert(Value::String("flat".into()));
@@ -198,14 +204,14 @@ pub(crate) fn selected(config:&ProjConfig)->Result<Selected> {
             legacy_content.insert(title,content);
         } else {anyhow::bail!("Build destination '{title}' is not registered in remotes");}
     }
-    let modern=!local.is_empty()||!github.is_empty()||!cas.is_empty()||!xet.is_empty()||!github_xet.is_empty()||matches!(&config.build.dest,Some(Destinations::Named(_)));
+    let modern=!local.is_empty()||!github.is_empty()||!cas.is_empty()||!xet.is_empty()||!github_xet.is_empty()||!github_cas.is_empty()||matches!(&config.build.dest,Some(Destinations::Named(_)));
     let inline=config.build.local.as_ref().is_some_and(|values|!values.is_empty())
         ||config.build.github.as_ref().is_some_and(|values|!values.is_empty());
     anyhow::ensure!(!(modern&&inline),"Registry destination selection cannot be mixed with inline build.local/build.github; move the definitions to remotes");
     if !modern {
-        return Ok(Selected {local:config.build.local.clone(),github:config.build.github.clone(),legacy_cas,legacy_content,cas,xet,github_xet});
+        return Ok(Selected {local:config.build.local.clone(),github:config.build.github.clone(),legacy_cas,legacy_content,cas,xet,github_xet,github_cas});
     }
-    Ok(Selected {local:Some(local),github:Some(github),legacy_cas,legacy_content,cas,xet,github_xet})
+    Ok(Selected {local:Some(local),github:Some(github),legacy_cas,legacy_content,cas,xet,github_xet,github_cas})
 }
 
 

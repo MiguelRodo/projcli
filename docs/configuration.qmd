@@ -859,3 +859,5 @@ binding. Other placement/format choices fail preflight. GitHub transport is stil
 pending. This is not a supported long-term archival-storage claim.
 
 Experimental GitHub Xet candidate: remotes.github.<name>.structure: xet uses the same optional local engine with immutable complete-store ZIP transport. Build selection remains build.dest. Explicit snapshot restore/verify requires --max-bytes and --max-expanded-bytes plus Git-tracked locators. See [experimental Xet storage](xet-storage.qmd) for defaults, prerequisites, trusted-reference paths, quotas and current limitations. Tests pending; this is not released or installed.
+
+Complete-store GitHub CAS candidate: remotes.github.<name>.structure: cas requires explicit manifest-style: tree or flat. Flat accepts csv/json and their opt-in -dedupe-file forms. Initial auto/remote full metadata only; Git project locators remain required for explicit budgeted snapshot recovery. See [shared-file stores](cas-github.qmd). This is distinct from ordinary latest/archive data ZIPs.

@@ -919,6 +919,13 @@ fn configured_restore(root:&camino::Utf8Path,command:&RemoteCommands)->anyhow::R
                 max_bytes.ok_or_else(||anyhow::anyhow!("GitHub Xet requires --max-bytes"))?,
                 max_expanded_bytes.ok_or_else(||anyhow::anyhow!("GitHub Xet requires --max-expanded-bytes"))?);
         }
+        if proj::configured_cas_github::selected(root,named,profile.as_deref())? {
+            anyhow::ensure!(position.is_none()&&repository.is_none(),"GitHub CAS uses its trusted project locator, not position/repository overrides");
+            anyhow::ensure!(provider.as_deref().is_none_or(|value|value=="github"),"Selected CAS snapshot uses GitHub transport");
+            return proj::configured_cas_github::restore(root,named,snapshot,label,profile.as_deref(),remote_version.as_deref(),*clear,
+                max_bytes.ok_or_else(||anyhow::anyhow!("GitHub CAS requires --max-bytes"))?,
+                max_expanded_bytes.ok_or_else(||anyhow::anyhow!("GitHub CAS requires --max-expanded-bytes"))?);
+        }
         anyhow::ensure!(position.is_none()&&repository.is_none(),"Explicit CAS snapshot restore does not use position or GitHub repository filters");
         anyhow::ensure!(provider.as_deref().is_none_or(|value|value=="local"),"Explicit CAS snapshots require a local source");
         anyhow::ensure!(max_bytes.is_none()&&max_expanded_bytes.is_none(),"CAS snapshots use bounded tree readers, not ordinary archive byte-limit flags");
@@ -940,6 +947,10 @@ fn configured_verify(root:&camino::Utf8Path,title:&str,snapshot:&str,profile:Opt
             max_bytes.ok_or_else(||anyhow::anyhow!("GitHub Xet requires --max-bytes"))?,
             max_expanded.ok_or_else(||anyhow::anyhow!("GitHub Xet requires --max-expanded-bytes"))?)?;
         Ok(proj::configured_cas::SnapshotVerification::Xet {snapshot_id:snapshot.into(),observation})
+    }else if proj::configured_cas_github::selected(root,title,profile)? {
+        proj::configured_cas_github::verify(root,title,snapshot,profile,
+            max_bytes.ok_or_else(||anyhow::anyhow!("GitHub CAS requires --max-bytes"))?,
+            max_expanded.ok_or_else(||anyhow::anyhow!("GitHub CAS requires --max-expanded-bytes"))?)
     }else{
         anyhow::ensure!(max_bytes.is_none()&&max_expanded.is_none(),"Local snapshots use bounded readers, not archive budgets");
         proj::configured_cas::verify(root,title,snapshot,profile)

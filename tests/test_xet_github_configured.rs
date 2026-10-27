@@ -137,3 +137,12 @@ fn actual_configured_github_xet_refs_fresh_restore_and_failure_preservation() {
     println!("Configured GitHub structure:xet build, trusted Git refs, failed-upload preservation and fresh explicit restore passed.");
     server.finish();
 }
+
+#[test]
+fn ordinary_literal_version_text_title_remains_valid_beside_shared_store() {
+    let server=Server::start();let (_temp,root,mut config)=github_setup();
+    config["remotes"]["github"]["results@version"]=json!({"structure":"archive","content":["raw-data"]});
+    config["build"]["dest"]["results@version"]=json!({});save(&root,&config);
+    success(invoke(&root,None,&server).arg("build-dev").output().unwrap());
+    assert!(!server.state.lock().unwrap().exists);server.finish();
+}

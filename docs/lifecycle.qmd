@@ -773,11 +773,11 @@ retains local release/distribution evidence, as for the other providers.
 flowchart LR
   A["Preflight paths; freeze helper"] --> B["Existing analysis and final output preparation"]
   B --> C["Existing ordinary/CAS providers"]
-  C --> D["Experimental Xet: claim store"]
-  D --> E["Finalize; reconstruct privately; check full bytes"]
+  C --> D["Shared store: closed local operation"]
+  D --> E["Finalize or observe CAS; independently check bytes"]
   E --> F["Publish full immutable snapshot"]
   F --> L["Local: retain store snapshot"]
-  F --> Z["GitHub: closed ZIP; upload new asset; download and verify"]
+  F --> Z["GitHub CAS/Xet: closed ZIP; upload new asset; verify download"]
   L --> G["Write trusted project references"]
   Z --> G
   G --> H["Existing Git, end hooks, next-dev"]
