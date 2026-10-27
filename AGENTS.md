@@ -766,6 +766,43 @@ Docs CI renders/links all pages, checks every export appears in r-reference and
 retains native-browser screenshots of both R pages alongside twelve lifecycle SVGs.
 Publication/merge/install remains unapproved; validation artifacts are not deployment.
 
+## Experimental Xet configuration candidate
+
+Structure is xet for local and future GitHub transport. This first configured
+slice is local-only, tree JSON/full metadata remote; reject unsupported overrides
+clearly, never silently map Xet IDs to legacy CAS IDs. Explicit structure selection
+is opt-in experimental: upstream LocalClient is for testing, not an inherited
+archival support promise. Preview never requires/starts the helper or mutates
+backend caches. Production resolves the pinned optional helper once before hooks.
+Source queries do not install or publish. Store finalize plus independent full-file
+verification and complete binding precede the small Git-eligible root reference.
+Source lookup remains independent of build.dest. Explicit snapshot selection only.
+Use remote tests; keep original R package and installed CLI unchanged.
+
+Experimental Xet preview does not copy/restore mutable engine stores under the
+project-only claim. It never opens the engine, even with an existing busy store.
+Arbitrary script/hook store edits are outside that preview guarantee. Every
+production target's types/format are checked before hooks, independently of
+one-time helper discovery. The multi-store and busy-store regressions are pending.
+
+## Experimental immutable Xet transfer candidate
+
+The GitHub library uses the same local engine and structure xet, with one explicit
+long-running Release tag. Whole-store ZIP assets are immutable and independently
+download-verified before returning a trusted-project-reference candidate. Never
+delete an old sole copy to publish a new store. No implicit remote latest,
+multi-writer convergence or configured GitHub workflow is implemented by these
+library APIs. Preserve explicit references and leave source-selection coordination
+for the configured slice. Tests are synthetic loopback REST only; no live uploads.
+
+Configured GitHub Xet remains one-project-per-store, with Git-authoritative current/snapshot locators and immutable ZIP exports. Missing authority cannot silently bootstrap into a nonempty release. Bind repository/API/tag and validate nested references before hooks. Restore owns its private imported tree until verified installation completes. No distributed linear-head/retention or Xet inventory-sharing redesign is authorized by this slice. Keep CI actual-engine evidence distinct from mocked/live transport.
+
+Complete CAS GitHub transport is separate from ordinary archive ZIPs and Xet. Reuse bounded store inventory/ZIP/immutable transfer primitives while preserving backend-specific graph/object verification. File-level CAS IDs/readers remain unchanged; no remote-only discovery, migration or destructive retention. Current slice is library + synthetic mocked transport; configured integration follows separately.
+
+Configured complete-CAS-store GitHub uses existing file CAS readers/writers, not Xet. Preserve old snapshot kinds and selected style on new writes. Explicit style required while prior GitHub/CAS default intersection is unsettled. No silent metadata placement fallback: auto/remote only initially. Verify immutable downloadable ZIP before Git-authoritative locators; hold Import owner through recovery. Cross-provider tag normalization must retain ordinary literal title semantics. No distributed head/multiple-project store redesign.
+
+User-required changed-source quality: use rustfmt/Clippy and Air/lintr for maintained PR changes. Read docs/development-quality.qmd. Never format untouched modules or original projr; CI must not commit/push contributor edits. Use merge-base NUL-separated paths, safe argument arrays, explicit no-file skips, pinned tools and secret-free read-only fork jobs. Clippy analyzes workspace/all targets with a visible baseline; current-head errors and new diagnostics block; unchanged baseline warnings remain visible, including in formatted files. Verify exact artifact run/head/path scope before applying remote formatting patches. Formatting success does not replace backend acceptance.
+
 ## Approved VERSION authority extension (overnight 26 October)
 
 Latest user decision supersedes the DESCRIPTION rejection boundary: VERSION is

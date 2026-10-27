@@ -1,8 +1,13 @@
 # `proj build`
 
-The build pipeline script execution engine for the project.
+Run the analysis steps selected for your project, then save the results as configured.
 
-This command evaluates what files need to be run based on configuration layout parameters (`build.scripts` in `_proj.yml`) or filesystem auto-discovery. It sorts them according to strict engine precedence rules, modifies format-specific configuration templates when necessary, and executes each script inside its own independent, isolated subprocess.
+Choose scripts with `build.scripts` in `_proj.yml`, or omit the list to use the
+default discovery rules below. `proj build` is a production build: it can change
+the version, replace managed results, commit and upload. Start with `proj build-dev`
+when checking an analysis. Plain R scripts use separate child processes by default;
+`config.r.session: shared` selects one shared child for those scripts only.
+Document renderers and hooks keep their own execution rules.
 
 ## Arguments & Flags
 
@@ -14,8 +19,11 @@ This command evaluates what files need to be run based on configuration layout p
 
 - **Pre-flight Dependency Checks:** Before modifying files or triggering git snapshots, the build engine statically resolves targets to identify dependencies. Depending on the matched scripts (such as `.Rmd`, `.qmd`, or `.py`) and configuration files, it asserts the availability of `Rscript` (verifying required R namespaces like `rmarkdown` or `bookdown`), `quarto`, or python executable commands. Any missing R packages can be resolved automatically via the `PROJR_AUTO_INSTALL` environment variable, or through an interactive terminal prompt.
 - **Production Build Restrictions:** Checks if branch rules (`only_branches`, `not_branches`) or upstream synchronicity (`not_behind`) are violated during a production build run.
-- **Remote Export Pipeline:** During the post-build phase, conditionally exports resolved local target outputs into a deduplicated Content-Addressable Storage (CAS) vault as defined via `build.dest` targets in `remotes.local`.
-- **System Git Provider Abstracted:** Git mutations safely resolve through a strictly encapsulated host `System Git` adapter, securely avoiding hanging inputs and ensuring older systems correctly push mutations.
+- **Saving results:** `build.dest` selects named local or GitHub destinations.
+  Ordinary backups, shared-file stores (`cas`) and experimental shared-pieces
+  stores (`xet`) have different requirements; see the [storage guides](../cas-github.qmd).
+- **Git:** The CLI uses your installed Git and its existing authentication.
+  Configure Git identity and remote access before enabling commits or pushes.
 - **Mutual Exclusion Checking:** Before executing, `proj build` checks for project-level configurations (`_quarto.yml` and `_bookdown.yml`). If both exist and the build targets include Quarto or RMarkdown documents, it throws an error to prevent conflicting rendering.
 - **Explicit Execution (Path A):**
   - Define exact scripts, exclusions (starting with `!`), or sub-directory globs in `_proj.yml` under `build.scripts`.
@@ -28,7 +36,13 @@ This command evaluates what files need to be run based on configuration layout p
 
 ## Isolation
 
-Every resolved file or project rendering task runs inside its own completely independent subprocess, isolated via environment profiles (`PROJR_PROFILE`) and correct working directory assignments (`current_dir`), preventing memory leaks and state pollution across execution runs.
+Scripts and renderers run as child processes. Plain R scripts can explicitly
+share one child session with `config.r.session: shared`; they never run inside
+your current R console. Hooks remain separate. Working folders follow native
+renderer rules unless you choose the project-folder override.
+
+Child processes can still read and write files or use network access available
+to them. They are not security sandboxes.
 
 ## Development preview
 
@@ -69,9 +83,9 @@ fields fail before build writes; arbitrary `parameters` and `metadata` maps are
 allowed. Configuration errors include their causes on stderr and return failure.
 
 This validation is separate from project discovery. A root marker or cwd fallback
-does not make an unconfigured project buildable. Explicit directory enforcement,
-per-run environment isolation and complete managed-state failure restoration
-remain under development; see the behavior contract and pinned legacy audit.
+does not make an unconfigured project buildable. Used directories must be declared explicitly. Failed builds attempt to restore
+recorded managed files; arbitrary script changes and completed uploads are outside
+that recovery. See the [lifecycle reference](../lifecycle.qmd) for ordering and limits.
 
 
 Explicit script/hook include patterns must match at least one file. Use an empty

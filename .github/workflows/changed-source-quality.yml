@@ -1,0 +1,72 @@
+name: Changed source formatting and lint
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      base_sha:
+        description: Optional exact base commit for a bounded whole-stack format
+        type: string
+        required: false
+      mode:
+        description: Check only, or generate a formatting patch in the disposable runner
+        type: choice
+        options: [check, format]
+        default: check
+permissions:
+  contents: read
+concurrency:
+  group: changed-source-quality-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    container:
+      image: ghcr.io/miguelrodo/devcontainers-projcli@sha256:a58a8a4dd6f0be83879d08b3a43ab92e256425bbfb81372b257d77a7ff9077f9
+      options: --cpus 2 --memory 6g --memory-swap 6g
+    env:
+      CARGO_HOME: /tmp/proj-quality-cargo
+      RUSTUP_HOME: /tmp/proj-quality-rustup
+      CARGO_TARGET_DIR: /tmp/proj-quality-target
+      CARGO_BUILD_JOBS: '2'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+      QUALITY_BASE: ${{ inputs.base_sha }}
+      QUALITY_MODE: ${{ inputs.mode || 'check' }}
+      QUALITY_TOOLS: /tmp/proj-quality-tools
+      R_LIBS_USER: /tmp/proj-quality-tools/R-library
+      R_PROFILE_USER: /dev/null
+      R_ENVIRON_USER: /dev/null
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f
+        with:
+          toolchain: 1.95.0
+          components: rustfmt, clippy
+      - name: Prepare isolated paths
+        shell: bash
+        run: |
+          mkdir -p "$CARGO_HOME" "$RUSTUP_HOME" "$CARGO_TARGET_DIR" "$QUALITY_TOOLS" quality-evidence
+          chown -R rstudio:rstudio "$CARGO_HOME" "$RUSTUP_HOME" "$CARGO_TARGET_DIR" "$QUALITY_TOOLS" "$GITHUB_WORKSPACE"
+      - name: Verify change selection and formatter isolation
+        shell: bash
+        run: runuser -u rstudio -- python3 tools/test_quality.py
+      - name: Select changed sources and prepare pinned R tools when needed
+        shell: bash
+        run: |
+          runuser -u rstudio -- python3 tools/quality.py detect --evidence quality-evidence
+          runuser -u rstudio -- python3 tools/quality_setup.py --tools "$QUALITY_TOOLS" --selection quality-evidence/changed-files.json
+      - name: Check formatting and R lint; analyze affected Rust workspace
+        shell: bash
+        run: runuser -u rstudio -- python3 tools/quality.py "$QUALITY_MODE" --air "$QUALITY_TOOLS/air" --evidence quality-evidence
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: changed-source-quality
+          path: quality-evidence
+          if-no-files-found: error
+          retention-days: 14

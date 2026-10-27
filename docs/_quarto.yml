@@ -4,7 +4,7 @@ project:
 website:
   title: "projcli"
   site-url: https://miguelrodo.github.io/projcli/
-  description: "Run research analyses with clear project paths and a separate preview step."
+  description: "Run research analyses from R or the command line, with consistent project paths and a separate preview step."
   navbar:
     background: "#143b3a"
     foreground: "#ffffff"
@@ -44,6 +44,10 @@ website:
         contents:
           - r-frontend.qmd
           - r-reference.qmd
+      - section: Storage guides
+        contents:
+          - xet-storage.qmd
+          - cas-github.qmd
       - section: Design and progress
         contents:
           - behavior.qmd
@@ -52,6 +56,7 @@ website:
           - remote-compatibility.qmd
           - r-wrapper-cran.qmd
           - storage-design.qmd
+          - development-quality.qmd
   page-footer:
     left: "projcli · research builds, one project at a time"
     right:
@@ -60,7 +65,11 @@ website:
 
 format:
   html:
-    theme: cosmo
+    theme:
+      light: cosmo
+      dark: darkly
+    respect-user-color-scheme: true
+    include-after-body: theme-accessibility.html
     css: styles.css
     toc: true
     code-copy: true

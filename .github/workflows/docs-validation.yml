@@ -6,6 +6,7 @@ on:
       - README.md
       - docs/**
       - .github/workflows/docs-validation.yml
+      - tests/acceptance/site_browser.mjs
 
 permissions:
   contents: read
@@ -106,7 +107,7 @@ jobs:
                           self.figures.append(self.text[self.start:self.position() + len("</svg>")])
                           self.start = None
           figures = SvgParser(result.stdout).figures
-          assert len(figures) == 12, f"Expected twelve browser-rendered diagrams, found {len(figures)}"
+          assert len(figures) == 13, f"Expected thirteen browser-rendered diagrams, found {len(figures)}"
           for index, text in enumerate(figures, 1):
               svg = ET.fromstring(text)
               assert svg.tag == "{http://www.w3.org/2000/svg}svg"
@@ -142,14 +143,17 @@ jobs:
           reference=" ".join(MainText((site/"r-reference.html").read_text()).text)
           assert exports and all(name in reference for name in exports), "Missing exported function reference"
           guide=" ".join(" ".join(MainText((site/"r-frontend.html").read_text()).text).split())
-          assert "not on CRAN" in guide and "preview.4" in guide and "Quick start" in guide
+          assert "not on CRAN" in guide and "preview.5" in guide and "Quick start" in guide
+          home=" ".join(" ".join(MainText((site/"index.html").read_text()).text).split())
+          assert "Work from R" in home and "Start from R" in home
+          assert "projr_build_dev" in home and "not on CRAN" in home
           browser=shutil.which("google-chrome");assert browser
           class Quiet(SimpleHTTPRequestHandler):
               def log_message(self,*_):pass
           server=ThreadingHTTPServer(("127.0.0.1",0),partial(Quiet,directory=str(site)))
           threading.Thread(target=server.serve_forever,daemon=True).start()
           try:
-              for page in ["r-frontend","r-reference"]:
+              for page in ["index","r-frontend","r-reference"]:
                   with tempfile.TemporaryDirectory(prefix="r-doc-browser-") as profile:
                       result=subprocess.run([browser,"--headless","--disable-gpu","--dump-dom",
                           "--virtual-time-budget=5000","--timeout=20000","--window-size=1400,2400",
@@ -164,6 +168,8 @@ jobs:
               server.shutdown();server.server_close()
           print("PASS documented exports:",len(exports))
           PY
+      - name: Check rendered lists, accessible themes and persisted preference
+        run: timeout --kill-after=10s 180s node tests/acceptance/site_browser.mjs docs/_site 2>&1 | tee validation-evidence/site-themes.txt
       - name: Check rendered navigation and local links
         run: |
           python3 - <<'PY' 2>&1 | tee validation-evidence/links.txt
@@ -296,9 +302,9 @@ jobs:
           PY
           bash --noprofile --norc -e -o pipefail validation-evidence/install-linux.sh 2>&1 | tee validation-evidence/release-install.txt
           test -x "$HOME/.local/bin/proj"
-          test "$("$HOME/.local/bin/proj" --version)" = "proj 0.4.0-preview.4"
-          curl -fsSL https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.4/source-commit.txt | tee validation-evidence/release-source.txt
-          test "$(cat validation-evidence/release-source.txt)" = "f6f4510a806ea302a2ceee5177707fbde9bed5bf"
+          test "$("$HOME/.local/bin/proj" --version)" = "proj 0.4.0-preview.5"
+          curl -fsSL https://github.com/MiguelRodo/projcli/releases/download/v0.4.0-preview.5/source-commit.txt | tee validation-evidence/release-source.txt
+          test "$(cat validation-evidence/release-source.txt)" = "87b5149c679a87796513e775c54ba98e4811aa9b"
       - name: Run documented examples using the downloaded preview
         run: python3 validation-evidence/check-examples.py "$HOME/.local/bin/proj" 2>&1 | tee validation-evidence/release-examples.txt
       - name: Build the exact PR core revision
@@ -340,7 +346,7 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw 'Documented installation command failed' }
             $binary = Join-Path $env:USERPROFILE '.local\bin\proj.exe'
             $version = (& $binary --version).Trim()
-            if ($version -cne 'proj 0.4.0-preview.4') { throw "Unexpected installed version: $version" }
+            if ($version -cne 'proj 0.4.0-preview.5') { throw "Unexpected installed version: $version" }
             & $binary --help
             if ($LASTEXITCODE -ne 0) { throw 'Installed binary help failed' }
             Get-FileHash -Algorithm SHA256 -LiteralPath $binary | Format-List

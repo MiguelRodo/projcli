@@ -15,12 +15,12 @@ separate package from the existing projr package.
 | Component | Status |
 |---|---|
 | R package projcli 0.0.0.9000 | Available in frontends/r/projcli in this repository; not on CRAN. |
-| M4 R helpers and complete CLI queries/session controls | Implemented in merged source; not included in the published preview.4 CLI. |
-| Optional R setup/maintenance below | Implemented in this source revision; not included in published preview.4. |
-| Downloadable/installed command | [Preview.4](install.qmd); installing the R package does not replace it. |
+| M4 R helpers and complete CLI queries/session controls | Included in published preview.5 and merged source. |
+| Optional R setup/maintenance below | Included in published preview.5 and merged source. |
+| Published command download | [Preview.5](install.qmd); installing the R package does not replace it. |
 
-Use the matching source command for the full source API. An older compatible CLI
-can support basic calls, but new commands/configuration may be unavailable. Errors
+Use preview.5 or a matching newer source command for the supported API. Preview.4
+can support basic calls, but does not include the complete R queries/session controls. Errors
 do not silently trigger an engine switch or binary download.
 
 ## Installation
@@ -35,7 +35,7 @@ Install the ordinary dependencies deliberately in an R console:
 install.packages(c("processx", "jsonlite"))
 ~~~
 
-Download or clone the [source repository](https://github.com/MiguelRodo/projcli),
+Download the [preview.5 source archive](https://github.com/MiguelRodo/projcli/archive/refs/tags/v0.4.0-preview.5.tar.gz),
 set the R working folder to its root, then install the R subdirectory:
 
 ~~~r
@@ -45,9 +45,8 @@ help(package = "projcli")
 ~~~
 
 This does not install proj, renv or analysis dependencies. The [CLI install guide](install.qmd)
-covers the released binary and its limits. Until a new release includes the source
-features, they require a matching source command; building that command needs Rust
-and Cargo, as described in the repository README.
+covers the released binary and its limits. Use the published preview.5 command for these features. Building the command from
+source is optional and needs Rust/Cargo, as described in the repository README.
 
 proj can also name unrelated software. You can select an exact command:
 
@@ -109,7 +108,7 @@ does not create directories. Your analysis still controls its own writes.
 
 ## Read settings and parameters
 
-These helpers require the M4 source CLI's typed query commands:
+These helpers use the CLI's typed query commands:
 
 ~~~r
 settings <- projr_yml_get(project = ".")
@@ -122,7 +121,7 @@ values can include secrets; avoid publishing them. See the
 
 ## Optional R setup and maintenance
 
-The source CLI adds explicit setup commands:
+The CLI provides explicit setup commands:
 
 ~~~r
 proj_cli("init", c("readme", "--rmd"))
@@ -204,8 +203,7 @@ Browse the [function index](r-reference.qmd) or use help(package="projcli") loca
 
 The [project setup reference](cli/init.qmd) covers purpose/contact questions,
 --description-file, --readme-rmd, --renv and --citation. Use the existing
-proj_cli("init", args, project = ...) transport for those exact options. A new named
-R init helper is not included in this candidate. R package scaffolding and automatic
+proj_cli("init", args, project = ...) transport for those exact options. The named R helpers below adapt those same CLI actions. R package scaffolding and automatic
 citation-author inference are not implied.
 
 

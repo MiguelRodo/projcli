@@ -1,9 +1,9 @@
-use serde::{Serialize, Deserialize};
-use regex::Regex;
-use std::fs;
 use crate::ignore::root;
-use camino::Utf8Path;
 use anyhow::Context;
+use camino::Utf8Path;
+use regex::Regex;
+use serde::{Deserialize, Serialize};
+use std::fs;
 
 /// Represents the project version separated into standard semantic components.
 ///
@@ -49,7 +49,10 @@ impl ProjVersion {
     pub fn to_string(&self, include_v: bool) -> String {
         let prefix = if include_v { "v" } else { "" };
         if self.dev > 0 {
-            format!("{}{}.{}.{}.{}", prefix, self.major, self.minor, self.patch, self.dev)
+            format!(
+                "{}{}.{}.{}.{}",
+                prefix, self.major, self.minor, self.patch, self.dev
+            )
         } else {
             format!("{}{}.{}.{}", prefix, self.major, self.minor, self.patch)
         }
@@ -63,7 +66,11 @@ impl ProjVersion {
     /// ```
     pub fn cache_key(&self) -> String {
         let release = format!("v{}.{}.{}", self.major, self.minor, self.patch);
-        if self.dev > 0 { format!("{release}-{}", self.dev) } else { release }
+        if self.dev > 0 {
+            format!("{release}-{}", self.dev)
+        } else {
+            release
+        }
     }
 
     /// Parses a raw string into a structured `ProjVersion`.
@@ -183,18 +190,28 @@ pub fn version_get() -> Option<ProjVersion> {
 /// ```
 pub fn version_set_at(root: &Utf8Path, version_str: &str) -> anyhow::Result<()> {
     let combined = crate::yml::merged_configuration_from(root, None, false)?;
-    let settings: crate::yml::SettingsConfig = combined.get("settings")
-        .cloned().map(serde_json::from_value).transpose()?.unwrap_or_default();
+    let settings: crate::yml::SettingsConfig = combined
+        .get("settings")
+        .cloned()
+        .map(serde_json::from_value)
+        .transpose()?
+        .unwrap_or_default();
     let version = ProjVersion::parse(version_str)
         .with_context(|| format!("Could not parse version: {version_str}"))?;
     diagnose_description(root, settings.sync_description_version.unwrap_or(true))?;
-    version_set_at_with_sync(root, &version, settings.sync_description_version.unwrap_or(true))
-
+    version_set_at_with_sync(
+        root,
+        &version,
+        settings.sync_description_version.unwrap_or(true),
+    )
 }
 
 /// Validate the existing DESCRIPTION and prepare only its Version field.
 /// Other bytes (including line endings, field order and continuation text) survive.
-pub(crate) fn description_bytes(root: &Utf8Path, version: &ProjVersion) -> anyhow::Result<Option<Vec<u8>>> {
+pub(crate) fn description_bytes(
+    root: &Utf8Path,
+    version: &ProjVersion,
+) -> anyhow::Result<Option<Vec<u8>>> {
     let path = root.join("DESCRIPTION");
     match fs::symlink_metadata(&path) {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
@@ -207,33 +224,54 @@ pub(crate) fn description_bytes(root: &Utf8Path, version: &ProjVersion) -> anyho
     let mut previous_version = false;
     let mut has_field = false;
     let mut separator = None;
+    let literal = Regex::new(r"(?i)^v?\d+\.\d+\.\d+(?:[.-]\d+)?$").expect("Static version grammar");
     for line in text.split_inclusive('\n') {
         let body = line.trim_end_matches(['\r', '\n']);
         if body.starts_with([' ', '\t']) {
-            anyhow::ensure!(has_field && separator.is_none(), "DESCRIPTION has an orphan continuation line");
-            anyhow::ensure!(!previous_version, "DESCRIPTION Version must be a single-line field");
+            anyhow::ensure!(
+                has_field && separator.is_none(),
+                "DESCRIPTION has an orphan continuation line"
+            );
+            anyhow::ensure!(
+                !previous_version,
+                "DESCRIPTION Version must be a single-line field"
+            );
         } else if !body.is_empty() {
-            anyhow::ensure!(separator.is_none(), "DESCRIPTION must contain one DCF record");
+            anyhow::ensure!(
+                separator.is_none(),
+                "DESCRIPTION must contain one DCF record"
+            );
             has_field = true;
-            let (key, value) = body.split_once(':').context("Invalid DESCRIPTION field: expected name: value")?;
-            anyhow::ensure!(!key.is_empty() && key.chars().all(|c| !c.is_whitespace() && !c.is_control()),
-                "Invalid DESCRIPTION field name");
+            let (key, value) = body
+                .split_once(':')
+                .context("Invalid DESCRIPTION field: expected name: value")?;
+            anyhow::ensure!(
+                !key.is_empty() && key.chars().all(|c| !c.is_whitespace() && !c.is_control()),
+                "Invalid DESCRIPTION field name"
+            );
             previous_version = key == "Version";
             if previous_version {
                 anyhow::ensure!(!found, "DESCRIPTION has duplicate Version fields");
                 found = true;
-                let literal=Regex::new(r"(?i)^v?\d+\.\d+\.\d+(?:[.-]\d+)?$").expect("Static version grammar");
                 if literal.is_match(value.trim()) && ProjVersion::parse(value.trim()).as_ref()==Some(version) {
                     output.push_str(line);
                     continue;
                 }
                 output.push_str("Version: ");
                 output.push_str(&version.to_string(false));
-                output.push_str(if line.ends_with("\r\n") { "\r\n" } else if line.ends_with('\n') { "\n" } else { "" });
+                output.push_str(if line.ends_with("\r\n") {
+                    "\r\n"
+                } else if line.ends_with('\n') {
+                    "\n"
+                } else {
+                    ""
+                });
                 continue;
             }
         } else {
-            if has_field && separator.is_none() { separator = Some(output.len()); }
+            if has_field && separator.is_none() {
+                separator = Some(output.len());
+            }
             previous_version = false;
         }
         output.push_str(line);
@@ -242,24 +280,39 @@ pub(crate) fn description_bytes(root: &Utf8Path, version: &ProjVersion) -> anyho
     if !found {
         let newline = if text.contains("\r\n") { "\r\n" } else { "\n" };
         let at = separator.unwrap_or(output.len());
-        let prefix = if at>0 && !output[..at].ends_with('\n') { newline } else { "" };
-        output.insert_str(at, &format!("{prefix}Version: {}{newline}", version.to_string(false)));
+        let prefix = if at > 0 && !output[..at].ends_with('\n') {
+            newline
+        } else {
+            ""
+        };
+        output.insert_str(
+            at,
+            &format!("{prefix}Version: {}{newline}", version.to_string(false)),
+        );
     }
     Ok(Some(output.into_bytes()))
 }
 
 /// Check description structure before hooks; VERSION wins when two valid versions differ.
 pub(crate) fn diagnose_description(root: &Utf8Path, sync: bool) -> anyhow::Result<()> {
-    if !sync { return Ok(()); }
-    let expected = version_get_from(root).unwrap_or(ProjVersion {major:0,minor:0,patch:1,dev:0});
+    if !sync {
+        return Ok(());
+    }
+    let expected = version_get_from(root).unwrap_or(ProjVersion {
+        major: 0,
+        minor: 0,
+        patch: 1,
+        dev: 0,
+    });
     if description_bytes(root, &expected)?.is_some() {
         let text = crate::fs_utils::read_managed_text(root.join("DESCRIPTION"))?;
-        if let Some(current) = text.lines().find_map(|line| line.strip_prefix("Version:")) {
-            if let Some(authority) = version_get_from(root) {
-                if ProjVersion::parse(current) != Some(authority) {
-                    eprintln!("DESCRIPTION Version differs from VERSION; VERSION is authoritative and production writes will synchronize it (settings.sync-description-version=false disables this).");
-                }
-            }
+        if let Some(current) = text.lines().find_map(|line| line.strip_prefix("Version:"))
+            && let Some(authority) = version_get_from(root)
+            && ProjVersion::parse(current) != Some(authority)
+        {
+            eprintln!(
+                "DESCRIPTION Version differs from VERSION; VERSION is authoritative and production writes will synchronize it (settings.sync-description-version=false disables this)."
+            );
         }
     }
     Ok(())
@@ -267,17 +320,27 @@ pub(crate) fn diagnose_description(root: &Utf8Path, sync: bool) -> anyhow::Resul
 
 /// Write VERSION and optionally an existing DESCRIPTION using frozen build policy.
 /// Two guarded replacements have exact local failure recovery, not crash atomicity.
-pub(crate) fn version_set_at_with_sync(root: &Utf8Path, version: &ProjVersion, sync: bool) -> anyhow::Result<()> {
-    let description = if sync { description_bytes(root, version)? } else { None };
+pub(crate) fn version_set_at_with_sync(
+    root: &Utf8Path,
+    version: &ProjVersion,
+    sync: bool,
+) -> anyhow::Result<()> {
+    let description = if sync {
+        description_bytes(root, version)?
+    } else {
+        None
+    };
     let path = root.join("VERSION");
     let mut targets = vec![path.clone().into_std_path_buf()];
-    if description.is_some() { targets.push(root.join("DESCRIPTION").into_std_path_buf()); }
+    if description.is_some() {
+        targets.push(root.join("DESCRIPTION").into_std_path_buf());
+    }
     let backup = crate::build_state::BuildState::capture(&[], &targets)?;
     let result = (|| {
-        if let Some(bytes) = description {
-            if fs::read(root.join("DESCRIPTION"))?!=bytes {
-                crate::fs_utils::replace_managed_file(&root.join("DESCRIPTION"), bytes)?;
-            }
+        if let Some(bytes) = description
+            && fs::read(root.join("DESCRIPTION"))? != bytes
+        {
+            crate::fs_utils::replace_managed_file(&root.join("DESCRIPTION"), bytes)?;
         }
         if path.exists() {
             crate::fs_utils::replace_managed_file(&path, version_file_content(version))?;
@@ -286,11 +349,16 @@ pub(crate) fn version_set_at_with_sync(root: &Utf8Path, version: &ProjVersion, s
             crate::path_safety::resolve_path(path.as_std_path(), true)?;
             let mut staged = tempfile::NamedTempFile::new_in(root)?;
             staged.write_all(version_file_content(version).as_bytes())?;
-            staged.persist_noclobber(&path).map_err(|error| error.error)?;
+            staged
+                .persist_noclobber(&path)
+                .map_err(|error| error.error)?;
         }
         Ok(())
     })();
-    match result { Ok(()) => Ok(()), Err(error) => Err(backup.restore(error)) }
+    match result {
+        Ok(()) => Ok(()),
+        Err(error) => Err(backup.restore(error)),
+    }
 }
 
 /// Thin production wrapper: Updates the current project version globally using implicit system environment to find root.
@@ -341,11 +409,21 @@ mod tests {
 
     #[test]
     fn test_projversion_to_string() {
-        let v = ProjVersion { major: 1, minor: 2, patch: 3, dev: 4 };
+        let v = ProjVersion {
+            major: 1,
+            minor: 2,
+            patch: 3,
+            dev: 4,
+        };
         assert_eq!(v.to_string(true), "v1.2.3.4");
         assert_eq!(v.to_string(false), "1.2.3.4");
 
-        let v2 = ProjVersion { major: 1, minor: 2, patch: 3, dev: 0 };
+        let v2 = ProjVersion {
+            major: 1,
+            minor: 2,
+            patch: 3,
+            dev: 0,
+        };
         assert_eq!(v2.to_string(true), "v1.2.3");
         assert_eq!(v2.to_string(false), "1.2.3");
     }
