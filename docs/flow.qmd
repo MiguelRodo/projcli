@@ -1,80 +1,93 @@
-# Build execution flow
+# What happens during a build
 
-This describes the current Rust implementation, not a complete correctness or
-reproducibility guarantee. The [behavior contract](behavior.qmd) records approved
-semantics and the [compatibility log](compatibility.qmd) records evidence and gaps.
+A build runs the analysis steps you selected, prepares the final results, then
+saves or uploads them as configured. Start with a preview when checking your
+scripts. Use a disposable copy before trying production settings on important work.
 
-## Read-only resolution and preflight
+The [stage-by-stage diagram](lifecycle.qmd) shows the detailed order. This guide
+summarizes the supported workflow in preview.5. It does not promise that arbitrary
+scripts can be undone or that every original projr feature is supported.
 
-Capture the project root, resolve a private per-run environment without changing
-the parent process, require active root configuration,
-and merge base/profile/local settings. Validate fields, explicit directory paths,
-targets, hooks and destructive destinations. Explicit empty scripts select no
-analysis. Otherwise explicit globs or shallow root discovery select inputs;
-project rendering may use its own input discovery. Explicit Python-only selection
-does not activate an unused Quarto/Bookdown project marker.
+## Check the project and tools {#read-only-resolution-and-preflight}
 
-Read VERSION with DESCRIPTION/default fallbacks. Check selected interpreters and
-configured Git restrictions before controlled project writes. Existing preflight
-can still invoke Git/network checks or R package remediation; these are known
-limitations, not a clean-environment guarantee.
+projcli first selects the project folder and reads its configuration, including
+active profiles and local overrides. It checks the selected scripts, hooks,
+folder paths, storage destinations and required tools. An explicit `scripts: []`
+means no analysis scripts; it does not trigger automatic discovery instead.
 
-## Local production build and restoration boundary
+Each child command keeps the selected project identity, even if a script changes
+its working folder. The parent R console or terminal environment is not rewritten.
+Project identity and the folder where a script executes are separate choices.
 
-Before authoritative writes, capture exact bytes, permissions and presence/absence
-for the managed set documented in the compatibility log. This includes VERSION,
-ignore/configuration files, existing root regular files, selected in-project
-inputs, declared output/docs trees and planned individual rendering artifacts.
-External declared output/docs directories are allowed. Linked managed trees are
-rejected. Backups stream into private OS temporary storage outside disposable project
-cache. Backup creation failure prevents authoritative project writes.
+These checks are not necessarily offline: Git checks can contact a remote, and
+optional package setup can require separate consent. A check is not a security
+sandbox. Reading configuration and looking up paths do not create directories or
+edit ignore files.
 
-One local error/panic boundary covers ignore synchronization, requested pre-cleanup,
-pre/both hooks, script/document execution, renderer configuration, promotion and
-post/both hooks. Required output promotion errors propagate. Renderer configuration
-is restored exactly, retaining comments and originally absent keys. Candidate
-version changes stay in memory; VERSION is written only after those stages succeed.
-No pre-build Git commit is created.
+## Prepare and run the analysis {#local-production-build-and-restoration-boundary}
 
-On local failure, restore the captured managed set, including originally absent
-files/directories. Attempt all restorations; retain recovery backups and report
-both the primary and restoration errors when recovery fails. This does not undo
-arbitrary script effects outside the captured set or provide a filesystem sandbox,
-power-loss atomicity or protection against concurrent filesystem replacement.
+Before changing managed files, projcli saves recovery copies outside the project's
+disposable cache. The recorded set includes VERSION, managed configuration and
+ignore files, recorded inputs and final output/document folders. Declared output
+folders may be outside the project. Linked managed trees are rejected. If the
+recovery copy cannot be made, the controlled changes do not start.
 
-## Publication after local success
+The production build then performs the selected local steps: cleanup, hooks,
+analysis, document rendering and copying successful results to final folders.
+Optional `build.r` actions can snapshot renv, generate documentation and render
+README.Rmd. They are off by default; see [R build tasks](r-frontend.qmd#optional-r-setup-and-maintenance)
+and the detailed lifecycle for their ordering. Temporary renderer configuration
+is restored, including comments and settings that were originally absent.
+VERSION is written after the local stages succeed. There is no pre-build Git commit.
 
-Storage export and Git publication start after successful local completion. Export
-actual declared content before requested `clear_output: post` cleanup. Create one
-configured final Git commit, then push when enabled. A publication or later cleanup
-failure reports that local analysis succeeded and retains its release/version;
-external publication is not rolled back.
+If a local step fails, projcli attempts to restore the recorded files and folders,
+including removing recorded paths that did not previously exist. If recovery also
+fails, it reports both errors and retains the backup location. This cannot undo
+arbitrary writes outside the recorded set, other programs' changes or a power
+failure. Always keep an independent backup.
 
-Git upstream/authentication policy, stable attempt/release records and an
-analysis-free publication retry command remain unfinished. Push uses the captured current-branch upstream; custom push-only routing remains
-unsupported and fails before authoritative writes. Native authentication is the default.
+## Save results after local success {#publication-after-local-success}
 
-## Development previews and remaining renderer gaps
+After the local work succeeds, projcli saves the selected folders to the locations
+chosen by `build.dest`. It uses the actual prepared files before any requested
+post-build output cleanup. Git integration can then make the configured build
+commit and push to the current branch's upstream. It uses installed Git and your
+existing authentication; custom push-only routing is not supported.
 
-Previews skip production version changes, cleanup, commits and exports. They run
-selected hooks/analysis and restore captured managed state after success and failure,
-while cache output remains. Scripts still choose preview output locations; this is
-not automatic output redirection or an OS sandbox. Script/hook subprocesses start
-with the captured invocation cwd by default. Only an explicit project execution
-mode passes Quarto an execution-directory override; individual
-R Markdown receives a non-null knit_root_dir only in project mode. Direct R/IDE parity remains unfinished and is not
-established by these CLI controls. The existing R package remains untouched.
+If an upload, push or later cleanup fails, the analysis may already have succeeded
+and some files may already have been uploaded. The command reports failure while
+retaining the successful local release and version. It does not claim to undo
+completed external changes. Check the error and [build records](cli/history.qmd)
+before retrying. A dedicated analysis-free publication retry command remains future work.
 
+Successful builds and failures with distribution activity retain useful Git-eligible
+records when Git integration is enabled. Earlier failures retain local diagnostics
+excluded from Git. The final Git outcome is saved locally after the build record's
+commit, for inclusion in the next normal commit; bookkeeping does not create a
+recursive sequence of commits. See the history reference for exact files and limits.
 
-Native execution policy (supersedes earlier unconditional root-cwd wording):
-`build` and `build-dev` default to `--execution-dir native`. Plain scripts/hooks
-inherit the invocation cwd, not each source file's parent; R `source()` normally
-inherits its caller cwd. Individual Rmd rendering leaves `knit_root_dir` unset and
-Quarto receives no execution-dir override, preserving native document/project
-settings. `--execution-dir project` explicitly requests captured-root execution
-for scripts/hooks, Quarto and individual Rmd. Project render drivers run from the
-selected project root to select the project, independently of chunk cwd. Project-wide
-Bookdown root override is currently rejected early because its render_site entrypoint
-does not expose the individual knit-root argument. Captured project/profile/version
-and logical path identity do not change with execution cwd. No existing R helper
-bridge or literal Markdown resource rewriting is implied.
+## What a preview changes {#development-previews-and-remaining-renderer-gaps}
+
+```bash
+proj build-dev
+```
+
+A preview runs the selected analysis and hooks, but skips production version
+changes, cleanup, Git commits and uploads. It restores recorded managed files
+after success or failure while leaving preview results in the cache. Your own
+scripts and hooks can still write elsewhere; preview is not an operating-system
+sandbox and does not automatically redirect every output.
+
+By default, plain scripts and hooks use the folder from which you invoked the
+command. Individual R Markdown and Quarto documents keep their native working-folder
+rules. `--execution-dir project` explicitly requests project-folder execution.
+Bookdown project-wide root overrides are rejected because that renderer entry
+point cannot apply the same control. Selecting a project does not rewrite literal
+Markdown links or guarantee identical results from an IDE's Render/Knit button.
+
+Plain R analysis scripts use separate child sessions by default;
+`config.r.session: shared` selects one shared child for those scripts. This is
+separate from your live R console and does not combine hooks or document renderers
+into that session. The original projr package remains unchanged. See the
+[build reference](cli/build.qmd), [R guide](r-frontend.qmd) and
+[compatibility record](compatibility.qmd) for the supported subset and remaining gaps.
