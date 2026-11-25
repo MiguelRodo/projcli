@@ -303,7 +303,10 @@ fn managed_block(
         let marked = lines.iter().enumerate().filter(|(_, line)| matches(line));
         marked.map(|(index, _)| index).collect()
     };
-    match (find(is_start_marker).as_slice(), find(is_end_marker).as_slice()) {
+    match (
+        find(is_start_marker).as_slice(),
+        find(is_end_marker).as_slice(),
+    ) {
         ([], []) => Ok(None),
         ([start], [end]) if start < end => Ok(Some((*start, *end))),
         ([_], [_]) => anyhow::bail!("Reversed managed ignore markers in {path}"),
@@ -336,10 +339,7 @@ fn update_ignore_file(
         .lines()
         .map(str::to_owned)
         .collect();
-    let content = directories
-        .into_iter()
-        .chain([String::new()])
-        .chain(others);
+    let content = directories.into_iter().chain([String::new()]).chain(others);
     let new_lines: Vec<String> = match managed_block(&lines, path)? {
         Some((start, end)) => lines[..=start]
             .iter()

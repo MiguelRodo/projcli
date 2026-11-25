@@ -69,7 +69,9 @@ fn projr_written_gitignore_is_refreshed_in_place_as_a_single_block() {
     let temp = project(Some(&projr));
     let git = refresh(temp.path());
     assert_eq!(git, format!("{before}_tmp/**\n\n{after}"));
-    let starts = git.lines().filter(|line| line.starts_with("# Start of projr section"));
+    let starts = git
+        .lines()
+        .filter(|line| line.starts_with("# Start of projr section"));
     assert_eq!(starts.count(), 1);
     assert_eq!(refresh(temp.path()), git);
 }
@@ -84,7 +86,10 @@ fn malformed_markers_fail_without_rewriting_and_lookalike_comments_are_rules() {
     ] {
         let temp = project(Some(&text));
         assert!(!init(temp.path()).status.success(), "{text}");
-        assert_eq!(fs::read_to_string(temp.path().join(".gitignore")).unwrap(), text);
+        assert_eq!(
+            fs::read_to_string(temp.path().join(".gitignore")).unwrap(),
+            text
+        );
     }
     let comments = "# Start of projr section example\n# End of projr section example\n";
     let temp = project(Some(comments));
@@ -96,7 +101,11 @@ fn malformed_markers_fail_without_rewriting_and_lookalike_comments_are_rules() {
 #[test]
 fn package_rbuildignore_gets_projr_starter_regexes_once() {
     let temp = project(None);
-    fs::write(temp.path().join("DESCRIPTION"), "Package: study\nVersion: 0.1.0\n").unwrap();
+    fs::write(
+        temp.path().join("DESCRIPTION"),
+        "Package: study\nVersion: 0.1.0\n",
+    )
+    .unwrap();
     fs::write(temp.path().join(".Rbuildignore"), "^custom$\n").unwrap();
     assert!(init(temp.path()).status.success());
     let rbuild = fs::read_to_string(temp.path().join(".Rbuildignore")).unwrap();
@@ -105,7 +114,10 @@ fn package_rbuildignore_gets_projr_starter_regexes_once() {
     assert!(rbuild.starts_with(&format!("{starter}{START}\n^_tmp$\n^_tmp/$\n\n")));
     assert!(rbuild.ends_with(&format!("{END}\n^custom$\n")));
     assert!(init(temp.path()).status.success());
-    assert_eq!(fs::read_to_string(temp.path().join(".Rbuildignore")).unwrap(), rbuild);
+    assert_eq!(
+        fs::read_to_string(temp.path().join(".Rbuildignore")).unwrap(),
+        rbuild
+    );
 }
 
 #[test]
@@ -117,7 +129,11 @@ fn git_ignores_projr_local_configuration() {
     let git = |args: &[&str]| {
         let mut command = Command::new("git");
         for (key, _) in std::env::vars_os() {
-            if key.to_string_lossy().to_ascii_uppercase().starts_with("GIT_") {
+            if key
+                .to_string_lossy()
+                .to_ascii_uppercase()
+                .starts_with("GIT_")
+            {
                 command.env_remove(key);
             }
         }
