@@ -7,7 +7,7 @@ user-written rules are preserved outside the managed block.
 
 Manually appends one or more raw file or directory paths to the project ignore files.
 
-Unlike automatic configurations driven by `_proj.yml`, these manual entries represent permanent, user-specified exclusions and are placed strictly *above* the `# --- PROJ MANAGED ---` blocks.
+Unlike automatic configurations driven by `_proj.yml`, these manual entries represent permanent, user-specified exclusions and are placed strictly *above* the managed `# Start of projr section` line.
 
 ### Arguments & Flags
 
@@ -19,7 +19,7 @@ Unlike automatic configurations driven by `_proj.yml`, these manual entries repr
 
 Manually forces paths to be tracked by appending negated syntax (e.g. `!path/` or `^!pattern$`).
 
-These unignore entries represent permanent, user-specified negations and are placed strictly *below* the `# --- END PROJ MANAGED ---` boundary in `.gitignore` and `.Rbuildignore` files.
+These unignore entries represent permanent, user-specified negations and are placed strictly *below* the `# End of projr section` line in `.gitignore` and `.Rbuildignore` files.
 
 ### Arguments & Flags
 
@@ -49,13 +49,49 @@ folder rule excludes.
 
 ## Your rules are preserved
 
-Automatic rules are kept between these comments:
+Automatic rules are kept between the same comments projr uses, so projcli and
+projr refresh one shared block in the same project:
 
 ```text
-# --- PROJ MANAGED ---
-# --- END PROJ MANAGED ---
+# Start of projr section: do not edit by hand (update with projr_ignore_auto())
+_tmp/**
+
+# End of projr section
 ```
 
-projcli replaces only the content inside its managed block. Existing rules
-outside it are preserved. If the block is missing, it is appended. Manual add
-entries go before the block; manual remove entries go after it.
+Inside the block, configured directory rules come first, then a blank line, then
+other automatic rules (project metadata and planned render outputs). Any start
+line beginning `# Start of projr section` followed by `:` and optional text is
+recognised and kept as written; a comment such as `# Start of projr section
+example` is an ordinary rule. Repeated, unpaired or reversed markers fail without
+rewriting the file.
+
+projcli replaces only the content inside the block. Existing rules outside it
+are preserved. Manual add entries go before the block; manual remove entries go
+after it.
+
+### Starter defaults
+
+When a `.gitignore` has no managed block yet, directory initialization or a
+production build first writes projr's editable defaults, then the empty block,
+then the file's existing lines, so your later exceptions (such as `!.vdoc.keep`)
+still win. Only defaults missing from the file are added:
+
+```text
+.vdoc.*
+.DS_Store
+Thumbs.db
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+_projr-local.yml
+_environment.local
+```
+
+A `.Rbuildignore` that is managed (DESCRIPTION or an existing `.Rbuildignore`)
+receives the regular-expression equivalents `(^|/)\.vdoc\.`,
+`(^|/)(\.DS_Store|Thumbs\.db)$`, `^.*\.Rproj$`, `^\.Rproj\.user$` and
+`^_projr-local\.yml$`. These lines sit outside the block: edit or delete them
+freely. Seeding happens only while no block exists, so deleted defaults are not
+restored by later refreshes.

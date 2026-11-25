@@ -268,16 +268,9 @@ fn enclosing_repository_and_linked_worktree_do_not_get_nested_git_repositories()
 #[test]
 fn malformed_managed_markers_preserve_user_rules_instead_of_accumulating_blocks() {
     let f = Fixture::new();
-    fs::write(
-        f.root.join(".gitignore"),
-        "custom\n# --- PROJ MANAGED ---\n",
-    )
-    .unwrap();
+    fs::write(f.root.join(".gitignore"), "custom\n# Start of projr section\n").unwrap();
     assert!(!f.cli(&["init", "directories"]).status.success());
-    assert_eq!(
-        text(&f.root, ".gitignore"),
-        "custom\n# --- PROJ MANAGED ---\n"
-    );
+    assert_eq!(text(&f.root, ".gitignore"), "custom\n# Start of projr section\n");
 }
 #[test]
 fn package_ignore_uses_escaped_paths_without_excluding_legitimate_package_sources() {
