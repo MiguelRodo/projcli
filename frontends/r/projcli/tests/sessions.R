@@ -27,7 +27,8 @@ if (!nzchar(binary)) {
   writeLines("v1.2.3-7",file.path(root,"VERSION"))
   cfg <- list(config=list(r=list(session="shared")),
     build=list(git=FALSE,scripts=list("first.r","middle.py","second.R"),
-               hooks=list(pre=list("pre.R"),post=list("post.R"))))
+               hooks=list(pre=list("pre.R"),post=list("post.R"))),
+    dev=list(hooks=list(pre=list("pre.R"),post=list("post.R"))))
   write_cfg <- function() writeLines(jsonlite::toJSON(cfg,auto_unbox=TRUE),file.path(root,"_proj.yml"))
   writeLines(c("stopifnot(!exists('.analysis_shared_value',envir=.GlobalEnv,inherits=FALSE))",
     paste0("writeLines(as.character(Sys.getpid()),",at("pre-pid"),")")),file.path(root,"pre.R"))

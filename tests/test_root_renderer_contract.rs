@@ -1,4 +1,8 @@
-use std::{fs, path::Path, process::{Command, Output}};
+use std::{
+    fs,
+    path::Path,
+    process::{Command, Output},
+};
 
 fn config(root: &Path, scripts: &str, extra: &str) {
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
@@ -8,12 +12,25 @@ fn config(root: &Path, scripts: &str, extra: &str) {
 fn invoke(root: &Path, production: bool) -> Output {
     let mut command = Command::new(env!("CARGO_BIN_EXE_proj"));
     command.arg(if production { "build" } else { "build-dev" });
-    if production { command.arg("--patch"); }
-    command.args(["--non-interactive", "--execution-dir", "project", "--project"]).arg(root)
-        .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE")
-        .env_remove("QUARTO_PROFILE").env_remove("PROJR_CLEAR_OUTPUT");
+    if production {
+        command.arg("--patch");
+    }
+    command
+        .args([
+            "--non-interactive",
+            "--execution-dir",
+            "project",
+            "--project",
+        ])
+        .arg(root)
+        .env_remove(proj::PROJECT_ROOT_ENV)
+        .env_remove("PROJR_PROFILE")
+        .env_remove("QUARTO_PROFILE")
+        .env_remove("PROJR_CLEAR_OUTPUT");
     let mut paths = vec![root.join("bin")];
-    paths.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()));
+    paths.extend(std::env::split_paths(
+        &std::env::var_os("PATH").unwrap_or_default(),
+    ));
     command.env("PATH", std::env::join_paths(paths).unwrap());
     command.output().unwrap()
 }
@@ -21,15 +38,33 @@ fn invoke(root: &Path, production: bool) -> Output {
 #[test]
 fn nested_scripts_and_hooks_execute_in_root_in_selected_order() {
     let temp = tempfile::tempdir().unwrap();
-    let root = temp.path().canonicalize().unwrap().join("project with spaces é");
+    let root = temp
+        .path()
+        .canonicalize()
+        .unwrap()
+        .join("project with spaces é");
     fs::create_dir_all(root.join("nested")).unwrap();
-    config(&root, "nested/first.py, nested/second.py", "  hooks:\n    pre: [nested/pre.py]\n    post: [nested/post.py]\n");
+    config(
+        &root,
+        "nested/first.py, nested/second.py",
+        "dev:\n  hooks:\n    pre: [nested/pre.py]\n    post: [nested/post.py]\n",
+    );
     for name in ["pre", "first", "second", "post"] {
         fs::write(root.join(format!("nested/{name}.py")), format!("from pathlib import Path\nimport os\nassert Path.cwd().samefile(Path(os.environ['PROJ_PROJECT_ROOT']))\nwith open('order.txt', 'a') as f: f.write('{name}\\n')\n")).unwrap();
     }
     let output = invoke(&root, false);
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
-    assert_eq!(fs::read_to_string(root.join("order.txt")).unwrap().lines().collect::<Vec<_>>(), vec!["pre", "first", "second", "post"]);
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("order.txt"))
+            .unwrap()
+            .lines()
+            .collect::<Vec<_>>(),
+        vec!["pre", "first", "second", "post"]
+    );
     assert!(!root.join("nested/order.txt").exists());
 }
 
@@ -42,9 +77,17 @@ fn invalid_control_values_fail_before_analysis_or_managed_writes() {
         if extra.is_empty() {
             let path = root.join("_proj.yml");
             let original = fs::read_to_string(&path).unwrap();
-            fs::write(path, original.replace("path: output", "path: output\n    ignore: [typo]")).unwrap();
+            fs::write(
+                path,
+                original.replace("path: output", "path: output\n    ignore: [typo]"),
+            )
+            .unwrap();
         }
-        fs::write(root.join("analysis.py"), "open('analysis-called', 'w').write('bad')\n").unwrap();
+        fs::write(
+            root.join("analysis.py"),
+            "open('analysis-called', 'w').write('bad')\n",
+        )
+        .unwrap();
         let before = fs::read(root.join("_proj.yml")).unwrap();
         let output = invoke(&root, true);
         assert!(!output.status.success());
@@ -52,7 +95,10 @@ fn invalid_control_values_fail_before_analysis_or_managed_writes() {
         assert!(!root.join(".gitignore").exists());
         assert!(!root.join("cache").exists());
         assert_eq!(fs::read(root.join("_proj.yml")).unwrap(), before);
-        assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");
+        assert_eq!(
+            fs::read_to_string(root.join("VERSION")).unwrap(),
+            "v1.2.3\n"
+        );
     }
 }
 
@@ -95,24 +141,52 @@ target.write_text('fresh artifact')
     #[test]
     fn modeled_individual_formats_produce_real_expected_artifacts() {
         for (extension, key, format, suffix) in [
-            ("qmd", "format", "html", "html"), ("qmd", "format", "pdf", "pdf"),
-            ("qmd", "format", "docx", "docx"), ("Rmd", "output", "html_document", "html"),
-            ("Rmd", "output", "pdf_document", "pdf"), ("Rmd", "output", "word_document", "docx")
+            ("qmd", "format", "html", "html"),
+            ("qmd", "format", "pdf", "pdf"),
+            ("qmd", "format", "docx", "docx"),
+            ("Rmd", "output", "html_document", "html"),
+            ("Rmd", "output", "pdf_document", "pdf"),
+            ("Rmd", "output", "word_document", "docx"),
         ] {
             let temp = tempfile::tempdir().unwrap();
             let root = temp.path().canonicalize().unwrap();
             fs::create_dir(root.join("nested")).unwrap();
             let input = format!("nested/report's é.{extension}");
             config(&root, &format!("\"{input}\""), "");
-            fs::write(root.join(&input), format!("---\n{key}: {format}\n---\nReport\n")).unwrap();
-            fs::write(root.join("expected-output"), format!("nested/report's é.{suffix}")).unwrap();
+            fs::write(
+                root.join(&input),
+                format!("---\n{key}: {format}\n---\nReport\n"),
+            )
+            .unwrap();
+            fs::write(
+                root.join("expected-output"),
+                format!("nested/report's é.{suffix}"),
+            )
+            .unwrap();
             fake(&root);
             let output = invoke(&root, true);
-            assert!(output.status.success(), "{format}: {} {}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
-            assert_eq!(fs::read_to_string(root.join(format!("published/report's é.{suffix}"))).unwrap(), "fresh artifact");
-            let args: Vec<String> = serde_json::from_slice(&fs::read(root.join("renderer-argv.json")).unwrap()).unwrap();
+            assert!(
+                output.status.success(),
+                "{format}: {} {}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+            assert_eq!(
+                fs::read_to_string(root.join(format!("published/report's é.{suffix}"))).unwrap(),
+                "fresh artifact"
+            );
+            let args: Vec<String> =
+                serde_json::from_slice(&fs::read(root.join("renderer-argv.json")).unwrap())
+                    .unwrap();
             if extension == "Rmd" {
-                assert_eq!(args[6], if format == "html_document" { "embed" } else { "native" });
+                assert_eq!(
+                    args[6],
+                    if format == "html_document" {
+                        "embed"
+                    } else {
+                        "native"
+                    }
+                );
                 assert!(!args[1].contains("report's"));
                 assert_eq!(args[2], root.join(&input).to_str().unwrap());
                 assert_eq!(args[3], "project");
@@ -123,13 +197,30 @@ target.write_text('fresh artifact')
 
     #[test]
     fn retained_markdown_overrides_cannot_overwrite_a_sibling_before_failing_post_hook() {
-        for metadata in ["output: html_document\nkeep_md: true", "output: html_document\nkeep-md: true", "output: {html_document: {keep_md: true}}", "output: {html_document: {keep-md: true}}"] {
+        for metadata in [
+            "output: html_document\nkeep_md: true",
+            "output: html_document\nkeep-md: true",
+            "output: {html_document: {keep_md: true}}",
+            "output: {html_document: {keep-md: true}}",
+        ] {
             let temp = tempfile::tempdir().unwrap();
             let root = temp.path().canonicalize().unwrap();
             fs::create_dir(root.join("nested")).unwrap();
-            config(&root, "nested/report.Rmd", "  hooks:\n    post: [post.py]\n");
-            fs::write(root.join("post.py"), "open('post-called', 'w').write('bad')\nraise SystemExit(17)\n").unwrap();
-            fs::write(root.join("nested/report.Rmd"), format!("---\n{metadata}\n---\n")).unwrap();
+            config(
+                &root,
+                "nested/report.Rmd",
+                "  hooks:\n    post: [post.py]\n",
+            );
+            fs::write(
+                root.join("post.py"),
+                "open('post-called', 'w').write('bad')\nraise SystemExit(17)\n",
+            )
+            .unwrap();
+            fs::write(
+                root.join("nested/report.Rmd"),
+                format!("---\n{metadata}\n---\n"),
+            )
+            .unwrap();
             fs::write(root.join("nested/report.md"), "unrelated sibling sentinel").unwrap();
             fs::write(root.join("expected-output"), "nested/report.html").unwrap();
             fake(&root);
@@ -140,8 +231,14 @@ target.write_text('fresh artifact')
             assert!(!output.status.success());
             assert!(!root.join("renderer-argv.json").exists());
             assert!(!root.join("post-called").exists());
-            assert_eq!(fs::read_to_string(root.join("nested/report.md")).unwrap(), "unrelated sibling sentinel");
-            assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");
+            assert_eq!(
+                fs::read_to_string(root.join("nested/report.md")).unwrap(),
+                "unrelated sibling sentinel"
+            );
+            assert_eq!(
+                fs::read_to_string(root.join("VERSION")).unwrap(),
+                "v1.2.3\n"
+            );
             assert!(!root.join(".gitignore").exists());
         }
     }
@@ -155,12 +252,24 @@ target.write_text('fresh artifact')
             fs::create_dir_all(root.join("nested")).unwrap();
             let extension = if case == "ancestor" { "qmd" } else { "Rmd" };
             config(&root, &format!("nested/report.{extension}"), "");
-            fs::write(root.join(format!("nested/report.{extension}")), "---\nformat: html\n---\n").unwrap();
+            fs::write(
+                root.join(format!("nested/report.{extension}")),
+                "---\nformat: html\n---\n",
+            )
+            .unwrap();
             if case == "ancestor" {
                 fs::write(outer.join("_quarto.yml"), "project: {}\n").unwrap();
             } else {
                 fs::write(root.join("_quarto.yml"), "project: {}\n").unwrap();
-                fs::write(root.join(if case.ends_with("yaml") { "nested/_quarto.yaml" } else { "nested/_quarto.yml" }), "project: {}\n").unwrap();
+                fs::write(
+                    root.join(if case.ends_with("yaml") {
+                        "nested/_quarto.yaml"
+                    } else {
+                        "nested/_quarto.yml"
+                    }),
+                    "project: {}\n",
+                )
+                .unwrap();
             }
             fake(&root);
             let output = invoke(&root, true);
@@ -168,17 +277,36 @@ target.write_text('fresh artifact')
             assert!(!root.join("renderer-argv.json").exists());
             assert!(!root.join(".gitignore").exists());
             assert!(!root.join("cache").exists());
-            assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");
+            assert_eq!(
+                fs::read_to_string(root.join("VERSION")).unwrap(),
+                "v1.2.3\n"
+            );
         }
     }
 
     #[test]
     fn unsupported_layouts_and_nested_quarto_roots_fail_before_writes() {
-        for case in ["nested-yml", "nested-yaml", "unknown", "multi", "malformed", "inherited", "rmd-custom", "qmd-ext", "qmd-format-ext", "rmd-lib", "rmd-format-lib"] {
+        for case in [
+            "nested-yml",
+            "nested-yaml",
+            "unknown",
+            "multi",
+            "malformed",
+            "inherited",
+            "rmd-custom",
+            "qmd-ext",
+            "qmd-format-ext",
+            "rmd-lib",
+            "rmd-format-lib",
+        ] {
             let temp = tempfile::tempdir().unwrap();
             let root = temp.path().canonicalize().unwrap();
             fs::create_dir(root.join("nested")).unwrap();
-            let extension = if case.starts_with("rmd-") { "Rmd" } else { "qmd" };
+            let extension = if case.starts_with("rmd-") {
+                "Rmd"
+            } else {
+                "qmd"
+            };
             config(&root, &format!("nested/report.{extension}"), "");
             let body = match case {
                 "qmd-ext" => "---\nformat: html\noutput-ext: txt\n---\n",
@@ -193,9 +321,15 @@ target.write_text('fresh artifact')
             };
             fs::write(root.join(format!("nested/report.{extension}")), body).unwrap();
             match case {
-                "nested-yml" => fs::write(root.join("nested/_quarto.yml"), "project: {}\n").unwrap(),
-                "nested-yaml" => fs::write(root.join("nested/_quarto.yaml"), "project: {}\n").unwrap(),
-                "inherited" => fs::write(root.join("nested/_metadata.yml"), "format: pdf\n").unwrap(),
+                "nested-yml" => {
+                    fs::write(root.join("nested/_quarto.yml"), "project: {}\n").unwrap()
+                }
+                "nested-yaml" => {
+                    fs::write(root.join("nested/_quarto.yaml"), "project: {}\n").unwrap()
+                }
+                "inherited" => {
+                    fs::write(root.join("nested/_metadata.yml"), "format: pdf\n").unwrap()
+                }
                 _ => {}
             }
             fake(&root);
@@ -206,7 +340,10 @@ target.write_text('fresh artifact')
             assert!(!root.join(".gitignore").exists(), "{case}");
             assert!(!root.join("cache").exists(), "{case}");
             assert_eq!(fs::read(root.join("_proj.yml")).unwrap(), before);
-            assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");
+            assert_eq!(
+                fs::read_to_string(root.join("VERSION")).unwrap(),
+                "v1.2.3\n"
+            );
         }
     }
 }
