@@ -76,7 +76,7 @@ def main():
                     'raw-excluded':{'path':'private','hash':False}},
                     'remotes':{'local':{'snapshots':remote,'ordinary':{'path':'../ordinary','structure':'archive',
                       'manifest-style':'tree','manifest':'both','send':{'inspect':'file'}}}},
-                    'build':{'scripts':['analysis.py'],'git':False,'local':{'snapshots':{'content':['raw','output']},'ordinary':{'content':['output']}}}}
+                    'build':{'scripts':['analysis.py'],'git':False,'dest':{'snapshots':{'content':['raw','output']},'ordinary':{'content':['output']}}}}
                 (root/'_proj.yml').write_text(json.dumps(cfg))
                 expected_raw=files(root/'input');expected_output={'result.csv':b'value\n42\n'}
                 namespace='tree-snapshots/v1' if style=='tree' else 'flat-snapshots/v1'
@@ -105,7 +105,7 @@ def main():
                 # neither the old ordinary CSV, lookup ledger nor small project references remain.
                 shutil.rmtree(root);root.mkdir()
                 for folder in ['input','released','cache']:(root/folder).mkdir()
-                cfg['build']={'scripts':[],'git':False,'local':{}}
+                cfg['build']={'scripts':[],'git':False,'dest':{}}
                 (root/'_proj.yml').write_text(json.dumps(cfg));version=b'Version: v9.0.0.7\n';(root/'VERSION').write_bytes(version)
                 before_store=files(store)
                 observation=invoke(binary,root,env,'remote','verify','--title','snapshots','--snapshot',selected)

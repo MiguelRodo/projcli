@@ -1,5 +1,5 @@
 //! projr's destination placeholders (`@version`, `@branch`, `@uuid`), resolved once
-//! per build before hooks (SATVILab/projr@ab3ce8a `R/template.R`).
+//! per build before hooks (SATVILab/projr@5f915ef `R/template.R`).
 //!
 //! A placeholder ends at the end of the text or before `-`, `_`, `.`, `/`, a space
 //! or a backslash, so `archive-@branching` stays literal. Git metadata is read from

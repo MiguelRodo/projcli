@@ -53,7 +53,7 @@ fn setup(strategy: &str, cue: &str, content: &str) -> (tempfile::TempDir, std::p
     fs::write(root.join("results/changed"), "new").unwrap();
     fs::write(root.join("results/new"), "new").unwrap();
     fs::write(root.join("input/input.csv"), "abc").unwrap();
-    fs::write(root.join("_proj.yml"),format!("directories:\n  raw: {{path: input}}\n  output: {{path: results}}\nbuild:\n  scripts: []\n  git: false\n  restrictions: {{not_behind_remote: false}}\n  local:\n    delivery:\n      path: remote\n      structure: latest\n      content: {content}\n      send:\n        inspect: file\n        strategy: {strategy}\n        cue: {cue}\n")).unwrap();
+    fs::write(root.join("_proj.yml"),format!("directories:\n  raw: {{path: input}}\n  output: {{path: results}}\nbuild:\n  scripts: []\n  git: false\n  restrictions: {{not_behind_remote: false}}\n  dest: [delivery]\nremotes:\n  local:\n    delivery:\n      path: remote\n      structure: latest\n      content: {content}\n      send:\n        inspect: file\n        strategy: {strategy}\n        cue: {cue}\n")).unwrap();
     (temporary, root)
 }
 /// Recursive relative-path bytes, for manifest store directories.
@@ -415,6 +415,7 @@ fn planned_case_alias_destinations_fail_before_creating_either_namespace() {
     let (_temporary, root) = setup("sync-diff", "always", "[output]");
     let config = fs::read_to_string(root.join("_proj.yml")).unwrap();
     let second = "\n    second:\n      path: REMOTE\n      structure: latest\n      content: [raw]\n      send: {inspect: file}\n";
+    let config = config.replace("dest: [delivery]", "dest: [delivery, second]");
     fs::write(root.join("_proj.yml"), format!("{config}{second}")).unwrap();
     let output = invoke(&root, "build");
     assert!(!output.status.success());
@@ -456,7 +457,9 @@ fn new_destinations_retain_selected_source_root_and_nested_directory_privacy() {
 #[test]
 fn all_destination_history_is_validated_before_first_destination_changes() {
     let (_temporary, root) = setup("sync-diff", "always", "[output]");
-    let config = fs::read_to_string(root.join("_proj.yml")).unwrap();
+    let config = fs::read_to_string(root.join("_proj.yml"))
+        .unwrap()
+        .replace("dest: [delivery]", "dest: [delivery, second]");
     fs::write(root.join("_proj.yml"),format!("{config}\n    second:\n      path: broken-remote\n      structure: latest\n      content: [raw]\n      send: {{inspect: file}}\n")).unwrap();
     fs::create_dir(root.join("broken-remote")).unwrap();
     fs::write(root.join("broken-remote/manifest.csv"), "bad").unwrap();
@@ -477,6 +480,7 @@ fn planned_unicode_normalization_aliases_fail_before_hooks_or_namespace_creation
     let config = fs::read_to_string(root.join("_proj.yml"))
         .unwrap()
         .replace("path: remote", &format!("path: {composed}"))
+        .replace("dest: [delivery]", "dest: [delivery, second]")
         .replace("build:\n", "build:\n  hooks: {pre: [start.py]}\n");
     fs::write(
         root.join("start.py"),
@@ -498,7 +502,9 @@ fn planned_unicode_normalization_aliases_fail_before_hooks_or_namespace_creation
 #[test]
 fn later_preparation_failure_cleans_readonly_snapshots_on_every_platform() {
     let (_temporary, root) = setup("sync-diff", "always", "[output]");
-    let config = fs::read_to_string(root.join("_proj.yml")).unwrap();
+    let config = fs::read_to_string(root.join("_proj.yml"))
+        .unwrap()
+        .replace("dest: [delivery]", "dest: [delivery, second]");
     fs::write(root.join("_proj.yml"),format!("{config}\n    second:\n      path: broken-remote\n      structure: latest\n      content: [raw]\n      send: {{inspect: file}}\n")).unwrap();
     fs::create_dir(root.join("broken-remote")).unwrap();
     fs::write(root.join("broken-remote/manifest.csv"), "bad").unwrap();
@@ -604,6 +610,7 @@ fn late_legacy_advertisement_aborts_all_targets_before_publication() {
         .unwrap()
         .replace("directories:\n", "directories:\n  output-r-data: {}\n")
         .replace("build:\n", "build:\n  hooks: {pre: [start.py]}\n")
+        .replace("dest: [delivery]", "dest: [delivery, later]")
         + "    later:\n      path: later-remote\n      structure: latest\n      content: [output-r-data]\n      send: {inspect: file}\n";
     fs::write(root.join("_proj.yml"), config).unwrap();
     fs::write(root.join("start.py"),"from pathlib import Path\np=Path('later-remote')\np.mkdir()\n(p/'VERSION').write_bytes(b'Project: v0.1.0\\ndata: v0.1.0\\n')\n").unwrap();
@@ -1174,7 +1181,7 @@ fn standalone_publication_logs_versions_and_outcomes_without_git_or_environment_
 fn final_record_replacement_preserves_an_existing_hardlinked_alias() {
     let (_temporary, root) = setup("sync-diff", "always", "[output]");
     let mut config = fs::read_to_string(root.join("_proj.yml")).unwrap();
-    config.push_str("  hooks:\n    post: [hook.py]\n");
+    config = config.replace("build:\n", "build:\n  hooks:\n    post: [hook.py]\n");
     fs::write(root.join("_proj.yml"), config).unwrap();
     fs::write(root.join("hook.py"),"from pathlib import Path\nimport os\nrecord=next(Path('.proj/log').glob('*.json'))\nPath('saved-log-bytes').write_bytes(record.read_bytes())\nos.link(record, 'log-hardlink.json')\n").unwrap();
     success(invoke(&root, "build"));

@@ -591,7 +591,7 @@ pub fn build_project_with_policies(
             &environment,
             is_dev,
         )?;
-        let github = if !is_dev && config.output_run.unwrap_or(true) {
+        let mut github = if !is_dev && config.output_run.unwrap_or(true) {
             crate::github_publication::capture(
                 project_root,
                 github_specs,
@@ -779,6 +779,9 @@ pub fn build_project_with_policies(
         if record_manifest {
             crate::manifest_store::read_project(project_root)?;
         }
+        // All read-only preflight checks have passed; create missing GitHub Releases
+        // before any hook, as projr does. A later failure leaves them in place.
+        crate::github_publication::prepare_releases(&mut github, &initial_version.to_string(true))?;
         // Capture exact local state before the first controlled project mutation.
         let mut managed = vec![];
         let mut native_artifacts = Vec::new();

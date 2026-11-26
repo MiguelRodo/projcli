@@ -182,7 +182,7 @@ pub(crate) fn configured(
             _ => anyhow::bail!("Unsupported send.strategy"),
         };
         let (path, base) = local_base(root, definition.path.as_deref(), templates)?;
-        let name = templates.expand(definition.title.as_deref().unwrap_or(title))?;
+        let name = templates.expand(title)?;
         anyhow::ensure!(
             !root.starts_with(&base),
             "Publication base contains the project root"
@@ -440,7 +440,7 @@ pub(crate) fn version_entries(path: &Utf8Path) -> anyhow::Result<Vec<(String, St
 }
 /// The completed project version an archive advertises: a single plain version
 /// line (older projr), else its `Project:` entry, with the untrusted `*` marker
-/// removed (SATVILab/projr@ab3ce8a `R/get.R:350-366`). A missing file or an
+/// removed (SATVILab/projr@5f915ef `R/get.R:375-391`). A missing file or an
 /// unrecognised value gives `None`.
 pub(crate) fn project_version(path: &Utf8Path) -> anyhow::Result<Option<String>> {
     if !path.try_exists()? {

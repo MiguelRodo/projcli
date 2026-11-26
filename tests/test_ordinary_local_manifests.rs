@@ -192,7 +192,7 @@ fn setup(
     let config = json!({"directories":{"raw":{"path":"input"}},
         "remotes":{"local":{"delivery":{"path":"../store","structure":layout,"manifest":placement,
             "manifest-format":mode,"send":{"inspect":"file","strategy":strategy}}}},
-        "build":{"scripts":[],"git":false,"restrictions":{"not_behind_remote":false},"local":{"delivery":{}}}});
+        "build":{"scripts":[],"git":false,"restrictions":{"not_behind_remote":false},"dest":{"delivery":{}}}});
     save(&root, &config);
     (temp, root, config)
 }
@@ -404,7 +404,8 @@ fn empty_inventory_and_preflight_metadata_namespace_corruption_and_store_claim_f
     assert_eq!(files(&store), corrupted);
 }
 #[test]
-fn registry_defaults_enable_csv_but_legacy_inline_remains_unchanged_and_invalid_fields_fail() {
+fn explicit_flat_style_enables_csv_while_omitted_fields_write_no_metadata_and_invalid_fields_fail()
+{
     let (_temp, root, mut config) = setup("csv", "auto", "latest", "sync-diff");
     config["remotes"]["local"]["delivery"]
         .as_object_mut()
@@ -414,6 +415,8 @@ fn registry_defaults_enable_csv_but_legacy_inline_remains_unchanged_and_invalid_
         .as_object_mut()
         .unwrap()
         .remove("manifest");
+    // Metadata is opt-in: any manifest field (here the style) enables flat CSV.
+    config["remotes"]["local"]["delivery"]["manifest-style"] = json!("flat");
     save(&root, &config);
     build(&root);
     let store = root.parent().unwrap().join("store");
@@ -428,9 +431,8 @@ fn registry_defaults_enable_csv_but_legacy_inline_remains_unchanged_and_invalid_
     for key in ["manifest-format", "manifest"] {
         definition.as_object_mut().unwrap().remove(key);
     }
-    config.as_object_mut().unwrap().remove("remotes");
-    config["build"].as_object_mut().unwrap().remove("local");
-    config["build"]["local"] = json!({"delivery":definition});
+    // Without manifest fields a remote writes no projcli metadata.
+    config["remotes"]["local"]["delivery"] = definition;
     save(&root, &config);
     build(&root);
     let store = root.parent().unwrap().join("store");
@@ -441,7 +443,7 @@ fn registry_defaults_enable_csv_but_legacy_inline_remains_unchanged_and_invalid_
         ("manifest-style", json!("unknown")),
         ("manifest-format", json!("unknown")),
     ] {
-        config["build"]["local"]["delivery"][key] = value;
+        config["remotes"]["local"]["delivery"][key] = value;
         save(&root, &config);
         let before = files(&store);
         assert!(
@@ -453,7 +455,7 @@ fn registry_defaults_enable_csv_but_legacy_inline_remains_unchanged_and_invalid_
                 .success()
         );
         assert_eq!(files(&store), before);
-        config["build"]["local"]["delivery"]
+        config["remotes"]["local"]["delivery"]
             .as_object_mut()
             .unwrap()
             .remove(key);
@@ -491,9 +493,8 @@ fn aliased_inline_metadata_titles_fail_before_hooks_or_external_writes() {
     definition["content"] = json!(true);
     let mut second = definition.clone();
     second["path"] = json!("../second");
-    config.as_object_mut().unwrap().remove("remotes");
-    config["build"].as_object_mut().unwrap().remove("local");
-    config["build"]["local"] = json!({"A":definition,"a":second});
+    config["remotes"]["local"] = json!({"A":definition,"a":second});
+    config["build"]["dest"] = json!(["A", "a"]);
     config["build"]["hooks"] = json!({"pre":["start.py"]});
     fs::write(
         root.join("start.py"),

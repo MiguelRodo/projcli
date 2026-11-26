@@ -177,6 +177,9 @@ impl Server {
                         status = 404;
                         b"{}".to_vec()
                     }
+                } else if method == "PATCH" && path.starts_with("/repos/owner/repo/releases/") {
+                    // projr 0.9: the pending note on a newly created Release is replaced.
+                    b"{}".to_vec()
                 } else {
                     panic!("Unexpected fixture route {method} {path}")
                 };
@@ -268,7 +271,7 @@ fn setup(mode: &str, placement: &str, layout: &str) -> (tempfile::TempDir, PathB
     fs::write(root.join("VERSION"), b"v1.2.3\n").unwrap();
     let config = json!({"directories":{"output":{"path":"results"}},
         "remotes":{"github":{"data":{"structure":layout,"manifest":placement,"manifest-format":mode,"send":{"inspect":"file"}}}},
-        "build":{"scripts":[],"git":false,"restrictions":{"not_behind_remote":false},"github":{"data":{}}}});
+        "build":{"scripts":[],"git":false,"restrictions":{"not_behind_remote":false},"dest":{"data":{}}}});
     save(&root, &config);
     for args in [
         vec!["init"],
@@ -625,7 +628,7 @@ fn later_target_failure_prevents_all_new_project_success_bindings() {
     let mut second = config["remotes"]["github"]["data"].clone();
     second["path"] = json!("other");
     config["remotes"]["github"]["second"] = second;
-    config["build"]["github"]["second"] = json!({});
+    config["build"]["dest"]["second"] = json!({});
     save(&root, &config);
     server.state.lock().unwrap().fail_metadata = Some(2);
     let output = invoke(&server, &root);
@@ -688,7 +691,7 @@ fn unknown_or_corrupt_bundle_members_and_namespace_aliases_fail_without_remote_m
 }
 
 #[test]
-fn named_default_csv_and_legacy_inline_without_new_policy_remain_distinct() {
+fn explicit_flat_style_enables_csv_while_omitted_fields_write_no_metadata() {
     let server = Server::start();
     let (_temp, root, mut config) = setup("csv", "auto", "latest");
     for key in ["manifest", "manifest-format"] {
@@ -697,6 +700,8 @@ fn named_default_csv_and_legacy_inline_without_new_policy_remain_distinct() {
             .unwrap()
             .remove(key);
     }
+    // Metadata is opt-in: any manifest field (here the style) enables flat CSV.
+    config["remotes"]["github"]["data"]["manifest-style"] = json!("flat");
     save(&root, &config);
     build(&server, &root);
     assert_eq!(
@@ -712,9 +717,8 @@ fn named_default_csv_and_legacy_inline_without_new_policy_remain_distinct() {
         definition.as_object_mut().unwrap().remove(key);
     }
     definition["content"] = json!(true);
-    config.as_object_mut().unwrap().remove("remotes");
-    config["build"].as_object_mut().unwrap().remove("github");
-    config["build"]["github"] = json!({"data":definition});
+    // Without manifest fields a remote writes no projcli metadata.
+    config["remotes"]["github"]["data"] = definition;
     save(&root, &config);
     build(&server, &root);
     assert!(!server.assets("data").contains_key(META));
@@ -1086,7 +1090,7 @@ fn github_tree_metadata_failure_never_writes_project_success_references() {
     let mut second = config["remotes"]["github"]["data"].clone();
     second["path"] = json!("other");
     config["remotes"]["github"]["second"] = second;
-    config["build"]["github"]["second"] = json!({});
+    config["build"]["dest"]["second"] = json!({});
     save(&root, &config);
     server.state.lock().unwrap().fail_metadata = Some(2);
     structured_failure(invoke(&server, &root));

@@ -1,5 +1,4 @@
-//! projr 0.8.0 remotes schema (SATVILab/projr@ab3ce8a): `build.<type>.<title>`
-//! selection, destination placeholders, GitHub `repo`/`branch`/`tag` and the
+//! projr 0.9 remotes schema (SATVILab/projr@5f915ef): `build.dest` selection, destination placeholders, GitHub `repo`/`branch`/`tag` and the
 //! pre-render archive version check. Local fixtures and a loopback GitHub mock only.
 use serde_json::{Value, json};
 use std::{
@@ -132,7 +131,7 @@ fn attempt_record(root: &Path) -> Value {
 fn local_placeholders_resolve_once_and_are_recorded() {
     let (_temporary, root) = project(json!({
         "remotes":{"local":{"store":{"path":"_archive/@branch/@version-@uuid"},"unused":{"path":"../unused"}}},
-        "build":{"local":{"store":{}}}
+        "build":{"dest":"store"}
     }));
     ok(build(&root, &[], None));
     let branch = root.join("_archive/feature_2ffoo");
@@ -164,7 +163,7 @@ fn local_placeholders_resolve_once_and_are_recorded() {
 fn archive_version_check_refuses_before_hooks_and_honours_rule_and_opt_out() {
     let (_temporary, root) = project(json!({
         "remotes":{"local":{"store":{"path":"../archive"}}},
-        "build":{"local":{"store":{}}}
+        "build":{"dest":"store"}
     }));
     let archive = root.parent().unwrap().join("archive");
     fs::create_dir_all(&archive).unwrap();
@@ -215,7 +214,7 @@ fn archive_version_check_refuses_before_hooks_and_honours_rule_and_opt_out() {
 fn populated_archives_without_a_version_and_named_titles_are_checked() {
     let (_temporary, root) = project(json!({
         "remotes":{"local":{"store":{"path":"../archive"},"other":{"path":"../other"}}},
-        "build":{"local":{"store":{}}}
+        "build":{"dest":"store"}
     }));
     let parent = root.parent().unwrap().to_owned();
     fs::create_dir_all(parent.join("archive/stray")).unwrap();
@@ -234,39 +233,78 @@ fn populated_archives_without_a_version_and_named_titles_are_checked() {
         failed(build(&root, &[], None))
             .contains("local.other: v3.0.0, proposed version must be newer")
     );
-    config["build"]["restrictions"] = json!({"not_behind_remote":{"local":["missing"]}});
+    config["build"]["restrictions"] = json!({"not_behind_remote":["local:missing"]});
     write_config(&root, config.clone());
-    assert!(failed(build(&root, &[], None)).contains("Unknown local remote title"));
-    config["build"]["github"] = json!({"other":{"content":[]}});
+    assert!(failed(build(&root, &[], None)).contains("not declared under remotes"));
+    // projr 0.9 rejects the type-keyed mapping; names are qualified instead.
+    config["build"]["restrictions"] = json!({"not_behind_remote":{"local":["other"]}});
+    write_config(&root, config.clone());
+    assert!(failed(build(&root, &[], None)).contains("<type>:<title>"));
+    config["remotes"]["github"] = json!({"other":{}});
     config["build"]["restrictions"] = json!({"not_behind_remote":"other"});
+    write_config(&root, config.clone());
+    assert!(failed(build(&root, &[], None)).contains("Use local:other or github:other"));
+    config["build"]["restrictions"] = json!({"not_behind_remote":["local:other"]});
     write_config(&root, config);
-    assert!(failed(build(&root, &[], None)).contains("Ambiguous remote title"));
+    assert!(
+        failed(build(&root, &[], None))
+            .contains("local.other: v3.0.0, proposed version must be newer")
+    );
     assert!(!root.join("hook-ran").exists());
 }
 
 #[test]
-fn inline_definitions_and_registered_selections_validate_like_projr() {
+fn build_dest_forms_and_inline_archives_follow_projr_09() {
     let (_temporary, root) = project(json!({
         "remotes":{"local":{"store":{"path":"../archive"}}},
         "build":{"local":{"store":{"path":"../elsewhere"}}}
     }));
-    assert!(failed(build(&root, &[], None)).contains("only accepts content"));
-    let config = json!({"build":{"local":{"undefined":{}}}});
-    write_config(&root, config);
+    assert!(failed(build(&root, &[], None)).contains(
+        "build.local is no longer supported. Define each archive under remotes.local.<title> and select it with build.dest"
+    ));
+    let mut config = json!({
+        "remotes":{"local":{"store":{"path":"../archive"}}},
+        "build":{"dest":{"store":{"path":"../elsewhere"}}}
+    });
+    write_config(&root, config.clone());
     assert!(
-        failed(build(&root, &[], None))
-            .contains("Define remotes.local.undefined.path before selecting build.local.undefined")
+        failed(build(&root, &[], None)).contains("only accepts content, cue, inspect and strategy")
     );
-    let config =
-        json!({"build":{"local":{"inline":{"path":"../inline-@version","content":["output"]}}}});
+    config["build"]["dest"] = json!(["undefined"]);
+    write_config(&root, config.clone());
+    assert!(failed(build(&root, &[], None)).contains("not declared under remotes"));
+    // The same title can name a GitHub and a local archive; qualify it.
+    config["remotes"]["github"] = json!({"store":{}});
+    config["build"]["dest"] = json!(["store"]);
+    write_config(&root, config.clone());
+    assert!(failed(build(&root, &[], None)).contains("Use local:store or github:store"));
+    assert!(!root.join("hook-ran").exists());
+    config["build"]["dest"] = json!({"content":["output"],"local:store":{}});
     write_config(&root, config);
     ok(build(&root, &[], None));
     assert!(
         root.parent()
             .unwrap()
-            .join("inline-v1.2.4/output/v1.2.4/out.csv")
+            .join("archive/output/v1.2.4/out.csv")
             .exists()
     );
+}
+
+#[test]
+fn profile_layers_replace_build_dest_whole() {
+    let (_temporary, root) = project(json!({
+        "remotes":{"local":{"base":{"path":"../base"},"profiled":{"path":"../profiled"}}},
+        "build":{"dest":{"base":{}}}
+    }));
+    fs::write(
+        root.join("_projr-local.yml"),
+        "build:\n  dest:\n    profiled: {}\n",
+    )
+    .unwrap();
+    ok(build(&root, &[], None));
+    let parent = root.parent().unwrap();
+    assert!(parent.join("profiled/output/v1.2.4/out.csv").exists());
+    assert!(!parent.join("base").exists());
 }
 
 #[derive(Default)]
@@ -276,6 +314,7 @@ struct State {
     tag: Option<String>,
     assets: BTreeMap<String, (u64, Vec<u8>)>,
     created: Vec<Value>,
+    notes: Vec<String>,
     paths: Vec<String>,
 }
 struct Server {
@@ -357,9 +396,16 @@ impl Server {
                         }
                     }
                 } else if method == "POST" && path == "/repos/team/results/releases" {
-                    data.created.push(serde_json::from_slice(&body).unwrap());
+                    let value: Value = serde_json::from_slice(&body).unwrap();
+                    data.notes
+                        .push(value["body"].as_str().unwrap_or_default().to_owned());
+                    data.created.push(value);
                     data.release = true;
                     status = 201;
+                    release(&origin)
+                } else if method == "PATCH" && path == "/repos/team/results/releases/7" {
+                    let value: Value = serde_json::from_slice(&body).unwrap();
+                    data.notes.push(value["body"].as_str().unwrap().to_owned());
                     release(&origin)
                 } else if path.starts_with("/repos/team/results/releases/7/assets?") {
                     serde_json::to_vec(
@@ -425,7 +471,7 @@ fn github_project() -> (tempfile::TempDir, PathBuf) {
     project(json!({
         "remotes":{"github":{"reports":{"repo":"team/results","tag":"figures-@version","branch":"@branch",
             "send":{"inspect":"none"}}}},
-        "build":{"github":{"reports":{"content":["output"]}}}
+        "build":{"dest":{"reports":{"content":["output"]}}}
     }))
 }
 
@@ -453,6 +499,11 @@ fn github_repo_branch_and_templated_tag_create_the_release_at_the_branch_head() 
     assert_eq!(state.created.len(), 1);
     assert_eq!(state.created[0]["tag_name"], "figures-v1.2.4");
     assert_eq!(state.created[0]["target_commitish"], sha.as_str());
+    // The Release is created before the build with a pending note, which a
+    // successful publication replaces.
+    assert_eq!(state.notes.len(), 2);
+    assert!(state.notes[0].contains("has not finished publishing"));
+    assert_eq!(state.notes[1], "Published by projcli build v1.2.4.");
     assert!(state.assets.contains_key("output-v1.2.4.zip"));
     assert!(
         state
@@ -522,7 +573,7 @@ fn github_archive_version_check_reads_version_zip_read_only() {
 fn base_rule_uses_the_last_completed_build_and_previews_skip_placeholders() {
     let (_temporary, root) = project(json!({
         "remotes":{"local":{"store":{"path":"../archive"}}},
-        "build":{"local":{"store":{}}}
+        "build":{"dest":"store"}
     }));
     ok(build(&root, &[], None));
     fs::write(root.join("results/out.csv"), "second\n").unwrap();
@@ -541,7 +592,7 @@ fn base_rule_uses_the_last_completed_build_and_previews_skip_placeholders() {
     fs::remove_dir_all(root.join(".git")).unwrap();
     let config = json!({
         "remotes":{"local":{"store":{"path":"../archive-@branch"}}},
-        "build":{"local":{"store":{}}}
+        "build":{"dest":"store"}
     });
     write_config(&root, config);
     let mut preview = command(&root, env!("CARGO_BIN_EXE_proj"));
@@ -568,4 +619,32 @@ fn existing_release_needs_no_branch_resolution() {
     assert!(state.created.is_empty());
     assert!(state.assets.contains_key("output-v1.2.4.zip"));
     assert!(state.paths.iter().all(|path| !path.contains("/git/ref/")));
+}
+
+#[test]
+fn release_is_created_before_hooks_and_kept_when_the_build_fails() {
+    let server = Server::start(State {
+        branch: Some("a".repeat(40)),
+        ..State::default()
+    });
+    let (_temporary, root) = github_project();
+    fs::write(
+        root.join("pre.py"),
+        "from pathlib import Path\nPath('hook-ran').write_text('yes')\nraise SystemExit(3)\n",
+    )
+    .unwrap();
+    failed(build(&root, &[], Some(&server.base)));
+    assert!(root.join("hook-ran").exists());
+    let state = server.finish();
+    let created = state
+        .paths
+        .iter()
+        .position(|path| path == "POST /repos/team/results/releases")
+        .expect("Release created");
+    assert_eq!(state.created.len(), 1);
+    // projr: the empty Release stays, with its pending note; nothing is deleted.
+    assert_eq!(state.notes.len(), 1);
+    assert!(state.notes[0].contains("has not finished publishing"));
+    assert!(state.assets.is_empty());
+    assert!(state.paths[created + 1..].is_empty());
 }

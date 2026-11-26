@@ -77,7 +77,7 @@ shape has demonstrated end-to-end behaviour. [Destination storage][dest],
 | Settings granularity | Transfer settings are shared per destination title; content labels inherit them. Per-label source mappings choose their own source entries. | Restore resolves per-label sources and shared destination definitions. Configured build/store plans resolve shared title settings and selected labels. |
 | YAML layers | Local overrides active profiles overrides base; earlier listed profiles win; merge recurses, null inherits. R uses _projr base/profile/local names. [Merge][merge]. | Core merge precedence exists. Deliberate primary _proj.yml plus legacy _projr.yml conflict error retained. |
 | Archive function arguments | archive_local/archive_github accept false/null, true or selected labels; create implicit archive destination only when YAML has no archive title. Existing archive title wins; always_archive controls generated cue. [Send dispatch][send]. | Missing compatibility entrypoints. Do not override explicit YAML silently. |
-| Named remote extension | projr 0.8.0 adopted the same idea: `remotes.<type>.<title>` selected by `build.<type>.<title>: {content}` (SATVILab/projr@ab3ce8a `R/yml-check.R:288-380`). | Implemented with projr's schema (projcli's earlier build.dest was removed; see the 0.8.0 section below), preserving named restore sources and explicit upload label subsets. New style/format/placement behavior is summarized below; inline definitions remain supported. |
+| Named remote extension | projr 0.9 adopted the same design: archives under `remotes.<type>.<title>`, selected by `build.dest` (SATVILab/projr@5f915ef `R/yml-dest.R:569-761`). | Implemented with projr 0.9's `build.dest` forms and `<type>:<title>` names; inline `build.local`/`build.github` archives are rejected. See the 0.9 section below. |
 
 Actual defaults and checks:
 [destination completion][dest-default], [validation][yml-check],
@@ -392,8 +392,8 @@ remain readable independently of the current write style.
 | Destination/data layout | File-list choices | Recovery boundary |
 |---|---|---|
 | Native local content-addressed archive | Tree JSON by default; flat CSV/JSON and optional file dictionaries. | Explicit snapshot-ID verification and staged single-label recovery; full remote metadata can recover without the old project. Legacy flat IDs remain readable. |
-| Ordinary local latest/archive folders | Flat CSV by default; all four flat formats or explicit tree JSON. | Existing compatible CSV/VERSION restore and physical folders; do not interpret ordinary bindings as native CAS snapshots. |
-| GitHub Release latest/archive ZIPs | Flat CSV by default; all four flat formats or explicit tree JSON in a bounded metadata ZIP. | Existing compatible ZIP/CSV/VERSION restore. New format coverage is mocked REST with actual CLI execution, not a new live-format round-trip. |
+| Ordinary local latest/archive folders | Opt-in (any manifest field) flat CSV by default; all four flat formats or explicit tree JSON. | Existing compatible CSV/VERSION restore and physical folders; do not interpret ordinary bindings as native CAS snapshots. |
+| GitHub Release latest/archive ZIPs | Opt-in (any manifest field) flat CSV by default; all four flat formats or explicit tree JSON in a bounded metadata ZIP. | Existing compatible ZIP/CSV/VERSION restore. New format coverage is mocked REST with actual CLI execution, not a new live-format round-trip. |
 
 Named top-level remotes remain available as sources after removal from build.dest.
 Build selection may limit logical folder labels without deleting definitions.
@@ -435,15 +435,17 @@ The local CAS flat catalogue extension now connects CSV/JSON and optional file
 dictionaries to publication/recovery. Ordinary local and GitHub Release format integration is also implemented in the current development extension below.
 See the [configuration reference](configuration.qmd#flat-history-in-local-cas).
 
-## projr 0.8.0 remotes schema (26 November 2026)
+## projr 0.9 remotes schema (27 November 2026)
 
-Compared statically with SATVILab/projr@ab3ce8a; see the
+Compared statically with SATVILab/projr@5f915ef; see the
 [compatibility log](compatibility.qmd) for the full same/different/gap record.
 
-| Area | projr 0.8.0 | projcli development source |
+| Area | projr 0.9 | projcli development source |
 |---|---|---|
-| Selection | `build.<type>.<title>` with `content` only for registered titles; inline otherwise (`R/yml-check.R:288-380`, `R/yml-dest.R:176-212`). | Same, including bare/`{}` and empty-inline-local errors. Registered titles must be unique across types (stricter). |
-| GitHub routing | `repo`, `tag` (defaults to title), `branch` / `@branch` (`R/yml-dest.R:251-289`, `R/remote-github.R:137-216`, `R/remote-github-httr.R:104-171`). | Same fields; branch and tag target checked read-only before hooks and again at creation; the Release is still created lazily at first upload, never before the build. |
-| Placeholders | `@version`, `@branch`, `@uuid` in local names/paths, release names and directory paths (`R/template.R`). | Same tokens and terminators for destinations; directory paths not expanded. Resolved values are recorded in the attempt record, not a BUILDLOG. |
-| Archive version check | `not_behind_remote`/`rule` before rendering (`R/build-remote-versions.R`). | Same rules for ordinary local/GitHub destinations, read-only; base from completed attempt records or a non-development VERSION. CAS/Xet not checked; no one-off archives. |
-| Tests | Not run (static source comparison). | `tests/test_remotes_schema.rs` (local fixtures and a loopback GitHub mock), unit tests in `src/remote_registry.rs`, `src/template.rs`, `src/yml.rs`. |
+| Selection | `build.dest`: a name, a list (names or one-entry mappings) or a mapping of options and names; `content`, `cue`, `inspect`, `strategy` per remote or for all (`R/yml-dest.R:569-659`). Inline `build.local`/`build.github` are an error (`R/yml-dest.R:749-760`). | Same, including projr's error guidance and whole-value `build.dest` replacement across profile layers (`R/yml.R:79-88`). |
+| Names | `<type>:<title>`; an ambiguous bare title is an error (`R/yml-dest.R:661-703`); option words are reserved titles (`R/yml-dest.R:573-577`). | Same for `build.dest`, `not_behind_remote` and `remote restore --title`. Within a type, names that differ only by case/Unicode composition are rejected (stricter); a CAS/Xet store title cannot repeat across types. |
+| Remote fields | `get` fetch settings; `source` removed (`R/yml-check.R:317-366`). | `get` validated, not yet used; `source` rejected on ordinary remotes. |
+| GitHub routing | `repo`, `tag`, `branch`/`@branch`; missing Releases created before hooks (`R/dest-send-prepare.R:1-59`, `R/remote-github.R:137-216`). | Same; the new Release carries a pending note that a successful publication replaces. |
+| Placeholders | `@version`, `@branch`, `@uuid` (`R/template.R`). | Same for destinations; resolved values are recorded in the attempt record. |
+| Archive version check | `not_behind_remote` names only (`R/yml-restrictions.R:122-136`, `R/build-remote-versions.R:99-133`). | Same; CAS/Xet stores not checked. |
+| Tests | Not run (static comparison). | `tests/test_remotes_schema.rs`, unit tests in `src/remote_registry.rs`, `src/template.rs`, `src/yml.rs`, and the converted publication/restore suites. |

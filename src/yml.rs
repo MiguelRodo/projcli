@@ -266,12 +266,14 @@ pub struct BuildConfig {
     /// Optional production-only R housekeeping; omission preserves existing builds.
     #[serde(default)]
     pub r: RBuildConfig,
-    /// projr `build.local.<title>`: selects a `remotes.local` definition (optionally
-    /// narrowing `content`) or, for an unregistered title, an inline definition.
-    pub local: Option<serde_json::Map<String, Value>>,
-    /// projr `build.github.<title>`: selects a `remotes.github` definition or, for an
-    /// unregistered title, an inline GitHub Release definition.
-    pub github: Option<serde_json::Map<String, Value>>,
+    /// Removed in projr 0.9: inline archives. Present values are rejected with
+    /// guidance to define `remotes.local.<title>` and list it under `build.dest`.
+    pub local: Option<Value>,
+    /// Removed in projr 0.9; see `local`.
+    pub github: Option<Value>,
+    /// projr 0.9 `build.dest`: remote names (`archive`, `github:archive`), a list,
+    /// or a mapping with global and per-archive `content`/`cue`/`inspect`/`strategy`.
+    pub dest: Option<Value>,
     #[serde(default, deserialize_with = "script_list")]
     pub scripts: Option<Vec<String>>,
     #[serde(default)]
@@ -329,58 +331,34 @@ pub struct RestrictionsConfig {
 
 /// projr `build.restrictions.not_behind_remote` values.
 #[derive(Deserialize, Debug, Clone, PartialEq)]
-#[serde(from = "RemoteCheckValue")]
+#[serde(try_from = "RemoteCheckValue")]
 pub enum RemoteCheck {
     /// `true` checks the destinations this build publishes to; `false` skips.
     All(bool),
-    /// Titles registered under `remotes` or defined inline under `build`.
+    /// Remote names registered under `remotes`; `github:reports` qualifies a title
+    /// registered under both types.
     Titles(Vec<String>),
-    /// Titles qualified by remote type (`local` or `github`).
-    ByType(std::collections::BTreeMap<RemoteType, Vec<String>>),
-}
-
-/// Remote type used to qualify `not_behind_remote` titles.
-#[derive(Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-#[serde(rename_all = "lowercase")]
-pub enum RemoteType {
-    /// A local directory destination.
-    Local,
-    /// A GitHub Release destination.
-    Github,
-}
-
-#[derive(Deserialize)]
-#[serde(untagged)]
-enum TitleList {
-    One(String),
-    Many(Vec<String>),
-}
-
-impl From<TitleList> for Vec<String> {
-    fn from(value: TitleList) -> Self {
-        match value {
-            TitleList::One(title) => vec![title],
-            TitleList::Many(titles) => titles,
-        }
-    }
 }
 
 #[derive(Deserialize)]
 #[serde(untagged)]
 enum RemoteCheckValue {
     All(bool),
-    Titles(TitleList),
-    ByType(std::collections::BTreeMap<RemoteType, TitleList>),
+    One(String),
+    Many(Vec<String>),
+    Other(serde::de::IgnoredAny),
 }
 
-impl From<RemoteCheckValue> for RemoteCheck {
-    fn from(value: RemoteCheckValue) -> Self {
+impl TryFrom<RemoteCheckValue> for RemoteCheck {
+    type Error = String;
+    fn try_from(value: RemoteCheckValue) -> Result<Self, String> {
         match value {
-            RemoteCheckValue::All(all) => Self::All(all),
-            RemoteCheckValue::Titles(titles) => Self::Titles(titles.into()),
-            RemoteCheckValue::ByType(map) => {
-                Self::ByType(map.into_iter().map(|(k, v)| (k, v.into())).collect())
-            }
+            RemoteCheckValue::All(all) => Ok(Self::All(all)),
+            RemoteCheckValue::One(title) => Ok(Self::Titles(vec![title])),
+            RemoteCheckValue::Many(titles) => Ok(Self::Titles(titles)),
+            RemoteCheckValue::Other(_) => Err(
+                "build.restrictions.not_behind_remote lists remote names. Write an ambiguous title as <type>:<title>, for example github:reports".into(),
+            ),
         }
     }
 }
@@ -915,6 +893,21 @@ fn make_absolute(root: &Utf8Path, path: &Utf8Path) -> Utf8PathBuf {
     }
 }
 
+/// Merge a higher-precedence configuration layer. As in projr, a layer's
+/// `build.dest` replaces the whole lower value rather than merging mappings
+/// (SATVILab/projr@5f915ef `R/yml.R:79-88`).
+fn merge_layer(mut target: Value, source: Value) -> Value {
+    if source
+        .get("build")
+        .and_then(|build| build.get("dest"))
+        .is_some_and(|dest| !dest.is_null())
+        && let Some(build) = target.get_mut("build").and_then(Value::as_object_mut)
+    {
+        build.remove("dest");
+    }
+    deep_merge(target, source)
+}
+
 /// Deep merges `source` into `target`.
 pub fn deep_merge(target: Value, source: Value) -> Value {
     match (target.clone(), source.clone()) {
@@ -1088,12 +1081,12 @@ pub fn get_combined_yml(
     for profile in profiles.into_iter().rev() {
         let path = base_dir.join(format!("_projr-{profile}.yml"));
         if configuration_entry_exists(&path)? {
-            base_val = deep_merge(base_val, read_configuration_file(&path)?);
+            base_val = merge_layer(base_val, read_configuration_file(&path)?);
         }
     }
     let local = base_dir.join("_projr-local.yml");
     if configuration_entry_exists(&local)? {
-        base_val = deep_merge(base_val, read_configuration_file(&local)?);
+        base_val = merge_layer(base_val, read_configuration_file(&local)?);
     }
     Ok(base_val)
 }
@@ -1510,18 +1503,24 @@ build:
             Some(RemoteCheck::Titles(vec!["reports".into()]))
         );
         assert_eq!(
-            parse("not_behind_remote: {github: [reports]}\n")
+            parse("not_behind_remote: [github:reports, backup]\n")
                 .unwrap()
                 .not_behind_remote,
-            Some(RemoteCheck::ByType(
-                [(RemoteType::Github, vec!["reports".into()])].into()
-            ))
+            Some(RemoteCheck::Titles(vec![
+                "github:reports".into(),
+                "backup".into()
+            ]))
+        );
+        assert!(
+            parse("not_behind_remote: {github: [reports]}\n")
+                .unwrap_err()
+                .to_string()
+                .contains("<type>:<title>")
         );
         for removed in [
             "only_branches: [main]\n",
             "not_branches: [x]\n",
             "rule: newest\n",
-            "not_behind_remote: {s3: [x]}\n",
             "not_behind_remote: 3\n",
         ] {
             assert!(parse(removed).is_err(), "{removed}");

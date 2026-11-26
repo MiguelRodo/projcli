@@ -102,7 +102,7 @@ def project(root,source,legacy,store):
   directories["cache"]["safe"]=True
   cfg={"directories":directories,"remotes":{"local":{"backup":{"path":str(store),
     "structure":"archive","send":{"inspect":"file"}}}},
-    "build":{"scripts":["bounded.Rmd"],"git":False,"local":{"backup":{"content":["raw-data","output","docs"]}}}}
+    "build":{"scripts":["bounded.Rmd"],"git":False,"dest":{"backup":{"content":["raw-data","output","docs"]}}}}
   name="_proj.yml"
  cfg["parameters"]={"expected":{"pivi":265,"paired":236}}
  (root/name).write_text(json.dumps(cfg))
@@ -223,7 +223,7 @@ def main():
    # Ordinary projr-compatible recovery retains tracked project metadata, including
    # its .projr/manifests store. Start without data/output/cache or dependency libraries.
    (fresh/"_raw_data"/"data-raw-PIVI.csv").unlink();(fresh/"_raw_data").rmdir()
-   cfg["build"]["local"]={};(fresh/"_proj.yml").write_text(json.dumps(cfg))
+   cfg["build"]["dest"]={};(fresh/"_proj.yml").write_text(json.dumps(cfg))
    (fresh/"VERSION").write_bytes(before_version);(fresh/"renv.lock").write_bytes(lock)
    shutil.copytree(root/".projr"/"manifests",fresh/".projr"/"manifests")
    project_manifest=inventory(root/".projr"/"manifests");assert project_manifest

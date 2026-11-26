@@ -90,7 +90,7 @@ fn setup(placement: &str) -> (tempfile::TempDir, PathBuf, Value) {
     let config = json!({"directories":{"raw":{"path":"input"},"output":{"path":"results"},
         "cache":{"path":"cache","safe":true,"hash":true}},
         "remotes":{"local":{"snapshots":{"path":"../store","structure":"cas","manifest":placement}}},
-        "build":{"scripts":[],"git":false,"local":{"snapshots":{}}}});
+        "build":{"scripts":[],"git":false,"dest":{"snapshots":{}}}});
     save(&root, &config);
     (temp, root, config)
 }
@@ -129,8 +129,7 @@ fn named_snapshot_verify_and_restore_work_without_project_csv_or_current_upload_
         success(command(&root).arg("build").output().unwrap());
         let id = ids(&metadata(&root), "references/v1").pop().unwrap();
         fs::remove_dir_all(root.join(".projr/manifests")).unwrap();
-        config["build"]["local"] = json!({});
-        config["build"]["github"] = json!({});
+        config["build"]["dest"] = json!({});
         config["remotes"]["local"]["snapshots"]["content"] = Value::Null;
         config["remotes"]["local"]["snapshots"]["manifest-style"] = json!("flat");
         save(&root, &config);
@@ -240,8 +239,7 @@ fn a_fresh_project_can_restore_remote_metadata_without_the_old_project_index_or_
     for name in ["input", "results", "cache", "home"] {
         fs::create_dir_all(root.join(name)).unwrap();
     }
-    config["build"]["local"] = json!({});
-    config["build"]["github"] = json!({});
+    config["build"]["dest"] = json!({});
     save(&root, &config);
     fs::write(root.join("VERSION"), b"Version: v9.0.0.7\n").unwrap();
     success(
@@ -397,8 +395,7 @@ fn current_legacy_write_definition_does_not_hide_an_existing_versioned_tree_snap
     let id = ids(&store, "tree-snapshots/v1").pop().unwrap();
     config["remotes"]["local"]["snapshots"] =
         json!({"path":"../store","structure":"cas","content":["output"],"inspect":"manifest"});
-    config["build"]["local"] = json!({});
-    config["build"]["github"] = json!({});
+    config["build"]["dest"] = json!({});
     save(&root, &config);
     fs::remove_dir_all(root.join(".projr/manifests")).unwrap();
     success(
@@ -428,7 +425,7 @@ fn empty_root_without_objects_is_a_valid_explicit_restore_and_missing_full_metad
     let (_temp, root, mut config) = setup("remote");
     fs::remove_dir_all(root.join("input")).unwrap();
     fs::create_dir(root.join("input")).unwrap();
-    config["build"]["local"]["snapshots"]["content"] = json!(["raw"]);
+    config["build"]["dest"]["snapshots"]["content"] = json!(["raw"]);
     save(&root, &config);
     success(command(&root).arg("build").output().unwrap());
     let store = root.parent().unwrap().join("store");
@@ -479,8 +476,7 @@ fn empty_root_without_objects_is_a_valid_explicit_restore_and_missing_full_metad
 fn snapshot_mode_requires_a_named_cas_store_and_rejects_noncas_without_mutation() {
     let (_temp, root, mut config) = setup("remote");
     config["remotes"]["local"]["ordinary"] = json!({"path":"../ordinary","structure":"archive"});
-    config["build"]["local"] = json!({});
-    config["build"]["github"] = json!({});
+    config["build"]["dest"] = json!({});
     save(&root, &config);
     let before = files(&root);
     let id = "0".repeat(64);

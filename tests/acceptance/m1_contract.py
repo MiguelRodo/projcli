@@ -40,7 +40,7 @@ def case(binary, workspace, artifacts, initialized, mode, failing):
         config='directories:\n  raw-data: {path: _raw_data}\n  cache: {path: _tmp}\n  output: {path: _output}\n  docs: {path: _docs}\n'
     config+=('remotes:\n  local:\n    archive:\n      path: archive\n      structure: cas\n'
              '      inspect: file\n      content: [output, docs]\nsettings:\n  output-clear-stage: none\n'
-             'build:\n  git: false\n  local:\n    archive:\n'
+             'build:\n  git: false\n  dest: [archive]\n'
              '  scripts: [01-analysis.py, 02-summary.R, 03-report.Rmd]\n  restrictions:\n    not_behind: false\n')
     (root/'_proj.yml').write_text(config)
     for name_dir in ['_raw_data','_tmp','_output','_docs','archive']:(root/name_dir).mkdir(exist_ok=True)

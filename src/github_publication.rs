@@ -13,7 +13,7 @@ use std::{collections::BTreeSet, fs, io::Write};
 /// Validated configuration without credentials, HTTP or local mutation.
 pub(crate) struct Spec {
     title: String,
-    /// Definition whose `repo`, `tag`, `title` and `branch` route the Release.
+    /// Definition whose `repo`, `tag` and `branch` route the Release.
     routing: crate::restore::Definition,
     prefix: Option<String>,
     append: bool,
@@ -31,6 +31,8 @@ pub(crate) struct Target {
     pub(crate) client: GithubReleaseClient,
     pub(crate) tag: String,
     pub(crate) repository: String,
+    /// Release ID when this build created the Release up front.
+    created: Option<u64>,
 }
 impl Target {
     /// Configured entry name.
@@ -56,23 +58,15 @@ pub(crate) fn planned_tag(
     }
     release_tag(key, &crate::restore::definition(value)?, templates)
 }
-/// projr's release name: `tag`, else `title`, else the entry name, with placeholders
+/// projr's release name: `tag`, else the registered title, with placeholders
 /// expanded, outer spaces trimmed and inner spaces replaced by `-`
-/// (SATVILab/projr@ab3ce8a `R/yml-dest.R:270-282`, `R/remote-github.R:927-932`).
-/// A `tag` and `title` that name different releases are rejected.
+/// (SATVILab/projr@5f915ef `R/yml-dest.R:259-297`, `R/remote-github.R`).
 pub(crate) fn release_tag(
     key: &str,
     definition: &crate::restore::Definition,
     templates: &crate::template::Templates,
 ) -> anyhow::Result<String> {
-    let name = definition.title.as_deref().unwrap_or(key);
-    let tag = tag_format(&templates.expand(definition.tag.as_deref().unwrap_or(name))?);
-    if definition.tag.is_some() && definition.title.is_some() {
-        anyhow::ensure!(
-            tag == tag_format(&templates.expand(name)?),
-            "A GitHub release title and tag must match"
-        );
-    }
+    let tag = tag_format(&templates.expand(definition.tag.as_deref().unwrap_or(key))?);
     anyhow::ensure!(
         !tag.is_empty() && !tag.chars().any(char::is_control),
         "Invalid GitHub Release tag"
@@ -311,12 +305,34 @@ pub(crate) fn capture(
             client,
             tag,
             repository,
+            created: None,
         });
     }
     Ok(targets)
 }
+fn pending_note(version: &str) -> String {
+    format!(
+        "Created by projcli before build {version}. That build has not finished publishing, so this release may be empty or incomplete."
+    )
+}
+/// Create each missing Release once all read-only preflight checks have passed and
+/// before any hook, as projr does (SATVILab/projr@5f915ef `R/dest-send-prepare.R:1-59`,
+/// `R/build.R`). The new Release notes that a build is pending; a later failure
+/// leaves it in place (possibly empty) and is never rolled back or deleted.
+pub(crate) fn prepare_releases(targets: &mut [Target], version: &str) -> anyhow::Result<()> {
+    for target in targets {
+        if target.client.assets_if_exists(&target.tag)?.is_none() {
+            let id = target
+                .client
+                .create_release(&target.tag, &pending_note(version))
+                .with_context(|| format!("Cannot create GitHub Release {}", target.tag))?;
+            target.created = Some(id);
+        }
+    }
+    Ok(())
+}
 /// Read the project version advertised by a Release's `VERSION.zip` (projr
-/// `R/get.R:329-367`). `None` means no Release or no assets; populated Releases
+/// `R/get.R:354-392`, SATVILab/projr@5f915ef). `None` means no Release or no assets; populated Releases
 /// without a valid `Project:` line are errors. Read-only.
 pub(crate) fn project_version(
     client: &GithubReleaseClient,
@@ -1018,6 +1034,22 @@ pub(crate) fn publish(root: &Utf8Path, targets: &[Target], version: &str) -> any
             .err()
             .unwrap_or_else(|| anyhow::anyhow!("GitHub publication completed"))
             .context(format!("Cleanup failed: {}", failures.join("; "))));
+    }
+    if result.is_ok() {
+        // Replace the pending note on Releases this build created. The files are
+        // already published, so a failed note update is reported, not fatal.
+        for target in targets {
+            if let Some(id) = target.created
+                && let Err(error) = target
+                    .client
+                    .set_release_note(id, &format!("Published by projcli build {version}."))
+            {
+                eprintln!(
+                    "Warning: GitHub Release {} was published but its pending note was not replaced ({error:#})",
+                    target.tag
+                );
+            }
+        }
     }
     result
 }

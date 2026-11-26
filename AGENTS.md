@@ -315,8 +315,8 @@ DELETE followed by upload is the pinned projr behavior, not atomic publication:
 report deleted/uncertain outcomes and never silently retry or imply rollback.
 Mock fixtures only; no existing user assets are test targets.
 
-Configured restore uses existing directories.LABEL.source and build provider
-definitions; issue706 registry remains design-only. Keep source-before-destination,
+Configured restore uses existing directories.LABEL.source references and registered
+remotes (projr 0.9 removed inline build definitions and remote source preferences). Keep source-before-destination,
 preferences/exclusion, merged profile order and numeric/advertised version rules.
 Never clear before source lookup/staging; empty/unrecorded labels skip intact.
 Restore's config projection must not make normal builds silently accept ignored
@@ -574,10 +574,11 @@ permissions restoration or active CLI/config wiring from the library alone.
 ## Ordinary remote registry boundary
 
 Registry definitions are source lookups independent of build upload selection.
-projr's build.<type>.<title> (content only) selects a registered remote; an
-unregistered build title is an inline definition (build.dest was removed without
-migration, issues#910). Never upload all registered definitions implicitly or let
-a selection redefine a registered remote. Preserve source priority. Normal directory-source annotations validate
+build.dest follows projr 0.9 (a name, list or mapping with per-archive content/
+cue/inspect/strategy; `<type>:<title>` for titles used by both types; whole-value
+replacement across profile layers). Inline build.local/build.github archives are
+rejected with projr's guidance; never upload all registered definitions implicitly.
+Preserve directory-reference priority. Normal directory-source annotations validate
 references but do not activate automatic build-time restore. Reuse existing
 ordinary provider validators/engines. Reject unsupported placement/style/format
 fields until implemented; do not accept them as ignored options or call the
@@ -616,8 +617,8 @@ Other provider formatting remains explicitly pending until implemented/tested.
 
 Ordinary local flat histories observe actual final payloads, never source CSV
 substitutes. Build version and physical archive location are distinct; preserve
-legacy VERSION* trust markers and latest overwrite limits. New registry defaults
-must not silently opt legacy inline builds into metadata. Guard final private-stage
+legacy VERSION* trust markers and latest overwrite limits. projcli metadata is written
+only when a remote opts in with a manifest field. Guard final private-stage
 same-version conflicts before replacement, and reject overlapping metadata namespaces.
 Ordinary data stays outside CAS objects; GitHub/tree integration remains separate.
 
@@ -739,23 +740,21 @@ Native packages/startup code remain trusted and can have effects beyond captured
 paths. Run remote Rust/platform/native R checks only after publication approval.
 
 
-Verification follow-up: parent authorizes bounded sequential local compilation and
-runtime checks only after coordinating a window with the concurrent STA2005S build.
-No push/remote CI is authorized. Reuse the stopped diagnostic container and its
-existing 512MiB/1CPU cap initially; no cap increase, new container/image, broad
-package install or other process changes without coordination. Cold target/cache
-availability must be reported, not assumed. Lightweight capped R syntax/driver
-checks are permitted and do not establish compiled-CLI acceptance.
-
-
-Bounded local verification completed: keep the official locked cache at
-/home/mrodo/_tmp/projcli-r-housekeeping-crates and the tested copy/target inside
-projcli-m4-r-adapter-20261025:/tmp/projcli-r-housekeeping. Dependencies were explicitly
-authorized, source/checksum audited, isolated and not upgraded. No global Cargo
-configuration or container networking changed. Local Linux checks passed; do not
-treat them as Windows/site-validation or external-publication approval. Native init
+Renv behavior retained from the bounded M4 housekeeping verification: native init
 must create its initial lock after bare setup via type=all snapshot; normal build
 snapshots retain renv's policy. Pre snapshot is before start hooks, matching projr.
+
+
+## Local and remote verification (26 November 2026)
+
+The user's development machine now supports full local work: `cargo build`,
+`cargo test`, `cargo clippy --all-targets` and `cargo fmt` (changed files only, per
+docs/development-quality.qmd) may run locally as often as needed, including in
+subagent worktrees. This supersedes the earlier container cap, coordination window
+and "remote compile only after local denial" restrictions. Local Linux results do
+not replace exact-head remote CI: macOS/Windows, the pinned image, native R and
+acceptance drivers still run remotely before review/merge, and remote heavy or
+live-provider rules elsewhere in this file are unchanged.
 
 
 ## R package guide/reference and remote verification
@@ -780,7 +779,7 @@ archival support promise. Preview never requires/starts the helper or mutates
 backend caches. Production resolves the pinned optional helper once before hooks.
 Source queries do not install or publish. Store finalize plus independent full-file
 verification and complete binding precede the small Git-eligible root reference.
-Source lookup remains independent of upload selection. Explicit snapshot selection only.
+Source lookup remains independent of build.dest. Explicit snapshot selection only.
 Use remote tests; keep original R package and installed CLI unchanged.
 
 Experimental Xet preview does not copy/restore mutable engine stores under the
@@ -829,8 +828,8 @@ declared-label action, not general init. Any existing Git remote suffices.
 Preserve equivalent DESCRIPTION Version bytes when seeding VERSION; genuine
 mismatches use the approved synchronization setting. General setup is incremental,
 not a filesystem/network transaction. Do not claim a valid R package from generic
-DESCRIPTION metadata. Keep explicit ignore policies authoritative. Remote compile/
-tests only after local compilation denial. The user subsequently approved named init helpers in frontends/r/projcli; keep shared CLI semantics. Original SATVILab/projr remains the protected reference.
+DESCRIPTION metadata. Keep explicit ignore policies authoritative.
+The user subsequently approved named init helpers in frontends/r/projcli; keep shared CLI semantics. Original SATVILab/projr remains the protected reference.
 
 Multiple final-destination routing is deferred to private planning issue773.
 Only the agreed single-docs script-group behavior may proceed. Keep source/released/installed status distinct and original projr/thesis unchanged;
@@ -847,13 +846,17 @@ from frozen selected native output plans, not blanket HTML/assets or final docs.
 Multiple destinations/name matching remain deferred in issues#773. Verify actual
 grouped rendering and Quarto projects remotely before claiming compatibility.
 
-## projr 0.8.0 remotes schema and archive version check
+## projr 0.9 remotes schema and archive version check
 
 Destination placeholders (@version/@branch/@uuid) resolve once before hooks from
-the build version, checkout HEAD file and a fresh UUID; record resolved targets in
-attempt evidence without URLs, API origins or credentials (local paths leaving
-the project are not recorded). Builds that publish nothing resolve no placeholders. The archive version check (not_behind_remote default true,
-rule base) runs before hooks with read-only lookups and fails closed on populated
-archives without a readable version. GitHub branch checks are read-only before
-hooks; never create a release before publication. Restore by recorded
-destination belongs to the separate restore slice.
+the build version, checkout HEAD file and a fresh UUID; record resolved targets,
+including GitHub owner/repo (user-approved), in attempt evidence without URLs, API
+origins or credentials (local paths leaving the project are not recorded). Builds
+that publish nothing resolve no placeholders. The archive version check
+(not_behind_remote default true, names or <type>:<title> only; rule base) runs
+before hooks with read-only lookups and fails closed on populated archives without
+a readable version. GitHub branch checks are read-only; after all read-only
+preflight checks, missing Releases are created before hooks with a pending note
+that successful publication replaces; never roll back or delete them on failure.
+Restore by recorded destination, build.source fetching and pipelines are separate
+slices.

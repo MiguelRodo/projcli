@@ -151,7 +151,7 @@ Four choices remain distinct:
 | Manifest style | How a snapshot's names/content identities are described | flat or recursive tree; defaults flat for GitHub/non-CAS local, tree for CAS; explicit per-remote override. |
 | Manifest placement | Where recovery metadata is retained | auto/project/remote/both; auto uses remote for CAS and existing latest/archive behaviour. A small Git root reference can remain even with remote metadata. |
 
-The remotes registry and build.local/build.github selection are approved integration work.
+The remotes registry and build.dest selection are approved integration work.
 Omitting a selected remote's directory subset means all eligible directories;
 removing it from upload targets must not remove it as a restore source. These
 new fields are not accepted by the current parser in this codec-only slice.
@@ -429,7 +429,7 @@ remotes:
       manifest: auto
       manifest-style: tree
 build:
-  local:
+  dest:
     snapshots:
       content: [raw, output]
 ~~~
@@ -514,7 +514,7 @@ remotes:
       manifest-format: csv
       manifest: remote
 build:
-  local:
+  dest:
     snapshots:
       content: [raw, output]
 ~~~

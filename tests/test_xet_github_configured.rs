@@ -72,7 +72,7 @@ fn setup() -> (tempfile::TempDir, PathBuf, Value) {
     let config = json!({"directories":{"raw-data":{"path":"input"},"output":{"path":"results"},
         "cache":{"path":"cache","safe":true}},
         "remotes":{"local":{"backup":{"path":"../store","structure":"xet","content":true}}},
-        "build":{"scripts":[],"git":false,"local":{"backup":{"content":["raw-data"]}}}});
+        "build":{"scripts":[],"git":false,"dest":{"backup":{"content":["raw-data"]}}}});
     save(&root, &config);
     (temp, root, config)
 }
@@ -97,8 +97,7 @@ fn invoke(root: &Path, engine: Option<&Path>, server: &Server) -> Command {
 fn github_setup() -> (tempfile::TempDir, PathBuf, Value) {
     let (temp, root, mut config) = setup();
     config["remotes"] = json!({"github":{"data":{"structure":"xet","content":["raw-data"]}}});
-    config["build"]["local"] = json!({});
-    config["build"]["github"] = json!({"data":{}});
+    config["build"]["dest"] = json!({"data":{}});
     save(&root, &config);
     for args in [
         vec!["init"],
@@ -175,8 +174,7 @@ fn github_xet_preview_and_empty_selection_need_no_helper_or_network() {
     assert_eq!(fs::read(root.join("VERSION")).unwrap(), version);
     assert!(!namespace(&root).exists());
     assert!(!server.state.lock().unwrap().exists);
-    config["build"]["local"] = json!({});
-    config["build"]["github"] = json!({});
+    config["build"]["dest"] = json!({});
     save(&root, &config);
     success(invoke(&root, None, &server).arg("build").output().unwrap());
     assert!(!server.state.lock().unwrap().exists);
@@ -188,8 +186,7 @@ fn github_xet_tag_collision_fails_before_hooks_and_credentials() {
     let (_temp, root, mut config) = github_setup();
     config["remotes"]["github"] =
         json!({"data store":{"structure":"xet"},"data-store":{"structure":"xet"}});
-    config["build"]["local"] = json!({});
-    config["build"]["github"] = json!({"data store":{},"data-store":{}});
+    config["build"]["dest"] = json!({"data store":{},"data-store":{}});
     fs::write(
         root.join("start.py"),
         "from pathlib import Path\nPath('hook-ran').write_text('bad')\n",
@@ -277,8 +274,7 @@ fn actual_configured_github_xet_refs_fresh_restore_and_failure_preservation() {
     let fresh = temp.path().join("fresh project");
     fs::create_dir_all(fresh.join("home")).unwrap();
     copy_tree(&root.join(".proj/remotes"), &fresh.join(".proj/remotes"));
-    config["build"]["local"] = json!({});
-    config["build"]["github"] = json!({});
+    config["build"]["dest"] = json!({});
     save(&fresh, &config);
     fs::write(fresh.join("VERSION"), b"v9.8.7\n").unwrap();
     success(
@@ -347,7 +343,7 @@ fn ordinary_tag_option_cannot_share_the_storage_release() {
     let (_temp, root, mut config) = github_setup();
     config["remotes"]["github"]["figures"] =
         json!({"tag":"data","structure":"archive","content":["raw-data"]});
-    config["build"]["github"]["figures"] = json!({});
+    config["build"]["dest"]["figures"] = json!({});
     save(&root, &config);
     let output = invoke(&root, None, &server).arg("build").output().unwrap();
     assert!(!output.status.success());
@@ -362,7 +358,7 @@ fn ordinary_templated_title_beside_shared_store_validates_in_preview() {
     let (_temp, root, mut config) = github_setup();
     config["remotes"]["github"]["results@version"] =
         json!({"structure":"archive","content":["raw-data"]});
-    config["build"]["github"]["results@version"] = json!({});
+    config["build"]["dest"]["results@version"] = json!({});
     save(&root, &config);
     success(
         invoke(&root, None, &server)

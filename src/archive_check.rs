@@ -1,10 +1,10 @@
-//! projr's pre-render archive version check (SATVILab/projr@ab3ce8a
+//! projr's pre-render archive version check (SATVILab/projr@5f915ef
 //! `R/build-remote-versions.R`): before hooks and rendering, a production build
 //! refuses a proposed version that a selected archive already has or has passed.
 //! Only read-only lookups are made; nothing is created or written remotely.
 use crate::github_release::GithubReleaseClient;
 use crate::local_remote::{compare_versions, version_numbers};
-use crate::yml::{ProjConfig, RemoteCheck, RemoteType, VersionRule};
+use crate::yml::{ProjConfig, RemoteCheck, VersionRule};
 use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};
 use std::{cmp::Ordering, fs};
@@ -58,50 +58,29 @@ fn local_version(base: &Utf8Path) -> anyhow::Result<Option<String>> {
     Ok(None)
 }
 
-/// Archives named by `not_behind_remote` titles, resolved whether or not this
-/// build sends to them. Each title must be unambiguous across remote types.
+/// Archives named by `not_behind_remote`, resolved whether or not this build sends
+/// to them. A title registered for both types must be written `<type>:<title>`
+/// (SATVILab/projr@5f915ef `R/build-remote-versions.R:99-133`).
 fn named(
     root: &Utf8Path,
     project: &ProjConfig,
-    titles: Vec<(Option<RemoteType>, String)>,
+    references: &[String],
     templates: &crate::template::Templates,
     environment: &crate::run_environment::RunEnvironment,
 ) -> anyhow::Result<Vec<Archive>> {
     let mut archives = Vec::new();
     let mut seen = Vec::new();
-    for (kind, title) in titles {
-        let kind = match kind {
-            Some(kind) => {
-                anyhow::ensure!(
-                    crate::remote_registry::titles(project, provider(kind)).contains(&title),
-                    "Unknown {} remote title in build.restrictions.not_behind_remote: {title}",
-                    provider(kind)
-                );
-                kind
-            }
-            None => {
-                let kinds: Vec<_> = [RemoteType::Local, RemoteType::Github]
-                    .into_iter()
-                    .filter(|kind| {
-                        crate::remote_registry::titles(project, provider(*kind)).contains(&title)
-                    })
-                    .collect();
-                match kinds.as_slice() {
-                    [kind] => *kind,
-                    [] => anyhow::bail!(
-                        "Unknown remote title in build.restrictions.not_behind_remote: {title}"
-                    ),
-                    _ => anyhow::bail!(
-                        "Ambiguous remote title in build.restrictions.not_behind_remote: {title}. Qualify it by type, for example {{github: [{title}]}}"
-                    ),
-                }
-            }
-        };
-        if seen.contains(&(kind, title.clone())) {
+    for reference in references {
+        let (provider, title) = crate::remote_registry::resolve(
+            project,
+            reference,
+            "build.restrictions.not_behind_remote",
+        )?;
+        if seen.contains(&(provider, title.clone())) {
             continue;
         }
-        seen.push((kind, title.clone()));
-        let value = crate::remote_registry::definition_of(project, provider(kind), &title)
+        seen.push((provider, title.clone()));
+        let value = crate::remote_registry::definition_of(project, provider, &title)
             .filter(|value| {
                 !matches!(
                     value.get("structure").and_then(serde_json::Value::as_str),
@@ -110,35 +89,27 @@ fn named(
             })
             .with_context(|| {
                 format!(
-                    "Archive version checks cover ordinary local and GitHub destinations; {title} is a CAS/Xet store"
+                    "Archive version checks cover ordinary local and GitHub destinations; {provider}:{title} is a CAS/Xet store"
                 )
             })?;
         let definition = crate::restore::definition(value)?;
-        archives.push(match kind {
-            RemoteType::Local => Archive::Local {
+        archives.push(if provider == "local" {
+            Archive::Local {
                 base: crate::publication::local_base(root, definition.path.as_deref(), templates)?
                     .1,
                 title,
-            },
-            RemoteType::Github => {
-                let tag = crate::github_publication::release_tag(&title, &definition, templates)?;
-                let (_, client) = crate::github_publication::connection(
-                    root,
-                    environment,
-                    definition.repo.as_deref(),
-                )?;
-                Archive::Github { title, client, tag }
             }
+        } else {
+            let tag = crate::github_publication::release_tag(&title, &definition, templates)?;
+            let (_, client) = crate::github_publication::connection(
+                root,
+                environment,
+                definition.repo.as_deref(),
+            )?;
+            Archive::Github { title, client, tag }
         });
     }
     Ok(archives)
-}
-
-fn provider(kind: RemoteType) -> &'static str {
-    match kind {
-        RemoteType::Local => "local",
-        RemoteType::Github => "github",
-    }
 }
 
 /// Archives selected by `not_behind_remote` for a publishing production build: by
@@ -152,7 +123,7 @@ pub(crate) fn selected(
     templates: &crate::template::Templates,
     environment: &crate::run_environment::RunEnvironment,
 ) -> anyhow::Result<Vec<Archive>> {
-    let titles = match &project.build.restrictions.not_behind_remote {
+    let references = match &project.build.restrictions.not_behind_remote {
         None | Some(RemoteCheck::All(true)) => {
             let mut archives: Vec<Archive> = ordinary
                 .iter()
@@ -169,15 +140,9 @@ pub(crate) fn selected(
             return Ok(archives);
         }
         Some(RemoteCheck::All(false)) => return Ok(Vec::new()),
-        Some(RemoteCheck::Titles(titles)) => {
-            titles.iter().map(|title| (None, title.clone())).collect()
-        }
-        Some(RemoteCheck::ByType(map)) => map
-            .iter()
-            .flat_map(|(kind, titles)| titles.iter().map(|title| (Some(*kind), title.clone())))
-            .collect(),
+        Some(RemoteCheck::Titles(references)) => references,
     };
-    named(root, project, titles, templates, environment)
+    named(root, project, references, templates, environment)
 }
 
 /// Compare each archive's completed version with the proposed build version and,

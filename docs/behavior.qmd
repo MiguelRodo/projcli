@@ -47,8 +47,8 @@ actual test evidence, Ponytail reviews and remaining gaps; update it with each P
 - Explicit script and hook patterns, including exclusions, must have valid glob syntax. Invalid exclusions must fail preflight rather than silently select unintended code. As in projr 0.8.0, a valid exclusion-only list means automatic discovery minus the matches (not yet supported beside a Quarto/Bookdown project, which fails clearly); an empty list still disables analysis. `- exclude: path` entries normalise to `!path`. The root `README.Rmd` is never analysis.
 - Development builds run only `dev.hooks`; production `build.hooks` never run in a preview (projr 0.8.0 behaviour, superseding the earlier fallback to `build.hooks`).
 - Production restrictions use projr's `branch` and `not_behind_git` (legacy `not_behind`) keys. The upstream check defaults on as in projr, skipping silently, without starting Git, outside a repository (no `.git` entry at the project root or an ancestor), skipping silently without a tracking upstream, warning when the upstream cannot be compared and warning on a failed fetch; explicit `true` is strict. This supersedes the earlier explicit-only fetch policy and projcli's `only_branches`/`not_branches` keys.
-- Production builds check archive versions before any hook or rendering, as in projr 0.8.0 (`build.restrictions.not_behind_remote`, default on; `rule` defaults to `base_version_not_behind`, with `target_version_not_behind` as the override). The proposed version must be newer than each checked archive's completed project version and, under the base rule, the last completed local version must not be behind it. Lookups are read-only; a populated archive without a readable version stops the build. Approved by the user on 25 November 2026 (MiguelRodo/issues#910); reversible.
-- Remotes use projr's schema: definitions under `remotes.<type>.<title>`, selected by `build.<type>.<title>` (only `content`), with unregistered `build` titles as inline definitions. projcli's earlier `build.dest` selection is removed without migration (no projcli projects exist; MiguelRodo/issues#910). GitHub definitions accept `repo`, `tag` and `branch`; destination names/paths and release names accept `@version`, `@branch` and `@uuid`, resolved once before hooks and recorded (without URLs or credentials) in the attempt record.
+- Production builds check archive versions before any hook or rendering, as in projr (`build.restrictions.not_behind_remote`, default on, names or `<type>:<title>` only; `rule` defaults to `base_version_not_behind`, with `target_version_not_behind` as the override). The proposed version must be newer than each checked archive's completed project version and, under the base rule, the last completed local version must not be behind it. Lookups are read-only; a populated archive without a readable version stops the build. Approved by the user on 25 November 2026 (MiguelRodo/issues#910); reversible.
+- Remotes follow projr 0.9 (user decision, MiguelRodo/issues#910): archives are defined only under `remotes.<type>.<title>` and selected by `build.dest` (a name, a list or a mapping with per-archive `content`/`cue`/`inspect`/`strategy`); `<type>:<title>` disambiguates a title used by both types. Inline `build.local`/`build.github` archives are rejected. GitHub remotes accept `repo`, `tag` and `branch`; missing Releases are created before hooks with a pending note that a successful publication replaces, and are kept (possibly empty) if the build fails. Destination names/paths and release names accept `@version`, `@branch` and `@uuid`, resolved once before hooks and recorded, including GitHub owner/repo (approved), in the attempt record.
 - Failed supported builds must restore pre-build state except permitted cache
   residue. This is required behavior, not an implemented transaction guarantee.
 - Storage/publication retries must have an upload-only route without rerunning
@@ -808,12 +808,13 @@ Directory references retain priority, followed by legacy preferred sources,
 registry preferred sources, legacy fallback and registry fallback. A newly
 registered unpreferred definition does not displace an existing legacy fallback.
 
-Registry/build.local/build.github mapping integration currently covers ordinary latest/archive
+Registry/build.dest mapping integration currently covers ordinary latest/archive
 and GitHub Release operations. Configured tree publication and placement are described below. Flat CSV/JSON publication is described below; automatic CAS selection remains
 deferred; legacy flat recovery
 is described below;
 explicit tree verification/recovery is described below. Unsupported options fail.
-Inline definitions and legacy CAS definitions are selected through the same build entries.
+Inline build.local/build.github archives are rejected (projr 0.9); legacy flat CAS
+definitions are selected through build.dest like other remotes.
 
 
 ## Configured local CAS tree publication (unreleased)
@@ -1118,24 +1119,26 @@ block exists. Planned-render-output rules remain projcli's approach; projr's
 root-extension rules are not ported. Line endings and a byte-order mark are not
 preserved byte-for-byte (files are rewritten with LF), unlike projr.
 
-## projr 0.8.0 remotes schema and archive version check
 
-Registered remotes stay restore sources whether or not a build selects them; a
-`build` entry for a registered title selects uploads and is never a second
-definition, so restore always reads the registered definition. Selected
-registered and inline definitions may be combined. Placeholders resolve once,
-before hooks, from the build version, the checkout `HEAD` file (no Git process)
-and a fresh UUIDv4; later YAML edits by scripts do not change them. A GitHub
-`branch` is checked read-only before hooks when its release is missing (the branch
-must exist; an existing tag must point at its head) and is used again when the
-release is created. The pre-render archive version check covers ordinary local
-and GitHub destinations; CAS and Xet stores are not checked.
+## projr 0.9 remotes schema and archive version check
 
-Known gaps: `@uuid` destinations are recorded but configured restore cannot yet
-use the record (item 4 of MiguelRodo/issues#910); directory paths and CAS/Xet
-store paths are not template-expanded; the build UUID is not exported to
-scripts; a local remote `ignore` field and one-off archives
-(`archive_local`/`archive_github`) are not supported; titles must remain unique
-across remote types (projcli's stricter rule), so projr's type-qualified
-`not_behind_remote` form is needed only when an inline title repeats a registered
-one of the other type.
+Registered remotes stay restore sources whether or not `build.dest` lists them;
+restore tries directory references first, then registered remotes in declaration
+order (a remote's `source:` preference was removed in projr 0.9). Placeholders
+resolve once, before hooks, from the build version, the checkout `HEAD` file (no
+Git process) and a fresh UUIDv4; later YAML edits by scripts do not change them.
+Builds that publish nothing (previews, `output_run: false`) resolve none. A GitHub
+`branch` is checked read-only when its Release is missing (the branch must exist;
+an existing tag must point at its head). Missing Releases are then created after
+all read-only preflight checks and before managed-state capture and hooks. projcli
+metadata (`.projcli-manifests`) is written only when a remote opts in with a
+manifest field.
+
+Known gaps: `@uuid` destinations are recorded but configured restore cannot yet use
+the record (item 4 of MiguelRodo/issues#910); `build.source` fetching (remote `get`
+settings are validated only), removal of `directories.<label>.source`, pipelines,
+the `profile` configuration key and short `.projr/config/` names are later slices;
+directory paths and CAS/Xet store paths are not template-expanded; the build UUID
+is not exported to scripts; a local remote `ignore` field and one-off archives
+(`archive_local`/`archive_github`) are not supported; GitHub upload confirmation
+after a server error (projr deletes and retries once) is not ported.

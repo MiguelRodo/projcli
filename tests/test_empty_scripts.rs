@@ -76,8 +76,7 @@ build:
   git: false
   restrictions:
     not_behind: false
-  local:
-    archive:
+  dest: [archive]
 {dev}"#
                 );
                 fs::write(root.join("_proj.yml"), config).unwrap();

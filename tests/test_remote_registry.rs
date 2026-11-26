@@ -179,7 +179,7 @@ fn setup() -> (tempfile::TempDir, std::path::PathBuf, Value) {
         "remotes":{"local":{
             "A":{"path":"../store-A","structure":"archive","content":["raw"]},
             "B":{"path":"../store-B","structure":"archive","send":{"inspect":"file","cue":"always"}}}},
-        "build":{"scripts":[],"git":false,"local":{"B":{"content":["raw"]}}}
+        "build":{"scripts":[],"git":false,"dest":{"B":{"content":["raw"]}}}
     });
     fs::write(
         root.join("_proj.yml"),
@@ -227,7 +227,7 @@ fn actual_cli_uploads_only_to_b_and_restores_a_after_its_upload_selection_is_abs
                 .as_object_mut()
                 .unwrap()
                 .remove("source");
-            config["build"]["local"] = json!({});
+            config["build"]["dest"] = json!({});
             fs::write(
                 root.join("_proj.yml"),
                 serde_json::to_vec_pretty(&config).unwrap(),
@@ -277,9 +277,9 @@ fn registered_but_unselected_remotes_need_no_credentials_and_make_no_store() {
     for (selection, remote_null) in [
         (None, false),
         (Some(json!({})), false),
-        (Some(json!({"local":{"B":{"content":[]}}})), false),
-        (Some(json!({"local":{"B":{}}})), true),
-        (Some(json!({"local":{},"github":{"unused":{}}})), true),
+        (Some(json!({"B":{"content":[]}})), false),
+        (Some(json!({"B":{}})), true),
+        (Some(json!({"unused":{}})), true),
     ] {
         let (_temp, root, mut config) = setup();
         config["directories"]["raw"]
@@ -291,10 +291,12 @@ fn registered_but_unselected_remotes_need_no_credentials_and_make_no_store() {
             config["remotes"]["local"]["B"]["content"] = Value::Null;
             config["remotes"]["github"]["unused"]["content"] = Value::Null;
         }
-        config["build"].as_object_mut().unwrap().remove("local");
-        if let Some(selection) = selection {
-            for (provider, value) in selection.as_object().unwrap() {
-                config["build"][provider] = value.clone();
+        match selection {
+            Some(selection) => {
+                config["build"]["dest"] = selection;
+            }
+            None => {
+                config["build"].as_object_mut().unwrap().remove("dest");
             }
         }
         fs::write(
@@ -318,7 +320,7 @@ fn registered_but_unselected_remotes_need_no_credentials_and_make_no_store() {
 fn unknown_registry_reference_preserves_inputs_before_hooks_with_only_the_approved_local_diagnostic()
  {
     let (_temp, root, mut config) = setup();
-    config["build"]["local"] = json!({"unknown":{}});
+    config["build"]["dest"] = json!({"unknown":{}});
     config["build"]["hooks"] = json!({"pre":["pre.py"]});
     fs::write(
         root.join("pre.py"),
@@ -335,10 +337,7 @@ fn unknown_registry_reference_preserves_inputs_before_hooks_with_only_the_approv
     assert!(!output.status.success());
     let error: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(error["error"]["code"], "command_failed");
-    assert!(
-        String::from_utf8_lossy(&output.stderr)
-            .contains("Define remotes.local.unknown.path before selecting build.local.unknown")
-    );
+    assert!(String::from_utf8_lossy(&output.stderr).contains("not declared under remotes"));
     assert!(!String::from_utf8_lossy(&output.stdout).contains("unknown"));
     assert!(!root.join("hook-ran").exists());
     assert_eq!(recovered_snapshot(&root, &before), before);
@@ -346,7 +345,7 @@ fn unknown_registry_reference_preserves_inputs_before_hooks_with_only_the_approv
 }
 
 #[test]
-fn registered_titles_accept_only_content_selection_and_fail_readonly_before_clearing() {
+fn inline_build_archives_are_rejected_readonly_before_clearing() {
     let (_temp, root, mut config) = setup();
     config["build"]["local"] = json!({"A":{"path":"../spoof","content":["raw"]}});
     fs::write(
@@ -372,6 +371,6 @@ fn registered_titles_accept_only_content_selection_and_fail_readonly_before_clea
         .output()
         .unwrap();
     assert!(!output.status.success());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("only accepts content"));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("build.local is no longer supported"));
     assert_eq!(snapshot(&root), before);
 }

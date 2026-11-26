@@ -77,7 +77,7 @@ output build's transition to the next development version.
 ```{mermaid}
 %%| label: fig-lifecycle-pre
 %%| fig-cap: "Released pre-build order."
-%%| fig-alt: "Select root and profiles, validate merged configuration, capture run inputs and resolve destination placeholders, preflight targets, dependencies and archive versions, capture recovery state, run start hooks, then finish preparation."
+%%| fig-alt: "Select root and profiles, validate merged configuration, capture run inputs and resolve destination placeholders, preflight targets, dependencies and archive versions, create missing GitHub Releases, capture recovery state, run start hooks, then finish preparation."
 %%{init: {"htmlLabels": false}}%%
 flowchart TB
   classDef default fill:#f0f4f7,stroke:#637b89,color:#153b32
@@ -86,7 +86,7 @@ flowchart TB
   B["[R] Resolve profiles and<br/>environment; merge config;<br/>settings HOW / build WHAT"]
   C["[R/T] Validate typed configuration<br/>and explicit resource mappings"]
   D["[R] Capture root, profiles,<br/>mappings, mode and active run<br/>version; source: resolve @version/<br/>@branch/@uuid destinations"]
-  E["[R/T] Preflight source groups / globs,<br/>exclusions, output collisions,<br/>dependencies and enabled Git;<br/>source: archive version check"]
+  E["[R/T] Preflight source groups / globs,<br/>exclusions, output collisions,<br/>dependencies and enabled Git;<br/>source: archive version check,<br/>then create missing GitHub Releases"]
   F["[R] Enumerate and capture managed<br/>recovery state before controlled<br/>writes"]
   G["[R] Run configured start hooks"]
   R["Local candidate: optional R snapshot<br/>before start hooks"]
@@ -117,11 +117,13 @@ flowchart TB
   Fallback directory/entry errors also stop here. The recovery
   capture stage reports its own enumeration phase and OS cause before controlled
   project writes. These diagnostics are included in preview.3; ordering is unchanged.
-- Development source (projr 0.8.0 remotes slice): destination placeholders resolve
+- Development source (projr 0.9 remotes slice): destination placeholders resolve
   once with the run version and are frozen; production builds then check selected
   archive versions (`build.restrictions.not_behind_remote`, read-only) and stop
   before recovery capture and start hooks when a proposed version is not newer.
-  This is not in any published preview.
+  After every read-only preflight check, missing GitHub Releases are created with a
+  pending note (projr 0.9 order); a later failure keeps them, possibly empty, and
+  successful publication replaces the note. This is not in any published preview.
 - Start/end refer to the existing pre/both and post/both hook sets, not new
   hook types. Their placement follows the controlled lifecycle shown here.
 - Recovery capture must precede hooks and managed mutations. Cache/staging setup,
