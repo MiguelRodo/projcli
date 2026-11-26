@@ -1382,7 +1382,9 @@ pub fn build_project_with_policies(
                 },
                 attempt_inventory.clone(),
                 startup_provenance.clone(),
-                templates.uuid().map(|uuid| {
+            )
+            .map(|log| {
+                log.with_destinations(templates.uuid().map(|uuid| {
                     crate::attempt_log::Destinations::resolved(
                         uuid,
                         if config.output_run.unwrap_or(true) {
@@ -1392,8 +1394,8 @@ pub fn build_project_with_policies(
                         },
                         &github,
                     )
-                }),
-            )
+                }))
+            })
         };
         let observe_outputs = || -> anyhow::Result<crate::attempt_log::FinalOutputs> {
             if record_manifest {

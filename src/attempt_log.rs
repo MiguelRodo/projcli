@@ -381,7 +381,6 @@ impl AttemptLog {
         source_head: Option<String>,
         inventory: Option<InventoryEvidence>,
         startup: Option<crate::provenance::Snapshot>,
-        destinations: Option<Destinations>,
     ) -> anyhow::Result<Self> {
         let directory = root.join(".proj/log");
         crate::path_safety::validate_native_names(root, ".proj/log", false)?;
@@ -415,7 +414,7 @@ impl AttemptLog {
             startup_provenance: startup,
             inventory,
             final_outputs: None,
-            destinations,
+            destinations: None,
         };
         Ok(Self {
             path,
@@ -423,6 +422,12 @@ impl AttemptLog {
             sealed_hash: None,
             created_directory,
         })
+    }
+
+    /// Record the destinations resolved before hooks.
+    pub(crate) fn with_destinations(mut self, destinations: Option<Destinations>) -> Self {
+        self.record.destinations = destinations;
+        self
     }
 
     /// Install the initial publication snapshot before any provider or Git entry.
@@ -653,7 +658,7 @@ impl AttemptLog {
                 witness(
                     &receipt.attempt_id,
                     &receipt.snapshot_hash,
-                    &blake3::hash(&bytes).to_hex().to_string(),
+                    blake3::hash(&bytes).to_hex().as_str(),
                 )?;
             } else {
                 self.record.status = status.into();
@@ -761,7 +766,7 @@ pub(crate) fn owned_receipt(
         && witness(
             id,
             &receipt.snapshot_hash,
-            &blake3::hash(&receipt_bytes).to_hex().to_string(),
+            blake3::hash(&receipt_bytes).to_hex().as_str(),
         )?)
 }
 
