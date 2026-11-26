@@ -738,23 +738,21 @@ Native packages/startup code remain trusted and can have effects beyond captured
 paths. Run remote Rust/platform/native R checks only after publication approval.
 
 
-Verification follow-up: parent authorizes bounded sequential local compilation and
-runtime checks only after coordinating a window with the concurrent STA2005S build.
-No push/remote CI is authorized. Reuse the stopped diagnostic container and its
-existing 512MiB/1CPU cap initially; no cap increase, new container/image, broad
-package install or other process changes without coordination. Cold target/cache
-availability must be reported, not assumed. Lightweight capped R syntax/driver
-checks are permitted and do not establish compiled-CLI acceptance.
-
-
-Bounded local verification completed: keep the official locked cache at
-/home/mrodo/_tmp/projcli-r-housekeeping-crates and the tested copy/target inside
-projcli-m4-r-adapter-20261025:/tmp/projcli-r-housekeeping. Dependencies were explicitly
-authorized, source/checksum audited, isolated and not upgraded. No global Cargo
-configuration or container networking changed. Local Linux checks passed; do not
-treat them as Windows/site-validation or external-publication approval. Native init
+Renv behavior retained from the bounded M4 housekeeping verification: native init
 must create its initial lock after bare setup via type=all snapshot; normal build
 snapshots retain renv's policy. Pre snapshot is before start hooks, matching projr.
+
+
+## Local and remote verification (26 November 2026)
+
+The user's development machine now supports full local work: `cargo build`,
+`cargo test`, `cargo clippy --all-targets` and `cargo fmt` (changed files only, per
+docs/development-quality.qmd) may run locally as often as needed, including in
+subagent worktrees. This supersedes the earlier container cap, coordination window
+and "remote compile only after local denial" restrictions. Local Linux results do
+not replace exact-head remote CI: macOS/Windows, the pinned image, native R and
+acceptance drivers still run remotely before review/merge, and remote heavy or
+live-provider rules elsewhere in this file are unchanged.
 
 
 ## R package guide/reference and remote verification
@@ -828,8 +826,8 @@ declared-label action, not general init. Any existing Git remote suffices.
 Preserve equivalent DESCRIPTION Version bytes when seeding VERSION; genuine
 mismatches use the approved synchronization setting. General setup is incremental,
 not a filesystem/network transaction. Do not claim a valid R package from generic
-DESCRIPTION metadata. Keep explicit ignore policies authoritative. Remote compile/
-tests only after local compilation denial. The user subsequently approved named init helpers in frontends/r/projcli; keep shared CLI semantics. Original SATVILab/projr remains the protected reference.
+DESCRIPTION metadata. Keep explicit ignore policies authoritative.
+The user subsequently approved named init helpers in frontends/r/projcli; keep shared CLI semantics. Original SATVILab/projr remains the protected reference.
 
 Multiple final-destination routing is deferred to private planning issue773.
 Only the agreed single-docs script-group behavior may proceed. Keep source/released/installed status distinct and original projr/thesis unchanged;
