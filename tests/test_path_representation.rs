@@ -18,7 +18,7 @@ fn path(output: std::process::Output) -> std::path::PathBuf {
 fn auto_and_explicit_bases_resolve_the_same_target_without_suffix_or_marker_guessing() {
     let project=tempfile::tempdir().unwrap();let root=project.path();
     fs::create_dir_all(root.join("analysis/deeper")).unwrap();fs::create_dir(root.join("_raw")).unwrap();
-    fs::write(root.join("_proj.yml"),"directories:\n  raw-data:\n    path: _raw\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  raw-data:\n    path: _raw\n").unwrap();
     // Neither an active project marker nor a .qmd file manufactures caller render context.
     fs::write(root.join("_quarto.yml"),"project: {type: default}\n").unwrap();
     fs::write(root.join("analysis/report.qmd"),"Report\n").unwrap();
@@ -56,7 +56,7 @@ fn only_actual_renderer_children_receive_render_context_and_overrides_still_work
         let project=tempfile::tempdir().unwrap();let root=project.path();
         fs::create_dir_all(root.join("analysis/deeper")).unwrap();fs::create_dir(root.join("cache")).unwrap();
         fs::create_dir(root.join("_raw")).unwrap();fs::create_dir(root.join("bin")).unwrap();
-        fs::write(root.join("_proj.yml"),format!("directories:\n  cache:\n    path: cache\n  docs:\n    path: published\n  raw-data:\n    path: _raw\ndev:\n  scripts: [analysis.py, analysis/report.{extension}]\n")).unwrap();
+        fs::write(root.join("_projr.yml"),format!("directories:\n  cache:\n    path: cache\n  docs:\n    path: published\n  raw-data:\n    path: _raw\ndev:\n  scripts: [analysis.py, analysis/report.{extension}]\n")).unwrap();
         fs::write(root.join(format!("analysis/report.{extension}")),"Report\n").unwrap();
         let ordinary=format!(r#"import os,json,subprocess
 from pathlib import Path
@@ -109,7 +109,7 @@ fn explicit_render_descriptor_preserves_target_and_document_anchor_across_other_
     let other=project.path().join("other");fs::create_dir(&other).unwrap();
     fs::create_dir_all(root.join("analysis/deeper")).unwrap();fs::create_dir(root.join("_raw")).unwrap();
     fs::create_dir(other.join("raw-b")).unwrap();
-    fs::write(other.join("_proj.yml"),"directories:\n  raw-data:\n    path: raw-b\n").unwrap();
+    fs::write(other.join("_projr.yml"),"directories:\n  raw-data:\n    path: raw-b\n").unwrap();
     let document=root.join("analysis/report.qmd");fs::write(&document,"Report\n").unwrap();
     let context=project.path().join("context.json");
     let mut snapshot=serde_json::json!({"schema_version":5,"root":root,"profiles":[],"directories":{"raw-data":root.join("_raw")},"directory_order":["raw-data"],"safe_cache":null,"path_format":"auto","active_version":{"major":1,"minor":2,"patch":3,"dev":4},"development":true,"render":{"engine":"quarto","document":document}});
@@ -142,7 +142,7 @@ fn ordinary_custom_drive_root_and_existing_target_share_a_relative_namespace() {
     use std::path::{Component,Prefix};
     let temp=tempfile::tempdir().unwrap();let root=temp.path();
     fs::create_dir(root.join("raw")).unwrap();
-    fs::write(root.join("_proj.yml"),"directories:\n  raw:\n    path: raw\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: raw\n").unwrap();
     let canonical=root.canonicalize().unwrap();
     let drive=match canonical.components().next().unwrap() {
         Component::Prefix(prefix)=>match prefix.kind() {Prefix::Disk(d)|Prefix::VerbatimDisk(d)=>d,_=>panic!("test requires disk temp root")},
@@ -154,7 +154,7 @@ fn ordinary_custom_drive_root_and_existing_target_share_a_relative_namespace() {
     // Query a missing direct child without creating anything at the drive root.
     let missing=std::path::Path::new(&base).join(format!("projcli-absent-{}",temp.path().file_name().unwrap().to_string_lossy()));
     assert!(!missing.exists());
-    fs::write(root.join("_proj.yml"),format!("directories:\n  raw:\n    path: {}\n",serde_json::to_string(&missing.to_string_lossy()).unwrap())).unwrap();
+    fs::write(root.join("_projr.yml"),format!("directories:\n  raw:\n    path: {}\n",serde_json::to_string(&missing.to_string_lossy()).unwrap())).unwrap();
     let absent=Command::new(env!("CARGO_BIN_EXE_proj")).args(["--machine","path","get","--label","raw","--format","relative","--relative-to",&base,"--project"])
         .arg(root).env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
     let absent=path(absent);assert!(!absent.is_absolute());

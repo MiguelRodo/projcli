@@ -2,10 +2,11 @@ use std::{fs, process::Command};
 
 #[test]
 fn build_uses_the_same_merged_configuration_for_scripts_and_hooks() {
-    for base_name in ["_proj.yml", "_projr.yml"] {
+    for base_name in ["_projr.yml", ".projr/config/default.yml"] {
         for local_override in [false, true] {
             let temp = tempfile::tempdir().unwrap();
             let root = temp.path();
+            fs::create_dir_all(root.join(base_name).parent().unwrap()).unwrap();
             fs::write(root.join(base_name), "directories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: [absent.py]\ndev:\n  hooks:\n    pre: [absent-hook.py]\n").unwrap();
             fs::write(
                 root.join("_projr-first.yml"),
@@ -64,7 +65,7 @@ fn build_uses_the_same_merged_configuration_for_scripts_and_hooks() {
 fn invalid_merged_config_does_not_write_environment_ignores_or_version() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path();
-    fs::write(root.join("_proj.yml"), "build: {}\n").unwrap();
+    fs::write(root.join("_projr.yml"), "build: {}\n").unwrap();
     fs::write(
         root.join("_projr-broken.yml"),
         "build:\n  scripts: {invalid: shape}\n",
@@ -102,7 +103,7 @@ fn missing_analysis_target_does_not_write_environment_ignores_or_version() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path();
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         "build:\n  scripts: [missing.py]\n  git: false\n",
     )
     .unwrap();

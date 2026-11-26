@@ -5,7 +5,7 @@ use std::os::unix::fs::{symlink, PermissionsExt};
 fn fixture(root: &Path, docs: &str, extension: &str) {
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
     fs::write(root.join(format!("report.{extension}")), "---\nformat: html\n---\nReport\n").unwrap();
-    fs::write(root.join("_proj.yml"), format!("directories:\n  cache:\n    path: _tmp\n  raw:\n    path: _raw_data\n  output:\n    path: _output\n  docs:\n    path: '{}'\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [report.{extension}]\n  git: false\n  restrictions:\n    not_behind: false\n", docs.replace('\'', "''"))).unwrap();
+    fs::write(root.join("_projr.yml"), format!("directories:\n  cache:\n    path: _tmp\n  raw:\n    path: _raw_data\n  output:\n    path: _output\n  docs:\n    path: '{}'\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [report.{extension}]\n  git: false\n  restrictions:\n    not_behind: false\n", docs.replace('\'', "''"))).unwrap();
     fs::create_dir(root.join("bin")).unwrap();
     let fake = r#"#!/usr/bin/env python3
 import os, sys
@@ -116,7 +116,7 @@ fn renderer_outputs_cannot_overwrite_other_selected_scripts_or_hooks() {
             let project = tempfile::tempdir().unwrap();
             let root = project.path().canonicalize().unwrap();
             fixture(&root, "published", extension);
-            let config_path = root.join("_proj.yml");
+            let config_path = root.join("_projr.yml");
             let mut config = fs::read_to_string(&config_path).unwrap();
             if selection == "script" {
                 config = config.replace(&format!("scripts: [report.{extension}]"), &format!("scripts: [report.{extension}, post.py]"));

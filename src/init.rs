@@ -152,9 +152,7 @@ pub fn init_directories() -> anyhow::Result<()> {
     let base = crate::yml::base_configuration_path(&project_root)?;
     let mut active_profile = false;
     for profile in crate::profile::get_active_profiles() {
-        active_profile |= crate::yml::configuration_entry_exists(
-            &project_root.join(format!("_projr-{profile}.yml")),
-        )?;
+        active_profile |= crate::profile::existing_config(&project_root, &profile)?.is_some();
     }
     let create_base = base.is_none() && !active_profile;
     let combined = crate::yml::get_combined_yml(None, &project_root)?;
@@ -183,10 +181,10 @@ pub fn init_directories() -> anyhow::Result<()> {
     if create_base {
         let mut file = tempfile::NamedTempFile::new_in(project_root.as_std_path())?;
         file.write_all(PRESET.as_bytes())?;
-        file.persist_noclobber(project_root.join("_proj.yml"))
+        file.persist_noclobber(project_root.join("_projr.yml"))
             .map_err(|error| error.error)
-            .context("Failed to create _proj.yml without overwriting existing configuration")?;
-        println!("Created _proj.yml with explicit directory paths.");
+            .context("Failed to create _projr.yml without overwriting existing configuration")?;
+        println!("Created _projr.yml with explicit directory paths.");
     }
     crate::ignore::update_ignores(&project_root, &config)
         .context("Failed to update project ignores during initialization")?;

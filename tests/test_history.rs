@@ -24,8 +24,9 @@ fn history(root: &Path, id: Option<&str>) -> Value {
     let result = command(root, &args);
     assert!(
         result.status.success(),
-        "{}",
-        String::from_utf8_lossy(&result.stderr)
+        "{}{}",
+        String::from_utf8_lossy(&result.stderr),
+        String::from_utf8_lossy(&result.stdout)
     );
     serde_json::from_slice::<Value>(&result.stdout).unwrap()["result"]["history"].clone()
 }
@@ -33,7 +34,7 @@ fn setup() -> (tempfile::TempDir, std::path::PathBuf) {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().canonicalize().unwrap();
     fs::write(root.join("VERSION"), b"v1.2.3-19\n").unwrap();
-    fs::write(root.join("_proj.yml"),"directories:\n  output: {path: released}\n  output-excluded: {path: excluded, hash: false}\nbuild:\n  scripts: []\n  git: false\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  output: {path: released}\n  output-excluded: {path: excluded, hash: false}\nbuild:\n  scripts: []\n  git: false\n").unwrap();
     fs::create_dir(root.join("released")).unwrap();
     fs::create_dir(root.join("excluded")).unwrap();
     fs::write(root.join("released/é,[x]&.csv"), b"abc").unwrap();
@@ -49,7 +50,7 @@ fn build(root: &Path) {
     );
 }
 fn record_path(root: &Path, id: &str) -> std::path::PathBuf {
-    root.join(format!(".proj/log/{id}.json"))
+    root.join(format!(".projr/attempts/{id}.json"))
 }
 #[test]
 fn history_lists_exact_final_rows_after_rename_delete_and_rebuild_without_git_or_config() {
@@ -100,9 +101,9 @@ fn history_lists_exact_final_rows_after_rename_delete_and_rebuild_without_git_or
         history(&root, Some(&latest))["entries"][0]["final_files"]["rows"][0]["fn"],
         ""
     );
-    fs::remove_file(root.join("_proj.yml")).unwrap();
+    fs::remove_file(root.join("_projr.yml")).unwrap();
     fs::remove_file(root.join("VERSION")).unwrap();
-    fs::remove_dir_all(root.join(".projr")).unwrap();
+    fs::remove_dir_all(root.join(".projr/manifests")).unwrap();
     assert_eq!(history(&root, Some(&first)), detail);
     let human = command(&root, &["history", "--attempt", &first]);
     assert!(human.status.success());
@@ -111,7 +112,7 @@ fn history_lists_exact_final_rows_after_rename_delete_and_rebuild_without_git_or
     assert!(human.contains("é") && human.contains("&#38;"));
     assert!(!human.contains("[x]"));
     assert_eq!(fs::read(record_path(&root, &first)).unwrap(), first_bytes);
-    assert!(!root.join(".proj/build.lock").exists());
+    assert!(!root.join(".projr/build.lock").exists());
 }
 #[test]
 fn corrupted_missing_linked_and_traversal_history_fails_without_writes() {
@@ -125,7 +126,7 @@ fn corrupted_missing_linked_and_traversal_history_fails_without_writes() {
     let bytes = fs::read(&path).unwrap();
     let record: Value = serde_json::from_slice(&bytes).unwrap();
     let csv = root
-        .join(".proj/log")
+        .join(".projr/attempts")
         .join(record["final_outputs"]["rows"]["file"].as_str().unwrap());
     let csv_bytes = fs::read(&csv).unwrap();
     for bad in ["../VERSION", "attempt-../../../../../../../../x"] {
@@ -182,7 +183,7 @@ fn corrupted_missing_linked_and_traversal_history_fails_without_writes() {
     }
     assert_eq!(fs::read(&path).unwrap(), bytes);
     assert_eq!(fs::read(&csv).unwrap(), csv_bytes);
-    assert!(!root.join(".proj/build.lock").exists());
+    assert!(!root.join(".projr/build.lock").exists());
 }
 #[test]
 fn old_fingerprints_only_reconstruct_matching_rows_and_pending_is_unresolved() {
@@ -242,7 +243,7 @@ fn history_limits_and_unknown_project_are_read_only() {
 fn failed_preflight_is_local_visible_and_secret_safe_without_a_false_release() {
     let (_temp, root) = setup();
     let version = fs::read(root.join("VERSION")).unwrap();
-    fs::write(root.join("_proj.yml"), b"broken: [PRIVATE-SECRET-URL").unwrap();
+    fs::write(root.join("_projr.yml"), b"broken: [PRIVATE-SECRET-URL").unwrap();
     let result = command(&root, &["--machine", "build"]);
     assert!(!result.status.success());
     let entries = history(&root, None)["entries"].as_array().unwrap().clone();
@@ -254,15 +255,15 @@ fn failed_preflight_is_local_visible_and_secret_safe_without_a_false_release() {
     assert_eq!(entry["release_version"], Value::Null);
     assert_eq!(entry["distribution_may_have_started"], false);
     let id = entry["attempt_id"].as_str().unwrap();
-    let path = root.join(format!(".proj/log/local-failures/{id}.json"));
+    let path = root.join(format!(".projr/logs/local-failures/{id}.json"));
     let bytes = fs::read(&path).unwrap();
     let text = String::from_utf8(bytes.clone()).unwrap();
     assert!(!text.contains("PRIVATE") && !text.contains(root.to_str().unwrap()));
     assert_eq!(history(&root, Some(id))["entries"][0], *entry);
     assert_eq!(fs::read(root.join("VERSION")).unwrap(), version);
-    assert!(!root.join(".proj/build.lock").exists());
+    assert!(!root.join(".projr/build.lock").exists());
     assert_eq!(
-        fs::read(root.join(".proj/log/local-failures/.gitignore")).unwrap(),
+        fs::read(root.join(".projr/logs/local-failures/.gitignore")).unwrap(),
         b"*\n"
     );
     // Diagnostics are evidence too: corrupt/linked records must fail closed without rewriting them.
@@ -278,7 +279,7 @@ fn failed_preflight_is_local_visible_and_secret_safe_without_a_false_release() {
         fs::write(&path, &bytes).unwrap();
     }
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         "directories:\n  output: {path: released}\nbuild:\n  scripts: []\n  git: false\n",
     )
     .unwrap();
@@ -302,7 +303,7 @@ fn failed_preflight_is_local_visible_and_secret_safe_without_a_false_release() {
 #[test]
 fn invalid_version_special_file_and_link_are_not_read_by_diagnostic_capture() {
     let (_temp, root) = setup();
-    fs::write(root.join("_proj.yml"), b"broken: [").unwrap();
+    fs::write(root.join("_projr.yml"), b"broken: [").unwrap();
     fs::remove_file(root.join("VERSION")).unwrap();
     fs::create_dir(root.join("VERSION")).unwrap();
     assert!(!command(&root, &["build"]).status.success());
@@ -313,7 +314,7 @@ fn invalid_version_special_file_and_link_are_not_read_by_diagnostic_capture() {
         assert!(!command(&root, &["build"]).status.success());
         fs::remove_file(root.join("VERSION")).unwrap();
     }
-    for entry in fs::read_dir(root.join(".proj/log/local-failures")).unwrap() {
+    for entry in fs::read_dir(root.join(".projr/logs/local-failures")).unwrap() {
         let path = entry.unwrap().path();
         if path.extension().is_some_and(|e| e == "json") {
             let record: Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
@@ -329,9 +330,9 @@ fn linked_diagnostics_directory_preserves_external_bytes_and_primary_failure() {
         let (_temp, root) = setup();
         let external = tempfile::tempdir().unwrap();
         fs::write(external.path().join("sentinel"), b"external").unwrap();
-        fs::create_dir_all(root.join(".proj/log")).unwrap();
-        std::os::unix::fs::symlink(external.path(), root.join(".proj/log/local-failures")).unwrap();
-        fs::write(root.join("_proj.yml"), b"broken: [").unwrap();
+        fs::create_dir_all(root.join(".projr/logs")).unwrap();
+        std::os::unix::fs::symlink(external.path(), root.join(".projr/logs/local-failures")).unwrap();
+        fs::write(root.join("_projr.yml"), b"broken: [").unwrap();
         let result = command(&root, &["build"]);
         assert!(!result.status.success());
         let error = String::from_utf8_lossy(&result.stderr);

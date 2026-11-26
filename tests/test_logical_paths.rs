@@ -47,7 +47,7 @@ fn safe_roles_preserve_exact_labels_first_cache_order_and_external_final_paths_w
         serde_json::to_string(&external.path().to_string_lossy()).unwrap(),
         serde_json::to_string(&external.path().to_string_lossy()).unwrap()
     );
-    fs::write(root.join("_proj.yml"), config).unwrap();
+    fs::write(root.join("_projr.yml"), config).unwrap();
     fs::write(root.join("VERSION"), "v1.2.3.4").unwrap();
     for label in ["output-model", "output-generated", "docs"] {
         let result = path(query(root, label, "safe", &["figures", "sentinel.png"]));
@@ -86,7 +86,7 @@ fn fragments_cannot_replace_or_escape_role_roots_and_missing_inputs_fail_without
     let project = tempfile::tempdir().unwrap();
     let root = project.path();
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         "directories:\n  cache:\n    path: cache\n  output:\n    path: final\n",
     )
     .unwrap();
@@ -105,7 +105,7 @@ fn fragments_cannot_replace_or_escape_role_roots_and_missing_inputs_fail_without
     assert!(!query(root, "output", "safe", &[]).status.success());
     assert!(query(root, "output", "final", &[]).status.success());
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         "directories:\n  output:\n    path: final\n",
     )
     .unwrap();
@@ -123,13 +123,13 @@ fn preview_and_release_queries_use_frozen_cache_mapping_and_active_version_with_
         fs::create_dir(root.join("released")).unwrap();
         fs::write(root.join("released/previous"), "old release bytes").unwrap();
         fs::write(root.join("VERSION"), "v1.2.3-4\n").unwrap();
-        fs::write(root.join("_proj.yml"),"directories:\n  cache:\n    path: unused-cache\n  cache-selected:\n    path: cache\n    safe: true\n  output:\n    path: released\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+        fs::write(root.join("_projr.yml"),"directories:\n  cache:\n    path: unused-cache\n  cache-selected:\n    path: cache\n    safe: true\n  output:\n    path: released\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
         let script = format!(
             r#"import json,os,subprocess
 from pathlib import Path
 root=Path(os.environ['PROJ_PROJECT_ROOT'])
 (root/'VERSION').write_text('v9.9.9')
-(root/'_proj.yml').write_text('invalid: changed config')
+(root/'_projr.yml').write_text('invalid: changed config')
 os.environ['PROJR_PROFILE']='changed-profile'
 os.chdir(root.parent)
 value=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label','output','--target','safe','figures','result.txt','--format','absolute'],text=True))
@@ -192,7 +192,7 @@ fn profile_and_local_updates_preserve_first_cache_position_and_only_append_new_k
         let project = tempfile::tempdir().unwrap();
         let root = project.path();
         fs::write(root.join("VERSION"), "v1.2.3-4").unwrap();
-        fs::write(root.join("_proj.yml"),"directories:\n  cache-z:\n    path: initial-first\n  cache-a:\n    path: second\n  output:\n    path: released\n").unwrap();
+        fs::write(root.join("_projr.yml"),"directories:\n  cache-z:\n    path: initial-first\n  cache-a:\n    path: second\n  output:\n    path: released\n").unwrap();
         fs::write(
             root.join("_projr-analysis.yml"),
             "directories:\n  cache-z:\n    path: profile-first\n  cache-new:\n    path: appended\n",
@@ -278,7 +278,7 @@ fn data_final_bytes_and_absence_are_restored_for_failures_and_all_preview_outcom
                     "directories:\n  cache:\n    path: cache\n  output-generated:\n    path: {}\nbuild:\n  scripts: [analysis.py]\n  hooks:\n    pre: [before.py]\n    post: [after.py]\n  clear_output: {clear}\n  git: false\n  restrictions:\n    not_behind: false\ndev:\n  hooks:\n    pre: [before.py]\n    post: [after.py]\n",
                     serde_json::to_string(&data.to_string_lossy()).unwrap()
                 );
-                fs::write(root.join("_proj.yml"), config).unwrap();
+                fs::write(root.join("_projr.yml"), config).unwrap();
                 for (file, stage) in [
                     ("before.py", "pre"),
                     ("analysis.py", "analysis"),
@@ -377,7 +377,7 @@ fn every_cache_class_is_protected_from_absent_recovery_parent_expansion() {
             let config = format!(
                 "directories:\n  cache-z:\n    path: state/cache\n{extra}  output:\n    path: released\nremotes:\n  local:\n    archive:\n      path: state/archive\n      structure: cas\n      inspect: manifest\n      content: [output]\ndev:\n  scripts: [analysis.py]\n"
             );
-            fs::write(root.join("_proj.yml"), config).unwrap();
+            fs::write(root.join("_projr.yml"), config).unwrap();
             let script = format!(
                 r#"import json,subprocess
 from pathlib import Path
@@ -435,7 +435,7 @@ fn safe_role_lookup_rejects_linked_version_leaves_without_touching_external_byte
     std::os::unix::fs::symlink(outside.path(), root.join("cache/projr/v1.2.3")).unwrap();
     fs::write(root.join("VERSION"), "v1.2.3").unwrap();
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         "directories:\n  cache:\n    path: cache\n  output:\n    path: released\n",
     )
     .unwrap();
@@ -458,12 +458,12 @@ fn trailing_dot_or_space_role_labels_are_rejected_without_restricting_unicode() 
     let cache = root.join("cache");
     fs::write(root.join("VERSION"), "v1.2.3").unwrap();
     for alias in ["output.", "output "] {
-        fs::write(root.join("_proj.yml"),format!("directories:\n  cache:\n    path: {}\n  output:\n    path: released\n  {}:\n    path: other-release\n",serde_json::to_string(&cache.to_string_lossy()).unwrap(),serde_json::to_string(alias).unwrap())).unwrap();
+        fs::write(root.join("_projr.yml"),format!("directories:\n  cache:\n    path: {}\n  output:\n    path: released\n  {}:\n    path: other-release\n",serde_json::to_string(&cache.to_string_lossy()).unwrap(),serde_json::to_string(alias).unwrap())).unwrap();
         assert!(!query(root, "output", "safe", &[]).status.success());
         assert!(!cache.exists());
     }
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         "directories:\n  cache:\n    path: cache\n  output-é:\n    path: released\n",
     )
     .unwrap();
@@ -480,7 +480,7 @@ fn implicit_project_sources_in_new_data_roles_fail_before_cleanup_and_renderer_l
         fs::write(outside.path().join("analysis.qmd"), "source sentinel").unwrap();
         fs::write(root.join("VERSION"), "v1.2.3").unwrap();
         fs::write(root.join("_quarto.yml"), "project: {type: default}\n").unwrap();
-        fs::write(root.join("_proj.yml"),format!("directories:\n  cache:\n    path: cache\n  docs:\n    path: published\n  {label}:\n    path: {}\nbuild:\n  git: false\n  clear_output: pre\n  restrictions:\n    not_behind: false\n",serde_json::to_string(&outside.path().canonicalize().unwrap().to_string_lossy()).unwrap())).unwrap();
+        fs::write(root.join("_projr.yml"),format!("directories:\n  cache:\n    path: cache\n  docs:\n    path: published\n  {label}:\n    path: {}\nbuild:\n  git: false\n  clear_output: pre\n  restrictions:\n    not_behind: false\n",serde_json::to_string(&outside.path().canonicalize().unwrap().to_string_lossy()).unwrap())).unwrap();
         let before = fs::read(root.join("VERSION")).unwrap();
         let output = Command::new(env!("CARGO_BIN_EXE_proj"))
             .args(["build", "--non-interactive", "--project"])
@@ -517,7 +517,7 @@ fn unicode_case_alias_roles_cannot_write_the_same_file_under_an_ordinary_absolut
         fs::create_dir(root.join(folder)).unwrap();
         fs::write(root.join(folder).join("result.txt"), folder).unwrap();
     }
-    fs::write(root.join("_proj.yml"),format!("directories:\n  cache:\n    path: {}\n  output-Ä:\n    path: released-upper\n  output-ä:\n    path: released-lower\ndev:\n  scripts: [analysis.py]\n",serde_json::to_string(ordinary).unwrap())).unwrap();
+    fs::write(root.join("_projr.yml"),format!("directories:\n  cache:\n    path: {}\n  output-Ä:\n    path: released-upper\n  output-ä:\n    path: released-lower\ndev:\n  scripts: [analysis.py]\n",serde_json::to_string(ordinary).unwrap())).unwrap();
     let script = format!(
         r#"import json,subprocess
 from pathlib import Path
@@ -560,7 +560,7 @@ fn safe_cache_selection_honors_explicit_choice_exact_cache_exclusion_and_merged_
         let project = tempfile::tempdir().unwrap();
         let root = project.path();
         fs::write(root.join("VERSION"), "v1.2.3-4").unwrap();
-        fs::write(root.join("_proj.yml"),format!("directories:\n  cache-z:\n    path: first\n  cache:\n    path: named\n{flags}  cache-selected:\n    path: selected\n  output:\n    path: released\n")).unwrap();
+        fs::write(root.join("_projr.yml"),format!("directories:\n  cache-z:\n    path: first\n  cache:\n    path: named\n{flags}  cache-selected:\n    path: selected\n  output:\n    path: released\n")).unwrap();
         assert_eq!(
             path(query(root, "output", "safe", &[])),
             root.canonicalize()
@@ -636,7 +636,7 @@ fn contradictory_or_non_boolean_safe_cache_settings_fail_before_analysis_and_mut
         let config = format!(
             "directories:\n{directories}build:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n"
         );
-        fs::write(root.join("_proj.yml"), &config).unwrap();
+        fs::write(root.join("_projr.yml"), &config).unwrap();
         fs::write(root.join("VERSION"), "v1.2.3-4\n").unwrap();
         fs::write(
             root.join("analysis.py"),
@@ -666,12 +666,12 @@ fn contradictory_or_non_boolean_safe_cache_settings_fail_before_analysis_and_mut
             fs::read_to_string(root.join("VERSION")).unwrap(),
             "v1.2.3-4\n"
         );
-        assert_eq!(fs::read_to_string(root.join("_proj.yml")).unwrap(), config);
+        assert_eq!(fs::read_to_string(root.join("_projr.yml")).unwrap(), config);
         assert_eq!(fs::read_dir(root).unwrap().count(), before.len());
     }
     let project = tempfile::tempdir().unwrap();
     let root = project.path();
-    fs::write(root.join("_proj.yml"),"directories:\n  raw: {path: source}\nbuild:\n  scripts: []\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  raw: {path: source}\nbuild:\n  scripts: []\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
     assert_eq!(
         path(query(root, "raw", "final", &[])),
         root.canonicalize().unwrap().join("source")
@@ -700,7 +700,7 @@ fn explicit_null_safe_markers_in_profile_or_local_cannot_inherit_a_base_boolean(
             let project = tempfile::tempdir().unwrap();
             let root = project.path();
             fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
-            fs::write(root.join("_proj.yml"),format!("directories:\n  cache:\n    path: named\n    safe: {selected}\n  cache-other:\n    path: other\n  output:\n    path: released\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n")).unwrap();
+            fs::write(root.join("_projr.yml"),format!("directories:\n  cache:\n    path: named\n    safe: {selected}\n  cache-other:\n    path: other\n  output:\n    path: released\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n")).unwrap();
             let layer = if local {
                 "_projr-local.yml"
             } else {

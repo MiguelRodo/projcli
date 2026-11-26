@@ -22,15 +22,15 @@ fn child_queries_use_captured_mapping_profile_and_active_version_after_cwd_and_f
         let other = physical_parent.join("other"); fs::create_dir(&other).unwrap();
         fs::write(other.join("VERSION"), "v9.9.9").unwrap();
         fs::write(root.join("VERSION"), "v1.2.3-4\n").unwrap();
-        let config = "directories:\n  cache:\n    path: cache\n  output:\n    path: released\nbuild:\n  profile: alpha\n  scripts: [wrong.py]\n  git: false\n  restrictions:\n    not_behind: false\n";
-        fs::write(root.join("_proj.yml"), config).unwrap();
-        fs::write(root.join("_projr-alpha.yml"), format!("directories:\n  raw-data:\n    path: {}\nbuild:\n  profile: ignored-redirect\n  scripts: [analysis.py]\n", serde_json::to_string(&external.to_string_lossy()).unwrap())).unwrap();
+        let config = "directories:\n  cache:\n    path: cache\n  output:\n    path: released\nprofile: alpha\nbuild:\n  scripts: [wrong.py]\n  git: false\n  restrictions:\n    not_behind: false\n";
+        fs::write(root.join("_projr.yml"), config).unwrap();
+        fs::write(root.join("_projr-alpha.yml"), format!("directories:\n  raw-data:\n    path: {}\nbuild:\n  scripts: [analysis.py]\n", serde_json::to_string(&external.to_string_lossy()).unwrap())).unwrap();
         let script = format!(r#"import json, os, subprocess
 from pathlib import Path
 root = Path(os.environ['PROJ_PROJECT_ROOT'])
 binary = {binary}
 other = Path({other})
-(root / '_proj.yml').write_text('directories: {{output: {{path: changed}}}}\n')
+(root / '_projr.yml').write_text('directories: {{output: {{path: changed}}}}\n')
 (root / 'VERSION').write_text('v8.8.8\n')
 os.chdir(other)
 def query(*args):
@@ -57,7 +57,7 @@ raise SystemExit({exit_code})
         assert!(!Path::new(seen["context"].as_str().unwrap()).exists(), "private context leaked after build");
         if mode == "build-dev" || failing {
             assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3-4\n");
-            assert_eq!(fs::read_to_string(root.join("_proj.yml")).unwrap(), config);
+            assert_eq!(fs::read_to_string(root.join("_projr.yml")).unwrap(), config);
         } else {
             let version = proj::version_get_from(camino::Utf8Path::from_path(&root).unwrap()).unwrap();
             assert_eq!(version.cache_key(), "v1.2.4-1");
@@ -83,12 +83,13 @@ fn profile_sources_have_one_priority_for_config_and_environment() {
     for (cli, projr, quarto, expected) in [
         (Some("alpha"), "beta", "beta", "alpha"),
         (None, "alpha", "beta", "alpha"),
-        (None, "", "beta", "beta"),
+        // QUARTO_PROFILE never selects projr profiles; the profile key applies.
+        (None, "", "beta", "alpha"),
         (None, "", "", "alpha"),
     ] {
         let project = tempfile::tempdir().unwrap(); let root = project.path();
         fs::create_dir(root.join("cache")).unwrap();
-        fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\nbuild:\n  profile: alpha\n  scripts: [wrong.py]\n").unwrap();
+        fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: cache\nprofile: alpha\nbuild:\n  scripts: [wrong.py]\n").unwrap();
         for profile in ["alpha","beta"] {
             fs::write(root.join(format!("_projr-{profile}.yml")), "dev:\n  scripts: [analysis.py]\n").unwrap();
             fs::write(root.join(format!("_environment-{profile}")), format!("PROJCLI_SELECTED_VALUE={profile}\n")).unwrap();
@@ -114,7 +115,7 @@ fn concurrent_library_contexts_keep_child_queries_and_parent_environment_separat
     for name in ["alpha", "beta"] {
         let root = parent.path().join(name); fs::create_dir(&root).unwrap();
         fs::create_dir(root.join("cache")).unwrap(); fs::create_dir(root.join("raw")).unwrap();
-        fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\n  raw-data:\n    path: raw\ndev:\n  scripts: [analysis.py]\n").unwrap();
+        fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: cache\n  raw-data:\n    path: raw\ndev:\n  scripts: [analysis.py]\n").unwrap();
         let script = format!(r#"import json,os,subprocess,time
 from pathlib import Path
 root = Path(os.environ['PROJ_PROJECT_ROOT'])

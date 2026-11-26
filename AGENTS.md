@@ -60,7 +60,7 @@ The existing R package remains outside this effort's edit scope.
   - `README.md` – Project introduction and links.
   - `docs/behavior.qmd` – Confirmed behavior, proposals and implementation gaps.
   - `docs/flow.qmd` – Current implementation notes; do not treat historical flow as normative.
-  - `docs/configuration.qmd` – Validation specifications for `_proj.yml` (prefixes, fallback rules, errors).
+  - `docs/configuration.qmd` – Validation specifications for `_projr.yml` and its `.projr/config/` layout (prefixes, profiles, fallback rules, errors).
   - `docs/cli/` – Command usage manuals:
     - `docs/cli/version.qmd` – Reference documentation for `proj version get` options and JSON schemas.
     - `docs/cli/yml.qmd` – Reference documentation for evaluating configuration properties.
@@ -415,10 +415,10 @@ after successful analysis. A failed commit can leave the new local release stage
 in Git's index while HEAD/upstream stay unchanged; never assert an invented index
 rollback, successful publication or new sealing policy from that condition.
 
-Build ownership uses one cooperative .proj/build.lock claim for the entire
+Build ownership uses one cooperative .projr/build.lock claim for the entire
 build/preview function, before input capture and through recovery/finalization.
 Never steal an existing claim or treat its timestamp as proof its owner died.
-Protect .proj from managed cleanup/publication destinations. The live claim is
+Protect .projr from managed cleanup/publication destinations. The live claim is
 excluded from Git staging/status by an exact reserved-name pathspec at every repository depth without
 narrowing the existing whole-repository scope; successful/distributed-failure logs must not be hidden.
 The ownership guard is separate from publication-attempt evidence below;
@@ -433,7 +433,7 @@ end-hook lifecycle remain unchanged; hook-mutation enforcement is deferred.
 
 
 Publication-enabled production builds retain allowlisted JSON evidence in
-.proj/log. Keep the pre-Git snapshot immutable once sealed; write the final Git
+.projr/attempts. Keep the pre-Git snapshot immutable once sealed; write the final Git
 and finalization outcome to a new receipt for the next ordinary commit. Never
 create recursive bookkeeping commits or infer remote rollback from a failed
 request. Mark possible activity durably before provider/Git entry. Preserve
@@ -500,7 +500,7 @@ against actual M2 criteria; do not add full environment/transitive freezing gate
 
 ## Local pre-distribution failure diagnostics
 Production failures after acquiring writer ownership now retain a bounded,
-allowlisted diagnostic under .proj/log/local-failures/ after ordinary recovery.
+allowlisted diagnostic under .projr/logs/local-failures/ after ordinary recovery.
 The directory's own exact '*' ignore policy and framework Git pathspecs exclude
 only these local diagnostics, including at nested project depths. Reject
 force-tracked claims or diagnostics rather than hiding tracked changes.
@@ -843,3 +843,19 @@ source-only discovery and zero-depth **/ semantics. Generate source ignore rules
 from frozen selected native output plans, not blanket HTML/assets or final docs.
 Multiple destinations/name matching remain deferred in issues#773. Verify actual
 grouped rendering and Quarto projects remotely before claiming compatibility.
+
+
+## projr 0.9 configuration layout (26 November 2026)
+
+`_projr.yml` is the only base name (no `_proj.yml` alias). Read each layer from the
+root, else `.projr/config/`, else `_projr/config/`, accepting `default.yml`,
+`<profile>.yml` and `local.yml` there; both spellings in one directory fail as in
+projr. Profiles: `--profile`, then `PROJR_PROFILE`, then the `profile` key of the
+local and then base file; never of a named profile file. QUARTO_PROFILE does not
+select projr profiles. Builds write projr's starter `_projr.yml` when no base exists.
+Framework state lives in projr's `.projr/`: `build.lock`, tracked attempt records in
+`.projr/attempts/`, local-only diagnostics in `.projr/logs/local-failures/` (projr
+Git-ignores `.projr/logs/`) and CAS/Xet references in `.projr/remotes/`. Never write
+inside projr-owned `.projr/manifests`, `.projr/config`, `.projr/source` or
+`.projr/BUILDLOG.md` except through their own codecs. `settings.hashing`,
+`build.cite`, `build.package` and `git.add-untracked` are validated but not acting.

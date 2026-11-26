@@ -23,8 +23,8 @@ impl Attempt {
 
     /// Claims the writer exclusively; existing claims fail closed without mutation.
     pub(crate) fn acquire(root: &camino::Utf8Path) -> anyhow::Result<Self> {
-        crate::path_safety::validate_native_names(root, ".proj/build.lock", false)?;
-        let directory = root.join(".proj").into_std_path_buf();
+        crate::path_safety::validate_native_names(root, ".projr/build.lock", false)?;
+        let directory = root.join(".projr").into_std_path_buf();
         crate::path_safety::resolve_path(&directory, true)?;
         let created_directory = match fs::create_dir(&directory) {
             Ok(()) => true,
@@ -35,7 +35,7 @@ impl Attempt {
             Err(error) => return Err(error).context("Cannot create build coordination directory"),
         };
         let result = (|| {
-            crate::path_safety::validate_native_names(root, ".proj/build.lock", false)?;
+            crate::path_safety::validate_native_names(root, ".projr/build.lock", false)?;
             let claim = directory.join("build.lock");
             crate::path_safety::resolve_path(&claim, true)?;
             let mut file = fs::OpenOptions::new().write(true).create_new(true).open(&claim)

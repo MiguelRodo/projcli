@@ -140,7 +140,7 @@ pub(crate) fn project_metadata(root:&Utf8Path,provider:&str,title:&str)->Result<
     let title=icu_normalizer::ComposingNormalizer::new_nfc().normalize(&title.to_uppercase()).into_owned();
     let mut hash=blake3::Hasher::new_derive_key("projcli.ordinary-remote-name.v1");
     hash.update(&serde_json::to_vec(&(provider,title))?);let key=hash.finalize().to_hex().to_string();
-    Ok(root.join(".proj/remotes").join(&key[..2]).join(&key[2..]))
+    Ok(root.join(".projr/remotes").join(&key[..2]).join(&key[2..]))
 }
 
 #[cfg(test)]

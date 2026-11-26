@@ -90,7 +90,7 @@ compatibility. [Compare the supported behavior](compatibility.qmd).
 
 ## A small first project
 
-Put the analysis steps in `_proj.yml`:
+Put the analysis steps in `_projr.yml`:
 
 ```yaml
 directories:

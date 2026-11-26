@@ -53,7 +53,7 @@ fn setup(strategy: &str, cue: &str, content: &str) -> (tempfile::TempDir, std::p
     fs::write(root.join("results/changed"), "new").unwrap();
     fs::write(root.join("results/new"), "new").unwrap();
     fs::write(root.join("input/input.csv"), "abc").unwrap();
-    fs::write(root.join("_proj.yml"),format!("directories:\n  raw: {{path: input}}\n  output: {{path: results}}\nbuild:\n  scripts: []\n  git: false\n  local:\n    delivery:\n      path: remote\n      structure: latest\n      content: {content}\n      send:\n        inspect: file\n        strategy: {strategy}\n        cue: {cue}\n")).unwrap();
+    fs::write(root.join("_projr.yml"),format!("directories:\n  raw: {{path: input}}\n  output: {{path: results}}\nbuild:\n  scripts: []\n  git: false\n  local:\n    delivery:\n      path: remote\n      structure: latest\n      content: {content}\n      send:\n        inspect: file\n        strategy: {strategy}\n        cue: {cue}\n")).unwrap();
     (temporary, root)
 }
 /// Recursive relative-path bytes, for manifest store directories.
@@ -235,9 +235,9 @@ fn unchanged_sync_diff_cue_controls_label_version_while_project_and_history_adva
 fn content_true_false_null_and_explicit_list_select_only_the_declared_targets() {
     for content in ["true", "false", "null", "[raw]"] {
         let (_temporary, root) = setup("sync-diff", "if-change", content);
-        let config = fs::read_to_string(root.join("_proj.yml")).unwrap();
+        let config = fs::read_to_string(root.join("_projr.yml")).unwrap();
         fs::write(
-            root.join("_proj.yml"),
+            root.join("_projr.yml"),
             config.replace(
                 "directories:\n",
                 "directories:\n  cache: {path: cache, hash: true}\n",
@@ -298,9 +298,9 @@ fn preview_and_output_disabled_do_not_publish() {
     for mode in ["build-dev", "disabled"] {
         let (_temporary, root) = setup("sync-diff", "always", "true");
         if mode == "disabled" {
-            let config = fs::read_to_string(root.join("_proj.yml")).unwrap();
+            let config = fs::read_to_string(root.join("_projr.yml")).unwrap();
             fs::write(
-                root.join("_proj.yml"),
+                root.join("_projr.yml"),
                 config.replace("build:\n", "build:\n  output_run: false\n"),
             )
             .unwrap();
@@ -332,7 +332,7 @@ fn collisions_and_unsupported_inspection_fail_before_hooks_or_any_remote_write()
             "from pathlib import Path\nPath('hook-ran').write_text('bad')\n",
         )
         .unwrap();
-        let mut config = fs::read_to_string(root.join("_proj.yml"))
+        let mut config = fs::read_to_string(root.join("_projr.yml"))
             .unwrap()
             .replace("build:\n", "build:\n  hooks: {pre: [start.py]}\n");
         config = match edit {
@@ -354,7 +354,7 @@ fn collisions_and_unsupported_inspection_fail_before_hooks_or_any_remote_write()
                 "inspect: file\n        conflict: overwrite",
             ),
         };
-        fs::write(root.join("_proj.yml"), config).unwrap();
+        fs::write(root.join("_projr.yml"), config).unwrap();
         let before = fs::read(root.join("VERSION")).unwrap();
         let output = invoke(&root, "build");
         assert!(!output.status.success(), "{edit}");
@@ -413,9 +413,9 @@ fn equal_bytes_missing_label_or_untrusted_metadata_are_repaired_after_file_inspe
 #[test]
 fn planned_case_alias_destinations_fail_before_creating_either_namespace() {
     let (_temporary, root) = setup("sync-diff", "always", "[output]");
-    let config = fs::read_to_string(root.join("_proj.yml")).unwrap();
+    let config = fs::read_to_string(root.join("_projr.yml")).unwrap();
     let second = "\n    second:\n      path: REMOTE\n      structure: latest\n      content: [raw]\n      send: {inspect: file}\n";
-    fs::write(root.join("_proj.yml"), format!("{config}{second}")).unwrap();
+    fs::write(root.join("_projr.yml"), format!("{config}{second}")).unwrap();
     let output = invoke(&root, "build");
     assert!(!output.status.success());
     assert!(!root.join("remote").exists());
@@ -456,8 +456,8 @@ fn new_destinations_retain_selected_source_root_and_nested_directory_privacy() {
 #[test]
 fn all_destination_history_is_validated_before_first_destination_changes() {
     let (_temporary, root) = setup("sync-diff", "always", "[output]");
-    let config = fs::read_to_string(root.join("_proj.yml")).unwrap();
-    fs::write(root.join("_proj.yml"),format!("{config}\n    second:\n      path: broken-remote\n      structure: latest\n      content: [raw]\n      send: {{inspect: file}}\n")).unwrap();
+    let config = fs::read_to_string(root.join("_projr.yml")).unwrap();
+    fs::write(root.join("_projr.yml"),format!("{config}\n    second:\n      path: broken-remote\n      structure: latest\n      content: [raw]\n      send: {{inspect: file}}\n")).unwrap();
     fs::create_dir(root.join("broken-remote")).unwrap();
     fs::write(root.join("broken-remote/manifest.csv"), "bad").unwrap();
     let output = invoke(&root, "build");
@@ -474,7 +474,7 @@ fn planned_unicode_normalization_aliases_fail_before_hooks_or_namespace_creation
     let (_temporary, root) = setup("sync-diff", "always", "[output]");
     let composed = "remote-\u{e9}";
     let decomposed = "remote-e\u{301}";
-    let config = fs::read_to_string(root.join("_proj.yml"))
+    let config = fs::read_to_string(root.join("_projr.yml"))
         .unwrap()
         .replace("path: remote", &format!("path: {composed}"))
         .replace("build:\n", "build:\n  hooks: {pre: [start.py]}\n");
@@ -483,7 +483,7 @@ fn planned_unicode_normalization_aliases_fail_before_hooks_or_namespace_creation
         "from pathlib import Path\nPath('hook-ran').write_text('bad')\n",
     )
     .unwrap();
-    fs::write(root.join("_proj.yml"),format!("{config}\n    second:\n      path: {decomposed}\n      structure: latest\n      content: [raw]\n      send: {{inspect: file}}\n")).unwrap();
+    fs::write(root.join("_projr.yml"),format!("{config}\n    second:\n      path: {decomposed}\n      structure: latest\n      content: [raw]\n      send: {{inspect: file}}\n")).unwrap();
     let output = invoke(&root, "build");
     assert!(!output.status.success());
     assert!(!root.join("hook-ran").exists());
@@ -498,8 +498,8 @@ fn planned_unicode_normalization_aliases_fail_before_hooks_or_namespace_creation
 #[test]
 fn later_preparation_failure_cleans_readonly_snapshots_on_every_platform() {
     let (_temporary, root) = setup("sync-diff", "always", "[output]");
-    let config = fs::read_to_string(root.join("_proj.yml")).unwrap();
-    fs::write(root.join("_proj.yml"),format!("{config}\n    second:\n      path: broken-remote\n      structure: latest\n      content: [raw]\n      send: {{inspect: file}}\n")).unwrap();
+    let config = fs::read_to_string(root.join("_projr.yml")).unwrap();
+    fs::write(root.join("_projr.yml"),format!("{config}\n    second:\n      path: broken-remote\n      structure: latest\n      content: [raw]\n      send: {{inspect: file}}\n")).unwrap();
     fs::create_dir(root.join("broken-remote")).unwrap();
     fs::write(root.join("broken-remote/manifest.csv"), "bad").unwrap();
     let source = root.join("results/same");
@@ -548,11 +548,11 @@ fn later_preparation_failure_cleans_readonly_snapshots_on_every_platform() {
 fn legacy_data_remote_namespaces_fail_before_hooks_and_preserve_history() {
     for state in ["directory", "empty", "advertisement", "combined"] {
         let (_temporary, root) = setup("sync-diff", "always", "[output-r-data]");
-        let config = fs::read_to_string(root.join("_proj.yml"))
+        let config = fs::read_to_string(root.join("_projr.yml"))
             .unwrap()
             .replace("directories:\n", "directories:\n  output-r-data: {}\n")
             .replace("build:\n", "build:\n  hooks: {pre: [start.py]}\n");
-        fs::write(root.join("_proj.yml"), config).unwrap();
+        fs::write(root.join("_projr.yml"), config).unwrap();
         fs::write(
             root.join("start.py"),
             "from pathlib import Path\nPath('hook-ran').write_text('bad')\n",
@@ -600,12 +600,12 @@ fn legacy_data_remote_namespaces_fail_before_hooks_and_preserve_history() {
 #[test]
 fn late_legacy_advertisement_aborts_all_targets_before_publication() {
     let (_temporary, root) = setup("sync-diff", "always", "[output]");
-    let config = fs::read_to_string(root.join("_proj.yml"))
+    let config = fs::read_to_string(root.join("_projr.yml"))
         .unwrap()
         .replace("directories:\n", "directories:\n  output-r-data: {}\n")
         .replace("build:\n", "build:\n  hooks: {pre: [start.py]}\n")
         + "    later:\n      path: later-remote\n      structure: latest\n      content: [output-r-data]\n      send: {inspect: file}\n";
-    fs::write(root.join("_proj.yml"), config).unwrap();
+    fs::write(root.join("_projr.yml"), config).unwrap();
     fs::write(root.join("start.py"),"from pathlib import Path\np=Path('later-remote')\np.mkdir()\n(p/'VERSION').write_bytes(b'Project: v0.1.0\\ndata: v0.1.0\\n')\n").unwrap();
     let output = invoke(&root, "build");
     assert!(!output.status.success());
@@ -652,13 +652,13 @@ fn no_inspection_all_strategies_and_cues_preserve_source_planning_semantics() {
                 cue,
                 "[output]",
             );
-            let mut config = fs::read_to_string(root.join("_proj.yml"))
+            let mut config = fs::read_to_string(root.join("_projr.yml"))
                 .unwrap()
                 .replace("inspect: file", "inspect: none");
             if strategy == "default" {
                 config = config.replace("        strategy: upload-all\n", "");
             }
-            fs::write(root.join("_proj.yml"), config).unwrap();
+            fs::write(root.join("_projr.yml"), config).unwrap();
             fs::create_dir_all(root.join("remote/output")).unwrap();
             fs::write(root.join("remote/output/changed"), "old").unwrap();
             fs::write(
@@ -703,10 +703,10 @@ fn no_inspection_empty_source_retains_unknown_extras_even_for_purge() {
     for strategy in ["upload-all", "upload-missing", "sync-diff", "sync-purge"] {
         for existing in [false, true] {
             let (_temporary, root) = setup(strategy, "if-change", "[output]");
-            let config = fs::read_to_string(root.join("_proj.yml"))
+            let config = fs::read_to_string(root.join("_projr.yml"))
                 .unwrap()
                 .replace("inspect: file", "inspect: none");
-            fs::write(root.join("_proj.yml"), config).unwrap();
+            fs::write(root.join("_projr.yml"), config).unwrap();
             for name in ["same", "changed", "new"] {
                 fs::remove_file(root.join("results").join(name)).unwrap();
             }
@@ -751,13 +751,13 @@ fn no_inspection_empty_source_retains_unknown_extras_even_for_purge() {
 fn manifest_default_trusts_matching_history_and_preserves_unselected_actual_bytes() {
     for explicit in [false, true] {
         let (_temporary, root) = setup("sync-diff", "if-change", "[output]");
-        let mut config = fs::read_to_string(root.join("_proj.yml")).unwrap();
+        let mut config = fs::read_to_string(root.join("_projr.yml")).unwrap();
         config = if explicit {
             config.replace("inspect: file", "inspect: manifest")
         } else {
             config.replace("        inspect: file\n", "")
         };
-        fs::write(root.join("_proj.yml"), config).unwrap();
+        fs::write(root.join("_projr.yml"), config).unwrap();
         success(invoke(&root, "build"));
         // History agrees, so a same-record file is intentionally not rehashed
         // for the decision even if actual bytes have independently drifted.
@@ -796,10 +796,10 @@ fn manifest_untrusted_missing_or_mismatched_history_falls_back_to_physical_bytes
         "duplicate",
     ] {
         let (_temporary, root) = setup("sync-diff", "if-change", "[output]");
-        let config = fs::read_to_string(root.join("_proj.yml"))
+        let config = fs::read_to_string(root.join("_projr.yml"))
             .unwrap()
             .replace("inspect: file", "inspect: manifest");
-        fs::write(root.join("_proj.yml"), config).unwrap();
+        fs::write(root.join("_projr.yml"), config).unwrap();
         success(invoke(&root, "build"));
         fs::write(root.join("remote/output/same"), "remote drift").unwrap();
         match state {
@@ -857,10 +857,10 @@ fn trusted_manifest_all_strategies_and_cues_apply_only_their_selected_actions() 
     for strategy in ["upload-all", "upload-missing", "sync-diff", "sync-purge"] {
         for cue in ["always", "if-change"] {
             let (_temporary, root) = setup(strategy, cue, "[output]");
-            let config = fs::read_to_string(root.join("_proj.yml"))
+            let config = fs::read_to_string(root.join("_projr.yml"))
                 .unwrap()
                 .replace("inspect: file", "inspect: manifest");
-            fs::write(root.join("_proj.yml"), config).unwrap();
+            fs::write(root.join("_projr.yml"), config).unwrap();
             success(invoke(&root, "build"));
             fs::write(root.join("remote/output/same"), "drift").unwrap();
             fs::write(root.join("remote/output/unknown"), "unrecorded").unwrap();
@@ -917,10 +917,10 @@ fn trusted_manifest_all_strategies_and_cues_apply_only_their_selected_actions() 
 #[test]
 fn trusted_manifest_unknown_shape_conflict_preserves_remote_and_local_release() {
     let (_temporary, root) = setup("sync-diff", "if-change", "[output]");
-    let config = fs::read_to_string(root.join("_proj.yml"))
+    let config = fs::read_to_string(root.join("_projr.yml"))
         .unwrap()
         .replace("inspect: file", "inspect: manifest");
-    fs::write(root.join("_proj.yml"), config).unwrap();
+    fs::write(root.join("_projr.yml"), config).unwrap();
     success(invoke(&root, "build"));
     fs::create_dir(root.join("remote/output/folder")).unwrap();
     fs::write(root.join("remote/output/folder/nested"), "unknown remote").unwrap();
@@ -956,11 +956,11 @@ fn archive_all_inspections_strategies_and_cues_preserve_snapshots_and_restore() 
         for strategy in ["upload-all", "upload-missing", "sync-diff", "sync-purge"] {
             for cue in ["always", "if-change"] {
                 let (_temporary, root) = setup(strategy, cue, "[output]");
-                let config = fs::read_to_string(root.join("_proj.yml"))
+                let config = fs::read_to_string(root.join("_projr.yml"))
                     .unwrap()
                     .replace("structure: latest", "structure: archive")
                     .replace("inspect: file", &format!("inspect: {inspection}"));
-                fs::write(root.join("_proj.yml"), config).unwrap();
+                fs::write(root.join("_projr.yml"), config).unwrap();
                 success(invoke(&root, "build"));
                 let original = files(&root.join("remote/output/v1.2.4"));
                 assert_eq!(original, files(&root.join("results")));
@@ -990,11 +990,11 @@ fn archive_all_inspections_strategies_and_cues_preserve_snapshots_and_restore() 
 #[test]
 fn default_archive_layout_records_empty_and_nonempty_versions_without_erasing_history() {
     let (_temporary, root) = setup("sync-diff", "if-change", "[output]");
-    let config = fs::read_to_string(root.join("_proj.yml"))
+    let config = fs::read_to_string(root.join("_projr.yml"))
         .unwrap()
         .replace("      structure: latest\n", "")
         .replace("        inspect: file\n", "");
-    fs::write(root.join("_proj.yml"), config).unwrap();
+    fs::write(root.join("_projr.yml"), config).unwrap();
     for name in ["same", "changed", "new"] {
         fs::remove_file(root.join("results").join(name)).unwrap();
     }
@@ -1014,10 +1014,10 @@ fn default_archive_layout_records_empty_and_nonempty_versions_without_erasing_hi
 #[test]
 fn changed_then_reverted_archive_history_requires_a_new_complete_snapshot() {
     let (_temporary, root) = setup("sync-diff", "if-change", "[output]");
-    let config = fs::read_to_string(root.join("_proj.yml"))
+    let config = fs::read_to_string(root.join("_projr.yml"))
         .unwrap()
         .replace("structure: latest", "structure: archive");
-    fs::write(root.join("_proj.yml"), config).unwrap();
+    fs::write(root.join("_projr.yml"), config).unwrap();
     success(invoke(&root, "build"));
     let original = files(&root.join("remote/output/v1.2.4"));
     fs::write(root.join("results/changed"), "intermediate").unwrap();
@@ -1034,10 +1034,10 @@ fn changed_then_reverted_archive_history_requires_a_new_complete_snapshot() {
 fn archive_untrusted_or_drifted_old_comparison_never_produces_a_partial_snapshot() {
     for state in ["star", "drift", "mismatch", "future"] {
         let (_temporary, root) = setup("sync-diff", "if-change", "[output]");
-        let config = fs::read_to_string(root.join("_proj.yml"))
+        let config = fs::read_to_string(root.join("_projr.yml"))
             .unwrap()
             .replace("structure: latest", "structure: archive");
-        fs::write(root.join("_proj.yml"), config).unwrap();
+        fs::write(root.join("_projr.yml"), config).unwrap();
         success(invoke(&root, "build"));
         match state {
             "star" => fs::write(
@@ -1081,11 +1081,11 @@ fn archive_untrusted_or_drifted_old_comparison_never_produces_a_partial_snapshot
 fn historical_empty_archive_comparison_must_be_empty_even_when_manifest_agrees() {
     for inspection in ["file", "manifest"] {
         let (_temporary, root) = setup("sync-diff", "if-change", "[output]");
-        let config = fs::read_to_string(root.join("_proj.yml"))
+        let config = fs::read_to_string(root.join("_projr.yml"))
             .unwrap()
             .replace("structure: latest", "structure: archive")
             .replace("inspect: file", &format!("inspect: {inspection}"));
-        fs::write(root.join("_proj.yml"), config).unwrap();
+        fs::write(root.join("_projr.yml"), config).unwrap();
         for name in ["same", "changed", "new"] {
             fs::remove_file(root.join("results").join(name)).unwrap();
         }
@@ -1135,7 +1135,7 @@ fn standalone_publication_logs_versions_and_outcomes_without_git_or_environment_
         .output()
         .unwrap();
     success(output);
-    let logs: Vec<_> = fs::read_dir(root.join(".proj/log"))
+    let logs: Vec<_> = fs::read_dir(root.join(".projr/attempts"))
         .unwrap()
         .map(|entry| entry.unwrap().path())
         .collect();
@@ -1166,19 +1166,19 @@ fn standalone_publication_logs_versions_and_outcomes_without_git_or_environment_
     assert_eq!(record["operations"][0]["provider"], "ordinary_local");
     assert_eq!(record["operations"][0]["status"], "completed");
     assert_eq!(record["distribution_may_have_started"], true);
-    assert!(!root.join(".proj/build.lock").exists());
+    assert!(!root.join(".projr/build.lock").exists());
 }
 
 #[cfg(unix)]
 #[test]
 fn final_record_replacement_preserves_an_existing_hardlinked_alias() {
     let (_temporary, root) = setup("sync-diff", "always", "[output]");
-    let mut config = fs::read_to_string(root.join("_proj.yml")).unwrap();
+    let mut config = fs::read_to_string(root.join("_projr.yml")).unwrap();
     config.push_str("  hooks:\n    post: [hook.py]\n");
-    fs::write(root.join("_proj.yml"), config).unwrap();
-    fs::write(root.join("hook.py"),"from pathlib import Path\nimport os\nrecord=next(Path('.proj/log').glob('*.json'))\nPath('saved-log-bytes').write_bytes(record.read_bytes())\nos.link(record, 'log-hardlink.json')\n").unwrap();
+    fs::write(root.join("_projr.yml"), config).unwrap();
+    fs::write(root.join("hook.py"),"from pathlib import Path\nimport os\nrecord=next(Path('.projr/attempts').glob('*.json'))\nPath('saved-log-bytes').write_bytes(record.read_bytes())\nos.link(record, 'log-hardlink.json')\n").unwrap();
     success(invoke(&root, "build"));
-    let record = fs::read_dir(root.join(".proj/log"))
+    let record = fs::read_dir(root.join(".projr/attempts"))
         .unwrap()
         .map(|entry| entry.unwrap().path())
         .find(|path| path.extension().is_some_and(|value| value == "json"))

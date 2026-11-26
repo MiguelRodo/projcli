@@ -90,7 +90,7 @@ fn setup(placement: &str) -> (tempfile::TempDir, PathBuf, Value) {
 }
 fn save(root: &Path, config: &Value) {
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         serde_json::to_vec_pretty(config).unwrap(),
     )
     .unwrap();
@@ -99,7 +99,7 @@ fn metadata(root: &Path) -> PathBuf {
     let mut hash = blake3::Hasher::new_derive_key("projcli.remote-name.v1");
     hash.update(b"SNAPSHOTS");
     let id = hash.finalize().to_hex().to_string();
-    root.join(".proj/remotes").join(&id[..2]).join(&id[2..])
+    root.join(".projr/remotes").join(&id[..2]).join(&id[2..])
 }
 fn ids(base: &Path, namespace: &str) -> Vec<String> {
     files(&base.join(namespace))
@@ -208,7 +208,7 @@ fn selected_subset_and_disabled_content_do_not_publish_other_labels() {
         save(&root, &config);
         success(command(&root).arg("build").output().unwrap());
         assert!(!root.parent().unwrap().join("store").exists());
-        assert!(!root.join(".proj/remotes").exists());
+        assert!(!root.join(".projr/remotes").exists());
     }
 }
 #[test]
@@ -229,7 +229,7 @@ fn corrupt_existing_blob_is_preserved_and_failure_retains_the_release_without_a_
         fs::read_to_string(root.join("VERSION")).unwrap().trim(),
         "Version: v1.2.4"
     );
-    let logs = files(&root.join(".proj/log"));
+    let logs = files(&root.join(".projr/attempts"));
     assert!(logs.values().any(|bytes| {
         serde_json::from_slice::<Value>(bytes)
             .ok()
@@ -242,14 +242,14 @@ fn preview_restores_selected_store_and_project_metadata_bytes_without_publicatio
     let store = root.parent().unwrap().join("store");
     success(command(&root).arg("build").output().unwrap());
     config["dev"]["hooks"] = json!({"pre":["pre.py"]});
-    fs::write(root.join("pre.py"),b"from pathlib import Path\nPath(\x27../store/preview-only\x27).write_text(\x27temporary\x27)\nPath(\x27.proj/remotes/preview-only\x27).write_text(\x27temporary\x27)\n").unwrap();
+    fs::write(root.join("pre.py"),b"from pathlib import Path\nPath(\x27../store/preview-only\x27).write_text(\x27temporary\x27)\nPath(\x27.projr/remotes/preview-only\x27).write_text(\x27temporary\x27)\n").unwrap();
     save(&root, &config);
     let before_store = files(&store);
-    let before_meta = files(&root.join(".proj/remotes"));
+    let before_meta = files(&root.join(".projr/remotes"));
     let version = fs::read(root.join("VERSION")).unwrap();
     success(command(&root).arg("build-dev").output().unwrap());
     assert_eq!(files(&store), before_store);
-    assert_eq!(files(&root.join(".proj/remotes")), before_meta);
+    assert_eq!(files(&root.join(".projr/remotes")), before_meta);
     assert_eq!(fs::read(root.join("VERSION")).unwrap(), version);
 }
 
@@ -338,7 +338,7 @@ fn legacy_name_list_and_mapping_subset_preserve_existing_flat_ids_and_label_spel
     let value: Value = serde_json::from_slice(added[0].1).unwrap();
     assert_eq!(value["label"], "RAW");
     assert!(!store.join("trees").exists());
-    assert!(!root.join(".proj/remotes").exists());
+    assert!(!root.join(".projr/remotes").exists());
 }
 #[test]
 fn unsupported_or_overlapping_targets_fail_before_hooks_and_preserve_exact_version() {
@@ -369,7 +369,7 @@ fn unsupported_or_overlapping_targets_fail_before_hooks_and_preserve_exact_versi
         assert_eq!(fs::read(root.join("VERSION")).unwrap(), before);
         assert!(!root.join("unexpected-hook").exists());
         assert!(!root.parent().unwrap().join("store").exists());
-        assert!(!root.join(".proj/remotes").exists());
+        assert!(!root.join(".projr/remotes").exists());
     }
 }
 
@@ -423,8 +423,8 @@ fn late_special_source_fails_before_cas_entry_and_restores_exact_development_ver
     assert_eq!(fs::read(root.join("VERSION")).unwrap(), previous_version);
     assert_eq!(files(&root.join("results")), previous_outputs);
     assert!(!root.parent().unwrap().join("store").exists());
-    assert!(!root.join(".proj/remotes").exists());
-    let diagnostics = files(&root.join(".proj/log/local-failures"));
+    assert!(!root.join(".projr/remotes").exists());
+    let diagnostics = files(&root.join(".projr/logs/local-failures"));
     let rows: Vec<Value> = diagnostics
         .values()
         .filter_map(|bytes| serde_json::from_slice(bytes).ok())

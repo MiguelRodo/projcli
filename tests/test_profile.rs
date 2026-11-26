@@ -81,8 +81,8 @@ fn test_cascading_merge() {
     let root = tempdir().unwrap();
     let base_dir = root.path();
 
-    // 1. Base _proj.yml
-    fs::write(base_dir.join("_proj.yml"), "
+    // 1. Base _projr.yml
+    fs::write(base_dir.join("_projr.yml"), "
 build:
   dest: [base_remote]
   scripts: [base.sh]
@@ -124,7 +124,7 @@ fn test_create_local_profile() {
     let root = tempdir().unwrap();
     let base_dir = root.path();
 
-    fs::write(base_dir.join("_proj.yml"), "
+    fs::write(base_dir.join("_projr.yml"), "
 build:
   dest: [base_remote]
 ").unwrap();

@@ -96,7 +96,7 @@ fn setup(placement: &str) -> (tempfile::TempDir, PathBuf, Value) {
 }
 fn save(root: &Path, config: &Value) {
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         serde_json::to_vec_pretty(config).unwrap(),
     )
     .unwrap();
@@ -105,7 +105,7 @@ fn metadata(root: &Path) -> PathBuf {
     let mut hash = blake3::Hasher::new_derive_key("projcli.remote-name.v1");
     hash.update(b"SNAPSHOTS");
     let id = hash.finalize().to_hex().to_string();
-    root.join(".proj/remotes").join(&id[..2]).join(&id[2..])
+    root.join(".projr/remotes").join(&id[..2]).join(&id[2..])
 }
 fn ids(base: &Path, namespace: &str) -> Vec<String> {
     files(&base.join(namespace))
@@ -220,7 +220,7 @@ fn four_formats_and_placements_publish_version_references_and_restore_complete_m
             assert!(!store.join("trees").exists());
             assert!(!project.join("trees").exists());
             assert_eq!(files(&store.join("objects")).len(), 2);
-            assert!(!store.join(".proj/build.lock").exists());
+            assert!(!store.join(".projr/build.lock").exists());
             let first = history(full, mode);
             assert_eq!(first.records.len(), 2);
             for row in &first.records {
@@ -518,8 +518,8 @@ fn stale_store_claim_and_corrupt_catalogue_fail_without_replacing_history_or_des
     assert_eq!(files(&store), stored);
     fs::remove_file(divergent_path).unwrap();
     let snapshot = observed(&root, &store, "v2.0.0", &["raw"]);
-    fs::create_dir_all(store.join(".proj")).unwrap();
-    fs::write(store.join(".proj/build.lock"), b"other owner").unwrap();
+    fs::create_dir_all(store.join(".projr")).unwrap();
+    fs::write(store.join(".projr/build.lock"), b"other owner").unwrap();
     let stored = files(&store);
     assert!(
         proj::cas_flat::publish_snapshot(
@@ -534,7 +534,7 @@ fn stale_store_claim_and_corrupt_catalogue_fail_without_replacing_history_or_des
     );
     assert_eq!(files(&store), stored);
     assert_eq!(
-        fs::read(store.join(".proj/build.lock")).unwrap(),
+        fs::read(store.join(".projr/build.lock")).unwrap(),
         b"other owner"
     );
 }
@@ -598,7 +598,7 @@ fn second_history_copy_failure_retries_without_duplicate_rows_and_preserves_hard
     assert_eq!(history(&project, "csv").records.len(), 2);
     assert_eq!(ids(&store, "flat-snapshots/v1").len(), 2);
     assert_eq!(fs::read(&outside).unwrap(), original);
-    assert!(!store.join(".proj/build.lock").exists());
+    assert!(!store.join(".projr/build.lock").exists());
 }
 
 #[test]
@@ -751,7 +751,7 @@ fn failed_flat_publication_preserves_local_release_and_distribution_evidence() {
     assert_eq!(fs::read(path).unwrap(), b"corrupt existing bytes");
     assert!(ids(&store, "flat-snapshots/v1").is_empty());
     assert!(ids(&metadata(&root), "references/flat-v1").is_empty());
-    let evidence: Vec<Value> = files(&root.join(".proj/log"))
+    let evidence: Vec<Value> = files(&root.join(".projr/attempts"))
         .values()
         .filter_map(|bytes| serde_json::from_slice(bytes).ok())
         .collect();

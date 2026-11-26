@@ -7,7 +7,7 @@ user-written rules are preserved outside the managed block.
 
 Manually appends one or more raw file or directory paths to the project ignore files.
 
-Unlike automatic configurations driven by `_proj.yml`, these manual entries represent permanent, user-specified exclusions and are placed strictly *above* the managed `# Start of projr section` line.
+Unlike automatic configurations driven by `_projr.yml`, these manual entries represent permanent, user-specified exclusions and are placed strictly *above* the managed `# Start of projr section` line.
 
 ### Arguments & Flags
 
@@ -29,7 +29,7 @@ These unignore entries represent permanent, user-specified negations and are pla
 ## When automatic rules are updated
 
 Directory initialization and production builds update the managed ignore rules
-from `_proj.yml`. Reading configuration (`proj yml read`) and looking up paths
+from `_projr.yml`. Reading configuration (`proj yml read`) and looking up paths
 leave ignore files unchanged. A preview does not add ignore rules.
 
 The project is selected by `--project`, an inherited build context, or the nearest

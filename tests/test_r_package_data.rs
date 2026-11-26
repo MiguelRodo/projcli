@@ -24,7 +24,7 @@ fn builtin_lookup_never_activates_or_creates_data() {
     assert_eq!(result_path(query(&root,"final")), root.join("data"));
     assert!(!query(&root,"safe").status.success());
     fs::write(root.join("VERSION"),"v1.2.3-4\n").unwrap();
-    fs::write(root.join("_proj.yml"),"directories:\n  cache:\n    path: cache\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  cache:\n    path: cache\n").unwrap();
     assert_eq!(result_path(query(&root,"safe")), root.join("cache/projr/v1.2.3-4/output-r-data"));
     let combined = proj::get_combined_yml(Some(""),camino::Utf8Path::from_path(&root).unwrap()).unwrap();
     assert!(combined["directories"].get("output-r-data").is_none());
@@ -39,7 +39,7 @@ fn normalize_each_legacy_layer_before_merge_and_reject_conflicts_or_redirection(
     let project = tempfile::tempdir().unwrap();
     let physical = project.path().canonicalize().unwrap();
     let root = camino::Utf8Path::from_path(&physical).unwrap();
-    fs::write(root.join("_proj.yml"),"directories:\n  output-r-data:\n    ignore: git\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  output-r-data:\n    ignore: git\n").unwrap();
     fs::write(root.join("_projr-alpha.yml"),"directories:\n  data:\n    path: ./data\n    ignore: rbuild\n").unwrap();
     fs::write(root.join("_projr-local.yml"),"directories:\n  DATA:\n    ignore: []\n").unwrap();
     let merged = proj::get_combined_yml(Some("alpha"),root).unwrap();
@@ -57,9 +57,10 @@ fn normalize_each_legacy_layer_before_merge_and_reject_conflicts_or_redirection(
         assert!(proj::get_combined_yml(Some("alpha"),root).is_err(),"{invalid}");
     }
     fs::remove_file(root.join("_projr-alpha.yml")).unwrap();
-    fs::write(root.join("_proj.yml"),"directories:\n  data: {}\n").unwrap();
-    assert!(proj::get_combined_yml(Some(""),root).is_err());
-    fs::write(root.join("_proj.yml"),"directories:\n  data-derived:\n    path: data\n").unwrap();
+    // `_projr.yml` is the only base name, so projr's data label is always the alias.
+    fs::write(root.join("_projr.yml"),"directories:\n  data: {}\n").unwrap();
+    assert_eq!(proj::get_combined_yml(Some(""),root).unwrap()["directories"]["output-r-data"]["path"],"data");
+    fs::write(root.join("_projr.yml"),"directories:\n  data-derived:\n    path: data\n").unwrap();
     assert!(!query(project.path(),"final").status.success());
     assert!(!root.join("data").exists());
 }
@@ -96,7 +97,7 @@ fn only_declared_r_data_is_cleared_and_promoted_and_failures_preserve_final_byte
                 _ => "",
             };
             let config = format!("directories:\n  cache:\n    path: cache\n{role}settings:\n  output-clear-stage: {stage}\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n");
-            fs::write(root.join(if declaration=="legacy" {"_projr.yml"} else {"_proj.yml"}),config).unwrap();
+            fs::write(root.join("_projr.yml"),config).unwrap();
             let script = format!(r#"import json,subprocess
 from pathlib import Path
 result=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label','output-r-data','--format','absolute'],text=True))

@@ -4,7 +4,7 @@ fn nearest_root_fixture() -> (tempfile::TempDir, std::path::PathBuf) {
     let parent = tempfile::tempdir().unwrap();
     fs::write(parent.path().join("VERSION"), "v9.0.0").unwrap();
     fs::create_dir(parent.path().join(".git")).unwrap();
-    fs::write(parent.path().join("_proj.yml"), "directories:\n  output:\n    path: _output\n").unwrap();
+    fs::write(parent.path().join("_projr.yml"), "directories:\n  output:\n    path: _output\n").unwrap();
     let project = parent.path().join("inner project");
     fs::create_dir(&project).unwrap();
     (parent, project)
@@ -18,13 +18,15 @@ fn discovered(path: &Path) -> std::path::PathBuf {
 fn nearest_file_marker_wins_without_a_version_prerequisite() {
     for (name, content) in [
         ("VERSION", "v1.0.0"), ("README.md", "research"), ("_quarto.yml", "project: {}"),
-        ("_proj.yml", "directories: {}"), ("_projr.yml", "directories: {}"),
+        ("_projr.yml", "directories: {}"), (".projr/config/default.yml", "directories: {}"),
+        (".projr/config/_projr.yml", "directories: {}"), ("_projr/config/default.yml", "directories: {}"),
         ("pyproject.toml", "[project]"), ("Project.toml", "[deps]"), ("JuliaProject.toml", "[deps]"),
         ("DESCRIPTION", "Title: Research\nPackage: demo\nVersion: 1.0.0\n"),
         ("analysis.Rproj", "Version: 1.0\n"), ("renv.lock", "{\n  \"Packages\": {}\n}"),
         (".git", "gitdir: /fixture/worktree-metadata\n"),
     ] {
         let (_parent, project) = nearest_root_fixture();
+        fs::create_dir_all(project.join(name).parent().unwrap()).unwrap();
         fs::write(project.join(name), content).unwrap();
         let nested = project.join("a/b/c/d/e/f/g/h/i");
         fs::create_dir_all(&nested).unwrap();
@@ -70,7 +72,7 @@ fn discovery_walks_up_and_explicit_selection_still_overrides_a_nearer_marker() {
 fn configured_python_preview_keeps_shallow_script_discovery() {
     let (_parent, project) = nearest_root_fixture();
     fs::write(project.join("pyproject.toml"), "[project]").unwrap();
-    fs::write(project.join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\n").unwrap();
+    fs::write(project.join("_projr.yml"), "directories:\n  cache:\n    path: _tmp\n").unwrap();
     fs::write(project.join("analysis.py"), "from pathlib import Path\nPath('_tmp').mkdir(exist_ok=True)\nPath('_tmp/result.txt').write_text('ran')\n").unwrap();
     fs::create_dir(project.join("nested")).unwrap();
     fs::write(project.join("nested/should-not-run.py"), "from pathlib import Path\nPath('unexpected').write_text('bad')\nraise SystemExit(17)\n").unwrap();
@@ -84,6 +86,19 @@ fn configured_python_preview_keeps_shallow_script_discovery() {
     assert!(!project.join("nested/unexpected").exists());
 }
 
+
+#[test]
+fn a_config_directory_belongs_to_the_surrounding_project() {
+    let (_parent, project) = nearest_root_fixture();
+    let config = project.join(".projr/config");
+    fs::create_dir_all(&config).unwrap();
+    fs::write(config.join("_projr.yml"), "directories: {}").unwrap();
+    // projr's criterion: _projr.yml inside .projr/config does not make that folder a root.
+    assert_eq!(discovered(&config), project.canonicalize().unwrap());
+    let other = project.join("_projr/config");
+    fs::create_dir_all(&other).unwrap();
+    assert_eq!(discovered(&other), project.canonicalize().unwrap());
+}
 
 #[test]
 fn markerless_discovery_falls_back_to_the_starting_directory() {

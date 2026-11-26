@@ -66,7 +66,7 @@ proj build-dev
 proj build --patch
 ```
 
-Since these examples disable Git integration, commit .proj/remotes references alongside VERSION/configuration
+Since these examples disable Git integration, commit .projr/remotes references alongside VERSION/configuration
 yourself if you need recovery from a future checkout. Removing a destination
 from build.dest stops uploads without removing restore access.
 
@@ -139,7 +139,7 @@ remote from build.dest stops uploads while preserving explicit recovery lookup.
 Optional build.dest content narrows the remote's eligible labels.
 
 After finalization/independent byte verification, the build saves a complete store
-snapshot and small project reference under .proj/remotes. The reference's snapshot
+snapshot and small project reference under .projr/remotes. The reference's snapshot
 field supplies the exact ID:
 
 ```sh
@@ -243,7 +243,7 @@ The optional pinned engine is required for production only. Preview and queries
 do not open the engine or contact the release.
 
 Each upload is downloaded and fully checked before writing project metadata under
-`.proj/remotes/<remote-name-hash>/xet-github/v1/`. The file `current.json` selects the
+`.projr/remotes/<remote-name-hash>/xet-github/v1/`. The file `current.json` selects the
 trusted store for the next build; immutable `snapshots/<first2>/<rest>.json` locators
 retain each earlier snapshot's exact ZIP. Each binds repository, API origin, tag,
 ZIP name/digest/length, backend/upstream and included snapshot IDs.

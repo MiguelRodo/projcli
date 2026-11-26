@@ -15,6 +15,9 @@ struct RunContext {
     schema_version: u32,
     root: Utf8PathBuf,
     profiles: Vec<String>,
+    /// Configured Quarto render profiles frozen before hooks (empty when QUARTO_PROFILE is set).
+    #[serde(default)]
+    quarto_profiles: Vec<String>,
     directories: BTreeMap<String, Utf8PathBuf>,
     directory_order: Vec<String>,
     safe_cache: Option<String>,
@@ -38,11 +41,11 @@ pub(crate) struct RenderContext {
 pub(crate) struct ContextFile(tempfile::NamedTempFile);
 
 impl ContextFile {
-    pub(crate) fn capture(root: &Utf8Path, config: &ValidatedConfig, profiles: Vec<String>, directory_order: Vec<String>, active_version: ProjVersion, development: bool) -> anyhow::Result<Self> {
+    pub(crate) fn capture(root: &Utf8Path, config: &ValidatedConfig, profiles: Vec<String>, quarto_profiles: Vec<String>, directory_order: Vec<String>, active_version: ProjVersion, development: bool) -> anyhow::Result<Self> {
         let directories = config.directories.keys().map(|label| Ok((label.clone(), config.get_path(root, label)?)))
             .collect::<anyhow::Result<_>>()?;
         let safe_cache = crate::paths::select_safe_cache(config.directories.iter().map(|(label, directory)| (label.as_str(), directory.safe)), &directory_order)?;
-        let context = RunContext { schema_version: 5, root: root.to_owned(), profiles, directories, directory_order, safe_cache, path_format: config.settings.path_representation.unwrap_or(crate::paths::PathFormat::Auto), active_version, development, render: None };
+        let context = RunContext { schema_version: 5, root: root.to_owned(), profiles, quarto_profiles, directories, directory_order, safe_cache, path_format: config.settings.path_representation.unwrap_or(crate::paths::PathFormat::Auto), active_version, development, render: None };
         Self::save(context)
     }
 
@@ -202,20 +205,24 @@ pub(crate) fn configuration_profiles_from(root: &Utf8Path, explicit: Option<&str
     select_profiles(explicit, root)
 }
 
+/// projr profile precedence: explicit, nonempty `PROJR_PROFILE`, then the
+/// `profile` key of the local file, then of the default file (projr `R/profile.R:223-252`).
 pub(crate) fn select_profiles(explicit: Option<&str>, root: &Utf8Path) -> anyhow::Result<Vec<String>> {
     if let Some(value) = explicit { return normalized_profiles(value); }
-    for key in ["PROJR_PROFILE", "QUARTO_PROFILE"] {
-        if let Some(value) = std::env::var_os(key) {
-            let value = value.to_str().context("Profile selection must be UTF-8")?;
-            if !value.trim().is_empty() { return normalized_profiles(value); }
-        }
+    if let Some(value) = std::env::var_os("PROJR_PROFILE") {
+        let value = value.to_str().context("Profile selection must be UTF-8")?;
+        if !value.trim().is_empty() { return normalized_profiles(value); }
     }
-    let base = crate::yml::get_combined_yml(Some(""), root)?;
-    match base.get("build").and_then(|build| build.get("profile")) {
-        None | Some(serde_json::Value::Null) => Ok(Vec::new()),
-        Some(serde_json::Value::String(value)) => normalized_profiles(value),
-        Some(_) => anyhow::bail!("build.profile must be a string"),
-    }
+    normalized_profiles(&crate::profile::configured_profiles(root)?.projr.join(","))
+}
+
+/// Quarto profiles from the configuration `profile` key, used only when the
+/// run environment sets no `QUARTO_PROFILE` (Quarto reads that itself).
+pub(crate) fn select_quarto_profiles(quarto_env: Option<&str>, root: &Utf8Path) -> anyhow::Result<Vec<String>> {
+    if quarto_env.is_some_and(|value| !value.trim().is_empty()) { return Ok(Vec::new()); }
+    let configured = crate::profile::configured_profiles(root)?.quarto;
+    anyhow::ensure!(configured.iter().all(|name| !name.contains(['\n', '\r', '\0'])), "Invalid profile.quarto name");
+    Ok(configured)
 }
 
 fn normalized_profiles(value: &str) -> anyhow::Result<Vec<String>> {

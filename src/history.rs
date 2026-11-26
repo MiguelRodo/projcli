@@ -51,20 +51,25 @@ pub fn read(root: &Utf8Path, attempt: Option<&str>, limit: usize) -> anyhow::Res
     if let Some(id) = attempt {
         anyhow::ensure!(valid_id(id), "Invalid attempt ID");
     }
-    let directory = root.join(".proj/log");
-    if !crate::yml::configuration_entry_exists(&directory)? {
+    let directory = root.join(".projr/attempts");
+    let failures = root.join(".projr/logs/local-failures");
+    let has_records = crate::yml::configuration_entry_exists(&directory)?;
+    if !has_records && !crate::yml::configuration_entry_exists(&failures)? {
         anyhow::ensure!(attempt.is_none(), "Requested attempt does not exist");
         return Ok(History {
             entries: Vec::new(),
         });
     }
-    crate::path_safety::resolve_path(directory.as_std_path(), true)?;
-    anyhow::ensure!(
-        std::fs::symlink_metadata(&directory)?.is_dir(),
-        "History is not a directory"
-    );
     let mut ids = Vec::new();
-    for (count, item) in std::fs::read_dir(&directory)?.enumerate() {
+    if has_records {
+        crate::path_safety::resolve_path(directory.as_std_path(), true)?;
+        anyhow::ensure!(
+            std::fs::symlink_metadata(&directory)?.is_dir(),
+            "History is not a directory"
+        );
+    }
+    let listing = if has_records { Some(std::fs::read_dir(&directory)?) } else { None };
+    for (count, item) in listing.into_iter().flatten().enumerate() {
         anyhow::ensure!(count < 10_000, "History directory exceeds 10,000 entries");
         let name = item?.file_name();
         let Some(name) = name.to_str() else { continue };
@@ -172,7 +177,6 @@ pub fn read(root: &Utf8Path, attempt: Option<&str>, limit: usize) -> anyhow::Res
             },
         ));
     }
-    let failures = directory.join("local-failures");
     if crate::yml::configuration_entry_exists(&failures)? {
         crate::path_safety::resolve_path(failures.as_std_path(), true)?;
         anyhow::ensure!(

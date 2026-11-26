@@ -51,12 +51,12 @@ fn setup(placement:&str,layout:&str,cue:&str)->(tempfile::TempDir,PathBuf,Value)
         "build":{"scripts":[],"git":false,"dest":{"delivery":{}}}});
     save(&root,&config);(temp,root,config)
 }
-fn save(root:&Path,value:&Value){fs::write(root.join("_proj.yml"),serde_json::to_vec_pretty(value).unwrap()).unwrap();}
+fn save(root:&Path,value:&Value){fs::write(root.join("_projr.yml"),serde_json::to_vec_pretty(value).unwrap()).unwrap();}
 fn build(root:&Path){success(command(root).arg("build").output().unwrap());}
 fn metadata(root:&Path)->PathBuf {
     let mut hash=blake3::Hasher::new_derive_key("projcli.ordinary-remote-name.v1");
     hash.update(&serde_json::to_vec(&("local","DELIVERY")).unwrap());let id=hash.finalize().to_hex().to_string();
-    root.join(".proj/remotes").join(&id[..2]).join(&id[2..])
+    root.join(".projr/remotes").join(&id[..2]).join(&id[2..])
 }
 fn bindings(base:&Path,namespace:&str)->Vec<Value> {
     files(&base.join(namespace)).into_iter().map(|(name,bytes)|{
@@ -109,7 +109,7 @@ fn layouts_placements_and_cues_keep_pure_roots_and_exact_physical_bytes_without_
         if layout=="archive" {assert_eq!(second["payloads"][0]["path"],if cue=="always"{"raw/v1.2.5"}else{"raw/v1.2.4"});}
         let history=Catalogue::parse(&fs::read(full.join("catalogues/v1/manifest.json")).unwrap(),Format::Json).unwrap();
         assert_eq!(history.records.len(),2);assert!(matches!(&history.records[1].inventory,Inventory::Reference{ref_version} if ref_version=="v1.2.4"));
-        assert!(!store.join("objects").exists());assert!(!store.join(".proj/build.lock").exists());
+        assert!(!store.join("objects").exists());assert!(!store.join(".projr/build.lock").exists());
     }}}
 }
 #[test]
@@ -182,7 +182,7 @@ fn excessive_inferred_parent_records_fail_on_private_stage_preserving_previous_b
     let after=files(&store);assert_eq!(after.len(),before.len(),"prior backup file membership changed");
     for (path,bytes) in &before {assert_eq!(after.get(path),Some(bytes),"prior backup changed at {path}");}
     assert!(!data.join("new").exists());for path in samples{assert!(path.is_dir());}
-    assert_eq!(files(&project),old_project);assert!(!store.join(".proj/build.lock").exists());
+    assert_eq!(files(&project),old_project);assert!(!store.join(".projr/build.lock").exists());
 }
 
 #[cfg(unix)]
@@ -216,5 +216,5 @@ fn excessive_retained_depth_is_rejected_on_private_stage_before_backup_replaceme
     assert_eq!(reply["ok"],false);assert_eq!(reply["error"]["code"],"command_failed");
     assert_eq!(files(&store),before);assert_eq!(files(&project),old_project);
     assert!(!data.join("new").exists());for path in samples{assert!(path.is_dir());}
-    assert!(!store.join(".proj/build.lock").exists());
+    assert!(!store.join(".projr/build.lock").exists());
 }

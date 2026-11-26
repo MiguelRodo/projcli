@@ -32,7 +32,7 @@ fn native_scripts_and_hooks_inherit_launch_cwd_while_project_paths_survive_cwd_c
         fs::create_dir(root.join("raw")).unwrap();
         fs::create_dir(&caller).unwrap();
         fs::write(root.join("raw/sentinel.txt"), "project data").unwrap();
-        fs::write(root.join("_proj.yml"),"directories:\n  cache:\n    path: cache\n  raw:\n    path: raw\nbuild:\n  scripts: [analysis/first.py, analysis/second.py]\n  git: false\n  restrictions:\n    not_behind: false\ndev:\n  hooks:\n    pre: [analysis/pre.py]\n    post: [analysis/post.py]\n").unwrap();
+        fs::write(root.join("_projr.yml"),"directories:\n  cache:\n    path: cache\n  raw:\n    path: raw\nbuild:\n  scripts: [analysis/first.py, analysis/second.py]\n  git: false\n  restrictions:\n    not_behind: false\ndev:\n  hooks:\n    pre: [analysis/pre.py]\n    post: [analysis/post.py]\n").unwrap();
         for stage in ["pre", "first", "second", "post"] {
             let expected = if project { &root } else { &caller };
             fs::write(root.join(format!("analysis/{stage}.py")),format!(r#"import os,json,subprocess
@@ -82,7 +82,7 @@ fn renderer_dispatch_retains_native_defaults_and_only_passes_explicit_root_overr
             fs::create_dir(&caller).unwrap();
             let document = format!("analysis/report's é.{extension}");
             fs::write(root.join(&document), "---\ntitle: test\n---\n").unwrap();
-            fs::write(root.join("_proj.yml"),format!("directories:\n  cache: {{path: cache}}\n  docs: {{path: published}}\nbuild:\n  scripts: [{}]\n",serde_json::to_string(&document).unwrap())).unwrap();
+            fs::write(root.join("_projr.yml"),format!("directories:\n  cache: {{path: cache}}\n  docs: {{path: published}}\nbuild:\n  scripts: [{}]\n",serde_json::to_string(&document).unwrap())).unwrap();
             let fake = r#"#!/usr/bin/env python3
 import os,sys,json
 from pathlib import Path

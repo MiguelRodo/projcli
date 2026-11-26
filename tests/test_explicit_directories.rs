@@ -19,14 +19,14 @@ fn local_init_writes_explicit_preset_without_disabling_analysis_or_running_setup
         .env("PATH", "").env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
         .output().unwrap();
     assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
-    assert_eq!(fs::read_to_string(root.join("_proj.yml")).unwrap(), PRESET);
+    assert_eq!(fs::read_to_string(root.join("_projr.yml")).unwrap(), PRESET);
     let config: proj::ProjConfig = serde_yaml::from_str(PRESET).unwrap();
     assert!(config.build.scripts.is_none());
     for name in ["_raw_data", "_tmp", "_output"] { assert!(root.join(name).is_dir()); }
     for name in [".git", "VERSION", "R", "docs"] { assert!(!root.join(name).exists(), "unexpected {name}"); }
     let repeat = cli(root, &["init", "directories"]);
     assert!(repeat.status.success());
-    assert_eq!(fs::read_to_string(root.join("_proj.yml")).unwrap(), PRESET);
+    assert_eq!(fs::read_to_string(root.join("_projr.yml")).unwrap(), PRESET);
     fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('_tmp/result').write_text('discovered')\n").unwrap();
     let preview = cli(root, &["build-dev"]);
     assert!(preview.status.success(), "{}", String::from_utf8_lossy(&preview.stderr));
@@ -34,17 +34,18 @@ fn local_init_writes_explicit_preset_without_disabling_analysis_or_running_setup
 }
 
 #[test]
-fn existing_primary_and_legacy_configs_keep_bytes_and_empty_script_selection() {
-    for name in ["_proj.yml", "_projr.yml"] {
+fn existing_root_and_config_directory_bases_keep_bytes_and_empty_script_selection() {
+    for name in ["_projr.yml", ".projr/config/default.yml"] {
         let project = tempfile::tempdir().unwrap();
         let root = project.path();
         let content = "# preserve this comment\ndirectories:\n  output-special:\n    path: custom-results\nbuild:\n  scripts: []\n";
+        fs::create_dir_all(root.join(name).parent().unwrap()).unwrap();
         fs::write(root.join(name), content).unwrap();
         assert!(cli(root, &["init", "directories"]).status.success());
         assert_eq!(fs::read_to_string(root.join(name)).unwrap(), content);
         assert!(root.join("custom-results").is_dir());
         for absent in ["_tmp", "_output", "_raw_data", "R", "docs"] { assert!(!root.join(absent).exists()); }
-        if name == "_projr.yml" { assert!(!root.join("_proj.yml").exists()); }
+        if name != "_projr.yml" { assert!(!root.join("_projr.yml").exists()); }
     }
 }
 
@@ -59,7 +60,7 @@ fn active_profile_alone_is_preserved_without_inventing_a_base_file() {
         .env("PROJR_PROFILE", "fixture").env_remove("QUARTO_PROFILE").env_remove(proj::PROJECT_ROOT_ENV)
         .output().unwrap();
     assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
-    assert!(!root.join("_proj.yml").exists());
+    assert!(!root.join("_projr.yml").exists());
     assert!(root.join("scratch").is_dir());
     assert_eq!(fs::read_to_string(root.join("_projr-fixture.yml")).unwrap(), content);
 }
@@ -87,14 +88,14 @@ fn invalid_mappings_and_storage_labels_fail_before_managed_writes() {
     ] {
         let project = tempfile::tempdir().unwrap();
         let root = project.path();
-        fs::write(root.join("_proj.yml"), content).unwrap();
+        fs::write(root.join("_projr.yml"), content).unwrap();
         fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
         fs::write(root.join(".gitignore"), "manual\n").unwrap();
         let result = cli(root, &["build", "--patch"]);
         assert!(!result.status.success());
         assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");
         assert_eq!(fs::read_to_string(root.join(".gitignore")).unwrap(), "manual\n");
-        assert_eq!(fs::read_to_string(root.join("_proj.yml")).unwrap(), content);
+        assert_eq!(fs::read_to_string(root.join("_projr.yml")).unwrap(), content);
         for absent in ["_tmp", "scratch", "archive", ".Rbuildignore"] { assert!(!root.join(absent).exists()); }
     }
 }
@@ -109,7 +110,7 @@ fn production_preserves_unselected_legacy_staging_and_uses_declared_cache() {
     fs::create_dir_all(root.join("scratch/projr/1.2.3")).unwrap();
     fs::write(root.join("scratch/projr/1.2.3/remove"), "old staging").unwrap();
     fs::write(root.join("analysis.py"), "from pathlib import Path\nassert Path('scratch/projr/1.2.3/remove').read_text() == 'old staging'\nassert Path('_tmp/projr/1.2.3/keep').read_text() == 'unmanaged'\nPath('scratch/analysis-ran').write_text('custom cache')\n").unwrap();
-    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: scratch\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+    fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: scratch\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
     let result = cli(root, &["build", "--patch"]);
     assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
     assert_eq!(fs::read_to_string(root.join("_tmp/projr/1.2.3/keep")).unwrap(), "unmanaged");
@@ -135,7 +136,7 @@ fn project_renderer_missing_docs_fails_before_state_changes() {
     let project = tempfile::tempdir().unwrap();
     let root = project.path();
     fs::write(root.join("_quarto.yml"), "project:\n  type: default\n").unwrap();
-    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: scratch\nbuild:\n  git: false\n").unwrap();
+    fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: scratch\nbuild:\n  git: false\n").unwrap();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
     let result = cli(root, &["build", "--patch"]);
     assert!(!result.status.success());
@@ -152,7 +153,7 @@ fn upload_only_selection_needs_no_unused_cache_or_renderer_mapping() {
     fs::create_dir(root.join("results")).unwrap();
     fs::write(root.join("results/result.csv"), "measured,42\n").unwrap();
     fs::write(root.join("_quarto.yml"), "project:\n  type: default\n").unwrap();
-    fs::write(root.join("_proj.yml"), "directories:\n  output:\n    path: results\nremotes:\n  local:\n    archive:\n      path: archives\n      content: [output]\n      structure: cas\n      inspect: manifest\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: []\n  git: false\n  dest: [archive]\n  restrictions:\n    not_behind: false\n").unwrap();
+    fs::write(root.join("_projr.yml"), "directories:\n  output:\n    path: results\nremotes:\n  local:\n    archive:\n      path: archives\n      content: [output]\n      structure: cas\n      inspect: manifest\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: []\n  git: false\n  dest: [archive]\n  restrictions:\n    not_behind: false\n").unwrap();
     let result = cli(root, &["build", "--patch"]);
     assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
     assert!(root.join("archives").is_dir());
@@ -165,7 +166,7 @@ fn explicit_python_preview_does_not_activate_an_unused_project_renderer() {
     let project = tempfile::tempdir().unwrap();
     let root = project.path();
     fs::write(root.join("_quarto.yml"), "project:\n  type: default\n").unwrap();
-    fs::write(root.join("_proj.yml"), "build:\n  scripts: [analysis.py]\n").unwrap();
+    fs::write(root.join("_projr.yml"), "build:\n  scripts: [analysis.py]\n").unwrap();
     fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('analysis-ran').write_text('python')\n").unwrap();
     let result = cli(root, &["build-dev"]);
     assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));

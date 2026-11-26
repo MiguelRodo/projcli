@@ -11,7 +11,7 @@ fn r_actions_are_strict_independent_booleans_and_merge_per_action() {
     assert!(!config.r.readme && !config.r.renv_snapshot);
     let temp = tempfile::tempdir().unwrap();
     let root = camino::Utf8Path::from_path(temp.path()).unwrap();
-    fs::write(root.join("_proj.yml"), "build:\n  r: {document: true, readme: true}\n").unwrap();
+    fs::write(root.join("_projr.yml"), "build:\n  r: {document: true, readme: true}\n").unwrap();
     fs::write(root.join("_projr-test.yml"), "build:\n  r: {document: false, renv-snapshot: true}\n").unwrap();
     let combined = proj::yml::get_combined_yml(Some("test"), root).unwrap();
     let config: proj::yml::ProjConfig = serde_json::from_value(combined).unwrap();
@@ -57,7 +57,7 @@ fn renv_init_preserves_existing_project_state_without_running_r() {
         let root = temp.path();
         if name == "renv" { fs::create_dir(root.join(name)).unwrap(); }
         else { fs::write(root.join(name), "existing").unwrap(); }
-        fs::write(root.join("_proj.yml"), "build: {}\n").unwrap();
+        fs::write(root.join("_projr.yml"), "build: {}\n").unwrap();
         let output = Command::new(env!("CARGO_BIN_EXE_proj"))
             .args(["--non-interactive", "--project"]).arg(root).args(["init", "renv"])
             .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
@@ -83,7 +83,7 @@ mod native_fixture {
         fs::write(root.join("README.md"), "old readme").unwrap();
         fs::write(root.join("renv.lock"), "old lock").unwrap();
         fs::write(root.join("VERSION"), "v1.2.3.7\n").unwrap();
-        fs::write(root.join("_proj.yml"), "config:\n  r:\n    rscript: 'tools/R script'\nbuild:\n  scripts: []\n  git: false\n  r: {document: true, readme: true, renv-snapshot: true}\n").unwrap();
+        fs::write(root.join("_projr.yml"), "config:\n  r:\n    rscript: 'tools/R script'\nbuild:\n  scripts: []\n  git: false\n  r: {document: true, readme: true, renv-snapshot: true}\n").unwrap();
         fs::create_dir(root.join("tools")).unwrap();
         // Native executable stub validates actual argv and completion handling.
         fs::write(root.join("tools/R script"), r#"#!/bin/sh
@@ -153,9 +153,9 @@ printf 'complete\n' > "$9"
     #[test]
     fn pre_snapshot_precedes_start_hook_like_original_projr() {
         let temp = fixture(); let root = temp.path();
-        let mut config = fs::read_to_string(root.join("_proj.yml")).unwrap();
+        let mut config = fs::read_to_string(root.join("_projr.yml")).unwrap();
         config.push_str("  hooks:\n    pre: [pre-hook.R]\n");
-        fs::write(root.join("_proj.yml"), config).unwrap();
+        fs::write(root.join("_projr.yml"), config).unwrap();
         fs::write(root.join("pre-hook.R"), "# native fixture checks the prior snapshot\n").unwrap();
         let output = build(root, false);
         assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
@@ -192,7 +192,7 @@ printf 'complete\n' > "$9"
         for action in ["document", "readme", "renv-snapshot", "none"] {
             let temp = fixture(); let root = temp.path();
             let setting = if action == "none" { "{}".to_owned() } else { format!("{{{action}: true}}") };
-            fs::write(root.join("_proj.yml"), format!(
+            fs::write(root.join("_projr.yml"), format!(
                 "config:\n  r:\n    rscript: 'tools/R script'\nbuild:\n  scripts: []\n  git: false\n  r: {setting}\n")).unwrap();
             let output = build(root, false);
             assert!(output.status.success(), "{action}: {}", String::from_utf8_lossy(&output.stderr));

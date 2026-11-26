@@ -47,7 +47,7 @@ fn malformed_script_and_hook_exclusions_fail_before_execution_or_managed_writes(
             let config = format!(
                 "directories:\n  cache: {{path: cache}}\n  output: {{path: released}}\nsettings:\n  output-clear-stage: pre\nbuild:\n  git: false\n  scripts: {scripts}\n  hooks:\n{hooks}dev:\n  hooks:\n{hooks}"
             );
-            fs::write(root.join("_proj.yml"), &config).unwrap();
+            fs::write(root.join("_projr.yml"), &config).unwrap();
             for name in ["analysis", "hook"] {
                 fs::write(
                     root.join(format!("{name}.py")),
@@ -78,7 +78,7 @@ fn malformed_script_and_hook_exclusions_fail_before_execution_or_managed_writes(
                 "cache",
                 ".Rbuildignore",
                 ".git",
-                ".projr",
+                ".projr/manifests",
             ] {
                 assert!(
                     !root.join(name).exists(),
@@ -95,7 +95,7 @@ fn malformed_script_and_hook_exclusions_fail_before_execution_or_managed_writes(
             );
             assert_eq!(fs::read(root.join("VERSION")).unwrap(), b"v1.2.3-4\n");
             assert_eq!(fs::read(root.join(".gitignore")).unwrap(), b"manual-rule\n");
-            assert_eq!(fs::read_to_string(root.join("_proj.yml")).unwrap(), config);
+            assert_eq!(fs::read_to_string(root.join("_projr.yml")).unwrap(), config);
         }
     }
 }
@@ -109,7 +109,7 @@ fn valid_exclusions_keep_first_match_order_deduplication_and_ignored_explicit_ta
         .unwrap()
         .join("project [2] with spaces");
     fs::create_dir(&root).unwrap();
-    fs::write(root.join("_proj.yml"),
+    fs::write(root.join("_projr.yml"),
         "directories:\n  cache: {path: cache}\nbuild:\n  git: false\n  scripts: [second.py, '*.py', '!skip*.py', second.py]\n"
     ).unwrap();
     fs::write(root.join(".gitignore"), "first.py\n").unwrap();

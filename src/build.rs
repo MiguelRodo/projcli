@@ -45,9 +45,9 @@ use crate::build_pre::run_pre_flight_checks_in;
 ///
 /// let temp = TempDir::new().unwrap();
 /// std::fs::write(temp.path().join("VERSION"), "Version: v1.0.0").unwrap();
-/// // Create a dummy _proj.yml to avoid fallback searching which executes everything
+/// // Create a dummy _projr.yml to avoid fallback searching which executes everything
 /// // We set push: false so we don't trigger GitHub token lookups in CI without env vars
-/// std::fs::write(temp.path().join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: []\n  git:\n    commit: false\n    push: false\nconfig:\n  git:\n    use_proj_cred_helper: false").unwrap();
+/// std::fs::write(temp.path().join("_projr.yml"), "directories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: []\n  git:\n    commit: false\n    push: false\nconfig:\n  git:\n    use_proj_cred_helper: false").unwrap();
 /// build_project(camino::Utf8Path::from_path(temp.path()).unwrap(), BuildMode::ProdPatch, None, None).unwrap();
 /// ```
 use crate::git::{check_git_profile_in, create_git_provider_in, is_git_installed_in};
@@ -220,6 +220,12 @@ pub fn build_project_with_policies(
         let mut environment = RunEnvironment::resolve(Some(&profile_text), project_root)
             .context("Failed to resolve build environment")?;
         environment.set(crate::PROJECT_ROOT_ENV, project_root.as_str());
+        // A first build writes projr's starter configuration (user decision, 25 November).
+        crate::profile::write_starter(project_root, &environment)?;
+        let quarto_profiles = crate::run_context::select_quarto_profiles(
+            environment.text("QUARTO_PROFILE"),
+            project_root,
+        )?;
 
         // ==========================================
         // STEP B: Pre-Build Validation & Execution
@@ -613,6 +619,7 @@ pub fn build_project_with_policies(
             project_root,
             &config,
             profiles,
+            quarto_profiles,
             directory_order,
             initial_version.clone(),
             is_dev,
@@ -752,9 +759,10 @@ pub fn build_project_with_policies(
             "manifest.csv",
             ".gitignore",
             ".Rbuildignore",
-            "_proj.yml",
             "_projr.yml",
             "_projr-local.yml",
+            ".projr/config",
+            "_projr/config",
             "DESCRIPTION",
             "_quarto.yml",
             "_bookdown.yml",
@@ -857,7 +865,7 @@ pub fn build_project_with_policies(
                 || !destinations.github_xet.is_empty()
                 || !destinations.github_cas.is_empty()
             {
-                managed.push(project_root.join(".proj/remotes").into_std_path_buf());
+                managed.push(project_root.join(".projr/remotes").into_std_path_buf());
             }
             // Capture configured local publication stores without invoking publication.
             if let Some(remotes) = &config.remotes.local {
@@ -1695,7 +1703,7 @@ fn execute_build_pipeline(
             });
             if has_docs {
                 anyhow::bail!(
-                    "Mutual Exclusion Error: Both _quarto.yml and _bookdown.yml exist in the workspace, and the build.scripts key in _proj.yml is omitted or includes .qmd or .Rmd files. Aborting build."
+                    "Mutual Exclusion Error: Both _quarto.yml and _bookdown.yml exist in the workspace, and the build.scripts key in _projr.yml is omitted or includes .qmd or .Rmd files. Aborting build."
                 );
             }
         }
@@ -1768,7 +1776,7 @@ fn execute_build_pipeline(
         // Mutual Exclusion Error (Rule 1 & 2)
         if quarto_exists && bookdown_exists {
             anyhow::bail!(
-                "Mutual Exclusion Error: Both _quarto.yml and _bookdown.yml exist in the workspace, and the build.scripts key in _proj.yml is omitted or includes .qmd or .Rmd files. Aborting build."
+                "Mutual Exclusion Error: Both _quarto.yml and _bookdown.yml exist in the workspace, and the build.scripts key in _projr.yml is omitted or includes .qmd or .Rmd files. Aborting build."
             );
         }
 
@@ -2029,7 +2037,7 @@ pub(crate) fn rewrite_engine_output_dir(
                 let root = camino::Utf8Path::from_path(project_root)
                     .context("Quarto root must be UTF-8")?;
                 let mut excluded = excluded_resources.to_vec();
-                excluded.extend([root.join(".proj"), root.join(".projr")]);
+                excluded.push(root.join(".projr"));
                 let native = proj_map
                     .get(&out_dir_key)
                     .and_then(serde_yaml::Value::as_str)

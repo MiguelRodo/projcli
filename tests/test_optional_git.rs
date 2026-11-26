@@ -7,7 +7,7 @@ fn omitted_or_disabled_git_never_requires_git_gh_or_tokens_even_inside_a_reposit
         let root = project.path();
         fs::create_dir(root.join(".git")).unwrap();
         fs::write(
-            root.join("_proj.yml"),
+            root.join("_projr.yml"),
             format!("build:\n  scripts: []\n{git}"),
         )
         .unwrap();
@@ -135,7 +135,7 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
             let root = project.path();
             let path = fixture(root);
             fs::write(
-                root.join("_proj.yml"),
+                root.join("_projr.yml"),
                 "build:\n  scripts: []\n  git: true\n  restrictions:\n    not_behind_git: false\n",
             )
             .unwrap();
@@ -168,7 +168,7 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
         let root = project.path();
         let path = fixture(root);
         fs::write(
-            root.join("_proj.yml"),
+            root.join("_projr.yml"),
             "build:\n  scripts: []\n  git: false\n  restrictions:\n    not_behind: true\n",
         )
         .unwrap();
@@ -199,7 +199,7 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
         let root = project.path();
         let path = fixture(root);
         fs::write(
-            root.join("_proj.yml"),
+            root.join("_projr.yml"),
             "build:\n  scripts: []\n  git: false\n",
         )
         .unwrap();
@@ -216,7 +216,7 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
         let path = fixture(root);
         fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
         fs::write(
-            root.join("_proj.yml"),
+            root.join("_projr.yml"),
             "build:\n  scripts: []\n  git: false\n",
         )
         .unwrap();
@@ -239,7 +239,7 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
             let root = project.path();
             let path = fixture(root);
             fs::write(
-                root.join("_proj.yml"),
+                root.join("_projr.yml"),
                 format!("build:\n  scripts: []\n  git: false\n{setting}"),
             )
             .unwrap();
@@ -265,7 +265,7 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
             let root = project.path();
             let path = fixture(root);
             fs::write(
-                root.join("_proj.yml"),
+                root.join("_projr.yml"),
                 format!("build:\n  scripts: []\n  git: false\n{setting}"),
             )
             .unwrap();
@@ -294,7 +294,7 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
             let path = fixture(root);
             fs::remove_dir(root.join(".git")).unwrap();
             fs::write(
-                root.join("_proj.yml"),
+                root.join("_projr.yml"),
                 format!("build:\n  scripts: []\n  git: false\n{setting}"),
             )
             .unwrap();
@@ -318,7 +318,7 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
             let root = project.path();
             let path = fixture(root);
             fs::write(
-                root.join("_proj.yml"),
+                root.join("_projr.yml"),
                 format!("build:\n  scripts: []\n  git: false\n{setting}"),
             )
             .unwrap();
@@ -342,7 +342,7 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
         let root = project.path().join("analysis");
         fs::create_dir(&root).unwrap();
         fs::write(
-            root.join("_proj.yml"),
+            root.join("_projr.yml"),
             "build:\n  scripts: []\n  git: false\n  restrictions:\n    branch: main\n    not_behind_git: false\n",
         )
         .unwrap();
@@ -366,7 +366,7 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
             let project = tempfile::tempdir().unwrap();
             let root = project.path();
             let path = fixture(root);
-            fs::write(root.join("_proj.yml"), format!("build:\n  scripts: []\n  git: false\n  restrictions:\n    branch: {setting}\n    not_behind_git: false\n")).unwrap();
+            fs::write(root.join("_projr.yml"), format!("build:\n  scripts: []\n  git: false\n  restrictions:\n    branch: {setting}\n    not_behind_git: false\n")).unwrap();
             let output = command(root, &path).output().unwrap();
             assert_eq!(
                 output.status.success(),
@@ -387,7 +387,7 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
             let project = tempfile::tempdir().unwrap();
             let root = project.path();
             let path = fixture(root);
-            fs::write(root.join("_proj.yml"), format!("config:\n  git:\n    use_proj_cred_helper: {override_enabled}\nbuild:\n  scripts: []\n  git:\n    commit: true\n    push: true\n  restrictions:\n    not_behind_git: false\n")).unwrap();
+            fs::write(root.join("_projr.yml"), format!("config:\n  git:\n    use_proj_cred_helper: {override_enabled}\nbuild:\n  scripts: []\n  git:\n    commit: true\n    push: true\n  restrictions:\n    not_behind_git: false\n")).unwrap();
             let token = "fixture-token-sentinel";
             let output = command(root, &path)
                 .env("GITHUB_PAT", token)
@@ -435,7 +435,7 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
             let path = fixture(root);
             fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
             fs::write(root.join("unrelated.txt"), "keep").unwrap();
-            fs::write(root.join("_proj.yml"), "build:\n  scripts: []\n  git:\n    commit: true\n    push: true\n  restrictions:\n    not_behind_git: false\n").unwrap();
+            fs::write(root.join("_projr.yml"), "build:\n  scripts: []\n  git:\n    commit: true\n    push: true\n  restrictions:\n    not_behind_git: false\n").unwrap();
             let output = command(root, &path)
                 .env("TEST_DIRTY", if dirty { "1" } else { "0" })
                 .env("TEST_NETWORK_FAIL", "1")
@@ -467,7 +467,7 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
         let root = project.path();
         let path = fixture(root);
         fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
-        fs::write(root.join("_proj.yml"), "build:\n  scripts: []\n  git:\n    commit: true\n    push: true\n  restrictions:\n    not_behind_git: false\n").unwrap();
+        fs::write(root.join("_projr.yml"), "build:\n  scripts: []\n  git:\n    commit: true\n    push: true\n  restrictions:\n    not_behind_git: false\n").unwrap();
         let output = command(root, &path)
             .env("TEST_CUSTOM_PUSH", "1")
             .output()
@@ -502,7 +502,7 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
             let path = fixture(root);
             fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
             fs::write(root.join("private.txt"), "untracked private fixture").unwrap();
-            fs::write(root.join("_proj.yml"), "build:\n  scripts: []\n  git:\n    commit: true\n    push: true\n  restrictions:\n    not_behind_git: false\n").unwrap();
+            fs::write(root.join("_projr.yml"), "build:\n  scripts: []\n  git:\n    commit: true\n    push: true\n  restrictions:\n    not_behind_git: false\n").unwrap();
             let output = command(root, &path).env(setting, "1").output().unwrap();
             assert!(!output.status.success(), "{setting}");
             assert_eq!(
@@ -541,7 +541,7 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
                 "from pathlib import Path\nPath('analysis-marker').touch()\n",
             )
             .unwrap();
-            fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\nbuild:\n  scripts: [analysis.py]\n  git:\n    commit: true\n    push: true\n  restrictions:\n    not_behind_git: false\n").unwrap();
+            fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: cache\nbuild:\n  scripts: [analysis.py]\n  git:\n    commit: true\n    push: true\n  restrictions:\n    not_behind_git: false\n").unwrap();
             let output = command(root, &path)
                 .env(setting, "1")
                 .env("TEST_STAGED", "1")

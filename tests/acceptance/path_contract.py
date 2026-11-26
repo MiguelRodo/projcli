@@ -92,7 +92,7 @@ knitr::include_graphics(image)
     config = ('directories:\n  raw-data: {path: _raw}\n  cache: {path: cache}\n'
               '  output: {path: released}\n  docs: {path: published}\n'
               'settings:\n  output-clear-stage: none\nbuild:\n  git: false\n  scripts: ' + json.dumps(scripts, ensure_ascii=False) + '\n')
-    (root / '_proj.yml').write_text(config)
+    (root / '_projr.yml').write_text(config)
     for stem in ["qreport's é", "rreport's é"]:
         (docs / (stem + '.html')).write_bytes(b'preexisting native html')
         assets = docs / (stem + '_files')
@@ -153,7 +153,7 @@ def notebook_preservation(binary: Path, container: Path) -> dict:
     (root / 'analysis/report.nb.html').write_bytes(b'preexisting notebook html')
     (root / 'analysis/report.html').write_bytes(b'preexisting intermediate html')
     (root / 'VERSION').write_bytes(b'v1.2.3-4\n')
-    (root / '_proj.yml').write_text('directories:\n  cache: {path: cache}\n  docs: {path: published}\nbuild:\n  scripts: [analysis/report.Rmd]\n  git: false\n')
+    (root / '_projr.yml').write_text('directories:\n  cache: {path: cache}\n  docs: {path: published}\nbuild:\n  scripts: [analysis/report.Rmd]\n  git: false\n')
     (root / 'analysis/report.Rmd').write_text('---\noutput: html_notebook\n---\n\n```{r}\n1 + 1\n```\n')
     result = subprocess.run([str(binary), 'build-dev', '--non-interactive', '--project', str(root)], cwd=root, capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
@@ -194,11 +194,11 @@ def embedding_policy_cases(binary: Path, container: Path) -> list[dict]:
         if name == 'project-docx':
             metadata = 'format: docx\n'
         document.write_text('---\ntitle: Embedding policy\n' + metadata + '---\n\n![sentinel](sentinel.png)\n')
-        (root / '_proj.yml').write_text('directories:\n  cache: {path: cache}\n  docs: {path: published}\nbuild:\n  git: false\n  scripts: [analysis/report.' + extension + ']\n')
+        (root / '_projr.yml').write_text('directories:\n  cache: {path: cache}\n  docs: {path: published}\nbuild:\n  git: false\n  scripts: [analysis/report.' + extension + ']\n')
         if name == 'project-mixed-alias':
             (root / 'analysis/other.qmd').write_text('---\nformat: html\n---\n\n![sentinel](sentinel.png)\n')
-            configured = (root / '_proj.yml').read_text().replace('scripts: [analysis/report.qmd]', 'scripts: [analysis/report.qmd, analysis/other.qmd]')
-            (root / '_proj.yml').write_text(configured)
+            configured = (root / '_projr.yml').read_text().replace('scripts: [analysis/report.qmd]', 'scripts: [analysis/report.qmd, analysis/other.qmd]')
+            (root / '_projr.yml').write_text(configured)
         env = os.environ.copy()
         for key in ['PROJ_PROJECT_ROOT', 'PROJ_RUN_CONTEXT', 'PROJR_PROFILE', 'QUARTO_PROFILE', 'PROJR_CLEAR_OUTPUT']:
             env.pop(key, None)
@@ -241,12 +241,12 @@ def embedding_policy_cases(binary: Path, container: Path) -> list[dict]:
             if name != 'project-late-local-create':
                 (root / dependency).write_text('toc: false\n')
             (root / 'change.py').write_text("from pathlib import Path\nPath(" + repr(dependency) + ").write_text('self-contained: false\\n')\n")
-            configured = (root / '_proj.yml').read_text().replace('scripts: [analysis/report.qmd]', 'scripts: [change.py, analysis/report.qmd]')
-            (root / '_proj.yml').write_text(configured)
+            configured = (root / '_projr.yml').read_text().replace('scripts: [analysis/report.qmd]', 'scripts: [change.py, analysis/report.qmd]')
+            (root / '_projr.yml').write_text(configured)
         if name == 'project-inherited-docx-html':
             (root / 'inspect.py').write_text("import subprocess\nfrom pathlib import Path\nPath('cache').mkdir(exist_ok=True)\nPath('cache/prepared-formats.json').write_text(subprocess.check_output(['quarto','inspect','analysis/report.qmd'],text=True))\n")
-            configured = (root / '_proj.yml').read_text().replace('scripts: [analysis/report.qmd]', 'scripts: [inspect.py, analysis/report.qmd]')
-            (root / '_proj.yml').write_text(configured)
+            configured = (root / '_projr.yml').read_text().replace('scripts: [analysis/report.qmd]', 'scripts: [inspect.py, analysis/report.qmd]')
+            (root / '_projr.yml').write_text(configured)
             native = container / (name + '-native')
             shutil.copytree(root, native)
             reference = subprocess.run(['quarto','inspect','analysis/report.qmd'],cwd=native,env=env,capture_output=True,text=True)

@@ -307,7 +307,7 @@ all12checks and the [full pinned gate](https://github.com/MiguelRodo/projcli/act
 It merged ascee85a164fa43cb827c0db69814199994fa4ea66 with an identical tested tree.
 
 Configured restore uses the shared profile selection order: explicit profile,
-PROJR_PROFILE, QUARTO_PROFILE, then build.profile, with earlier profiles winning
+PROJR_PROFILE, then the local and base `profile` keys, with earlier profiles winning
 and local overrides last. Machine failures preserve installation/recovery details
 on stderr, including retained backup paths; stdout stays a structured failure.
 Legacy data CSV rows and remote data namespaces are read without rewriting

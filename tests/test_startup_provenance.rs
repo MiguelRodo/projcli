@@ -3,7 +3,7 @@ use std::{fs,path::Path,process::Command};
 
 fn fixture(root:&Path,scripts:&str) {
     fs::write(root.join("VERSION"),b"v1.2.3-19\r\n").unwrap();
-    fs::write(root.join("_proj.yml"),format!("directories:\n  cache: {{path: cache}}\n  output: {{path: released}}\nparameters:\n  token: CONFIG-PRIVATE-TOKEN\n  endpoint: https://user:secret@private.invalid/api?token=CONFIG-QUERY\nbuild:\n  scripts: {scripts}\n  git: false\n")).unwrap();
+    fs::write(root.join("_projr.yml"),format!("directories:\n  cache: {{path: cache}}\n  output: {{path: released}}\nparameters:\n  token: CONFIG-PRIVATE-TOKEN\n  endpoint: https://user:secret@private.invalid/api?token=CONFIG-QUERY\nbuild:\n  scripts: {scripts}\n  git: false\n")).unwrap();
     fs::create_dir(root.join("released")).unwrap();
 }
 fn build(root:&Path,empty_path:bool)->std::process::Output {
@@ -20,7 +20,7 @@ fn success(output:std::process::Output) {
     assert!(output.status.success(),"{}",String::from_utf8_lossy(&output.stderr));
 }
 fn record(root:&Path,version:&str)->serde_json::Value {
-    let records:Vec<serde_json::Value>=fs::read_dir(root.join(".proj/log")).unwrap()
+    let records:Vec<serde_json::Value>=fs::read_dir(root.join(".projr/attempts")).unwrap()
         .map(|entry|entry.unwrap().path()).filter(|path|path.extension().is_some_and(|value|value=="json"))
         .map(|path|serde_json::from_slice(&fs::read(path).unwrap()).unwrap())
         .filter(|record:&serde_json::Value|record["release_version"]==version).collect();
@@ -36,8 +36,8 @@ fn digest(bytes:&[u8])->String {blake3::hash(bytes).to_hex().to_string()}
 fn actual_python_build_binds_startup_sources_dependencies_policy_and_sanitized_runner() {
     let temporary=tempfile::tempdir().unwrap();let root=temporary.path().canonicalize().unwrap();
     fixture(&root,"[analysis.py]");
-    let config=fs::read_to_string(root.join("_proj.yml")).unwrap();
-    fs::write(root.join("_proj.yml"),format!("{config}  hooks:\n    pre: [start.py]\n")).unwrap();
+    let config=fs::read_to_string(root.join("_projr.yml")).unwrap();
+    fs::write(root.join("_projr.yml"),format!("{config}  hooks:\n    pre: [start.py]\n")).unwrap();
     let analysis=b"from pathlib import Path\nPath('released/result').write_bytes(b'computed')\n";
     let start=b"from pathlib import Path\nPath('renv.lock').write_bytes(b'changed by start hook')\n";
     let dependency=b"dependency with https://user:secret@private.invalid/?token=DEPENDENCY-QUERY\n";

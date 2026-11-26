@@ -27,7 +27,7 @@ impl Fixture {
             fs::write(source.join("nested/caf\u{e9}.txt"),b"exact nested result\n").unwrap();
             fs::write(source.join("zero"),b"").unwrap();
         }
-        let metadata=if project_metadata {project.join(".proj/cas-metadata")}else{store.clone()};
+        let metadata=if project_metadata {project.join(".projr/cas-metadata")}else{store.clone()};
         let tree=cas_tree::ingest_directory(&project,&store,&metadata,&source).unwrap();
         let snapshot=TreeSnapshot::new("v1.2.3".into(),None,vec![DirectoryRoot {label:"output".into(),tree}]).unwrap();
         let id=cas_tree::publish_snapshot(&project,&store,&metadata,&snapshot).unwrap();
@@ -55,7 +55,7 @@ fn selected_remote_snapshot_restores_exact_bytes_after_the_working_project_is_lo
         ("nested/caf\u{e9}.txt".into(),b"exact nested result\n".to_vec()),("zero".into(),vec![])]));
     assert!(destination.join("nested/empty").is_dir());
     assert_eq!(fs::read(fixture.project.join("VERSION")).unwrap(),b"v9.0.0.7\n");
-    assert!(!fixture.project.join(".proj").exists());assert!(!fixture.project.join(".projr").exists());
+    assert!(!fixture.project.join(".projr").exists());
     assert_eq!(bytes(&fixture.store),before);
     assert_eq!(fs::read_dir(&fixture.project).unwrap().count(),2);
 }
@@ -104,8 +104,8 @@ fn destination_controls_and_store_overlap_fail_before_any_restore_writes() {
     let (fixture,metadata)=Fixture::new(false,false);
     let project_before=bytes(&fixture.project);let store_before=bytes(&fixture.store);
     for destination in [fixture.project.clone(),fixture.project.join("VERSION"),fixture.project.join("version"),
-        fixture.project.join("ver\u{17f}ion"),fixture.project.join("manifest.csv"),fixture.project.join(".proj"),
-        fixture.project.join(".git"),fixture.project.join("_proj.yml"),fixture.store.join("objects"),
+        fixture.project.join("ver\u{17f}ion"),fixture.project.join("manifest.csv"),fixture.project.join(".projr"),
+        fixture.project.join(".git"),fixture.project.join("_projr.yml"),fixture.store.join("objects"),
         fixture.store.join("trees/v1"),fixture.store.join("tree-snapshots/v1"),
         fixture.project.join("missing-parent/output")] {
         assert!(fixture.restore(&metadata,&destination,true).is_err(),"{destination}");

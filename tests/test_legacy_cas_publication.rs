@@ -52,7 +52,7 @@ fn exact_retry_preserves_raw_ids_index_bytes_quoted_rows_and_source_bytes() {
     let rows=rows(&f.project);assert_eq!(rows.len(),2);assert_eq!(&rows[1][0],"1,2");assert_eq!(&rows[1][1],"raw\"quoted");
     verify_store(&f.store,&f.source);assert_eq!(files(&f.store.join("objects")).len(),2);
     assert_eq!(files(&f.store.join("objects")).values().cloned().collect::<BTreeSet<_>>(),before_source.values().cloned().collect::<BTreeSet<_>>());
-    assert!(!f.store.join(".proj/build.lock").exists());assert!(!f.project.join(".projr/.proj/build.lock").exists());
+    assert!(!f.store.join(".projr/build.lock").exists());assert!(!f.project.join(".projr/.projr/build.lock").exists());
 }
 #[test]
 fn changed_same_version_content_retains_legacy_rows_and_new_exact_retry_is_idempotent() {
@@ -71,7 +71,7 @@ fn changed_same_version_content_retains_legacy_rows_and_new_exact_retry_is_idemp
 fn store_or_shared_ledger_claim_blocks_without_new_references_or_owner_changes() {
     for ledger_claim in [false,true] {
         let f=fixture();let root=if ledger_claim{f.project.join(".projr")}else{f.store.clone()};
-        let claim=root.join(".proj/build.lock");fs::create_dir_all(claim.parent().unwrap()).unwrap();fs::write(&claim,b"another-owner").unwrap();
+        let claim=root.join(".projr/build.lock");fs::create_dir_all(claim.parent().unwrap()).unwrap();fs::write(&claim,b"another-owner").unwrap();
         let before=files(&f.project);let stored=files(&f.store);
         let error=proj::cas::ingest_directory(&f.project,&f.store,"raw",&f.source,"v1.0.0").unwrap_err();
         assert!(format!("{error:#}").contains("claim"));assert_eq!(fs::read(&claim).unwrap(),b"another-owner");
@@ -98,11 +98,11 @@ fn two_stores_share_authoritative_ledger_and_competitors_can_retry_without_lost_
     let rows=rows(&f.project);assert_eq!(rows.len(),2);
     assert_eq!(rows.iter().map(|row|row[1].to_owned()).collect::<BTreeSet<_>>(),BTreeSet::from(["raw-a".into(),"raw-b".into()]));
     verify_store(&first,&f.source);verify_store(&second,&f.source);
-    assert!(!f.project.join(".projr/.proj/build.lock").exists());
+    assert!(!f.project.join(".projr/.projr/build.lock").exists());
 }
 #[test]
 fn coincident_store_ledger_root_deduplicates_claims_without_reacquiring_parent_build() {
-    let f=fixture();let build=f.project.join(".proj/build.lock");
+    let f=fixture();let build=f.project.join(".projr/build.lock");
     fs::create_dir_all(build.parent().unwrap()).unwrap();fs::write(&build,b"outer-build-owner").unwrap();
     let store=f.project.join(".projr");
     proj::cas::ingest_directory(&f.project,&store,"raw",&f.source,"v1.0.0").unwrap();
@@ -127,7 +127,7 @@ fn linked_source_and_ledger_coordination_fail_without_external_writes() {
     assert!(proj::cas::ingest_directory(&f.project,&f.store,"raw",&f.source,"v1.0.0").is_err());
     assert!(!f.store.exists());assert!(!f.project.join(".projr").exists());fs::remove_file(f.source.join("link")).unwrap();
     fs::create_dir(f.project.join(".projr")).unwrap();
-    std::os::unix::fs::symlink(&outside,f.project.join(".projr/.proj")).unwrap();
+    std::os::unix::fs::symlink(&outside,f.project.join(".projr/.projr")).unwrap();
     assert!(proj::cas::ingest_directory(&f.project,&f.store,"raw",&f.source,"v1.0.0").is_err());
     assert_eq!(files(&outside),BTreeMap::from([("keep".into(),b"preserved".to_vec())]));assert!(!outside.join("build.lock").exists());
 }

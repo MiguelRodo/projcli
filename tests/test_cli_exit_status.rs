@@ -20,7 +20,7 @@ fn query_and_version_errors_are_nonzero() {
     assert_failure(invoke(root, &["version", "set", "invalid-version"]));
     assert!(!root.join("VERSION").exists());
     assert_failure(invoke(root, &["path", "get", "--label", "unsupported-label","--target","final","--format","absolute"]));
-    fs::write(root.join("_proj.yml"), "directories: [malformed\n").unwrap();
+    fs::write(root.join("_projr.yml"), "directories: [malformed\n").unwrap();
     assert_failure(invoke(root, &["yml", "read"]));
     assert_failure(invoke(root, &["path", "get", "--label", "output","--target","final","--format","absolute"]));
 }
@@ -42,7 +42,7 @@ fn ignore_and_initialization_errors_are_nonzero() {
 fn missing_executable_and_child_failures_remain_nonzero() {
     let project = tempfile::tempdir().unwrap();
     let root = project.path();
-    fs::write(root.join("_proj.yml"), "build:\n  scripts: [analysis.py]\n").unwrap();
+    fs::write(root.join("_projr.yml"), "build:\n  scripts: [analysis.py]\n").unwrap();
     fs::write(root.join("analysis.py"), "raise SystemExit(17)\n").unwrap();
     assert_failure(invoke(root, &["build-dev"]));
     let empty_path = root.join("empty-path");
@@ -57,7 +57,7 @@ fn missing_executable_and_child_failures_remain_nonzero() {
 #[test]
 fn successful_queries_still_return_zero() {
     let project = tempfile::tempdir().unwrap();
-    fs::write(project.path().join("_proj.yml"), "directories:\n  output:\n    path: _output\n").unwrap();
+    fs::write(project.path().join("_projr.yml"), "directories:\n  output:\n    path: _output\n").unwrap();
     fs::write(project.path().join("VERSION"), "v1.2.3\n").unwrap();
     for args in [&["version", "get"][..], &["path", "get", "--label", "output","--target","final","--format","absolute"], &["yml", "read"]] {
         let output = invoke(project.path(), args);

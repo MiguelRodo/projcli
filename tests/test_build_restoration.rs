@@ -16,7 +16,7 @@ fn snapshot(root: &Path) -> BTreeMap<PathBuf, Option<Vec<u8>>> {
 // Compare every prior byte/presence exactly; permit only the one new approved local diagnostic.
 fn recovered_snapshot(root:&Path,before:&BTreeMap<PathBuf,Option<Vec<u8>>>)->BTreeMap<PathBuf,Option<Vec<u8>>> {
     let mut after=snapshot(root);
-    let directory=Path::new(".proj/log/local-failures");
+    let directory=Path::new(".projr/logs/local-failures");
     let added:Vec<_>=after.keys().filter(|p|p.starts_with(directory)&&!before.contains_key(*p)).cloned().collect();
     let mut diagnostics=0;
     for path in added {
@@ -37,11 +37,11 @@ fn recovered_snapshot(root:&Path,before:&BTreeMap<PathBuf,Option<Vec<u8>>>)->BTr
         diagnostics+=1;
     }
     assert_eq!(diagnostics,1);
-    for parent in [".proj",".proj/log"] {
+    for parent in [".projr",".projr/logs"] {
         let parent=Path::new(parent);
         if !before.contains_key(parent){assert_eq!(after.remove(parent),Some(None));}
     }
-    assert!(!root.join(".proj/build.lock").exists());
+    assert!(!root.join(".projr/build.lock").exists());
     after
 }
 
@@ -61,7 +61,7 @@ fn failure_at_each_hook_and_analysis_restores_exact_version_authorities_and_dev_
             let root = project.path();
             let hooks = if phase == "analysis" { String::new() } else { format!("  hooks:\n    {phase}: [fail.py]\n") };
             let scripts = if phase == "analysis" { "[fail.py]" } else { "[analysis.py]" };
-            fs::write(root.join("_proj.yml"), format!("directories:\n  cache:\n    path: cache\n  output:\n    path: output\n  docs:\n    path: published\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: {scripts}\n{hooks}  git: false\n  clear_output: pre\n  restrictions:\n    not_behind: false\n")).unwrap();
+            fs::write(root.join("_projr.yml"), format!("directories:\n  cache:\n    path: cache\n  output:\n    path: output\n  docs:\n    path: published\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: {scripts}\n{hooks}  git: false\n  clear_output: pre\n  restrictions:\n    not_behind: false\n")).unwrap();
             fs::write(root.join(".gitignore"), "# exact prior ignore\nmanual\n").unwrap();
             fs::write(root.join(".Rbuildignore"), "^manual$\n").unwrap();
             fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('output/new').write_text('new')\n").unwrap();
@@ -72,8 +72,8 @@ fn failure_at_each_hook_and_analysis_restores_exact_version_authorities_and_dev_
             fs::write(root.join("published/old.html"), "old docs").unwrap();
             if let Some(bytes) = version_bytes { fs::write(root.join("VERSION"), bytes).unwrap(); }
             if let Some(bytes) = description_bytes { fs::write(root.join("DESCRIPTION"), bytes).unwrap(); }
-            fs::create_dir_all(root.join(".proj/log")).unwrap();
-            fs::write(root.join(".proj/log/keep-prior-evidence"),b"preserve unrelated evidence").unwrap();
+            fs::create_dir_all(root.join(".projr/attempts")).unwrap();
+            fs::write(root.join(".projr/attempts/keep-prior-evidence"),b"preserve unrelated evidence").unwrap();
             let before = snapshot(root);
             let result = Command::new(env!("CARGO_BIN_EXE_proj"))
                 .args(["build", "--patch", "--non-interactive", "--project"]).arg(root).current_dir(root)
@@ -90,7 +90,7 @@ fn failure_at_each_hook_and_analysis_restores_exact_version_authorities_and_dev_
 fn publication_failure_reports_local_success_and_keeps_the_new_release() {
     let project = tempfile::tempdir().unwrap();
     let root = project.path();
-    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\n  output:\n    path: output\nremotes:\n  local:\n    archive:\n      path: not-a-directory\n      structure: cas\n      inspect: manifest\n      content: [output]\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  dest: [archive]\n  restrictions:\n    not_behind: false\n").unwrap();
+    fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: cache\n  output:\n    path: output\nremotes:\n  local:\n    archive:\n      path: not-a-directory\n      structure: cas\n      inspect: manifest\n      content: [output]\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  dest: [archive]\n  restrictions:\n    not_behind: false\n").unwrap();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
     fs::write(root.join("not-a-directory"), "publication blocker").unwrap();
     fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('output').mkdir(exist_ok=True)\nPath('output/result').write_text('successful analysis')\n").unwrap();
@@ -114,7 +114,7 @@ fn missing_renderer_promotion_is_a_failure_and_restores_exact_project_config() {
         let root = project.path().canonicalize().unwrap();
         let original = "# keep comments and render selection\nproject:\n  type: default\n  render: [report.qmd]\nformat: html\n";
         fs::write(root.join("_quarto.yml"), original).unwrap();
-        fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\n  docs:\n    path: published\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [report.qmd]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+        fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: cache\n  docs:\n    path: published\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [report.qmd]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
         fs::write(root.join("report.qmd"), "---\nformat: html\n---\nReport\n").unwrap();
         fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
         fs::create_dir(root.join("published")).unwrap();
@@ -148,7 +148,7 @@ fn version_write_failure_restores_files_after_successful_analysis_and_post_hook(
     fs::create_dir(root.join("output")).unwrap();
     fs::write(root.join("output/previous"), "old release").unwrap();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
-    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\n  output:\n    path: output\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  hooks:\n    post: [block-version.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+    fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: cache\n  output:\n    path: output\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  hooks:\n    post: [block-version.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
     fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('output/new').write_text('new release')\n").unwrap();
     fs::write(root.join("block-version.py"), "from pathlib import Path\np = Path('VERSION')\np.unlink()\np.mkdir()\n").unwrap();
     let before = snapshot(root);
@@ -171,7 +171,7 @@ fn backup_failure_precedes_authoritative_writes_and_preserves_external_bytes() {
     std::os::unix::fs::symlink(external.path().join("keep"), root.join("output/linked")).unwrap();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
     fs::write(root.join(".gitignore"), "manual\n").unwrap();
-    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\n  output:\n    path: output\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+    fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: cache\n  output:\n    path: output\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
     fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('output/analysis-ran').touch()\n").unwrap();
     let result = Command::new(env!("CARGO_BIN_EXE_proj"))
         .args(["build", "--patch", "--non-interactive", "--project"]).arg(root).current_dir(root)
@@ -196,7 +196,7 @@ fn contains_bytes(directory: &Path, expected: &[u8]) -> bool {
 fn post_clear_precedes_promotion_and_archive_contains_actual_analysis_bytes() {
     let project = tempfile::tempdir().unwrap();
     let root = project.path();
-    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\n  output:\n    path: output\nremotes:\n  local:\n    archive:\n      path: archives\n      structure: cas\n      inspect: manifest\n      content: [output]\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  clear_output: post\n  dest: [archive]\n  restrictions:\n    not_behind: false\n").unwrap();
+    fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: cache\n  output:\n    path: output\nremotes:\n  local:\n    archive:\n      path: archives\n      structure: cas\n      inspect: manifest\n      content: [output]\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  clear_output: post\n  dest: [archive]\n  restrictions:\n    not_behind: false\n").unwrap();
     fs::write(root.join("analysis.py"), format!(r#"from pathlib import Path
 import json,subprocess
 value=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label','output','--target','safe','result.csv','--format','absolute'],text=True))
@@ -224,7 +224,7 @@ fn nested_selected_scripts_and_hooks_restore_themselves_after_failure() {
             fs::write(root.join("nested/fail.py"), script).unwrap();
             let selection = if hook { "  scripts: []\n  hooks:\n    pre: [nested/fail.py]\n" }
                 else { "  scripts: [nested/fail.py]\n" };
-            fs::write(root.join("_proj.yml"), format!("directories:\n  cache:\n    path: cache\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n{selection}  git: false\n  restrictions:\n    not_behind: false\n")).unwrap();
+            fs::write(root.join("_projr.yml"), format!("directories:\n  cache:\n    path: cache\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n{selection}  git: false\n  restrictions:\n    not_behind: false\n")).unwrap();
             let result = Command::new(env!("CARGO_BIN_EXE_proj"))
                 .args(["build", "--patch", "--non-interactive", "--project"]).arg(root).current_dir(root)
                 .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
@@ -245,7 +245,7 @@ fn purging_disposable_cache_cannot_destroy_recovery_or_the_previous_release() {
     fs::create_dir(root.join("output")).unwrap();
     fs::write(root.join("output/previous"), "old release").unwrap();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
-    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\n  output:\n    path: output\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+    fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: cache\n  output:\n    path: output\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
     fs::write(root.join("analysis.py"), "import shutil\nshutil.rmtree('cache', ignore_errors=True)\nraise SystemExit(17)\n").unwrap();
     let before = snapshot(root);
     let result = Command::new(env!("CARGO_BIN_EXE_proj"))
@@ -268,7 +268,7 @@ fn no_op_renderer_cannot_promote_a_stale_individual_document() {
     fs::write(root.join("report.html"), "stale native output").unwrap();
     fs::write(root.join("report.qmd"), "---\nformat: html\n---\nReport\n").unwrap();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
-    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\n  docs:\n    path: published\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [report.qmd]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+    fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: cache\n  docs:\n    path: published\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [report.qmd]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
     fs::create_dir(root.join("bin")).unwrap();
     for name in ["quarto", "Rscript"] {
         let path = root.join("bin").join(name);
@@ -323,7 +323,7 @@ fn selected_link_is_rejected_before_mutation_instead_of_backing_only_its_referen
     fs::write(root.join("nested/actual.py"), "from pathlib import Path\nPath(__file__).unlink()\nraise SystemExit(17)\n").unwrap();
     std::os::unix::fs::symlink("actual.py", root.join("nested/runner.py")).unwrap();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
-    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [nested/runner.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+    fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: cache\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [nested/runner.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
     let result = Command::new(env!("CARGO_BIN_EXE_proj"))
         .args(["build", "--patch", "--non-interactive", "--project"]).arg(root).current_dir(root)
         .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
@@ -348,7 +348,7 @@ fn project_pdf_artifacts_succeed_with_document_or_inherited_project_format() {
         fs::write(root.join("_quarto.yml"), project_yaml).unwrap();
         fs::write(root.join("report.qmd"), if inherited { "Report\n" } else { "---\nformat: pdf\n---\nReport\n" }).unwrap();
         fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
-        fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\n  docs:\n    path: published\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [report.qmd]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+        fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: cache\n  docs:\n    path: published\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [report.qmd]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
         fs::create_dir(root.join("bin")).unwrap();
         fs::write(root.join("bin/Rscript"), "#!/bin/sh\nexit 0\n").unwrap();
         fs::write(root.join("bin/quarto"), "#!/usr/bin/env python3\nimport os, sys\nfrom pathlib import Path\nif sys.argv[1:2]==['inspect']: print('{\"files\":{\"input\":[]}}'); raise SystemExit(0)\nif sys.argv[1:2] == ['render']:\n root=Path(os.environ['PROJ_PROJECT_ROOT'])\n line=next(line for line in (root/'_quarto.yml').read_text().splitlines() if line.strip().startswith('output-dir:'))\n p=Path(line.split(':',1)[1].strip().strip(chr(34)).strip(chr(39)))\n p.mkdir(parents=True,exist_ok=True)\n (p/'report.pdf').write_bytes(b'%PDF-fresh-document')\n").unwrap();
@@ -380,7 +380,7 @@ fn bookdown_native_assets_restore_after_post_promotion_hook_failure() {
         fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
         fs::write(root.join("report.Rmd"), "Report\n").unwrap();
         fs::write(root.join("post.py"), "raise SystemExit(17)\n").unwrap();
-        fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: cache\n  docs:\n    path: published\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [report.Rmd]\n  hooks:\n    post: [post.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+        fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: cache\n  docs:\n    path: published\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [report.Rmd]\n  hooks:\n    post: [post.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
         let assets = root.join(format!("{name}_files"));
         fs::create_dir_all(assets.join("empty")).unwrap();
         fs::write(assets.join("old.png"), b"old-native-asset").unwrap();
@@ -424,7 +424,7 @@ fn no_distribution_cas_preparation_failures_retain_one_local_diagnostic() {
         } else {"raise SystemExit(17)\n"}).unwrap();
         let content=if empty_content {"[]"}else{"[output]"};
         let hook=if empty_content {"  hooks: {post: [fail.py]}\n"}else{""};
-        fs::write(root.join("_proj.yml"),format!("directories:\n  output: {{path: missing-output}}\nremotes:\n  local:\n    archive:\n      path: archives\n      structure: cas\n      inspect: manifest\n      content: {content}\nbuild:\n  scripts: []\n  git: false\n  dest: [archive]\n{hook}  restrictions:\n    not_behind: false\n")).unwrap();
+        fs::write(root.join("_projr.yml"),format!("directories:\n  output: {{path: missing-output}}\nremotes:\n  local:\n    archive:\n      path: archives\n      structure: cas\n      inspect: manifest\n      content: {content}\nbuild:\n  scripts: []\n  git: false\n  dest: [archive]\n{hook}  restrictions:\n    not_behind: false\n")).unwrap();
         let before=snapshot(&root);
         let result=std::process::Command::new(env!("CARGO_BIN_EXE_proj"))
             .current_dir(&root).args(["--machine","--non-interactive","--project"]).arg(&root).arg("build")
@@ -433,10 +433,10 @@ fn no_distribution_cas_preparation_failures_retain_one_local_diagnostic() {
             .output().unwrap();
         assert!(!result.status.success(),"case {empty_content}");
         assert_eq!(recovered_snapshot(&root,&before),before,"case {case}: {}",String::from_utf8_lossy(&result.stderr));
-        let root_json=fs::read_dir(root.join(".proj/log")).unwrap()
-            .filter(|entry|entry.as_ref().unwrap().path().extension().is_some_and(|e|e=="json")).count();
+        let root_json=fs::read_dir(root.join(".projr/attempts")).map(|entries|entries
+            .filter(|entry|entry.as_ref().unwrap().path().extension().is_some_and(|e|e=="json")).count()).unwrap_or(0);
         assert_eq!(root_json,0,"duplicate ordinary record in case {empty_content}");
-        let diagnostics:Vec<_>=fs::read_dir(root.join(".proj/log/local-failures")).unwrap()
+        let diagnostics:Vec<_>=fs::read_dir(root.join(".projr/logs/local-failures")).unwrap()
             .map(|e|e.unwrap().path()).filter(|p|p.extension().is_some_and(|e|e=="json")).collect();
         assert_eq!(diagnostics.len(),1);
         let history=std::process::Command::new(env!("CARGO_BIN_EXE_proj"))

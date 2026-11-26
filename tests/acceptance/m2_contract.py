@@ -29,7 +29,7 @@ def resource(label,*parts):
     reply=json.loads(subprocess.check_output([binary,'--machine','path','get','--label',label,*parts],text=True))
     return Path(reply['result']['path'])
 value=int(next(csv.DictReader(resource('raw','input.csv').open()))['value'])
-factor=json.loads(Path('_proj.yml').read_text())['parameters']['factor']
+factor=json.loads(Path('_projr.yml').read_text())['parameters']['factor']
 target=resource('output','result.csv')
 target.parent.mkdir(parents=True,exist_ok=True)
 target.write_bytes(('value\\n'+str(value*factor)+'\\n').encode())
@@ -78,14 +78,14 @@ def main():
             prior=None
             for name,input_value,factor,release in [('first',21,2,'v1.2.4'),('second',22,3,'v1.2.5')]:
                 cfg['parameters']['factor']=factor
-                (root/'_proj.yml').write_text(json.dumps(cfg))
+                (root/'_projr.yml').write_text(json.dumps(cfg))
                 input_bytes=f'value\n{input_value}\n'.encode();(root/'input/input.csv').write_bytes(input_bytes)
                 result,_=invoke(binary,root,env,'build','--patch','--description','integrated M2 fixture')
                 assert result.returncode==0,result.stderr
                 expected=f'value\n{input_value*factor}\n'.encode()
                 final=root/'released/result.csv';assert final.read_bytes()==expected
                 assert (root/f'cache/projr/{release}/output/result.csv').read_bytes()==expected
-                records=[(path,json.loads(path.read_text())) for path in (root/'.proj/log').glob('*.json')]
+                records=[(path,json.loads(path.read_text())) for path in (root/'.projr/attempts').glob('*.json')]
                 path,record=next((p,r) for p,r in records if r['release_version']==release)
                 assert record['status']=='completed' and record['git']['commit']=='not_requested'
                 configuration=record['startup_provenance']['configuration']['effective']
@@ -105,7 +105,7 @@ def main():
                 raw=next(r for r in manifest if r['version']==release and r['label']=='raw')
                 assert raw['fn']=='input.csv' and raw['hash']==hashlib.md5(input_bytes).hexdigest()
                 assert all(r['label']!='raw-excluded' for r in manifest)
-                csv_ref=record['final_outputs']['rows'];retained=root/'.proj/log'/csv_ref['file']
+                csv_ref=record['final_outputs']['rows'];retained=root/'.projr/attempts'/csv_ref['file']
                 assert retained.stat().st_size==csv_ref['bytes']
                 assert list(csv.DictReader(retained.open()))==rows
                 output=args.artifacts/name;output.mkdir()
@@ -118,7 +118,7 @@ def main():
                     'input_md5':raw['hash'],'final_rows':len(rows)})
             before={name:(root/name).read_bytes() for name in ['VERSION','DESCRIPTION','released/result.csv']}
             before_store=snapshot(root/'.projr/manifests')
-            logs=snapshot(root/'.proj/log')
+            logs=snapshot(root/'.projr/attempts')
             failure_env=env.copy();failure_env['PROJCLI_M2_FAIL']='1'
             failure_witness=base/'failed-analysis-ran';failure_env['PROJCLI_M2_FAILURE_WITNESS']=str(failure_witness)
             result,failure=invoke(binary,root,failure_env,'build','--patch')
@@ -130,17 +130,17 @@ def main():
             shutil.copyfile(failure_witness,args.artifacts/'failure-witness.txt')
             assert {name:(root/name).read_bytes() for name in before}==before
             assert snapshot(root/'.projr/manifests')==before_store
-            after_logs=snapshot(root/'.proj/log')
+            after_logs=snapshot(root/'.projr/attempts')
             assert all(after_logs[name]==data for name,data in logs.items())
-            diagnostics=list((root/'.proj/log/local-failures').glob('*.json'))
+            diagnostics=list((root/'.projr/logs/local-failures').glob('*.json'))
             assert len(diagnostics)==1
             diagnostic=json.loads(diagnostics[0].read_text())
             assert diagnostic['status']=='failed' and diagnostic['stage']=='local_build'
             assert diagnostic['distribution_may_have_started'] is False
             assert diagnostic['version_before']==diagnostic['version_after']=='v1.2.5.1'
-            assert (root/'.proj/log/local-failures/.gitignore').read_bytes()==b'*\n'
+            assert (root/'.projr/logs/local-failures/.gitignore').read_bytes()==b'*\n'
             shutil.copyfile(diagnostics[0],args.artifacts/'local-failure.json')
-            assert not (root/'.proj/build.lock').exists()
+            assert not (root/'.projr/build.lock').exists()
             assert not (root/'.git').exists() and not witness.exists()
             result,history=invoke(binary,root,env,'history');assert result.returncode==0
             entries=history['result']['history']['entries']
@@ -153,13 +153,13 @@ def main():
             assert (root/'released/result.csv').read_bytes()==b'value\n66\n'
             assert failed_cache.read_bytes()==b'value\n66\n'
             assert (root/'VERSION').read_bytes()==b'Version: v1.2.6.1'
-            for name,data in logs.items():assert (root/'.proj/log'/name).read_bytes()==data
-            retry_path,retry=next((path,json.loads(path.read_text())) for path in (root/'.proj/log').glob('*.json')
+            for name,data in logs.items():assert (root/'.projr/attempts'/name).read_bytes()==data
+            retry_path,retry=next((path,json.loads(path.read_text())) for path in (root/'.projr/attempts').glob('*.json')
                 if json.loads(path.read_text())['release_version']=='v1.2.6')
             assert retry['status']=='completed' and retry['attempt_id'] not in {case['attempt_id'] for case in evidence['cases']}
             assert retry['startup_provenance']['configuration']==prior['startup_provenance']['configuration']
             output=args.artifacts/'retry';output.mkdir()
-            for source,target in [(retry_path,'record.json'),(root/'.proj/log'/retry['final_outputs']['rows']['file'],'final.csv'),
+            for source,target in [(retry_path,'record.json'),(root/'.projr/attempts'/retry['final_outputs']['rows']['file'],'final.csv'),
                 (root/'released/result.csv','result.csv'),(root/'input/input.csv','input.csv')]:
                 shutil.copyfile(source,output/target)
             (output/'manifest.csv').write_bytes(store_csv(root))

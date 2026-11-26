@@ -172,13 +172,64 @@ pub(crate) fn update_ignores_for_generated(
         git_ignores.push("/_environment.local".to_owned());
         rbuild_ignores.push(r"^_environment\.local$".to_owned());
     }
+    // projr's project-state rules (`R/ignore-auto.R:125-132`).
+    git_ignores.extend(
+        [
+            "/.projr/manifests/.versions.lock",
+            "/.projr/logs/**",
+            "/.projr/source/**",
+        ]
+        .map(str::to_owned),
+    );
+    // Local configuration files, matched by profile (`R/ignore-auto.R:134-142`).
+    for file in crate::profile::config_files(project_root)? {
+        if crate::profile::config_file_profile(&file) == "local" {
+            git_ignores.push(file);
+        }
+    }
+    // projr's Quarto directory rules (`R/ignore-auto.R:59-80`).
+    for directory in [".quarto", "index_files"] {
+        if project_root.join(directory).is_dir() {
+            git_ignores.push(format!("{directory}/**"));
+        }
+    }
     if project_root.join("DESCRIPTION").exists() {
+        // projr's conditional R-build rules (`R/ignore-auto.R:59-160`).
+        for directory in [
+            "_extensions",
+            "index_files",
+            ".quarto",
+            ".devcontainer",
+            ".github",
+            ".vscode",
+        ] {
+            if project_root.join(directory).is_dir() {
+                let escaped = regex::escape(directory);
+                rbuild_ignores.extend([format!("^{escaped}/"), format!("^{escaped}$")]);
+            }
+        }
+        let entries = fs::read_dir(project_root)
+            .map_err(|error| anyhow::anyhow!("Cannot list {project_root} for ignore rules: {error}"))?;
+        for entry in entries {
+            let name = entry?.file_name();
+            let Some(name) = name.to_str() else { continue };
+            let lower = name.to_ascii_lowercase();
+            if name.ends_with(".code-workspace")
+                || name == "_environment"
+                || name == "_environment.required"
+                || name.starts_with("_environment-")
+                || lower.ends_with(".qmd")
+                || lower.ends_with(".rmd")
+            {
+                rbuild_ignores.push(format!("^{}$", regex::escape(name)));
+            }
+        }
         rbuild_ignores.extend(
             [
                 r"^\.git$",
-                r"^\.proj$",
                 r"^\.projr$",
-                r"^_proj(r)?(-[^/]+)?\.ya?ml$",
+                r"^_projr$",
+                r"^_projr(-[^/]+)?\.yml$",
                 r"^VERSION$",
                 r"^manifest\.csv$",
                 r"^CITATION\.cff$",
@@ -402,14 +453,13 @@ fn has_project_marker(path: &camino::Utf8Path) -> bool {
         "VERSION",
         "README.md",
         "_quarto.yml",
-        "_proj.yml",
-        "_projr.yml",
         "pyproject.toml",
         "Project.toml",
         "JuliaProject.toml",
     ]
     .iter()
     .any(|name| path.join(name).is_file())
+        || crate::profile::has_base_config(path)
         || path.join(".git").is_dir()
         || path.join(".svn").is_dir()
         || has_line_prefix(&path.join(".git"), "gitdir: ")

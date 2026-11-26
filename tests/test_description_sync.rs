@@ -27,7 +27,7 @@ fn good(o: Output) {
 fn project() -> tempfile::TempDir {
     let t = tempfile::tempdir().unwrap();
     fs::write(
-        t.path().join("_proj.yml"),
+        t.path().join("_projr.yml"),
         "build: {git: false, scripts: []}\n",
     )
     .unwrap();
@@ -123,7 +123,7 @@ fn post_hook_failure_restores_exact_counter_and_description() {
     )
     .unwrap();
     fs::write(
-        r.join("_proj.yml"),
+        r.join("_projr.yml"),
         "build:\n  git: false\n  scripts: []\n  hooks: {post: [fail.py]}\n",
     )
     .unwrap();

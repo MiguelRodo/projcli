@@ -5,7 +5,7 @@ use std::{
 };
 
 fn setup(root: &Path) {
-    fs::write(root.join("_proj.yml"), "build:\n  scripts: [analysis.py]\n").unwrap();
+    fs::write(root.join("_projr.yml"), "build:\n  scripts: [analysis.py]\n").unwrap();
     fs::write(
         root.join("analysis.py"),
         "from pathlib import Path\nPath('analysis-ran').touch()\n",

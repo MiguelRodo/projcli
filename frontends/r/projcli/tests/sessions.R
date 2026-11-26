@@ -57,7 +57,7 @@ if (!nzchar(binary)) {
     write_cfg <- function() {
       writeLines(
         jsonlite::toJSON(cfg, auto_unbox = TRUE),
-        file.path(root, "_proj.yml")
+        file.path(root, "_projr.yml")
       )
     }
     shared_absent <- paste0(

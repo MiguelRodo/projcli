@@ -178,8 +178,8 @@ pub(crate) fn diagnostic_version(root:&Utf8Path)->Option<String> {
 /// Only this reserved directory is excluded from framework Git staging/status.
 pub(crate) fn retain_local_failure(root:&Utf8Path,attempt:&crate::attempt::Attempt,stage:&str,
     version_before:Option<String>,version_after:Option<String>)->anyhow::Result<()> {
-    let directory=root.join(".proj/log/local-failures");
-    crate::path_safety::validate_native_names(root,".proj/log/local-failures",false)?;
+    let directory=root.join(".projr/logs/local-failures");
+    crate::path_safety::validate_native_names(root,".projr/logs/local-failures",false)?;
     crate::path_safety::resolve_path(directory.as_std_path(),true)?;
     fs::create_dir_all(&directory).context("Cannot create local failure diagnostics directory")?;
     crate::path_safety::resolve_path(directory.as_std_path(),true)?;
@@ -230,8 +230,8 @@ impl AttemptLog {
     /// Prepare evidence without installing a record until start or completed_local succeeds.
     pub(crate) fn prepare(root:&Utf8Path, attempt:&crate::attempt::Attempt, profiles:Vec<String>,
         before:String, release:String, mode:&str, git:bool, push:bool, source_head:Option<String>, inventory:Option<InventoryEvidence>, startup:Option<crate::provenance::Snapshot>) -> anyhow::Result<Self> {
-        let directory=root.join(".proj/log");
-        crate::path_safety::validate_native_names(root,".proj/log",false)?;
+        let directory=root.join(".projr/attempts");
+        crate::path_safety::validate_native_names(root,".projr/attempts",false)?;
         crate::path_safety::resolve_path(directory.as_std_path(),true)?;
         let created_directory=match fs::create_dir(&directory) {
             Ok(())=>true,
@@ -405,18 +405,18 @@ impl Drop for AttemptLog {
 /// An edited/missing companion, tracked receipt or arbitrary neighbouring file is never exempted.
 pub(crate) fn owned_receipt(root:&Utf8Path,relative:&str,committed:impl FnOnce(&str)->anyhow::Result<Vec<u8>>,
     witness:impl FnOnce(&str,&str,&str)->anyhow::Result<bool>) -> anyhow::Result<bool> {
-    let Some(file)=relative.strip_prefix(".proj/log/") else{return Ok(false)};
+    let Some(file)=relative.strip_prefix(".projr/attempts/") else{return Ok(false)};
     let final_csv=file.ends_with(".final.csv");
     let Some(id)=file.strip_suffix(".git.json").or_else(||file.strip_suffix(".final.csv")) else{return Ok(false)};
     if !id.starts_with("attempt-") || id.len()!=32 || !id.bytes().all(|b|b.is_ascii_alphanumeric()||b==b'-') {return Ok(false);}
-    let receipt_path=root.join(format!(".proj/log/{id}.git.json"));
+    let receipt_path=root.join(format!(".projr/attempts/{id}.git.json"));
     if !crate::yml::configuration_entry_exists(&receipt_path)? {return Ok(false);}
     let receipt_bytes=read(&receipt_path)?;
     let receipt:Receipt=match serde_json::from_slice(&receipt_bytes) {Ok(value)=>value,Err(_)=>return Ok(false)};
     if receipt.schema_version!=1||receipt.attempt_id!=id
         ||!matches!(receipt.status.as_str(),"completed"|"failed")
         ||receipt.stage!="git_and_finalization" {return Ok(false);}
-    let snapshot=format!(".proj/log/{id}.json");
+    let snapshot=format!(".projr/attempts/{id}.json");
     let bytes=match committed(&format!("HEAD:./{snapshot}")) {Ok(bytes)=>bytes,Err(_)=>return Ok(false)};
     if !crate::yml::configuration_entry_exists(&root.join(&snapshot))? {return Ok(false);}
     if read(&root.join(&snapshot))?!=bytes || receipt.snapshot_hash!=blake3::hash(&bytes).to_hex().as_str() {return Ok(false);}
@@ -438,7 +438,7 @@ pub(crate) fn final_rows(root:&Utf8Path,id:&str,outputs:&FinalOutputs,version:&s
     ->anyhow::Result<Vec<crate::manifest::ManifestRow>> {
     let reference=outputs.rows.as_ref().context("No retained final CSV reference")?;
     anyhow::ensure!(reference.file==format!("{id}.final.csv"),"Invalid final CSV reference");
-    let bytes=read_bounded(&root.join(".proj/log").join(&reference.file),FINAL_CSV_LIMIT)?;
+    let bytes=read_bounded(&root.join(".projr/attempts").join(&reference.file),FINAL_CSV_LIMIT)?;
     anyhow::ensure!(bytes.len() as u64==reference.bytes
         && blake3::hash(&bytes).to_hex().as_str()==reference.blake3,"Final CSV byte checksum mismatch");
     let rows=crate::manifest_csv::decode_bounded(&bytes,FINAL_ROW_LIMIT)?;

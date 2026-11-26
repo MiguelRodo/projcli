@@ -17,7 +17,7 @@ fn files_under(root: &Path) -> BTreeMap<String, Vec<u8>> {
 
 fn fixture(root: &Path, clear: &str, fail: bool) {
     fs::write(root.join("VERSION"), "Version: v1.2.3\n").unwrap();
-    fs::write(root.join("_proj.yml"), format!(r#"directories:
+    fs::write(root.join("_projr.yml"), format!(r#"directories:
   cache:
     path: _tmp
   output:
@@ -83,7 +83,7 @@ fn preview_preserves_release_archive_version_ignores_and_previous_cache() {
 #[test]
 fn preview_without_version_does_not_create_one() {
     let project = tempfile::tempdir().unwrap();
-    fs::write(project.path().join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\n").unwrap();
+    fs::write(project.path().join("_projr.yml"), "directories:\n  cache:\n    path: _tmp\n").unwrap();
     fs::write(project.path().join("analysis.py"), "from pathlib import Path\nPath('_tmp').mkdir(exist_ok=True)\nPath('_tmp/result.txt').write_text('done')\n").unwrap();
     let root = camino::Utf8Path::from_path(project.path()).unwrap();
     proj::build_project_with_execution(root, proj::BuildMode::Dev, None, None, proj::ExecutionDirectory::Project).unwrap();
@@ -106,12 +106,12 @@ fn mutating_preview(root: &Path, empty: bool, fail: bool) {
     fs::create_dir(root.join("nested")).unwrap();
     let scripts = if empty { "[]" } else { "[nested/analysis.py]" };
     let hooks = if empty { "dev:\n  hooks:\n    pre: [nested/pre.py]\n    post: [nested/post.py]\n" } else { "" };
-    fs::write(root.join("_proj.yml"), format!("directories:\n  cache:\n    path: _tmp\n  output:\n    path: _output\n  docs:\n    path: docs\nremotes:\n  local:\n    archive:\n      path: _archive\n      structure: cas\n      inspect: manifest\n      content: [output]\nbuild:\n  scripts: {scripts}\n  git:\n    commit: true\n    push: true\n  dest: [archive]\n{hooks}")).unwrap();
+    fs::write(root.join("_projr.yml"), format!("directories:\n  cache:\n    path: _tmp\n  output:\n    path: _output\n  docs:\n    path: docs\nremotes:\n  local:\n    archive:\n      path: _archive\n      structure: cas\n      inspect: manifest\n      content: [output]\nbuild:\n  scripts: {scripts}\n  git:\n    commit: true\n    push: true\n  dest: [archive]\n{hooks}")).unwrap();
     let mutation = r#"import os
 from pathlib import Path
 root = Path(os.environ['PROJ_PROJECT_ROOT'])
 assert os.environ['PROJCLI_PREVIEW_STATE'] == 'ready'
-for name in ['VERSION', '.gitignore', 'README.md', '_environment.local', '_proj.yml']:
+for name in ['VERSION', '.gitignore', 'README.md', '_environment.local', '_projr.yml']:
     (root / name).write_bytes(b'changed managed state')
 for name in ['_output', 'docs', '_archive', '.git']:
     (root / name / 'released.bin').unlink()
@@ -156,7 +156,7 @@ fn unsafe_preview_recovery_paths_fail_before_analysis() {
         let project = tempfile::tempdir().unwrap();
         let root = project.path().canonicalize().unwrap();
         fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
-        fs::write(root.join("_proj.yml"), format!("directories:\n  cache:\n    path: _tmp\nremotes:\n  local:\n    archive:\n      path: {unsafe_path}\n      structure: cas\n      inspect: manifest\n      content: []\nbuild:\n  scripts: [analysis.py]\n")).unwrap();
+        fs::write(root.join("_projr.yml"), format!("directories:\n  cache:\n    path: _tmp\nremotes:\n  local:\n    archive:\n      path: {unsafe_path}\n      structure: cas\n      inspect: manifest\n      content: []\nbuild:\n  scripts: [analysis.py]\n")).unwrap();
         fs::write(root.join("analysis.py"), "open('analysis-called', 'w').write('bad')\n").unwrap();
         let output = Command::new(env!("CARGO_BIN_EXE_proj"))
             .args(["build-dev", "--non-interactive", "--project"]).arg(&root)
@@ -176,7 +176,7 @@ fn normalized_cache_identity_protects_preview_artifacts_from_absent_parent_recov
         let root = project.path().canonicalize().unwrap();
         fs::create_dir(root.join("anchor")).unwrap();
         if state_exists { fs::create_dir(root.join("state")).unwrap(); }
-        fs::write(root.join("_proj.yml"), format!("directories:\n  cache:\n    path: anchor/../state/cache\nremotes:\n  local:\n    archive:\n      path: {remote}\n      structure: cas\n      inspect: manifest\n      content: []\nbuild:\n  scripts: [analysis.py]\n")).unwrap();
+        fs::write(root.join("_projr.yml"), format!("directories:\n  cache:\n    path: anchor/../state/cache\nremotes:\n  local:\n    archive:\n      path: {remote}\n      structure: cas\n      inspect: manifest\n      content: []\nbuild:\n  scripts: [analysis.py]\n")).unwrap();
         fs::write(root.join("analysis.py"), "import os\nfrom pathlib import Path\nroot = Path(os.environ['PROJ_PROJECT_ROOT'])\ncache = root / 'state/cache'\ncache.mkdir(parents=True, exist_ok=True)\n(cache / 'result').write_bytes(b'preview')\n").unwrap();
         let output = Command::new(env!("CARGO_BIN_EXE_proj"))
             .args(["build-dev", "--non-interactive", "--project"]).arg(&root)
@@ -195,7 +195,7 @@ fn absent_case_aliases_cannot_make_recovery_delete_cache_artifacts() {
         let project = tempfile::tempdir().unwrap();
         let root = project.path().canonicalize().unwrap();
         fs::create_dir(root.join("shared")).unwrap();
-        fs::write(root.join("_proj.yml"), format!("directories:\n  cache:\n    path: _tmp\nremotes:\n  local:\n    archive:\n      path: {remote}\n      structure: cas\n      inspect: manifest\n      content: []\nbuild:\n  scripts: [analysis.py]\n")).unwrap();
+        fs::write(root.join("_projr.yml"), format!("directories:\n  cache:\n    path: _tmp\nremotes:\n  local:\n    archive:\n      path: {remote}\n      structure: cas\n      inspect: manifest\n      content: []\nbuild:\n  scripts: [analysis.py]\n")).unwrap();
         fs::write(root.join("analysis.py"), "import os\nfrom pathlib import Path\nroot = Path(os.environ['PROJ_PROJECT_ROOT'])\n(root / '_tmp').mkdir(exist_ok=True)\n(root / '_tmp/result').write_bytes(b'preview')\n").unwrap();
         let output = Command::new(env!("CARGO_BIN_EXE_proj"))
             .args(["build-dev", "--non-interactive", "--project"]).arg(&root)

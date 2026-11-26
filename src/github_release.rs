@@ -643,7 +643,7 @@ fn validate_destination(root: &Utf8Path, destination: &Utf8Path) -> anyhow::Resu
             let name = name.to_ascii_lowercase();
             matches!(
                 name.as_str(),
-                "version" | "manifest.csv" | "_proj.yml" | "_projr.yml"
+                "version" | "manifest.csv" | "_projr.yml"
             ) || (name.starts_with("_projr-") && name.ends_with(".yml"))
         });
     anyhow::ensure!(

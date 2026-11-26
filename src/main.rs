@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 
 /// Cross-platform CLI for version-linked project builds.
 ///
-/// This application manages environment variables, validates configuration files (`_proj.yml`),
+/// This application manages environment variables, validates configuration files (`_projr.yml`),
 /// and maintains project versioning across Rust, Python, and R environments.
 ///
 /// # Panics
@@ -342,7 +342,7 @@ pub enum GithubCommands {
     },
 }
 
-/// Operations specific to the `_proj.yml` configuration file.
+/// Operations specific to the `_projr.yml` configuration file.
 ///
 /// Allows interacting with the YAML definition of the project, including
 /// deep validation and parsing of directory labels.
@@ -356,7 +356,7 @@ pub enum GithubCommands {
 /// ```
 #[derive(Subcommand)]
 pub enum YmlCommands {
-    /// Read the _proj.yml content and trigger validation.
+    /// Read the _projr.yml content and trigger validation.
     Read,
     /// Return explicitly requested merged configuration as JSON (may contain secrets).
     Get {
@@ -660,8 +660,8 @@ fn main() {
             YmlCommands::Read => {
                 // Pass false for is_dev as this is just a read check
                 match proj::yml_read(false) {
-                    Ok(_) => println!("Successfully read and validated _proj.yml"),
-                    Err(e) => fail(format_args!("Error reading _proj.yml: {}", e)),
+                    Ok(_) => println!("Successfully read and validated _projr.yml"),
+                    Err(e) => fail(format_args!("Error reading _projr.yml: {}", e)),
                 }
             }
             YmlCommands::Get { profile, check } => {

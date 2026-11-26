@@ -96,7 +96,7 @@ fn setup(placement: &str) -> (tempfile::TempDir, PathBuf, Value) {
 }
 fn save(root: &Path, config: &Value) {
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         serde_json::to_vec_pretty(config).unwrap(),
     )
     .unwrap();
@@ -105,7 +105,7 @@ fn metadata(root: &Path) -> PathBuf {
     let mut hash = blake3::Hasher::new_derive_key("projcli.remote-name.v1");
     hash.update(b"SNAPSHOTS");
     let id = hash.finalize().to_hex().to_string();
-    root.join(".proj/remotes").join(&id[..2]).join(&id[2..])
+    root.join(".projr/remotes").join(&id[..2]).join(&id[2..])
 }
 fn ids(base: &Path, namespace: &str) -> Vec<String> {
     files(&base.join(namespace))
@@ -217,11 +217,11 @@ fn named_snapshot_verify_and_restore_work_without_project_csv_or_current_upload_
         assert!(!root.join(".projr/manifests.csv").exists());
         assert_eq!(files(&store), before_store);
         assert_eq!(
-            files(&root.join(".proj")),
+            files(&root.join(".projr")),
             before
                 .iter()
                 .filter_map(|(name, bytes)| name
-                    .strip_prefix(".proj/")
+                    .strip_prefix(".projr/")
                     .map(|name| (name.to_owned(), bytes.clone())))
                 .collect()
         );
@@ -266,9 +266,8 @@ fn a_fresh_project_can_restore_remote_metadata_without_the_old_project_index_or_
         fs::read(root.join("VERSION")).unwrap(),
         b"Version: v9.0.0.7\n"
     );
-    assert!(!root.join(".proj").exists());
-    assert!(!root.join("manifest.csv").exists());
     assert!(!root.join(".projr").exists());
+    assert!(!root.join("manifest.csv").exists());
     assert_eq!(files(&store), previous_store);
 }
 #[test]

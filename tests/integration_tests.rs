@@ -9,7 +9,7 @@ fn missing_version_uses_description_or_default_for_a_local_only_build() {
         let project = tempfile::tempdir().unwrap();
         let root = camino::Utf8Path::from_path(project.path()).unwrap();
         if let Some(description) = description { std::fs::write(root.join("DESCRIPTION"), description).unwrap(); }
-        std::fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: []\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+        std::fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: _tmp\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: []\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
         proj::build_project(root, proj::BuildMode::ProdPatch, None, None).unwrap();
         assert_eq!(proj::version_get_from(root).unwrap().to_string(false), expected);
         assert!(!root.join(".git").exists());

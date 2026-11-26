@@ -6,7 +6,7 @@ use std::{
 
 fn config(root: &Path, scripts: &str, extra: &str) {
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
-    fs::write(root.join("_proj.yml"), format!("directories:\n  cache:\n    path: cache\n  output:\n    path: output\n  docs:\n    path: published\nbuild:\n  scripts: [{scripts}]\n{extra}")).unwrap();
+    fs::write(root.join("_projr.yml"), format!("directories:\n  cache:\n    path: cache\n  output:\n    path: output\n  docs:\n    path: published\nbuild:\n  scripts: [{scripts}]\n{extra}")).unwrap();
 }
 
 fn invoke(root: &Path, production: bool) -> Output {
@@ -75,7 +75,7 @@ fn invalid_control_values_fail_before_analysis_or_managed_writes() {
         let root = temp.path().canonicalize().unwrap();
         config(&root, "analysis.py", extra);
         if extra.is_empty() {
-            let path = root.join("_proj.yml");
+            let path = root.join("_projr.yml");
             let original = fs::read_to_string(&path).unwrap();
             fs::write(
                 path,
@@ -88,13 +88,13 @@ fn invalid_control_values_fail_before_analysis_or_managed_writes() {
             "open('analysis-called', 'w').write('bad')\n",
         )
         .unwrap();
-        let before = fs::read(root.join("_proj.yml")).unwrap();
+        let before = fs::read(root.join("_projr.yml")).unwrap();
         let output = invoke(&root, true);
         assert!(!output.status.success());
         assert!(!root.join("analysis-called").exists());
         assert!(!root.join(".gitignore").exists());
         assert!(!root.join("cache").exists());
-        assert_eq!(fs::read(root.join("_proj.yml")).unwrap(), before);
+        assert_eq!(fs::read(root.join("_projr.yml")).unwrap(), before);
         assert_eq!(
             fs::read_to_string(root.join("VERSION")).unwrap(),
             "v1.2.3\n"
@@ -333,13 +333,13 @@ target.write_text('fresh artifact')
                 _ => {}
             }
             fake(&root);
-            let before = fs::read(root.join("_proj.yml")).unwrap();
+            let before = fs::read(root.join("_projr.yml")).unwrap();
             let output = invoke(&root, true);
             assert!(!output.status.success(), "{case}");
             assert!(!root.join("renderer-argv.json").exists(), "{case}");
             assert!(!root.join(".gitignore").exists(), "{case}");
             assert!(!root.join("cache").exists(), "{case}");
-            assert_eq!(fs::read(root.join("_proj.yml")).unwrap(), before);
+            assert_eq!(fs::read(root.join("_projr.yml")).unwrap(), before);
             assert_eq!(
                 fs::read_to_string(root.join("VERSION")).unwrap(),
                 "v1.2.3\n"

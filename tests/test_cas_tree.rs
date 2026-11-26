@@ -68,7 +68,7 @@ fn complete_remote_graph_survives_project_loss_and_reuses_unchanged_subtrees() {
     assert_eq!(files(fixture.store.join("trees/v1").as_std_path()).len(),4);
     assert_eq!(files(fixture.store.join("tree-snapshots/v1").as_std_path()).len(),1);
     assert!(!fixture.project.join(".projr/manifests.csv").exists());
-    assert!(!fixture.project.join(".proj").exists());
+    assert!(!fixture.project.join(".projr").exists());
     let snapshot_bytes=fs::read(snapshot_path(&fixture.store,&id1)).unwrap();
     let root_bytes=fs::read(tree_path(&fixture.store,&root1)).unwrap();
 
@@ -100,7 +100,7 @@ fn complete_remote_graph_survives_project_loss_and_reuses_unchanged_subtrees() {
 
 #[test]
 fn metadata_location_and_pretty_spacing_do_not_change_content_or_snapshot_ids() {
-    let fixture=Fixture::new();let project_metadata=fixture.project.join(".proj/cas-metadata");
+    let fixture=Fixture::new();let project_metadata=fixture.project.join(".projr/cas-metadata");
     let project_root=fixture.ingest(&project_metadata);let snapshot=fixture.snapshot(&project_root,"v1.2.3");
     let id=fixture.publish(&project_metadata,&snapshot);
     assert!(!fixture.store.join("trees").exists());
@@ -161,8 +161,8 @@ fn deep_verification_distinguishes_missing_malformed_and_corrupt_and_never_repai
 #[test]
 fn absent_authorities_case_aliases_and_source_namespace_overlap_fail_before_writes() {
     let fixture=Fixture::new();
-    for relative in ["VERSION","version","ver\u{17f}ion",".g\u{131}t","DESCRIPTION","_proj.yml","_PROJR-Future.YAML",
-        "_quarto.yml.local","manifest.csv",".hg",".agents",".proj/log",".PROJ/LOG",".proj/BUILD.LOCK"] {
+    for relative in ["VERSION","version","ver\u{17f}ion",".g\u{131}t","DESCRIPTION","_projr.yml","_PROJR-Future.YAML",
+        "_quarto.yml.local","manifest.csv",".hg",".agents",".projr/attempts",".PROJR/ATTEMPTS",".projr/BUILD.LOCK",".projr/manifests",".projr/config/x",".projr/logs/x"] {
         let metadata=fixture.project.join(relative);
         let error=cas_tree::ingest_directory(&fixture.project,&fixture.store,&metadata,&fixture.source).unwrap_err();
         assert!(!format!("{error:#}").is_empty());

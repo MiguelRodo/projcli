@@ -148,7 +148,7 @@ pub(crate) fn prepare(root:&Utf8Path,content:&Utf8Path,bases:&[Utf8PathBuf],hist
 pub(crate) fn preflight_project_reference(root:&Utf8Path,base:&Utf8Path)->Result<()> {
     let root=Utf8PathBuf::try_from(crate::path_safety::resolve_path(root.as_std_path(),true)?)?;
     let base=Utf8PathBuf::try_from(crate::path_safety::resolve_path(base.as_std_path(),true)?)?;
-    anyhow::ensure!(base.strip_prefix(&root)?.starts_with(".proj/remotes"),"Flat project references require managed remotes metadata");
+    anyhow::ensure!(base.strip_prefix(&root)?.starts_with(".projr/remotes"),"Flat project references require managed remotes metadata");
     let path=crate::cas_tree::native(&base,"references/flat-v1")?;
     crate::cas_tree::project_target(&root,&path,true)?;crate::cas::checked_directory(&path)
 }

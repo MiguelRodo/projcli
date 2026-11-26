@@ -65,7 +65,7 @@ This example targets `0.4.0-preview.6`. Remote docs checks run it through the
 downloaded release binary and the current PR code. You need Python 3 available
 as `python3`; the shell commands below assume Ubuntu / WSL Ubuntu.
 
-In a new folder, create `_proj.yml`:
+In a new folder, create `_projr.yml`:
 
 ```yaml
 directories:

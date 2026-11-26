@@ -110,7 +110,7 @@ config <- c(
   "  git: false",
   "  r: {document: true, readme: true, renv-snapshot: true}"
 )
-writeLines(config, file.path(root, "_proj.yml"))
+writeLines(config, file.path(root, "_projr.yml"))
 prior <- readBin(file.path(root, "README.md"), "raw", n = 1e6)
 run("build-dev")
 stopifnot(

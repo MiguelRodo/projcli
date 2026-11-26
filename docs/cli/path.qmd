@@ -36,8 +36,8 @@ not write ignore files or create the resolved target directories.
 
 Without `--project` or an inherited run root, discovery walks upward from cwd and
 selects the first recognized directory. It does not search downward for projects.
-Recognized markers are VERSION, README.md, `_quarto.yml`, `_proj.yml`, legacy
-`_projr.yml`, Git/SVN metadata, a DESCRIPTION containing `Package: `, an RStudio
+Recognized markers are VERSION, README.md, `_quarto.yml`, `_projr.yml`, a
+`.projr/config/` (or `_projr/config/`) holding `_projr.yml` or `default.yml`, Git/SVN metadata, a DESCRIPTION containing `Package: `, an RStudio
 `.Rproj` whose first line starts `Version: `, and a renv.lock with a Packages map.
 
 `pyproject.toml`, `Project.toml` and `JuliaProject.toml` deliberately extend the

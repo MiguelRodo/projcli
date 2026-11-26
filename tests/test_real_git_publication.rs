@@ -44,7 +44,7 @@ impl Fixture {
             fixture.git(&["config", key, value]);
         }
         fs::write(
-            fixture.root.join("_proj.yml"),
+            fixture.root.join("_projr.yml"),
             format!(
                 r#"directories:
   cache: {{path: cache}}
@@ -229,7 +229,7 @@ if os.environ['PROJCLI_TEST_FAIL_ANALYSIS']=='1':
     }
 
     fn pending_receipt(&self) -> (String, serde_json::Value) {
-        let pending: Vec<_> = fs::read_dir(self.root.join(".proj/log"))
+        let pending: Vec<_> = fs::read_dir(self.root.join(".projr/attempts"))
             .unwrap()
             .map(|entry| entry.unwrap().path())
             .filter(|path| {
@@ -254,7 +254,7 @@ if os.environ['PROJCLI_TEST_FAIL_ANALYSIS']=='1':
         let bytes = fs::read(&pending[0]).unwrap();
         let receipt: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
         let id = receipt["attempt_id"].as_str().unwrap();
-        let snapshot = format!(".proj/log/{id}.json");
+        let snapshot = format!(".projr/attempts/{id}.json");
         let committed = self.git(&["show", &format!("HEAD:./{snapshot}")]);
         assert_eq!(fs::read(self.root.join(&snapshot)).unwrap(), committed);
         assert_eq!(
@@ -268,13 +268,13 @@ if os.environ['PROJCLI_TEST_FAIL_ANALYSIS']=='1':
         let (name, receipt) = self.pending_receipt();
         let reference = &receipt["final_outputs"]["rows"];
         let csv = reference["file"].as_str().unwrap();
-        let bytes = fs::read(self.root.join(".proj/log").join(csv)).unwrap();
+        let bytes = fs::read(self.root.join(".projr/attempts").join(csv)).unwrap();
         assert_eq!(reference["bytes"], bytes.len());
         assert_eq!(reference["blake3"], blake3::hash(&bytes).to_hex().as_str());
         assert!(!proj::manifest_csv::decode(&bytes).unwrap().is_empty());
         let mut expected = vec![
-            format!("?? .proj/log/{name}"),
-            format!("?? .proj/log/{csv}"),
+            format!("?? .projr/attempts/{name}"),
+            format!("?? .projr/attempts/{csv}"),
         ];
         if version_dirty {
             expected.push(" M VERSION".into());
@@ -399,7 +399,7 @@ fn no_remote_allows_local_commit_but_requested_push_fails_before_analysis() {
                 "push preflight must precede analysis/cache writes"
             );
             assert!(!fixture.root.join("manifest.csv").exists());
-            assert!(!fixture.root.join(".projr").exists());
+            assert!(!fixture.root.join(".projr/manifests").exists());
             assert_eq!(fixture.text(&["status", "--porcelain"]), "");
         } else {
             assert!(
@@ -565,7 +565,7 @@ fn analysis_failure_is_not_publication_failure_and_changes_neither_git_reference
         b"result\n84\n"
     );
     assert_eq!(fixture.text(&["status", "--porcelain"]), "");
-    let directory = fixture.root.join(".proj/log/local-failures");
+    let directory = fixture.root.join(".projr/logs/local-failures");
     let diagnostic = fs::read_dir(&directory)
         .unwrap()
         .map(|e| e.unwrap().path())
@@ -589,7 +589,7 @@ fn analysis_failure_is_not_publication_failure_and_changes_neither_git_reference
     assert!(
         tracked
             .lines()
-            .any(|p| p.starts_with(".proj/log/") && p.ends_with(".json"))
+            .any(|p| p.starts_with(".projr/attempts/") && p.ends_with(".json"))
     );
     // Force-tracked diagnostics fail closed rather than silently hide tracked changes.
     fixture.git(&[
@@ -732,12 +732,12 @@ fn successful_git_build_never_commits_live_writer_claim() {
         "{}",
         String::from_utf8_lossy(&result.stderr)
     );
-    assert!(!fixture.root.join(".proj/build.lock").exists());
+    assert!(!fixture.root.join(".projr/build.lock").exists());
     let paths = fixture.git(&["ls-tree", "-r", "--name-only", "HEAD"]);
     assert!(
         !String::from_utf8_lossy(&paths)
             .lines()
-            .any(|path| path == ".proj/build.lock")
+            .any(|path| path == ".projr/build.lock")
     );
 }
 
@@ -757,7 +757,7 @@ fn nested_project_claim_exclusion_is_literal_and_keeps_whole_repository_scope() 
     }
     fixture.root = nested;
     let analysis = fs::read_to_string(fixture.root.join("analysis.py")).unwrap();
-    fs::write(fixture.root.join("analysis.py"), analysis + "\nPath('../outside-generated').write_bytes(b'outside')\nPath('.proj/log').mkdir(exist_ok=True)\nPath('.proj/log/retained.json').write_text('{}')\n").unwrap();
+    fs::write(fixture.root.join("analysis.py"), analysis + "\nPath('../outside-generated').write_bytes(b'outside')\nPath('.projr/attempts').mkdir(exist_ok=True)\nPath('.projr/attempts/retained.json').write_text('{}')\n").unwrap();
     fixture.git(&["add", "-A"]);
     fixture.git(&["commit", "-m", "nested fixture"]);
     let result = fixture.build(false);
@@ -774,11 +774,11 @@ fn nested_project_claim_exclusion_is_literal_and_keeps_whole_repository_scope() 
     assert!(
         paths
             .lines()
-            .any(|path| path == " child[1]/.proj/log/retained.json"),
+            .any(|path| path == " child[1]/.projr/attempts/retained.json"),
         "{paths}"
     );
     assert!(
-        !paths.lines().any(|path| path.ends_with(".proj/build.lock")),
+        !paths.lines().any(|path| path.ends_with(".projr/build.lock")),
         "{paths}"
     );
     assert_eq!(fixture.git(&["show", "HEAD:./VERSION"]), b"Version: v1.2.4");
@@ -803,7 +803,7 @@ fn nested_project_claim_exclusion_is_literal_and_keeps_whole_repository_scope() 
 fn sibling_project_claims_are_preserved_but_never_staged() {
     let fixture = Fixture::new(false);
     let analysis = fs::read_to_string(fixture.root.join("analysis.py")).unwrap();
-    fs::write(fixture.root.join("analysis.py"), analysis + "\nPath('sibling/.proj').mkdir(parents=True)\nPath('sibling/.proj/build.lock').write_bytes(b'other active attempt')\nPath('sibling/result').write_bytes(b'whole repository scope')\n").unwrap();
+    fs::write(fixture.root.join("analysis.py"), analysis + "\nPath('sibling/.projr').mkdir(parents=True)\nPath('sibling/.projr/build.lock').write_bytes(b'other active attempt')\nPath('sibling/result').write_bytes(b'whole repository scope')\n").unwrap();
     fixture.git(&["add", "-A"]);
     fixture.git(&["commit", "-m", "sibling ownership fixture"]);
     let result = fixture.build(false);
@@ -814,7 +814,7 @@ fn sibling_project_claims_are_preserved_but_never_staged() {
     );
     let paths = fixture.text(&["ls-tree", "--full-tree", "-r", "--name-only", "HEAD"]);
     assert!(
-        !paths.lines().any(|path| path.ends_with(".proj/build.lock")),
+        !paths.lines().any(|path| path.ends_with(".projr/build.lock")),
         "{paths}"
     );
     assert!(
@@ -822,7 +822,7 @@ fn sibling_project_claims_are_preserved_but_never_staged() {
         "{paths}"
     );
     assert_eq!(
-        fs::read(fixture.root.join("sibling/.proj/build.lock")).unwrap(),
+        fs::read(fixture.root.join("sibling/.projr/build.lock")).unwrap(),
         b"other active attempt"
     );
 }
@@ -830,9 +830,9 @@ fn sibling_project_claims_are_preserved_but_never_staged() {
 #[test]
 fn tracked_sibling_claim_is_rejected_before_analysis() {
     let fixture = Fixture::new(false);
-    fs::create_dir_all(fixture.root.join("sibling/.proj")).unwrap();
+    fs::create_dir_all(fixture.root.join("sibling/.projr")).unwrap();
     fs::write(
-        fixture.root.join("sibling/.proj/build.lock"),
+        fixture.root.join("sibling/.projr/build.lock"),
         b"tracked reserved claim",
     )
     .unwrap();
@@ -844,10 +844,10 @@ fn tracked_sibling_claim_is_rejected_before_analysis() {
     assert!(String::from_utf8_lossy(&result.stderr).contains("must not be tracked"));
     assert_eq!(fs::read(fixture.root.join("VERSION")).unwrap(), before);
     assert_eq!(
-        fs::read(fixture.root.join("sibling/.proj/build.lock")).unwrap(),
+        fs::read(fixture.root.join("sibling/.projr/build.lock")).unwrap(),
         b"tracked reserved claim"
     );
-    assert!(!fixture.root.join(".proj/build.lock").exists());
+    assert!(!fixture.root.join(".projr/build.lock").exists());
     assert!(!fixture.root.join("released/results.csv").exists());
 }
 
@@ -873,7 +873,7 @@ fn attempt_snapshot_and_receipt_follow_two_normal_commits_without_recursion() {
     assert_eq!(receipt["version_after"], "v1.2.4.1");
     let id = receipt["attempt_id"].as_str().unwrap();
     let snapshot: serde_json::Value =
-        serde_json::from_slice(&fixture.git(&["show", &format!("HEAD:./.proj/log/{id}.json")]))
+        serde_json::from_slice(&fixture.git(&["show", &format!("HEAD:./.projr/attempts/{id}.json")]))
             .unwrap();
     assert_eq!(receipt["final_outputs"]["status"], "completed");
     assert_eq!(
@@ -903,9 +903,9 @@ fn attempt_snapshot_and_receipt_follow_two_normal_commits_without_recursion() {
         snapshot["inventory"]["release_outputs"]["canonical_csv_blake3"],
         expected
     );
-    let bytes = fs::read(fixture.root.join(".proj/log").join(&name)).unwrap();
+    let bytes = fs::read(fixture.root.join(".projr/attempts").join(&name)).unwrap();
     let csv = receipt["final_outputs"]["rows"]["file"].as_str().unwrap();
-    let csv_bytes = fs::read(fixture.root.join(".proj/log").join(csv)).unwrap();
+    let csv_bytes = fs::read(fixture.root.join(".projr/attempts").join(csv)).unwrap();
     let second = fixture.build(false);
     assert!(
         second.status.success(),
@@ -917,11 +917,11 @@ fn attempt_snapshot_and_receipt_follow_two_normal_commits_without_recursion() {
         "2"
     );
     assert_eq!(
-        fixture.git(&["show", &format!("HEAD:./.proj/log/{name}")]),
+        fixture.git(&["show", &format!("HEAD:./.projr/attempts/{name}")]),
         bytes
     );
     assert_eq!(
-        fixture.git(&["show", &format!("HEAD:./.proj/log/{csv}")]),
+        fixture.git(&["show", &format!("HEAD:./.projr/attempts/{csv}")]),
         csv_bytes
     );
     fixture.assert_pending_git_state(true);
@@ -940,7 +940,7 @@ fn edited_forged_and_unwitnessed_pending_receipts_fail_closed() {
         assert!(fixture.build(false).status.success());
         let initial = fixture.text(&["rev-parse", "HEAD"]);
         let (name, mut receipt) = fixture.pending_receipt();
-        let path = fixture.root.join(".proj/log").join(&name);
+        let path = fixture.root.join(".projr/attempts").join(&name);
         if change == "valid-field-edit" {
             receipt["version_after"] = serde_json::json!("v8.8.8.8");
             fs::write(&path, serde_json::to_vec(&receipt).unwrap()).unwrap();
@@ -948,14 +948,14 @@ fn edited_forged_and_unwitnessed_pending_receipts_fail_closed() {
             fs::write(
                 fixture
                     .root
-                    .join(".proj/log/attempt-AAAAAAAAAAAAAAAAAAAAAAAA.git.json"),
+                    .join(".projr/attempts/attempt-AAAAAAAAAAAAAAAAAAAAAAAA.git.json"),
                 serde_json::to_vec(&receipt).unwrap(),
             )
             .unwrap();
         } else if change == "edited-csv" || change == "missing-csv" {
             let csv = fixture
                 .root
-                .join(".proj/log")
+                .join(".projr/attempts")
                 .join(receipt["final_outputs"]["rows"]["file"].as_str().unwrap());
             if change == "missing-csv" {
                 fs::remove_file(csv).unwrap()
@@ -991,11 +991,11 @@ fn failed_commit_and_failed_receipt_write_preserve_both_diagnostics_and_snapshot
     let fixture = Fixture::new(false);
     let initial = fixture.text(&["rev-parse", "HEAD"]);
     let hook = fixture.root.join(".git/hooks/pre-commit");
-    fs::write(&hook, "#!/bin/sh\nchmod 500 .proj/log\nexit 17\n").unwrap();
+    fs::write(&hook, "#!/bin/sh\nchmod 500 .projr/attempts\nexit 17\n").unwrap();
     fs::set_permissions(&hook, fs::Permissions::from_mode(0o755)).unwrap();
     let result = fixture.build(false);
     fs::set_permissions(
-        fixture.root.join(".proj/log"),
+        fixture.root.join(".projr/attempts"),
         fs::Permissions::from_mode(0o700),
     )
     .unwrap();
@@ -1017,7 +1017,7 @@ fn failed_commit_and_failed_receipt_write_preserve_both_diagnostics_and_snapshot
         fs::read(fixture.root.join("VERSION")).unwrap(),
         b"Version: v1.2.4"
     );
-    let logs: Vec<_> = fs::read_dir(fixture.root.join(".proj/log"))
+    let logs: Vec<_> = fs::read_dir(fixture.root.join(".projr/attempts"))
         .unwrap()
         .map(|entry| entry.unwrap().path())
         .collect();
@@ -1030,9 +1030,9 @@ fn failed_commit_and_failed_receipt_write_preserve_both_diagnostics_and_snapshot
 #[test]
 fn git_receipt_observes_post_hook_changes_without_rewriting_the_committed_snapshot() {
     let fixture = Fixture::new(false);
-    let config = fs::read_to_string(fixture.root.join("_proj.yml")).unwrap();
+    let config = fs::read_to_string(fixture.root.join("_projr.yml")).unwrap();
     fs::write(
-        fixture.root.join("_proj.yml"),
+        fixture.root.join("_projr.yml"),
         format!("{config}  hooks:\n    post: [end.py]\n"),
     )
     .unwrap();
@@ -1052,7 +1052,7 @@ fn git_receipt_observes_post_hook_changes_without_rewriting_the_committed_snapsh
     let (_, receipt) = fixture.pending_receipt();
     let id = receipt["attempt_id"].as_str().unwrap();
     let snapshot: serde_json::Value =
-        serde_json::from_slice(&fixture.git(&["show", &format!("HEAD:./.proj/log/{id}.json")]))
+        serde_json::from_slice(&fixture.git(&["show", &format!("HEAD:./.projr/attempts/{id}.json")]))
             .unwrap();
     assert_ne!(
         receipt["final_outputs"]["inventory"],
@@ -1087,7 +1087,7 @@ fn git_receipt_observes_post_hook_changes_without_rewriting_the_committed_snapsh
     let bytes = fs::read(
         fixture
             .root
-            .join(".proj/log")
+            .join(".projr/attempts")
             .join(reference["file"].as_str().unwrap()),
     )
     .unwrap();
@@ -1114,7 +1114,7 @@ fn nested_local_failure_exclusion_keeps_other_project_records_and_unrelated_file
     let fixture = Fixture::new(false);
     let nested = fixture
         .root
-        .join("unrelated [project]/.proj/log/local-failures");
+        .join("unrelated [project]/.projr/logs/local-failures");
     fs::create_dir_all(&nested).unwrap();
     fs::write(nested.join("private.json"), b"local-only").unwrap();
     let result = fixture.build(false);
@@ -1128,7 +1128,7 @@ fn nested_local_failure_exclusion_keeps_other_project_records_and_unrelated_file
     assert!(
         paths
             .lines()
-            .any(|p| p.starts_with(".proj/log/") && p.ends_with(".json"))
+            .any(|p| p.starts_with(".projr/attempts/") && p.ends_with(".json"))
     );
     assert_eq!(
         fs::read(nested.join("private.json")).unwrap(),

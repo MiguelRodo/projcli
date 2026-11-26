@@ -79,7 +79,7 @@ build:
   dest: [archive]
 {dev}"#
                 );
-                fs::write(root.join("_proj.yml"), config).unwrap();
+                fs::write(root.join("_projr.yml"), config).unwrap();
                 if renderer_configs {
                     // Neither engine configuration should be parsed, rewritten or run.
                     fs::write(root.join("_quarto.yml"), "invalid fixture: [\n").unwrap();
@@ -161,7 +161,7 @@ build:
 fn absent_dev_scripts_still_fall_back_to_build_scripts() {
     let project = tempfile::tempdir().unwrap();
     fs::write(
-        project.path().join("_proj.yml"),
+        project.path().join("_projr.yml"),
         "build:\n  scripts: [analysis.py]\n",
     )
     .unwrap();

@@ -7,13 +7,13 @@ fn build(root:&Path,args:&[&str])->Value {
         .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
         .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").env_remove("PROJR_CLEAR_OUTPUT").output().unwrap();
     assert!(result.status.success(),"{}",String::from_utf8_lossy(&result.stderr));
-    let mut records:Vec<Value>=fs::read_dir(root.join(".proj/log")).unwrap().map(|e|e.unwrap().path())
+    let mut records:Vec<Value>=fs::read_dir(root.join(".projr/attempts")).unwrap().map(|e|e.unwrap().path())
         .filter(|p|p.extension().is_some_and(|ext|ext=="json"))
         .map(|p|serde_json::from_slice(&fs::read(p).unwrap()).unwrap()).collect();
     records.sort_by_key(|r|r["release_version"].as_str().unwrap().to_owned());
     let record=records.pop().unwrap();record["startup_provenance"]["configuration"].clone()
 }
-fn write(root:&Path,value:&Value) {fs::write(root.join("_proj.yml"),serde_json::to_vec(value).unwrap()).unwrap();}
+fn write(root:&Path,value:&Value) {fs::write(root.join("_projr.yml"),serde_json::to_vec(value).unwrap()).unwrap();}
 #[test]
 fn actual_builds_bind_merged_parameters_aliases_profiles_and_effective_cli_policy_without_secret_values() {
     let temp=tempfile::tempdir().unwrap();let root=temp.path().canonicalize().unwrap();
@@ -35,7 +35,7 @@ fn actual_builds_bind_merged_parameters_aliases_profiles_and_effective_cli_polic
     let profile=build(&root,&["--profile","analysis"]);assert_ne!(profile["effective"]["blake3"],changed["effective"]["blake3"]);
     let override_policy=build(&root,&["--profile","analysis","--execution-dir","project"]);
     assert_ne!(profile["effective"]["blake3"],override_policy["effective"]["blake3"]);
-    for entry in fs::read_dir(root.join(".proj/log")).unwrap() {
+    for entry in fs::read_dir(root.join(".projr/attempts")).unwrap() {
         let bytes=fs::read(entry.unwrap().path()).unwrap();let text=String::from_utf8_lossy(&bytes);
         for secret in ["SECRET-ONE","SECRET-TWO","private.invalid","other.invalid","https://","u:p","x:y"] {assert!(!text.contains(secret),"{secret}");}
     }

@@ -5,7 +5,7 @@ fn configuration(docs: &str) -> String {
 }
 
 fn failed_build_preserves(root: &std::path::Path, configuration: &str) {
-    fs::write(root.join("_proj.yml"), configuration).unwrap();
+    fs::write(root.join("_projr.yml"), configuration).unwrap();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
     fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('analysis-ran').touch()\n").unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_proj"))
@@ -13,7 +13,7 @@ fn failed_build_preserves(root: &std::path::Path, configuration: &str) {
         .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
     assert!(!output.status.success(), "unsafe destination accepted");
     assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");
-    assert_eq!(fs::read_to_string(root.join("_proj.yml")).unwrap(), configuration);
+    assert_eq!(fs::read_to_string(root.join("_projr.yml")).unwrap(), configuration);
     assert!(root.join("analysis.py").is_file());
     for name in ["analysis-ran", ".gitignore", ".Rbuildignore", "_tmp"] { assert!(!root.join(name).exists(), "unexpected {name}"); }
 }
@@ -65,7 +65,7 @@ fn disjoint_external_resource_destination_is_allowed() {
     fs::create_dir(&docs).unwrap();
     fs::write(docs.join("keep.html"), "previous documentation").unwrap();
     let quoted = docs.to_string_lossy().replace('\\', "/").replace('\'', "''");
-    fs::write(root.join("_proj.yml"), configuration(&quoted).replace("clear_output: post", "clear_output: never")).unwrap();
+    fs::write(root.join("_projr.yml"), configuration(&quoted).replace("clear_output: post", "clear_output: never")).unwrap();
     fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('_output').mkdir(exist_ok=True)\nPath('_output/result').write_text('completed')\n").unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_proj"))
         .args(["build", "--patch", "--non-interactive", "--project"]).arg(root).current_dir(root)
@@ -137,7 +137,7 @@ fn direct_individual_promotions_reject_traversal_and_promote_to_external_docs() 
         let root = camino::Utf8Path::from_path(&canonical).unwrap();
         let docs = camino::Utf8Path::from_path(&outside).unwrap().join("docs");
         let input = root.join(format!("report.{extension}"));
-        for name in ["../outside.html", "/absolute.html", "C:\\outside.html", "VERSION", "_proj.yml"] {
+        for name in ["../outside.html", "/absolute.html", "C:\\outside.html", "VERSION", "_projr.yml"] {
             fs::write(&input, format!("---\nformat: html\noutput-file: '{name}'\n---\n")).unwrap();
             let result = if extension == "qmd" { proj::copy_individual_quarto(&input, &docs, root) } else { proj::copy_individual_rmd(&input, &docs, root) };
             assert!(result.is_err());
@@ -163,7 +163,7 @@ fn project_renderers_reject_source_documents_in_cleanup_trees_before_mutation() 
             fs::write(&source, "source document").unwrap();
             fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
             fs::write(root.join(engine), "project: {}\n").unwrap();
-            fs::write(root.join("_proj.yml"), configuration("docs").replace("  scripts: [analysis.py]\n", "")).unwrap();
+            fs::write(root.join("_projr.yml"), configuration("docs").replace("  scripts: [analysis.py]\n", "")).unwrap();
             let output = Command::new(env!("CARGO_BIN_EXE_proj"))
                 .args(["build", "--patch", "--non-interactive", "--project"]).arg(root).current_dir(root)
                 .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
@@ -204,7 +204,7 @@ fn derived_symlink_leaves_fail_before_any_cleanup_even_when_never_or_dangling() 
         let validated = raw.validate_and_resolve(root, false).unwrap();
         assert!(proj::clear_pre(root, "1.2.3", &validated, Some("never")).is_err());
         fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
-        fs::write(root.join("_proj.yml"), &contents).unwrap();
+        fs::write(root.join("_projr.yml"), &contents).unwrap();
         fs::write(root.join("analysis.py"), "raise RuntimeError('must not run')\n").unwrap();
         let output = Command::new(env!("CARGO_BIN_EXE_proj"))
             .args(["build", "--patch", "--non-interactive", "--project", root.as_str()]).current_dir(root)
@@ -251,7 +251,7 @@ fn literal_root_globs_do_not_hide_selected_inputs_from_cleanup_guards() {
     let root = temp.path().join("project [1]");
     fs::create_dir_all(root.join("_output")).unwrap();
     fs::write(root.join("_output/analysis.py"), "raise RuntimeError('must not run')\n").unwrap();
-    fs::write(root.join("_proj.yml"), configuration("docs").replace("scripts: [analysis.py]", "scripts: [_output/analysis.py]")).unwrap();
+    fs::write(root.join("_projr.yml"), configuration("docs").replace("scripts: [analysis.py]", "scripts: [_output/analysis.py]")).unwrap();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_proj"))
         .args(["build", "--patch", "--non-interactive", "--project"]).arg(&root).current_dir(&root)

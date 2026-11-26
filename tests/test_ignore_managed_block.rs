@@ -4,6 +4,8 @@ use std::{fs, path::Path, process::Command};
 const START: &str =
     "# Start of projr section: do not edit by hand (update with projr_ignore_auto())";
 const END: &str = "# End of projr section";
+/// projr 0.9 project-state rules, always in the block's second group.
+const STATE: &str = "/.projr/logs/**\n/.projr/manifests/.versions.lock\n/.projr/source/**\n";
 const GIT_STARTER: &str = ".vdoc.*\n.DS_Store\nThumbs.db\n.Rproj.user\n.Rhistory\n.RData\n\
 .Ruserdata\n_projr-local.yml\n_environment.local\n";
 
@@ -24,7 +26,7 @@ fn init(root: &Path) -> std::process::Output {
 fn project(gitignore: Option<&str>) -> tempfile::TempDir {
     let temp = tempfile::tempdir().unwrap();
     let config = "directories:\n  cache: {path: _tmp}\nbuild:\n  git: false\n";
-    fs::write(temp.path().join("_proj.yml"), config).unwrap();
+    fs::write(temp.path().join("_projr.yml"), config).unwrap();
     if let Some(text) = gitignore {
         fs::write(temp.path().join(".gitignore"), text).unwrap();
     }
@@ -42,7 +44,7 @@ fn refresh(root: &Path) -> String {
 fn fresh_gitignore_gets_starter_defaults_then_projr_block_and_is_stable() {
     let temp = project(None);
     let git = refresh(temp.path());
-    assert_eq!(git, format!("{GIT_STARTER}{START}\n_tmp/**\n\n{END}\n"));
+    assert_eq!(git, format!("{GIT_STARTER}{START}\n_tmp/**\n\n{STATE}{END}\n"));
     assert_eq!(refresh(temp.path()), git);
 }
 
@@ -68,7 +70,7 @@ fn projr_written_gitignore_is_refreshed_in_place_as_a_single_block() {
     let projr = format!("{before}/_raw_data/**\n\n/.projr/logs/**\n{after}");
     let temp = project(Some(&projr));
     let git = refresh(temp.path());
-    assert_eq!(git, format!("{before}_tmp/**\n\n{after}"));
+    assert_eq!(git, format!("{before}_tmp/**\n\n{STATE}{after}"));
     let starts = git
         .lines()
         .filter(|line| line.starts_with("# Start of projr section"));

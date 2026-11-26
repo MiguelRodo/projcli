@@ -11,7 +11,7 @@ fn overlapping_library_builds_keep_profiles_values_and_parent_environment_indepe
     for (index, name) in ["alpha", "beta"].iter().enumerate() {
         let root = &roots[index];
         fs::create_dir(root).unwrap();
-        fs::write(root.join("_proj.yml"), "build:\n  scripts: [wrong-profile.py]\n").unwrap();
+        fs::write(root.join("_projr.yml"), "build:\n  scripts: [wrong-profile.py]\n").unwrap();
         fs::write(root.join(format!("_projr-{name}.yml")), "dev:\n  scripts: [analysis.py]\n").unwrap();
         fs::write(root.join(format!("_environment-{name}")), format!("PROJCLI_CONTEXT_TEST={name}\n")).unwrap();
         let other = serde_json::to_string(&roots[1-index].join("ready").to_string_lossy()).unwrap();
@@ -70,7 +70,7 @@ fn r_version_probe_package_probe_and_render_share_the_resolved_values() {
     fs::create_dir(root.join("_tmp")).unwrap();
     let path = fake_path(root, "Rscript", "#!/bin/sh\nmkdir -p \"$PROJ_PROJECT_ROOT/_tmp\"\nprintf '%s\\n' \"$PROJCLI_PROBE_CONTEXT\" >> \"$PROJ_PROJECT_ROOT/_tmp/seen\"\ncase \"$2\" in *render*) printf fresh > \"$PROJ_PROJECT_ROOT/report.html\" ;; esac\nexit 0\n");
     fs::write(root.join("_environment"), "PROJCLI_PROBE_CONTEXT=probe-fixture\n").unwrap();
-    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\n  docs:\n    path: published\ndev:\n  scripts: [report.Rmd]\n").unwrap();
+    fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: _tmp\n  docs:\n    path: published\ndev:\n  scripts: [report.Rmd]\n").unwrap();
     fs::write(root.join("report.Rmd"), "Report\n").unwrap();
     let before = std::env::var_os("PROJCLI_PROBE_CONTEXT");
     let result = Command::new(env!("CARGO_BIN_EXE_proj"))
@@ -91,7 +91,7 @@ fn configured_git_children_share_the_run_environment_without_mutating_the_parent
     let root = project.path();
     let path = fake_path(root, "git", "#!/bin/sh\nprintf '%s\\n' \"$PROJCLI_GIT_CONTEXT\" >> \"$PROJ_PROJECT_ROOT/git-seen\"\ncase \"$1\" in\nls-files) exit 0 ;;\nrev-parse) if [ \"$2\" = --absolute-git-dir ]; then printf \"%s/.git\\n\" \"$PROJ_PROJECT_ROOT\"; fi ;;\nconfig) echo fixture ;;\nrev-list) echo 0 ;;\nsymbolic-ref) echo main ;;\nesac\nexit 0\n");
     fs::write(root.join("_environment"), "PROJCLI_GIT_CONTEXT=git-fixture\n").unwrap();
-    fs::write(root.join("_proj.yml"), "config:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: []\n  git: true\n  restrictions:\n    not_behind: false\n").unwrap();
+    fs::write(root.join("_projr.yml"), "config:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: []\n  git: true\n  restrictions:\n    not_behind: false\n").unwrap();
     fs::create_dir(root.join(".git")).unwrap();
     let before = std::env::var_os("PROJCLI_GIT_CONTEXT");
     let result = Command::new(env!("CARGO_BIN_EXE_proj"))
@@ -112,7 +112,7 @@ fn inherited_non_unicode_values_remain_present_and_override_file_values() {
     use std::os::unix::ffi::OsStringExt;
     let project = tempfile::tempdir().unwrap();
     let root = project.path();
-    fs::write(root.join("_proj.yml"), "dev:\n  scripts: [analysis.py]\n").unwrap();
+    fs::write(root.join("_projr.yml"), "dev:\n  scripts: [analysis.py]\n").unwrap();
     fs::write(root.join("_environment"), "PROJCLI_NATIVE_VALUE=from-file\n").unwrap();
     fs::write(root.join("_environment.required"), "PROJCLI_NATIVE_VALUE\n").unwrap();
     fs::write(root.join("analysis.py"), "import os\nfrom pathlib import Path\nPath('native-value').write_text(os.environb[b'PROJCLI_NATIVE_VALUE'].hex())\n").unwrap();
@@ -130,7 +130,7 @@ fn inherited_non_unicode_values_remain_present_and_override_file_values() {
 fn inherited_ascii_key_case_remains_equivalent_on_windows() {
     let project = tempfile::tempdir().unwrap();
     let root = project.path();
-    fs::write(root.join("_proj.yml"), "dev:\n  scripts: [analysis.py]\n").unwrap();
+    fs::write(root.join("_projr.yml"), "dev:\n  scripts: [analysis.py]\n").unwrap();
     fs::write(root.join("_environment"), "PROJCLI_CASE_TEST=from-file\n").unwrap();
     fs::write(root.join("analysis.py"), "import os\nfrom pathlib import Path\nPath('case-value').write_text(os.environ['PROJCLI_CASE_TEST'])\n").unwrap();
     let result = Command::new(env!("CARGO_BIN_EXE_proj"))
@@ -149,7 +149,7 @@ fn unicode_case_aliases_cannot_override_inherited_windows_environment_keys() {
     for filename in ["_environment", "_environment.required"] {
         let project = tempfile::tempdir().unwrap();
         let root = project.path();
-        fs::write(root.join("_proj.yml"), "dev:\n  scripts: [analysis.py]\n").unwrap();
+        fs::write(root.join("_projr.yml"), "dev:\n  scripts: [analysis.py]\n").unwrap();
         fs::write(root.join(filename), "PROJCLI_é=file\n").unwrap();
         fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('analysis-ran').touch()\n").unwrap();
         let result = Command::new(env!("CARGO_BIN_EXE_proj"))

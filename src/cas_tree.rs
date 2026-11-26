@@ -31,7 +31,7 @@ fn layout(content:&Utf8Path,metadata:&Utf8Path)->Result<Layout> {
 }
 fn control_name(name:&str)->bool {
     let name=portable_path_key(Utf8Path::new(name)).as_str().to_ascii_lowercase();
-    [".git",".hg",".svn",".projr",".agents",".codex",".projects","version","description",
+    [".git",".hg",".svn",".agents",".codex",".projects","version","description",
         "manifest.csv",".gitignore",".rbuildignore",".rprofile",".renviron","pyproject.toml",
         "project.toml","juliaproject.toml","renv.lock","_bookdown.yml","_output.yml",
         "readme.md","changelog.md"].contains(&name.as_str())
@@ -49,9 +49,9 @@ pub(crate) fn project_target(root:&Utf8Path,target:&Utf8Path,allow_metadata:bool
             .context("CAS target aliases the project root through a planned portable spelling")?;
         let first=relative.iter().next().context("CAS target is the project root")?;
         anyhow::ensure!(!control_name(first),"CAS target overlaps project authority/control path: {first}");
-        if portable_path_key(Utf8Path::new(first)).as_str()==".PROJ" {
-            anyhow::ensure!(allow_metadata&&first==".proj","CAS target overlaps project control state");
-            for reserved in [".proj/log",".proj/build.lock"] {
+        if portable_path_key(Utf8Path::new(first)).as_str()==".PROJR" {
+            anyhow::ensure!(allow_metadata&&first==".projr","CAS target overlaps project control state");
+            for reserved in [".projr/attempts",".projr/logs",".projr/build.lock",".projr/manifests",".projr/config",".projr/source",".projr/BUILDLOG.md"] {
                 anyhow::ensure!(!overlaps(target,&root.join(reserved)),
                     "CAS target overlaps project attempt control state");
             }
@@ -63,7 +63,7 @@ fn writer_paths(root:&Utf8Path,store:&Layout)->Result<()> {
     for namespace in [&store.objects,&store.trees,&store.snapshots] {
         project_target(root,namespace,true)?;
     }
-    anyhow::ensure!(!overlaps(&store.objects,&physical(&root.join(".proj"))?),
+    anyhow::ensure!(!overlaps(&store.objects,&physical(&root.join(".projr"))?),
         "CAS file storage overlaps project control state");
     Ok(())
 }
@@ -408,7 +408,7 @@ fn restore_destination(root:&Utf8Path,store:&Layout,destination:&Utf8Path)->Resu
     }
     for base in [store.objects.parent().context("CAS objects have no base")?,
         store.trees.parent().and_then(Utf8Path::parent).context("CAS trees have no base")?] {
-        for relative in ["catalogues","flat-snapshots",".proj"] {
+        for relative in ["catalogues","flat-snapshots",".projr"] {
             anyhow::ensure!(!overlaps(&destination,&base.join(relative)),"CAS restore destination overlaps flat metadata");
         }
     }
@@ -562,12 +562,12 @@ pub fn restore_legacy_label(project_root:&Utf8Path,content:&Utf8Path,snapshot_id
 fn source_path(root:&Utf8Path,store:&Layout,source:&Utf8Path)->Result<Utf8PathBuf> {
     let source=physical(source)?;
     for target in [&store.objects,&store.trees,&store.snapshots,
-        &physical(&root.join(".proj"))?,&physical(&root.join(".projr"))?] {
+        &physical(&root.join(".projr"))?] {
         anyhow::ensure!(!overlaps(&source,target),"CAS source overlaps storage or project metadata");
     }
     for base in [store.objects.parent().context("CAS objects have no base")?,
         store.trees.parent().and_then(Utf8Path::parent).context("CAS trees have no base")?] {
-        for relative in ["catalogues","flat-snapshots",".proj"] {
+        for relative in ["catalogues","flat-snapshots",".projr"] {
             anyhow::ensure!(!overlaps(&source,&base.join(relative)),"CAS source overlaps flat metadata");
         }
     }
@@ -603,7 +603,7 @@ pub(crate) fn copy_graph(root:&Utf8Path,content:&Utf8Path,from:&Utf8Path,to:&Utf
 fn project_reference_namespace(root:&Utf8Path,metadata:&Utf8Path)->Result<Utf8PathBuf> {
     let root=physical(root)?;
     let relative=metadata.strip_prefix(&root).context("Project CAS references must be inside the selected project")?;
-    anyhow::ensure!(relative.starts_with(".proj/remotes"),"Project CAS references require the managed remotes metadata namespace");
+    anyhow::ensure!(relative.starts_with(".projr/remotes"),"Project CAS references require the managed remotes metadata namespace");
     crate::path_safety::validate_native_names(&root,relative.as_str(),false)?;
     let namespace=physical(metadata)?.join("references/v1");
     project_target(&root,&namespace,true)?;crate::cas::checked_directory(&namespace)?;

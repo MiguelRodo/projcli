@@ -41,7 +41,7 @@ fn snapshot(root:&Path)->BTreeMap<String,Option<Vec<u8>>> {
     let mut rows=BTreeMap::new();collect(root,root,&mut rows);rows
 }
 fn recovered_snapshot(root:&Path,before:&BTreeMap<String,Option<Vec<u8>>>)->BTreeMap<String,Option<Vec<u8>>> {
-    let mut after=snapshot(root);let directory=".proj/log/local-failures";let prefix=format!("{directory}/");
+    let mut after=snapshot(root);let directory=".projr/logs/local-failures";let prefix=format!("{directory}/");
     let added:Vec<_>=after.keys().filter(|path|path.starts_with(prefix.as_str())&&!before.contains_key(*path)).cloned().collect();
     let mut diagnostics=0;let mut ignores=0;
     for path in added {
@@ -62,10 +62,10 @@ fn recovered_snapshot(root:&Path,before:&BTreeMap<String,Option<Vec<u8>>>)->BTre
         diagnostics+=1;
     }
     assert_eq!(diagnostics,1);assert_eq!(ignores,1);
-    for parent in [".proj",".proj/log",directory] {
+    for parent in [".projr",".projr/logs",directory] {
         if !before.contains_key(parent){assert_eq!(after.remove(parent),Some(None));}
     }
-    assert!(!root.join(".proj/build.lock").exists());after
+    assert!(!root.join(".projr/build.lock").exists());after
 }
 fn setup()->(tempfile::TempDir,std::path::PathBuf,Value) {
     let temp=tempfile::tempdir().unwrap();let root=temp.path().canonicalize().unwrap().join("project");
@@ -80,7 +80,7 @@ fn setup()->(tempfile::TempDir,std::path::PathBuf,Value) {
             "B":{"path":"../store-B","structure":"archive","send":{"inspect":"file","cue":"always"}}}},
         "build":{"scripts":[],"git":false,"dest":{"B":{"content":["raw"]}}}
     });
-    fs::write(root.join("_proj.yml"),serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+    fs::write(root.join("_projr.yml"),serde_json::to_vec_pretty(&config).unwrap()).unwrap();
     (temp,root,config)
 }
 #[test]
@@ -104,7 +104,7 @@ fn actual_cli_uploads_only_to_b_and_restores_a_after_its_upload_selection_is_abs
         if explicit_title {
             config["directories"]["raw"].as_object_mut().unwrap().remove("source");
             config["build"]["dest"]=json!({});
-            fs::write(root.join("_proj.yml"),serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+            fs::write(root.join("_projr.yml"),serde_json::to_vec_pretty(&config).unwrap()).unwrap();
         }
         fs::write(root.join("input/input.csv"),b"damaged local").unwrap();
         fs::write(root.join("input/local-only"),b"clear only on successful restore").unwrap();
@@ -131,7 +131,7 @@ fn registered_but_unselected_remotes_need_no_credentials_and_make_no_store() {
             config["remotes"]["github"]["unused"]["content"]=Value::Null;
         }
         match selection {Some(selection)=>{config["build"]["dest"]=selection;},None=>{config["build"].as_object_mut().unwrap().remove("dest");}}
-        fs::write(root.join("_proj.yml"),serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+        fs::write(root.join("_projr.yml"),serde_json::to_vec_pretty(&config).unwrap()).unwrap();
         // Any accidental GitHub capture would reject this nonpublic API without a token.
         success(command(&root).env("GITHUB_API_URL","http://127.0.0.1:1").arg("build").output().unwrap());
         assert!(!root.parent().unwrap().join("store-A").exists());assert!(!root.parent().unwrap().join("store-B").exists());
@@ -143,7 +143,7 @@ fn unknown_registry_reference_preserves_inputs_before_hooks_with_only_the_approv
     config["build"]["dest"]=json!({"unknown":{}});
     config["build"]["hooks"]=json!({"pre":["pre.py"]});
     fs::write(root.join("pre.py"),b"from pathlib import Path\nPath('hook-ran').write_text('unexpected')\n").unwrap();
-    fs::write(root.join("_proj.yml"),serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+    fs::write(root.join("_projr.yml"),serde_json::to_vec_pretty(&config).unwrap()).unwrap();
     let before=snapshot(&root);
     let output=command(&root).arg("build").output().unwrap();assert!(!output.status.success());
     let error:Value=serde_json::from_slice(&output.stdout).unwrap();
@@ -159,7 +159,7 @@ fn unknown_registry_reference_preserves_inputs_before_hooks_with_only_the_approv
 fn conflicting_registry_and_inline_source_definitions_fail_readonly_before_clearing() {
     let (_temp,root,mut config)=setup();
     config["build"]["local"]=json!({"A":{"path":"../spoof","content":["raw"]}});
-    fs::write(root.join("_proj.yml"),serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+    fs::write(root.join("_projr.yml"),serde_json::to_vec_pretty(&config).unwrap()).unwrap();
     let before=snapshot(&root);
     let output=command(&root).args(["remote","restore","--label","raw","--title","A","--clear",
         "--max-bytes","100000","--max-expanded-bytes","100000"]).output().unwrap();

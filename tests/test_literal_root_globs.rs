@@ -6,7 +6,7 @@ fn root_metacharacters_are_literal_while_include_and_exclude_globs_keep_working(
         let temp = tempfile::tempdir().unwrap();
         let root = temp.path().join("demo [1] with spaces");
         fs::create_dir(&root).unwrap();
-        fs::write(root.join("_proj.yml"), format!("directories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: {selection}\n")).unwrap();
+        fs::write(root.join("_projr.yml"), format!("directories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: {selection}\n")).unwrap();
         for (script, marker) in [("analysis.py", "analysis"), ("skip-this.py", "excluded")] {
             fs::write(root.join(script), format!("from pathlib import Path\nPath('_tmp').mkdir(exist_ok=True)\nPath('_tmp/{marker}').write_text('ran')\n")).unwrap();
         }
@@ -26,7 +26,7 @@ fn explicit_failure_executes_under_native_and_canonical_project_paths() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().join("project [2] with spaces");
     fs::create_dir(&root).unwrap();
-    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: [analysis.py]\n").unwrap();
+    fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: _tmp\nbuild:\n  scripts: [analysis.py]\n").unwrap();
     fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('_tmp').mkdir(exist_ok=True)\nPath('_tmp/executed').write_text('yes')\nraise SystemExit(17)\n").unwrap();
     let canonical = root.canonicalize().unwrap();
     for project_argument in [&root, &canonical] {

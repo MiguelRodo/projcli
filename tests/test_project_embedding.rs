@@ -23,7 +23,7 @@ fn project_embedding_headers_restore_exact_bytes_on_success_failure_and_source_c
         fs::write(root.join("_quarto.yml"),project).unwrap();
         if case=="local-change" { fs::write(root.join("_quarto.yml.local"),"toc: false\n").unwrap(); }
         let scripts=if ["source-change","metadata-change","included-change","singular-change","local-change","local-create"].contains(&case) {"[change.py, analysis/report.qmd]"} else {"[analysis/report.qmd]"};
-        fs::write(root.join("_proj.yml"),format!("directories:\n  cache: {{path: cache}}\n  docs: {{path: published}}\nbuild:\n  scripts: {scripts}\n  git: false\n")).unwrap();
+        fs::write(root.join("_projr.yml"),format!("directories:\n  cache: {{path: cache}}\n  docs: {{path: published}}\nbuild:\n  scripts: {scripts}\n  git: false\n")).unwrap();
         let change = match case {
             "metadata-change" => "from pathlib import Path\nPath('analysis/_metadata.yml').write_text('self-contained: false\\n')\n",
             "local-change" | "local-create" => "from pathlib import Path\nPath(\x27_quarto.yml.local\x27).write_text(\x27self-contained: false\\n\x27)\n",

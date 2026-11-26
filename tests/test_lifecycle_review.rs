@@ -18,7 +18,7 @@ fn setup(root: &Path, scripts: &str, extra: &str) {
     fs::write(root.join("VERSION"),"v1.2.3-4\n").unwrap();
     fs::write(root.join("published/old.html"),"old published").unwrap();
     fs::write(root.join("released/old"),"old output").unwrap();
-    fs::write(root.join("_proj.yml"),format!("directories:\n  cache: {{path: cache}}\n  output: {{path: released}}\n  docs: {{path: published}}\nbuild:\n  scripts: {scripts}\n  git: false\n{extra}")).unwrap();
+    fs::write(root.join("_projr.yml"),format!("directories:\n  cache: {{path: cache}}\n  output: {{path: released}}\n  docs: {{path: published}}\nbuild:\n  scripts: {scripts}\n  git: false\n{extra}")).unwrap();
 }
 
 #[cfg(unix)]
@@ -115,8 +115,8 @@ fn frozen_layout_and_immediate_native_freshness_survive_ordered_scripts() {
 fn two_managed_git_builds_accept_only_the_exact_recorded_dev_version_change() {
     let temp=tempfile::tempdir().unwrap();let root=temp.path().canonicalize().unwrap();
     setup(&root,"[]","");
-    let config=fs::read_to_string(root.join("_proj.yml")).unwrap().replace("git: false","git: {commit: true, push: false}");
-    fs::write(root.join("_proj.yml"),config).unwrap();
+    let config=fs::read_to_string(root.join("_projr.yml")).unwrap().replace("git: false","git: {commit: true, push: false}");
+    fs::write(root.join("_projr.yml"),config).unwrap();
     let git=|args: &[&str]| {let result=Command::new("git").current_dir(&root).args(args).output().unwrap();assert!(result.status.success(),"{}",String::from_utf8_lossy(&result.stderr));result.stdout};
     git(&["init"]);git(&["config","user.name","Fixture"]);git(&["config","user.email","fixture@example.invalid"]);git(&["add","-A"]);git(&["commit","-m","initial"]);
     for version in ["1.2.4","1.2.5"] {

@@ -356,14 +356,14 @@ fn cas_export_busy_claim_relative_paths_unknown_metadata_and_missing_objects_fai
     let (_temp, project, source, store) = fixture();
     publish(&project, &store, &source, "v1.0.0");
     assert!(proj::cas_archive::export(&project, Utf8Path::new("store")).is_err());
-    fs::create_dir_all(store.join(".proj")).unwrap();
-    fs::write(store.join(".proj/build.lock"), b"other writer").unwrap();
+    fs::create_dir_all(store.join(".projr")).unwrap();
+    fs::write(store.join(".projr/build.lock"), b"other writer").unwrap();
     assert!(proj::cas_archive::export(&project, &store).is_err());
     assert_eq!(
-        fs::read(store.join(".proj/build.lock")).unwrap(),
+        fs::read(store.join(".projr/build.lock")).unwrap(),
         b"other writer"
     );
-    fs::remove_file(store.join(".proj/build.lock")).unwrap();
+    fs::remove_file(store.join(".projr/build.lock")).unwrap();
     fs::create_dir_all(store.join("catalogues/v1")).unwrap();
     fs::write(store.join("catalogues/v1/unknown.json"), b"{}").unwrap();
     assert!(proj::cas_archive::export(&project, &store).is_err());

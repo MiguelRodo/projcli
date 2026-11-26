@@ -37,7 +37,7 @@ fn safe_auto_defaults_keep_one_target_and_explicit_final_absolute_overrides() {
     fs::create_dir(&caller).unwrap();
     fs::write(root.join("VERSION"), "v1.2.3-4\n").unwrap();
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         "directories:\n  cache: {path: scratch}\n  output: {path: released}\n",
     )
     .unwrap();
@@ -86,7 +86,7 @@ fn merged_representation_settings_and_explicit_cli_obey_precedence() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().canonicalize().unwrap();
     fs::write(root.join("VERSION"), "v1.2.3-4\n").unwrap();
-    fs::write(root.join("_proj.yml"),"directories:\n  cache: {path: cache}\n  output: {path: released}\nsettings:\n  path-representation: auto\nbuild:\n  profile: active\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  cache: {path: cache}\n  output: {path: released}\nsettings:\n  path-representation: auto\nprofile: active\n").unwrap();
     fs::write(
         root.join("_projr-active.yml"),
         "settings:\n  path-representation: absolute\n",
@@ -141,7 +141,7 @@ fn run_settings_are_frozen_while_cli_execution_override_and_fresh_caller_cwd_wor
             let config = format!(
                 "directories:\n  cache: {{path: cache}}\n  raw: {{path: raw}}\n  output: {{path: released}}\nsettings:\n  execution-directory: {configured}\n  path-representation: {format}\nbuild:\n  scripts: [analysis.py]\n  git: false\n"
             );
-            fs::write(root.join("_proj.yml"), &config).unwrap();
+            fs::write(root.join("_projr.yml"), &config).unwrap();
             let expected = if explicit.unwrap_or(configured) == "project" {
                 &root
             } else {
@@ -151,7 +151,7 @@ fn run_settings_are_frozen_while_cli_execution_override_and_fresh_caller_cwd_wor
 from pathlib import Path
 root=Path(os.environ['PROJ_PROJECT_ROOT'])
 assert Path.cwd().samefile(Path({expected}))
-(root/'_proj.yml').write_text('invalid: configuration changed during execution')
+(root/'_projr.yml').write_text('invalid: configuration changed during execution')
 os.environ['PROJR_PROFILE']='changed'
 def lookup(label,*parts):
  value=json.loads(subprocess.check_output([{binary},'--machine','path','get','--label',label,*parts],text=True))
@@ -180,7 +180,7 @@ for cwd in [Path.cwd(),root/'raw']:
                 "{}",
                 String::from_utf8_lossy(&result.stderr)
             );
-            assert_eq!(fs::read_to_string(root.join("_proj.yml")).unwrap(), config);
+            assert_eq!(fs::read_to_string(root.join("_projr.yml")).unwrap(), config);
             assert_eq!(
                 fs::read_to_string(root.join("cache/projr/v1.2.3-4/output/retained.txt")).unwrap(),
                 "retained safe output"
@@ -194,10 +194,10 @@ for cwd in [Path.cwd(),root/'raw']:
 fn invalid_settings_fail_per_active_layer_before_hooks() {
     for key in ["execution-directory", "path-representation"] {
         for invalid in ["null", "false", "unsupported"] {
-            for layer in ["_proj.yml", "_projr-local.yml", "_projr-active.yml"] {
+            for layer in ["_projr.yml", "_projr-local.yml", "_projr-active.yml"] {
                 let temp = tempfile::tempdir().unwrap();
                 let root = temp.path().canonicalize().unwrap();
-                fs::write(root.join("_proj.yml"),"settings:\n  execution-directory: native\n  path-representation: auto\nbuild:\n  profile: active\n  scripts: []\ndev:\n  hooks:\n    pre: [hook.py]\n").unwrap();
+                fs::write(root.join("_projr.yml"),"settings:\n  execution-directory: native\n  path-representation: auto\nprofile: active\nbuild:\n  scripts: []\ndev:\n  hooks:\n    pre: [hook.py]\n").unwrap();
                 fs::write(
                     root.join("hook.py"),
                     "raise RuntimeError('hook must not execute')\n",

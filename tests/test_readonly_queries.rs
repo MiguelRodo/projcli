@@ -36,7 +36,7 @@ fn cli_queries_preserve_files_and_directories_with_or_without_configuration() {
             let root = project.path();
             fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
             if let Some(content) = configuration {
-                fs::write(root.join("_proj.yml"), content).unwrap();
+                fs::write(root.join("_projr.yml"), content).unwrap();
             }
             if existing_ignores {
                 fs::write(root.join(".gitignore"), "# preserve git rules\n").unwrap();
@@ -106,7 +106,7 @@ fn production_build_still_requests_ignore_synchronization() {
     )
     .unwrap();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
-    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
+    fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: _tmp\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  restrictions:\n    not_behind: false\n").unwrap();
     fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('_tmp').mkdir(exist_ok=True)\nPath('_tmp/production.txt').write_text('done')\n").unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_proj"))
         .args(["build", "--patch", "--description", "fixture", "--project"])
@@ -136,7 +136,7 @@ fn project_with_custom_ignores() -> tempfile::TempDir {
     let canonical_root = project.path().canonicalize().unwrap();
     let root = camino::Utf8Path::from_path(&canonical_root).unwrap();
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         "directories:\n  raw-private:\n    path: private-data\n    ignore: all\n",
     )
     .unwrap();
@@ -163,7 +163,7 @@ fn init_preserves_custom_ignore_rules_on_malformed_or_unreadable_config() {
     for unreadable in [false, true] {
         let project = project_with_custom_ignores();
         let root = project.path();
-        let config = root.join("_proj.yml");
+        let config = root.join("_projr.yml");
         if unreadable {
             fs::remove_file(&config).unwrap();
             fs::create_dir(&config).unwrap(); // A directory cannot be read as a YAML file.
@@ -189,7 +189,7 @@ fn init_preserves_custom_ignores_when_config_permission_is_denied() {
     let project = project_with_custom_ignores();
     let root = project.path();
     let before = snapshot(root);
-    let config = root.join("_proj.yml");
+    let config = root.join("_projr.yml");
     let original = fs::metadata(&config).unwrap().permissions();
     fs::set_permissions(&config, fs::Permissions::from_mode(0o000)).unwrap();
     let output = init_directories(root);

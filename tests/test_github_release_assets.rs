@@ -149,7 +149,7 @@ fn permissions_protected_paths_size_limit_and_untrusted_upload_fail_without_writ
         replies.push(reply("GET","/repos/owner/repo/releases/1/assets?per_page=100&page=1",200,"[]"));replies
     });
     let client=server.client();
-    for path in ["VERSION","version","manifest.csv","_proj.yml",".git/config",".projr/state"] {
+    for path in ["VERSION","version","manifest.csv","_projr.yml",".git/config",".projr/state"] {
         assert!(client.download_asset(&root,"data","asset.zip",&root.join(path),100).is_err());
     }
     assert!(client.download_asset(&root,"data","asset.zip",&target,10).is_err());
@@ -394,7 +394,7 @@ fn explicit_replacement_of_absent_name_uploads_without_delete_and_rejects_stale_
 fn configure_restore(root:&camino::Utf8Path,layout:&str) {
     std::fs::create_dir(root.join("restored")).unwrap();std::fs::write(root.join("restored/old.txt"),"old-state").unwrap();
     std::fs::write(root.join("manifest.csv"),"label,fn,version,hash\nraw,data.csv,v1.2.3,900150983cd24fb0d6963f7d28e17f72\n").unwrap();
-    std::fs::write(root.join("_proj.yml"),format!("directories:\n  raw:\n    path: restored\n    source:\n      github: data\nbuild:\n  github:\n    data:\n      structure: {layout}\n      path: analysis\n")).unwrap();
+    std::fs::write(root.join("_projr.yml"),format!("directories:\n  raw:\n    path: restored\n    source:\n      github: data\nbuild:\n  github:\n    data:\n      structure: {layout}\n      path: analysis\n")).unwrap();
 }
 fn restore_command(root:&camino::Utf8Path,base:&str)->Command {
     let mut command=Command::new(env!("CARGO_BIN_EXE_proj"));
