@@ -641,10 +641,8 @@ fn validate_destination(root: &Utf8Path, destination: &Utf8Path) -> anyhow::Resu
         .flatten()
         .any(|name| {
             let name = name.to_ascii_lowercase();
-            matches!(
-                name.as_str(),
-                "version" | "manifest.csv" | "_projr.yml"
-            ) || (name.starts_with("_projr-") && name.ends_with(".yml"))
+            matches!(name.as_str(), "version" | "manifest.csv" | "_projr.yml")
+                || (name.starts_with("_projr-") && name.ends_with(".yml"))
         });
     anyhow::ensure!(
         !protected,

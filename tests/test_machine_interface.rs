@@ -152,7 +152,11 @@ fn argument_project_and_query_failures_are_structured_and_nonzero() {
 fn child_stdout_and_stderr_cannot_pollute_protocol_stdout() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path();
-    fs::write(root.join("_projr.yml"), "build:\n  scripts: [analysis.py]\n").unwrap();
+    fs::write(
+        root.join("_projr.yml"),
+        "build:\n  scripts: [analysis.py]\n",
+    )
+    .unwrap();
     for fail in [false, true] {
         fs::write(root.join("analysis.py"), format!("import sys\nprint('child-out-marker')\nprint('child-err-marker', file=sys.stderr)\nraise SystemExit({})\n", if fail { 17 } else { 0 })).unwrap();
         let output = command(root).arg("build-dev").output().unwrap();

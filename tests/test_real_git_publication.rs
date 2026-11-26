@@ -778,7 +778,9 @@ fn nested_project_claim_exclusion_is_literal_and_keeps_whole_repository_scope() 
         "{paths}"
     );
     assert!(
-        !paths.lines().any(|path| path.ends_with(".projr/build.lock")),
+        !paths
+            .lines()
+            .any(|path| path.ends_with(".projr/build.lock")),
         "{paths}"
     );
     assert_eq!(fixture.git(&["show", "HEAD:./VERSION"]), b"Version: v1.2.4");
@@ -814,7 +816,9 @@ fn sibling_project_claims_are_preserved_but_never_staged() {
     );
     let paths = fixture.text(&["ls-tree", "--full-tree", "-r", "--name-only", "HEAD"]);
     assert!(
-        !paths.lines().any(|path| path.ends_with(".projr/build.lock")),
+        !paths
+            .lines()
+            .any(|path| path.ends_with(".projr/build.lock")),
         "{paths}"
     );
     assert!(
@@ -872,9 +876,10 @@ fn attempt_snapshot_and_receipt_follow_two_normal_commits_without_recursion() {
     assert_eq!(receipt["git"]["head"], fixture.text(&["rev-parse", "HEAD"]));
     assert_eq!(receipt["version_after"], "v1.2.4.1");
     let id = receipt["attempt_id"].as_str().unwrap();
-    let snapshot: serde_json::Value =
-        serde_json::from_slice(&fixture.git(&["show", &format!("HEAD:./.projr/attempts/{id}.json")]))
-            .unwrap();
+    let snapshot: serde_json::Value = serde_json::from_slice(
+        &fixture.git(&["show", &format!("HEAD:./.projr/attempts/{id}.json")]),
+    )
+    .unwrap();
     assert_eq!(receipt["final_outputs"]["status"], "completed");
     assert_eq!(
         receipt["final_outputs"]["inventory"],
@@ -1051,9 +1056,10 @@ fn git_receipt_observes_post_hook_changes_without_rewriting_the_committed_snapsh
     );
     let (_, receipt) = fixture.pending_receipt();
     let id = receipt["attempt_id"].as_str().unwrap();
-    let snapshot: serde_json::Value =
-        serde_json::from_slice(&fixture.git(&["show", &format!("HEAD:./.projr/attempts/{id}.json")]))
-            .unwrap();
+    let snapshot: serde_json::Value = serde_json::from_slice(
+        &fixture.git(&["show", &format!("HEAD:./.projr/attempts/{id}.json")]),
+    )
+    .unwrap();
     assert_ne!(
         receipt["final_outputs"]["inventory"],
         snapshot["inventory"]["release_outputs"]

@@ -1406,8 +1406,20 @@ build:
         let hashing = config.settings.hashing.unwrap();
         assert_eq!(hashing.approach, Some(HashingApproach::Legacy));
         assert_eq!(hashing.cores.map(|cores| cores.get()), Some(2));
-        assert!(matches!(config.build.cite, Some(CiteConfig::Files(CiteFiles { cff: Some(true), .. }))));
-        assert!(matches!(config.build.git, GitConfigOpt::Detailed(GitConfig { add_untracked: Some(false), .. })));
+        assert!(matches!(
+            config.build.cite,
+            Some(CiteConfig::Files(CiteFiles {
+                cff: Some(true),
+                ..
+            }))
+        ));
+        assert!(matches!(
+            config.build.git,
+            GitConfigOpt::Detailed(GitConfig {
+                add_untracked: Some(false),
+                ..
+            })
+        ));
         let cite: ProjConfig = serde_yaml::from_str("build:\n  cite: false\n").unwrap();
         assert_eq!(cite.build.cite, Some(CiteConfig::All(false)));
         for bad in [

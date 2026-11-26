@@ -150,7 +150,10 @@ fn production_records_md5_pre_inputs_final_outputs_and_exact_history_without_git
             .collect::<Vec<_>>(),
         "v1.2.5",
     );
-    assert_eq!(fs::read_dir(root.join(".projr/attempts")).unwrap().count(), 4);
+    assert_eq!(
+        fs::read_dir(root.join(".projr/attempts")).unwrap().count(),
+        4
+    );
 }
 
 #[test]
@@ -272,14 +275,16 @@ fn bad_history_and_invalid_layer_hash_fail_before_start_hooks_and_missing_manife
         )
         .unwrap();
         fs::write(root.join("end.py"), "import csv, os\nfrom pathlib import Path\nroot = Path(os.environ['PROJ_PROJECT_ROOT'])\nwith (root / '.projr/manifests/raw/versions.csv').open(encoding='utf-8', newline='') as stream:\n    rows = list(csv.DictReader(stream))\nassert any(row['version'] == 'v1.2.4' and row['label'] == 'raw' for row in rows)\n(root / 'cache/end-ran').write_bytes(b'current release CSV observed')\nraise SystemExit(17)\n").unwrap();
-        let config = fs::read_to_string(root.join("_projr.yml")).unwrap().replace(
-            "build:\n",
-            if kind == "absent" {
-                "build:\n  hooks:\n    post: [end.py]\n"
-            } else {
-                "build:\n  hooks:\n    pre: [start.py]\n"
-            },
-        );
+        let config = fs::read_to_string(root.join("_projr.yml"))
+            .unwrap()
+            .replace(
+                "build:\n",
+                if kind == "absent" {
+                    "build:\n  hooks:\n    post: [end.py]\n"
+                } else {
+                    "build:\n  hooks:\n    pre: [start.py]\n"
+                },
+            );
         fs::write(root.join("_projr.yml"), config).unwrap();
         if kind == "history" {
             fs::write(root.join("manifest.csv"), b"not,a,manifest\n").unwrap();

@@ -44,7 +44,10 @@ fn refresh(root: &Path) -> String {
 fn fresh_gitignore_gets_starter_defaults_then_projr_block_and_is_stable() {
     let temp = project(None);
     let git = refresh(temp.path());
-    assert_eq!(git, format!("{GIT_STARTER}{START}\n_tmp/**\n\n{STATE}{END}\n"));
+    assert_eq!(
+        git,
+        format!("{GIT_STARTER}{START}\n_tmp/**\n\n{STATE}{END}\n")
+    );
     assert_eq!(refresh(temp.path()), git);
 }
 

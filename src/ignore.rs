@@ -208,8 +208,9 @@ pub(crate) fn update_ignores_for_generated(
                 rbuild_ignores.extend([format!("^{escaped}/"), format!("^{escaped}$")]);
             }
         }
-        let entries = fs::read_dir(project_root)
-            .map_err(|error| anyhow::anyhow!("Cannot list {project_root} for ignore rules: {error}"))?;
+        let entries = fs::read_dir(project_root).map_err(|error| {
+            anyhow::anyhow!("Cannot list {project_root} for ignore rules: {error}")
+        })?;
         for entry in entries {
             let name = entry?.file_name();
             let Some(name) = name.to_str() else { continue };

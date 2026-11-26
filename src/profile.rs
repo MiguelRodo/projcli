@@ -5,11 +5,11 @@
 //! `default.yml`, `<profile>.yml` and `local.yml` are accepted beside the
 //! `_projr-<profile>.yml` spelling. Root files take precedence
 //! (SATVILab/projr@5f915ef `R/yml.R:308-338`).
-use std::env;
-use std::fs;
 use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};
 use serde_json::Value;
+use std::env;
+use std::fs;
 
 /// Configuration directories searched after the project root, in order.
 pub const CONFIG_DIRS: [&str; 2] = [".projr/config", "_projr/config"];
@@ -22,13 +22,22 @@ pub fn get_active_profiles() -> Vec<String> {
 }
 
 pub(crate) fn parse_active_profiles(value: &str) -> Vec<String> {
-    value.split([',', ';']).map(str::trim)
-        .filter(|value| !value.is_empty() && *value != "default" && *value != "local" && is_valid_profile_name(value))
-        .map(str::to_owned).collect()
+    value
+        .split([',', ';'])
+        .map(str::trim)
+        .filter(|value| {
+            !value.is_empty()
+                && *value != "default"
+                && *value != "local"
+                && is_valid_profile_name(value)
+        })
+        .map(str::to_owned)
+        .collect()
 }
 
 fn is_valid_profile_name(s: &str) -> bool {
-    s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    s.chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
 }
 
 /// Root-level file name of a profile: `_projr.yml` for `default`, else `_projr-<profile>.yml`.
@@ -95,7 +104,11 @@ pub fn config_path(root: &Utf8Path, profile: &str) -> anyhow::Result<Utf8PathBuf
 pub fn config_files(root: &Utf8Path) -> anyhow::Result<Vec<String>> {
     let mut files = Vec::new();
     for (dir, root_level) in [("", true), (CONFIG_DIRS[0], false), (CONFIG_DIRS[1], false)] {
-        let directory = if root_level { root.to_owned() } else { root.join(dir) };
+        let directory = if root_level {
+            root.to_owned()
+        } else {
+            root.join(dir)
+        };
         let entries = match fs::read_dir(&directory) {
             Ok(entries) => entries,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
@@ -104,7 +117,9 @@ pub fn config_files(root: &Utf8Path) -> anyhow::Result<Vec<String>> {
         let mut names = Vec::new();
         for entry in entries {
             let entry = entry.with_context(|| format!("Cannot list {directory}"))?;
-            let Ok(name) = entry.file_name().into_string() else { continue };
+            let Ok(name) = entry.file_name().into_string() else {
+                continue;
+            };
             let matches = if root_level {
                 name == "_projr.yml"
                     || name
@@ -112,10 +127,15 @@ pub fn config_files(root: &Utf8Path) -> anyhow::Result<Vec<String>> {
                         .and_then(|stem| stem.strip_suffix(".yml"))
                         .is_some_and(|stem| !stem.is_empty() && is_valid_profile_name(stem))
             } else {
-                name.strip_suffix(".yml").is_some_and(|stem| !stem.is_empty() && is_valid_profile_name(stem))
+                name.strip_suffix(".yml")
+                    .is_some_and(|stem| !stem.is_empty() && is_valid_profile_name(stem))
             };
             if matches {
-                names.push(if root_level { name } else { format!("{dir}/{name}") });
+                names.push(if root_level {
+                    name
+                } else {
+                    format!("{dir}/{name}")
+                });
             }
         }
         names.sort();
@@ -147,10 +167,15 @@ pub fn config_file_profile(file: &str) -> String {
 /// `.projr/config/` or `_projr/config/` holding `_projr.yml` or `default.yml` also counts.
 pub(crate) fn has_base_config(path: &Utf8Path) -> bool {
     let is_config_dir = path.file_name() == Some("config")
-        && path.parent().and_then(Utf8Path::file_name).is_some_and(|name| name == ".projr" || name == "_projr");
+        && path
+            .parent()
+            .and_then(Utf8Path::file_name)
+            .is_some_and(|name| name == ".projr" || name == "_projr");
     (!is_config_dir && path.join("_projr.yml").is_file())
         || CONFIG_DIRS.iter().any(|dir| {
-            ["_projr.yml", "default.yml"].iter().any(|name| path.join(dir).join(name).is_file())
+            ["_projr.yml", "default.yml"]
+                .iter()
+                .any(|name| path.join(dir).join(name).is_file())
         })
 }
 
@@ -192,14 +217,30 @@ pub fn parse_profile_key(value: &Value) -> anyhow::Result<ProfileKey> {
         }
     }
     let Value::Object(map) = value else {
-        return Ok(ProfileKey { projr: strings(value, "profile")?, quarto: Vec::new() });
+        return Ok(ProfileKey {
+            projr: strings(value, "profile")?,
+            quarto: Vec::new(),
+        });
     };
-    anyhow::ensure!(!map.contains_key("renv"), "profile.renv is not supported yet.");
-    if let Some(key) = map.keys().find(|key| !["projr", "quarto"].contains(&key.as_str())) {
+    anyhow::ensure!(
+        !map.contains_key("renv"),
+        "profile.renv is not supported yet."
+    );
+    if let Some(key) = map
+        .keys()
+        .find(|key| !["projr", "quarto"].contains(&key.as_str()))
+    {
         anyhow::bail!("Unknown profile key '{key}'; use projr or quarto");
     }
-    let get = |kind: &str| map.get(kind).map_or(Ok(Vec::new()), |value| strings(value, &format!("profile.{kind}")));
-    Ok(ProfileKey { projr: get("projr")?, quarto: get("quarto")? })
+    let get = |kind: &str| {
+        map.get(kind).map_or(Ok(Vec::new()), |value| {
+            strings(value, &format!("profile.{kind}"))
+        })
+    };
+    Ok(ProfileKey {
+        projr: get("projr")?,
+        quarto: get("quarto")?,
+    })
 }
 
 /// Profiles from the `profile` key of the local file, else the default file.
@@ -209,10 +250,13 @@ pub fn parse_profile_key(value: &Value) -> anyhow::Result<ProfileKey> {
 pub(crate) fn configured_profiles(root: &Utf8Path) -> anyhow::Result<ProfileKey> {
     let mut selected = ProfileKey::default();
     for file in ["default", "local"] {
-        let Some(path) = existing_config(root, file)? else { continue };
+        let Some(path) = existing_config(root, file)? else {
+            continue;
+        };
         let value = crate::yml::read_configuration_file(&path)?;
         if let Some(key) = value.get("profile") {
-            let key = parse_profile_key(key).with_context(|| format!("Invalid profile key in {path}"))?;
+            let key =
+                parse_profile_key(key).with_context(|| format!("Invalid profile key in {path}"))?;
             if !key.projr.is_empty() {
                 selected.projr = key.projr;
             }
@@ -233,8 +277,7 @@ pub fn create_profile(name: &str, project_root: &Utf8Path) -> anyhow::Result<Utf
     if path.exists() {
         anyhow::bail!("Profile {} already exists.", name);
     }
-    fs::write(&path, "")
-        .with_context(|| format!("Failed to write empty profile to {}", path))?;
+    fs::write(&path, "").with_context(|| format!("Failed to write empty profile to {}", path))?;
     Ok(path)
 }
 
@@ -262,8 +305,12 @@ pub fn create_local_profile(project_root: &Utf8Path) -> anyhow::Result<Utf8PathB
     }
 
     if let Some(baseline_path) = baseline_path {
-        let content = fs::read_to_string(&baseline_path)
-            .with_context(|| format!("Failed to read baseline configuration from {}", baseline_path))?;
+        let content = fs::read_to_string(&baseline_path).with_context(|| {
+            format!(
+                "Failed to read baseline configuration from {}",
+                baseline_path
+            )
+        })?;
         let yaml_value: serde_yaml::Value = serde_yaml::from_str(&content)
             .context("Failed to parse baseline YAML configuration")?;
 
@@ -274,8 +321,8 @@ pub fn create_local_profile(project_root: &Utf8Path) -> anyhow::Result<Utf8PathB
 
         let out_yaml: serde_yaml::Value = serde_json::from_value(json_value)
             .context("Failed to convert nullified JSON back to YAML")?;
-        let out_str = serde_yaml::to_string(&out_yaml)
-            .context("Failed to serialize local profile YAML")?;
+        let out_str =
+            serde_yaml::to_string(&out_yaml).context("Failed to serialize local profile YAML")?;
         fs::write(&local_path, out_str)
             .with_context(|| format!("Failed to write local profile to {}", local_path))?;
     } else {
@@ -314,7 +361,10 @@ pub(crate) fn write_starter(
         return Ok(false);
     }
     // projcli looks for `.git` in ancestors too, as its Git publication does.
-    let git = if !root.ancestors().any(|directory| directory.join(".git").exists()) {
+    let git = if !root
+        .ancestors()
+        .any(|directory| directory.join(".git").exists())
+    {
         "build:\n  git: false\n"
     } else if crate::git::tracking_target_in(root, environment).is_err() {
         "build:\n  git:\n    push: false\n"

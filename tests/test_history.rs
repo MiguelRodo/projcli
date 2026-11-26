@@ -331,7 +331,8 @@ fn linked_diagnostics_directory_preserves_external_bytes_and_primary_failure() {
         let external = tempfile::tempdir().unwrap();
         fs::write(external.path().join("sentinel"), b"external").unwrap();
         fs::create_dir_all(root.join(".projr/logs")).unwrap();
-        std::os::unix::fs::symlink(external.path(), root.join(".projr/logs/local-failures")).unwrap();
+        std::os::unix::fs::symlink(external.path(), root.join(".projr/logs/local-failures"))
+            .unwrap();
         fs::write(root.join("_projr.yml"), b"broken: [").unwrap();
         let result = command(&root, &["build"]);
         assert!(!result.status.success());

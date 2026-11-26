@@ -68,7 +68,11 @@ pub fn read(root: &Utf8Path, attempt: Option<&str>, limit: usize) -> anyhow::Res
             "History is not a directory"
         );
     }
-    let listing = if has_records { Some(std::fs::read_dir(&directory)?) } else { None };
+    let listing = if has_records {
+        Some(std::fs::read_dir(&directory)?)
+    } else {
+        None
+    };
     for (count, item) in listing.into_iter().flatten().enumerate() {
         anyhow::ensure!(count < 10_000, "History directory exceeds 10,000 entries");
         let name = item?.file_name();

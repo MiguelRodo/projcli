@@ -1,11 +1,23 @@
 //! Real CLI cooperative ownership: fixtures never alter global environment.
-use std::{fs, path::Path, process::Command, thread, time::{Duration, Instant}};
+use std::{
+    fs,
+    path::Path,
+    process::Command,
+    thread,
+    time::{Duration, Instant},
+};
 
 fn command(root: &Path) -> Command {
     let mut command = Command::new(env!("CARGO_BIN_EXE_proj"));
-    command.current_dir(root).args(["build", "--patch", "--non-interactive", "--project"]).arg(root)
-        .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
-        .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").env_remove("PROJR_CLEAR_OUTPUT");
+    command
+        .current_dir(root)
+        .args(["build", "--patch", "--non-interactive", "--project"])
+        .arg(root)
+        .env_remove(proj::PROJECT_ROOT_ENV)
+        .env_remove(proj::RUN_CONTEXT_ENV)
+        .env_remove("PROJR_PROFILE")
+        .env_remove("QUARTO_PROFILE")
+        .env_remove("PROJR_CLEAR_OUTPUT");
     command
 }
 
@@ -19,7 +31,9 @@ fn concurrent_attempt_is_rejected_then_a_fresh_identity_can_succeed() {
     let temporary = tempfile::tempdir().unwrap();
     let root = temporary.path().canonicalize().unwrap();
     fixture(&root, "[analysis.py]");
-    fs::write(root.join("analysis.py"), r#"from pathlib import Path
+    fs::write(
+        root.join("analysis.py"),
+        r#"from pathlib import Path
 import time
 Path('started').write_text('ready')
 deadline=time.monotonic()+20
@@ -27,12 +41,20 @@ while not Path('continue').exists():
     if time.monotonic()>deadline:
         raise RuntimeError('fixture release timeout')
     time.sleep(0.02)
-"#).unwrap();
+"#,
+    )
+    .unwrap();
     let mut first = command(&root).spawn().unwrap();
     let deadline = Instant::now() + Duration::from_secs(15);
     while !root.join("started").exists() {
-        assert!(Instant::now() < deadline, "first build did not reach analysis");
-        assert!(first.try_wait().unwrap().is_none(), "first build exited before analysis");
+        assert!(
+            Instant::now() < deadline,
+            "first build did not reach analysis"
+        );
+        assert!(
+            first.try_wait().unwrap().is_none(),
+            "first build exited before analysis"
+        );
         thread::sleep(Duration::from_millis(20));
     }
     let claim = fs::read(root.join(".projr/build.lock")).unwrap();
@@ -49,18 +71,29 @@ while not Path('continue').exists():
     fs::write(root.join("continue"), b"release").unwrap();
     assert!(first.wait().unwrap().success());
     assert!(!root.join(".projr/build.lock").exists());
-    assert_eq!(fs::read_dir(root.join(".projr/attempts")).unwrap().count(),2);
+    assert_eq!(
+        fs::read_dir(root.join(".projr/attempts")).unwrap().count(),
+        2
+    );
 
     // A second successful run gets a fresh identity, including with .projr retained.
     fs::create_dir_all(root.join(".projr")).unwrap();
     fs::write(root.join(".projr/keep"), b"unrelated existing state").unwrap();
     fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('identity.json').write_bytes(Path('.projr/build.lock').read_bytes())\n").unwrap();
     let third = command(&root).output().unwrap();
-    assert!(third.status.success(), "{}", String::from_utf8_lossy(&third.stderr));
-    let next: serde_json::Value = serde_json::from_slice(&fs::read(root.join("identity.json")).unwrap()).unwrap();
+    assert!(
+        third.status.success(),
+        "{}",
+        String::from_utf8_lossy(&third.stderr)
+    );
+    let next: serde_json::Value =
+        serde_json::from_slice(&fs::read(root.join("identity.json")).unwrap()).unwrap();
     assert_ne!(identity["attempt_id"], next["attempt_id"]);
     assert!(!root.join(".projr/build.lock").exists());
-    assert_eq!(fs::read(root.join(".projr/keep")).unwrap(), b"unrelated existing state");
+    assert_eq!(
+        fs::read(root.join(".projr/keep")).unwrap(),
+        b"unrelated existing state"
+    );
 }
 
 #[test]
@@ -74,13 +107,21 @@ fn stale_claim_and_invalid_configuration_preserve_exact_prior_state() {
     let result = command(&root).output().unwrap();
     assert!(!result.status.success());
     assert_eq!(fs::read(root.join("VERSION")).unwrap(), before);
-    assert_eq!(fs::read(root.join(".projr/build.lock")).unwrap(), b"opaque prior owner");
+    assert_eq!(
+        fs::read(root.join(".projr/build.lock")).unwrap(),
+        b"opaque prior owner"
+    );
     fs::remove_file(root.join(".projr/build.lock")).unwrap();
     fs::remove_dir(root.join(".projr")).unwrap();
     fs::write(root.join("_projr.yml"), b"broken: [").unwrap();
     assert!(!command(&root).output().unwrap().status.success());
     assert!(!root.join(".projr/build.lock").exists());
-    assert_eq!(fs::read_dir(root.join(".projr/logs/local-failures")).unwrap().count(),2);
+    assert_eq!(
+        fs::read_dir(root.join(".projr/logs/local-failures"))
+            .unwrap()
+            .count(),
+        2
+    );
     assert_eq!(fs::read(root.join("VERSION")).unwrap(), before);
 }
 
@@ -89,7 +130,8 @@ fn managed_outputs_cannot_replace_coordination_state() {
     let temporary = tempfile::tempdir().unwrap();
     let root = temporary.path().canonicalize().unwrap();
     fixture(&root, "[]");
-    let config = fs::read_to_string(root.join("_projr.yml")).unwrap()
+    let config = fs::read_to_string(root.join("_projr.yml"))
+        .unwrap()
         .replace("  cache:", "  output: {path: .projr}\n  cache:");
     fs::write(root.join("_projr.yml"), config).unwrap();
     let result = command(&root).output().unwrap();
@@ -97,7 +139,12 @@ fn managed_outputs_cannot_replace_coordination_state() {
     assert!(String::from_utf8_lossy(&result.stderr).contains("protected project metadata"));
     assert_eq!(fs::read(root.join("VERSION")).unwrap(), b"v1.2.3-7\n");
     assert!(!root.join(".projr/build.lock").exists());
-    assert_eq!(fs::read_dir(root.join(".projr/logs/local-failures")).unwrap().count(),2);
+    assert_eq!(
+        fs::read_dir(root.join(".projr/logs/local-failures"))
+            .unwrap()
+            .count(),
+        2
+    );
 }
 
 #[cfg(unix)]
@@ -121,19 +168,32 @@ fn preview_cas_recovery_cannot_replace_coordination_state() {
     let temporary = tempfile::tempdir().unwrap();
     let root = temporary.path().canonicalize().unwrap();
     fixture(&root, "[]");
-    let config = fs::read_to_string(root.join("_projr.yml")).unwrap()
+    let config = fs::read_to_string(root.join("_projr.yml"))
+        .unwrap()
         .replace("  cache:", "  output: {path: output}\n  cache:");
     fs::write(root.join("_projr.yml"), config + "\nremotes:\n  local:\n    archive:\n      path: .projr\n      structure: cas\n      inspect: manifest\n      content: [output]\n").unwrap();
     fs::create_dir(root.join(".projr")).unwrap();
     fs::write(root.join(".projr/keep"), b"preserve coordination").unwrap();
     let result = Command::new(env!("CARGO_BIN_EXE_proj"))
-        .current_dir(&root).args(["build-dev", "--non-interactive", "--project"]).arg(&root)
-        .env_remove(proj::PROJECT_ROOT_ENV).env_remove(proj::RUN_CONTEXT_ENV)
-        .env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
-        .output().unwrap();
+        .current_dir(&root)
+        .args(["build-dev", "--non-interactive", "--project"])
+        .arg(&root)
+        .env_remove(proj::PROJECT_ROOT_ENV)
+        .env_remove(proj::RUN_CONTEXT_ENV)
+        .env_remove("PROJR_PROFILE")
+        .env_remove("QUARTO_PROFILE")
+        .output()
+        .unwrap();
     assert!(!result.status.success());
-    assert!(String::from_utf8_lossy(&result.stderr).contains("coordination"), "{}", String::from_utf8_lossy(&result.stderr));
-    assert_eq!(fs::read(root.join(".projr/keep")).unwrap(), b"preserve coordination");
+    assert!(
+        String::from_utf8_lossy(&result.stderr).contains("coordination"),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    assert_eq!(
+        fs::read(root.join(".projr/keep")).unwrap(),
+        b"preserve coordination"
+    );
     assert!(!root.join(".projr/build.lock").exists());
     assert_eq!(fs::read(root.join("VERSION")).unwrap(), b"v1.2.3-7\n");
 }
@@ -146,7 +206,9 @@ fn casefolded_coordination_names_fail_without_modifying_the_alias() {
         fixture(&root, "[]");
         fs::create_dir(root.join(directory)).unwrap();
         fs::write(root.join(directory).join(claim), b"preserve alias").unwrap();
-        if !root.join(".projr").exists() || (claim == "BUILD.LOCK" && !root.join(".projr/build.lock").exists()) {
+        if !root.join(".projr").exists()
+            || (claim == "BUILD.LOCK" && !root.join(".projr/build.lock").exists())
+        {
             continue; // Native case-sensitive filesystem: these are distinct names.
         }
         let before = fs::read(root.join(directory).join(claim)).unwrap();

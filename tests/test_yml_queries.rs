@@ -123,7 +123,10 @@ fn configuration_errors_are_typed_without_secrets_and_checked_mode_is_deliberate
                 .unwrap()
                 .contains("failure-query-canary")
         );
-        assert_eq!(fs::read_to_string(root.join("_projr.yml")).unwrap(), content);
+        assert_eq!(
+            fs::read_to_string(root.join("_projr.yml")).unwrap(),
+            content
+        );
     }
     fs::write(
         root.join("_projr.yml"),
