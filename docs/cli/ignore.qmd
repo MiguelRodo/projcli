@@ -50,7 +50,9 @@ folder rule excludes.
 ## Your rules are preserved
 
 Automatic rules are kept between the same comments projr uses, so projcli and
-projr refresh one shared block in the same project:
+projr recognise the same block. Each tool's full refresh regenerates the whole
+block from its own rules, as projr's `projr_ignore_auto()` does, so a projcli
+build replaces rules projr placed there (and vice versa):
 
 ```text
 # Start of projr section: do not edit by hand (update with projr_ignore_auto())
