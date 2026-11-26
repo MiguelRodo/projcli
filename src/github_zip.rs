@@ -214,8 +214,8 @@ pub(crate) fn recorded_directory_zip(
     Ok((zip, files.is_empty()))
 }
 /// Packages exactly the canonical metadata member from source, not other files.
-/// For the manifest, a ready `source/manifests` store is packaged as projr 0.6+
-/// does (FORMAT, indexes and referenced snapshots; no lock or legacy CSV);
+/// For the manifest, a ready `source/manifests` (remote) or
+/// `source/.projr/manifests` (project) store is packaged as projr 0.6+ does (FORMAT, indexes and referenced snapshots; no lock or legacy CSV);
 /// otherwise the legacy manifest.csv member is used.
 /// This preserves bytes; parsing/merging VERSION/CSV history remains the caller's
 /// responsibility. Missing, linked or special metadata sources are errors.
@@ -224,8 +224,21 @@ pub fn metadata_zip(
     kind: MetadataKind,
 ) -> anyhow::Result<tempfile::NamedTempFile> {
     let (_, member) = kind.names();
-    let store = source.join("manifests");
-    if matches!(kind, MetadataKind::Manifest) && crate::manifest_store::ready(&store)? {
+    // A remote pre-root keeps the store at `manifests/`; a project root keeps it
+    // at `.projr/manifests/`.
+    let mut store = None;
+    if matches!(kind, MetadataKind::Manifest) {
+        for candidate in [
+            source.join("manifests"),
+            crate::manifest_store::project_store(source),
+        ] {
+            if crate::manifest_store::ready(&candidate)? {
+                store = Some(candidate);
+                break;
+            }
+        }
+    }
+    if let Some(store) = store {
         let mut members = Vec::new();
         for relative in crate::manifest_store::published_files(&store)? {
             members.push((relative.clone(), file_md5(&store.join(&relative))?));

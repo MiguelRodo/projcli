@@ -263,3 +263,36 @@ fn linked_store_entries_are_rejected() {
     assert!(store::read(&s, None, None).is_err());
     assert!(store::read(&s, Some("docs"), None).is_err());
 }
+
+/// projr's R filelock takes `fcntl` record locks; a store write must wait for one.
+#[cfg(unix)]
+#[test]
+fn locked_writes_wait_for_an_fcntl_lock_like_projrs() {
+    use std::io::{BufRead, BufReader};
+    let (_dir, root) = temp();
+    let s = root.join("manifests");
+    fs::create_dir(&s).unwrap();
+    let holder = "import fcntl, sys, time\n\
+        f = open(sys.argv[1], 'a+')\n\
+        fcntl.lockf(f, fcntl.LOCK_EX)\n\
+        print('locked', flush=True)\n\
+        time.sleep(1.5)\n";
+    let mut child = std::process::Command::new("python3")
+        .args(["-c", holder, s.join(store::LOCK).as_str()])
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut line = String::new();
+    BufReader::new(child.stdout.take().unwrap())
+        .read_line(&mut line)
+        .unwrap();
+    assert_eq!(line.trim(), "locked");
+    let started = std::time::Instant::now();
+    store::write(&s, &[row("output", "a", "v1", A)], None, true).unwrap();
+    assert!(
+        started.elapsed() >= std::time::Duration::from_millis(900),
+        "the write did not wait for the fcntl lock"
+    );
+    assert!(child.wait().unwrap().success());
+    assert_eq!(versions(&s, "output").0, ["v1"]);
+}

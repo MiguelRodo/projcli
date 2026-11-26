@@ -294,7 +294,7 @@ pub fn ready(store: &Utf8Path) -> anyhow::Result<bool> {
     }
 }
 
-/// Holds projr's `.versions.lock` (std file locking) until dropped.
+/// Holds projr's `.versions.lock` (an `fcntl` lock on Unix) until dropped.
 fn lock(store: &Utf8Path, exclusive: bool) -> anyhow::Result<Option<fs::File>> {
     let path = store.join(LOCK);
     crate::path_safety::resolve_path(path.as_std_path(), true)?;
@@ -326,13 +326,45 @@ fn lock(store: &Utf8Path, exclusive: bool) -> anyhow::Result<Option<fs::File>> {
         file.metadata()?.is_file(),
         "Manifest store lock must be regular: {path}"
     );
-    let locked = if exclusive {
+    lock_file(&file, exclusive).with_context(|| format!("Cannot lock {path}"))?;
+    Ok(Some(file))
+}
+
+/// Blocks for a whole-file `fcntl` record lock, the kind R's filelock (and so
+/// projr) takes on Unix. Rust's `File::lock` uses `flock`, which Linux does not
+/// coordinate with `fcntl` locks, so it would not exclude projr writers.
+#[cfg(unix)]
+fn lock_file(file: &fs::File, exclusive: bool) -> std::io::Result<()> {
+    use std::os::fd::AsRawFd;
+    // SAFETY: an all-zero `flock` is a valid value; the fields below select the
+    // whole file (start 0, length 0 from SEEK_SET).
+    let mut request: libc::flock = unsafe { std::mem::zeroed() };
+    request.l_type = (if exclusive {
+        libc::F_WRLCK
+    } else {
+        libc::F_RDLCK
+    }) as _;
+    request.l_whence = libc::SEEK_SET as _;
+    loop {
+        // SAFETY: the descriptor stays open for the call and `request` outlives it.
+        if unsafe { libc::fcntl(file.as_raw_fd(), libc::F_SETLKW, &request) } == 0 {
+            return Ok(());
+        }
+        let error = std::io::Error::last_os_error();
+        if error.kind() != std::io::ErrorKind::Interrupted {
+            return Err(error);
+        }
+    }
+}
+
+/// On Windows std uses `LockFileEx`, as R's filelock does.
+#[cfg(not(unix))]
+fn lock_file(file: &fs::File, exclusive: bool) -> std::io::Result<()> {
+    if exclusive {
         file.lock()
     } else {
         file.lock_shared()
-    };
-    locked.with_context(|| format!("Cannot lock {path}"))?;
-    Ok(Some(file))
+    }
 }
 
 /// Label directories (encoded name, path) that currently hold an index entry.
@@ -540,7 +572,8 @@ fn real_directory(path: &Utf8Path) -> anyhow::Result<()> {
 /// file itself is never changed. Indexes without any `FORMAT` fail closed. All
 /// rows and versions are validated before any index is written. `.gitattributes`
 /// receives projr's `-text` rules. With `lock`, the write holds an exclusive
-/// std file lock on `.versions.lock` (projr's lock name).
+/// lock on `.versions.lock` of the same kind as projr's (R filelock), so
+/// concurrent projr and projcli writers exclude each other.
 pub fn write(
     store: &Utf8Path,
     rows: &[ManifestRow],

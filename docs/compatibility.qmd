@@ -4229,11 +4229,19 @@ path; data written by projr is still read.
   snapshots (no lock or legacy CSV); a legacy ZIP holding only manifest.csv is still
   read. Extracted members other than those names are rejected and snapshots are
   checksum-verified on read. Publication claims projr's `projr-manifest.lock` asset
-  with a non-overwriting upload (`R/remote-versions.R:34-52`) and deletes it after
-  publishing; a failed release is reported, never silently ignored.
+  with a non-overwriting upload (`R/remote-versions.R:34-52`) and deletes exactly
+  the claimed asset ID after publishing; a failed release is reported, never
+  silently ignored. **Different:** the claim never creates a Release, so a
+  preparation failure leaves no empty Release; without a Release there is no
+  manifest to protect and the first build publishes unclaimed.
+  `proj github upload-metadata --kind manifest` packages a remote `manifests/` or a
+  project `.projr/manifests/` store; that low-level command takes no claim.
+- **Same: local remote lock.** Local remote writes take an exclusive whole-file
+  `fcntl` lock on `.versions.lock` on Unix, the kind R filelock takes (std's
+  `flock` would not exclude projr on Linux), and `LockFileEx` on Windows.
 - **Different (projcli guard):** local project writes rely on the existing
   `.proj/build.lock` claim instead of creating `.versions.lock` inside the
-  Git-tracked store; local remote writes take an exclusive `.versions.lock`. Indexes
+  Git-tracked store. Indexes
   without `FORMAT`, unknown formats, checksum mismatches and links fail closed. The
   store is included in managed pre-distribution recovery.
 - **Unchanged:** CAS, tree and flat catalogue metadata, attempt fingerprints (now
@@ -4241,10 +4249,17 @@ path; data written by projr is still read.
 - **Tests:** `src/manifest_store.rs` unit tests (encoding, byte format, ordering,
   fail-closed indexes); `tests/test_manifest_store.rs` (snapshot reuse and
   `directory_version`, empty/encoded labels, one-time legacy import, failed-import
-  retry, unknown formats, `.gitattributes`, links); existing local/GitHub
+  retry, unknown formats, `.gitattributes`, links, waiting for a Python `fcntl`
+  lock); `tests/test_configured_github_publication.rs` (claim, ID release, no claim
+  without a Release, held claim blocks); existing local/GitHub
   publication, restore, history, CAS and real-Git suites updated to the store; M2/M3
   and R-frontend acceptance scripts read the store. Local compilation was
   unavailable (no linker); CI on the exact head is the verification.
+- **Review (independent, 26 November):** fixed the `flock`/`fcntl` mismatch, Release
+  creation by the claim, name-based lock release, project-store packaging in
+  `upload-metadata` and history's legacy-CSV fallback. **Gaps:** a failed first
+  build can leave an empty `.projr/` folder (Git ignores it); a claim whose upload
+  response is lost is not released (as in projr).
 - **Gaps:** projr's file-level history queries, snapshot-reuse restore fallback and
   BUILDLOG/CHANGELOG generation are later slices.
 - **Ponytail (full):** one new module reusing `ManifestRow` validation, path

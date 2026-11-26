@@ -284,9 +284,15 @@ pub(crate) fn connection(
 /// projr's cooperative manifest writer claim (SATVILab/projr@ab3ce8a:R/remote-versions.R:34-52).
 const MANIFEST_LOCK: &str = "projr-manifest.lock";
 
-/// Claims the manifest writer lock with a non-overwriting upload. GitHub accepts
-/// only one asset per name, so an existing claim means another writer is active.
-fn claim_manifest_lock(target: &Target) -> anyhow::Result<()> {
+/// Claims the manifest writer lock with a non-overwriting upload and returns the
+/// claimed asset ID. GitHub accepts only one asset per name, so an existing claim
+/// means another writer is active. A missing Release is not created here (that
+/// would leave an empty Release if preparation then failed); it has no manifest
+/// to protect, and the first upload creates it.
+fn claim_manifest_lock(target: &Target) -> anyhow::Result<Option<u64>> {
+    if target.client.assets_if_exists(&target.tag)?.is_none() {
+        return Ok(None);
+    }
     let mut claim = tempfile::Builder::new()
         .prefix("proj-manifest-lock-")
         .tempfile_in(fs::canonicalize(std::env::temp_dir())?)?;
@@ -298,16 +304,16 @@ fn claim_manifest_lock(target: &Target) -> anyhow::Result<()> {
     );
     writeln!(claim, "{}", blake3::hash(nonce.as_bytes()).to_hex())?;
     let path = Utf8Path::from_path(claim.path()).context("Lock staging path must be UTF-8")?;
-    target
+    let claimed = target
         .client
-        .upload_asset(&target.tag, MANIFEST_LOCK, path, true)
+        .upload_asset(&target.tag, MANIFEST_LOCK, path, false)
         .with_context(|| {
             format!(
                 "Could not claim {MANIFEST_LOCK} at {}; retry after the active writer finishes",
                 target.tag
             )
         })?;
-    Ok(())
+    Ok(Some(claimed.id))
 }
 
 fn metadata(
@@ -478,11 +484,12 @@ pub(crate) fn publish(root: &Utf8Path, targets: &[Target], version: &str) -> any
     let mut prepared: Vec<Vec<(String, Option<tempfile::NamedTempFile>, bool)>> = Vec::new();
     let mut records: Vec<Option<crate::github_manifest::Prepared>> = Vec::new();
     let mut metadata_ids: Vec<Option<u64>> = Vec::new();
-    let mut claimed: Vec<&Target> = Vec::new();
+    let mut claimed: Vec<(&Target, u64)> = Vec::new();
     let result = (|| -> anyhow::Result<()> {
         for target in targets {
-            claim_manifest_lock(target)?;
-            claimed.push(target);
+            if let Some(id) = claim_manifest_lock(target)? {
+                claimed.push((target, id));
+            }
             let catalog: Vec<_> = target
                 .client
                 .assets_if_exists(&target.tag)?
@@ -878,8 +885,12 @@ pub(crate) fn publish(root: &Utf8Path, targets: &[Target], version: &str) -> any
         Ok(())
     })();
     let mut failures = Vec::new();
-    for target in claimed {
-        if let Err(error) = target.client.delete_asset(&target.tag, MANIFEST_LOCK) {
+    for (target, id) in claimed {
+        if let Err(error) =
+            target
+                .client
+                .delete_asset_expected(&target.tag, MANIFEST_LOCK, Some(id))
+        {
             failures.push(format!(
                 "{MANIFEST_LOCK} on {} was not released ({error:#}); delete it after inspection",
                 target.tag

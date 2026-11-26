@@ -1670,6 +1670,10 @@ fn registered_github_definition_remains_restore_source_after_uploads_are_disable
 fn projr_manifest_lock_is_claimed_released_and_a_held_claim_blocks_publication() {
     let server = Server::start();
     let (_temporary, root) = setup(&server);
+    // Without a Release there is no manifest to protect, and claiming would
+    // create the Release before preparation could fail.
+    success(invoke(&server, &root, &["build", "--non-interactive"]));
+    assert!(server.state.lock().unwrap().locks.is_empty());
     success(invoke(&server, &root, &["build", "--non-interactive"]));
     {
         let state = server.state.lock().unwrap();

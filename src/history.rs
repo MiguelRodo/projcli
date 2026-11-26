@@ -284,14 +284,24 @@ fn files(
     else {
         return Ok(None);
     };
-    let rows: Vec<_> = crate::manifest_store::read(
-        &crate::manifest_store::project_store(root),
-        None,
-        Some(version),
-    )?
-    .into_iter()
-    .filter(|row| expected.labels.contains(&row.label))
-    .collect();
+    // Before the first store write, a projr-written root manifest.csv holds history.
+    let store = crate::manifest_store::project_store(root);
+    let legacy = root.join("manifest.csv");
+    let candidates: Vec<crate::manifest::ManifestRow> = if crate::manifest_store::ready(&store)? {
+        crate::manifest_store::read(&store, None, Some(version))?
+    } else if crate::yml::configuration_entry_exists(&legacy)? {
+        let bytes = attempt_log::read_bounded(&legacy, attempt_log::FINAL_CSV_LIMIT)?;
+        crate::manifest_csv::decode_bounded(&bytes, attempt_log::FINAL_ROW_LIMIT)?
+            .into_iter()
+            .filter(|row| row.version == version)
+            .collect()
+    } else {
+        return Ok(None);
+    };
+    let rows: Vec<_> = candidates
+        .into_iter()
+        .filter(|row| expected.labels.contains(&row.label))
+        .collect();
     anyhow::ensure!(
         rows.len() <= attempt_log::FINAL_ROW_LIMIT,
         "Project manifest rows exceed the history row limit"
