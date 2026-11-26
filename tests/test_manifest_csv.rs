@@ -73,7 +73,7 @@ fn production_records_md5_pre_inputs_final_outputs_and_exact_history_without_git
     .unwrap();
     fs::write(root.join("released/result.csv"), b"prior").unwrap();
     success(invoke(root, "build"));
-    let rows = proj::manifest_store::read_project(path(&root)).unwrap();
+    let rows = proj::manifest_store::read_project(path(root)).unwrap();
     assert_eq!(rows.len(), 3);
     assert!(rows.iter().any(|r| r.label == "raw"
         && r.r#fn == "a.csv"
@@ -130,7 +130,7 @@ fn production_records_md5_pre_inputs_final_outputs_and_exact_history_without_git
     );
     fs::write(root.join("_proj.yml"), config).unwrap();
     success(invoke(root, "build"));
-    let history = proj::manifest_store::read_project(path(&root)).unwrap();
+    let history = proj::manifest_store::read_project(path(root)).unwrap();
     assert_eq!(history.len(), 6);
     assert!(rows.iter().all(|r| history.contains(r)));
     assert!(history.iter().any(|r| r.label == "raw"
@@ -168,7 +168,7 @@ fn configured_hash_flags_and_cache_framework_exclusion_match_projr() {
     fs::write(root.join("cache/projr/v0.1.0/private"), b"framework").unwrap();
     fs::write(root.join("cache/retained.csv"), b"abc").unwrap();
     success(invoke(root, "build"));
-    let rows = proj::manifest_store::read_project(path(&root)).unwrap();
+    let rows = proj::manifest_store::read_project(path(root)).unwrap();
     assert!(!rows.iter().any(|r| r.label == "raw"));
     let cache: Vec<_> = rows.iter().filter(|r| r.label == "cache").collect();
     assert_eq!(cache.len(), 1);
@@ -384,7 +384,7 @@ fn cache_free_empty_selection_still_records_explicit_inputs() {
     fs::write(root.join("VERSION"), "v1.2.3-4\n").unwrap();
     fs::create_dir(root.join("input")).unwrap();
     success(invoke(root, "build"));
-    let rows = proj::manifest_store::read_project(path(&root)).unwrap();
+    let rows = proj::manifest_store::read_project(path(root)).unwrap();
     assert_eq!(
         rows,
         vec![ManifestRow {

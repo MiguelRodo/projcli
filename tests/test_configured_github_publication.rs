@@ -1704,7 +1704,8 @@ fn projr_store_manifest_zip_keeps_other_labels_and_republishes_without_lock_memb
     let server = Server::start();
     let (_temporary, root) = setup(&server);
     let other = tempfile::tempdir().unwrap();
-    let store = camino::Utf8PathBuf::from_path_buf(other.path().join("manifests")).unwrap();
+    let physical = other.path().canonicalize().unwrap();
+    let store = camino::Utf8PathBuf::from_path_buf(physical.join("manifests")).unwrap();
     let hash = format!("{:x}", digest(b"abc"));
     proj::manifest_store::write(
         &store,

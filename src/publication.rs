@@ -543,14 +543,10 @@ pub(crate) fn archive_history(
     latest_version: &str,
 ) -> Option<BTreeMap<String, String>> {
     use crate::local_remote::{compare_versions, version_numbers};
-    let (_, advertised) = match versions
+    let (_, advertised) = versions
         .iter()
-        .find(|(key, value)| key == label && !value.ends_with('*'))
-    {
-        Some(value) => value,
-        None => return None,
-    };
-    if version_numbers(advertised) != version_numbers(&latest_version) {
+        .find(|(key, value)| key == label && !value.ends_with('*'))?;
+    if version_numbers(advertised) != version_numbers(latest_version) {
         return None;
     }
     let recorded = matching_history(versions, remote, history, label)?;

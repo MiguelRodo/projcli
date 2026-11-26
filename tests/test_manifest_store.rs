@@ -184,9 +184,7 @@ fn project_imports_legacy_csv_once_and_leaves_it_untouched() {
         format!("{error:#}").contains("Missing manifest snapshot"),
         "{error:#}"
     );
-    let foreign = format!(
-        "\"label\",\"version\",\"directory_version\",\"snapshot\"\n\"raw-data\",\"v1.0\",\"v1.0\",\"../foreign\"\n"
-    );
+    let foreign = "\"label\",\"version\",\"directory_version\",\"snapshot\"\n\"raw-data\",\"v1.0\",\"v1.0\",\"../foreign\"\n";
     fs::write(s.join("raw-data/versions.csv"), foreign).unwrap();
     assert!(store::read_index(&s, None).is_err());
 }
