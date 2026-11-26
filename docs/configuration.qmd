@@ -230,9 +230,10 @@ directories:
   output: {path: results}
 ```
 
-A successful output-enabled production build writes root manifest.csv, without
-requiring Git or a remote. Preview and build.output_run: false leave that CSV
-alone. See [the inventory notes](storage-design.qmd#compatible-csv-inventory).
+A successful output-enabled production build records its inventory in projr's
+manifest store, `.projr/manifests/`, without requiring Git or a remote. A
+projr-written root manifest.csv is imported once on the first write and left
+unchanged. Preview and build.output_run: false leave the store alone. See [the inventory notes](storage-design.qmd#compatible-csv-inventory).
 This CSV capture is included in preview.3. See the compatibility log and PR175 for verification evidence.
 
 ## Configured restore source fields
@@ -544,7 +545,7 @@ Unchanged archive data may stay in an older physical version directory; the new
 build record points there. Latest records describe what was observed, without
 making older overwritten bytes recoverable. An asterisk in legacy VERSION still
 means source agreement is untrusted; hashing actual destination bytes does not
-remove it. Root MD5 manifest.csv, VERSION and CHANGELOG.md remain the existing
+remove it. The projr manifest store, VERSION and CHANGELOG.md remain the existing
 compatibility metadata regardless of the new manifest placement.
 
 Pure legacy inline build.local definitions keep their old behavior unless an

@@ -58,6 +58,18 @@ Status: this CSV implementation is included in published preview.3.
 The user approved temporary projr-compatible CSV while broader recording design
 continues. This supersedes deferring every manifest implementation.
 
+Current source (unreleased) stores project history in projr 0.6+'s directory
+manifest store, `.projr/manifests/` (SATVILab/projr@ab3ce8a `R/manifest-store.R`),
+instead of root manifest.csv. Each label folder has a numerically ordered
+`versions.csv` index and immutable `files-<sha256>.csv` lists (`fn`,`hash`, every
+field quoted, rows in raw byte order); the SHA-256 identifies only those CSV bytes.
+Versions with identical file lists share one snapshot, and `directory_version`
+records the first such version. An empty directory is a header-only snapshot. A
+projr-written root manifest.csv is imported once under a `FORMAT` of `importing`
+(a failed import is discarded and retried) and never modified. Indexes without a
+`FORMAT`, unknown formats, checksum mismatches and links fail closed. The row
+semantics below are unchanged; earlier releases wrote them to root manifest.csv.
+
 The root manifest.csv contains quoted string columns in this order:
 label,fn,version,hash. The filename is relative to its declared directory with
 slash separators, version includes v, and hash is the lowercase MD5 of file bytes.

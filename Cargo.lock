@@ -852,6 +852,7 @@ dependencies = [
  "log",
  "md5",
  "regex",
+ "ring",
  "serde",
  "serde_json",
  "serde_yaml",

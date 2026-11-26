@@ -8,7 +8,7 @@ use crate::{
 use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};
 use serde_json::{Map, Value};
-use std::{collections::BTreeSet, fs};
+use std::{collections::BTreeSet, fs, io::Write};
 
 /// Validated configuration without credentials, HTTP or local mutation.
 pub(crate) struct Spec {
@@ -281,6 +281,35 @@ pub(crate) fn connection(
     ))
 }
 
+/// projr's cooperative manifest writer claim (SATVILab/projr@ab3ce8a:R/remote-versions.R:34-52).
+const MANIFEST_LOCK: &str = "projr-manifest.lock";
+
+/// Claims the manifest writer lock with a non-overwriting upload. GitHub accepts
+/// only one asset per name, so an existing claim means another writer is active.
+fn claim_manifest_lock(target: &Target) -> anyhow::Result<()> {
+    let mut claim = tempfile::Builder::new()
+        .prefix("proj-manifest-lock-")
+        .tempfile_in(fs::canonicalize(std::env::temp_dir())?)?;
+    let nonce = format!(
+        "{:?}{}{}",
+        std::time::SystemTime::now(),
+        std::process::id(),
+        claim.path().display()
+    );
+    writeln!(claim, "{}", blake3::hash(nonce.as_bytes()).to_hex())?;
+    let path = Utf8Path::from_path(claim.path()).context("Lock staging path must be UTF-8")?;
+    target
+        .client
+        .upload_asset(&target.tag, MANIFEST_LOCK, path, true)
+        .with_context(|| {
+            format!(
+                "Could not claim {MANIFEST_LOCK} at {}; retry after the active writer finishes",
+                target.tag
+            )
+        })?;
+    Ok(())
+}
+
 fn metadata(
     client: &GithubReleaseClient,
     tag: &str,
@@ -298,6 +327,9 @@ fn metadata(
     let result = (|| -> anyhow::Result<()> {
         let root =
             Utf8Path::from_path(extracted.path()).context("Metadata staging path must be UTF-8")?;
+        if matches!(kind, MetadataKind::Manifest) {
+            return crate::github_zip::install_manifest_tree(root, stage);
+        }
         let entries = fs::read_dir(root)?.collect::<Result<Vec<_>, _>>()?;
         anyhow::ensure!(
             entries.len() == 1
@@ -442,16 +474,22 @@ pub(crate) fn publish(root: &Utf8Path, targets: &[Target], version: &str) -> any
     if targets.is_empty() {
         return Ok(());
     }
-    let history = crate::manifest::read(&root.join("manifest.csv"))?;
+    let history = crate::manifest_store::read_project(root)?;
     let mut prepared: Vec<Vec<(String, Option<tempfile::NamedTempFile>, bool)>> = Vec::new();
     let mut records: Vec<Option<crate::github_manifest::Prepared>> = Vec::new();
     let mut metadata_ids: Vec<Option<u64>> = Vec::new();
+    let mut claimed: Vec<&Target> = Vec::new();
     let result = (|| -> anyhow::Result<()> {
         for target in targets {
-            let catalog = target
+            claim_manifest_lock(target)?;
+            claimed.push(target);
+            let catalog: Vec<_> = target
                 .client
                 .assets_if_exists(&target.tag)?
-                .unwrap_or_default();
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|asset| asset.name != MANIFEST_LOCK)
+                .collect();
             let mut actual = BTreeSet::new();
             for asset in &catalog {
                 anyhow::ensure!(
@@ -566,7 +604,10 @@ pub(crate) fn publish(root: &Utf8Path, targets: &[Target], version: &str) -> any
                     stage,
                     &actual,
                 )?;
-                let rows = crate::manifest::read(&stage.join("manifest.csv"))?;
+                let rows = crate::manifest_store::read_or_legacy(
+                    &stage.join("manifests"),
+                    &stage.join("manifest.csv"),
+                )?;
                 let versions = crate::publication::version_entries(&stage.join("VERSION"))?;
                 anyhow::ensure!(
                     !target
@@ -837,6 +878,14 @@ pub(crate) fn publish(root: &Utf8Path, targets: &[Target], version: &str) -> any
         Ok(())
     })();
     let mut failures = Vec::new();
+    for target in claimed {
+        if let Err(error) = target.client.delete_asset(&target.tag, MANIFEST_LOCK) {
+            failures.push(format!(
+                "{MANIFEST_LOCK} on {} was not released ({error:#}); delete it after inspection",
+                target.tag
+            ));
+        }
+    }
     for uploads in prepared {
         for (_, zip, _) in uploads {
             if let Some(zip) = zip {
@@ -856,7 +905,7 @@ pub(crate) fn publish(root: &Utf8Path, targets: &[Target], version: &str) -> any
         return Err(result
             .err()
             .unwrap_or_else(|| anyhow::anyhow!("GitHub publication completed"))
-            .context(format!("ZIP cleanup failed: {}", failures.join("; "))));
+            .context(format!("Cleanup failed: {}", failures.join("; "))));
     }
     result
 }

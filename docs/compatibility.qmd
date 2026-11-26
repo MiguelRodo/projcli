@@ -4208,3 +4208,44 @@ Fresh-login discovery and explicit binary selection passed. No system utility
 or R profile was replaced. Current public pins/source expectations move together
 after publication. Runtime algorithms and storage formats are unchanged by this
 documentation update; the standalone authored-resource limit remains explicit.
+
+## projr 0.8.0 directory manifest store (26 November 2026)
+
+Slice 2 of MiguelRodo/issues#910, against SATVILab/projr@ab3ce8a. No projects use
+projcli yet, so projcli's own root manifest.csv is replaced without a migration
+path; data written by projr is still read.
+
+- **Same (static source): store layout.** `.projr/manifests/` locally and
+  `<remote>/manifests/` on local remotes hold `FORMAT` (`1`, or `importing`),
+  path-encoded label folders (`R/manifest-store.R` component encoding, including
+  Windows device names and a leading `-`), numerically ordered `versions.csv` with
+  `directory_version` and immutable `files-<sha256>.csv` snapshots (byte format of
+  `src/manifest.cpp`: all fields quoted, raw byte order). `.gitattributes` receives
+  projr's `-text` rules. Row semantics (label, fn, version, MD5) are unchanged.
+- **Same: legacy import.** A projr-written root or remote manifest.csv is imported
+  once and left unchanged; an unfinished `importing` store is discarded and
+  re-imported. Restore's prior-build gate accepts a ready store or the legacy CSV.
+- **Same: GitHub.** manifest.zip packages `FORMAT`, the indexes and referenced
+  snapshots (no lock or legacy CSV); a legacy ZIP holding only manifest.csv is still
+  read. Extracted members other than those names are rejected and snapshots are
+  checksum-verified on read. Publication claims projr's `projr-manifest.lock` asset
+  with a non-overwriting upload (`R/remote-versions.R:34-52`) and deletes it after
+  publishing; a failed release is reported, never silently ignored.
+- **Different (projcli guard):** local project writes rely on the existing
+  `.proj/build.lock` claim instead of creating `.versions.lock` inside the
+  Git-tracked store; local remote writes take an exclusive `.versions.lock`. Indexes
+  without `FORMAT`, unknown formats, checksum mismatches and links fail closed. The
+  store is included in managed pre-distribution recovery.
+- **Unchanged:** CAS, tree and flat catalogue metadata, attempt fingerprints (now
+  computed from store rows) and history's exact-match rule.
+- **Tests:** `src/manifest_store.rs` unit tests (encoding, byte format, ordering,
+  fail-closed indexes); `tests/test_manifest_store.rs` (snapshot reuse and
+  `directory_version`, empty/encoded labels, one-time legacy import, failed-import
+  retry, unknown formats, `.gitattributes`, links); existing local/GitHub
+  publication, restore, history, CAS and real-Git suites updated to the store; M2/M3
+  and R-frontend acceptance scripts read the store. Local compilation was
+  unavailable (no linker); CI on the exact head is the verification.
+- **Gaps:** projr's file-level history queries, snapshot-reuse restore fallback and
+  BUILDLOG/CHANGELOG generation are later slices.
+- **Ponytail (full):** one new module reusing `ManifestRow` validation, path
+  safety and tempfile persistence; `ring` was already in the lockfile.

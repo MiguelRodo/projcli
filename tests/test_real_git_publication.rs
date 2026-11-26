@@ -301,9 +301,9 @@ if os.environ['PROJCLI_TEST_FAIL_ANALYSIS']=='1':
             fs::read(self.root.join("cache/projr/v1.2.4/output/results.csv")).unwrap(),
             expected
         );
-        let manifest_path = self.root.join("manifest.csv").canonicalize().unwrap();
-        let rows =
-            proj::manifest::read(camino::Utf8Path::from_path(&manifest_path).unwrap()).unwrap();
+        let root = self.root.canonicalize().unwrap();
+        let rows = proj::manifest_store::read_project(camino::Utf8Path::from_path(&root).unwrap())
+            .unwrap();
         assert!(rows.iter().any(|row| row.label == "output"
             && row.r#fn == "results.csv"
             && row.version == "v1.2.4"
@@ -322,8 +322,8 @@ if os.environ['PROJCLI_TEST_FAIL_ANALYSIS']=='1':
         );
         assert_eq!(self.git(&["show", "HEAD:VERSION"]), b"Version: v1.2.4");
         assert_eq!(
-            self.git(&["show", "HEAD:manifest.csv"]),
-            fs::read(self.root.join("manifest.csv")).unwrap()
+            self.git(&["show", "HEAD:.projr/manifests/output/versions.csv"]),
+            fs::read(self.root.join(".projr/manifests/output/versions.csv")).unwrap()
         );
     }
 }
@@ -399,6 +399,7 @@ fn no_remote_allows_local_commit_but_requested_push_fails_before_analysis() {
                 "push preflight must precede analysis/cache writes"
             );
             assert!(!fixture.root.join("manifest.csv").exists());
+            assert!(!fixture.root.join(".projr").exists());
             assert_eq!(fixture.text(&["status", "--porcelain"]), "");
         } else {
             assert!(
@@ -460,8 +461,8 @@ fn rejecting_real_pre_commit_hook_preserves_local_release_without_commit_or_push
     );
     assert_eq!(fixture.git(&["show", ":VERSION"]), b"Version: v1.2.4");
     assert_eq!(
-        fixture.git(&["show", ":manifest.csv"]),
-        fs::read(fixture.root.join("manifest.csv")).unwrap()
+        fixture.git(&["show", ":.projr/manifests/output/versions.csv"]),
+        fs::read(fixture.root.join(".projr/manifests/output/versions.csv")).unwrap()
     );
     fixture.assert_upstream_refs(&initial, &initial);
 }
@@ -888,7 +889,13 @@ fn attempt_snapshot_and_receipt_follow_two_normal_commits_without_recursion() {
         snapshot["startup_provenance"]["configuration"]["policy"]["git_commit"],
         true
     );
-    let rows = proj::manifest_csv::decode(&fixture.git(&["show", "HEAD:./manifest.csv"])).unwrap();
+    assert_eq!(
+        fixture.git(&["show", "HEAD:./.projr/manifests/FORMAT"]),
+        b"1\n"
+    );
+    let root = fixture.root.canonicalize().unwrap();
+    let rows =
+        proj::manifest_store::read_project(camino::Utf8Path::from_path(&root).unwrap()).unwrap();
     let expected = blake3::hash(&proj::manifest_csv::encode(&rows).unwrap())
         .to_hex()
         .to_string();

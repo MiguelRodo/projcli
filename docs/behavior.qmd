@@ -499,9 +499,12 @@ No lifecycle capture point or broader provenance completion is implied.
 
 ## Temporary compatible CSV recording
 
-User-approved projr-style manifest.csv is independent of CAS. Preserve the
-four-column inventory and production pre/post/history semantics; keep the codec
-replaceable. This does not decide attempt identity, sealing, retention,
+The production inventory uses projr 0.6+'s directory manifest store
+(`.projr/manifests/`, SATVILab/projr@ab3ce8a `R/manifest-store.R`), superseding
+the earlier projcli root manifest.csv; a projr-written root manifest.csv is
+imported once and left unchanged. It is independent of CAS. Preserve the
+four-column row semantics (label, fn, version, MD5 hash) and production
+pre/post/history semantics. This does not decide attempt identity, sealing, retention,
 remote-only discovery or Git policy. The local candidate and bounded deviations
 are in [storage design](storage-design.qmd#compatible-csv-inventory).
 CAS is an additional remote structure alongside latest and ordinary archive,
@@ -575,7 +578,7 @@ Git and all publication disabled. It is installed only after end hooks and the
 next-dev transition succeed. Pre-distribution failures and previews still do not
 gain durable records; their retention policy remains undecided.
 
-Attempt JSON references current inventory evidence from the existing manifest.csv:
+Attempt JSON references current inventory evidence from the project manifest store:
 selected input rows captured before analysis, release-output rows after promotion,
 and an observation of outputs after finalization is attempted. Each fingerprint
 includes the release version, labels, row/file counts and BLAKE3 of the existing
@@ -643,7 +646,7 @@ New final observations retain a bounded existing-format per-attempt CSV alongsid
 their JSON reference. proj history generates summaries; --attempt validates
 and lists exact final observed rows. No configuration, Git, lock or remote access
 is needed. Unknown/missing receipts remain unresolved; old fingerprint-only
-records can use project manifest.csv only on an exact fingerprint match.
+records can use the project manifest store only on an exact fingerprint match.
 The human view is generated on stdout; the curated changelog is not rewritten.
 With Git the final CSV accompanies its receipt in the next normal commit; both
 must remain intact for the existing pending-evidence exception. Missing/corrupt

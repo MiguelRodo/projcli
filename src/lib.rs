@@ -49,6 +49,8 @@ mod embedding;
 
 pub mod manifest;
 pub mod manifest_csv;
+/// projr 0.6+ `.projr/manifests/` directory manifest store.
+pub mod manifest_store;
 
 pub mod local_remote;
 

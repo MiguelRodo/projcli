@@ -628,7 +628,8 @@ fn github_version(
     }
 }
 /// Restores one declared final directory using existing merged inline config.
-/// Requires active project configuration and a valid root manifest.csv, matching
+/// Requires active project configuration and valid manifest history (the
+/// `.projr/manifests` store, or a projr-written legacy root manifest.csv), matching
 /// projr's history gate. Source entries precede eligible build destinations;
 /// source:true/label preferences beat fallback, source:false excludes. There is
 /// no retry against another source after a selected source fails. Empty/unrecorded
@@ -663,12 +664,14 @@ pub fn restore_label(root: &Utf8Path, request: &RestoreRequest) -> anyhow::Resul
         .context("Restore label is not declared")?
         .clone();
     let destination = config.get_path(root, &label)?;
-    let manifest_path = root.join("manifest.csv");
     anyhow::ensure!(
-        fs::symlink_metadata(&manifest_path)?.is_file(),
-        "Restore requires a regular root manifest.csv"
+        crate::manifest_store::history_exists(
+            &crate::manifest_store::project_store(root),
+            &root.join("manifest.csv")
+        )?,
+        "Restore requires recorded manifest history (.projr/manifests or a legacy manifest.csv)"
     );
-    let rows = crate::manifest::read(&manifest_path)?;
+    let rows = crate::manifest_store::read_project(root)?;
     let mut result = RestoreResult {
         label: label.clone(),
         destination: destination.clone(),
