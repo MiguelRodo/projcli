@@ -318,14 +318,33 @@ pub struct RestrictionsConfig {
     pub not_behind: Option<bool>,
 }
 
-/// Allowed production-build branches: `true`/`false` or an explicit name list.
+/// Allowed production-build branches: `true`/`false` or explicit names. As in
+/// projr, a single name may be written as a scalar (`branch: main`).
 #[derive(Deserialize, Debug, Clone, PartialEq)]
-#[serde(untagged)]
+#[serde(from = "BranchValue")]
 pub enum BranchRestriction {
     /// `true` allows every branch; `false` allows none.
     Any(bool),
     /// Only these branch names; an empty list allows none.
     Only(Vec<String>),
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum BranchValue {
+    Any(bool),
+    One(String),
+    Only(Vec<String>),
+}
+
+impl From<BranchValue> for BranchRestriction {
+    fn from(value: BranchValue) -> Self {
+        match value {
+            BranchValue::Any(any) => Self::Any(any),
+            BranchValue::One(name) => Self::Only(vec![name]),
+            BranchValue::Only(names) => Self::Only(names),
+        }
+    }
 }
 
 impl RestrictionsConfig {
@@ -350,8 +369,16 @@ where
     D: serde::Deserializer<'de>,
 {
     use serde::de::Error;
-    let Some(entries) = Option::<Vec<Value>>::deserialize(deserializer)? else {
-        return Ok(None);
+    // projr also accepts a single scalar entry (`scripts: analysis.R`).
+    let entries = match Option::<Value>::deserialize(deserializer)? {
+        None => return Ok(None),
+        Some(Value::Array(entries)) => entries,
+        Some(entry @ Value::String(_)) => vec![entry],
+        Some(_) => {
+            return Err(D::Error::custom(
+                "Scripts must be a path/glob or a list of paths, globs and 'exclude' entries",
+            ));
+        }
     };
     entries
         .into_iter()
@@ -362,7 +389,8 @@ where
 
 fn script_entry(entry: Value) -> Result<String, &'static str> {
     match entry {
-        Value::String(path) if !path.trim().is_empty() => Ok(path),
+        // projr trims entries (`.scripts_get_final`).
+        Value::String(path) if !path.trim().is_empty() => Ok(path.trim().to_owned()),
         Value::Object(map) if map.len() == 1 => match map.get("exclude") {
             Some(Value::String(path)) if !path.trim().is_empty() => Ok(format!("!{}", path.trim())),
             _ => Err("An 'exclude' script entry needs one non-empty path or glob"),
@@ -1332,6 +1360,9 @@ build:
         ] {
             assert!(serde_yaml::from_str::<ProjConfig>(bad).is_err(), "{bad}");
         }
+        let scalar: ProjConfig = serde_yaml::from_str("build:\n  scripts: ' a.R '\n").unwrap();
+        assert_eq!(scalar.build.scripts.unwrap(), ["a.R"]);
+        assert!(serde_yaml::from_str::<ProjConfig>("build:\n  scripts: {a: b}\n").is_err());
         let empty: ProjConfig = serde_yaml::from_str("build:\n  scripts: []\n").unwrap();
         assert_eq!(empty.build.scripts, Some(vec![]));
         let omitted: ProjConfig = serde_yaml::from_str("build: {}\n").unwrap();
@@ -1349,6 +1380,11 @@ build:
             parse("branch: false\n").unwrap().branch,
             Some(BranchRestriction::Any(false))
         );
+        assert_eq!(
+            parse("branch: main\n").unwrap().branch,
+            Some(BranchRestriction::Only(vec!["main".into()]))
+        );
+        assert!(parse("branch: 3\n").is_err());
         assert_eq!(
             parse("branch: []\n").unwrap().branch,
             Some(BranchRestriction::Only(vec![]))

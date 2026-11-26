@@ -305,10 +305,13 @@ pub(crate) fn run_pre_flight_checks_in(
                 .args(args)
                 .output()?)
         };
-        // As in projr (`.git_repo_check_exists`), restrictions apply only when the
-        // project root has a `.git` entry (directory or worktree file); without one
-        // no Git process is started.
-        let in_repository = project_root.join(".git").exists();
+        // Like projr's `.git_repo_check_exists`, restrictions apply only inside a
+        // repository, detected from a `.git` entry (directory or worktree file)
+        // without starting Git. projcli also checks ancestors, because its Git
+        // publication runs for projects nested inside a repository.
+        let in_repository = project_root
+            .ancestors()
+            .any(|directory| directory.join(".git").exists());
         let allowed = match &restrictions.branch {
             None | Some(crate::yml::BranchRestriction::Any(true)) => None,
             Some(crate::yml::BranchRestriction::Any(false)) => Some(&[][..]),
@@ -351,13 +354,22 @@ pub(crate) fn run_pre_flight_checks_in(
                     ),
                     Ok(()) => {
                         let output = git(&["rev-list", "--count", "HEAD..@{u}"])?;
-                        if !output.status.success() {
+                        // A configured upstream whose remote branch is gone (pruned
+                        // after a merge, or never fetched) cannot be compared; projr
+                        // finds nothing behind, so only explicit `true` fails.
+                        let count: usize = if output.status.success() {
+                            String::from_utf8(output.stdout)?
+                                .trim()
+                                .parse()
+                                .context("Invalid upstream comparison result")?
+                        } else if strict {
                             anyhow::bail!("Cannot inspect configured upstream state");
-                        }
-                        let count: usize = String::from_utf8(output.stdout)?
-                            .trim()
-                            .parse()
-                            .context("Invalid upstream comparison result")?;
+                        } else {
+                            eprintln!(
+                                "Warning: the tracking upstream could not be compared; skipping the build.restrictions.not_behind_git check"
+                            );
+                            0
+                        };
                         if count > 0 {
                             anyhow::bail!(
                                 "The local branch is behind its tracking remote. Merge upstream changes first, or set build.restrictions.not_behind_git to false"

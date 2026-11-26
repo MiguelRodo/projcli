@@ -76,6 +76,7 @@ elif action == 'status':
  if os.environ.get('TEST_DIRTY') == '1': print(' M unrelated.txt')
  elif os.environ.get('TEST_HIDDEN_UNTRACKED') == '1' and '--untracked-files=all' in args: print('?? private.txt')
 elif action == 'diff': raise SystemExit(1 if os.environ.get('TEST_STAGED') == '1' else 0)
+elif action == 'rev-list' and os.environ.get('TEST_GONE_UPSTREAM') == '1': raise SystemExit(128)
 elif action == 'rev-list': print(os.environ.get('TEST_BEHIND', '0'))
 elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
  print(os.environ.get('GITHUB_PAT', 'fixture'), file=sys.stderr)
@@ -305,6 +306,52 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
             );
             assert!(!root.join("git-calls.jsonl").exists());
         }
+    }
+
+    #[test]
+    fn a_gone_upstream_warns_by_default_and_fails_only_when_explicit() {
+        for (setting, succeeds) in ["", "  restrictions:\n    not_behind_git: true\n"]
+            .into_iter()
+            .zip([true, false])
+        {
+            let project = tempfile::tempdir().unwrap();
+            let root = project.path();
+            let path = fixture(root);
+            fs::write(
+                root.join("_proj.yml"),
+                format!("build:\n  scripts: []\n  git: false\n{setting}"),
+            )
+            .unwrap();
+            let output = command(root, &path)
+                .env("TEST_GONE_UPSTREAM", "1")
+                .output()
+                .unwrap();
+            assert_eq!(
+                output.status.success(),
+                succeeds,
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+    }
+
+    #[test]
+    fn restrictions_apply_to_projects_nested_in_a_repository() {
+        let project = tempfile::tempdir().unwrap();
+        let path = fixture(project.path());
+        let root = project.path().join("analysis");
+        fs::create_dir(&root).unwrap();
+        fs::write(
+            root.join("_proj.yml"),
+            "build:\n  scripts: []\n  git: false\n  restrictions:\n    branch: main\n    not_behind_git: false\n",
+        )
+        .unwrap();
+        let output = command(&root, &path).output().unwrap();
+        assert!(!output.status.success());
+        assert!(
+            String::from_utf8_lossy(&output.stderr)
+                .contains("not allowed by build.restrictions.branch")
+        );
     }
 
     #[test]
