@@ -272,6 +272,7 @@ pub struct BuildConfig {
     pub github: Option<serde_json::Map<String, Value>>,
     /// Explicit named targets/subsets; existing CAS name-list selection stays compatible.
     pub dest: Option<crate::remote_registry::Destinations>,
+    #[serde(default, deserialize_with = "script_list")]
     pub scripts: Option<Vec<String>>,
     #[serde(default)]
     pub hooks: HooksConfig,
@@ -292,27 +293,121 @@ pub struct HooksConfig {
     pub both: Option<Vec<String>>,
 }
 
-#[derive(Deserialize, Debug, Clone, PartialEq)]
+/// Production-build restrictions using projr's `build.restrictions` keys.
+///
+/// `branch` omitted or `true` allows any branch; `false` or `[]` allows none; a
+/// list allows only the named branches. `not_behind_git` (earlier projr spelling
+/// `not_behind`; setting both is an error) defaults to checking that the current
+/// branch is not behind its tracking upstream whenever one exists.
+///
+/// ```rust
+/// use proj::yml::{BranchRestriction, RestrictionsConfig};
+/// let restrictions: RestrictionsConfig =
+///     serde_yaml::from_str("branch: [main]\nnot_behind: false\n").unwrap();
+/// assert_eq!(restrictions.branch, Some(BranchRestriction::Only(vec!["main".into()])));
+/// assert_eq!(restrictions.not_behind_git().unwrap(), Some(false));
+/// ```
+#[derive(Deserialize, Debug, Default, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct RestrictionsConfig {
-    pub only_branches: Option<Vec<String>>,
-    pub not_branches: Option<Vec<String>>,
+    /// Allowed branches; omitted means any branch.
+    pub branch: Option<BranchRestriction>,
+    /// Explicit upstream check; omitted means check when a tracking upstream exists.
+    pub not_behind_git: Option<bool>,
+    /// Earlier projr spelling of `not_behind_git`.
     pub not_behind: Option<bool>,
 }
 
-impl Default for RestrictionsConfig {
-    fn default() -> Self {
-        RestrictionsConfig {
-            only_branches: None,
-            not_branches: None,
-            not_behind: None, // Network checks require explicit true
+/// Allowed production-build branches: `true`/`false` or explicit names. As in
+/// projr, a single name may be written as a scalar (`branch: main`).
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+#[serde(from = "BranchValue")]
+pub enum BranchRestriction {
+    /// `true` allows every branch; `false` allows none.
+    Any(bool),
+    /// Only these branch names; an empty list allows none.
+    Only(Vec<String>),
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum BranchValue {
+    Any(bool),
+    One(String),
+    Only(Vec<String>),
+}
+
+impl From<BranchValue> for BranchRestriction {
+    fn from(value: BranchValue) -> Self {
+        match value {
+            BranchValue::Any(any) => Self::Any(any),
+            BranchValue::One(name) => Self::Only(vec![name]),
+            BranchValue::Only(names) => Self::Only(names),
         }
+    }
+}
+
+impl RestrictionsConfig {
+    /// Explicit `not_behind_git` value, accepting the earlier `not_behind` spelling.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when both spellings are set.
+    pub fn not_behind_git(&self) -> anyhow::Result<Option<bool>> {
+        match (self.not_behind_git, self.not_behind) {
+            (Some(_), Some(_)) => anyhow::bail!(
+                "Set only one of build.restrictions.not_behind_git and its earlier spelling not_behind"
+            ),
+            (value, legacy) => Ok(value.or(legacy)),
+        }
+    }
+}
+
+/// Reads projr script entries: a path/glob string or `{exclude: path}`, normalised to `!path`.
+fn script_list<'de, D>(deserializer: D) -> Result<Option<Vec<String>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::Error;
+    // projr also accepts a single scalar entry (`scripts: analysis.R`).
+    let entries = match Option::<Value>::deserialize(deserializer)? {
+        None => return Ok(None),
+        Some(Value::Array(entries)) => entries,
+        Some(entry @ Value::String(_)) => vec![entry],
+        Some(_) => {
+            return Err(D::Error::custom(
+                "Scripts must be a path/glob or a list of paths, globs and 'exclude' entries",
+            ));
+        }
+    };
+    entries
+        .into_iter()
+        .map(|entry| script_entry(entry).map_err(D::Error::custom))
+        .collect::<Result<_, _>>()
+        .map(Some)
+}
+
+fn script_entry(entry: Value) -> Result<String, &'static str> {
+    match entry {
+        // projr trims entries (`.scripts_get_final`).
+        Value::String(path) if !path.trim().is_empty() => Ok(path.trim().to_owned()),
+        Value::Object(map) if map.len() == 1 => match map.get("exclude") {
+            Some(Value::String(path)) if !path.trim().is_empty() => Ok(format!("!{}", path.trim())),
+            _ => Err("An 'exclude' script entry needs one non-empty path or glob"),
+        },
+        Value::Null | Value::String(_) => Err(
+            "Empty script entry. Quote exclusions such as \"!skip.R\", use '- exclude: skip.R', or use scripts: [] to run nothing",
+        ),
+        _ => Err(
+            "Each script entry must be a path/glob or an 'exclude' mapping with one non-empty path or glob",
+        ),
     }
 }
 
 #[derive(Deserialize, Debug, Default, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct DevConfig {
+    #[serde(default, deserialize_with = "script_list")]
     pub scripts: Option<Vec<String>>,
     pub hooks: Option<HooksConfig>,
     pub old_dev_remove: Option<bool>,
@@ -649,6 +744,7 @@ impl ProjConfig {
         if resolved_git.push && !resolved_git.commit {
             anyhow::bail!("Configuration error: 'push' cannot be true if 'commit' is false.");
         }
+        self.build.restrictions.not_behind_git()?;
 
         let validated = ValidatedConfig {
             remotes,
@@ -1244,6 +1340,83 @@ build:
                 push: Some(false)
             })
         );
+    }
+
+    #[test]
+    fn script_lists_accept_projr_exclude_entries_and_reject_empty_entries() {
+        let config: ProjConfig = serde_yaml::from_str(
+            "build:\n  scripts:\n    - a.R\n    - exclude: ' scratch.R '\n    - '!b.R'\ndev:\n  scripts:\n    - exclude: '*.qmd'\n",
+        )
+        .unwrap();
+        assert_eq!(config.build.scripts.unwrap(), ["a.R", "!scratch.R", "!b.R"]);
+        assert_eq!(config.dev.scripts.unwrap(), ["!*.qmd"]);
+        for bad in [
+            "build:\n  scripts:\n    -\n",
+            "build:\n  scripts: ['  ']\n",
+            "build:\n  scripts:\n    - exclude: ''\n",
+            "build:\n  scripts:\n    - include: a.R\n",
+            "build:\n  scripts:\n    - {exclude: a.R, other: b.R}\n",
+            "build:\n  scripts:\n    - 3\n",
+        ] {
+            assert!(serde_yaml::from_str::<ProjConfig>(bad).is_err(), "{bad}");
+        }
+        let scalar: ProjConfig = serde_yaml::from_str("build:\n  scripts: ' a.R '\n").unwrap();
+        assert_eq!(scalar.build.scripts.unwrap(), ["a.R"]);
+        assert!(serde_yaml::from_str::<ProjConfig>("build:\n  scripts: {a: b}\n").is_err());
+        let empty: ProjConfig = serde_yaml::from_str("build:\n  scripts: []\n").unwrap();
+        assert_eq!(empty.build.scripts, Some(vec![]));
+        let omitted: ProjConfig = serde_yaml::from_str("build: {}\n").unwrap();
+        assert_eq!(omitted.build.scripts, None);
+    }
+
+    #[test]
+    fn restrictions_use_projr_keys() {
+        let parse = |text: &str| serde_yaml::from_str::<RestrictionsConfig>(text);
+        assert_eq!(
+            parse("branch: true\n").unwrap().branch,
+            Some(BranchRestriction::Any(true))
+        );
+        assert_eq!(
+            parse("branch: false\n").unwrap().branch,
+            Some(BranchRestriction::Any(false))
+        );
+        assert_eq!(
+            parse("branch: main\n").unwrap().branch,
+            Some(BranchRestriction::Only(vec!["main".into()]))
+        );
+        assert!(parse("branch: 3\n").is_err());
+        assert_eq!(
+            parse("branch: []\n").unwrap().branch,
+            Some(BranchRestriction::Only(vec![]))
+        );
+        assert_eq!(parse("{}\n").unwrap().not_behind_git().unwrap(), None);
+        assert_eq!(
+            parse("not_behind_git: true\n")
+                .unwrap()
+                .not_behind_git()
+                .unwrap(),
+            Some(true)
+        );
+        assert_eq!(
+            parse("not_behind: false\n")
+                .unwrap()
+                .not_behind_git()
+                .unwrap(),
+            Some(false)
+        );
+        assert!(
+            parse("not_behind: false\nnot_behind_git: false\n")
+                .unwrap()
+                .not_behind_git()
+                .is_err()
+        );
+        for removed in [
+            "only_branches: [main]\n",
+            "not_branches: [x]\n",
+            "rule: target\n",
+        ] {
+            assert!(parse(removed).is_err(), "{removed}");
+        }
     }
 }
 

@@ -311,11 +311,18 @@ pub fn build_project_with_policies(
         let build = project_config.build;
         let dev = project_config.dev;
         let profile = Some(profile_text.clone());
+        // Hook files from either build mode never count as discovered analysis (projr).
+        let all_hooks: Vec<String> = [Some(&build.hooks), dev.hooks.as_ref()]
+            .into_iter()
+            .flatten()
+            .flat_map(|hooks| [&hooks.pre, &hooks.post, &hooks.both])
+            .flatten()
+            .flatten()
+            .cloned()
+            .collect();
+        // Dev builds run only dev.hooks; production hooks may publish or notify.
         let (build_scripts, hooks_config) = if is_dev {
-            (
-                dev.scripts.or(build.scripts),
-                dev.hooks.unwrap_or(build.hooks),
-            )
+            (dev.scripts.or(build.scripts), dev.hooks.unwrap_or_default())
         } else {
             (build.scripts, build.hooks)
         };
@@ -335,12 +342,28 @@ pub fn build_project_with_policies(
         // Pre-flight Environment Verification
         let mut resolved_files = Vec::new();
         if let Some(scripts) = &build_scripts {
-            resolved_files = crate::script_selection::resolve(project_root, scripts, &config)?;
-        } else {
-            if !quarto_exists && !bookdown_exists {
-                resolved_files = resolve_fallback_scripts(project_root)?;
+            // An exclusion-only list means automatic discovery minus the exclusions.
+            if (quarto_exists || bookdown_exists)
+                && !scripts.is_empty()
+                && scripts.iter().all(|script| script.starts_with('!'))
+            {
+                anyhow::bail!(
+                    "Exclusion-only script lists are not yet supported with a Quarto or Bookdown project; list the selected scripts and documents explicitly"
+                );
             }
+            resolved_files =
+                crate::script_selection::resolve(project_root, scripts, &config, || {
+                    resolve_fallback_scripts(project_root, &all_hooks)
+                })?;
+        } else if !quarto_exists && !bookdown_exists {
+            resolved_files = resolve_fallback_scripts(project_root, &all_hooks)?;
         }
+        // The root README.Rmd is never analysis, even when selected (projr).
+        resolved_files.retain(|file| {
+            !file
+                .strip_prefix(project_root)
+                .is_ok_and(|relative| relative.as_str() == "README.Rmd")
+        });
 
         if is_dev {
             eprintln!(
@@ -2187,19 +2210,31 @@ fn rewrite_bookdown_yml(
 
 /// Evaluates Path B: Fallback Automated Auto-Discovery.
 ///
-/// Sweeps for regular .qmd, .Rmd, .R, .py files in that strict order,
-/// alphabetically within each kind. The sweep is shallow and does not follow
-/// links. Directory/entry read errors and non-UTF-8 paths return errors rather
-/// than becoming an empty or incomplete successful selection.
+/// Sweeps the project root for regular .qmd, .Rmd/.rmd, .R/.r and .py files
+/// and sorts them together alphabetically, as projr does (`.py` is a projcli
+/// addition). Like projr, it skips `README.Rmd`, `renv_repos.R`, R scripts whose
+/// names start with `_`, and root files named as hooks in `hooks`. The sweep is
+/// shallow and does not follow links. Directory/entry read errors and non-UTF-8
+/// paths return errors rather than becoming an empty or incomplete selection.
 pub(crate) fn resolve_fallback_scripts(
     project_root: &camino::Utf8Path,
+    hooks: &[String],
 ) -> anyhow::Result<Vec<camino::Utf8PathBuf>> {
     let entries = fs::read_dir(project_root)
         .with_context(|| format!("Cannot enumerate fallback scripts at {project_root}"))?;
-    let mut qmd = Vec::new();
-    let mut rmd = Vec::new();
-    let mut r = Vec::new();
-    let mut py = Vec::new();
+    let hook_names: Vec<&str> = hooks
+        .iter()
+        .filter_map(|hook| {
+            let mut parts = camino::Utf8Path::new(hook)
+                .components()
+                .filter(|part| *part != camino::Utf8Component::CurDir);
+            match (parts.next(), parts.next()) {
+                (Some(camino::Utf8Component::Normal(name)), None) => Some(name),
+                _ => None,
+            }
+        })
+        .collect();
+    let mut files = Vec::new();
 
     for entry in entries {
         let entry = entry.with_context(|| {
@@ -2216,23 +2251,18 @@ pub(crate) fn resolve_fallback_scripts(
         }
         let path =
             camino::Utf8PathBuf::try_from(entry.path()).context("Non-UTF-8 path encountered")?;
-        match path.extension() {
-            Some("qmd") => qmd.push(path),
-            Some("Rmd") => rmd.push(path),
-            Some("R") => r.push(path),
-            Some("py") => py.push(path),
-            _ => {}
+        let name = path.file_name().unwrap_or_default();
+        let included = match path.extension() {
+            Some("qmd" | "py") => true,
+            Some("Rmd" | "rmd") => name != "README.Rmd",
+            Some("R" | "r") => !name.starts_with('_') && name != "renv_repos.R",
+            _ => false,
+        };
+        if included && !hook_names.contains(&name) {
+            files.push(path);
         }
     }
-
-    qmd.sort();
-    rmd.sort();
-    r.sort();
-    py.sort();
-    let mut files = qmd;
-    files.extend(rmd);
-    files.extend(r);
-    files.extend(py);
+    files.sort();
     Ok(files)
 }
 

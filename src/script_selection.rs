@@ -101,10 +101,12 @@ fn walk(
 }
 
 /// Frozen directory declarations resolve names; ordinary relative patterns use the project root.
+/// An exclusion-only selection filters `discover()` (automatic discovery), as in projr.
 pub(crate) fn resolve(
     root: &Utf8Path,
     selection: &[String],
     config: &crate::yml::ValidatedConfig,
+    discover: impl FnOnce() -> anyhow::Result<Vec<Utf8PathBuf>>,
 ) -> anyhow::Result<Vec<Utf8PathBuf>> {
     let metadata_directory = |path: &Utf8Path| {
         path.strip_prefix(root).is_ok_and(|relative| {
@@ -185,6 +187,20 @@ pub(crate) fn resolve(
             ));
         }
     }
+    let excluded = |file: &Utf8Path| {
+        let relative = file.strip_prefix(root).unwrap_or(file);
+        exclusions.iter().any(|exclude| match exclude {
+            Exclusion::File(path) => path == file,
+            Exclusion::Pattern(pattern) => {
+                pattern.matches_path_with(relative.as_std_path(), options)
+            }
+        })
+    };
+    if !exclusions.is_empty() && selection.iter().all(|value| value.starts_with('!')) {
+        let mut discovered = discover()?;
+        discovered.retain(|file| !excluded(file));
+        return Ok(discovered);
+    }
     let mut selected = Vec::new();
     for value in selection.iter().filter(|value| !value.starts_with('!')) {
         let value = text(value)?;
@@ -257,14 +273,7 @@ pub(crate) fn resolve(
             .collect::<anyhow::Result<Vec<_>>>()?;
         files.sort();
         for file in files {
-            let relative = file.strip_prefix(root).unwrap_or(&file);
-            if !exclusions.iter().any(|exclude| match exclude {
-                Exclusion::File(path) => path == &file,
-                Exclusion::Pattern(pattern) => {
-                    pattern.matches_path_with(relative.as_std_path(), options)
-                }
-            }) && !selected.contains(&file)
-            {
+            if !excluded(&file) && !selected.contains(&file) {
                 selected.push(file);
             }
         }

@@ -733,9 +733,10 @@ special metadata cannot block verification or ingestion indefinitely.
 
 ## Optional Git publication and transient credential safety
 
-**Different/new (approved explicit-action policy):** no commit/fetch/push/token
-requirement is inferred from Git metadata. Omitted commits and not_behind checks
-are off; explicit actions use the per-run environment. Commit builds fail before
+**Different/new (approved explicit-action policy):** no commit/push/token
+requirement is inferred from Git metadata. Omitted commits are off. (The upstream
+not-behind check is superseded: it now defaults on as in projr 0.8.0; see the
+"projr 0.8.0 scripts, hooks and restrictions" entry.) Explicit actions use the per-run environment. Commit builds fail before
 writes when Git already contains changes, preserving unrelated work; staged-index
 no-op is success. Publish one HEAD refspec to the configured current upstream,
 never origin/main. Custom pushRemote/pushDefault/remote.push routing is conservatively
@@ -4250,3 +4251,56 @@ documentation update; the standalone authored-resource limit remains explicit.
   serves the updater and both manual-ignore helpers; the hand-rolled marker
   count/position checks and the "append block at end" branch were removed. No new
   dependency or public API.
+
+## projr 0.8.0 scripts, hooks and restrictions (25 November 2026)
+
+Compared with [SATVILab/projr at ab3ce8a](https://github.com/SATVILab/projr/tree/ab3ce8a472ca168ffe245cc822ca071182324b43)
+(0.8.0), static source. No projects use projcli yet, so projr's forms replace
+projcli's own earlier ones without compatibility aliases (MiguelRodo/issues#910).
+
+- **Same (static source): development hooks.** Development builds run only
+  `dev.hooks` (`R/build-hooks.R:1-11`); the earlier fallback to `build.hooks` is
+  removed so previews cannot run publishing or notifying production hooks.
+- **Same (static source): automatic discovery.** One alphabetical order across
+  documents and scripts, skipping `README.Rmd`, `renv_repos.R`, `_*.R` and hook
+  files (`R/scripts.R:48-96`, `R/engines.R:28-30`). The root `README.Rmd` is
+  removed from explicit selections too. **Different:** `.py` remains a projcli
+  addition, and extensions accept the spellings the renderers already support
+  (`.R/.r`, `.Rmd/.rmd`, `.qmd`), not every case variant. Discovery stays shallow,
+  link-free and error-propagating.
+- **Same (static source): script entries.** `- exclude: path` normalises to `!path`;
+  empty entries fail with projr's hint (`R/yml-scripts.R:13-58`). A single scalar
+  `scripts: a.R` is accepted and entries are trimmed, as in projr. Exclusion-only
+  lists mean automatic discovery minus matches (`R/scripts.R:33-36`). **Gap:** with a
+  Quarto/Bookdown project, projr passes excluded documents to the project render
+  (`R/engines.R:43-55`); projcli fails clearly until the engines slice.
+- **Same (static source): restrictions.** `branch` (true/false/list) and
+  `not_behind_git` with the legacy `not_behind` spelling (`R/yml-restrictions.R`,
+  `R/build-pre.R:338-370,492-540`); projcli's `only_branches`/`not_branches` are
+  removed. A scalar `branch: main` means a one-name list, as in projr. The upstream
+  check defaults on. Both checks apply only inside a repository, detected from a
+  `.git` entry without starting Git (`R/git.R:17-20`), so no Git process starts
+  outside one, even with `build.git: false` and explicit `true`. **Different:**
+  projcli also looks for `.git` in ancestor directories, because its Git publication
+  runs for nested projects. A configured upstream that cannot be compared (remote
+  branch pruned or never fetched) warns and skips by default, like projr finding
+  nothing behind; explicit `true` fails. **Different (stricter):** setting both
+  spellings fails; a detached HEAD in a repository fails a branch restriction;
+  explicit `true` makes a missing upstream or failed fetch an error. With the default,
+  a failed fetch warns and skips rather than comparing a stale tracking ref.
+  `not_behind_remote`/`rule` remain unsupported (rejected) until archive version checks.
+- **Review (independent, 26 November):** fixed a gone upstream failing default
+  builds, scalar `branch`/`scripts` rejection, untrimmed entries and the nested-project
+  restriction skip. **Gaps:** discovery excludes hook entries only when they are
+  literal root file names, not globs; alphabetical order is bytewise, while projr's
+  `sort()` follows the R locale (in en_US, `a.qmd` precedes `B.R`; here it follows).
+- **Tests:** `yml` unit tests for entry normalisation and restriction keys;
+  `tests/test_discovery_read_errors.rs` for discovery exclusions, dev-only hooks,
+  exclusion-only lists and the project limitation; `tests/test_optional_git.rs`
+  for default/explicit/failed-fetch/no-upstream/gone-upstream/behind, nested
+  project, no-repository (no Git call)
+  and branch values with mocked Git; `tests/acceptance/m2_contract.py` keeps its
+  no-Git-call witness for a repository-free project. Existing preview fixtures that relied on the `build.hooks` fallback now
+  declare `dev.hooks`.
+- **Ponytail (full):** reused the existing exclusion parser via a discovery
+  callback and the existing tracking/fetch helpers; no new modules or dependencies.

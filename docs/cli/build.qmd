@@ -18,7 +18,7 @@ Document renderers and hooks keep their own execution rules.
 ## Features
 
 - **Pre-flight Dependency Checks:** Before modifying files or triggering git snapshots, the build engine statically resolves targets to identify dependencies. Depending on the matched scripts (such as `.Rmd`, `.qmd`, or `.py`) and configuration files, it asserts the availability of `Rscript` (verifying required R namespaces like `rmarkdown` or `bookdown`), `quarto`, or python executable commands. Any missing R packages can be resolved automatically via the `PROJR_AUTO_INSTALL` environment variable, or through an interactive terminal prompt.
-- **Production Build Restrictions:** Checks if branch rules (`only_branches`, `not_branches`) or upstream synchronicity (`not_behind`) are violated during a production build run.
+- **Production Build Restrictions:** Uses projr's `build.restrictions` keys. `branch` limits which branches may run production builds. `not_behind_git` (default on) fetches the current branch's tracking upstream, when one exists, and stops a production build that is behind it; see [configuration](../configuration.qmd).
 - **Saving results:** `build.dest` selects named local or GitHub destinations.
   Ordinary backups, shared-file stores (`cas`) and experimental shared-pieces
   stores (`xet`) have different requirements; see the [storage guides](../cas-github.qmd).
@@ -26,13 +26,15 @@ Document renderers and hooks keep their own execution rules.
   Configure Git identity and remote access before enabling commits or pushes.
 - **Mutual Exclusion Checking:** Before executing, `proj build` checks for project-level configurations (`_quarto.yml` and `_bookdown.yml`). If both exist and the build targets include Quarto or RMarkdown documents, it throws an error to prevent conflicting rendering.
 - **Explicit Execution (Path A):**
-  - Define exact scripts, exclusions (starting with `!`), or sub-directory globs in `_proj.yml` under `build.scripts`.
+  - Define exact scripts, exclusions (starting with `!` or written as `- exclude: path`), or sub-directory globs in `_proj.yml` under `build.scripts`. A list of only exclusions means automatic discovery minus the matches (not yet supported beside a Quarto or Bookdown project).
+  - The root `README.Rmd` is never run as analysis, even when listed.
   - Can rewrite `_quarto.yml` or `_bookdown.yml` configuration if specific subset documents are requested.
   - Maintains order relative to Python and R scripts, while correctly clustering and executing project documents together.
 - **Fallback Execution (Path B):**
   - If no `build.scripts` is provided, the engine auto-discovers build targets.
   - Will execute a Quarto project if `_quarto.yml` exists, or a Bookdown project if `_bookdown.yml` exists.
-  - Otherwise, it falls back to a shallow workspace sweep and runs `.qmd`, `.Rmd`, `.R`, and `.py` files in that strict order.
+  - Otherwise, it falls back to a shallow workspace sweep and runs `.qmd`, `.Rmd`/`.rmd`, `.R`/`.r` and `.py` files together in alphabetical order, as projr does (`.py` is a projcli addition). Like projr, it skips `README.Rmd`, `renv_repos.R`, R scripts whose names start with `_`, and files configured as build or dev hooks.
+- **Hooks:** Production builds run `build.hooks`; development builds run only `dev.hooks`.
 
 ## Isolation
 
@@ -95,7 +97,7 @@ includes return an error instead of a successful no-op.
 Current source reports directory-enumeration and entry-inspection errors instead
 of treating a failed fallback scan as an empty selection. Errors name whether
 fallback discovery or managed-state capture failed and retain the OS cause.
-The sweep stays shallow, alphabetically ordered within each language, and skips
+The sweep stays shallow, alphabetically ordered, and skips
 linked entries; hidden and Git-ignored regular scripts remain eligible. This
 diagnostic correction is included in preview.3; preview.2 permission failures may
 appear later as a bare OS error.
