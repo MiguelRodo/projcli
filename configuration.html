@@ -83,9 +83,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-63b5708e65d6cd79cd7618c58d0c21e7.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ea0ff6950daeefecbc60da16f92c6e83.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="site_libs/bootstrap/bootstrap-dark-33d23b205ce28182017f515c28d1f2bc.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="site_libs/bootstrap/bootstrap-ea0ff6950daeefecbc60da16f92c6e83.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ec2af6afadc9155c4cfa947fc371d7fd.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-b16695a7b9ee8d998265adea8236ffb5.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-ec2af6afadc9155c4cfa947fc371d7fd.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -667,7 +667,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong><code>scripts</code></strong>: An optional list of explicit script paths or glob patterns to execute during the build pipeline.
 <ul>
 <li>Globbing patterns are supported.</li>
-<li>Prefix a pattern with <code>!</code> to exclude matching files from execution.</li>
+<li>Prefix a pattern with <code>!</code> to exclude matching files from execution, or write the entry as <code>- exclude: scratch.R</code> (as in projr). An empty entry fails with a hint to quote <code>"!scratch.R"</code>, use <code>- exclude:</code>, or use <code>scripts: []</code>.</li>
+<li>A list containing only exclusions means automatic discovery minus the matches, as in projr. With a Quarto or Bookdown project this is not yet supported and fails clearly.</li>
+<li>The root <code>README.Rmd</code> is never run as analysis, even when listed.</li>
 <li>Current source rejects malformed inclusion or exclusion syntax before execution, including hook patterns. The exclusion correction is included in preview.3; see the <a href="./cli/build.html">build reference</a>.</li>
 <li>When provided, this selects scripts instead of automatic discovery. Document targets may be grouped for rendering, so mixed script and document targets are not guaranteed to run in the exact listed order.</li>
 </ul></li>
@@ -683,11 +685,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong><code>commit</code></strong>: Defaults to false, including inside an existing Git repository. Explicit true requires initially clean Git state and commits once after successful local build; an unchanged staged index is a successful no-op.</li>
 <li><strong><code>push</code></strong>: Defaults to false. Explicit true publishes HEAD to the current branch’s configured upstream remote/reference. Missing upstream or custom push-only routing fails before build writes; origin/main is never invented.</li>
 </ul></li>
-<li><strong><code>restrictions</code></strong>: Configuration block to enforce Git checks specifically during production builds:
+<li><strong><code>restrictions</code></strong>: Configuration block to enforce Git checks specifically during production builds: These are projr’s keys (<code>SATVILab/projr@ab3ce8a:R/yml-restrictions.R</code>).
 <ul>
-<li><strong><code>only_branches</code></strong>: A list of allowed branch names. Production builds will abort if the current branch is not in this list.</li>
-<li><strong><code>not_branches</code></strong>: A list of restricted branch names. Production builds will abort if the current branch is in this list.</li>
-<li><strong><code>not_behind</code></strong>: Omitted/false performs no fetch. Explicit <code>true</code> fetches the current configured upstream and compares its state. If enabled, production builds will verify that the local branch has an upstream tracking remote and is not behind it, aborting if the local branch needs to pull upstream changes.</li>
+<li><strong><code>branch</code></strong>: Omitted or <code>true</code> allows any branch. <code>false</code> or <code>[]</code> blocks production builds on every branch; a list (or a single name, <code>branch: main</code>) allows only the named branches. Outside a Git repository the restriction does not apply, as in projr; inside one, a detached HEAD fails.</li>
+<li><strong><code>not_behind_git</code></strong>: Whether to check that the current branch is not behind its tracking upstream before a production build. The earlier projr spelling <code>not_behind</code> is also accepted; setting both fails. Omitted means on, as in projr: when a tracking upstream exists the build fetches it and aborts if the branch is behind; without a tracking upstream the check is skipped, and a failed fetch only warns. Explicit <code>true</code> makes a missing upstream or failed fetch an error. Like projr, both restrictions are skipped (no Git process starts) outside a repository; projcli detects one from a <code>.git</code> entry at the project root or any ancestor. An upstream that cannot be compared (its remote branch was pruned) warns and skips unless the value is explicit <code>true</code>. <code>false</code> performs no fetch.</li>
+<li><code>not_behind_remote</code> and <code>rule</code> (archive version checks) are not yet supported and fail validation.</li>
 </ul></li>
 <li><strong><code>clear_output</code></strong>: An optional string controlling workspace clearing routines for output directories. Can be set to <code>"pre"</code>, <code>"post"</code>, or <code>"never"</code>. If omitted, defaults to evaluating the <code>PROJR_CLEAR_OUTPUT</code> environment variable.</li>
 </ul>
@@ -697,7 +699,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>You can define a <code>dev</code> block to completely override specific configurations during development builds (<code>proj build-dev</code>).</p>
 <ul>
 <li><strong><code>scripts</code></strong>: A list of script paths or globs. During development builds, this array entirely overrides <code>build.scripts</code>. An explicitly empty array (<code>[]</code>) selects no analysis scripts. An absent <code>dev.scripts</code> inherits <code>build.scripts</code>. Hooks can still run.</li>
-<li><strong><code>hooks</code></strong>: A mapping identical to <code>build.hooks</code>. When specified, these completely replace <code>build.hooks</code> during a development build.</li>
+<li><strong><code>scripts</code></strong> accepts the same <code>- exclude:</code> entries and exclusion-only lists as <code>build.scripts</code>.</li>
+<li><strong><code>hooks</code></strong>: A mapping identical to <code>build.hooks</code>. Development builds run only <code>dev.hooks</code>; <code>build.hooks</code> never run in a development build, even when <code>dev.hooks</code> is omitted (as in projr, because production hooks may publish or notify).</li>
 <li><strong><code>old_dev_remove</code></strong>: Retained configuration field. The current preview protections skip CLI cleanup of prior caches during development builds, even when this is <code>true</code>. Scripts and hooks still control their own writes.</li>
 </ul>
 </section>

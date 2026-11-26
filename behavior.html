@@ -48,9 +48,9 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-63b5708e65d6cd79cd7618c58d0c21e7.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-ea0ff6950daeefecbc60da16f92c6e83.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="site_libs/bootstrap/bootstrap-dark-33d23b205ce28182017f515c28d1f2bc.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="site_libs/bootstrap/bootstrap-ea0ff6950daeefecbc60da16f92c6e83.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ec2af6afadc9155c4cfa947fc371d7fd.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-b16695a7b9ee8d998265adea8236ffb5.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-ec2af6afadc9155c4cfa947fc371d7fd.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -602,7 +602,9 @@ ul.task-list li input[type="checkbox"] {
 <li>With no recognized marker, discovery falls back to cwd. This does not waive build validation: builds require an active root-level proj configuration. The agreed <code>_proj.yml</code> / legacy <code>_projr.yml</code> names apply; explicitly activated profile files may supply configuration, but inactive profile files alone do not. No-config build assumptions from the initial roadmap are superseded.</li>
 <li>Ordinary framework/resource directories used at runtime must be explicitly declared. Built-in project and R-package data lookup are bounded exceptions described below. Initialization may write familiar projr defaults into configuration; runtime must not synthesize missing directory mappings or unknown subpaths.</li>
 <li>Unsupported behavior-affecting configuration fails before mutations.</li>
-<li>Explicit script and hook patterns, including exclusions, must have valid glob syntax. Invalid exclusions must fail preflight rather than silently select unintended code. Valid exclusion-only lists may select no files; an empty list still disables analysis.</li>
+<li>Explicit script and hook patterns, including exclusions, must have valid glob syntax. Invalid exclusions must fail preflight rather than silently select unintended code. As in projr 0.8.0, a valid exclusion-only list means automatic discovery minus the matches (not yet supported beside a Quarto/Bookdown project, which fails clearly); an empty list still disables analysis. <code>- exclude: path</code> entries normalise to <code>!path</code>. The root <code>README.Rmd</code> is never analysis.</li>
+<li>Development builds run only <code>dev.hooks</code>; production <code>build.hooks</code> never run in a preview (projr 0.8.0 behaviour, superseding the earlier fallback to <code>build.hooks</code>).</li>
+<li>Production restrictions use projr’s <code>branch</code> and <code>not_behind_git</code> (legacy <code>not_behind</code>) keys. The upstream check defaults on as in projr, skipping silently, without starting Git, outside a repository (no <code>.git</code> entry at the project root or an ancestor), skipping silently without a tracking upstream, warning when the upstream cannot be compared and warning on a failed fetch; explicit <code>true</code> is strict. This supersedes the earlier explicit-only fetch policy and projcli’s <code>only_branches</code>/<code>not_branches</code> keys.</li>
 <li>Failed supported builds must restore pre-build state except permitted cache residue. This is required behavior, not an implemented transaction guarantee.</li>
 <li>Storage/publication retries must have an upload-only route without rerunning analysis or falsely recording a new analysis. Explicit-empty analysis supports hooks/publication, but full retry identity/transaction semantics are separate.</li>
 <li>The existing R package is entirely off limits in this effort. Direct R frontend integration is later work; no existing helper changes or parity claims follow from these Rust changes.</li>
