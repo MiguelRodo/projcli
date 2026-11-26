@@ -192,14 +192,17 @@ M2 completion claim follows. Reuse the verified preview.2 source/tests/evidence.
 Script/hook include and exclusion syntax must fail preflight on errors, including
 exclusion-only selections. Never turn malformed exclusions into silent no-ops or
 shell commands. Reuse the shared resolver and preserve valid first-match order,
-deduplication, explicit-empty semantics and literal root handling. Source fixes
+deduplication, explicit-empty semantics and literal root handling. As in projr 0.8.0,
+a valid exclusion-only list is automatic discovery minus the matches, `- exclude:`
+entries normalise to `!path`, and root README.Rmd is never analysis. Source fixes
 do not update the published/installed binary automatically; delivery requires
 reviewed release and installation verification.
 
 
 Fallback discovery must propagate root/entry/type-inspection failures instead of
-silently selecting no or fewer scripts. Keep its existing shallow regular-file,
-no-link, language/alphabetical ordering and hidden/Git-ignored behavior. Root
+silently selecting no or fewer scripts. Keep its shallow regular-file, no-link
+and hidden/Git-ignored behavior; follow projr 0.8.0's single alphabetical order and
+README.Rmd/`_*.R`/renv_repos.R/hook exclusions. Dev builds run only dev.hooks. Root
 enumeration during managed-state capture must retain phase and OS error context.
 Permission fixtures run unprivileged and restore owned directory modes before
 assertions; no new traversal, sandbox or persistence contract is implied.

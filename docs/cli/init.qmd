@@ -115,8 +115,11 @@ Automatic .Rbuildignore creation requires DESCRIPTION; an existing .Rbuildignore
 can still retain its managed block. Generated project-control exclusions do not
 exclude R/, man/ or inst/. Explicit per-directory ignore settings remain
 authoritative. Paths are escaped as R regular expressions, separately from
-.gitignore glob escaping. Custom rules outside the delimited managed block survive;
-malformed/repeated markers fail clearly rather than accumulating new blocks.
+.gitignore glob escaping. The block uses projr's `# Start of projr section` /
+`# End of projr section` markers; a file without it first gets projr's editable
+starter defaults (including `_projr-local.yml`), see
+[starter defaults](ignore.qmd#starter-defaults). Custom rules outside the block
+survive; malformed/repeated markers fail clearly rather than accumulating new blocks.
 
 Initialization is incremental: successful local steps remain if a later optional
 renv/Git/GitHub action fails. It is not a whole-project or network transaction.

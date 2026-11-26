@@ -113,7 +113,9 @@ The `_proj.yml` file can also contain a `build` block to configure the behavior 
   without removing that remote as a restore source.
 - **`scripts`**: An optional list of explicit script paths or glob patterns to execute during the build pipeline.
   - Globbing patterns are supported.
-  - Prefix a pattern with `!` to exclude matching files from execution.
+  - Prefix a pattern with `!` to exclude matching files from execution, or write the entry as `- exclude: scratch.R` (as in projr). An empty entry fails with a hint to quote `"!scratch.R"`, use `- exclude:`, or use `scripts: []`.
+  - A list containing only exclusions means automatic discovery minus the matches, as in projr. With a Quarto or Bookdown project this is not yet supported and fails clearly.
+  - The root `README.Rmd` is never run as analysis, even when listed.
   - Current source rejects malformed inclusion or exclusion syntax before execution, including hook patterns. The exclusion correction is included in preview.3; see the [build reference](cli/build.qmd).
   - When provided, this selects scripts instead of automatic discovery. Document targets may be grouped for rendering, so mixed script and document targets are not guaranteed to run in the exact listed order.
 - **`hooks`**: An optional map of lifecycle hook scripts to execute.
@@ -125,9 +127,10 @@ The `_proj.yml` file can also contain a `build` block to configure the behavior 
   - **`commit`**: Defaults to false, including inside an existing Git repository. Explicit true requires initially clean Git state and commits once after successful local build; an unchanged staged index is a successful no-op.
   - **`push`**: Defaults to false. Explicit true publishes HEAD to the current branch's configured upstream remote/reference. Missing upstream or custom push-only routing fails before build writes; origin/main is never invented.
 - **`restrictions`**: Configuration block to enforce Git checks specifically during production builds:
-  - **`only_branches`**: A list of allowed branch names. Production builds will abort if the current branch is not in this list.
-  - **`not_branches`**: A list of restricted branch names. Production builds will abort if the current branch is in this list.
-  - **`not_behind`**: Omitted/false performs no fetch. Explicit `true` fetches the current configured upstream and compares its state. If enabled, production builds will verify that the local branch has an upstream tracking remote and is not behind it, aborting if the local branch needs to pull upstream changes.
+  These are projr's keys (`SATVILab/projr@ab3ce8a:R/yml-restrictions.R`).
+  - **`branch`**: Omitted or `true` allows any branch. `false` or `[]` blocks production builds on every branch; a list (or a single name, `branch: main`) allows only the named branches. Outside a Git repository the restriction does not apply, as in projr; inside one, a detached HEAD fails.
+  - **`not_behind_git`**: Whether to check that the current branch is not behind its tracking upstream before a production build. The earlier projr spelling `not_behind` is also accepted; setting both fails. Omitted means on, as in projr: when a tracking upstream exists the build fetches it and aborts if the branch is behind; without a tracking upstream the check is skipped, and a failed fetch only warns. Explicit `true` makes a missing upstream or failed fetch an error. Like projr, both restrictions are skipped (no Git process starts) outside a repository; projcli detects one from a `.git` entry at the project root or any ancestor. An upstream that cannot be compared (its remote branch was pruned) warns and skips unless the value is explicit `true`. `false` performs no fetch.
+  - `not_behind_remote` and `rule` (archive version checks) are not yet supported and fail validation.
 - **`clear_output`**: An optional string controlling workspace clearing routines for output directories. Can be set to `"pre"`, `"post"`, or `"never"`. If omitted, defaults to evaluating the `PROJR_CLEAR_OUTPUT` environment variable.
 
 ## Development Overrides
@@ -135,7 +138,8 @@ The `_proj.yml` file can also contain a `build` block to configure the behavior 
 You can define a `dev` block to completely override specific configurations during development builds (`proj build-dev`).
 
 - **`scripts`**: A list of script paths or globs. During development builds, this array entirely overrides `build.scripts`. An explicitly empty array (`[]`) selects no analysis scripts. An absent `dev.scripts` inherits `build.scripts`. Hooks can still run.
-- **`hooks`**: A mapping identical to `build.hooks`. When specified, these completely replace `build.hooks` during a development build.
+- **`scripts`** accepts the same `- exclude:` entries and exclusion-only lists as `build.scripts`.
+- **`hooks`**: A mapping identical to `build.hooks`. Development builds run only `dev.hooks`; `build.hooks` never run in a development build, even when `dev.hooks` is omitted (as in projr, because production hooks may publish or notify).
 - **`old_dev_remove`**: Retained configuration field. The current preview protections skip CLI cleanup of prior caches during development builds, even when this is `true`. Scripts and hooks still control their own writes.
 
 ## Environment Variables

@@ -733,9 +733,10 @@ special metadata cannot block verification or ingestion indefinitely.
 
 ## Optional Git publication and transient credential safety
 
-**Different/new (approved explicit-action policy):** no commit/fetch/push/token
-requirement is inferred from Git metadata. Omitted commits and not_behind checks
-are off; explicit actions use the per-run environment. Commit builds fail before
+**Different/new (approved explicit-action policy):** no commit/push/token
+requirement is inferred from Git metadata. Omitted commits are off. (The upstream
+not-behind check is superseded: it now defaults on as in projr 0.8.0; see the
+"projr 0.8.0 scripts, hooks and restrictions" entry.) Explicit actions use the per-run environment. Commit builds fail before
 writes when Git already contains changes, preserving unrelated work; staged-index
 no-op is success. Publish one HEAD refspec to the configured current upstream,
 never origin/main. Custom pushRemote/pushDefault/remote.push routing is conservatively
@@ -4208,6 +4209,101 @@ Fresh-login discovery and explicit binary selection passed. No system utility
 or R profile was replaced. Current public pins/source expectations move together
 after publication. Runtime algorithms and storage formats are unchanged by this
 documentation update; the standalone authored-resource limit remains explicit.
+
+## Managed ignore block and starter defaults (25 November 2026, projr 0.8.0)
+
+- **Relationship:** same marker convention and starter defaults as
+  `SATVILab/projr@ab3ce8a` (`R/ignore.R:110-112,205-206`,
+  `R/init-helper.R:165-206`, `R/build.R:283`, `R/init-std.R:92`); different block
+  content (projcli's directory patterns and planned-render-output rules instead
+  of projr's root-extension, `.projr` state and archive rules); different EOL/BOM
+  handling (projcli writes LF, projr keeps original line endings and BOM,
+  `R/ignore.R:146-192`).
+- **Decision/rationale:** no projcli projects exist, so the earlier
+  `# --- PROJ MANAGED ---` markers were replaced outright rather than migrated.
+  Sharing projr's markers lets projr and projcli refresh one block in the same
+  project. projcli keeps its strict failure on repeated/unpaired/reversed markers
+  (projr also stops on these, `R/ignore.R:56-103`) and uses projr's two-group
+  layout (directory rules, blank, other rules; `R/dir-ignore.R:226`). Starter
+  defaults are seeded whenever no block exists, which is the once-only condition
+  projr uses (`R/init-helper.R:191-193`); existing lines follow the block so user
+  exceptions still win. This makes `_projr-local.yml` Git-ignored by default.
+- **Tests:** `tests/test_ignore_managed_block.rs` (fresh layout and stability,
+  manual rules on both sides, defaults added once and not restored after removal,
+  a projr-written `.gitignore` refreshed in place with a custom start-line suffix,
+  malformed/look-alike markers, package `.Rbuildignore` starter regexes, real Git
+  `check-ignore` of `_projr-local.yml`); updated marker fixture in
+  `tests/test_init_metadata.rs`; doctests in `src/ignore.rs`.
+- **Gaps:** CRLF/BOM byte preservation, projr's leading-slash anchoring of
+  directory Git rules (`/path/**`, `R/dir-ignore.R:178`) and its
+  `(/|$)` single Rbuildignore form are not adopted here; projr's extension-based
+  rules are deliberately not ported. `proj ignore add/remove` keep their existing
+  placement and do not seed defaults; as in projr, a block they create stops later
+  starter seeding, because seeding runs only while no block exists.
+- **Same: full refresh.** A projcli refresh regenerates both groups of the block,
+  like projr's `reset` refresh (`R/dir-ignore.R:196-226`); projr's own second-group
+  rules (for example `.projr` logs) are not preserved across a projcli build.
+- **Review (independent, 26 November):** no blocking defects. Additional low-risk
+  notes kept as gaps: manual add/remove do not reject repeated/reversed markers; a
+  UTF-8 BOM before the start marker makes refreshes fail as malformed; builds
+  create `.gitignore` in projects without Git.
+- **Ponytail (full) review:** one marker matcher pair (used by the block locator)
+  serves the updater and both manual-ignore helpers; the hand-rolled marker
+  count/position checks and the "append block at end" branch were removed. No new
+  dependency or public API.
+
+## projr 0.8.0 scripts, hooks and restrictions (25 November 2026)
+
+Compared with [SATVILab/projr at ab3ce8a](https://github.com/SATVILab/projr/tree/ab3ce8a472ca168ffe245cc822ca071182324b43)
+(0.8.0), static source. No projects use projcli yet, so projr's forms replace
+projcli's own earlier ones without compatibility aliases (MiguelRodo/issues#910).
+
+- **Same (static source): development hooks.** Development builds run only
+  `dev.hooks` (`R/build-hooks.R:1-11`); the earlier fallback to `build.hooks` is
+  removed so previews cannot run publishing or notifying production hooks.
+- **Same (static source): automatic discovery.** One alphabetical order across
+  documents and scripts, skipping `README.Rmd`, `renv_repos.R`, `_*.R` and hook
+  files (`R/scripts.R:48-96`, `R/engines.R:28-30`). The root `README.Rmd` is
+  removed from explicit selections too. **Different:** `.py` remains a projcli
+  addition, and extensions accept the spellings the renderers already support
+  (`.R/.r`, `.Rmd/.rmd`, `.qmd`), not every case variant. Discovery stays shallow,
+  link-free and error-propagating.
+- **Same (static source): script entries.** `- exclude: path` normalises to `!path`;
+  empty entries fail with projr's hint (`R/yml-scripts.R:13-58`). A single scalar
+  `scripts: a.R` is accepted and entries are trimmed, as in projr. Exclusion-only
+  lists mean automatic discovery minus matches (`R/scripts.R:33-36`). **Gap:** with a
+  Quarto/Bookdown project, projr passes excluded documents to the project render
+  (`R/engines.R:43-55`); projcli fails clearly until the engines slice.
+- **Same (static source): restrictions.** `branch` (true/false/list) and
+  `not_behind_git` with the legacy `not_behind` spelling (`R/yml-restrictions.R`,
+  `R/build-pre.R:338-370,492-540`); projcli's `only_branches`/`not_branches` are
+  removed. A scalar `branch: main` means a one-name list, as in projr. The upstream
+  check defaults on. Both checks apply only inside a repository, detected from a
+  `.git` entry without starting Git (`R/git.R:17-20`), so no Git process starts
+  outside one, even with `build.git: false` and explicit `true`. **Different:**
+  projcli also looks for `.git` in ancestor directories, because its Git publication
+  runs for nested projects. A configured upstream that cannot be compared (remote
+  branch pruned or never fetched) warns and skips by default, like projr finding
+  nothing behind; explicit `true` fails. **Different (stricter):** setting both
+  spellings fails; a detached HEAD in a repository fails a branch restriction;
+  explicit `true` makes a missing upstream or failed fetch an error. With the default,
+  a failed fetch warns and skips rather than comparing a stale tracking ref.
+  `not_behind_remote`/`rule` remain unsupported (rejected) until archive version checks.
+- **Review (independent, 26 November):** fixed a gone upstream failing default
+  builds, scalar `branch`/`scripts` rejection, untrimmed entries and the nested-project
+  restriction skip. **Gaps:** discovery excludes hook entries only when they are
+  literal root file names, not globs; alphabetical order is bytewise, while projr's
+  `sort()` follows the R locale (in en_US, `a.qmd` precedes `B.R`; here it follows).
+- **Tests:** `yml` unit tests for entry normalisation and restriction keys;
+  `tests/test_discovery_read_errors.rs` for discovery exclusions, dev-only hooks,
+  exclusion-only lists and the project limitation; `tests/test_optional_git.rs`
+  for default/explicit/failed-fetch/no-upstream/gone-upstream/behind, nested
+  project, no-repository (no Git call)
+  and branch values with mocked Git; `tests/acceptance/m2_contract.py` keeps its
+  no-Git-call witness for a repository-free project. Existing preview fixtures that relied on the `build.hooks` fallback now
+  declare `dev.hooks`.
+- **Ponytail (full):** reused the existing exclusion parser via a discovery
+  callback and the existing tracking/fetch helpers; no new modules or dependencies.
 
 ## projr 0.8.0 directory manifest store (26 November 2026)
 

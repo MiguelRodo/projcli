@@ -175,7 +175,7 @@ fn grouped_file_and_asset_ancestor_collisions_fail_before_start_hooks() {
         )
         .unwrap();
         fs::write(root.join("_proj.yml"),format!(
-            "directories:\n  cache: {{path: cache}}\n  docs: {{path: docs}}\n  scripts: {{path: first}}\n  scripts-{group}: {{path: second}}\nbuild:\n  git: false\n  scripts: [scripts, scripts-{group}]\n  hooks:\n    pre: [hook.py]\n")).unwrap();
+            "directories:\n  cache: {{path: cache}}\n  docs: {{path: docs}}\n  scripts: {{path: first}}\n  scripts-{group}: {{path: second}}\nbuild:\n  git: false\n  scripts: [scripts, scripts-{group}]\ndev:\n  hooks:\n    pre: [hook.py]\n")).unwrap();
         let output = run(root, &["build-dev"]);
         assert!(!output.status.success());
         assert!(

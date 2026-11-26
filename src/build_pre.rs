@@ -1,22 +1,35 @@
+use crate::git::{create_git_provider_in, fetch_remote_in, git_command_in, tracking_target_in};
 use crate::run_environment::RunEnvironment;
-use std::io::{self, BufRead, IsTerminal};
-use anyhow::Context;
-use crate::git::{create_git_provider_in, tracking_target_in, fetch_remote_in, git_command_in};
 use crate::yml::GlobalConfig;
+use anyhow::Context;
+use std::io::{self, BufRead, IsTerminal};
 
-pub fn pre_flight_git_check(config: &GlobalConfig, repo_dir: &camino::Utf8Path) -> anyhow::Result<()> {
+pub fn pre_flight_git_check(
+    config: &GlobalConfig,
+    repo_dir: &camino::Utf8Path,
+) -> anyhow::Result<()> {
     pre_flight_git_check_in(config, repo_dir, &RunEnvironment::inherited())
 }
 
-fn pre_flight_git_check_in(config: &GlobalConfig, repo_dir: &camino::Utf8Path, environment: &RunEnvironment) -> anyhow::Result<()> {
+fn pre_flight_git_check_in(
+    config: &GlobalConfig,
+    repo_dir: &camino::Utf8Path,
+    environment: &RunEnvironment,
+) -> anyhow::Result<()> {
     let provider = create_git_provider_in(config.git.engine, repo_dir.to_path_buf(), environment)?;
 
     // Check if user has context configurations mapped out
-    let name = provider.get_user_name().unwrap_or_else(|| "Unknown".to_string());
-    let email = provider.get_user_email().unwrap_or_else(|| "unknown@example.com".to_string());
+    let name = provider
+        .get_user_name()
+        .unwrap_or_else(|| "Unknown".to_string());
+    let email = provider
+        .get_user_email()
+        .unwrap_or_else(|| "unknown@example.com".to_string());
 
-    println!("Git context verified successfully for R workflow: {} <{}>", name, email);
-
+    println!(
+        "Git context verified successfully for R workflow: {} <{}>",
+        name, email
+    );
 
     Ok(())
 }
@@ -86,31 +99,69 @@ pub fn map_format_to_extension(format: Option<&str>) -> anyhow::Result<String> {
         "pdf" | "pdf_document" | "beamer" | "beamer_presentation" | "typst" => "pdf",
         "pptx" => "pptx",
         "epub" => "epub",
-        _ => anyhow::bail!("Unsupported individual document format; supported layouts are HTML, PDF, Word, PowerPoint and EPUB"),
+        _ => anyhow::bail!(
+            "Unsupported individual document format; supported layouts are HTML, PDF, Word, PowerPoint and EPUB"
+        ),
     };
     Ok(extension.to_owned())
 }
 
 /// Model one document-local format. External metadata and multiple formats need a separate plan.
-pub(crate) fn individual_output_options(content: &str, is_rmd: bool) -> anyhow::Result<(String, Option<String>)> {
+pub(crate) fn individual_output_options(
+    content: &str,
+    is_rmd: bool,
+) -> anyhow::Result<(String, Option<String>)> {
     let mut lines = content.lines();
     let metadata = if lines.next().is_some_and(|line| line.trim() == "---") {
         let mut header = String::new();
         let mut closed = false;
         for line in lines {
-            if line.trim() == "---" { closed = true; break; }
-            header.push_str(line); header.push('\n');
+            if line.trim() == "---" {
+                closed = true;
+                break;
+            }
+            header.push_str(line);
+            header.push('\n');
         }
-        if !closed { anyhow::bail!("Document YAML frontmatter is not closed"); }
-        let value: serde_yaml::Value = serde_yaml::from_str(&header).context("Invalid document YAML frontmatter")?;
-        if value.is_null() { serde_yaml::Value::Mapping(Default::default()) } else { value }
-    } else { serde_yaml::Value::Mapping(Default::default()) };
-    let mapping = metadata.as_mapping().context("Document YAML frontmatter must be a mapping")?;
+        if !closed {
+            anyhow::bail!("Document YAML frontmatter is not closed");
+        }
+        let value: serde_yaml::Value =
+            serde_yaml::from_str(&header).context("Invalid document YAML frontmatter")?;
+        if value.is_null() {
+            serde_yaml::Value::Mapping(Default::default())
+        } else {
+            value
+        }
+    } else {
+        serde_yaml::Value::Mapping(Default::default())
+    };
+    let mapping = metadata
+        .as_mapping()
+        .context("Document YAML frontmatter must be a mapping")?;
     let get = |key: &str| mapping.get(serde_yaml::Value::String(key.to_owned()));
-    for key in ["output-dir", "output_dir", "output-ext", "output_ext", "lib_dir", "lib-dir", "keep_md", "keep-md", "metadata-files", "output_yaml", "output-yaml"] {
-        if get(key).is_some() { anyhow::bail!("Individual rendering does not support external metadata or output-directory overrides"); }
+    for key in [
+        "output-dir",
+        "output_dir",
+        "output-ext",
+        "output_ext",
+        "lib_dir",
+        "lib-dir",
+        "keep_md",
+        "keep-md",
+        "metadata-files",
+        "output_yaml",
+        "output-yaml",
+    ] {
+        if get(key).is_some() {
+            anyhow::bail!(
+                "Individual rendering does not support external metadata or output-directory overrides"
+            );
+        }
     }
-    if is_rmd && get("runtime").is_some_and(|value| !matches!(value.as_str(), Some("auto" | "static"))) {
+    if is_rmd
+        && get("runtime").is_some_and(|value| !matches!(value.as_str(), Some("auto" | "static")))
+    {
         anyhow::bail!("Only static individual R Markdown runtime layouts are supported");
     }
     let key = if is_rmd { "output" } else { "format" };
@@ -120,39 +171,89 @@ pub(crate) fn individual_output_options(content: &str, is_rmd: bool) -> anyhow::
         Some(serde_yaml::Value::Mapping(formats)) if formats.len() == 1 => {
             let (name, options) = formats.iter().next().unwrap();
             if let Some(options) = options.as_mapping() {
-                if ["output-file", "output_file", "output-dir", "output_dir", "output-ext", "output_ext", "lib_dir", "lib-dir", "keep_md", "keep-md"].iter().any(|key| options.contains_key(serde_yaml::Value::String((*key).to_owned()))) {
-                    anyhow::bail!("Format-specific output overrides are unsupported for individual rendering");
+                if [
+                    "output-file",
+                    "output_file",
+                    "output-dir",
+                    "output_dir",
+                    "output-ext",
+                    "output_ext",
+                    "lib_dir",
+                    "lib-dir",
+                    "keep_md",
+                    "keep-md",
+                ]
+                .iter()
+                .any(|key| options.contains_key(serde_yaml::Value::String((*key).to_owned())))
+                {
+                    anyhow::bail!(
+                        "Format-specific output overrides are unsupported for individual rendering"
+                    );
                 }
             } else if !options.is_null() && options.as_str() != Some("default") {
                 anyhow::bail!("Individual format options must be a mapping or default");
             }
-            name.as_str().context("Individual format name must be a string")?.to_owned()
+            name.as_str()
+                .context("Individual format name must be a string")?
+                .to_owned()
         }
         _ => anyhow::bail!("Individual rendering requires exactly one named output format"),
     };
     let supported = if is_rmd {
-        ["html_document", "html_notebook", "pdf_document", "word_document", "beamer_presentation"].contains(&format.as_str())
-    } else { ["html", "pdf", "docx", "typst", "beamer", "revealjs", "pptx", "epub"].contains(&format.as_str()) };
-    if !supported { anyhow::bail!("Unsupported individual document format for this renderer"); }
-    let first = get("output-file"); let second = get("output_file");
-    if first.is_some() && second.is_some() { anyhow::bail!("Document output filename aliases are ambiguous"); }
-    if is_rmd && (first.is_some() || second.is_some()) {
-        anyhow::bail!("Individual R Markdown output filename overrides are unsupported; use the input-basename layout");
+        [
+            "html_document",
+            "html_notebook",
+            "pdf_document",
+            "word_document",
+            "beamer_presentation",
+        ]
+        .contains(&format.as_str())
+    } else {
+        [
+            "html", "pdf", "docx", "typst", "beamer", "revealjs", "pptx", "epub",
+        ]
+        .contains(&format.as_str())
+    };
+    if !supported {
+        anyhow::bail!("Unsupported individual document format for this renderer");
     }
-    let output = first.or(second).map(|value| value.as_str().context("Document output filename must be a string").map(str::to_owned)).transpose()?;
+    let first = get("output-file");
+    let second = get("output_file");
+    if first.is_some() && second.is_some() {
+        anyhow::bail!("Document output filename aliases are ambiguous");
+    }
+    if is_rmd && (first.is_some() || second.is_some()) {
+        anyhow::bail!(
+            "Individual R Markdown output filename overrides are unsupported; use the input-basename layout"
+        );
+    }
+    let output = first
+        .or(second)
+        .map(|value| {
+            value
+                .as_str()
+                .context("Document output filename must be a string")
+                .map(str::to_owned)
+        })
+        .transpose()?;
     Ok((format, output))
 }
 
 pub fn find_python_command() -> Option<String> {
-    find_python_command_in(&RunEnvironment::inherited()).map(|(command,_)|command)
+    find_python_command_in(&RunEnvironment::inherited()).map(|(command, _)| command)
 }
 
-fn find_python_command_in(environment: &RunEnvironment) -> Option<(String,crate::provenance::RunnerEvidence)> {
+fn find_python_command_in(
+    environment: &RunEnvironment,
+) -> Option<(String, crate::provenance::RunnerEvidence)> {
     let variants = ["python3", "python"];
     for cmd in variants {
         if let Ok(output) = environment.command(cmd).arg("--version").output() {
             if output.status.success() {
-                return Some((cmd.to_string(),crate::provenance::RunnerEvidence::from_probe(cmd,&output)));
+                return Some((
+                    cmd.to_string(),
+                    crate::provenance::RunnerEvidence::from_probe(cmd, &output),
+                ));
             }
         }
     }
@@ -169,7 +270,16 @@ pub fn run_pre_flight_checks(
     quarto_exists: bool,
     bookdown_exists: bool,
 ) -> anyhow::Result<(Option<String>, Option<String>)> {
-    run_pre_flight_checks_in(project_root, config, is_prod_run, resolved_files, quarto_exists, bookdown_exists, &RunEnvironment::inherited()).map(|(token,python,_)|(token,python))
+    run_pre_flight_checks_in(
+        project_root,
+        config,
+        is_prod_run,
+        resolved_files,
+        quarto_exists,
+        bookdown_exists,
+        &RunEnvironment::inherited(),
+    )
+    .map(|(token, python, _)| (token, python))
 }
 
 pub(crate) fn run_pre_flight_checks_in(
@@ -180,32 +290,94 @@ pub(crate) fn run_pre_flight_checks_in(
     quarto_exists: bool,
     bookdown_exists: bool,
     environment: &RunEnvironment,
-) -> anyhow::Result<(Option<String>, Option<String>,Vec<crate::provenance::RunnerEvidence>)> {
-    let mut runners=Vec::new();
+) -> anyhow::Result<(
+    Option<String>,
+    Option<String>,
+    Vec<crate::provenance::RunnerEvidence>,
+)> {
+    let mut runners = Vec::new();
     let resolved_token = None; // Authentication uses native Git or explicitly enabled environment data.
     if is_prod_run {
         let restrictions = &config.restrictions;
-        if restrictions.only_branches.is_some() || restrictions.not_branches.is_some() {
-            let output = git_command_in(Some(project_root), environment)?.current_dir(project_root)
-                .args(["symbolic-ref", "--quiet", "--short", "HEAD"]).output()
-                .context("Cannot inspect branch for configured Git restrictions")?;
-            if !output.status.success() { anyhow::bail!("Configured Git restrictions require a checked-out branch"); }
-            let branch = String::from_utf8(output.stdout)?.trim().to_owned();
-            if restrictions.only_branches.as_ref().is_some_and(|allowed| !allowed.contains(&branch)) {
-                anyhow::bail!("Current branch is not allowed by build.restrictions.only_branches");
+        let git = |args: &[&str]| -> anyhow::Result<std::process::Output> {
+            Ok(git_command_in(Some(project_root), environment)?
+                .current_dir(project_root)
+                .args(args)
+                .output()?)
+        };
+        // Like projr's `.git_repo_check_exists`, restrictions apply only inside a
+        // repository, detected from a `.git` entry (directory or worktree file)
+        // without starting Git. projcli also checks ancestors, because its Git
+        // publication runs for projects nested inside a repository.
+        let in_repository = project_root
+            .ancestors()
+            .any(|directory| directory.join(".git").exists());
+        let allowed = match &restrictions.branch {
+            None | Some(crate::yml::BranchRestriction::Any(true)) => None,
+            Some(crate::yml::BranchRestriction::Any(false)) => Some(&[][..]),
+            Some(crate::yml::BranchRestriction::Only(names)) => Some(names.as_slice()),
+        };
+        if let Some(allowed) = allowed.filter(|_| in_repository) {
+            let output = git(&["symbolic-ref", "--quiet", "--short", "HEAD"])
+                .context("Cannot inspect branch for build.restrictions.branch")?;
+            if !output.status.success() {
+                anyhow::bail!("build.restrictions.branch requires a checked-out branch");
             }
-            if restrictions.not_branches.as_ref().is_some_and(|denied| denied.contains(&branch)) {
-                anyhow::bail!("Current branch is excluded by build.restrictions.not_branches");
+            let branch = String::from_utf8(output.stdout)?.trim().to_owned();
+            if allowed.is_empty() {
+                anyhow::bail!(
+                    "Production builds are restricted on all branches (current branch: {branch}). Update build.restrictions.branch to allow builds"
+                );
+            }
+            if !allowed.contains(&branch) {
+                anyhow::bail!(
+                    "Current branch '{branch}' is not allowed by build.restrictions.branch"
+                );
             }
         }
-        if restrictions.not_behind == Some(true) {
-            let (remote, _) = tracking_target_in(project_root, environment)?;
-            fetch_remote_in(project_root, &remote, environment)?;
-            let output = git_command_in(Some(project_root), environment)?.current_dir(project_root)
-                .args(["rev-list", "--count", "HEAD..@{u}"]).output()?;
-            if !output.status.success() { anyhow::bail!("Cannot inspect configured upstream state"); }
-            let count: usize = String::from_utf8(output.stdout)?.trim().parse().context("Invalid upstream comparison result")?;
-            if count > 0 { anyhow::bail!("The local branch is behind its tracking remote"); }
+        // Defaults on like projr. Outside a repository it is skipped; otherwise,
+        // without an explicit true, a missing upstream skips the check and a failed
+        // fetch only warns.
+        let not_behind = restrictions.not_behind_git()?;
+        if in_repository && not_behind != Some(false) {
+            let strict = not_behind == Some(true);
+            let remote = match tracking_target_in(project_root, environment) {
+                Ok((remote, _)) => Some(remote),
+                Err(error) if strict => return Err(error),
+                Err(_) => None,
+            };
+            if let Some(remote) = remote {
+                match fetch_remote_in(project_root, &remote, environment) {
+                    Err(error) if strict => return Err(error),
+                    Err(_) => eprintln!(
+                        "Warning: could not fetch the tracking remote; skipping the build.restrictions.not_behind_git check"
+                    ),
+                    Ok(()) => {
+                        let output = git(&["rev-list", "--count", "HEAD..@{u}"])?;
+                        // A configured upstream whose remote branch is gone (pruned
+                        // after a merge, or never fetched) cannot be compared; projr
+                        // finds nothing behind, so only explicit `true` fails.
+                        let count: usize = if output.status.success() {
+                            String::from_utf8(output.stdout)?
+                                .trim()
+                                .parse()
+                                .context("Invalid upstream comparison result")?
+                        } else if strict {
+                            anyhow::bail!("Cannot inspect configured upstream state");
+                        } else {
+                            eprintln!(
+                                "Warning: the tracking upstream could not be compared; skipping the build.restrictions.not_behind_git check"
+                            );
+                            0
+                        };
+                        if count > 0 {
+                            anyhow::bail!(
+                                "The local branch is behind its tracking remote. Merge upstream changes first, or set build.restrictions.not_behind_git to false"
+                            );
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -241,7 +413,9 @@ pub(crate) fn run_pre_flight_checks_in(
     if r_needed {
         let probe=environment.command("Rscript").arg("--version").output()
             .map_err(|_|anyhow::anyhow!("'Rscript' executable not found on the system PATH. A working R installation is required to build this project"))?;
-        runners.push(crate::provenance::RunnerEvidence::from_probe("Rscript",&probe));
+        runners.push(crate::provenance::RunnerEvidence::from_probe(
+            "Rscript", &probe,
+        ));
 
         let mut required_packages = Vec::new();
         if bookdown_exists {
@@ -254,7 +428,10 @@ pub(crate) fn run_pre_flight_checks_in(
             let mut probe = environment.command("Rscript");
             probe.args(&[
                 "-e",
-                &format!("if (!requireNamespace('{}', quietly = TRUE)) q(status = 1)", package_name),
+                &format!(
+                    "if (!requireNamespace('{}', quietly = TRUE)) q(status = 1)",
+                    package_name
+                ),
             ]);
             if environment.non_interactive() {
                 probe.stdin(std::process::Stdio::null());
@@ -277,7 +454,10 @@ pub(crate) fn run_pre_flight_checks_in(
                         let mut input = String::new();
                         let stdin = io::stdin();
                         loop {
-                            println!("Required R package '{}' is not installed. Would you like to install it now? (y/n): ", package_name);
+                            println!(
+                                "Required R package '{}' is not installed. Would you like to install it now? (y/n): ",
+                                package_name
+                            );
                             input.clear();
                             match stdin.lock().read_line(&mut input) {
                                 Ok(0) => break false, // EOF
@@ -298,13 +478,20 @@ pub(crate) fn run_pre_flight_checks_in(
                 };
 
                 if should_install {
-                    let install_status = environment.command("Rscript")
+                    let install_status = environment
+                        .command("Rscript")
                         .args(&[
                             "-e",
-                            &format!("install.packages('{}', repos='https://cloud.r-project.org')", package_name),
+                            &format!(
+                                "install.packages('{}', repos='https://cloud.r-project.org')",
+                                package_name
+                            ),
                         ])
                         .status()
-                        .context(format!("Failed to execute Rscript to install package '{}'", package_name))?;
+                        .context(format!(
+                            "Failed to execute Rscript to install package '{}'",
+                            package_name
+                        ))?;
 
                     if !install_status.success() {
                         anyhow::bail!("Failed to install R package '{}'", package_name);
@@ -314,7 +501,8 @@ pub(crate) fn run_pre_flight_checks_in(
                         "Required R package '{}' is not installed.\n\
                         To install this dependency programmatically, run:\n    \
                         Rscript -e \"install.packages('{}', repos='https://cloud.r-project.org')\"",
-                        package_name, package_name
+                        package_name,
+                        package_name
                     );
                 }
             }
@@ -323,30 +511,36 @@ pub(crate) fn run_pre_flight_checks_in(
 
     // B. Quarto Validation
     if quarto_needed {
-        let probe=environment.command("quarto").arg("--version").output();
+        let probe = environment.command("quarto").arg("--version").output();
         if probe.is_err() {
-            anyhow::bail!("'quarto' binary not found on the system PATH. \n\
-                        Please download and install Quarto before proceeding: https://quarto.org/docs/get-started/");
+            anyhow::bail!(
+                "'quarto' binary not found on the system PATH. \n\
+                        Please download and install Quarto before proceeding: https://quarto.org/docs/get-started/"
+            );
         }
-        runners.push(crate::provenance::RunnerEvidence::from_probe("quarto",&probe?));
+        runners.push(crate::provenance::RunnerEvidence::from_probe(
+            "quarto", &probe?,
+        ));
     }
 
     // C. Python Validation
     let mut resolved_python_cmd = None;
     if python_needed {
         match find_python_command_in(environment) {
-            Some((cmd,evidence)) => {
+            Some((cmd, evidence)) => {
                 runners.push(evidence);
                 resolved_python_cmd = Some(cmd);
             }
             None => {
-                anyhow::bail!("Python interpreter not found on the system PATH. \
-                            Please ensure either 'python3' or 'python' is installed and accessible");
+                anyhow::bail!(
+                    "Python interpreter not found on the system PATH. \
+                            Please ensure either 'python3' or 'python' is installed and accessible"
+                );
             }
         }
     }
 
-    Ok((resolved_token, resolved_python_cmd,runners))
+    Ok((resolved_token, resolved_python_cmd, runners))
 }
 
 #[cfg(test)]
@@ -356,7 +550,10 @@ mod tests {
     #[test]
     fn test_extract_frontmatter() {
         let content = "---\ntitle: abc\nformat: html_notebook\n---\nBody";
-        assert_eq!(extract_frontmatter(content).unwrap(), "title: abc\nformat: html_notebook\n");
+        assert_eq!(
+            extract_frontmatter(content).unwrap(),
+            "title: abc\nformat: html_notebook\n"
+        );
 
         let content2 = "No frontmatter";
         assert!(extract_frontmatter(content2).is_none());
@@ -369,7 +566,8 @@ mod tests {
         assert_eq!(fmt, Some("html_notebook".to_string()));
         assert_eq!(of, Some("out.html".to_string()));
 
-        let content_rmd = "---\noutput:\n  word_document: default\noutput_file: test.docx\n---\nBody";
+        let content_rmd =
+            "---\noutput:\n  word_document: default\noutput_file: test.docx\n---\nBody";
         let (fmt, of) = parse_frontmatter_options(content_rmd);
         assert_eq!(fmt, Some("word_document".to_string()));
         assert_eq!(of, Some("test.docx".to_string()));
