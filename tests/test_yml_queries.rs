@@ -77,7 +77,7 @@ fn configuration_errors_are_typed_without_secrets_and_checked_mode_is_deliberate
 fn new_human_query_failures_withhold_private_deserialization_values() {
     let temp = tempfile::tempdir().unwrap();
     fs::write(temp.path().join("_proj.yml"),
-        r#"{"build":{"scripts":"private-human-query-canary"}}"#).unwrap();
+        r#"{"build":{"output_run":"private-human-query-canary"}}"#).unwrap();
     for args in [vec!["yml","get","--check"],vec!["yml","parameter","private-key-canary"]] {
         let output = Command::new(env!("CARGO_BIN_EXE_proj"))
             .arg("--non-interactive").arg("--project").arg(temp.path()).args(args)
