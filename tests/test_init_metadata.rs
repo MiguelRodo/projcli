@@ -270,13 +270,13 @@ fn malformed_managed_markers_preserve_user_rules_instead_of_accumulating_blocks(
     let f = Fixture::new();
     fs::write(
         f.root.join(".gitignore"),
-        "custom\n# --- PROJ MANAGED ---\n",
+        "custom\n# Start of projr section\n",
     )
     .unwrap();
     assert!(!f.cli(&["init", "directories"]).status.success());
     assert_eq!(
         text(&f.root, ".gitignore"),
-        "custom\n# --- PROJ MANAGED ---\n"
+        "custom\n# Start of projr section\n"
     );
 }
 #[test]
@@ -294,7 +294,7 @@ fn package_ignore_uses_escaped_paths_without_excluding_legitimate_package_source
     assert!(before.contains("^raw \\[v1\\]\\.data$"));
     assert!(before.contains("^cache\\+space dir$"));
     assert!(!before.lines().any(|line| line == "^R$" || line == "^R/$"));
-    assert!(before.starts_with("^custom-rule$\n"));
+    assert!(before.ends_with("# End of projr section\n^custom-rule$\n"));
     good(f.cli(&["init", "directories"]));
     assert_eq!(text(&f.root, ".Rbuildignore"), before);
     assert!(text(&f.root, ".gitignore").contains(r"raw \[v1\].data/**"));

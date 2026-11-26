@@ -4210,6 +4210,48 @@ or R profile was replaced. Current public pins/source expectations move together
 after publication. Runtime algorithms and storage formats are unchanged by this
 documentation update; the standalone authored-resource limit remains explicit.
 
+## Managed ignore block and starter defaults (25 November 2026, projr 0.8.0)
+
+- **Relationship:** same marker convention and starter defaults as
+  `SATVILab/projr@ab3ce8a` (`R/ignore.R:110-112,205-206`,
+  `R/init-helper.R:165-206`, `R/build.R:283`, `R/init-std.R:92`); different block
+  content (projcli's directory patterns and planned-render-output rules instead
+  of projr's root-extension, `.projr` state and archive rules); different EOL/BOM
+  handling (projcli writes LF, projr keeps original line endings and BOM,
+  `R/ignore.R:146-192`).
+- **Decision/rationale:** no projcli projects exist, so the earlier
+  `# --- PROJ MANAGED ---` markers were replaced outright rather than migrated.
+  Sharing projr's markers lets projr and projcli refresh one block in the same
+  project. projcli keeps its strict failure on repeated/unpaired/reversed markers
+  (projr also stops on these, `R/ignore.R:56-103`) and uses projr's two-group
+  layout (directory rules, blank, other rules; `R/dir-ignore.R:226`). Starter
+  defaults are seeded whenever no block exists, which is the once-only condition
+  projr uses (`R/init-helper.R:191-193`); existing lines follow the block so user
+  exceptions still win. This makes `_projr-local.yml` Git-ignored by default.
+- **Tests:** `tests/test_ignore_managed_block.rs` (fresh layout and stability,
+  manual rules on both sides, defaults added once and not restored after removal,
+  a projr-written `.gitignore` refreshed in place with a custom start-line suffix,
+  malformed/look-alike markers, package `.Rbuildignore` starter regexes, real Git
+  `check-ignore` of `_projr-local.yml`); updated marker fixture in
+  `tests/test_init_metadata.rs`; doctests in `src/ignore.rs`.
+- **Gaps:** CRLF/BOM byte preservation, projr's leading-slash anchoring of
+  directory Git rules (`/path/**`, `R/dir-ignore.R:178`) and its
+  `(/|$)` single Rbuildignore form are not adopted here; projr's extension-based
+  rules are deliberately not ported. `proj ignore add/remove` keep their existing
+  placement and do not seed defaults; as in projr, a block they create stops later
+  starter seeding, because seeding runs only while no block exists.
+- **Same: full refresh.** A projcli refresh regenerates both groups of the block,
+  like projr's `reset` refresh (`R/dir-ignore.R:196-226`); projr's own second-group
+  rules (for example `.projr` logs) are not preserved across a projcli build.
+- **Review (independent, 26 November):** no blocking defects. Additional low-risk
+  notes kept as gaps: manual add/remove do not reject repeated/reversed markers; a
+  UTF-8 BOM before the start marker makes refreshes fail as malformed; builds
+  create `.gitignore` in projects without Git.
+- **Ponytail (full) review:** one marker matcher pair (used by the block locator)
+  serves the updater and both manual-ignore helpers; the hand-rolled marker
+  count/position checks and the "append block at end" branch were removed. No new
+  dependency or public API.
+
 ## projr 0.8.0 scripts, hooks and restrictions (25 November 2026)
 
 Compared with [SATVILab/projr at ab3ce8a](https://github.com/SATVILab/projr/tree/ab3ce8a472ca168ffe245cc822ca071182324b43)

@@ -1090,3 +1090,25 @@ The regression keeps whole native website output and checks repeated builds,
 shared SVGs, navigation, nested local links and original configuration bytes.
 Snapshot discovery, multi-destination routing and broad Quarto type parity are
 not added by this fix.
+
+## projr-compatible managed ignore files (projr 0.8.0 alignment)
+
+Supersedes the earlier projcli-only `# --- PROJ MANAGED ---` /
+`# --- END PROJ MANAGED ---` block, which had no users and is not recognised.
+`.gitignore` and `.Rbuildignore` use projr's managed block: a new block starts
+with `# Start of projr section: do not edit by hand (update with
+projr_ignore_auto())` and ends with `# End of projr section`. Any existing start
+line matching projr's `^# Start of projr section(:.*)?[[:blank:]]*$` and end line
+matching `^# End of projr section[[:blank:]]*$` is recognised and kept verbatim,
+so either tool refreshes the same single block. Block content is configured
+directory rules, a blank line, then other automatic rules. Repeated, unpaired or
+reversed markers still fail before any rewrite, and lines outside the block are
+preserved.
+
+A file without a block (directory initialization or a production build) first
+receives projr's editable starter defaults that it lacks, then the block, then its
+existing lines. `.gitignore` defaults include `_projr-local.yml`; `.Rbuildignore`
+defaults apply only where that file is managed. Seeding happens only while no
+block exists. Planned-render-output rules remain projcli's approach; projr's
+root-extension rules are not ported. Line endings and a byte-order mark are not
+preserved byte-for-byte (files are rewritten with LF), unlike projr.
