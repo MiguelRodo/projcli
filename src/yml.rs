@@ -959,15 +959,14 @@ pub(crate) fn read_configuration_file(path: &Utf8Path) -> anyhow::Result<Value> 
             .with_context(|| format!("Invalid profile key in {path}"))?;
     }
     // projr's original `settings.hash-engine` spelling (`R/yml.R:206-217`).
-    if let Some(settings) = value.get_mut("settings").and_then(Value::as_object_mut) {
-        if let Some(engine) = settings.remove("hash-engine") {
-            let hashing = settings
-                .entry("hashing")
-                .or_insert_with(|| Value::Object(Default::default()));
-            if let Some(hashing) = hashing.as_object_mut() {
-                hashing.entry("approach").or_insert(engine);
-            }
-        }
+    if let Some(settings) = value.get_mut("settings").and_then(Value::as_object_mut)
+        && let Some(engine) = settings.remove("hash-engine")
+        && let Some(hashing) = settings
+            .entry("hashing")
+            .or_insert_with(|| Value::Object(Default::default()))
+            .as_object_mut()
+    {
+        hashing.entry("approach").or_insert(engine);
     }
     // Explicit action nulls must not disappear through profile null-inheritance.
     if let Some(actions) = value.pointer("/build/r") {
