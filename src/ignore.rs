@@ -25,7 +25,10 @@ impl Default for IgnoreType {
 /// Synchronizes ignore rules dynamically across `.gitignore` and `.Rbuildignore`.
 ///
 /// Modifies the ignore files in place within the demarcated regions defined by
-/// `PROJ MANAGED` markers. It resolves the specific rules outlined in the `ValidatedConfig`.
+/// projr's `# Start of projr section` / `# End of projr section` markers. It
+/// resolves the specific rules outlined in the `ValidatedConfig`. A file
+/// without that block first receives projr's editable starter defaults (such
+/// as `_projr-local.yml`) outside the block.
 ///
 /// # Errors
 ///
@@ -82,8 +85,8 @@ pub(crate) fn update_ignores_for_generated(
     validated: &ValidatedConfig,
     generated: &[std::path::PathBuf],
 ) -> anyhow::Result<()> {
-    let mut git_ignores = Vec::new();
-    let mut rbuild_ignores = Vec::new();
+    let mut git_dirs = Vec::new();
+    let mut rbuild_dirs = Vec::new();
 
     for (label, dir) in &validated.directories {
         crate::yml::validate_ignore(&dir.ignore)?;
@@ -148,21 +151,23 @@ pub(crate) fn update_ignores_for_generated(
                         })
                         .collect::<String>();
                     let git_pattern = format!("{}/**", literal.trim_end_matches('/'));
-                    git_ignores.push(git_pattern);
+                    git_dirs.push(git_pattern);
                 }
                 if should_rbuild {
                     let rbuild_pattern =
                         format!("^{}/$", regex::escape(path_str.trim_end_matches('/')));
-                    rbuild_ignores.push(rbuild_pattern);
+                    rbuild_dirs.push(rbuild_pattern);
                     let rbuild_pattern_2 =
                         format!("^{}$", regex::escape(path_str.trim_end_matches('/')));
-                    rbuild_ignores.push(rbuild_pattern_2);
+                    rbuild_dirs.push(rbuild_pattern_2);
                 }
             }
         }
     }
 
     // Automatic metadata ignores share the same conditional Rbuild policy.
+    let mut git_ignores = Vec::new();
+    let mut rbuild_ignores = Vec::new();
     if project_root.join("_environment.local").exists() {
         git_ignores.push("/_environment.local".to_owned());
         rbuild_ignores.push(r"^_environment\.local$".to_owned());
@@ -232,105 +237,132 @@ pub(crate) fn update_ignores_for_generated(
             }
         }
     }
-    // Sort and deduplicate
-    git_ignores.sort();
-    git_ignores.dedup();
-    rbuild_ignores.sort();
-    rbuild_ignores.dedup();
-
     let gitignore_path = project_root.join(".gitignore");
-    update_ignore_file(&gitignore_path, &git_ignores)?;
+    update_ignore_file(&gitignore_path, git_dirs, git_ignores, GIT_STARTER)?;
 
     let rbuildignore_path = project_root.join(".Rbuildignore");
     if project_root.join("DESCRIPTION").exists() || rbuildignore_path.exists() {
-        update_ignore_file(&rbuildignore_path, &rbuild_ignores)?;
+        update_ignore_file(
+            &rbuildignore_path,
+            rbuild_dirs,
+            rbuild_ignores,
+            RBUILD_STARTER,
+        )?;
     }
 
     Ok(())
 }
 
-fn update_ignore_file(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Result<()> {
-    let start_marker = "# --- PROJ MANAGED ---";
-    let end_marker = "# --- END PROJ MANAGED ---";
+/// Start line written for a new managed block, byte-identical to projr's.
+const START_MARKER: &str =
+    "# Start of projr section: do not edit by hand (update with projr_ignore_auto())";
+/// End line of the managed block, byte-identical to projr's.
+const END_MARKER: &str = "# End of projr section";
 
-    let content_lines: Vec<String> = if path.exists() {
-        crate::fs_utils::read_managed_text(path)?
-            .lines()
-            .map(|s| s.to_string())
-            .collect()
-    } else {
-        if ignores.is_empty() {
-            return Ok(()); // Don't create file if nothing to ignore
-        }
-        Vec::new()
+/// Editable `.gitignore` defaults projr seeds once, outside the managed block.
+const GIT_STARTER: &[&str] = &[
+    ".vdoc.*",
+    ".DS_Store",
+    "Thumbs.db",
+    ".Rproj.user",
+    ".Rhistory",
+    ".RData",
+    ".Ruserdata",
+    "_projr-local.yml",
+    "_environment.local",
+];
+
+/// Editable `.Rbuildignore` defaults projr seeds once, outside the managed block.
+const RBUILD_STARTER: &[&str] = &[
+    r"(^|/)\.vdoc\.",
+    r"(^|/)(\.DS_Store|Thumbs\.db)$",
+    r"^.*\.Rproj$",
+    r"^\.Rproj\.user$",
+    r"^_projr-local\.yml$",
+];
+
+/// Matches projr's `^# Start of projr section(:.*)?[[:blank:]]*$`.
+fn is_start_marker(line: &str) -> bool {
+    line.strip_prefix("# Start of projr section")
+        .is_some_and(|rest| rest.starts_with(':') || rest.trim_matches([' ', '\t']).is_empty())
+}
+
+/// Matches projr's `^# End of projr section[[:blank:]]*$`.
+fn is_end_marker(line: &str) -> bool {
+    line.strip_prefix("# End of projr section")
+        .is_some_and(|rest| rest.trim_matches([' ', '\t']).is_empty())
+}
+
+/// Locates the single managed block, rejecting repeated, unpaired or reversed
+/// markers instead of guessing.
+fn managed_block(
+    lines: &[String],
+    path: &camino::Utf8Path,
+) -> anyhow::Result<Option<(usize, usize)>> {
+    let find = |matches: fn(&str) -> bool| -> Vec<usize> {
+        let marked = lines.iter().enumerate().filter(|(_, line)| matches(line));
+        marked.map(|(index, _)| index).collect()
     };
-
-    let starts = content_lines
-        .iter()
-        .filter(|line| line.as_str() == start_marker)
-        .count();
-    let ends = content_lines
-        .iter()
-        .filter(|line| line.as_str() == end_marker)
-        .count();
-    anyhow::ensure!(
-        (starts == 0 && ends == 0) || (starts == 1 && ends == 1),
-        "Malformed or repeated managed ignore markers in {path}"
-    );
-    let start_idx = content_lines.iter().position(|line| line == start_marker);
-    let end_idx = content_lines.iter().position(|line| line == end_marker);
-
-    anyhow::ensure!(
-        start_idx
-            .zip(end_idx)
-            .is_none_or(|(start, end)| start < end),
-        "Reversed managed ignore markers in {path}"
-    );
-    let mut new_lines = Vec::new();
-
-    match (start_idx, end_idx) {
-        (Some(start), Some(end)) if start < end => {
-            // Found block, replace it
-            new_lines.extend_from_slice(&content_lines[..=start]);
-            for ignore in ignores {
-                new_lines.push(ignore.clone());
-            }
-            new_lines.extend_from_slice(&content_lines[end..]);
-        }
-        _ => {
-            // Block not found or malformed, append to end
-            new_lines.extend(content_lines);
-            if !new_lines.is_empty() && new_lines.last().unwrap() != "" {
-                new_lines.push("".to_string());
-            }
-            new_lines.push(start_marker.to_string());
-            for ignore in ignores {
-                new_lines.push(ignore.clone());
-            }
-            new_lines.push(end_marker.to_string());
-        }
+    match (
+        find(is_start_marker).as_slice(),
+        find(is_end_marker).as_slice(),
+    ) {
+        ([], []) => Ok(None),
+        ([start], [end]) if start < end => Ok(Some((*start, *end))),
+        ([_], [_]) => anyhow::bail!("Reversed managed ignore markers in {path}"),
+        _ => anyhow::bail!("Malformed or repeated managed ignore markers in {path}"),
     }
+}
 
-    let mut final_content = new_lines.join("\n");
-    if !final_content.ends_with('\n') {
-        final_content.push('\n');
+/// Rewrites the managed block in projr's layout: configured directory rules, a
+/// blank separator, then the other automatic rules. A file without a block first
+/// receives the starter defaults it lacks, then the block, then its existing
+/// lines, so later user exceptions still win (projr's `.init_ignore_starter`).
+fn update_ignore_file(
+    path: &camino::Utf8Path,
+    mut directories: Vec<String>,
+    mut others: Vec<String>,
+    starter: &[&str],
+) -> anyhow::Result<()> {
+    for rules in [&mut directories, &mut others] {
+        rules.sort();
+        rules.dedup();
     }
-
-    // Only write if the content actually changed
-    if path.exists() {
-        if let Ok(existing_content) = crate::fs_utils::read_managed_text(path) {
-            if existing_content == final_content {
-                return Ok(());
-            }
-        }
-    }
-
-    if path.exists() {
-        crate::fs_utils::replace_managed_file(path, final_content)?;
+    let existing = if path.exists() {
+        Some(crate::fs_utils::read_managed_text(path)?)
     } else {
-        crate::fs_utils::write_managed_file(path, final_content)?;
+        None
+    };
+    let lines: Vec<String> = existing
+        .as_deref()
+        .unwrap_or_default()
+        .lines()
+        .map(str::to_owned)
+        .collect();
+    let content = directories.into_iter().chain([String::new()]).chain(others);
+    let new_lines: Vec<String> = match managed_block(&lines, path)? {
+        Some((start, end)) => lines[..=start]
+            .iter()
+            .cloned()
+            .chain(content)
+            .chain(lines[end..].iter().cloned())
+            .collect(),
+        None => starter
+            .iter()
+            .filter(|rule| !lines.iter().any(|line| line.as_str() == **rule))
+            .map(|rule| rule.to_string())
+            .chain([START_MARKER.to_owned()])
+            .chain(content)
+            .chain([END_MARKER.to_owned()])
+            .chain(lines.iter().cloned())
+            .collect(),
+    };
+    let final_content = new_lines.join("\n") + "\n";
+    match existing {
+        Some(existing) if existing == final_content => Ok(()),
+        Some(_) => crate::fs_utils::replace_managed_file(path, final_content),
+        None => crate::fs_utils::write_managed_file(path, final_content),
     }
-    Ok(())
 }
 
 /// Finds the nearest recognized project root at or above a starting directory.
@@ -507,13 +539,11 @@ fn format_unignore_rbuildignore_path(path_str: &str, is_dir: bool) -> Vec<String
 /// Appends entries to an ignore file outside the managed block.
 ///
 /// Modifies the ignore file by appending user-specified manual exclusions
-/// strictly above the `# --- PROJ MANAGED ---` block, ensuring separating whitespace.
+/// strictly above the `# Start of projr section` block, ensuring separating whitespace.
 fn append_manual_ignores(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Result<()> {
     if ignores.is_empty() {
         return Ok(());
     }
-
-    let start_marker = "# --- PROJ MANAGED ---";
 
     let content_lines: Vec<String> = if path.exists() {
         crate::fs_utils::read_managed_text(path)?
@@ -524,7 +554,7 @@ fn append_manual_ignores(path: &camino::Utf8Path, ignores: &[String]) -> anyhow:
         Vec::new()
     };
 
-    let start_idx = content_lines.iter().position(|line| line == start_marker);
+    let start_idx = content_lines.iter().position(|line| is_start_marker(line));
 
     let mut new_lines = Vec::new();
     let mut added_any = false;
@@ -588,14 +618,11 @@ fn append_manual_ignores(path: &camino::Utf8Path, ignores: &[String]) -> anyhow:
 /// Appends unignore (negated) entries to an ignore file strictly below the managed block.
 ///
 /// Modifies the ignore file by appending user-specified manual negations
-/// strictly below the `# --- END PROJ MANAGED ---` block.
+/// strictly below the `# End of projr section` block.
 fn append_unignores(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Result<()> {
     if ignores.is_empty() {
         return Ok(());
     }
-
-    let start_marker = "# --- PROJ MANAGED ---";
-    let end_marker = "# --- END PROJ MANAGED ---";
 
     let content_lines: Vec<String> = if path.exists() {
         crate::fs_utils::read_managed_text(path)?
@@ -607,7 +634,7 @@ fn append_unignores(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Resu
     };
 
     let mut new_lines = Vec::new();
-    let end_idx = content_lines.iter().position(|line| line == end_marker);
+    let end_idx = content_lines.iter().position(|line| is_end_marker(line));
 
     let mut added_any = false;
 
@@ -652,8 +679,8 @@ fn append_unignores(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Resu
                 new_lines.push("".to_string());
             }
 
-            new_lines.push(start_marker.to_string());
-            new_lines.push(end_marker.to_string());
+            new_lines.push(START_MARKER.to_string());
+            new_lines.push(END_MARKER.to_string());
 
             for ignore in ignores {
                 if !new_lines.contains(ignore) {
@@ -698,13 +725,13 @@ fn append_unignores(path: &camino::Utf8Path, ignores: &[String]) -> anyhow::Resu
 /// let temp = TempDir::new().unwrap();
 /// let canonical_root = temp.path().canonicalize().unwrap();
 /// let root = camino::Utf8Path::from_path(&canonical_root).unwrap();
-/// fs::write(root.join(".gitignore"), "# --- PROJ MANAGED ---\n").unwrap();
+/// fs::write(root.join(".gitignore"), "# Start of projr section\n# End of projr section\n").unwrap();
 ///
 /// add_manual_ignores(root, &["temp.log".to_string()], true, IgnoreType::Git).unwrap();
 ///
 /// let contents = fs::read_to_string(root.join(".gitignore")).unwrap();
 /// assert!(contents.contains("temp.log"));
-/// assert!(contents.contains("# --- PROJ MANAGED ---"));
+/// assert!(contents.find("temp.log").unwrap() < contents.find("# Start of projr section").unwrap());
 /// ```
 pub fn add_manual_ignores(
     project_root: &camino::Utf8Path,
@@ -753,7 +780,7 @@ pub fn add_manual_ignores(
 ///
 /// Converts a list of raw string paths into properly formatted negated regular expressions
 /// or pattern rules (stripping duplicate negation tokens), and injects them into
-/// `.gitignore` or `.Rbuildignore` below the `# --- END PROJ MANAGED ---` block.
+/// `.gitignore` or `.Rbuildignore` below the `# End of projr section` block.
 ///
 /// Skips `.Rbuildignore` if no `DESCRIPTION` file exists in the project root.
 /// If the target ignore file does not exist, it will be created and the negated paths
@@ -773,14 +800,14 @@ pub fn add_manual_ignores(
 /// let temp = TempDir::new().unwrap();
 /// let canonical_root = temp.path().canonicalize().unwrap();
 /// let root = camino::Utf8Path::from_path(&canonical_root).unwrap();
-/// fs::write(root.join(".gitignore"), "# --- PROJ MANAGED ---\n# --- END PROJ MANAGED ---\n").unwrap();
+/// fs::write(root.join(".gitignore"), "# Start of projr section\n# End of projr section\n").unwrap();
 ///
 /// remove_manual_ignores(root, &["!!temp.log".to_string()], IgnoreType::Git).unwrap();
 ///
 /// let contents = fs::read_to_string(root.join(".gitignore")).unwrap();
 /// assert!(contents.contains("!temp.log"));
-/// assert!(contents.contains("# --- END PROJ MANAGED ---"));
-/// assert!(contents.find("# --- END PROJ MANAGED ---").unwrap() < contents.find("!temp.log").unwrap());
+/// assert!(contents.contains("# End of projr section"));
+/// assert!(contents.find("# End of projr section").unwrap() < contents.find("!temp.log").unwrap());
 /// ```
 pub fn remove_manual_ignores(
     project_root: &camino::Utf8Path,
