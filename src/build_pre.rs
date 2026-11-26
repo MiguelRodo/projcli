@@ -305,15 +305,16 @@ pub(crate) fn run_pre_flight_checks_in(
                 .args(args)
                 .output()?)
         };
-        // As in projr, branch restrictions do not apply outside a Git repository.
-        let in_repository =
-            || git(&["rev-parse", "--git-dir"]).is_ok_and(|output| output.status.success());
+        // As in projr (`.git_repo_check_exists`), restrictions apply only when the
+        // project root has a `.git` entry (directory or worktree file); without one
+        // no Git process is started.
+        let in_repository = project_root.join(".git").exists();
         let allowed = match &restrictions.branch {
             None | Some(crate::yml::BranchRestriction::Any(true)) => None,
             Some(crate::yml::BranchRestriction::Any(false)) => Some(&[][..]),
             Some(crate::yml::BranchRestriction::Only(names)) => Some(names.as_slice()),
         };
-        if let Some(allowed) = allowed.filter(|_| in_repository()) {
+        if let Some(allowed) = allowed.filter(|_| in_repository) {
             let output = git(&["symbolic-ref", "--quiet", "--short", "HEAD"])
                 .context("Cannot inspect branch for build.restrictions.branch")?;
             if !output.status.success() {
@@ -331,10 +332,11 @@ pub(crate) fn run_pre_flight_checks_in(
                 );
             }
         }
-        // Defaults on like projr; without an explicit true, a missing repository or
-        // upstream skips the check and a failed fetch only warns.
+        // Defaults on like projr. Outside a repository it is skipped; otherwise,
+        // without an explicit true, a missing upstream skips the check and a failed
+        // fetch only warns.
         let not_behind = restrictions.not_behind_git()?;
-        if not_behind != Some(false) {
+        if in_repository && not_behind != Some(false) {
             let strict = not_behind == Some(true);
             let remote = match tracking_target_in(project_root, environment) {
                 Ok((remote, _)) => Some(remote),

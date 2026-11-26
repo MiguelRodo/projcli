@@ -283,6 +283,31 @@ elif action in ['push', 'fetch'] and os.environ.get('TEST_NETWORK_FAIL') == '1':
     }
 
     #[test]
+    fn restrictions_start_no_git_without_a_repository_like_projr() {
+        for setting in [
+            "",
+            "  restrictions:\n    not_behind_git: true\n    branch: [main]\n",
+        ] {
+            let project = tempfile::tempdir().unwrap();
+            let root = project.path();
+            let path = fixture(root);
+            fs::remove_dir(root.join(".git")).unwrap();
+            fs::write(
+                root.join("_proj.yml"),
+                format!("build:\n  scripts: []\n  git: false\n{setting}"),
+            )
+            .unwrap();
+            let output = command(root, &path).output().unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            assert!(!root.join("git-calls.jsonl").exists());
+        }
+    }
+
+    #[test]
     fn branch_restriction_uses_projr_values() {
         for (setting, succeeds) in [
             ("true", true),

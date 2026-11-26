@@ -4234,7 +4234,9 @@ projcli's own earlier ones without compatibility aliases (MiguelRodo/issues#910)
 - **Same (static source): restrictions.** `branch` (true/false/list) and
   `not_behind_git` with the legacy `not_behind` spelling (`R/yml-restrictions.R`,
   `R/build-pre.R:338-370,492-540`); projcli's `only_branches`/`not_branches` are
-  removed. The upstream check defaults on. **Different (stricter):** setting both
+  removed. The upstream check defaults on. Both checks apply only when the project
+  root has a `.git` entry (`R/git.R:17-20`), so no Git process starts outside a
+  repository, even with `build.git: false` and explicit `true`. **Different (stricter):** setting both
   spellings fails; a detached HEAD in a repository fails a branch restriction;
   explicit `true` makes a missing upstream or failed fetch an error. With the default,
   a failed fetch warns and skips rather than comparing a stale tracking ref.
@@ -4242,8 +4244,9 @@ projcli's own earlier ones without compatibility aliases (MiguelRodo/issues#910)
 - **Tests:** `yml` unit tests for entry normalisation and restriction keys;
   `tests/test_discovery_read_errors.rs` for discovery exclusions, dev-only hooks,
   exclusion-only lists and the project limitation; `tests/test_optional_git.rs`
-  for default/explicit/failed-fetch/no-upstream/behind and branch values with
-  mocked Git. Existing preview fixtures that relied on the `build.hooks` fallback now
+  for default/explicit/failed-fetch/no-upstream/behind, no-repository (no Git call)
+  and branch values with mocked Git; `tests/acceptance/m2_contract.py` keeps its
+  no-Git-call witness for a repository-free project. Existing preview fixtures that relied on the `build.hooks` fallback now
   declare `dev.hooks`.
 - **Ponytail (full):** reused the existing exclusion parser via a discovery
   callback and the existing tracking/fetch helpers; no new modules or dependencies.
