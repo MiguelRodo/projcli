@@ -330,14 +330,20 @@ fn lock(store: &Utf8Path, exclusive: bool) -> anyhow::Result<Option<fs::File>> {
     Ok(Some(file))
 }
 
-/// Blocks for a whole-file `fcntl` record lock, the kind R's filelock (and so
-/// projr) takes on Unix. Rust's `File::lock` uses `flock`, which Linux does not
+/// Blocks for a whole-file `fcntl` lock, the kind R's filelock (and so projr)
+/// takes on Unix. Rust's `File::lock` uses `flock`, which Linux does not
 /// coordinate with `fcntl` locks, so it would not exclude projr writers.
+///
+/// On Linux this uses open-file-description locks (`F_OFD_SETLKW`): they
+/// conflict with projr's classic `fcntl` locks but belong to this open file
+/// rather than the whole process, so closing another handle to the lock file
+/// cannot silently drop the lock. Kernels without them (before 3.15, `EINVAL`)
+/// and other Unix systems use classic `F_SETLKW`.
 #[cfg(unix)]
 fn lock_file(file: &fs::File, exclusive: bool) -> std::io::Result<()> {
     use std::os::fd::AsRawFd;
     // SAFETY: an all-zero `flock` is a valid value; the fields below select the
-    // whole file (start 0, length 0 from SEEK_SET).
+    // whole file (start 0, length 0 from SEEK_SET). OFD locks require l_pid 0.
     let mut request: libc::flock = unsafe { std::mem::zeroed() };
     request.l_type = (if exclusive {
         libc::F_WRLCK
@@ -345,16 +351,22 @@ fn lock_file(file: &fs::File, exclusive: bool) -> std::io::Result<()> {
         libc::F_RDLCK
     }) as _;
     request.l_whence = libc::SEEK_SET as _;
-    loop {
+    let wait = |command: libc::c_int| loop {
         // SAFETY: the descriptor stays open for the call and `request` outlives it.
-        if unsafe { libc::fcntl(file.as_raw_fd(), libc::F_SETLKW, &request) } == 0 {
+        if unsafe { libc::fcntl(file.as_raw_fd(), command, &request) } == 0 {
             return Ok(());
         }
         let error = std::io::Error::last_os_error();
         if error.kind() != std::io::ErrorKind::Interrupted {
             return Err(error);
         }
+    };
+    #[cfg(target_os = "linux")]
+    match wait(libc::F_OFD_SETLKW) {
+        Err(error) if error.raw_os_error() == Some(libc::EINVAL) => {}
+        result => return result,
     }
+    wait(libc::F_SETLKW)
 }
 
 /// On Windows std uses `LockFileEx`, as R's filelock does.

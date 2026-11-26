@@ -4238,7 +4238,11 @@ path; data written by projr is still read.
   project `.projr/manifests/` store; that low-level command takes no claim.
 - **Same: local remote lock.** Local remote writes take an exclusive whole-file
   `fcntl` lock on `.versions.lock` on Unix, the kind R filelock takes (std's
-  `flock` would not exclude projr on Linux), and `LockFileEx` on Windows.
+  `flock` would not exclude projr on Linux), and `LockFileEx` on Windows. On Linux
+  it is an open-file-description lock (`F_OFD_SETLKW`), which conflicts with
+  projr's classic `fcntl` locks but is owned by the open file rather than the
+  process, so closing another handle cannot drop it; kernels before 3.15 and other
+  Unix systems use classic `F_SETLKW`.
 - **Different (projcli guard):** local project writes rely on the existing
   `.proj/build.lock` claim instead of creating `.versions.lock` inside the
   Git-tracked store. Indexes
