@@ -162,7 +162,9 @@ Current source extends the native Release transport with projr flat names:
 prefix-label-vVERSION.zip for archive, prefix-label.zip for latest, and
 -empty before .zip for empty variants. With no prefix, the label is always
 used, including path_append_label=false. Metadata assets remain shared and
-unprefixed: manifest.zip contains manifest.csv, VERSION.zip contains VERSION,
+unprefixed: manifest.zip contains projr 0.6+'s manifest store (`FORMAT`,
+`<label>/versions.csv` and referenced `<label>/files-<sha256>.csv`; a legacy
+projr ZIP holding only manifest.csv is still read), VERSION.zip contains VERSION,
 and CHANGELOG.zip contains CHANGELOG.md. Directory ZIP entries are relative to
 the selected source, without an enclosing folder. Nonempty parent-directory entries retain Unix
 permission modes; empty directory entries remain omitted. Empty sources contain the
@@ -264,7 +266,8 @@ selects nothing, true selects declared non-cache roles, and lists select declare
 labels. Source/provider/title declaration order is preserved. No retry switches
 to another configured source after lookup/download fails.
 
-A valid root manifest.csv is required, matching projr's prior-build gate.
+Recorded manifest history is required (a ready `.projr/manifests/` store or a
+projr-written root manifest.csv), matching projr's prior-build gate.
 Labels with no recorded files and advertised empty variants skip without clearing.
 CSV history is not used as an integrity/trust proof. Full sources stage before
 the existing merge/clear installer; --clear never removes files before a source
@@ -322,7 +325,7 @@ Current source supports build.local archive (the default) and latest publication
 by default, explicit file comparison, or explicit none comparison. This is included
 in preview.3 and is not complete projr remote parity. All selected namespace identities are checked before hooks; every current
 CSV-selected snapshot and existing remote metadata is staged/read before the
-first destination changes. Data precedes manifest.csv, VERSION and an existing
+first destination changes. Data precedes the `manifests/` store, VERSION and an existing
 project CHANGELOG.md. The build's existing irreversible publication boundary
 preserves the successful local release on publication failure and skips its
 next-dev bump; remote effects may be partial.

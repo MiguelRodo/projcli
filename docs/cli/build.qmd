@@ -191,9 +191,13 @@ advances VERSION and therefore need not be a no-op.
 
 ## Inspect the production inventory
 
-Current source adds root manifest.csv after successful output-enabled production
-builds. Open it in a text editor/spreadsheet to inspect directory labels, relative
-filenames, release versions and MD5 values, including earlier versions.
+Successful output-enabled production builds record their file inventory in projr
+0.6+'s manifest store, `.projr/manifests/`: a `FORMAT` marker, one
+path-encoded folder per directory label with a `versions.csv` index (label,
+version, first version with the same files, snapshot) and immutable
+`files-<sha256>.csv` file lists (relative filename and MD5) shared by versions
+whose files are identical. A root manifest.csv written by projr is imported once
+on the first write and left untouched.
 Git/remotes are optional; preview leaves production history unchanged.
 See [configuration](../configuration.qmd#production-file-inventory)
 and [limits](../storage-design.qmd#compatible-csv-inventory).
@@ -270,7 +274,7 @@ These features are development-source behavior; preview.3 has not been updated.
 
 
 The development record also fingerprints the existing CSV's current input and
-release-output rows. The detailed file names and MD5 hashes stay in manifest.csv;
+release-output rows. The detailed file names and MD5 hashes stay in the manifest store;
 the JSON records labels, counts and a BLAKE3 checksum of those canonical rows.
 Final output observation runs after finalization is attempted, so an end hook's
 changes can be detected without rejecting ordinary output mutation. With Git,

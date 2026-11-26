@@ -452,6 +452,16 @@ impl GithubReleaseClient {
     /// obsolete empty variants after their full replacement has been validated.
     /// No retry or rollback: failure reports an uncertain remote deletion.
     pub(crate) fn delete_asset(&self, tag: &str, name: &str) -> anyhow::Result<()> {
+        self.delete_asset_expected(tag, name, None)
+    }
+    /// Deletes the single asset named `name`, and only if its ID is `expected`
+    /// when given, so a claim held by another writer is never removed.
+    pub(crate) fn delete_asset_expected(
+        &self,
+        tag: &str,
+        name: &str,
+        expected: Option<u64>,
+    ) -> anyhow::Result<()> {
         asset_name(name)?;
         let token = self
             .token
@@ -466,6 +476,10 @@ impl GithubReleaseClient {
         anyhow::ensure!(
             matches.len() == 1,
             "Asset deletion requires exactly one matching name; no deletion performed"
+        );
+        anyhow::ensure!(
+            expected.is_none_or(|id| matches[0].id == id),
+            "The asset was replaced by another writer; no deletion performed"
         );
         let response=self.agent.delete(format!("{}/repos/{}/releases/assets/{}",self.api,self.repository,matches[0].id))
             .header("Accept","application/vnd.github+json").header("Authorization",format!("Bearer {token}"))

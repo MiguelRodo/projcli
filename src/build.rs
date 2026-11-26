@@ -732,13 +732,11 @@ pub fn build_project_with_policies(
             None
         };
         // Parse existing history before hooks or any managed mutation. Preview and
-        // disabled output builds neither read nor write the production CSV.
+        // disabled output builds neither read nor write the production manifest store.
         let record_manifest = !is_dev && config.output_run.unwrap_or(true);
-        let previous_manifest = if record_manifest {
-            crate::manifest::read(&project_root.join("manifest.csv"))?
-        } else {
-            Vec::new()
-        };
+        if record_manifest {
+            crate::manifest_store::read_project(project_root)?;
+        }
         // Capture exact local state before the first controlled project mutation.
         let mut managed = vec![];
         let mut native_artifacts = Vec::new();
@@ -748,6 +746,7 @@ pub fn build_project_with_policies(
         } else {
             None
         };
+        managed.push(crate::manifest_store::project_store(project_root).into_std_path_buf());
         for name in [
             "VERSION",
             "manifest.csv",
@@ -1271,13 +1270,9 @@ pub fn build_project_with_policies(
                             &initial_version.to_string(true),
                         )?,
                     });
-                    let rows = crate::manifest::deduplicate(
-                        pre_manifest
-                            .into_iter()
-                            .chain(outputs)
-                            .chain(previous_manifest.iter().cloned()),
-                    );
-                    crate::manifest::write(&project_root.join("manifest.csv"), &rows)?;
+                    let rows =
+                        crate::manifest::deduplicate(pre_manifest.into_iter().chain(outputs));
+                    crate::manifest_store::write_project(project_root, &rows)?;
                 }
                 Ok(())
             }));

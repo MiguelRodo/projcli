@@ -1,6 +1,6 @@
 """Explicit named R migration gate; downloads pinned public sources only in CI."""
 from __future__ import annotations
-import argparse,csv,hashlib,json,os,re,subprocess,tarfile,tempfile,urllib.request
+import argparse,csv,hashlib,json,os,re,shutil,subprocess,tarfile,tempfile,urllib.request
 from pathlib import Path,PurePosixPath
 
 PROJECT="0d1851599764ec6df07dbba7ce92a36edb3695a2"
@@ -221,16 +221,16 @@ def main():
     assert inventory(root/folder)==expected[label]
    fresh=base/"fresh";cfg=project(fresh,source,False,store)
    # Ordinary projr-compatible recovery retains tracked project metadata, including
-   # its root manifest.csv. Start without data/output/cache or dependency libraries.
+   # its .projr/manifests store. Start without data/output/cache or dependency libraries.
    (fresh/"_raw_data"/"data-raw-PIVI.csv").unlink();(fresh/"_raw_data").rmdir()
    cfg["build"]["dest"]={};(fresh/"_proj.yml").write_text(json.dumps(cfg))
    (fresh/"VERSION").write_bytes(before_version);(fresh/"renv.lock").write_bytes(lock)
-   project_manifest=(root/"manifest.csv").read_bytes();assert project_manifest
-   (fresh/"manifest.csv").write_bytes(project_manifest)
-   evidence["recovery_project_manifest_sha256"]=digest(project_manifest)
+   shutil.copytree(root/".projr"/"manifests",fresh/".projr"/"manifests")
+   project_manifest=inventory(root/".projr"/"manifests");assert project_manifest
+   evidence["recovery_project_manifest_files"]=sorted(project_manifest)
    receipt=run("restore-packages",fresh)
    restored=run("restore-data",fresh)
-   assert (fresh/"manifest.csv").read_bytes()==project_manifest
+   assert inventory(fresh/".projr"/"manifests")==project_manifest
    assert restored["labels"]==["raw-data","output","docs"]
    for label,folder in [("raw-data","_raw_data"),("output","_output"),("docs","_docs")]:
     assert inventory(fresh/folder)==expected[label]

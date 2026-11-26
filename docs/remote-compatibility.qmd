@@ -109,9 +109,10 @@ unqualified directory listing. The last label also triggers changelog writing.
 [Plan execution][store-execute], [ZIP helpers][zip], [hashing][hash],
 [listing/path filters][path].
 
-Local metadata is ordinary manifest.csv, VERSION and CHANGELOG.md at the remote
-pre-root. GitHub uses manifest.zip, VERSION.zip and CHANGELOG.zip containing those
-files. VERSION has per-label release entries and optional trailing * indicating
+Local metadata is projr 0.6+'s `manifests/` store (a legacy manifest.csv is still
+read until the first store write), VERSION and CHANGELOG.md at the remote pre-root.
+GitHub uses manifest.zip (the store's `FORMAT`, indexes and referenced snapshots),
+VERSION.zip and CHANGELOG.zip. VERSION has per-label release entries and optional trailing * indicating
 untrusted state. These files are distinct from CAS JSON and the plural Rust
 .projr/manifests.csv index. [Metadata][metadata].
 

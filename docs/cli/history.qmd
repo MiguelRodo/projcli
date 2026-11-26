@@ -30,7 +30,7 @@ is created. Only an intact, locally witnessed receipt/CSV bundle qualifies for
 the narrow pending-evidence exception. Missing or altered companions fail closed.
 
 For earlier records containing only inventory fingerprints, detailed rows are
-available from project manifest.csv only when the release, labels, counts and
+available from the project manifest store (`.projr/manifests/`) only when the release, labels, counts and
 canonical fingerprint match exactly. Otherwise they are unavailable. A pending
 pre-Git snapshot without a terminal receipt remains unresolved.
 

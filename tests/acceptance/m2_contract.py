@@ -1,7 +1,26 @@
 """Remote integrated M2 LOCAL traceability gate; local-only failed-attempt diagnostics."""
 from __future__ import annotations
-import argparse,csv,hashlib,json,os,shutil,subprocess,tempfile
+import argparse,csv,hashlib,io,json,os,shutil,subprocess,tempfile
 from pathlib import Path
+
+def store_rows(root):
+    """Expand projr's .projr/manifests store, checking each snapshot's SHA-256."""
+    store=root/'.projr/manifests';assert (store/'FORMAT').read_bytes()==b'1\n'
+    rows=[]
+    for index in sorted(store.glob('*/versions.csv')):
+        for entry in csv.DictReader(index.open(encoding='utf-8',newline='')):
+            data=(index.parent/f"files-{entry['snapshot']}.csv").read_bytes()
+            assert hashlib.sha256(data).hexdigest()==entry['snapshot']
+            files=list(csv.DictReader(io.StringIO(data.decode('utf-8'),newline='')))
+            for file in files or [{'fn':'','hash':''}]:
+                rows.append({'label':entry['label'],'fn':file['fn'],'version':entry['version'],'hash':file['hash']})
+    return rows
+def store_csv(root):
+    """Four-column quoted export of the store for the independent Rust witness."""
+    quote=lambda text:'"'+text.replace('"','""')+'"'
+    keys=['label','fn','version','hash']
+    lines=[','.join(map(quote,keys))]+[','.join(quote(row[key]) for key in keys) for row in store_rows(root)]
+    return ('\n'.join(lines)+'\n').encode('utf-8')
 
 ANALYSIS="""import csv,json,os,subprocess
 from pathlib import Path
@@ -82,7 +101,7 @@ def main():
                 rows=reply['result']['history']['entries'][0]['final_files']['rows']
                 expected_md5=hashlib.md5(expected).hexdigest()
                 assert {(r['label'],r['fn'],r['hash']) for r in rows}=={('output','result.csv',expected_md5),('docs','','')}
-                manifest=list(csv.DictReader((root/'manifest.csv').open()))
+                manifest=store_rows(root)
                 raw=next(r for r in manifest if r['version']==release and r['label']=='raw')
                 assert raw['fn']=='input.csv' and raw['hash']==hashlib.md5(input_bytes).hexdigest()
                 assert all(r['label']!='raw-excluded' for r in manifest)
@@ -91,12 +110,14 @@ def main():
                 assert list(csv.DictReader(retained.open()))==rows
                 output=args.artifacts/name;output.mkdir()
                 for source,target in [(path,'record.json'),(retained,'final.csv'),(final,'result.csv'),
-                    (root/'manifest.csv','manifest.csv'),(root/'input/input.csv','input.csv')]:
+                    (root/'input/input.csv','input.csv')]:
                     shutil.copyfile(source,output/target)
+                (output/'manifest.csv').write_bytes(store_csv(root))
                 evidence['cases'].append({'case':name,'attempt_id':record['attempt_id'],'release_version':release,
                     'expected_result':input_value*factor,'expected_md5':expected_md5,'configuration_blake3':configuration['blake3'],
                     'input_md5':raw['hash'],'final_rows':len(rows)})
-            before={name:(root/name).read_bytes() for name in ['VERSION','DESCRIPTION','manifest.csv','released/result.csv']}
+            before={name:(root/name).read_bytes() for name in ['VERSION','DESCRIPTION','released/result.csv']}
+            before_store=snapshot(root/'.projr/manifests')
             logs=snapshot(root/'.proj/log')
             failure_env=env.copy();failure_env['PROJCLI_M2_FAIL']='1'
             failure_witness=base/'failed-analysis-ran';failure_env['PROJCLI_M2_FAILURE_WITNESS']=str(failure_witness)
@@ -108,6 +129,7 @@ def main():
             shutil.copyfile(failed_cache,args.artifacts/'failed-cache-result.csv')
             shutil.copyfile(failure_witness,args.artifacts/'failure-witness.txt')
             assert {name:(root/name).read_bytes() for name in before}==before
+            assert snapshot(root/'.projr/manifests')==before_store
             after_logs=snapshot(root/'.proj/log')
             assert all(after_logs[name]==data for name,data in logs.items())
             diagnostics=list((root/'.proj/log/local-failures').glob('*.json'))
@@ -138,8 +160,9 @@ def main():
             assert retry['startup_provenance']['configuration']==prior['startup_provenance']['configuration']
             output=args.artifacts/'retry';output.mkdir()
             for source,target in [(retry_path,'record.json'),(root/'.proj/log'/retry['final_outputs']['rows']['file'],'final.csv'),
-                (root/'released/result.csv','result.csv'),(root/'manifest.csv','manifest.csv'),(root/'input/input.csv','input.csv')]:
+                (root/'released/result.csv','result.csv'),(root/'input/input.csv','input.csv')]:
                 shutil.copyfile(source,output/target)
+            (output/'manifest.csv').write_bytes(store_csv(root))
             evidence['cases'].append({'case':'retry','attempt_id':retry['attempt_id'],'release_version':'v1.2.6',
                 'expected_result':66,'expected_md5':hashlib.md5(b'value\n66\n').hexdigest(),
                 'configuration_blake3':retry['startup_provenance']['configuration']['effective']['blake3']})

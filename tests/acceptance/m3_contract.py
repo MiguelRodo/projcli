@@ -1,7 +1,26 @@
 """Integrated M3: real local build, remote-only recovery and read-only corruption failures."""
 from __future__ import annotations
-import argparse,csv,hashlib,json,os,shutil,subprocess,tempfile
+import argparse,csv,hashlib,io,json,os,shutil,subprocess,tempfile
 from pathlib import Path
+
+def store_rows(root):
+    """Expand projr's .projr/manifests store, checking each snapshot's SHA-256."""
+    store=root/'.projr/manifests';assert (store/'FORMAT').read_bytes()==b'1\n'
+    rows=[]
+    for index in sorted(store.glob('*/versions.csv')):
+        for entry in csv.DictReader(index.open(encoding='utf-8',newline='')):
+            data=(index.parent/f"files-{entry['snapshot']}.csv").read_bytes()
+            assert hashlib.sha256(data).hexdigest()==entry['snapshot']
+            files=list(csv.DictReader(io.StringIO(data.decode('utf-8'),newline='')))
+            for file in files or [{'fn':'','hash':''}]:
+                rows.append({'label':entry['label'],'fn':file['fn'],'version':entry['version'],'hash':file['hash']})
+    return rows
+def store_csv(root):
+    """Four-column quoted export of the store for the independent Rust witness."""
+    quote=lambda text:'"'+text.replace('"','""')+'"'
+    keys=['label','fn','version','hash']
+    lines=[','.join(map(quote,keys))]+[','.join(quote(row[key]) for key in keys) for row in store_rows(root)]
+    return ('\n'.join(lines)+'\n').encode('utf-8')
 
 ANALYSIS="""import json,os,subprocess
 from pathlib import Path
@@ -71,7 +90,7 @@ def main():
                 assert all(files(store/namespace)[name]==data for name,data in first_metadata.items())
                 assert len(ids(store/namespace))==2
                 assert (root/'VERSION').read_text().strip()=='Version: v1.2.5.1'
-                rows=list(csv.DictReader((root/'manifest.csv').open()))
+                rows=store_rows(root)
                 assert all(row['label']!='raw-excluded' for row in rows)
                 for label,path,data in [('raw','input.csv',expected_raw['input.csv']),('output','result.csv',expected_output['result.csv'])]:
                     row=next(row for row in rows if row['label']==label and row['fn']==path and row['version']=='v1.2.5')
@@ -80,7 +99,7 @@ def main():
                 assert len(records)==2 and all(record['status']=='completed' for record in records)
                 artifact=args.artifacts/case;artifact.mkdir()
                 shutil.copytree(store,artifact/'store')
-                shutil.copyfile(root/'manifest.csv',artifact/'manifest.csv')
+                (artifact/'manifest.csv').write_bytes(store_csv(root))
                 for path in (root/'.proj/log').glob('*.json'):shutil.copyfile(path,artifact/path.name)
                 # Recreate only this disposable project. Remote full metadata is sufficient;
                 # neither the old ordinary CSV, lookup ledger nor small project references remain.
