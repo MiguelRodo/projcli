@@ -141,22 +141,19 @@ fn provider(kind: RemoteType) -> &'static str {
     }
 }
 
-/// Archives selected by `not_behind_remote`: by default the ordinary local and
-/// GitHub destinations this build publishes to; `false` selects none.
+/// Archives selected by `not_behind_remote` for a publishing production build: by
+/// default the ordinary local and GitHub destinations it publishes to; `false`
+/// selects none.
 pub(crate) fn selected(
     root: &Utf8Path,
     project: &ProjConfig,
     ordinary: &[crate::publication::LocalPublication],
     github: &[crate::github_publication::Target],
-    publishing: bool,
     templates: &crate::template::Templates,
     environment: &crate::run_environment::RunEnvironment,
 ) -> anyhow::Result<Vec<Archive>> {
     let titles = match &project.build.restrictions.not_behind_remote {
         None | Some(RemoteCheck::All(true)) => {
-            if !publishing {
-                return Ok(Vec::new());
-            }
             let mut archives: Vec<Archive> = ordinary
                 .iter()
                 .map(|target| Archive::Local {

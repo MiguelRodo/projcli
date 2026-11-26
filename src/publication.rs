@@ -452,13 +452,17 @@ pub(crate) fn project_version(path: &Utf8Path) -> anyhow::Result<Option<String>>
         .map(str::trim)
         .filter(|line| !line.is_empty())
         .collect();
+    let projects: Vec<&str> = lines
+        .iter()
+        .filter_map(|line| line.strip_prefix("Project:"))
+        .map(str::trim)
+        .collect();
     let value = if lines.len() == 1 && !lines[0].contains(':') {
         Some(lines[0])
+    } else if projects.len() == 1 {
+        Some(projects[0])
     } else {
-        lines
-            .iter()
-            .find_map(|line| line.strip_prefix("Project:"))
-            .map(str::trim)
+        None
     };
     Ok(value
         .map(|value| value.strip_suffix('*').unwrap_or(value))

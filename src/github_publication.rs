@@ -41,6 +41,21 @@ impl Target {
 fn tag_format(text: &str) -> String {
     text.trim_matches(' ').replace(' ', "-")
 }
+/// Release tag a GitHub entry of any structure plans to use, for collision checks
+/// between ordinary and CAS/Xet store entries. Store entries use their entry name.
+pub(crate) fn planned_tag(
+    key: &str,
+    value: &Value,
+    templates: &crate::template::Templates,
+) -> anyhow::Result<String> {
+    if matches!(
+        value.get("structure").and_then(Value::as_str),
+        Some("cas" | "xet")
+    ) {
+        return Ok(tag_format(key));
+    }
+    release_tag(key, &crate::restore::definition(value)?, templates)
+}
 /// projr's release name: `tag`, else `title`, else the entry name, with placeholders
 /// expanded, outer spaces trimmed and inner spaces replaced by `-`
 /// (SATVILab/projr@ab3ce8a `R/yml-dest.R:270-282`, `R/remote-github.R:927-932`).
@@ -278,16 +293,19 @@ pub(crate) fn capture(
             tags.insert((repository.to_ascii_lowercase(), tag.clone())),
             "Configured GitHub titles resolve to the same Release tag"
         );
-        let branch = match spec.routing.branch.as_deref() {
-            Some("@branch") => Some(templates.raw_branch()?),
-            other => other.map(str::to_owned),
+        // As in projr, `branch` (and `@branch`) matter only when the Release is missing.
+        let client = match spec.routing.branch.as_deref() {
+            Some(branch) if client.assets_if_exists(&tag)?.is_none() => {
+                let branch = if branch == "@branch" {
+                    templates.raw_branch()?
+                } else {
+                    branch.to_owned()
+                };
+                client.release_target(&branch, &tag)?;
+                client.with_target_branch(Some(branch))
+            }
+            _ => client,
         };
-        let client = client.with_target_branch(branch.clone());
-        if let Some(branch) = &branch
-            && client.assets_if_exists(&tag)?.is_none()
-        {
-            client.release_target(branch, &tag)?;
-        }
         targets.push(Target {
             spec,
             client,

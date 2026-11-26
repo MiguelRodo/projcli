@@ -4401,10 +4401,11 @@ without a migration path or alias.
   and GitHub release names. They resolve once before hooks; `HEAD` is read from the
   checkout (following a worktree `gitdir:`) without starting Git.
   **Different:** resolved destinations are recorded in the attempt record
-  (`destinations`: build UUID, each GitHub repository/tag and each project-relative
-  local path) instead of BUILDLOG; absolute local paths are not recorded, since they
-  may come from an uncommitted local profile, and can be reproduced from the
-  configuration with the recorded UUID. No API origin, URL or credential is
+  (`destinations`: build UUID, each GitHub repository/tag and each local path that
+  stays inside the project) instead of BUILDLOG; absolute and `..` local paths are not
+  recorded, since they may name personal folders from an uncommitted local profile,
+  and can be reproduced from the configuration with the recorded UUID. Previews and
+  `output_run: false` builds resolve no placeholders. No API origin, URL or credential is
   written. **Gaps:** directory paths and CAS/Xet store paths are not expanded; the
   UUID is not exported to scripts; configured restore expands `@version`/`@branch`
   from the current checkout and refuses `@uuid` until the restore slice reads the
@@ -4420,9 +4421,12 @@ without a migration path or alias.
   behind. All archives are reported before failing. Lookups are read-only.
   Listed titles are checked even when not selected; unknown and ambiguous titles
   fail. Approved default-on by the user (25 November, MiguelRodo/issues#910).
-  **Different:** the local base is the newest completed production attempt record
-  in `.proj/log` (projcli's counterpart of BUILDLOG), else a non-development
-  `VERSION`. CAS and Xet stores are not checked; there are no one-off archives.
+  **Different:** the local base is the most recent completed production attempt
+  record in `.proj/log` (projcli's counterpart of BUILDLOG), else an existing
+  non-development `VERSION` (never DESCRIPTION or the implicit 0.0.1). The check
+  runs only for publishing production builds (not `output_run: false`). An archive
+  `VERSION` with more than one `Project:` line is unreadable, as in projr. CAS and
+  Xet stores are not checked; there are no one-off archives.
 - **Tests:** unit tests in `src/remote_registry.rs` (selection forms, inline/registry
   mixing, legacy CAS, field validation), `src/template.rs` (terminators, encoding,
   detached/missing checkouts, UUID) and `src/yml.rs` (restriction values);
@@ -4435,6 +4439,19 @@ without a migration path or alias.
   publication-mechanics fixtures that pre-populate archives without a project
   VERSION set `not_behind_remote: false`. Local runs used the `projcli-dev`
   container (no R/Quarto); CI on the exact head is the full verification.
+- **Review (independent, 26 November):** fixed CAS/Xet store-versus-ordinary
+  Release collisions still comparing raw entry names (they now compare the resolved
+  ordinary tag, conservatively even across a different `repo`), `@branch` being
+  resolved when the Release already exists (projr resolves it only at creation), a
+  base version taken from DESCRIPTION or the implicit 0.0.1, `..` local paths in
+  attempt evidence, placeholders and named checks in builds that publish nothing,
+  newest-versus-highest base selection and duplicate `Project:` lines; added tests
+  for the attempt-record base, an existing Release without a checkout, previews with
+  `@branch`, and ordinary `tag` collisions with CAS/Xet stores. **Gaps:** configured
+  restore still expands `@version` from the current (development) VERSION, as before,
+  so a templated GitHub tag is restored correctly only after the restore slice reads
+  the recorded destination; restore with `repo`/`tag` has no dedicated fixture yet.
+  GitHub `owner/repo` is recorded as a destination name, not a URL.
 - **Ponytail (full):** reused `encode_component`, `local_remote` version ordering,
   the GitHub client and `VERSION.zip` reader, `history::read` and the existing
   publication path resolver; `ring` supplies the UUID. Capture reuses

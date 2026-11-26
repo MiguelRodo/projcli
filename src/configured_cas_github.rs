@@ -116,7 +116,7 @@ pub(crate) fn capture(
     environment: &crate::run_environment::RunEnvironment,
     preview: bool,
     ordinary: Option<&Map<String, Value>>,
-    version: &str,
+    templates: &crate::template::Templates,
 ) -> Result<Vec<Target>> {
     let mut result = Vec::new();
     let mut namespaces = std::collections::BTreeSet::new();
@@ -127,12 +127,10 @@ pub(crate) fn capture(
             tags.insert(resolved.clone()),
             "Configured CAS titles resolve to the same Release tag"
         );
-        for other in ordinary.into_iter().flat_map(|values| values.keys()) {
-            let ordinary_tag = if other == "@version" {
-                version.to_owned()
-            } else {
-                other.trim_matches(' ').replace(' ', "-")
-            };
+        // Compare the tag each other entry resolves to (tag/title/placeholders);
+        // a separate `repo` is still treated as a collision (conservative).
+        for (other, value) in ordinary.into_iter().flatten() {
+            let ordinary_tag = crate::github_publication::planned_tag(other, value, templates)?;
             anyhow::ensure!(
                 ordinary_tag != resolved,
                 "GitHub ordinary/CAS titles resolve to the same Release tag"

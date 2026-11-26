@@ -135,7 +135,12 @@ impl Destinations {
                 name: bounded(&target.name),
                 path: Some(target.path.as_str())
                     .filter(|path| {
-                        !Utf8Path::new(path).has_root() && !Utf8Path::new(path).is_absolute()
+                        Utf8Path::new(path).components().all(|component| {
+                            matches!(
+                                component,
+                                camino::Utf8Component::Normal(_) | camino::Utf8Component::CurDir
+                            )
+                        })
                     })
                     .and_then(bounded),
                 repository: None,

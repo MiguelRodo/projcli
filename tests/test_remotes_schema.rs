@@ -131,11 +131,11 @@ fn attempt_record(root: &Path) -> Value {
 #[test]
 fn local_placeholders_resolve_once_and_are_recorded() {
     let (_temporary, root) = project(json!({
-        "remotes":{"local":{"store":{"path":"../archive/@branch/@version-@uuid"},"unused":{"path":"../unused"}}},
+        "remotes":{"local":{"store":{"path":"_archive/@branch/@version-@uuid"},"unused":{"path":"../unused"}}},
         "build":{"local":{"store":{}}}
     }));
     ok(build(&root, &[], None));
-    let branch = root.parent().unwrap().join("archive/feature_2ffoo");
+    let branch = root.join("_archive/feature_2ffoo");
     let builds: Vec<_> = fs::read_dir(&branch)
         .unwrap()
         .map(|entry| entry.unwrap().file_name().into_string().unwrap())
@@ -153,7 +153,7 @@ fn local_placeholders_resolve_once_and_are_recorded() {
     assert_eq!(
         record["destinations"]["targets"],
         json!([{"provider":"local","title":"store","name":"store",
-            "path":format!("../archive/feature_2ffoo/v1.2.4-{uuid}")}])
+            "path":format!("_archive/feature_2ffoo/v1.2.4-{uuid}")}])
     );
     // Each build gets its own UUID and therefore its own empty archive.
     ok(build(&root, &[], None));
@@ -516,4 +516,56 @@ fn github_archive_version_check_reads_version_zip_read_only() {
     let state = server.finish();
     assert!(state.paths.iter().all(|path| path.starts_with("GET ")));
     assert_eq!(state.assets.len(), 1);
+}
+
+#[test]
+fn base_rule_uses_the_last_completed_build_and_previews_skip_placeholders() {
+    let (_temporary, root) = project(json!({
+        "remotes":{"local":{"store":{"path":"../archive"}}},
+        "build":{"local":{"store":{}}}
+    }));
+    ok(build(&root, &[], None));
+    fs::write(root.join("results/out.csv"), "second\n").unwrap();
+    // VERSION is now a development version; the completed v1.2.4 attempt is the base.
+    let report = ok(build(&root, &[], None));
+    assert!(
+        report.contains("Local base: v1.2.4, proposed: v1.2.5"),
+        "{report}"
+    );
+    assert!(
+        report.contains("local.store: v1.2.4, check passed"),
+        "{report}"
+    );
+
+    // A preview publishes nothing, so @branch outside a Git checkout is not resolved.
+    fs::remove_dir_all(root.join(".git")).unwrap();
+    let config = json!({
+        "remotes":{"local":{"store":{"path":"../archive-@branch"}}},
+        "build":{"local":{"store":{}}}
+    });
+    write_config(&root, config);
+    let mut preview = command(&root, env!("CARGO_BIN_EXE_proj"));
+    ok(preview
+        .args(["--non-interactive", "--project"])
+        .arg(&root)
+        .arg("build-dev")
+        .output()
+        .unwrap());
+    assert!(failed(build(&root, &[], None)).contains("@branch needs a named Git branch"));
+}
+
+#[test]
+fn existing_release_needs_no_branch_resolution() {
+    let server = Server::start(State {
+        release: true,
+        ..State::default()
+    });
+    let (_temporary, root) = github_project();
+    // No checkout: `branch: "@branch"` matters only when a Release must be created.
+    fs::remove_dir_all(root.join(".git")).unwrap();
+    ok(build(&root, &[], Some(&server.base)));
+    let state = server.finish();
+    assert!(state.created.is_empty());
+    assert!(state.assets.contains_key("output-v1.2.4.zip"));
+    assert!(state.paths.iter().all(|path| !path.contains("/git/ref/")));
 }

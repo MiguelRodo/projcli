@@ -39,20 +39,15 @@ fn terminal(status: &str) -> bool {
     matches!(status, "completed" | "failed")
 }
 
-/// The newest completed production version among the 100 most recent attempt
-/// records, as projr reads the last build from its BUILDLOG. Failed, unresolved
-/// and local-only attempts do not count.
+/// The release version of the most recently started completed production attempt
+/// among the 100 newest records, as projr reads the first BUILDLOG header.
+/// Failed, unresolved and local-only attempts do not count.
 pub(crate) fn last_completed(root: &Utf8Path) -> anyhow::Result<Option<String>> {
     Ok(read(root, None, 100)?
         .entries
         .into_iter()
         .filter(|entry| entry.status == "completed" && !entry.local_only)
-        .filter_map(|entry| entry.release_version)
-        .filter_map(|version| {
-            crate::local_remote::version_numbers(&version).map(|numbers| (numbers, version))
-        })
-        .max_by(|a, b| crate::local_remote::compare_versions(&a.0, &b.0))
-        .map(|(_, version)| version))
+        .find_map(|entry| entry.release_version))
 }
 
 /// Read summaries or one attempt's exact final rows without configuration, Git, locks or writes.

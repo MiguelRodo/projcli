@@ -562,8 +562,13 @@ pub fn build_project_with_policies(
         let (initial_version, next_version) =
             crate::run_context::version_plan(original_version.clone(), mode)?;
         // projr placeholders resolve once, before hooks, and stay frozen for the build.
-        let templates =
-            crate::template::Templates::for_build(project_root, &initial_version.to_string(true))?;
+        // Builds that publish nothing (previews, output_run: false) validate with inert values.
+        let publishing = !is_dev && config.output_run.unwrap_or(true);
+        let templates = if publishing {
+            crate::template::Templates::for_build(project_root, &initial_version.to_string(true))?
+        } else {
+            crate::template::Templates::validation()
+        };
         let ordinary = crate::publication::configured(
             project_root,
             destinations.local.as_ref(),
@@ -605,7 +610,7 @@ pub fn build_project_with_policies(
             &environment,
             is_dev || !config.output_run.unwrap_or(true),
             Some(&xet_others),
-            &initial_version.to_string(true),
+            &templates,
         )?;
         let mut cas_others = destinations.github.clone().unwrap_or_default();
         cas_others.extend(destinations.github_xet.clone());
@@ -616,15 +621,14 @@ pub fn build_project_with_policies(
             &environment,
             is_dev || !config.output_run.unwrap_or(true),
             Some(&cas_others),
-            &initial_version.to_string(true),
+            &templates,
         )?;
-        if !is_dev {
+        if publishing {
             let archives = crate::archive_check::selected(
                 project_root,
                 &remote_config,
                 &ordinary,
                 &github,
-                config.output_run.unwrap_or(true),
                 &templates,
                 &environment,
             )?;
@@ -637,8 +641,12 @@ pub fn build_project_with_policies(
                     .rule
                     .unwrap_or(crate::yml::VersionRule::Base),
                 || {
+                    // projr's `.version_completed_file()`: an existing VERSION
+                    // without a development component, never DESCRIPTION or 0.0.1.
                     Ok(crate::history::last_completed(project_root)?.or_else(|| {
-                        (original_version.dev == 0).then(|| original_version.to_string(true))
+                        version_get_from(project_root)
+                            .filter(|version| version.dev == 0)
+                            .map(|version| version.to_string(true))
                     }))
                 },
             )?;
@@ -1384,16 +1392,8 @@ pub fn build_project_with_policies(
                 startup_provenance.clone(),
             )
             .map(|log| {
-                log.with_destinations(templates.uuid().map(|uuid| {
-                    crate::attempt_log::Destinations::resolved(
-                        uuid,
-                        if config.output_run.unwrap_or(true) {
-                            &ordinary
-                        } else {
-                            &[]
-                        },
-                        &github,
-                    )
+                log.with_destinations(templates.uuid().filter(|_| publishing).map(|uuid| {
+                    crate::attempt_log::Destinations::resolved(uuid, &ordinary, &github)
                 }))
             })
         };

@@ -135,7 +135,8 @@ repository; defaults to the Git `origin` of the project), `tag` (release name us
 for both the Git tag and the release title; defaults to an inline `title`, then the
 entry name; a differing `tag` and `title` is an error) and `branch` (the branch
 whose head a newly created release targets; `"@branch"` means the checkout's
-branch). When a release is missing, the build checks before any hook that the
+branch, resolved only when the release is missing). When a release is missing,
+the build checks before any hook that the
 branch exists in the destination repository and that no existing Git tag of that
 name points elsewhere, and stops otherwise. An existing release keeps its target.
 These fields are rejected on local destinations.
@@ -149,8 +150,10 @@ before `-`, `_`, `.`, a space, `/` or `\`, so `archive-@branching` stays literal
 Quote YAML values that begin with `@`. Values are resolved once before hooks;
 the build's attempt record (`.proj/log/<attempt>.json`, field `destinations`)
 keeps the build UUID and each resolved GitHub repository/tag and local path
-(project-relative paths only; an absolute path is reproduced from the
-configuration and the recorded UUID). CAS and Xet store paths are not expanded.
+(only paths inside the project; an absolute or `..` path is reproduced from the
+configuration and the recorded UUID). Builds that publish nothing (previews and
+`output_run: false`) do not resolve placeholders. CAS and Xet store paths are not
+expanded.
 Restore expands `@version` and `@branch` from the current checkout; `@uuid`
 destinations cannot yet be restored by configuration.
 
@@ -187,7 +190,7 @@ The `_proj.yml` file can also contain a `build` block to configure the behavior 
   - **`branch`**: Omitted or `true` allows any branch. `false` or `[]` blocks production builds on every branch; a list (or a single name, `branch: main`) allows only the named branches. Outside a Git repository the restriction does not apply, as in projr; inside one, a detached HEAD fails.
   - **`not_behind_git`**: Whether to check that the current branch is not behind its tracking upstream before a production build. The earlier projr spelling `not_behind` is also accepted; setting both fails. Omitted means on, as in projr: when a tracking upstream exists the build fetches it and aborts if the branch is behind; without a tracking upstream the check is skipped, and a failed fetch only warns. Explicit `true` makes a missing upstream or failed fetch an error. Like projr, both restrictions are skipped (no Git process starts) outside a repository; projcli detects one from a `.git` entry at the project root or any ancestor. An upstream that cannot be compared (its remote branch was pruned) warns and skips unless the value is explicit `true`. `false` performs no fetch.
   - **`not_behind_remote`**: Archive version check before any hook or rendering (projr `R/build-remote-versions.R`). Omitted or `true` checks the ordinary local and GitHub destinations this production build publishes to; `false` skips the check; a title or list of titles checks those remotes (registered or inline), even when the build does not publish to them; `{github: [reports], local: [backup]}` qualifies titles that exist for both types. For each archive the build reads its completed project version (the `Project:` line of its `VERSION`, or `VERSION.zip` on a GitHub release) with read-only lookups. A missing or empty archive passes; a populated archive without a readable version stops the build. The proposed version must be newer than the archive's.
-  - **`rule`**: `base_version_not_behind` (or `base`, the default) also requires the last completed local version to be at least the archive's. That base is the newest completed production attempt in `.proj/log` (projcli's counterpart of projr's BUILDLOG), else the `VERSION` file when it has no development component. `target_version_not_behind` (or `target`) checks only the proposed version, for publishing from an older checkout. Development builds skip the check; CAS and Xet stores are not checked.
+  - **`rule`**: `base_version_not_behind` (or `base`, the default) also requires the last completed local version to be at least the archive's. That base is the most recent completed production attempt in `.proj/log` (projcli's counterpart of projr's BUILDLOG), else an existing `VERSION` file without a development component (never DESCRIPTION). `target_version_not_behind` (or `target`) checks only the proposed version, for publishing from an older checkout. Development builds and `output_run: false` skip the check; CAS and Xet stores are not checked.
 - **`clear_output`**: An optional string controlling workspace clearing routines for output directories. Can be set to `"pre"`, `"post"`, or `"never"`. If omitted, defaults to evaluating the `PROJR_CLEAR_OUTPUT` environment variable.
 
 ## Development Overrides

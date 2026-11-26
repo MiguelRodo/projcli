@@ -851,8 +851,8 @@ grouped rendering and Quarto projects remotely before claiming compatibility.
 
 Destination placeholders (@version/@branch/@uuid) resolve once before hooks from
 the build version, checkout HEAD file and a fresh UUID; record resolved targets in
-attempt evidence without URLs, API origins or credentials (absolute local paths
-are not recorded). The archive version check (not_behind_remote default true,
+attempt evidence without URLs, API origins or credentials (local paths leaving
+the project are not recorded). Builds that publish nothing resolve no placeholders. The archive version check (not_behind_remote default true,
 rule base) runs before hooks with read-only lookups and fails closed on populated
 archives without a readable version. GitHub branch checks are read-only before
 hooks; never create a release before publication. Restore by recorded

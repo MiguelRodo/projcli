@@ -341,7 +341,23 @@ fn actual_configured_github_xet_refs_fresh_restore_and_failure_preservation() {
 }
 
 #[test]
-fn ordinary_literal_version_text_title_remains_valid_beside_shared_store() {
+fn ordinary_tag_option_cannot_share_the_storage_release() {
+    // projr routing: an ordinary entry's `tag` (not its name) decides the Release.
+    let server = Server::start();
+    let (_temp, root, mut config) = github_setup();
+    config["remotes"]["github"]["figures"] =
+        json!({"tag":"data","structure":"archive","content":["raw-data"]});
+    config["build"]["github"]["figures"] = json!({});
+    save(&root, &config);
+    let output = invoke(&root, None, &server).arg("build").output().unwrap();
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("same Release tag"));
+    assert!(!server.state.lock().unwrap().exists);
+    server.finish();
+}
+
+#[test]
+fn ordinary_templated_title_beside_shared_store_validates_in_preview() {
     let server = Server::start();
     let (_temp, root, mut config) = github_setup();
     config["remotes"]["github"]["results@version"] =
