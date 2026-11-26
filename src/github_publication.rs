@@ -13,6 +13,8 @@ use std::{collections::BTreeSet, fs, io::Write};
 /// Validated configuration without credentials, HTTP or local mutation.
 pub(crate) struct Spec {
     title: String,
+    /// Definition whose `repo`, `tag`, `title` and `branch` route the Release.
+    routing: crate::restore::Definition,
     prefix: Option<String>,
     append: bool,
     latest: bool,
@@ -26,9 +28,41 @@ pub(crate) struct Spec {
 /// Deliberately has no Debug implementation: the client may contain credentials.
 pub(crate) struct Target {
     spec: Spec,
-    client: GithubReleaseClient,
-    tag: String,
-    repository: String,
+    pub(crate) client: GithubReleaseClient,
+    pub(crate) tag: String,
+    pub(crate) repository: String,
+}
+impl Target {
+    /// Configured entry name.
+    pub(crate) fn title(&self) -> &str {
+        &self.spec.title
+    }
+}
+fn tag_format(text: &str) -> String {
+    text.trim_matches(' ').replace(' ', "-")
+}
+/// projr's release name: `tag`, else `title`, else the entry name, with placeholders
+/// expanded, outer spaces trimmed and inner spaces replaced by `-`
+/// (SATVILab/projr@ab3ce8a `R/yml-dest.R:270-282`, `R/remote-github.R:927-932`).
+/// A `tag` and `title` that name different releases are rejected.
+pub(crate) fn release_tag(
+    key: &str,
+    definition: &crate::restore::Definition,
+    templates: &crate::template::Templates,
+) -> anyhow::Result<String> {
+    let name = definition.title.as_deref().unwrap_or(key);
+    let tag = tag_format(&templates.expand(definition.tag.as_deref().unwrap_or(name))?);
+    if definition.tag.is_some() && definition.title.is_some() {
+        anyhow::ensure!(
+            tag == tag_format(&templates.expand(name)?),
+            "A GitHub release title and tag must match"
+        );
+    }
+    anyhow::ensure!(
+        !tag.is_empty() && !tag.chars().any(char::is_control),
+        "Invalid GitHub Release tag"
+    );
+    Ok(tag)
 }
 fn folded(value: &str) -> String {
     icu_normalizer::ComposingNormalizer::new_nfc()
@@ -69,6 +103,7 @@ pub(crate) fn validate(
             "Invalid GitHub destination title"
         );
         let definition = crate::restore::definition(value)?;
+        let routing = definition.clone();
         let metadata = crate::ordinary_manifest::Policy::parse(&definition)?;
         let mut labels = if let Some(Value::Array(values)) = &definition.content {
             values
@@ -178,6 +213,7 @@ pub(crate) fn validate(
         let spec = Spec {
             metadata,
             title: title.clone(),
+            routing,
             prefix: definition.path,
             append: definition.path_append_label.unwrap_or(true),
             latest: matches!(definition.structure, Some(crate::restore::Layout::Latest)),
@@ -208,37 +244,84 @@ pub(crate) fn validate(
     }
     Ok(specs)
 }
-/// Freeze all security-sensitive routing before hooks. No request is sent.
+/// Freeze all security-sensitive routing before hooks: repository, client, token,
+/// expanded release tag and target branch. Read-only requests check that a missing
+/// Release's `branch` exists and that no conflicting tag exists; nothing is written.
 pub(crate) fn capture(
     root: &Utf8Path,
     specs: Vec<Spec>,
     environment: &crate::run_environment::RunEnvironment,
-    version: &str,
+    templates: &crate::template::Templates,
 ) -> anyhow::Result<Vec<Target>> {
-    if specs.is_empty() {
-        return Ok(Vec::new());
-    }
-    let (repository, client) = connection(root, environment, None)?;
+    let mut connections: Vec<(Option<String>, String, GithubReleaseClient)> = Vec::new();
     let mut tags = BTreeSet::new();
     let mut targets = Vec::new();
     for spec in specs {
-        let tag = if spec.title == "@version" {
-            version.into()
-        } else {
-            spec.title.trim_matches(' ').replace(' ', "-")
+        let tag = release_tag(&spec.title, &spec.routing, templates)?;
+        let (repository, client) = match connections
+            .iter()
+            .find(|(repo, _, _)| *repo == spec.routing.repo)
+        {
+            Some((_, repository, client)) => (repository.clone(), client.clone()),
+            None => {
+                let (repository, client) =
+                    connection(root, environment, spec.routing.repo.as_deref())?;
+                connections.push((
+                    spec.routing.repo.clone(),
+                    repository.clone(),
+                    client.clone(),
+                ));
+                (repository, client)
+            }
         };
         anyhow::ensure!(
-            tags.insert(tag.clone()),
+            tags.insert((repository.to_ascii_lowercase(), tag.clone())),
             "Configured GitHub titles resolve to the same Release tag"
         );
+        let branch = match spec.routing.branch.as_deref() {
+            Some("@branch") => Some(templates.raw_branch()?),
+            other => other.map(str::to_owned),
+        };
+        let client = client.with_target_branch(branch.clone());
+        if let Some(branch) = &branch
+            && client.assets_if_exists(&tag)?.is_none()
+        {
+            client.release_target(branch, &tag)?;
+        }
         targets.push(Target {
             spec,
-            client: client.clone(),
+            client,
             tag,
-            repository: repository.clone(),
+            repository,
         });
     }
     Ok(targets)
+}
+/// Read the project version advertised by a Release's `VERSION.zip` (projr
+/// `R/get.R:329-367`). `None` means no Release or no assets; populated Releases
+/// without a valid `Project:` line are errors. Read-only.
+pub(crate) fn project_version(
+    client: &GithubReleaseClient,
+    tag: &str,
+) -> anyhow::Result<Option<String>> {
+    let Some(assets) = client.assets_if_exists(tag)? else {
+        return Ok(None);
+    };
+    let names: BTreeSet<String> = assets.into_iter().map(|asset| asset.name).collect();
+    if names.is_empty() {
+        return Ok(None);
+    }
+    let temporary = tempfile::Builder::new()
+        .prefix("proj-version-check-")
+        .tempdir_in(fs::canonicalize(std::env::temp_dir())?)?;
+    let stage =
+        Utf8Path::from_path(temporary.path()).context("Version staging path must be UTF-8")?;
+    metadata(client, tag, MetadataKind::Version, stage, &names)?;
+    let version = crate::publication::project_version(&stage.join("VERSION"))?;
+    temporary.close()?;
+    version.map(Some).context(
+        "The destination contains files but has no valid project VERSION; inspect it for an incomplete upload before retrying",
+    )
 }
 /// Shared frozen GitHub connection policy; never installs credentials.
 pub(crate) fn connection(

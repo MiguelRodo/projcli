@@ -268,7 +268,7 @@ fn setup(mode: &str, placement: &str, layout: &str) -> (tempfile::TempDir, PathB
     fs::write(root.join("VERSION"), b"v1.2.3\n").unwrap();
     let config = json!({"directories":{"output":{"path":"results"}},
         "remotes":{"github":{"data":{"structure":layout,"manifest":placement,"manifest-format":mode,"send":{"inspect":"file"}}}},
-        "build":{"scripts":[],"git":false,"dest":{"data":{}}}});
+        "build":{"scripts":[],"git":false,"restrictions":{"not_behind_remote":false},"github":{"data":{}}}});
     save(&root, &config);
     for args in [
         vec!["init"],
@@ -625,7 +625,7 @@ fn later_target_failure_prevents_all_new_project_success_bindings() {
     let mut second = config["remotes"]["github"]["data"].clone();
     second["path"] = json!("other");
     config["remotes"]["github"]["second"] = second;
-    config["build"]["dest"]["second"] = json!({});
+    config["build"]["github"]["second"] = json!({});
     save(&root, &config);
     server.state.lock().unwrap().fail_metadata = Some(2);
     let output = invoke(&server, &root);
@@ -713,7 +713,7 @@ fn named_default_csv_and_legacy_inline_without_new_policy_remain_distinct() {
     }
     definition["content"] = json!(true);
     config.as_object_mut().unwrap().remove("remotes");
-    config["build"].as_object_mut().unwrap().remove("dest");
+    config["build"].as_object_mut().unwrap().remove("github");
     config["build"]["github"] = json!({"data":definition});
     save(&root, &config);
     build(&server, &root);
@@ -1086,7 +1086,7 @@ fn github_tree_metadata_failure_never_writes_project_success_references() {
     let mut second = config["remotes"]["github"]["data"].clone();
     second["path"] = json!("other");
     config["remotes"]["github"]["second"] = second;
-    config["build"]["dest"]["second"] = json!({});
+    config["build"]["github"]["second"] = json!({});
     save(&root, &config);
     server.state.lock().unwrap().fail_metadata = Some(2);
     structured_failure(invoke(&server, &root));

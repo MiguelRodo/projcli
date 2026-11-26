@@ -53,7 +53,7 @@ fn setup(strategy: &str, cue: &str, content: &str) -> (tempfile::TempDir, std::p
     fs::write(root.join("results/changed"), "new").unwrap();
     fs::write(root.join("results/new"), "new").unwrap();
     fs::write(root.join("input/input.csv"), "abc").unwrap();
-    fs::write(root.join("_proj.yml"),format!("directories:\n  raw: {{path: input}}\n  output: {{path: results}}\nbuild:\n  scripts: []\n  git: false\n  local:\n    delivery:\n      path: remote\n      structure: latest\n      content: {content}\n      send:\n        inspect: file\n        strategy: {strategy}\n        cue: {cue}\n")).unwrap();
+    fs::write(root.join("_proj.yml"),format!("directories:\n  raw: {{path: input}}\n  output: {{path: results}}\nbuild:\n  scripts: []\n  git: false\n  restrictions: {{not_behind_remote: false}}\n  local:\n    delivery:\n      path: remote\n      structure: latest\n      content: {content}\n      send:\n        inspect: file\n        strategy: {strategy}\n        cue: {cue}\n")).unwrap();
     (temporary, root)
 }
 /// Recursive relative-path bytes, for manifest store directories.

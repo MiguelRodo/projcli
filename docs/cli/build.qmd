@@ -18,8 +18,8 @@ Document renderers and hooks keep their own execution rules.
 ## Features
 
 - **Pre-flight Dependency Checks:** Before modifying files or triggering git snapshots, the build engine statically resolves targets to identify dependencies. Depending on the matched scripts (such as `.Rmd`, `.qmd`, or `.py`) and configuration files, it asserts the availability of `Rscript` (verifying required R namespaces like `rmarkdown` or `bookdown`), `quarto`, or python executable commands. Any missing R packages can be resolved automatically via the `PROJR_AUTO_INSTALL` environment variable, or through an interactive terminal prompt.
-- **Production Build Restrictions:** Uses projr's `build.restrictions` keys. `branch` limits which branches may run production builds. `not_behind_git` (default on) fetches the current branch's tracking upstream, when one exists, and stops a production build that is behind it; see [configuration](../configuration.qmd).
-- **Saving results:** `build.dest` selects named local or GitHub destinations.
+- **Production Build Restrictions:** Uses projr's `build.restrictions` keys. `branch` limits which branches may run production builds. `not_behind_git` (default on) fetches the current branch's tracking upstream, when one exists, and stops a production build that is behind it; see [configuration](../configuration.qmd). `not_behind_remote` (default on) refuses, before any hook, a proposed version that a selected archive already has or has passed; `rule: target` compares only the proposed version.
+- **Saving results:** `build.local`/`build.github` select remotes registered under `remotes` (with optional `content`) or define inline destinations. Destination paths and release names accept `@version`, `@branch` and `@uuid`; see [configuration](../configuration.qmd#remotes-configuration).
   Ordinary backups, shared-file stores (`cas`) and experimental shared-pieces
   stores (`xet`) have different requirements; see the [storage guides](../cas-github.qmd).
 - **Git:** The CLI uses your installed Git and its existing authentication.

@@ -72,7 +72,7 @@ fn setup() -> (tempfile::TempDir, PathBuf, Value) {
     let config = json!({"directories":{"raw-data":{"path":"input"},"output":{"path":"results"},
         "cache":{"path":"cache","safe":true}},
         "remotes":{"local":{"backup":{"path":"../store","structure":"xet","content":true}}},
-        "build":{"scripts":[],"git":false,"dest":{"backup":{"content":["raw-data"]}}}});
+        "build":{"scripts":[],"git":false,"local":{"backup":{"content":["raw-data"]}}}});
     save(&root, &config);
     (temp, root, config)
 }
@@ -112,7 +112,8 @@ fn queries_preview_and_empty_destination_selection_need_no_engine_and_do_not_cre
     assert_eq!(fs::read(root.join("VERSION")).unwrap(), version);
     assert!(!store.exists());
     assert!(!root.join(".proj/remotes").exists());
-    config["build"]["dest"] = json!({});
+    config["build"]["local"] = json!({});
+    config["build"]["github"] = json!({});
     save(&root, &config);
     success(command(&root, None).arg("build").output().unwrap());
     assert!(!store.exists());
@@ -241,7 +242,8 @@ fn actual_configured_build_records_root_and_fresh_project_restores_without_uploa
     for name in ["input", "results", "cache", "home"] {
         fs::create_dir_all(fresh.join(name)).unwrap();
     }
-    config["build"]["dest"] = json!({});
+    config["build"]["local"] = json!({});
+    config["build"]["github"] = json!({});
     config["directories"]["raw-data"]["source"] = json!({"local":"backup"});
     save(&fresh, &config);
     fs::write(fresh.join("VERSION"), b"v9.0.0-7\n").unwrap();
@@ -288,7 +290,7 @@ fn unsafe_second_store_fails_preflight_before_any_first_store_publication_or_hoo
     std::os::unix::fs::symlink(&external, bad.join("unsafe-link")).unwrap();
     config["remotes"]["local"]["unsafe"] =
         json!({"path":"../bad-store","structure":"xet","content":["raw-data"]});
-    config["build"]["dest"] = json!({"backup":{"content":["raw-data"]},"unsafe":{}});
+    config["build"]["local"] = json!({"backup":{"content":["raw-data"]},"unsafe":{}});
     config["build"]["hooks"] = json!({"pre":["start.py"]});
     fs::write(
         root.join("start.py"),

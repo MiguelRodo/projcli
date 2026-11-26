@@ -90,7 +90,7 @@ fn setup(placement: &str) -> (tempfile::TempDir, PathBuf, Value) {
     let config = json!({"directories":{"raw":{"path":"input"},"output":{"path":"results"},
         "cache":{"path":"cache","safe":true,"hash":true}},
         "remotes":{"local":{"snapshots":{"path":"../store","structure":"cas","manifest":placement}}},
-        "build":{"scripts":[],"git":false,"dest":{"snapshots":{}}}});
+        "build":{"scripts":[],"git":false,"local":{"snapshots":{}}}});
     save(&root, &config);
     (temp, root, config)
 }
@@ -131,7 +131,7 @@ fn legacy() -> (tempfile::TempDir, PathBuf, Value, String) {
     .unwrap();
     config["remotes"]["local"]["snapshots"] =
         json!({"path":"../store","structure":"cas","content":["RAW"],"inspect":"manifest"});
-    config["build"]["dest"] = json!(["snapshots"]);
+    config["build"]["local"] = json!({"snapshots":{}});
     save(&root, &config);
     success(command(&root).arg("build").output().unwrap());
     let store = root.parent().unwrap().join("store");
@@ -157,7 +157,8 @@ fn existing_flat_ids_restore_exact_files_without_conversion_or_project_csv() {
     fs::remove_dir_all(root.join(".projr/manifests")).unwrap();
     config["remotes"]["local"]["snapshots"] =
         json!({"path":"../store","structure":"cas","content":null,"manifest-style":"tree"});
-    config["build"]["dest"] = json!({});
+    config["build"]["local"] = json!({});
+    config["build"]["github"] = json!({});
     save(&root, &config);
     let before = files(&root);
     let observation = success(
@@ -245,7 +246,8 @@ fn legacy_remote_alone_recovers_into_a_fresh_configured_project() {
     for name in ["input", "results", "cache", "home"] {
         fs::create_dir_all(root.join(name)).unwrap();
     }
-    config["build"]["dest"] = json!({});
+    config["build"]["local"] = json!({});
+    config["build"]["github"] = json!({});
     save(&root, &config);
     fs::write(root.join("VERSION"), b"v8.0.0.7\n").unwrap();
     success(
@@ -413,7 +415,7 @@ fn old_and_tree_formats_coexist_and_report_their_actual_identity_kind() {
     let legacy_bytes = files(&store.join("manifests"));
     config["remotes"]["local"]["snapshots"] =
         json!({"path":"../store","structure":"cas","content":["raw"]});
-    config["build"]["dest"] = json!({"snapshots":{}});
+    config["build"]["local"] = json!({"snapshots":{}});
     save(&root, &config);
     fs::write(root.join("input/value.txt"), b"new version").unwrap();
     success(command(&root).arg("build").output().unwrap());
@@ -476,7 +478,7 @@ fn empty_legacy_snapshot_without_objects_restores_an_empty_root_and_metadata_rea
     fs::create_dir(root.join("input")).unwrap();
     config["remotes"]["local"]["snapshots"] =
         json!({"path":"../store","structure":"cas","content":["RAW"],"inspect":"manifest"});
-    config["build"]["dest"] = json!(["snapshots"]);
+    config["build"]["local"] = json!({"snapshots":{}});
     save(&root, &config);
     success(command(&root).arg("build").output().unwrap());
     let store = root.parent().unwrap().join("store");

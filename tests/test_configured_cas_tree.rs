@@ -84,7 +84,7 @@ fn setup(placement: &str) -> (tempfile::TempDir, PathBuf, Value) {
     let config = json!({"directories":{"raw":{"path":"input"},"output":{"path":"results"},
         "cache":{"path":"cache","safe":true,"hash":true}},
         "remotes":{"local":{"snapshots":{"path":"../store","structure":"cas","manifest":placement}}},
-        "build":{"scripts":[],"git":false,"dest":{"snapshots":{}}}});
+        "build":{"scripts":[],"git":false,"local":{"snapshots":{}}}});
     save(&root, &config);
     (temp, root, config)
 }
@@ -194,7 +194,7 @@ fn actual_build_places_full_metadata_as_selected_and_keeps_a_small_project_refer
 #[test]
 fn selected_subset_and_disabled_content_do_not_publish_other_labels() {
     let (_temp, root, mut config) = setup("remote");
-    config["build"]["dest"]["snapshots"]["content"] = json!(["raw"]);
+    config["build"]["local"]["snapshots"]["content"] = json!(["raw"]);
     save(&root, &config);
     success(command(&root).arg("build").output().unwrap());
     let store = root.parent().unwrap().join("store");
@@ -313,13 +313,13 @@ fn legacy_name_list_and_mapping_subset_preserve_existing_flat_ids_and_label_spel
     let store = root.parent().unwrap().join("store");
     config["remotes"]["local"]["snapshots"] =
         json!({"path":"../store","structure":"cas","content":["RAW","output"],"inspect":"file"});
-    config["build"]["dest"] = json!(["snapshots"]);
+    config["build"]["local"] = json!({"snapshots":{}});
     save(&root, &config);
     success(command(&root).arg("build").output().unwrap());
     let previous = files(&store.join("manifests"));
     assert_eq!(previous.len(), 2);
     let ledger = fs::read_to_string(root.join(".projr/manifests.csv")).unwrap();
-    config["build"]["dest"] = json!({"snapshots":{"content":["raw"]}});
+    config["build"]["local"] = json!({"snapshots":{"content":["raw"]}});
     save(&root, &config);
     success(command(&root).arg("build").output().unwrap());
     let after = files(&store.join("manifests"));

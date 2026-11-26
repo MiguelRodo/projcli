@@ -37,7 +37,7 @@ remotes:
 build:
   scripts: []
   git: false
-  dest:
+  github:
     project-file-store: {}
 ```
 
@@ -84,7 +84,7 @@ proj remote verify --title project-file-store --snapshot SNAPSHOT_ID \
 ```
 
 A fresh checkout needs its config, trusted locators and existing authentication,
-but no previous local store or root CSV. Removing the name from build.dest stops
+but no previous local store or root CSV. Removing the name from build.local/build.github stops
 uploads without removing recovery lookup. Missing locators with existing store
 exports fail clearly; automatic remote-only discovery is not implemented.
 Style changes affect new writes while stored encoding kinds select old readers.

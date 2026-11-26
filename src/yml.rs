@@ -266,12 +266,12 @@ pub struct BuildConfig {
     /// Optional production-only R housekeeping; omission preserves existing builds.
     #[serde(default)]
     pub r: RBuildConfig,
-    /// Existing inline ordinary local archive/latest publication destinations.
+    /// projr `build.local.<title>`: selects a `remotes.local` definition (optionally
+    /// narrowing `content`) or, for an unregistered title, an inline definition.
     pub local: Option<serde_json::Map<String, Value>>,
-    /// Existing inline GitHub Release destinations; bounded archive publication.
+    /// projr `build.github.<title>`: selects a `remotes.github` definition or, for an
+    /// unregistered title, an inline GitHub Release definition.
     pub github: Option<serde_json::Map<String, Value>>,
-    /// Explicit named targets/subsets; existing CAS name-list selection stays compatible.
-    pub dest: Option<crate::remote_registry::Destinations>,
     #[serde(default, deserialize_with = "script_list")]
     pub scripts: Option<Vec<String>>,
     #[serde(default)]
@@ -299,13 +299,17 @@ pub struct HooksConfig {
 /// list allows only the named branches. `not_behind_git` (earlier projr spelling
 /// `not_behind`; setting both is an error) defaults to checking that the current
 /// branch is not behind its tracking upstream whenever one exists.
+/// `not_behind_remote` (default true) checks archive versions before rendering;
+/// `rule` selects whether the local base or only the proposed version is compared.
 ///
 /// ```rust
-/// use proj::yml::{BranchRestriction, RestrictionsConfig};
+/// use proj::yml::{BranchRestriction, RemoteCheck, RestrictionsConfig, VersionRule};
 /// let restrictions: RestrictionsConfig =
-///     serde_yaml::from_str("branch: [main]\nnot_behind: false\n").unwrap();
+///     serde_yaml::from_str("branch: [main]\nnot_behind: false\nnot_behind_remote: [reports]\nrule: target\n").unwrap();
 /// assert_eq!(restrictions.branch, Some(BranchRestriction::Only(vec!["main".into()])));
 /// assert_eq!(restrictions.not_behind_git().unwrap(), Some(false));
+/// assert_eq!(restrictions.not_behind_remote, Some(RemoteCheck::Titles(vec!["reports".into()])));
+/// assert_eq!(restrictions.rule, Some(VersionRule::Target));
 /// ```
 #[derive(Deserialize, Debug, Default, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -316,6 +320,80 @@ pub struct RestrictionsConfig {
     pub not_behind_git: Option<bool>,
     /// Earlier projr spelling of `not_behind_git`.
     pub not_behind: Option<bool>,
+    /// Archive version check: omitted/true checks selected publication targets,
+    /// false skips, titles (optionally grouped by type) check those remotes.
+    pub not_behind_remote: Option<RemoteCheck>,
+    /// Version comparison rule; omitted means `base_version_not_behind`.
+    pub rule: Option<VersionRule>,
+}
+
+/// projr `build.restrictions.not_behind_remote` values.
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+#[serde(from = "RemoteCheckValue")]
+pub enum RemoteCheck {
+    /// `true` checks the destinations this build publishes to; `false` skips.
+    All(bool),
+    /// Titles registered under `remotes` or defined inline under `build`.
+    Titles(Vec<String>),
+    /// Titles qualified by remote type (`local` or `github`).
+    ByType(std::collections::BTreeMap<RemoteType, Vec<String>>),
+}
+
+/// Remote type used to qualify `not_behind_remote` titles.
+#[derive(Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "lowercase")]
+pub enum RemoteType {
+    /// A local directory destination.
+    Local,
+    /// A GitHub Release destination.
+    Github,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum TitleList {
+    One(String),
+    Many(Vec<String>),
+}
+
+impl From<TitleList> for Vec<String> {
+    fn from(value: TitleList) -> Self {
+        match value {
+            TitleList::One(title) => vec![title],
+            TitleList::Many(titles) => titles,
+        }
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum RemoteCheckValue {
+    All(bool),
+    Titles(TitleList),
+    ByType(std::collections::BTreeMap<RemoteType, TitleList>),
+}
+
+impl From<RemoteCheckValue> for RemoteCheck {
+    fn from(value: RemoteCheckValue) -> Self {
+        match value {
+            RemoteCheckValue::All(all) => Self::All(all),
+            RemoteCheckValue::Titles(titles) => Self::Titles(titles.into()),
+            RemoteCheckValue::ByType(map) => {
+                Self::ByType(map.into_iter().map(|(k, v)| (k, v.into())).collect())
+            }
+        }
+    }
+}
+
+/// projr `build.restrictions.rule`.
+#[derive(Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VersionRule {
+    /// The last completed local version must not be behind the archive (default).
+    #[serde(rename = "base_version_not_behind", alias = "base")]
+    Base,
+    /// Only the proposed version must be newer than the archive.
+    #[serde(rename = "target_version_not_behind", alias = "target")]
+    Target,
 }
 
 /// Allowed production-build branches: `true`/`false` or explicit names. As in
@@ -759,8 +837,12 @@ impl ProjConfig {
             old_dev_remove: self.dev.old_dev_remove,
             parameters: self.parameters.clone(),
         };
-        let ordinary =
-            crate::publication::configured(project_root, destinations.local.as_ref(), &validated)?;
+        let ordinary = crate::publication::configured(
+            project_root,
+            destinations.local.as_ref(),
+            &validated,
+            &crate::template::Templates::validation(),
+        )?;
         crate::github_publication::validate(
             project_root,
             destinations.github.as_ref(),
@@ -1410,10 +1492,37 @@ build:
                 .not_behind_git()
                 .is_err()
         );
+        assert_eq!(parse("rule: base\n").unwrap().rule, Some(VersionRule::Base));
+        assert_eq!(
+            parse("rule: target_version_not_behind\n").unwrap().rule,
+            Some(VersionRule::Target)
+        );
+        assert_eq!(
+            parse("not_behind_remote: false\n")
+                .unwrap()
+                .not_behind_remote,
+            Some(RemoteCheck::All(false))
+        );
+        assert_eq!(
+            parse("not_behind_remote: reports\n")
+                .unwrap()
+                .not_behind_remote,
+            Some(RemoteCheck::Titles(vec!["reports".into()]))
+        );
+        assert_eq!(
+            parse("not_behind_remote: {github: [reports]}\n")
+                .unwrap()
+                .not_behind_remote,
+            Some(RemoteCheck::ByType(
+                [(RemoteType::Github, vec!["reports".into()])].into()
+            ))
+        );
         for removed in [
             "only_branches: [main]\n",
             "not_branches: [x]\n",
-            "rule: target\n",
+            "rule: newest\n",
+            "not_behind_remote: {s3: [x]}\n",
+            "not_behind_remote: 3\n",
         ] {
             assert!(parse(removed).is_err(), "{removed}");
         }

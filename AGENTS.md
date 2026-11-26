@@ -574,9 +574,10 @@ permissions restoration or active CLI/config wiring from the library alone.
 ## Ordinary remote registry boundary
 
 Registry definitions are source lookups independent of build upload selection.
-Mapping build.dest selects explicit names and optional content subsets; never
-upload all registered definitions implicitly. Preserve legacy inline/CAS-list
-execution and source priority. Normal directory-source annotations validate
+projr's build.<type>.<title> (content only) selects a registered remote; an
+unregistered build title is an inline definition (build.dest was removed without
+migration, issues#910). Never upload all registered definitions implicitly or let
+a selection redefine a registered remote. Preserve source priority. Normal directory-source annotations validate
 references but do not activate automatic build-time restore. Reuse existing
 ordinary provider validators/engines. Reject unsupported placement/style/format
 fields until implemented; do not accept them as ignored options or call the
@@ -779,7 +780,7 @@ archival support promise. Preview never requires/starts the helper or mutates
 backend caches. Production resolves the pinned optional helper once before hooks.
 Source queries do not install or publish. Store finalize plus independent full-file
 verification and complete binding precede the small Git-eligible root reference.
-Source lookup remains independent of build.dest. Explicit snapshot selection only.
+Source lookup remains independent of upload selection. Explicit snapshot selection only.
 Use remote tests; keep original R package and installed CLI unchanged.
 
 Experimental Xet preview does not copy/restore mutable engine stores under the
@@ -845,3 +846,14 @@ source-only discovery and zero-depth **/ semantics. Generate source ignore rules
 from frozen selected native output plans, not blanket HTML/assets or final docs.
 Multiple destinations/name matching remain deferred in issues#773. Verify actual
 grouped rendering and Quarto projects remotely before claiming compatibility.
+
+## projr 0.8.0 remotes schema and archive version check
+
+Destination placeholders (@version/@branch/@uuid) resolve once before hooks from
+the build version, checkout HEAD file and a fresh UUID; record resolved targets in
+attempt evidence without URLs, API origins or credentials (absolute local paths
+are not recorded). The archive version check (not_behind_remote default true,
+rule base) runs before hooks with read-only lookups and fails closed on populated
+archives without a readable version. GitHub branch checks are read-only before
+hooks; never create a release before publication. Restore by recorded
+destination belongs to the separate restore slice.

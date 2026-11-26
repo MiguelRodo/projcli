@@ -55,7 +55,7 @@ provenance with your store; no automatic helper upgrade occurs.
 | manifest | auto or remote: full records in the store, small references in the project |
 | manifest-style | tree |
 | manifest-format | Fixed JSON binding; flat/CSV/dictionary overrides are rejected |
-| content / build.dest content | Declared logical folders; destination selection can narrow the set |
+| content / build.local/build.github content | Declared logical folders; destination selection can narrow the set |
 
 Local and GitHub examples below archive existing raw-data with scripts: [] and
 Git disabled. Use explicit paths and an existing VERSION file. Preview first;
@@ -68,7 +68,7 @@ proj build --patch
 
 Since these examples disable Git integration, commit .proj/remotes references alongside VERSION/configuration
 yourself if you need recovery from a future checkout. Removing a destination
-from build.dest stops uploads without removing restore access.
+from build.local/build.github stops uploads without removing restore access.
 
 ## Why this remains experimental
 
@@ -129,14 +129,14 @@ remotes:
 build:
   scripts: []
   git: false
-  dest:
+  local:
     shared-content: {}
 ```
 
 A production build stores selected folders; preview does not upload, require the
 helper or update backend caches. Queries never activate writes. Removing the
-remote from build.dest stops uploads while preserving explicit recovery lookup.
-Optional build.dest content narrows the remote's eligible labels.
+remote from build.local/build.github stops uploads while preserving explicit recovery lookup.
+Optional build.local/build.github content narrows the remote's eligible labels.
 
 After finalization/independent byte verification, the build saves a complete store
 snapshot and small project reference under .proj/remotes. The reference's snapshot
@@ -232,7 +232,7 @@ remotes:
 build:
   scripts: []
   git: false
-  dest:
+  github:
     project-data-store: {}
 ```
 

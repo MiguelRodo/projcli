@@ -49,7 +49,7 @@ failure. Always keep an independent backup.
 ## Save results after local success {#publication-after-local-success}
 
 After the local work succeeds, projcli saves the selected folders to the locations
-chosen by `build.dest`. It uses the actual prepared files before any requested
+chosen by `build.local`/`build.github`. It uses the actual prepared files before any requested
 post-build output cleanup. Git integration can then make the configured build
 commit and push to the current branch's upstream. It uses installed Git and your
 existing authentication; custom push-only routing is not supported.

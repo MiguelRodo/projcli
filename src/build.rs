@@ -241,24 +241,8 @@ pub fn build_project_with_policies(
         let config = project_config.validate_and_resolve(project_root, is_dev)?;
         environment.set_rscript(project_config.config.r.executable(project_root)?);
         let destinations = crate::remote_registry::selected(&project_config)?;
-        let ordinary =
-            crate::publication::configured(project_root, destinations.local.as_ref(), &config)?;
-        let github_specs = crate::github_publication::validate(
-            project_root,
-            destinations.github.as_ref(),
-            &config,
-        )?;
-        let cas_trees =
-            crate::cas_remote::configured(project_root, &destinations.cas, &config, &ordinary)?;
-        let xet = crate::xet_remote::configured(
-            project_root,
-            &destinations.xet,
-            &config,
-            &ordinary,
-            &cas_trees,
-            &environment,
-            is_dev,
-        )?;
+        // Remote titles stay available to the pre-render archive version check.
+        let remote_config = project_config.clone();
         let execution = execution_override
             .or(config.settings.execution_directory)
             .unwrap_or(ExecutionDirectory::Native);
@@ -576,13 +560,38 @@ pub fn build_project_with_policies(
 
         let version_before = original_version.to_string(true);
         let (initial_version, next_version) =
-            crate::run_context::version_plan(original_version, mode)?;
+            crate::run_context::version_plan(original_version.clone(), mode)?;
+        // projr placeholders resolve once, before hooks, and stay frozen for the build.
+        let templates =
+            crate::template::Templates::for_build(project_root, &initial_version.to_string(true))?;
+        let ordinary = crate::publication::configured(
+            project_root,
+            destinations.local.as_ref(),
+            &config,
+            &templates,
+        )?;
+        let github_specs = crate::github_publication::validate(
+            project_root,
+            destinations.github.as_ref(),
+            &config,
+        )?;
+        let cas_trees =
+            crate::cas_remote::configured(project_root, &destinations.cas, &config, &ordinary)?;
+        let xet = crate::xet_remote::configured(
+            project_root,
+            &destinations.xet,
+            &config,
+            &ordinary,
+            &cas_trees,
+            &environment,
+            is_dev,
+        )?;
         let github = if !is_dev && config.output_run.unwrap_or(true) {
             crate::github_publication::capture(
                 project_root,
                 github_specs,
                 &environment,
-                &initial_version.to_string(true),
+                &templates,
             )?
         } else {
             Vec::new()
@@ -609,6 +618,31 @@ pub fn build_project_with_policies(
             Some(&cas_others),
             &initial_version.to_string(true),
         )?;
+        if !is_dev {
+            let archives = crate::archive_check::selected(
+                project_root,
+                &remote_config,
+                &ordinary,
+                &github,
+                config.output_run.unwrap_or(true),
+                &templates,
+                &environment,
+            )?;
+            crate::archive_check::check(
+                &archives,
+                &initial_version.to_string(true),
+                remote_config
+                    .build
+                    .restrictions
+                    .rule
+                    .unwrap_or(crate::yml::VersionRule::Base),
+                || {
+                    Ok(crate::history::last_completed(project_root)?.or_else(|| {
+                        (original_version.dev == 0).then(|| original_version.to_string(true))
+                    }))
+                },
+            )?;
+        }
         let run_context = crate::run_context::ContextFile::capture(
             project_root,
             &config,
@@ -1348,6 +1382,17 @@ pub fn build_project_with_policies(
                 },
                 attempt_inventory.clone(),
                 startup_provenance.clone(),
+                templates.uuid().map(|uuid| {
+                    crate::attempt_log::Destinations::resolved(
+                        uuid,
+                        if config.output_run.unwrap_or(true) {
+                            &ordinary
+                        } else {
+                            &[]
+                        },
+                        &github,
+                    )
+                }),
             )
         };
         let observe_outputs = || -> anyhow::Result<crate::attempt_log::FinalOutputs> {

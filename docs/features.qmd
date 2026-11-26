@@ -127,7 +127,7 @@ histories below.
 ## Choose where a build saves its results
 
 In preview.4, name each available storage destination once under
-remotes, then select where this build sends its results with build.dest. A named
+remotes, then select where this build sends its results with build.local/build.github. A named
 location remains available for restoring earlier data after you stop uploading
 to it. The [configuration reference](configuration.qmd) has copyable examples
 and explains how to select only particular folders.

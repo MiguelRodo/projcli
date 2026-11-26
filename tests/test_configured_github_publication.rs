@@ -205,7 +205,7 @@ fn setup(server: &Server) -> (tempfile::TempDir, std::path::PathBuf) {
     fs::write(root.join("results/result.csv"), "actual fixture bytes\n").unwrap();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
     fs::write(root.join("CHANGELOG.md"), "curated release\n").unwrap();
-    fs::write(root.join("_proj.yml"),"directories:\n  output: {path: results}\nbuild:\n  git: false\n  scripts: []\n  github:\n    data:\n      content: [output]\n      send: {inspect: none}\n").unwrap();
+    fs::write(root.join("_proj.yml"),"directories:\n  output: {path: results}\nbuild:\n  git: false\n  restrictions: {not_behind_remote: false}\n  scripts: []\n  github:\n    data:\n      content: [output]\n      send: {inspect: none}\n").unwrap();
     for args in [
         vec!["init"],
         vec![
@@ -1566,7 +1566,7 @@ fn registered_github_definition_remains_restore_source_after_uploads_are_disable
     let (_temporary, root) = setup(&server);
     let mut config = json!({"directories":{"output":{"path":"results"}},
         "remotes":{"github":{"data":{"content":["output"],"send":{"inspect":"none"}}}},
-        "build":{"scripts":[],"git":false,"dest":{"data":{}}}});
+        "build":{"scripts":[],"git":false,"restrictions":{"not_behind_remote":false},"github":{"data":{}}}});
     fs::write(
         root.join("_proj.yml"),
         serde_json::to_vec_pretty(&config).unwrap(),
@@ -1610,7 +1610,8 @@ fn registered_github_definition_remains_restore_source_after_uploads_are_disable
             state.deleted.clone(),
         )
     };
-    config["build"]["dest"] = json!({});
+    config["build"]["local"] = json!({});
+    config["build"]["github"] = json!({});
     fs::write(
         root.join("_proj.yml"),
         serde_json::to_vec_pretty(&config).unwrap(),

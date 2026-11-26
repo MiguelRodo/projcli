@@ -80,6 +80,24 @@ pub(crate) struct Definition {
     pub(crate) manifest: Option<crate::cas_remote::Placement>,
     pub(crate) manifest_style: Option<crate::cas_remote::Style>,
     pub(crate) manifest_format: Option<crate::catalogue::Format>,
+    /// GitHub destination repository (`owner/name`); defaults to the producing repository.
+    pub(crate) repo: Option<String>,
+    /// GitHub release name (tag and title); defaults to `title`, then the entry name.
+    pub(crate) tag: Option<String>,
+    /// GitHub branch whose head a newly created release targets (`@branch` = checkout).
+    pub(crate) branch: Option<String>,
+    /// Inline destination name; GitHub uses it as the release name when `tag` is absent.
+    pub(crate) title: Option<String>,
+}
+/// Reject GitHub-only fields on a local destination definition.
+pub(crate) fn local_only_fields(value: &Value) -> anyhow::Result<()> {
+    for key in ["repo", "tag", "branch"] {
+        anyhow::ensure!(
+            value.get(key).is_none(),
+            "{key} applies only to GitHub destinations"
+        );
+    }
+    Ok(())
 }
 struct Source {
     provider: String,
@@ -96,6 +114,31 @@ pub(crate) fn definition(value: &Value) -> anyhow::Result<Definition> {
     let parsed: Definition =
         serde_json::from_value(value.clone()).context("Invalid ordinary remote definition")?;
     crate::ordinary_manifest::Policy::parse(&parsed)?;
+    if let Some(repo) = &parsed.repo {
+        let parts: Vec<_> = repo.split('/').collect();
+        anyhow::ensure!(
+            parts.len() == 2
+                && parts.iter().all(|part| !part.is_empty()
+                    && *part != "."
+                    && *part != ".."
+                    && part
+                        .bytes()
+                        .all(|b| b.is_ascii_alphanumeric() || b"_.-".contains(&b))),
+            "repo must be a GitHub owner/repository name"
+        );
+    }
+    for (key, text) in [
+        ("tag", &parsed.tag),
+        ("branch", &parsed.branch),
+        ("title", &parsed.title),
+    ] {
+        if let Some(text) = text {
+            anyhow::ensure!(
+                !text.trim().is_empty() && !text.chars().any(char::is_control),
+                "{key} must be nonempty printable text"
+            );
+        }
+    }
     if let Some(get) = &parsed.get {
         anyhow::ensure!(
             get.is_object() && get.as_object().unwrap().is_empty(),
@@ -133,10 +176,7 @@ fn referenced(
         .get("build")
         .and_then(|v| v.get(provider))
         .and_then(|v| v.get(title));
-    anyhow::ensure!(
-        !(registered.is_some() && legacy.is_some()),
-        "Restore source is defined in both remotes and build"
-    );
+    // A build entry for a registered title selects uploads; it is not a definition.
     let shared = registered.or(legacy);
     let value = match (shared, inline) {
         (Some(shared), Some(inline)) => crate::yml::deep_merge(shared.clone(), inline.clone()),
@@ -267,6 +307,16 @@ fn select_source(raw: &Value, label: &str, request: &RestoreRequest) -> anyhow::
                 .as_object()
                 .context("Build remote provider must contain named definitions")?
             {
+                // Registered titles are upload selections; the registry loop below
+                // considers their definitions.
+                if raw
+                    .get("remotes")
+                    .and_then(|v| v.get(provider))
+                    .and_then(|v| v.get(title))
+                    .is_some()
+                {
+                    continue;
+                }
                 let definition = definition(value)?;
                 if !title_allowed(title, request)
                     || !content_has(definition.content.as_ref(), label, raw)?
@@ -365,10 +415,6 @@ pub(crate) fn projected_config(
     root: &Utf8Path,
 ) -> anyhow::Result<crate::yml::ValidatedConfig> {
     let mut projection = raw.clone();
-    if let Some(build) = projection.get_mut("build").and_then(Value::as_object_mut) {
-        // Upload selection must not disable a registered restore source.
-        build.remove("dest");
-    }
     if let Some(directories) = projection
         .get_mut("directories")
         .and_then(Value::as_object_mut)
@@ -382,11 +428,22 @@ pub(crate) fn projected_config(
     let mut config: crate::yml::ProjConfig =
         serde_json::from_value(projection).context("Invalid restore project configuration")?;
     crate::remote_registry::validate_names(&config)?;
+    crate::remote_registry::validate_selections(&config)?;
     config.build.local = None;
     config.build.github = None;
     config.validate_and_resolve(root, false)
 }
 
+/// Placeholder values for a lookup outside a build: the current run version and
+/// checkout. `@uuid` names a single build and fails until recorded destinations are read.
+fn lookup_templates(root: &Utf8Path) -> crate::template::Templates {
+    crate::template::Templates::for_lookup(
+        root,
+        crate::run_version_from(root)
+            .ok()
+            .map(|version| version.to_string(true)),
+    )
+}
 fn repository(root: &Utf8Path, explicit: Option<&str>, api: &str) -> anyhow::Result<String> {
     if let Some(repository) = explicit {
         return Ok(repository.into());
@@ -700,6 +757,7 @@ pub fn restore_label(root: &Utf8Path, request: &RestoreRequest) -> anyhow::Resul
             .as_deref()
             .context("Local restore source requires an explicit path")?;
         anyhow::ensure!(!path.is_empty(), "Local restore path must not be empty");
+        let path = &lookup_templates(root).expand(path)?;
         let base = if Utf8Path::new(path).is_absolute() {
             Utf8PathBuf::from(path)
         } else {
@@ -790,16 +848,23 @@ pub fn restore_label(root: &Utf8Path, request: &RestoreRequest) -> anyhow::Resul
     } else {
         let api =
             std::env::var("GITHUB_API_URL").unwrap_or_else(|_| "https://api.github.com".into());
-        let repository = repository(root, request.repository.as_deref(), &api)?;
+        let repository = repository(
+            root,
+            request
+                .repository
+                .as_deref()
+                .or(source.definition.repo.as_deref()),
+            &api,
+        )?;
         let token = ["GITHUB_PAT", "GH_TOKEN", "GITHUB_TOKEN"]
             .iter()
             .find_map(|key| std::env::var(key).ok().filter(|v| !v.trim().is_empty()));
         let client = crate::github_release::GithubReleaseClient::new(&repository, &api, token)?;
-        let tag = if source.title == "@version" {
-            crate::run_version_from(root)?.to_string(true)
-        } else {
-            source.title.trim_matches(' ').replace(' ', "-")
-        };
+        let tag = crate::github_publication::release_tag(
+            &source.title,
+            &source.definition,
+            &lookup_templates(root),
+        )?;
         let (version, name, empty) = github_version(&client, root, &source, &label, request, &tag)?;
         result.version = Some(version);
         if empty {

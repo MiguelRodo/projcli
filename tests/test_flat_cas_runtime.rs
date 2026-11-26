@@ -90,7 +90,7 @@ fn setup(placement: &str) -> (tempfile::TempDir, PathBuf, Value) {
     let config = json!({"directories":{"raw":{"path":"input"},"output":{"path":"results"},
         "cache":{"path":"cache","safe":true,"hash":true}},
         "remotes":{"local":{"snapshots":{"path":"../store","structure":"cas","manifest":placement}}},
-        "build":{"scripts":[],"git":false,"dest":{"snapshots":{}}}});
+        "build":{"scripts":[],"git":false,"local":{"snapshots":{}}}});
     save(&root, &config);
     (temp, root, config)
 }
@@ -706,7 +706,8 @@ fn csv_is_the_new_flat_default_and_restore_cannot_target_its_own_metadata() {
     assert!(catalogue_path(&store, "csv").is_file());
     assert!(!catalogue_path(&store, "csv-dedupe-file").exists());
     let id = ids(&store, "flat-snapshots/v1").pop().unwrap();
-    config["build"]["dest"] = json!({});
+    config["build"]["local"] = json!({});
+    config["build"]["github"] = json!({});
     config["directories"]["raw"]["path"] = json!("../store/catalogues");
     save(&root, &config);
     let before = files(&root);

@@ -72,7 +72,7 @@ fn setup() -> (tempfile::TempDir, PathBuf, Value) {
     let config = json!({"directories":{"raw-data":{"path":"input"},"output":{"path":"results"},
         "cache":{"path":"cache","safe":true}},
         "remotes":{"local":{"backup":{"path":"../store","structure":"xet","content":true}}},
-        "build":{"scripts":[],"git":false,"dest":{"backup":{"content":["raw-data"]}}}});
+        "build":{"scripts":[],"git":false,"local":{"backup":{"content":["raw-data"]}}}});
     save(&root, &config);
     (temp, root, config)
 }
@@ -97,7 +97,8 @@ fn invoke(root: &Path, engine: Option<&Path>, server: &Server) -> Command {
 fn github_setup() -> (tempfile::TempDir, PathBuf, Value) {
     let (temp, root, mut config) = setup();
     config["remotes"] = json!({"github":{"data":{"structure":"xet","content":["raw-data"]}}});
-    config["build"]["dest"] = json!({"data":{}});
+    config["build"]["local"] = json!({});
+    config["build"]["github"] = json!({"data":{}});
     save(&root, &config);
     for args in [
         vec!["init"],
@@ -174,7 +175,8 @@ fn github_xet_preview_and_empty_selection_need_no_helper_or_network() {
     assert_eq!(fs::read(root.join("VERSION")).unwrap(), version);
     assert!(!namespace(&root).exists());
     assert!(!server.state.lock().unwrap().exists);
-    config["build"]["dest"] = json!({});
+    config["build"]["local"] = json!({});
+    config["build"]["github"] = json!({});
     save(&root, &config);
     success(invoke(&root, None, &server).arg("build").output().unwrap());
     assert!(!server.state.lock().unwrap().exists);
@@ -186,7 +188,8 @@ fn github_xet_tag_collision_fails_before_hooks_and_credentials() {
     let (_temp, root, mut config) = github_setup();
     config["remotes"]["github"] =
         json!({"data store":{"structure":"xet"},"data-store":{"structure":"xet"}});
-    config["build"]["dest"] = json!({"data store":{},"data-store":{}});
+    config["build"]["local"] = json!({});
+    config["build"]["github"] = json!({"data store":{},"data-store":{}});
     fs::write(
         root.join("start.py"),
         "from pathlib import Path\nPath('hook-ran').write_text('bad')\n",
@@ -274,7 +277,8 @@ fn actual_configured_github_xet_refs_fresh_restore_and_failure_preservation() {
     let fresh = temp.path().join("fresh project");
     fs::create_dir_all(fresh.join("home")).unwrap();
     copy_tree(&root.join(".proj/remotes"), &fresh.join(".proj/remotes"));
-    config["build"]["dest"] = json!({});
+    config["build"]["local"] = json!({});
+    config["build"]["github"] = json!({});
     save(&fresh, &config);
     fs::write(fresh.join("VERSION"), b"v9.8.7\n").unwrap();
     success(
@@ -342,7 +346,7 @@ fn ordinary_literal_version_text_title_remains_valid_beside_shared_store() {
     let (_temp, root, mut config) = github_setup();
     config["remotes"]["github"]["results@version"] =
         json!({"structure":"archive","content":["raw-data"]});
-    config["build"]["dest"]["results@version"] = json!({});
+    config["build"]["github"]["results@version"] = json!({});
     save(&root, &config);
     success(
         invoke(&root, None, &server)

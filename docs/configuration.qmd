@@ -96,9 +96,66 @@ Local locations can use ordinary latest/archive folders, shared whole-file stora
 (`cas`), or experimental shared-pieces storage (`xet`). GitHub supports ordinary
 latest/archive uploads and complete-store ZIPs for `cas` and `xet`.
 
-Choose uploads with `build.dest`. Removing a destination from that selection
-leaves its definition available for restoring older data. The detailed examples
-below explain `content`, comparison/upload controls, and manifest options.
+Choose uploads under `build.local` or `build.github`, as in projr 0.8.0
+(`SATVILab/projr@ab3ce8a`, vignette "Saving artifacts"). A title registered under
+`remotes` is selected by the matching `build` entry:
+
+| Entry under `build.local` or `build.github` | What a production build sends |
+|---|---|
+| Omit the title | Nothing. The definition stays available for restore. |
+| `reports: {}` or a bare `reports:` | All declared non-cache labels (within the definition's own `content`, if set). |
+| `reports: {content: [output]}` | Only the listed labels. `content: []` sends nothing. |
+
+A selection accepts only `content`; put the address, layout and transfer
+settings under `remotes`. A `build` title that is not registered is a complete
+inline definition, as before. Inline and registered entries may be mixed. An
+empty inline local entry fails with projr's hint to define
+`remotes.local.TITLE.path`. The earlier projcli `build.dest` key is removed.
+
+```yaml
+remotes:
+  local:
+    shared:
+      path: ../team-archives/@branch
+  github:
+    reports:
+      repo: research-team/study-results
+      tag: "figures-@version"
+      branch: "@branch"
+build:
+  local:
+    shared: {}
+  github:
+    reports:
+      content: [output]
+```
+
+GitHub destinations accept projr's `repo` (an `owner/name` destination
+repository; defaults to the Git `origin` of the project), `tag` (release name used
+for both the Git tag and the release title; defaults to an inline `title`, then the
+entry name; a differing `tag` and `title` is an error) and `branch` (the branch
+whose head a newly created release targets; `"@branch"` means the checkout's
+branch). When a release is missing, the build checks before any hook that the
+branch exists in the destination repository and that no existing Git tag of that
+name points elsewhere, and stops otherwise. An existing release keeps its target.
+These fields are rejected on local destinations.
+
+Local destination names and paths and GitHub release names accept projr's
+placeholders: `@version` (the build version with a leading `v`), `@branch` (the
+checkout's branch, encoded as a path component, so `feature/foo` becomes
+`feature_2ffoo`; a detached checkout gives `__detached-` and the commit ID) and
+`@uuid` (a fresh UUIDv4 per build). A placeholder ends at the end of the text or
+before `-`, `_`, `.`, a space, `/` or `\`, so `archive-@branching` stays literal.
+Quote YAML values that begin with `@`. Values are resolved once before hooks;
+the build's attempt record (`.proj/log/<attempt>.json`, field `destinations`)
+keeps the build UUID and each resolved GitHub repository/tag and local path
+(project-relative paths only; an absolute path is reproduced from the
+configuration and the recorded UUID). CAS and Xet store paths are not expanded.
+Restore expands `@version` and `@branch` from the current checkout; `@uuid`
+destinations cannot yet be restored by configuration.
+
+The detailed examples below explain `content`, comparison/upload controls, and
+manifest options.
 See [shared-file GitHub backups](cas-github.qmd) and [experimental Xet](xet-storage.qmd)
 for their additional requirements and limits.
 
@@ -106,10 +163,9 @@ for their additional requirements and limits.
 
 The `_proj.yml` file can also contain a `build` block to configure the behavior of the `proj build` and `proj build-dev` execution engine. The `build` block supports the following sub-keys:
 
-- **`dest`**: Select named destinations defined under `remotes.local` or
-  `remotes.github`. Use a list of names, or the documented name-to-options
-  mapping to narrow each destination's `content`. The destination's structure
-  controls how files are saved. Removing a name from `build.dest` stops uploads
+- **`local`** / **`github`**: Select registered remotes by title (optionally
+  narrowing `content`) or define inline destinations; see
+  [Remotes Configuration](#remotes-configuration). Removing a title stops uploads
   without removing that remote as a restore source.
 - **`scripts`**: An optional list of explicit script paths or glob patterns to execute during the build pipeline.
   - Globbing patterns are supported.
@@ -130,7 +186,8 @@ The `_proj.yml` file can also contain a `build` block to configure the behavior 
   These are projr's keys (`SATVILab/projr@ab3ce8a:R/yml-restrictions.R`).
   - **`branch`**: Omitted or `true` allows any branch. `false` or `[]` blocks production builds on every branch; a list (or a single name, `branch: main`) allows only the named branches. Outside a Git repository the restriction does not apply, as in projr; inside one, a detached HEAD fails.
   - **`not_behind_git`**: Whether to check that the current branch is not behind its tracking upstream before a production build. The earlier projr spelling `not_behind` is also accepted; setting both fails. Omitted means on, as in projr: when a tracking upstream exists the build fetches it and aborts if the branch is behind; without a tracking upstream the check is skipped, and a failed fetch only warns. Explicit `true` makes a missing upstream or failed fetch an error. Like projr, both restrictions are skipped (no Git process starts) outside a repository; projcli detects one from a `.git` entry at the project root or any ancestor. An upstream that cannot be compared (its remote branch was pruned) warns and skips unless the value is explicit `true`. `false` performs no fetch.
-  - `not_behind_remote` and `rule` (archive version checks) are not yet supported and fail validation.
+  - **`not_behind_remote`**: Archive version check before any hook or rendering (projr `R/build-remote-versions.R`). Omitted or `true` checks the ordinary local and GitHub destinations this production build publishes to; `false` skips the check; a title or list of titles checks those remotes (registered or inline), even when the build does not publish to them; `{github: [reports], local: [backup]}` qualifies titles that exist for both types. For each archive the build reads its completed project version (the `Project:` line of its `VERSION`, or `VERSION.zip` on a GitHub release) with read-only lookups. A missing or empty archive passes; a populated archive without a readable version stops the build. The proposed version must be newer than the archive's.
+  - **`rule`**: `base_version_not_behind` (or `base`, the default) also requires the last completed local version to be at least the archive's. That base is the newest completed production attempt in `.proj/log` (projcli's counterpart of projr's BUILDLOG), else the `VERSION` file when it has no development component. `target_version_not_behind` (or `target`) checks only the proposed version, for publishing from an older checkout. Development builds skip the check; CAS and Xet stores are not checked.
 - **`clear_output`**: An optional string controlling workspace clearing routines for output directories. Can be set to `"pre"`, `"post"`, or `"never"`. If omitted, defaults to evaluating the `PROJR_CLEAR_OUTPUT` environment variable.
 
 ## Development Overrides
@@ -320,7 +377,7 @@ definition/send fields already accepted by inline ordinary publication.
             cue: if-change
             inspect: manifest
     build:
-      dest:
+      local:
         current:
           content: [output]
       scripts: []
@@ -330,8 +387,9 @@ A selected destination's content list limits that build to declared labels allow
 by the remote's content, if specified. Omit the destination's content to use all
 remote-eligible labels; if the remote also omits content, ordinary content:true
 selection applies (declared non-cache labels, with existing hash requirements).
-Explicit content:[] selects no labels. build.dest:{} selects no registered
-uploads. Registry membership alone does not upload or load GitHub credentials.
+Explicit content:[] selects no labels. Omitting a registered title from
+build.local/build.github sends nothing to it. Registry membership alone does not
+upload or load GitHub credentials.
 
 Normal builds now accept and validate the existing directory source metadata:
 
@@ -343,24 +401,23 @@ Normal builds now accept and validate the existing directory source metadata:
 
 This does not automatically restore during a build. Use the existing
 remote restore command with --label, optionally --title/--provider and explicit
-version/clear choices. Source lookup uses the registry independently of build.dest.
+version/clear choices. Source lookup uses the registry independently of upload selection.
 Directory-specific references keep priority. Existing legacy preferred sources
 win first; an explicitly preferred registered source can win over an unpreferred
 legacy fallback. Otherwise legacy fallback order remains ahead of newly
 available registry fallback definitions.
 
-Unknown names, duplicate/portable-aliased registered names, invalid/excluded label
-subsets and conflicting registry/inline definitions fail before hooks or writes.
-The new mapping selection cannot be mixed with inline build.local/build.github;
-move those definitions to remotes first. Empty/omitted subsets are distinct from
-null; explicitly null/malformed mapping entries are rejected. Remote-level
-content:null retains its existing disabled/no-label meaning and cannot be
-overridden by a build subset.
+Duplicate/portable-aliased registered names, invalid/excluded label subsets and
+selection entries with fields other than content fail before hooks or writes.
+Registered selections and inline definitions can be mixed. A bare (null) entry
+means the same as {}; content: null is rejected. Remote-level content:null
+retains its existing disabled/no-label meaning and cannot be overridden by a
+build subset.
 
-Legacy inline ordinary builds and legacy CAS name-list destinations retain their
-existing path. Purely legacy CAS name lists do not acquire new case-folding rules.
-The new registry also accepts an ordinary name list for all eligible content,
-while mapping form is required for per-build label subsets.
+Inline ordinary definitions keep their existing behaviour (no new metadata
+defaults). Legacy flat CAS definitions under remotes.local are selected the same
+way (build.local.TITLE: {} or a content subset) and do not acquire case-folding
+rules.
 
 Named ordinary local destinations now support flat CSV/JSON history and metadata
 placement, described below. GitHub flat/tree metadata is also implemented below. Configured CAS tree mapping
@@ -383,7 +440,7 @@ remotes:
       manifest: auto
       manifest-style: tree
 build:
-  dest:
+  local:
     snapshots:
       content: [raw, output]
 ~~~
@@ -423,7 +480,7 @@ Ordinary local and GitHub tree metadata are described below.
 
 The explicit [CAS restore/verify commands](cli/remote.qmd#verify-or-restore-an-exact-local-cas-tree-snapshot-development-source)
 use a named remotes.local definition and saved snapshot ID. They do not run
-build.dest selection or require the current write style/placement to match the
+upload selection or require the current write style/placement to match the
 older snapshot. The destination label must still be declared. Existing full
 remote and project metadata are checked; no root manifest.csv or mutable index
 is required. Normal directory-source preference remains the ordinary restore
@@ -451,7 +508,7 @@ remotes:
       manifest-format: csv
       manifest: remote
 build:
-  dest:
+  local:
     snapshots:
       content: [raw, output]
 ~~~
@@ -526,7 +583,7 @@ remotes:
       manifest-style: flat
       manifest-format: csv
 build:
-  dest:
+  local:
     backup:
       content: [raw, output]
 ~~~
@@ -582,7 +639,7 @@ remotes:
       manifest: both
       manifest-format: json
 build:
-  dest:
+  github:
     analysis-files:
       content: [raw, output]
 ~~~
@@ -650,7 +707,7 @@ remotes:
       # Optional for tree style; JSON is the fixed representation.
       manifest-format: json
 build:
-  dest:
+  local:
     backup:
       content: [raw, output]
 ~~~
@@ -705,7 +762,7 @@ remotes:
       # Optional; tree metadata has a fixed JSON representation.
       manifest-format: json
 build:
-  dest:
+  github:
     backup:
       content: [raw, output]
 ~~~
@@ -884,7 +941,7 @@ installation, examples, format limits and the actual corruption-test results.
 ### Complete stores on GitHub
 
 `remotes.github.<name>.structure: xet` uses one long-running storage release for
-whole-store ZIPs. Select uploads with `build.dest`. Exact snapshot restore and
+whole-store ZIPs. Select uploads under `build.local` or `build.github`. Exact snapshot restore and
 verification require `--max-bytes`, `--max-expanded-bytes` and the trusted
 Git-tracked project records identifying the uploaded ZIP. Old exports are retained.
 

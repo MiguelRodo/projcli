@@ -192,7 +192,7 @@ fn setup(
     let config = json!({"directories":{"raw":{"path":"input"}},
         "remotes":{"local":{"delivery":{"path":"../store","structure":layout,"manifest":placement,
             "manifest-format":mode,"send":{"inspect":"file","strategy":strategy}}}},
-        "build":{"scripts":[],"git":false,"dest":{"delivery":{}}}});
+        "build":{"scripts":[],"git":false,"restrictions":{"not_behind_remote":false},"local":{"delivery":{}}}});
     save(&root, &config);
     (temp, root, config)
 }
@@ -429,7 +429,7 @@ fn registry_defaults_enable_csv_but_legacy_inline_remains_unchanged_and_invalid_
         definition.as_object_mut().unwrap().remove(key);
     }
     config.as_object_mut().unwrap().remove("remotes");
-    config["build"].as_object_mut().unwrap().remove("dest");
+    config["build"].as_object_mut().unwrap().remove("local");
     config["build"]["local"] = json!({"delivery":definition});
     save(&root, &config);
     build(&root);
@@ -492,7 +492,7 @@ fn aliased_inline_metadata_titles_fail_before_hooks_or_external_writes() {
     let mut second = definition.clone();
     second["path"] = json!("../second");
     config.as_object_mut().unwrap().remove("remotes");
-    config["build"].as_object_mut().unwrap().remove("dest");
+    config["build"].as_object_mut().unwrap().remove("local");
     config["build"]["local"] = json!({"A":definition,"a":second});
     config["build"]["hooks"] = json!({"pre":["start.py"]});
     fs::write(

@@ -632,7 +632,7 @@ returns the complete observed file paths/hashes and folder roots; it deeply
 checks metadata identities and file bytes without writing anything.
 
 Snapshot restore requires a declared destination label and --title. It uses the
-exact saved label membership, not current build.dest/content upload choices or
+exact saved label membership, not current build.local/build.github/content upload choices or
 automatic source preferences. This lets an older saved raw folder be restored
 after uploads for raw have been disabled. Omit --clear to preserve destination-
 only files; with --clear, the selected folder has exactly the saved names/bytes,

@@ -4364,3 +4364,79 @@ path; data written by projr is still read.
   BUILDLOG/CHANGELOG generation are later slices.
 - **Ponytail (full):** one new module reusing `ManifestRow` validation, path
   safety and tempfile persistence; `ring` was already in the lockfile.
+
+## projr 0.8.0 remotes schema and archive version check (26 November 2026)
+
+Slice 3 of MiguelRodo/issues#910, compared statically with SATVILab/projr@ab3ce8a.
+No projects use projcli yet, so projcli's `build.dest` selection is removed
+without a migration path or alias.
+
+- **Same (static source): selection.** Definitions under `remotes.<type>.<title>`
+  are selected by `build.<type>.<title>`, which accepts only `content`; a bare or
+  `{}` entry selects every declared non-cache label, `content: null` is rejected,
+  and an empty inline local entry fails with projr's "Define
+  remotes.local.TITLE.path" hint (`R/yml-check.R:288-380`). An unregistered
+  `build` title is an inline definition; registered and inline entries combine
+  (`R/yml-dest.R:176-212`). Removing a title stops uploads; registered definitions
+  stay restore sources, and restore ignores a `build` entry for a registered title
+  rather than treating it as a second definition. **Different (stricter):**
+  registered titles stay unique across remote types and portable spellings, and a
+  registered definition may keep projcli's own `content` restriction; projr rejects
+  `content` under `remotes` and allows the same title under both types. A local
+  remote `ignore` field remains unsupported.
+- **Same: GitHub routing.** `repo` (`owner/name`, defaulting to the Git `origin`),
+  `tag` (default: inline `title`, then the entry name; differing `tag` and `title`
+  fail), trimmed with inner spaces as `-` (`R/yml-dest.R:251-289`,
+  `R/remote-github.R:927-932`), and `branch`, where `@branch` is the checked-out
+  branch (`R/remote-github.R:137-216`). A new Release targets the branch head; a
+  missing branch or an existing Git tag that points elsewhere (annotated tags are
+  peeled) stops creation (`R/remote-github-httr.R:104-171`). Duplicate
+  repository/tag pairs fail. **Different:** projr creates missing Releases before the
+  build (`R/dest-send-prepare.R`); projcli still creates them lazily at the first
+  upload, so a failed build leaves no Release, but checks the branch and tag
+  read-only before hooks when the Release is missing and again at creation.
+- **Same: placeholders.** `@version` (with `v`), `@branch` (projr's path-component
+  encoding, `__detached-<sha>` when detached) and `@uuid` (UUIDv4 per build), ending
+  before `-`, `_`, `.`, space, `/` or `\` (`R/template.R`), in local names and paths
+  and GitHub release names. They resolve once before hooks; `HEAD` is read from the
+  checkout (following a worktree `gitdir:`) without starting Git.
+  **Different:** resolved destinations are recorded in the attempt record
+  (`destinations`: build UUID, each GitHub repository/tag and each project-relative
+  local path) instead of BUILDLOG; absolute local paths are not recorded, since they
+  may come from an uncommitted local profile, and can be reproduced from the
+  configuration with the recorded UUID. No API origin, URL or credential is
+  written. **Gaps:** directory paths and CAS/Xet store paths are not expanded; the
+  UUID is not exported to scripts; configured restore expands `@version`/`@branch`
+  from the current checkout and refuses `@uuid` until the restore slice reads the
+  record.
+- **Same: archive version check.** `build.restrictions.not_behind_remote` (default
+  true; false; a title, a list, or `{github: [...], local: [...]}`) and `rule`
+  (`base_version_not_behind`/`base` default, `target_version_not_behind`/`target`)
+  (`R/yml-restrictions.R:104-168`, `R/build-remote-versions.R`). Before hooks and
+  rendering, each archive's completed version is read (`Project:` line or a single
+  plain version, `*` removed; `R/get.R:329-367`); missing or empty archives pass, a
+  populated archive without a readable version fails, the proposed version must be
+  newer, and under the base rule the last completed local version must not be
+  behind. All archives are reported before failing. Lookups are read-only.
+  Listed titles are checked even when not selected; unknown and ambiguous titles
+  fail. Approved default-on by the user (25 November, MiguelRodo/issues#910).
+  **Different:** the local base is the newest completed production attempt record
+  in `.proj/log` (projcli's counterpart of BUILDLOG), else a non-development
+  `VERSION`. CAS and Xet stores are not checked; there are no one-off archives.
+- **Tests:** unit tests in `src/remote_registry.rs` (selection forms, inline/registry
+  mixing, legacy CAS, field validation), `src/template.rs` (terminators, encoding,
+  detached/missing checkouts, UUID) and `src/yml.rs` (restriction values);
+  `tests/test_remotes_schema.rs` (local placeholders and recorded evidence, a new
+  archive per `@uuid` build, base/target rules, equal versions, opt-out, populated
+  archive without VERSION, listed/unknown/ambiguous titles, inline and selection
+  validation, and a loopback GitHub mock for a separate `repo`, templated tag and
+  `target_commitish`, missing branch, conflicting tag and the read-only VERSION.zip
+  check). Existing fixtures moved from `build.dest` to `build.local`/`build.github`;
+  publication-mechanics fixtures that pre-populate archives without a project
+  VERSION set `not_behind_remote: false`. Local runs used the `projcli-dev`
+  container (no R/Quarto); CI on the exact head is the full verification.
+- **Ponytail (full):** reused `encode_component`, `local_remote` version ordering,
+  the GitHub client and `VERSION.zip` reader, `history::read` and the existing
+  publication path resolver; `ring` supplies the UUID. Capture reuses
+  `release_tag` rather than a second tag parser. One small module each for
+  placeholders and the version check; no new dependencies.
