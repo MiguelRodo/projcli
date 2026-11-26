@@ -26,6 +26,8 @@ struct Release {
     id: u64,
     tag_name: String,
     upload_url: Option<String>,
+    #[serde(default)]
+    body: Option<String>,
 }
 
 /// GitHub REST client with streaming file bodies and no automatic redirects.
@@ -280,6 +282,35 @@ impl GithubReleaseClient {
             "GitHub Release identity does not match request"
         );
         Ok(release.id)
+    }
+    /// Whether a token is available for writes.
+    pub(crate) fn has_token(&self) -> bool {
+        self.token.is_some()
+    }
+    /// Read-only: the ID and body of an existing exact-tag Release, or None.
+    pub(crate) fn release_note(&self, tag: &str) -> anyhow::Result<Option<(u64, String)>> {
+        anyhow::ensure!(
+            !tag.is_empty() && !tag.chars().any(char::is_control),
+            "Invalid GitHub Release tag"
+        );
+        let response = self.get(
+            &format!("/repos/{}/releases/tags/{}", self.repository, encode(tag)),
+            "application/vnd.github+json",
+        )?;
+        let status = response.status().as_u16();
+        if status == 404 {
+            return Ok(None);
+        }
+        anyhow::ensure!(
+            status == 200,
+            "GitHub Release lookup failed (HTTP {status})"
+        );
+        let release: Release = json(response)?;
+        anyhow::ensure!(
+            release.id != 0 && release.tag_name == tag,
+            "GitHub Release identity does not match request"
+        );
+        Ok(Some((release.id, release.body.unwrap_or_default())))
     }
     /// Replace the body of a Release this build created.
     pub(crate) fn set_release_note(&self, id: u64, note: &str) -> anyhow::Result<()> {

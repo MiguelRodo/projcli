@@ -111,7 +111,8 @@ Settings are `content` (the labels to publish; omitted means every declared
 non-cache label within the remote's own `content`; `content: []` sends nothing)
 and `cue`, `inspect` and `strategy`, which override the remote's `send` values.
 Per-remote settings win over `build.dest` options. Options in a list, unknown
-settings, unknown or repeated remotes and `content: null` are errors. A title may
+settings and unknown or repeated remotes are errors; a null setting inherits the
+`build.dest` option, as projr's list merge drops it. A title may
 be used for both a GitHub and a local remote: write `github:reports` or
 `local:reports` wherever the name would otherwise be ambiguous (`build.dest`,
 `build.restrictions.not_behind_remote` and `proj remote restore --title`). The
@@ -415,7 +416,9 @@ by the remote's content, if specified. Omit the destination's content to use all
 remote-eligible labels; if the remote also omits content, ordinary content:true
 selection applies (declared non-cache labels, with existing hash requirements).
 Explicit content:[] selects no labels. build.dest:{} selects no registered
-uploads. Registry membership alone does not upload or load GitHub credentials.
+uploads. Registry membership alone does not upload or load GitHub credentials;
+naming a GitHub remote in `build.restrictions.not_behind_remote` makes a read-only
+version lookup.
 build.dest also accepts projr 0.9's name and list forms, global options and
 `github:`/`local:` qualified names; see [Remotes Configuration](#remotes-configuration).
 
@@ -430,10 +433,8 @@ Normal builds now accept and validate the existing directory source metadata:
 This does not automatically restore during a build. Use the existing
 remote restore command with --label, optionally --title/--provider and explicit
 version/clear choices. Source lookup uses the registry independently of build.dest.
-Directory-specific references keep priority. Existing legacy preferred sources
-win first; an explicitly preferred registered source can win over an unpreferred
-legacy fallback. Otherwise legacy fallback order remains ahead of newly
-available registry fallback definitions.
+Directory-specific references keep priority, then registered remotes in
+declaration order. A stale name in build.dest does not stop a restore.
 
 Unknown names, duplicate/portable-aliased registered names within a type and
 invalid/excluded label subsets fail before hooks or writes. Inline

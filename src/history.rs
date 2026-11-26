@@ -39,14 +39,18 @@ fn terminal(status: &str) -> bool {
     matches!(status, "completed" | "failed")
 }
 
-/// The release version of the most recently started completed production attempt
-/// among the 100 newest records, as projr reads the first BUILDLOG header.
-/// Failed, unresolved and local-only attempts do not count.
+/// The release version of the most recently started production attempt whose local
+/// release completed, among the 100 newest records, as projr reads the first BUILDLOG
+/// header. A Git-committing build's snapshot stays "unresolved" in a fresh clone until
+/// its untracked receipt is committed by the next build, so it counts too; failed and
+/// local-only attempts do not.
 pub(crate) fn last_completed(root: &Utf8Path) -> anyhow::Result<Option<String>> {
     Ok(read(root, None, 100)?
         .entries
         .into_iter()
-        .filter(|entry| entry.status == "completed" && !entry.local_only)
+        .filter(|entry| {
+            matches!(entry.status.as_str(), "completed" | "unresolved") && !entry.local_only
+        })
         .find_map(|entry| entry.release_version))
 }
 

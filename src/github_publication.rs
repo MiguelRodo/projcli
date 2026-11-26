@@ -310,24 +310,47 @@ pub(crate) fn capture(
     }
     Ok(targets)
 }
+const PENDING_NOTE: &str = "Created by projcli before build ";
 fn pending_note(version: &str) -> String {
     format!(
-        "Created by projcli before build {version}. That build has not finished publishing, so this release may be empty or incomplete."
+        "{PENDING_NOTE}{version}. That build has not finished publishing, so this release may be empty or incomplete."
     )
 }
 /// Create each missing Release once all read-only preflight checks have passed and
 /// before any hook, as projr does (SATVILab/projr@5f915ef `R/dest-send-prepare.R:1-59`,
 /// `R/build.R`). The new Release notes that a build is pending; a later failure
-/// leaves it in place (possibly empty) and is never rolled back or deleted.
-pub(crate) fn prepare_releases(targets: &mut [Target], version: &str) -> anyhow::Result<()> {
-    for target in targets {
-        if target.client.assets_if_exists(&target.tag)?.is_none() {
-            let id = target
-                .client
-                .create_release(&target.tag, &pending_note(version))
-                .with_context(|| format!("Cannot create GitHub Release {}", target.tag))?;
-            target.created = Some(id);
+/// leaves it in place (possibly empty) and is never rolled back or deleted. An
+/// existing Release still carrying a pending note (from an earlier failed build) is
+/// also marked, so the next successful publication replaces that note. Every
+/// Release to create must have a token before the first is created. Created tags are
+/// appended to `created` as each one succeeds.
+pub(crate) fn prepare_releases(
+    targets: &mut [Target],
+    version: &str,
+    created: &mut Vec<String>,
+) -> anyhow::Result<()> {
+    let mut missing = Vec::new();
+    for (index, target) in targets.iter_mut().enumerate() {
+        match target.client.release_note(&target.tag)? {
+            None => missing.push(index),
+            Some((id, note)) if note.starts_with(PENDING_NOTE) => target.created = Some(id),
+            Some(_) => {}
         }
+    }
+    anyhow::ensure!(
+        missing
+            .iter()
+            .all(|index| targets[*index].client.has_token()),
+        "Creating a GitHub Release requires a token with write access to the destination repository"
+    );
+    for index in missing {
+        let target = &mut targets[index];
+        let id = target
+            .client
+            .create_release(&target.tag, &pending_note(version))
+            .with_context(|| format!("Cannot create GitHub Release {}", target.tag))?;
+        target.created = Some(id);
+        created.push(target.tag.clone());
     }
     Ok(())
 }

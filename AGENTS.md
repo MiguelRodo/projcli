@@ -856,7 +856,7 @@ that publish nothing resolve no placeholders. The archive version check
 (not_behind_remote default true, names or <type>:<title> only; rule base) runs
 before hooks with read-only lookups and fails closed on populated archives without
 a readable version. GitHub branch checks are read-only; after all read-only
-preflight checks, missing Releases are created before hooks with a pending note
+preflight checks and recovery capture, missing Releases are created before hooks with a pending note
 that successful publication replaces; never roll back or delete them on failure.
 Restore by recorded destination, build.source fetching and pipelines are separate
 slices.

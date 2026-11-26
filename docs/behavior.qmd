@@ -800,13 +800,14 @@ CLI commands; selection/registry wiring is still M3 work.
 
 Named ordinary remotes now remain restore sources independently of current build
 upload selection. The existing provider cue/inspection/strategy engines execute
-only selected targets; registered but unselected GitHub definitions do not load
-credentials or contact a provider. Existing per-directory source references can
+only selected targets; registered GitHub definitions that build.dest does not list
+load no credentials and contact no provider unless
+`build.restrictions.not_behind_remote` names them, which makes a read-only lookup. Existing per-directory source references can
 coexist with normal build configuration and are validated without auto-restore.
 
-Directory references retain priority, followed by legacy preferred sources,
-registry preferred sources, legacy fallback and registry fallback. A newly
-registered unpreferred definition does not displace an existing legacy fallback.
+Directory references retain priority, followed by registered remotes in
+declaration order (projr 0.9 removed inline definitions and remote `source:`
+preferences).
 
 Registry/build.dest mapping integration currently covers ordinary latest/archive
 and GitHub Release operations. Configured tree publication and placement are described below. Flat CSV/JSON publication is described below; automatic CAS selection remains
@@ -872,9 +873,9 @@ root CSV and old flat/tree snapshots remain unchanged. Ordinary local flat histo
 
 ## Actual ordinary local file lists (development source)
 
-Named ordinary local destinations default to flat CSV history with both full
-metadata copies; explicit flat formats and placement are supported. Legacy inline
-build.local without new policy fields retains its behavior. Complete inventories
+Ordinary local destinations that opt in with a manifest field record flat CSV
+history by default with both full metadata copies; explicit flat formats and
+placement are supported. A remote without those fields writes no projcli metadata. Complete inventories
 describe final destination bytes, not the source CSV. Build versions and physical
 data locations remain distinct; archive reuse and legacy VERSION* are preserved.
 No CAS object store is introduced for ordinary destinations. Recorded same-version
@@ -889,9 +890,9 @@ selection or historical latest-data recovery is claimed.
 
 ## Actual GitHub flat histories (development source)
 
-Named GitHub destinations default to flat CSV with both new full metadata copies;
-all four flat formats and placement controls execute. Legacy inline definitions
-without new policy retain behavior. Complete inventories describe exact prepared
+GitHub destinations that opt in with a manifest field default to flat CSV with both
+new full metadata copies; all four flat formats and placement controls execute. A
+remote without those fields writes no projcli metadata. Complete inventories describe exact prepared
 ZIPs or physically downloaded reused assets, with immutable frozen repository/tag/
 asset bindings. Catalog-only placeholders cannot supply recorded bytes.
 
@@ -1130,7 +1131,7 @@ Git process) and a fresh UUIDv4; later YAML edits by scripts do not change them.
 Builds that publish nothing (previews, `output_run: false`) resolve none. A GitHub
 `branch` is checked read-only when its Release is missing (the branch must exist;
 an existing tag must point at its head). Missing Releases are then created after
-all read-only preflight checks and before managed-state capture and hooks. projcli
+all read-only preflight checks and the recovery capture, just before hooks. projcli
 metadata (`.projcli-manifests`) is written only when a remote opts in with a
 manifest field.
 

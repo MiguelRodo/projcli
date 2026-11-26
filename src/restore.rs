@@ -419,7 +419,7 @@ pub(crate) fn projected_config(
     let mut config: crate::yml::ProjConfig =
         serde_json::from_value(projection).context("Invalid restore project configuration")?;
     crate::remote_registry::validate_names(&config)?;
-    crate::remote_registry::validate_selections(&config)?;
+    crate::remote_registry::reject_inline(&config)?;
     // Upload selection never limits restore sources.
     config.build.dest = None;
     config.validate_and_resolve(root, false)

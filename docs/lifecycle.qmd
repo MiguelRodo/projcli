@@ -77,7 +77,7 @@ output build's transition to the next development version.
 ```{mermaid}
 %%| label: fig-lifecycle-pre
 %%| fig-cap: "Released pre-build order."
-%%| fig-alt: "Select root and profiles, validate merged configuration, capture run inputs and resolve destination placeholders, preflight targets, dependencies and archive versions, create missing GitHub Releases, capture recovery state, run start hooks, then finish preparation."
+%%| fig-alt: "Select root and profiles, validate merged configuration, capture run inputs and resolve destination placeholders, preflight targets, dependencies and archive versions, capture recovery state, create missing GitHub Releases, run start hooks, then finish preparation."
 %%{init: {"htmlLabels": false}}%%
 flowchart TB
   classDef default fill:#f0f4f7,stroke:#637b89,color:#153b32
@@ -86,12 +86,13 @@ flowchart TB
   B["[R] Resolve profiles and<br/>environment; merge config;<br/>settings HOW / build WHAT"]
   C["[R/T] Validate typed configuration<br/>and explicit resource mappings"]
   D["[R] Capture root, profiles,<br/>mappings, mode and active run<br/>version; source: resolve @version/<br/>@branch/@uuid destinations"]
-  E["[R/T] Preflight source groups / globs,<br/>exclusions, output collisions,<br/>dependencies and enabled Git;<br/>source: archive version check,<br/>then create missing GitHub Releases"]
+  E["[R/T] Preflight source groups / globs,<br/>exclusions, output collisions,<br/>dependencies and enabled Git;<br/>source: archive version check"]
+  P["Source: create missing GitHub<br/>Releases (pending note)"]
   F["[R] Enumerate and capture managed<br/>recovery state before controlled<br/>writes"]
   G["[R] Run configured start hooks"]
   R["Local candidate: optional R snapshot<br/>before start hooks"]
   H["[R] Complete safe staging and renderer<br/>preparation"]
-  A --> B --> C --> D --> E --> F --> R --> G --> H
+  A --> B --> C --> D --> E --> F --> P --> R --> G --> H
   classDef existing fill:#e5f2ed,stroke:#146859,color:#153b32
   classDef main fill:#e7effa,stroke:#315b89,color:#183954
   classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
@@ -121,7 +122,8 @@ flowchart TB
   once with the run version and are frozen; production builds then check selected
   archive versions (`build.restrictions.not_behind_remote`, read-only) and stop
   before recovery capture and start hooks when a proposed version is not newer.
-  After every read-only preflight check, missing GitHub Releases are created with a
+  After every read-only preflight check and the recovery capture, just before hooks,
+  missing GitHub Releases are created with a
   pending note (projr 0.9 order); a later failure keeps them, possibly empty, and
   successful publication replaces the note. This is not in any published preview.
 - Start/end refer to the existing pre/both and post/both hook sets, not new

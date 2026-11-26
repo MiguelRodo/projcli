@@ -4375,8 +4375,11 @@ projects use projcli yet, so projcli's own earlier forms are not migrated.
   mappings, or a mapping of global options and remote names; `content`, `cue`,
   `inspect` and `strategy`, with per-remote values over global ones and both over
   the remote's `send` (`R/yml-dest.R:581-659`, `R/yml-dest.R:184-212`). Options in a
-  list, unknown settings, repeated or undeclared remotes and `content: null` fail. A
-  selected remote without `content` sends every declared non-cache label.
+  list, unknown settings and repeated or undeclared remotes fail. A selected remote
+  without `content` sends every declared non-cache label. **Different:** a remote may
+  keep projcli's own `content` as an upper bound that `build.dest` content must fit
+  within; projr's remote schema has no `content`.
+  A null setting inherits the `build.dest` option, as projr's `modifyList` drops it.
   `<type>:<title>` names, with projr's "Use local:X or github:X" error for an
   ambiguous bare title (`R/yml-dest.R:661-703`). The reserved titles `content`,
   `cue`, `inspect`, `strategy`, `conflict` and `version` are rejected
@@ -4437,6 +4440,23 @@ projects use projcli yet, so projcli's own earlier forms are not migrated.
   `not_behind_remote: false`, and metadata tests opt in with `manifest-style`.
   Local runs used the `projcli-dev` container (no R/Quarto); CI on the exact head
   is the full verification.
+- **Review (independent, 27 November):**
+  - The base rule missed a Git-committing build in a fresh clone. Its receipt is
+    untracked there, so the attempt read as unresolved. It now counts.
+  - A pending note left by a failed build was never replaced. A later successful
+    build now replaces it.
+  - Releases were created before the link and recovery-capture checks. They are now
+    created after them, just before hooks.
+  - A failed build now names the Releases it created.
+  - The token is checked once, before any Release is created.
+  - Restore no longer fails on a stale `build.dest` name.
+  - `content: null` now inherits.
+  - Docs on source priority, credentials and metadata defaults were corrected.
+  - Tests added: hook ordering, the failed-then-successful note, and the fresh-clone
+    base.
+  - **Gap:** creating a Release is not recorded as possible distribution. A later
+    pre-distribution failure keeps only the local diagnostic, and the error names
+    the created Releases.
 - **Ponytail (full):** reused `encode_component`, version ordering, the GitHub client
   and `VERSION.zip` reader, `history::read`, publication path resolution and one
   tag function; `ring` supplies the UUID. One module each for placeholders and the

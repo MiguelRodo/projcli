@@ -203,6 +203,8 @@ pub fn build_project_with_policies(
     let diagnostic_before = crate::attempt_log::diagnostic_version(project_root);
     let mut diagnostic_stage = "preflight";
     let mut distribution_started = false;
+    // GitHub Releases this build created before hooks; reported if it then fails.
+    let mut created_releases: Vec<String> = Vec::new();
     let mut diagnostic_allowed = true;
     let result = (|| -> anyhow::Result<()> {
         let is_dev = mode == BuildMode::Dev;
@@ -779,9 +781,6 @@ pub fn build_project_with_policies(
         if record_manifest {
             crate::manifest_store::read_project(project_root)?;
         }
-        // All read-only preflight checks have passed; create missing GitHub Releases
-        // before any hook, as projr does. A later failure leaves them in place.
-        crate::github_publication::prepare_releases(&mut github, &initial_version.to_string(true))?;
         // Capture exact local state before the first controlled project mutation.
         let mut managed = vec![];
         let mut native_artifacts = Vec::new();
@@ -980,6 +979,14 @@ pub fn build_project_with_policies(
             }
             Ok(())
         };
+        // Every read-only preflight check and the recovery capture have passed; create
+        // missing GitHub Releases before any hook, as projr does. A later failure
+        // leaves them in place (possibly empty) and is reported with their tags.
+        crate::github_publication::prepare_releases(
+            &mut github,
+            &initial_version.to_string(true),
+            &mut created_releases,
+        )?;
         diagnostic_stage = "local_build";
         let mut attempt_inventory = None;
         let mut document_stage = None;
@@ -1678,6 +1685,17 @@ pub fn build_project_with_policies(
         }
         publication_result.context("Local build succeeded; publication or end-hook finalization failed (local release preserved)")
     })();
+    // A created Release is a remote effect that recovery never undoes; say so.
+    let result = result.map_err(|error| {
+        if created_releases.is_empty() {
+            error
+        } else {
+            error.context(format!(
+                "GitHub Release(s) {} were created before the failure and remain, possibly empty",
+                created_releases.join(", ")
+            ))
+        }
+    });
     if result.is_err() && mode != BuildMode::Dev && !distribution_started && diagnostic_allowed {
         let evidence = crate::attempt_log::retain_local_failure(
             project_root,

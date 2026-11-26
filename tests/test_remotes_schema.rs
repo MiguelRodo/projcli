@@ -332,10 +332,11 @@ impl Server {
         let state = Arc::new(Mutex::new(state));
         let stop = Arc::new(AtomicBool::new(false));
         let (captured, halt, origin) = (state.clone(), stop.clone(), base.clone());
-        let release = |origin: &str| {
-            json!({"id":7,"tag_name":"figures-v1.2.4","upload_url":format!("{origin}/upload{{?name,label}}")})
-                .to_string()
-                .into_bytes()
+        let release = |origin: &str, note: Option<&String>| {
+            json!({"id":7,"tag_name":"figures-v1.2.4","body":note,
+                "upload_url":format!("{origin}/upload{{?name,label}}")})
+            .to_string()
+            .into_bytes()
         };
         let worker = thread::spawn(move || {
             while !halt.load(Ordering::Relaxed) {
@@ -370,7 +371,7 @@ impl Server {
                 let mut status = 200;
                 let response = if path == "/repos/team/results/releases/tags/figures-v1.2.4" {
                     if data.release {
-                        release(&origin)
+                        release(&origin, data.notes.last())
                     } else {
                         status = 404;
                         b"{}".to_vec()
@@ -402,11 +403,11 @@ impl Server {
                     data.created.push(value);
                     data.release = true;
                     status = 201;
-                    release(&origin)
+                    release(&origin, data.notes.last())
                 } else if method == "PATCH" && path == "/repos/team/results/releases/7" {
                     let value: Value = serde_json::from_slice(&body).unwrap();
                     data.notes.push(value["body"].as_str().unwrap().to_owned());
-                    release(&origin)
+                    release(&origin, data.notes.last())
                 } else if path.starts_with("/repos/team/results/releases/7/assets?") {
                     serde_json::to_vec(
                         &data
@@ -628,23 +629,115 @@ fn release_is_created_before_hooks_and_kept_when_the_build_fails() {
         ..State::default()
     });
     let (_temporary, root) = github_project();
-    fs::write(
-        root.join("pre.py"),
-        "from pathlib import Path\nPath('hook-ran').write_text('yes')\nraise SystemExit(3)\n",
-    )
-    .unwrap();
-    failed(build(&root, &[], Some(&server.base)));
-    assert!(root.join("hook-ran").exists());
+    // The hook announces itself to the mock, so request order shows hook timing.
+    let hook = format!(
+        "import urllib.request\ntry:\n    urllib.request.urlopen('{}/hook-ran')\nexcept Exception:\n    pass\nraise SystemExit(3)\n",
+        server.base
+    );
+    fs::write(root.join("pre.py"), hook).unwrap();
+    let error = failed(build(&root, &[], Some(&server.base)));
+    assert!(
+        error.contains("figures-v1.2.4 were created before the failure"),
+        "{error}"
+    );
     let state = server.finish();
     let created = state
         .paths
         .iter()
         .position(|path| path == "POST /repos/team/results/releases")
         .expect("Release created");
+    let hook = state
+        .paths
+        .iter()
+        .position(|path| path == "GET /hook-ran")
+        .expect("hook ran");
+    assert!(created < hook);
     assert_eq!(state.created.len(), 1);
     // projr: the empty Release stays, with its pending note; nothing is deleted.
     assert_eq!(state.notes.len(), 1);
     assert!(state.notes[0].contains("has not finished publishing"));
     assert!(state.assets.is_empty());
-    assert!(state.paths[created + 1..].is_empty());
+    assert_eq!(state.paths.len(), hook + 1);
+}
+
+#[test]
+fn a_later_successful_build_replaces_a_stale_pending_note() {
+    let server = Server::start(State {
+        branch: Some("a".repeat(40)),
+        ..State::default()
+    });
+    let (_temporary, root) = github_project();
+    fs::write(root.join("pre.py"), "raise SystemExit(3)\n").unwrap();
+    failed(build(&root, &[], Some(&server.base)));
+    fs::write(root.join("pre.py"), "pass\n").unwrap();
+    ok(build(&root, &[], Some(&server.base)));
+    let state = server.finish();
+    assert_eq!(state.created.len(), 1);
+    assert_eq!(state.notes.len(), 2);
+    assert_eq!(state.notes[1], "Published by projcli build v1.2.4.");
+    assert!(state.assets.contains_key("output-v1.2.4.zip"));
+}
+
+#[test]
+fn base_rule_counts_a_committed_snapshot_whose_receipt_is_not_in_the_clone() {
+    let (temporary, root) = project(json!({
+        "remotes":{"local":{"store":{"path":"../archive"}}},
+        "build":{"dest":"store"}
+    }));
+    fs::write(root.join("pre.py"), "pass\n").unwrap();
+    let mut config: Value =
+        serde_json::from_slice(&fs::read(root.join("_proj.yml")).unwrap()).unwrap();
+    config["build"]["git"] = json!({"commit": true});
+    fs::write(
+        root.join("_proj.yml"),
+        serde_json::to_vec_pretty(&config).unwrap(),
+    )
+    .unwrap();
+    let identity = "[user]\n\tname = Fixture\n\temail = fixture@example.invalid\n";
+    fs::write(root.join("home/gitconfig"), identity).unwrap();
+    for args in [vec!["add", "-A"], vec!["commit", "-q", "-m", "fixture"]] {
+        assert!(
+            command(&root, "git")
+                .args(args)
+                .output()
+                .unwrap()
+                .status
+                .success()
+        );
+    }
+    ok(build(&root, &[], None));
+    // The terminal receipt is untracked until the next build commits it.
+    let clone = temporary.path().canonicalize().unwrap().join("clone");
+    assert!(
+        command(&root, "git")
+            .args(["clone", "-q"])
+            .arg(&root)
+            .arg(&clone)
+            .output()
+            .unwrap()
+            .status
+            .success()
+    );
+    fs::create_dir_all(clone.join("home")).unwrap();
+    fs::write(clone.join("home/gitconfig"), identity).unwrap();
+    assert!(
+        !fs::read_dir(clone.join(".proj/log")).unwrap().any(|entry| {
+            entry
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .ends_with(".git.json")
+        })
+    );
+    config["build"]["git"] = json!(false);
+    fs::write(
+        clone.join("_proj.yml"),
+        serde_json::to_vec_pretty(&config).unwrap(),
+    )
+    .unwrap();
+    let report = ok(build(&clone, &[], None));
+    assert!(
+        report.contains("Local base: v1.2.4, proposed: v1.2.5"),
+        "{report}"
+    );
 }

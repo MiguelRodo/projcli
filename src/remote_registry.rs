@@ -283,7 +283,8 @@ fn choices(config: &ProjConfig) -> Result<Vec<Choice>> {
                         "build.dest.{reference} only accepts content, cue, inspect and strategy; put remote settings under remotes"
                     );
                 }
-                settings.extend(map);
+                // projr's modifyList drops NULL entries, so `content: ~` inherits.
+                settings.extend(map.into_iter().filter(|(_, value)| !value.is_null()));
             }
             _ => anyhow::bail!("build.dest.{reference} must be a YAML mapping"),
         }
@@ -404,9 +405,12 @@ pub(crate) fn definition_of<'a>(
         _ => registry.github.get(title),
     }
 }
-/// Validate `build.dest` without resolving physical routing (restore projection).
-pub(crate) fn validate_selections(config: &ProjConfig) -> Result<()> {
-    choices(config).map(|_| ())
+/// Reject projr 0.9's removed inline archives (restore projection); upload
+/// selection itself never limits restore sources.
+pub(crate) fn reject_inline(config: &ProjConfig) -> Result<()> {
+    let mut projected = config.clone();
+    projected.build.dest = None;
+    choices(&projected).map(|_| ())
 }
 /// Freeze the remotes `build.dest` selects, without credentials, filesystem effects
 /// or transport activity. Registered remotes not listed send nothing.
@@ -641,6 +645,15 @@ mod tests {
         assert_eq!(local["B"]["content"], serde_json::json!(["output"]));
         assert_eq!(local["A"]["content"], serde_json::json!(["raw"]));
         assert!(local["B"].get("manifest-style").is_none());
+        // projr: a null setting inherits the global value.
+        dest(
+            &mut config,
+            serde_json::json!({"content":["output"],"B":{"content":null}}),
+        );
+        assert_eq!(
+            selected(&config).unwrap().local.unwrap()["B"]["content"],
+            serde_json::json!(["output"])
+        );
         config.build.dest = None;
         assert!(selected(&config).unwrap().local.unwrap().is_empty());
         dest(&mut config, serde_json::json!({"B":{"content":[]}}));
@@ -687,7 +700,6 @@ mod tests {
             serde_json::json!({"missing":{}}),
             serde_json::json!({"B":{"content":["undeclared"]}}),
             serde_json::json!({"A":{"content":["output"]}}),
-            serde_json::json!({"B":{"content":null}}),
             serde_json::json!({"B":{"path":"../elsewhere"}}),
             serde_json::json!({"B":{"content":["raw","raw"]}}),
             serde_json::json!(["cue"]),
