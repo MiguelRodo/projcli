@@ -580,7 +580,7 @@ impl AttemptLog {
                 witness(
                     &receipt.attempt_id,
                     &receipt.snapshot_hash,
-                    &blake3::hash(&bytes).to_hex().to_string(),
+                    &blake3::hash(&bytes).to_hex(),
                 )?;
             } else {
                 self.record.status = status.into();
@@ -688,7 +688,7 @@ pub(crate) fn owned_receipt(
         && witness(
             id,
             &receipt.snapshot_hash,
-            &blake3::hash(&receipt_bytes).to_hex().to_string(),
+            &blake3::hash(&receipt_bytes).to_hex(),
         )?)
 }
 
