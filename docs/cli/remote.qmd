@@ -323,7 +323,7 @@ also closes explicitly and reports cleanup failure paths.
 
 ## Configured local publication {#configured-local-publication-candidate}
 
-Current source supports build.local archive (the default) and latest publication with manifest inspection
+Current source supports remotes.local destinations selected by build.dest, archive (the default) and latest publication with manifest inspection
 by default, explicit file comparison, or explicit none comparison. This is included
 in preview.3 and is not complete projr remote parity. All selected namespace identities are checked before hooks; every current
 CSV-selected snapshot and existing remote metadata is staged/read before the

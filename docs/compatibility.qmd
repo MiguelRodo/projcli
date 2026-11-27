@@ -4425,8 +4425,8 @@ projects use projcli yet, so projcli's own earlier forms are not migrated.
   opt-in (any manifest field) for every remote, since inline definitions no longer
   exist; plain remotes write projr's layout only.
 - **Gaps (out of scope, later slices):** `build.source`/`projr_source` fetching,
-  removal of `directories.<label>.source`, pipelines, the `profile` configuration
-  key and short `.projr/config/` names; restore by recorded destination (item 4;
+  removal of `directories.<label>.source`, pipelines (the `profile` key and short
+  `.projr/config/` names are done in the configuration-layout slice below); restore by recorded destination (item 4;
   `@uuid` destinations are refused and `@version` expands from the current VERSION);
   one-off `archive_github`/`archive_local`; a local remote `ignore` field; GitHub
   upload confirmation after a server error (a later slice; the user decided to
@@ -4592,6 +4592,15 @@ aliases or migration.
   untouched existing blocks, package `.Rbuildignore`, malformed markers and init
   from a subfolder of a configured project. The reviewer's concern that general
   `proj init` writes no `_projr.yml` was checked and is not the case: it calls the
-  directory initializer, which writes the starter when no base exists (as
-  `projr_init` does, `R/init-std.R:85`) and never overwrites one; the user
+  directory initializer, which writes the starter directories when no base or
+  active profile file exists (as `projr_init` does, `R/init-std.R:85`; without the
+  build's Git adjustments) and never overwrites one; the user
   confirmed this behaviour on 27 November and tests now pin it.
+- **Merge with #250 (27 November):** main's remotes-schema slice was merged in
+  (not rebased); its code, tests and docs now use `.projr/` and `_projr.yml`, and
+  profile and local layers go through its `build.dest`-replacing merge. An
+  independent review of the merge found no blocking defects; stale "later slice"
+  notes for the `profile` key, init docs and a publication-base `_projr` guard were
+  fixed. **Gap (from #250):** the archive check's base reads only the newest 100
+  history entries, so more than 100 newer local failures can hide the last
+  completed release and the base rule then passes without a base.

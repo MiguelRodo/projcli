@@ -187,7 +187,7 @@ pub(crate) fn configured(
             !root.starts_with(&base),
             "Publication base contains the project root"
         );
-        for name in [".git", ".hg", ".svn", ".projr"] {
+        for name in [".git", ".hg", ".svn", ".projr", "_projr"] {
             anyhow::ensure!(
                 !overlaps(&base, &identity(&root.join(name))?),
                 "Publication overlaps protected project state"

@@ -118,9 +118,10 @@ declares `docs: docs`, an existing hand-written `docs/` folder becomes the manag
 documents destination that later production builds replace; move it first or
 change the mapping.
 
-General `proj init` writes the same starter `_projr.yml` (through the directory
-initializer) when no base configuration exists, as projr's `projr_init` does, and
-never overwrites an existing one.
+General `proj init` writes the same starter directories in `_projr.yml` (through
+the directory initializer) when no base or active profile file exists, as projr's
+`projr_init` does, without the build's Git adjustments, and never overwrites an
+existing configuration.
 
 Production state and project-render staging require a declared `cache` directory.
 Framework version/staging children are derived inside that declared cache; this
