@@ -337,7 +337,7 @@ fn unknown_registry_reference_preserves_inputs_before_hooks_with_only_the_approv
     assert!(!output.status.success());
     let error: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(error["error"]["code"], "command_failed");
-    assert!(String::from_utf8_lossy(&output.stderr).contains("not registered"));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("not declared under remotes"));
     assert!(!String::from_utf8_lossy(&output.stdout).contains("unknown"));
     assert!(!root.join("hook-ran").exists());
     assert_eq!(recovered_snapshot(&root, &before), before);
@@ -345,7 +345,7 @@ fn unknown_registry_reference_preserves_inputs_before_hooks_with_only_the_approv
 }
 
 #[test]
-fn conflicting_registry_and_inline_source_definitions_fail_readonly_before_clearing() {
+fn inline_build_archives_are_rejected_readonly_before_clearing() {
     let (_temp, root, mut config) = setup();
     config["build"]["local"] = json!({"A":{"path":"../spoof","content":["raw"]}});
     fs::write(
@@ -371,6 +371,6 @@ fn conflicting_registry_and_inline_source_definitions_fail_readonly_before_clear
         .output()
         .unwrap();
     assert!(!output.status.success());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("both"));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("build.local is no longer supported"));
     assert_eq!(snapshot(&root), before);
 }

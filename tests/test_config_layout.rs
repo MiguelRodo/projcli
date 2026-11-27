@@ -467,3 +467,42 @@ fn init_directories_from_a_subfolder_targets_the_configured_root() {
     assert!(root.join("_results").is_dir());
     assert!(!nested.join("_projr.yml").exists() && !root.join("_projr.yml").exists());
 }
+
+#[test]
+fn general_init_writes_the_starter_once_and_never_overwrites_a_base() {
+    const STARTER: &str = "directories:\n  raw-data:\n    path: _raw_data\n  cache:\n    path: _tmp\n  output:\n    path: _output\n  docs:\n    path: docs\n";
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    let output = proj(root, &["init"], None);
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("_projr.yml")).unwrap(),
+        STARTER
+    );
+    let gitignore = fs::read_to_string(root.join(".gitignore")).unwrap();
+    assert!(
+        gitignore.lines().any(|line| line == "_projr-local.yml"),
+        "{gitignore}"
+    );
+
+    // An existing base, here in .projr/config/, is kept and no root file appears.
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    let base = "directories:\n  output:\n    path: _results\n";
+    put(root, ".projr/config/default.yml", base);
+    let output = proj(root, &["init"], None);
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(!root.join("_projr.yml").exists());
+    assert_eq!(
+        fs::read_to_string(root.join(".projr/config/default.yml")).unwrap(),
+        base
+    );
+}

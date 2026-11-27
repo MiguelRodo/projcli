@@ -559,7 +559,7 @@ fn configured_publication_cleans_all_private_readonly_snapshots_on_prepare_or_ap
         } else {
             "[]"
         };
-        fs::write(root.join("_projr.yml"),format!("directories:\n  raw-a: {{path: raw-a}}\n  raw-b: {{path: raw-b}}\n  cache: {{path: cache}}\nbuild:\n  scripts: {scripts}\n  git: false\n  local:\n    first:\n      path: delivered-a\n      structure: latest\n      content: [raw-a]\n      send: {{inspect: file}}\n    second:\n      path: delivered-b\n      structure: latest\n      content: [raw-b]\n      send: {{inspect: file}}\n")).unwrap();
+        fs::write(root.join("_projr.yml"),format!("directories:\n  raw-a: {{path: raw-a}}\n  raw-b: {{path: raw-b}}\n  cache: {{path: cache}}\nbuild:\n  scripts: {scripts}\n  git: false\n  restrictions: {{not_behind_remote: false}}\n  dest: [first, second]\nremotes:\n  local:\n    first:\n      path: delivered-a\n      structure: latest\n      content: [raw-a]\n      send: {{inspect: file}}\n    second:\n      path: delivered-b\n      structure: latest\n      content: [raw-b]\n      send: {{inspect: file}}\n")).unwrap();
         fs::set_permissions(root.join("raw-a/input"), fs::Permissions::from_mode(0o400)).unwrap();
         fs::set_permissions(root.join("raw-a"), fs::Permissions::from_mode(0o500)).unwrap();
         fs::set_permissions(root.join("raw-b"), fs::Permissions::from_mode(0o500)).unwrap();

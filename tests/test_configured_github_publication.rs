@@ -23,6 +23,8 @@ struct State {
     fail_version: bool,
     fail_data: bool,
     locks: Vec<&'static str>,
+    /// Release notes in the order they were set (creation body, then updates).
+    notes: Vec<String>,
 }
 struct Server {
     base: String,
@@ -94,9 +96,15 @@ impl Server {
                     let value: serde_json::Value = serde_json::from_slice(&body).unwrap();
                     assert_eq!(value["tag_name"], "data");
                     assert_eq!(value["draft"], false);
+                    data.notes
+                        .push(value["body"].as_str().unwrap_or_default().to_owned());
                     data.exists = true;
                     status = 201;
                     json!({"id":1,"tag_name":"data","upload_url":format!("{origin}/upload{{?name,label}}")}).to_string().into_bytes()
+                } else if method == "PATCH" && path == "/repos/owner/repo/releases/1" {
+                    let value: serde_json::Value = serde_json::from_slice(&body).unwrap();
+                    data.notes.push(value["body"].as_str().unwrap().to_owned());
+                    json!({"id":1,"tag_name":"data"}).to_string().into_bytes()
                 } else if path.starts_with("/repos/owner/repo/releases/1/assets?") {
                     serde_json::to_vec(&data.assets.iter().map(|(name,(id,bytes))|json!({"id":id,"name":name,"size":bytes.len()})).collect::<Vec<_>>()).unwrap()
                 } else if method == "POST" && path.starts_with("/upload?name=") {
@@ -205,7 +213,7 @@ fn setup(server: &Server) -> (tempfile::TempDir, std::path::PathBuf) {
     fs::write(root.join("results/result.csv"), "actual fixture bytes\n").unwrap();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
     fs::write(root.join("CHANGELOG.md"), "curated release\n").unwrap();
-    fs::write(root.join("_projr.yml"),"directories:\n  output: {path: results}\nbuild:\n  git: false\n  scripts: []\n  github:\n    data:\n      content: [output]\n      send: {inspect: none}\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  output: {path: results}\nbuild:\n  git: false\n  restrictions: {not_behind_remote: false}\n  scripts: []\n  dest: [data]\nremotes:\n  github:\n    data:\n      content: [output]\n      send: {inspect: none}\n").unwrap();
     for args in [
         vec!["init"],
         vec![
@@ -576,6 +584,7 @@ fn all_space_release_title_fails_before_hooks_and_network() {
     let config = fs::read_to_string(root.join("_projr.yml"))
         .unwrap()
         .replace("    data:", "    '   ':")
+        .replace("dest: [data]", "dest: ['   ']")
         .replace("build:\n", "build:\n  hooks: {pre: [start.py]}\n");
     fs::write(root.join("_projr.yml"), config).unwrap();
     fs::write(
@@ -1577,8 +1586,8 @@ fn registered_github_definition_remains_restore_source_after_uploads_are_disable
     let server = Server::start();
     let (_temporary, root) = setup(&server);
     let mut config = json!({"directories":{"output":{"path":"results"}},
-        "remotes":{"github":{"data":{"content":["output"],"send":{"inspect":"none"}}}},
-        "build":{"scripts":[],"git":false,"dest":{"data":{}}}});
+        "remotes":{"github":{"data":{"content":["output"],"send":{"inspect":"none"},"manifest-style":"flat"}}},
+        "build":{"scripts":[],"git":false,"restrictions":{"not_behind_remote":false},"dest":{"data":{}}}});
     fs::write(
         root.join("_projr.yml"),
         serde_json::to_vec_pretty(&config).unwrap(),
@@ -1682,15 +1691,23 @@ fn registered_github_definition_remains_restore_source_after_uploads_are_disable
 fn projr_manifest_lock_is_claimed_released_and_a_held_claim_blocks_publication() {
     let server = Server::start();
     let (_temporary, root) = setup(&server);
-    // Without a Release there is no manifest to protect, and claiming would
-    // create the Release before preparation could fail.
-    success(invoke(&server, &root, &["build", "--non-interactive"]));
-    assert!(server.state.lock().unwrap().locks.is_empty());
+    // projr 0.9 creates a missing Release before hooks, with a pending note that a
+    // successful publication replaces; the claim then protects every upload.
     success(invoke(&server, &root, &["build", "--non-interactive"]));
     {
         let state = server.state.lock().unwrap();
         assert_eq!(state.locks, ["claim", "release"]);
+        assert_eq!(state.notes.len(), 2);
+        assert!(state.notes[0].contains("has not finished publishing"));
+        assert_eq!(state.notes[1], "Published by projcli build v1.2.4.");
+    }
+    success(invoke(&server, &root, &["build", "--non-interactive"]));
+    {
+        let state = server.state.lock().unwrap();
+        assert_eq!(state.locks, ["claim", "release", "claim", "release"]);
         assert!(!state.assets.contains_key("projr-manifest.lock"));
+        // An existing Release keeps its note.
+        assert_eq!(state.notes.len(), 2);
     }
     server.finish();
     let server = Server::start();

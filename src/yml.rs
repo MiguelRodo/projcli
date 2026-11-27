@@ -293,12 +293,14 @@ pub struct BuildConfig {
     /// Optional production-only R housekeeping; omission preserves existing builds.
     #[serde(default)]
     pub r: RBuildConfig,
-    /// Existing inline ordinary local archive/latest publication destinations.
-    pub local: Option<serde_json::Map<String, Value>>,
-    /// Existing inline GitHub Release destinations; bounded archive publication.
-    pub github: Option<serde_json::Map<String, Value>>,
-    /// Explicit named targets/subsets; existing CAS name-list selection stays compatible.
-    pub dest: Option<crate::remote_registry::Destinations>,
+    /// Removed in projr 0.9: inline archives. Present values are rejected with
+    /// guidance to define `remotes.local.<title>` and list it under `build.dest`.
+    pub local: Option<Value>,
+    /// Removed in projr 0.9; see `local`.
+    pub github: Option<Value>,
+    /// projr 0.9 `build.dest`: remote names (`archive`, `github:archive`), a list,
+    /// or a mapping with global and per-archive `content`/`cue`/`inspect`/`strategy`.
+    pub dest: Option<Value>,
     #[serde(default, deserialize_with = "script_list")]
     pub scripts: Option<Vec<String>>,
     #[serde(default)]
@@ -352,13 +354,17 @@ pub struct HooksConfig {
 /// list allows only the named branches. `not_behind_git` (earlier projr spelling
 /// `not_behind`; setting both is an error) defaults to checking that the current
 /// branch is not behind its tracking upstream whenever one exists.
+/// `not_behind_remote` (default true) checks archive versions before rendering;
+/// `rule` selects whether the local base or only the proposed version is compared.
 ///
 /// ```rust
-/// use proj::yml::{BranchRestriction, RestrictionsConfig};
+/// use proj::yml::{BranchRestriction, RemoteCheck, RestrictionsConfig, VersionRule};
 /// let restrictions: RestrictionsConfig =
-///     serde_yaml::from_str("branch: [main]\nnot_behind: false\n").unwrap();
+///     serde_yaml::from_str("branch: [main]\nnot_behind: false\nnot_behind_remote: [reports]\nrule: target\n").unwrap();
 /// assert_eq!(restrictions.branch, Some(BranchRestriction::Only(vec!["main".into()])));
 /// assert_eq!(restrictions.not_behind_git().unwrap(), Some(false));
+/// assert_eq!(restrictions.not_behind_remote, Some(RemoteCheck::Titles(vec!["reports".into()])));
+/// assert_eq!(restrictions.rule, Some(VersionRule::Target));
 /// ```
 #[derive(Deserialize, Debug, Default, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -369,6 +375,56 @@ pub struct RestrictionsConfig {
     pub not_behind_git: Option<bool>,
     /// Earlier projr spelling of `not_behind_git`.
     pub not_behind: Option<bool>,
+    /// Archive version check: omitted/true checks selected publication targets,
+    /// false skips, titles (optionally grouped by type) check those remotes.
+    pub not_behind_remote: Option<RemoteCheck>,
+    /// Version comparison rule; omitted means `base_version_not_behind`.
+    pub rule: Option<VersionRule>,
+}
+
+/// projr `build.restrictions.not_behind_remote` values.
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+#[serde(try_from = "RemoteCheckValue")]
+pub enum RemoteCheck {
+    /// `true` checks the destinations this build publishes to; `false` skips.
+    All(bool),
+    /// Remote names registered under `remotes`; `github:reports` qualifies a title
+    /// registered under both types.
+    Titles(Vec<String>),
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum RemoteCheckValue {
+    All(bool),
+    One(String),
+    Many(Vec<String>),
+    Other(serde::de::IgnoredAny),
+}
+
+impl TryFrom<RemoteCheckValue> for RemoteCheck {
+    type Error = String;
+    fn try_from(value: RemoteCheckValue) -> Result<Self, String> {
+        match value {
+            RemoteCheckValue::All(all) => Ok(Self::All(all)),
+            RemoteCheckValue::One(title) => Ok(Self::Titles(vec![title])),
+            RemoteCheckValue::Many(titles) => Ok(Self::Titles(titles)),
+            RemoteCheckValue::Other(_) => Err(
+                "build.restrictions.not_behind_remote lists remote names. Write an ambiguous title as <type>:<title>, for example github:reports".into(),
+            ),
+        }
+    }
+}
+
+/// projr `build.restrictions.rule`.
+#[derive(Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VersionRule {
+    /// The last completed local version must not be behind the archive (default).
+    #[serde(rename = "base_version_not_behind", alias = "base")]
+    Base,
+    /// Only the proposed version must be newer than the archive.
+    #[serde(rename = "target_version_not_behind", alias = "target")]
+    Target,
 }
 
 /// Allowed production-build branches: `true`/`false` or explicit names. As in
@@ -815,8 +871,12 @@ impl ProjConfig {
             old_dev_remove: self.dev.old_dev_remove,
             parameters: self.parameters.clone(),
         };
-        let ordinary =
-            crate::publication::configured(project_root, destinations.local.as_ref(), &validated)?;
+        let ordinary = crate::publication::configured(
+            project_root,
+            destinations.local.as_ref(),
+            &validated,
+            &crate::template::Templates::validation(),
+        )?;
         crate::github_publication::validate(
             project_root,
             destinations.github.as_ref(),
@@ -887,6 +947,21 @@ fn make_absolute(root: &Utf8Path, path: &Utf8Path) -> Utf8PathBuf {
     } else {
         root.join(path)
     }
+}
+
+/// Merge a higher-precedence configuration layer. As in projr, a layer's
+/// `build.dest` replaces the whole lower value rather than merging mappings
+/// (SATVILab/projr@5f915ef `R/yml.R:79-88`).
+fn merge_layer(mut target: Value, source: Value) -> Value {
+    if source
+        .get("build")
+        .and_then(|build| build.get("dest"))
+        .is_some_and(|dest| !dest.is_null())
+        && let Some(build) = target.get_mut("build").and_then(Value::as_object_mut)
+    {
+        build.remove("dest");
+    }
+    deep_merge(target, source)
 }
 
 /// Deep merges `source` into `target`.
@@ -1070,11 +1145,11 @@ pub fn get_combined_yml(
                 "The profile key is read only from the default and local files, not from {}.",
                 path.file_name().unwrap_or_default()
             );
-            base_val = deep_merge(base_val, layer);
+            base_val = merge_layer(base_val, layer);
         }
     }
     if let Some(local) = crate::profile::existing_config(base_dir, "local")? {
-        base_val = deep_merge(base_val, read_configuration_file(&local)?);
+        base_val = merge_layer(base_val, read_configuration_file(&local)?);
     }
     Ok(base_val)
 }
@@ -1506,10 +1581,43 @@ build:
                 .not_behind_git()
                 .is_err()
         );
+        assert_eq!(parse("rule: base\n").unwrap().rule, Some(VersionRule::Base));
+        assert_eq!(
+            parse("rule: target_version_not_behind\n").unwrap().rule,
+            Some(VersionRule::Target)
+        );
+        assert_eq!(
+            parse("not_behind_remote: false\n")
+                .unwrap()
+                .not_behind_remote,
+            Some(RemoteCheck::All(false))
+        );
+        assert_eq!(
+            parse("not_behind_remote: reports\n")
+                .unwrap()
+                .not_behind_remote,
+            Some(RemoteCheck::Titles(vec!["reports".into()]))
+        );
+        assert_eq!(
+            parse("not_behind_remote: [github:reports, backup]\n")
+                .unwrap()
+                .not_behind_remote,
+            Some(RemoteCheck::Titles(vec![
+                "github:reports".into(),
+                "backup".into()
+            ]))
+        );
+        assert!(
+            parse("not_behind_remote: {github: [reports]}\n")
+                .unwrap_err()
+                .to_string()
+                .contains("<type>:<title>")
+        );
         for removed in [
             "only_branches: [main]\n",
             "not_branches: [x]\n",
-            "rule: target\n",
+            "rule: newest\n",
+            "not_behind_remote: 3\n",
         ] {
             assert!(parse(removed).is_err(), "{removed}");
         }

@@ -1,5 +1,9 @@
-//! Ordinary named remote definitions are independent of current upload selection.
-//! Legacy CAS definitions/list destinations and inline ordinary builds remain readable.
+//! projr 0.9 remotes schema (SATVILab/projr@5f915ef `R/yml-dest.R:569-761`,
+//! `R/yml-check.R:302-386`): archives are defined only under
+//! `remotes.<type>.<title>` and a production build publishes to those listed under
+//! `build.dest`. A title may repeat across types; `<type>:<title>` disambiguates.
+//! Registered definitions stay available to restore whether or not a build sends
+//! to them.
 use crate::yml::{LocalRemoteConfig, ProjConfig, RemotesConfig};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Deserializer};
@@ -22,15 +26,6 @@ pub struct Registry {
 /// Compatibility name for the initially ordinary-only registry type.
 pub type OrdinaryRegistry = Registry;
 
-/// Legacy names or explicitly named registry targets with optional label subsets.
-#[derive(Clone, Debug, Deserialize)]
-#[serde(untagged)]
-pub enum Destinations {
-    /// Existing CAS name lists also permit registered ordinary names.
-    Names(Vec<String>),
-    /// Each value is a mapping with optional content list; omitted means remote-eligible labels.
-    Named(Map<String, Value>),
-}
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RegistryWire {
@@ -58,6 +53,7 @@ impl<'de> Deserialize<'de> for RemotesConfig {
                 }
             } else {
                 crate::restore::definition(&value).map_err(serde::de::Error::custom)?;
+                crate::restore::local_only_fields(&value).map_err(serde::de::Error::custom)?;
                 registry.local.insert(name, value);
             }
         }
@@ -104,91 +100,225 @@ fn name(value: &str) -> Result<String> {
         .normalize(&value.to_uppercase())
         .into_owned())
 }
-fn legacy_only(config: &ProjConfig) -> bool {
-    config.remotes.registry.local.is_empty()
-        && config.remotes.registry.github.is_empty()
-        && config.remotes.registry.cas.is_empty()
-        && config.remotes.registry.xet.is_empty()
-        && !matches!(&config.build.dest, Some(Destinations::Named(_)))
-}
-/// Validate registry/legacy lookup names without resolving upload selection.
-pub(crate) fn validate_names(config: &ProjConfig) -> Result<()> {
-    if legacy_only(config) {
-        return Ok(());
-    }
-    let mut names = HashSet::new();
-    for title in config
-        .remotes
-        .registry
+/// Option words share the mapping form of `build.dest` with remote names
+/// (SATVILab/projr@5f915ef `R/yml-dest.R:573-577`).
+const RESERVED: [&str; 6] = [
+    "content", "cue", "inspect", "strategy", "conflict", "version",
+];
+/// Settings `build.dest` accepts globally or per remote.
+const DEST_OPTIONS: [&str; 4] = ["content", "cue", "inspect", "strategy"];
+fn local_titles(config: &ProjConfig) -> impl Iterator<Item = &String> {
+    let registry = &config.remotes.registry;
+    registry
         .local
         .keys()
-        .chain(config.remotes.registry.github.keys())
-        .chain(config.remotes.registry.cas.keys())
-        .chain(config.remotes.registry.xet.keys())
+        .chain(registry.cas.keys())
+        .chain(registry.xet.keys())
         .chain(config.remotes.local.iter().flat_map(|values| values.keys()))
-    {
-        anyhow::ensure!(
-            names.insert(name(title)?),
-            "Remote names are ambiguous across providers or portable spelling"
-        );
-    }
-    for (provider, registered, inline) in [
-        (
-            "local",
-            &config.remotes.registry.local,
-            config.build.local.as_ref(),
-        ),
-        (
-            "local",
-            &config.remotes.registry.cas,
-            config.build.local.as_ref(),
-        ),
-        (
-            "local",
-            &config.remotes.registry.xet,
-            config.build.local.as_ref(),
-        ),
-        (
-            "github",
-            &config.remotes.registry.github,
-            config.build.github.as_ref(),
-        ),
+}
+/// Validate registry names: printable, not an option word, unique within a type by
+/// portable spelling. A title may repeat across types (projr 0.9), except for
+/// CAS/Xet stores, whose project metadata is keyed by title alone.
+pub(crate) fn validate_names(config: &ProjConfig) -> Result<()> {
+    let registry = &config.remotes.registry;
+    for (provider, titles) in [
+        ("local", local_titles(config).collect::<Vec<_>>()),
+        ("github", registry.github.keys().collect()),
     ] {
-        for title in registered.keys() {
+        let mut names = HashSet::new();
+        for title in titles {
             anyhow::ensure!(
-                !inline.is_some_and(|values| values.contains_key(title)),
-                "Remote '{title}' is defined in both remotes.{provider} and build.{provider}; keep one definition"
+                !RESERVED.contains(&title.as_str()),
+                "remotes.{provider}.{title}: {title} is a reserved option name. Rename the remote"
+            );
+            anyhow::ensure!(
+                names.insert(name(title)?),
+                "Remote names under remotes.{provider} are ambiguous by portable spelling"
             );
         }
     }
+    let github: HashSet<String> = registry
+        .github
+        .keys()
+        .map(|t| name(t))
+        .collect::<Result<_>>()?;
+    let local: HashSet<String> = local_titles(config)
+        .map(|t| name(t))
+        .collect::<Result<_>>()?;
+    let local_stores = registry
+        .cas
+        .keys()
+        .chain(registry.xet.keys())
+        .chain(config.remotes.local.iter().flat_map(|values| values.keys()))
+        .map(|title| (title, &github));
+    let github_stores = registry
+        .github
+        .iter()
+        .filter(|(_, value)| {
+            matches!(
+                value.get("structure").and_then(Value::as_str),
+                Some("cas" | "xet")
+            )
+        })
+        .map(|(title, _)| (title, &local));
+    for (title, other) in local_stores.chain(github_stores) {
+        anyhow::ensure!(
+            !other.contains(&name(title)?),
+            "CAS/Xet store '{title}' cannot share its name with a remote of the other type"
+        );
+    }
     Ok(())
 }
-fn subset(value: &Value) -> Result<Option<Vec<String>>> {
-    let mapping = value
-        .as_object()
-        .context("build.dest entries must be mappings with optional content")?;
-    anyhow::ensure!(
-        mapping.keys().all(|key| key == "content"),
-        "build.dest entries only accept content"
-    );
-    mapping
-        .get("content")
-        .map(|value| {
-            value
-                .as_array()
-                .context(
-                    "build.dest content must be a label list; omit it for all eligible labels",
-                )?
-                .iter()
-                .map(|label| {
-                    label
-                        .as_str()
-                        .map(str::to_owned)
-                        .context("Destination content labels must be strings")
-                })
-                .collect()
-        })
-        .transpose()
+/// Resolve `title` or `<type>:<title>` to a registered remote (projr
+/// `.yml_remote_ref_resolve`, SATVILab/projr@5f915ef `R/yml-dest.R:661-703`).
+pub(crate) fn resolve(
+    config: &ProjConfig,
+    reference: &str,
+    key: &str,
+) -> Result<(&'static str, String)> {
+    let declared = |provider: &str, title: &str| match provider {
+        "local" => local_titles(config).any(|known| known == title),
+        _ => config.remotes.registry.github.contains_key(title),
+    };
+    let (candidates, title): (&[&'static str], &str) = match reference.split_once(':') {
+        Some(("local", title)) if !title.is_empty() => (&["local"], title),
+        Some(("github", title)) if !title.is_empty() => (&["github"], title),
+        _ => (&["local", "github"], reference),
+    };
+    let types: Vec<&'static str> = candidates
+        .iter()
+        .copied()
+        .filter(|provider| declared(provider, title))
+        .collect();
+    match types.as_slice() {
+        [provider] => Ok((*provider, title.to_owned())),
+        [] => anyhow::bail!("{key} names {reference}, which is not declared under remotes"),
+        _ => anyhow::bail!(
+            "{key} names {reference}, which is declared under both remotes.local and remotes.github. Use local:{reference} or github:{reference}"
+        ),
+    }
+}
+/// One `build.dest` selection: optional `content` and `send` overrides.
+struct Choice {
+    provider: &'static str,
+    title: String,
+    content: Option<Vec<String>>,
+    send: Map<String, Value>,
+}
+/// Parse `build.dest` (projr `.yml_build_role_parse`, SATVILab/projr@5f915ef
+/// `R/yml-dest.R:615-659`): a name, a list of names or one-entry mappings, or a
+/// mapping of global options and remote names. Inline `build.local`/`build.github`
+/// archives are rejected with projr's guidance.
+fn choices(config: &ProjConfig) -> Result<Vec<Choice>> {
+    for (provider, value) in [
+        ("local", &config.build.local),
+        ("github", &config.build.github),
+    ] {
+        anyhow::ensure!(
+            value.is_none(),
+            "build.{provider} is no longer supported. Define each archive under remotes.{provider}.<title> and select it with build.dest"
+        );
+    }
+    let Some(dest) = &config.build.dest else {
+        return Ok(Vec::new());
+    };
+    let mut global = Map::new();
+    let mut entries: Vec<(String, Value)> = Vec::new();
+    let mut push = |name: String, entry: Value| -> Result<()> {
+        anyhow::ensure!(
+            !entries.iter().any(|(previous, _)| *previous == name),
+            "build.dest names remote {name} more than once"
+        );
+        entries.push((name, entry));
+        Ok(())
+    };
+    match dest {
+        Value::String(name) => push(name.clone(), Value::Null)?,
+        Value::Array(items) => {
+            for item in items {
+                match item {
+                    Value::String(name) => {
+                        anyhow::ensure!(
+                            !DEST_OPTIONS.contains(&name.as_str()),
+                            "build.dest options belong in a mapping, not a list"
+                        );
+                        push(name.clone(), Value::Null)?
+                    }
+                    Value::Object(map) if map.len() == 1 => {
+                        let (name, entry) = map.iter().next().unwrap();
+                        anyhow::ensure!(
+                            !DEST_OPTIONS.contains(&name.as_str()),
+                            "build.dest options belong in a mapping, not a list"
+                        );
+                        push(name.clone(), entry.clone())?
+                    }
+                    _ => anyhow::bail!(
+                        "build.dest entries must be remote names or one-entry mappings"
+                    ),
+                }
+            }
+        }
+        Value::Object(map) => {
+            for (name, entry) in map {
+                if DEST_OPTIONS.contains(&name.as_str()) {
+                    global.insert(name.clone(), entry.clone());
+                } else {
+                    push(name.clone(), entry.clone())?
+                }
+            }
+        }
+        Value::Null => {}
+        _ => anyhow::bail!("build.dest must name remotes declared under remotes"),
+    }
+    let mut seen = HashSet::new();
+    let mut result = Vec::new();
+    for (reference, entry) in entries {
+        let mut settings = global.clone();
+        match entry {
+            Value::Null => {}
+            Value::Object(map) => {
+                for key in map.keys() {
+                    anyhow::ensure!(
+                        DEST_OPTIONS.contains(&key.as_str()),
+                        "build.dest.{reference} only accepts content, cue, inspect and strategy; put remote settings under remotes"
+                    );
+                }
+                // projr's modifyList drops NULL entries, so `content: ~` inherits.
+                settings.extend(map.into_iter().filter(|(_, value)| !value.is_null()));
+            }
+            _ => anyhow::bail!("build.dest.{reference} must be a YAML mapping"),
+        }
+        let (provider, title) = resolve(config, &reference, "build.dest")?;
+        anyhow::ensure!(
+            seen.insert((provider, title.clone())),
+            "build.dest names remote {provider}:{title} more than once"
+        );
+        let content = settings
+            .remove("content")
+            .map(|value| -> Result<Vec<String>> {
+                value
+                    .as_array()
+                    .with_context(|| {
+                        format!("build.dest.{reference}.content must list the labels to publish")
+                    })?
+                    .iter()
+                    .map(|label| {
+                        label
+                            .as_str()
+                            .map(str::to_owned)
+                            .context("Destination content labels must be strings")
+                    })
+                    .collect()
+            })
+            .transpose()?;
+        result.push(Choice {
+            provider,
+            title,
+            content,
+            send: settings,
+        });
+    }
+    Ok(result)
 }
 fn validate_definition(value: &Value) -> Result<()> {
     if value.get("structure").and_then(Value::as_str) == Some("xet") {
@@ -214,6 +344,7 @@ fn selected_definition(
     config: &ProjConfig,
     value: &Value,
     subset: Option<Vec<String>>,
+    send: Map<String, Value>,
 ) -> Result<Value> {
     validate_definition(value)?;
     let declared_content = value.get("content");
@@ -221,6 +352,22 @@ fn selected_definition(
     let mapping = value
         .as_object_mut()
         .context("Remote definition must be a mapping")?;
+    if !send.is_empty() {
+        anyhow::ensure!(
+            !matches!(
+                mapping.get("structure").and_then(Value::as_str),
+                Some("cas" | "xet")
+            ),
+            "build.dest cue/inspect/strategy apply to ordinary local and GitHub archives"
+        );
+        // projr: per-build send settings override the remote's `send`.
+        let merged = mapping
+            .entry("send")
+            .or_insert_with(|| Value::Object(Map::new()))
+            .as_object_mut()
+            .context("send must be a mapping")?;
+        merged.extend(send);
+    }
     if let Some(labels) = subset {
         crate::path_safety::validate_directory_labels(labels.iter().map(String::as_str))?;
         let context = serde_json::json!({"directories":config.directories.keys().map(|label|(label.clone(),Value::Null)).collect::<Map<_,_>>()});
@@ -242,8 +389,31 @@ fn selected_definition(
     }
     Ok(value)
 }
-/// Freeze ordinary destinations from names while preserving the legacy inline execution path.
-/// New mapping selection never implicitly uploads every registered remote.
+/// The registered definition for a provider and title, if any.
+pub(crate) fn definition_of<'a>(
+    config: &'a ProjConfig,
+    provider: &str,
+    title: &str,
+) -> Option<&'a Value> {
+    let registry = &config.remotes.registry;
+    match provider {
+        "local" => registry
+            .local
+            .get(title)
+            .or_else(|| registry.cas.get(title))
+            .or_else(|| registry.xet.get(title)),
+        _ => registry.github.get(title),
+    }
+}
+/// Reject projr 0.9's removed inline archives (restore projection); upload
+/// selection itself never limits restore sources.
+pub(crate) fn reject_inline(config: &ProjConfig) -> Result<()> {
+    let mut projected = config.clone();
+    projected.build.dest = None;
+    choices(&projected).map(|_| ())
+}
+/// Freeze the remotes `build.dest` selects, without credentials, filesystem effects
+/// or transport activity. Registered remotes not listed send nothing.
 pub(crate) fn selected(config: &ProjConfig) -> Result<Selected> {
     validate_names(config)?;
     validate_sources(config)?;
@@ -255,64 +425,46 @@ pub(crate) fn selected(config: &ProjConfig) -> Result<Selected> {
     let mut xet = Vec::new();
     let mut github_xet = Map::new();
     let mut github_cas = Map::new();
-    let mut selected_names = HashSet::new();
-    let choices: Vec<(String, Option<Vec<String>>)> = match config.build.dest.as_ref() {
-        None => vec![],
-        Some(Destinations::Names(names)) => names.iter().map(|name| (name.clone(), None)).collect(),
-        Some(Destinations::Named(names)) => names
-            .iter()
-            .map(|(name, value)| Ok((name.clone(), subset(value)?)))
-            .collect::<Result<_>>()?,
-    };
-    for (title, subset) in choices {
-        anyhow::ensure!(
-            selected_names.insert(if legacy_only(config) {
-                title.clone()
-            } else {
-                name(&title)?
-            }),
-            "Duplicate/aliased build destination name"
-        );
-        if let Some(value) = config.remotes.registry.local.get(&title) {
-            let mut selected = selected_definition(config, value, subset)?;
-            selected
-                .as_object_mut()
-                .context("Remote definition must be a mapping")?
-                .entry("manifest-style")
-                .or_insert(Value::String("flat".into()));
-            local.insert(title, selected);
-        } else if let Some(value) = config.remotes.registry.github.get(&title) {
-            let mut selected = selected_definition(config, value, subset)?;
-            if value.get("structure").and_then(Value::as_str) == Some("xet") {
-                github_xet.insert(title, selected);
-            } else if value.get("structure").and_then(Value::as_str) == Some("cas") {
-                github_cas.insert(title, selected);
-            } else {
-                selected
-                    .as_object_mut()
-                    .context("Remote definition must be a mapping")?
-                    .entry("manifest-style")
-                    .or_insert(Value::String("flat".into()));
-                github.insert(title, selected);
-            }
+    for Choice {
+        provider,
+        title,
+        content: subset,
+        send,
+    } in choices(config)?
+    {
+        if provider == "github" {
+            let value = &config.remotes.registry.github[&title];
+            let selected = selected_definition(config, value, subset, send)?;
+            match value.get("structure").and_then(Value::as_str) {
+                Some("xet") => github_xet.insert(title, selected),
+                Some("cas") => github_cas.insert(title, selected),
+                _ => github.insert(title, selected),
+            };
+        } else if let Some(value) = config.remotes.registry.local.get(&title) {
+            local.insert(title, selected_definition(config, value, subset, send)?);
         } else if let Some(value) = config.remotes.registry.xet.get(&title) {
-            let value = selected_definition(config, value, subset)?;
+            let value = selected_definition(config, value, subset, send)?;
             xet.push(crate::xet_remote::Selection {
                 title,
                 definition: crate::xet_remote::definition(&value)?,
             });
         } else if let Some(value) = config.remotes.registry.cas.get(&title) {
-            let value = selected_definition(config, value, subset)?;
+            let value = selected_definition(config, value, subset, send)?;
             cas.push(crate::cas_remote::Selection {
                 title,
                 definition: crate::cas_remote::Definition::parse(&value)?,
             });
-        } else if let Some(remote) = config
-            .remotes
-            .local
-            .as_ref()
-            .and_then(|values| values.get(&title))
-        {
+        } else {
+            anyhow::ensure!(
+                send.is_empty(),
+                "build.dest cue/inspect/strategy apply to ordinary local and GitHub archives"
+            );
+            let remote = config
+                .remotes
+                .local
+                .as_ref()
+                .and_then(|values| values.get(&title))
+                .context("Selected legacy CAS remote disappeared")?;
             let content = if let Some(labels) = subset {
                 crate::path_safety::validate_directory_labels(labels.iter().map(String::as_str))?;
                 let mut content = Vec::new();
@@ -341,46 +493,11 @@ pub(crate) fn selected(config: &ProjConfig) -> Result<Selected> {
             } else {
                 remote.content.clone()
             };
-            if !content.is_empty() || matches!(&config.build.dest, Some(Destinations::Names(_))) {
+            if !content.is_empty() {
                 legacy_cas.push(title.clone());
             }
             legacy_content.insert(title, content);
-        } else {
-            anyhow::bail!("Build destination '{title}' is not registered in remotes");
         }
-    }
-    let modern = !local.is_empty()
-        || !github.is_empty()
-        || !cas.is_empty()
-        || !xet.is_empty()
-        || !github_xet.is_empty()
-        || !github_cas.is_empty()
-        || matches!(&config.build.dest, Some(Destinations::Named(_)));
-    let inline = config
-        .build
-        .local
-        .as_ref()
-        .is_some_and(|values| !values.is_empty())
-        || config
-            .build
-            .github
-            .as_ref()
-            .is_some_and(|values| !values.is_empty());
-    anyhow::ensure!(
-        !(modern && inline),
-        "Registry destination selection cannot be mixed with inline build.local/build.github; move the definitions to remotes"
-    );
-    if !modern {
-        return Ok(Selected {
-            local: config.build.local.clone(),
-            github: config.build.github.clone(),
-            legacy_cas,
-            legacy_content,
-            cas,
-            xet,
-            github_xet,
-            github_cas,
-        });
     }
     Ok(Selected {
         local: Some(local),
@@ -396,38 +513,18 @@ pub(crate) fn selected(config: &ProjConfig) -> Result<Selected> {
 
 fn shared(config: &ProjConfig, provider: &str, title: &str) -> Result<Option<Value>> {
     name(title)?;
-    let registered = match provider {
-        "local" => config
-            .remotes
-            .registry
-            .local
-            .get(title)
-            .or_else(|| config.remotes.registry.cas.get(title))
-            .or_else(|| config.remotes.registry.xet.get(title))
-            .cloned()
-            .or_else(|| {
-                config
-                    .remotes
-                    .local
-                    .as_ref()
-                    .and_then(|values| values.get(title))
-                    .map(crate::cas_remote::legacy_value)
-            }),
-        "github" => config.remotes.registry.github.get(title).cloned(),
+    Ok(match provider {
+        "local" => definition_of(config, provider, title).cloned().or_else(|| {
+            config
+                .remotes
+                .local
+                .as_ref()
+                .and_then(|values| values.get(title))
+                .map(crate::cas_remote::legacy_value)
+        }),
+        "github" => definition_of(config, provider, title).cloned(),
         _ => anyhow::bail!("Unsupported directory source provider"),
-    };
-    let inline = match provider {
-        "local" => config.build.local.as_ref(),
-        "github" => config.build.github.as_ref(),
-        _ => None,
-    }
-    .and_then(|values| values.get(title))
-    .cloned();
-    anyhow::ensure!(
-        !(registered.is_some() && inline.is_some()),
-        "Source name exists in both registry and inline build definitions"
-    );
-    Ok(registered.or(inline))
+    })
 }
 
 fn source_reference(
@@ -498,130 +595,177 @@ mod tests {
             "build":{"scripts":[],"git":false,"dest":{"B":{"content":["output"]}}}
         })).unwrap()
     }
+    fn dest(config: &mut ProjConfig, value: Value) {
+        config.build.dest = Some(value);
+    }
     #[test]
     fn registered_sources_are_preserved_when_only_another_remote_is_selected() {
         let config = example();
         let targets = selected(&config).unwrap();
-        assert_eq!(
-            config
-                .remotes
-                .registry
-                .local
-                .keys()
-                .map(String::as_str)
-                .collect::<Vec<_>>(),
-            ["A", "B"]
-        );
         let local = targets.local.unwrap();
         assert_eq!(local.keys().map(String::as_str).collect::<Vec<_>>(), ["B"]);
         assert_eq!(local["B"]["content"], serde_json::json!(["output"]));
         assert!(targets.legacy_cas.is_empty());
+        assert!(definition_of(&config, "local", "A").is_some());
     }
     #[test]
-    fn omitted_subset_and_explicit_empty_selection_do_not_mean_registry_wide_uploads() {
+    fn name_list_and_mapping_forms_follow_projr() {
         let mut config = example();
-        config.build.dest = Some(Destinations::Named(
-            serde_json::from_value(serde_json::json!({"B":{}})).unwrap(),
-        ));
+        for form in [
+            serde_json::json!("B"),
+            serde_json::json!(["B"]),
+            serde_json::json!({"B":null}),
+            serde_json::json!({"B":{}}),
+            serde_json::json!([{"B":{}}]),
+        ] {
+            dest(&mut config, form.clone());
+            assert_eq!(
+                selected(&config).unwrap().local.unwrap()["B"]["content"],
+                true,
+                "{form}"
+            );
+        }
+        dest(
+            &mut config,
+            serde_json::json!(["A", {"B":{"content":["raw"]}}]),
+        );
+        let local = selected(&config).unwrap().local.unwrap();
+        assert_eq!(local["A"]["content"], serde_json::json!(["raw"]));
+        assert_eq!(local["B"]["content"], serde_json::json!(["raw"]));
+        // Global options apply to every remote; per-remote values win.
+        dest(
+            &mut config,
+            serde_json::json!({"cue":"always","content":["output"],"B":{"inspect":"file"},"A":{"content":["raw"]}}),
+        );
+        let local = selected(&config).unwrap().local.unwrap();
+        assert_eq!(
+            local["B"]["send"],
+            serde_json::json!({"cue":"always","inspect":"file"})
+        );
+        assert_eq!(local["B"]["content"], serde_json::json!(["output"]));
+        assert_eq!(local["A"]["content"], serde_json::json!(["raw"]));
+        assert!(local["B"].get("manifest-style").is_none());
+        // projr: a null setting inherits the global value.
+        dest(
+            &mut config,
+            serde_json::json!({"content":["output"],"B":{"content":null}}),
+        );
         assert_eq!(
             selected(&config).unwrap().local.unwrap()["B"]["content"],
-            true
+            serde_json::json!(["output"])
         );
-        config.build.dest = Some(Destinations::Named(
-            serde_json::from_value(serde_json::json!({"A":{}})).unwrap(),
-        ));
-        assert_eq!(
-            selected(&config).unwrap().local.unwrap()["A"]["content"],
-            serde_json::json!(["raw"])
-        );
-        config.build.dest = Some(Destinations::Named(Map::new()));
-        assert!(selected(&config).unwrap().local.unwrap().is_empty());
         config.build.dest = None;
-        assert!(selected(&config).unwrap().local.is_none());
-        config.build.dest = Some(Destinations::Names(vec![]));
-        assert!(selected(&config).unwrap().local.is_none());
-        config.build.dest = Some(Destinations::Named(
-            serde_json::from_value(serde_json::json!({"B":{"content":[]}})).unwrap(),
-        ));
+        assert!(selected(&config).unwrap().local.unwrap().is_empty());
+        dest(&mut config, serde_json::json!({"B":{"content":[]}}));
         assert_eq!(
             selected(&config).unwrap().local.unwrap()["B"]["content"],
             serde_json::json!([])
         );
     }
     #[test]
-    fn explicit_remote_null_remains_disabled_and_subsets_cannot_override_it() {
-        let mut config = example();
-        config.remotes.registry.local.get_mut("B").unwrap()["content"] = Value::Null;
-        config.build.dest = Some(Destinations::Named(
-            serde_json::from_value(serde_json::json!({"B":{}})).unwrap(),
-        ));
-        assert!(selected(&config).unwrap().local.unwrap()["B"]["content"].is_null());
-        config.build.dest = Some(Destinations::Named(
-            serde_json::from_value(serde_json::json!({"B":{"content":["output"]}})).unwrap(),
-        ));
-        assert!(selected(&config).is_err());
-    }
-    #[test]
-    fn unknown_ambiguous_invalid_or_excluded_selections_fail_purely() {
-        for dest in [
-            serde_json::json!({"missing":{}}),
-            serde_json::json!({"B":{"content":["undeclared"]}}),
-            serde_json::json!({"A":{"content":["output"]}}),
-            serde_json::json!({"B":{"content":null}}),
-            serde_json::json!({"B":null}),
-            serde_json::json!({"B":{"directories":["raw"]}}),
-            serde_json::json!({"B":{"content":["raw","raw"]}}),
-        ] {
-            let mut config = example();
-            config.build.dest = Some(Destinations::Named(serde_json::from_value(dest).unwrap()));
-            assert!(selected(&config).is_err());
-        }
+    fn qualified_names_disambiguate_titles_registered_for_both_types() {
         let mut config = example();
         config
             .remotes
             .registry
             .github
-            .insert("a".into(), serde_json::json!({}));
-        assert!(selected(&config).is_err());
-        let mut config = example();
-        config.build.dest = Some(Destinations::Names(vec!["B".into(), "B".into()]));
+            .insert("B".into(), serde_json::json!({}));
+        dest(&mut config, serde_json::json!(["B"]));
+        let error = selected(&config).err().unwrap().to_string();
+        assert!(error.contains("Use local:B or github:B"), "{error}");
+        dest(&mut config, serde_json::json!(["github:B", "local:B"]));
+        let targets = selected(&config).unwrap();
+        assert!(targets.local.unwrap().contains_key("B"));
+        assert!(targets.github.unwrap().contains_key("B"));
+        assert_eq!(
+            resolve(&config, "github:B", "x").unwrap(),
+            ("github", "B".into())
+        );
+        assert!(resolve(&config, "github:A", "x").is_err());
+        dest(&mut config, serde_json::json!(["local:B", "local:B"]));
         assert!(selected(&config).is_err());
     }
     #[test]
-    fn registry_selection_rejects_inline_duplicates_without_changing_the_legacy_path() {
+    fn explicit_remote_null_remains_disabled_and_subsets_cannot_override_it() {
         let mut config = example();
-        config.build.local =
-            Some(serde_json::from_value(serde_json::json!({"old":{"path":"../old"}})).unwrap());
+        config.remotes.registry.local.get_mut("B").unwrap()["content"] = Value::Null;
+        dest(&mut config, serde_json::json!({"B":{}}));
+        assert!(selected(&config).unwrap().local.unwrap()["B"]["content"].is_null());
+        dest(&mut config, serde_json::json!({"B":{"content":["output"]}}));
         assert!(selected(&config).is_err());
-        config.build.dest = Some(Destinations::Named(Map::new()));
-        assert!(selected(&config).is_err());
-        config.build.dest = None;
+    }
+    #[test]
+    fn invalid_selections_and_inline_archives_fail_purely() {
+        for value in [
+            serde_json::json!({"missing":{}}),
+            serde_json::json!({"B":{"content":["undeclared"]}}),
+            serde_json::json!({"A":{"content":["output"]}}),
+            serde_json::json!({"B":{"path":"../elsewhere"}}),
+            serde_json::json!({"B":{"content":["raw","raw"]}}),
+            serde_json::json!(["cue"]),
+            serde_json::json!([{"A":{},"B":{}}]),
+            serde_json::json!(["B", "B"]),
+            serde_json::json!(3),
+        ] {
+            let mut config = example();
+            dest(&mut config, value.clone());
+            assert!(selected(&config).is_err(), "{value}");
+        }
+        let mut config = example();
+        config.build.local = Some(serde_json::json!({"old":{"path":"../old"}}));
+        let error = selected(&config).err().unwrap().to_string();
         assert!(
-            selected(&config)
-                .unwrap()
-                .local
-                .unwrap()
-                .contains_key("old")
+            error.contains("build.local is no longer supported. Define each archive under remotes.local.<title> and select it with build.dest"),
+            "{error}"
         );
-        config.build.local =
-            Some(serde_json::from_value(serde_json::json!({"A":{"path":"../duplicate"}})).unwrap());
+        let mut config = example();
+        config
+            .remotes
+            .registry
+            .local
+            .insert("b".into(), serde_json::json!({"path":"../b"}));
         assert!(selected(&config).is_err());
+    }
+    #[test]
+    fn reserved_and_store_titles_are_rejected() {
+        let reserved: Result<ProjConfig, _> = serde_json::from_value(
+            serde_json::json!({"remotes":{"local":{"content":{"path":"../x"}}}}),
+        );
+        assert!(validate_names(&reserved.unwrap()).is_err());
+        let mut config = example();
+        config
+            .remotes
+            .registry
+            .github
+            .insert("A".into(), serde_json::json!({"structure":"cas"}));
+        assert!(validate_names(&config).is_err());
+    }
+    #[test]
+    fn legacy_cas_selection_uses_build_dest() {
         let legacy: ProjConfig = serde_json::from_value(serde_json::json!({
             "directories":{"raw":{"path":"input"}},
             "remotes":{"local":{
                 "a":{"path":"../a","structure":"cas","content":["raw"],"inspect":"manifest"},
                 "A":{"path":"../A","structure":"cas","content":["raw"],"inspect":"file"}}},
-            "build":{"dest":["a","A"],"local":{"old":{"path":"../old","content":["raw"]}}}
+            "build":{"dest":["a","A"]}
+        }))
+        .unwrap();
+        // Names differing only in case are ambiguous within a type.
+        assert!(selected(&legacy).is_err());
+        let legacy: ProjConfig = serde_json::from_value(serde_json::json!({
+            "directories":{"raw":{"path":"input"}},
+            "remotes":{"local":{
+                "a":{"path":"../a","structure":"cas","content":["raw"],"inspect":"manifest"}}},
+            "build":{"dest":{"a":{"content":["raw"]}}}
         }))
         .unwrap();
         let targets = selected(&legacy).unwrap();
-        assert_eq!(targets.legacy_cas, ["a", "A"]);
-        assert!(targets.local.unwrap().contains_key("old"));
+        assert_eq!(targets.legacy_cas, ["a"]);
+        assert_eq!(targets.legacy_content["a"], ["raw"]);
     }
     #[test]
     fn directory_source_references_validate_without_auto_restore_or_upload_selection() {
         let mut config = example();
-        config.build.dest = Some(Destinations::Named(Map::new()));
         config.directories.get_mut("raw").unwrap().source = Some(serde_json::json!({"local":"A"}));
         assert!(selected(&config).is_ok());
         config.directories.get_mut("raw").unwrap().source =
@@ -639,6 +783,8 @@ mod tests {
             serde_json::json!({"path":"../A","manifest":"unsupported"}),
             serde_json::json!({"path":"../A","manifest-style":"unknown"}),
             serde_json::json!({"path":"../A","manifest-format":null}),
+            serde_json::json!({"path":"../A","repo":"owner/repo"}),
+            serde_json::json!({"path":"../A","branch":"main"}),
         ] {
             assert!(
                 serde_json::from_value::<ProjConfig>(
@@ -647,6 +793,25 @@ mod tests {
                 .is_err()
             );
         }
+        for remote in [
+            serde_json::json!({"repo":"owner/repo/extra"}),
+            serde_json::json!({"repo":"../repo"}),
+            serde_json::json!({"tag":""}),
+            serde_json::json!({"branch":3}),
+            serde_json::json!({"title":"inline only"}),
+        ] {
+            assert!(
+                serde_json::from_value::<ProjConfig>(
+                    serde_json::json!({"remotes":{"github":{"A":remote}}})
+                )
+                .is_err()
+            );
+        }
+        assert!(
+            serde_json::from_value::<ProjConfig>(serde_json::json!({"remotes":{"github":{
+                "A":{"repo":"team/results","tag":"figures-@branch","branch":"@branch"}}}}))
+            .is_ok()
+        );
         assert!(
             serde_json::from_value::<ProjConfig>(serde_json::json!({"remotes":{"s3":{}}})).is_err()
         );
@@ -672,13 +837,12 @@ mod cas_selection_tests {
             serde_json::json!(["raw"])
         );
         assert_eq!(
-            selected.cas[0].definition.manifest,
-            crate::cas_remote::Placement::Auto
-        );
-        assert_eq!(
             selected.cas[0].definition.manifest_style,
             crate::cas_remote::Style::Tree
         );
+        let mut with_send = modern.clone();
+        with_send.build.dest = Some(serde_json::json!({"new":{"cue":"always"}}));
+        assert!(super::selected(&with_send).is_err());
 
         let legacy:ProjConfig=serde_json::from_value(serde_json::json!({
             "directories":{"raw":{"path":"input"},"output":{"path":"output"}},

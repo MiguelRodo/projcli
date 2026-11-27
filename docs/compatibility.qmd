@@ -4369,6 +4369,107 @@ path; data written by projr is still read.
 - **Ponytail (full):** one new module reusing `ManifestRow` validation, path
   safety and tempfile persistence; `ring` was already in the lockfile.
 
+## projr 0.9 remotes schema and archive version check (27 November 2026)
+
+Slice 3 of MiguelRodo/issues#910. The user asked for projr's current behaviour, so
+this slice follows SATVILab/projr@5f915ef (after 0.9.0) rather than 0.8.0. No
+projects use projcli yet, so projcli's own earlier forms are not migrated.
+
+- **Same (static source): `build.dest`.** A name, a list of names or one-entry
+  mappings, or a mapping of global options and remote names; `content`, `cue`,
+  `inspect` and `strategy`, with per-remote values over global ones and both over
+  the remote's `send` (`R/yml-dest.R:581-659`, `R/yml-dest.R:184-212`). Options in a
+  list, unknown settings and repeated or undeclared remotes fail. A selected remote
+  without `content` sends every declared non-cache label. **Different:** a remote may
+  keep projcli's own `content` as an upper bound that `build.dest` content must fit
+  within; projr's remote schema has no `content`.
+  A null setting inherits the `build.dest` option, as projr's `modifyList` drops it.
+  `<type>:<title>` names, with projr's "Use local:X or github:X" error for an
+  ambiguous bare title (`R/yml-dest.R:661-703`). The reserved titles `content`,
+  `cue`, `inspect`, `strategy`, `conflict` and `version` are rejected
+  (`R/yml-dest.R:573-577`, `R/yml-check.R:317-325`). A profile layer's `build.dest`
+  replaces lower ones whole (`R/yml.R:79-88`).
+- **Same: inline archives removed.** `build.local`/`build.github` fail with projr's
+  guidance to define `remotes.<type>.<title>` and list it under `build.dest`
+  (`R/yml-dest.R:749-760`). A remote's `source:` field fails
+  (`R/yml-check.R:327-333`); restore therefore tries directory references, then
+  registered remotes in declaration order. `get` fetch settings are accepted and
+  validated (`R/misc.R:787-797`, `R/yml-check.R:437-456`) but not used until the
+  `build.source` slice.
+- **Same: GitHub routing.** `repo`, `tag` (defaults to the title), `branch` with
+  `@branch` resolved only when the Release is missing (`R/remote-github.R:137-216`);
+  a missing branch or a tag pointing elsewhere (annotated tags peeled) stops creation
+  (`R/remote-github-httr.R:104-171`). Missing Releases are created after the
+  read-only preflight checks and before hooks (`R/dest-send-prepare.R:1-59`,
+  `R/build.R` pre order). **Different:** the new Release body notes that a build is
+  pending and a successful publication replaces it (projr writes a fixed
+  description); a failed note update only warns. A failed build keeps the Release,
+  possibly empty, as projr does (user-accepted).
+- **Same: placeholders** (`R/template.R`): `@version`, `@branch` (path-component
+  encoding; `__detached-<sha>`), `@uuid`, with projr's terminators, in local names
+  and paths and GitHub release names, resolved once before hooks from the checkout
+  `HEAD` file. **Different:** resolved destinations go to the attempt record
+  (`destinations`: UUID, GitHub owner/repo and tag, project-internal local paths),
+  not BUILDLOG; recording owner/repo is user-approved, and no URL, API origin or
+  credential is written. Previews and `output_run: false` resolve nothing.
+- **Same: archive version check.** `not_behind_remote` (true default, false, a name
+  or a list, `<type>:<title>` qualified; the `{github: [...]}` mapping is rejected,
+  `R/yml-restrictions.R:122-136`) and `rule` (`base` default, `target`), before
+  hooks with read-only lookups (`R/build-remote-versions.R`,
+  `R/build-remote-versions.R:99-133`, `R/get.R:354-392`). **Different:** the local
+  base is the most recent completed attempt record in `.projr/attempts`, else a
+  non-development VERSION (never DESCRIPTION); CAS/Xet stores are not checked.
+- **Different (projcli):** names that differ only by case/Unicode composition are
+  rejected within a type; a CAS/Xet store title cannot repeat across types (its
+  project metadata is keyed by title). projcli's `.projcli-manifests` metadata is now
+  opt-in (any manifest field) for every remote, since inline definitions no longer
+  exist; plain remotes write projr's layout only.
+- **Gaps (out of scope, later slices):** `build.source`/`projr_source` fetching,
+  removal of `directories.<label>.source`, pipelines, the `profile` configuration
+  key and short `.projr/config/` names; restore by recorded destination (item 4;
+  `@uuid` destinations are refused and `@version` expands from the current VERSION);
+  one-off `archive_github`/`archive_local`; a local remote `ignore` field; GitHub
+  upload confirmation after a server error (a later slice; the user decided to
+  accept a byte-identical stored asset after readback and never retry, unlike
+  projr's delete-and-retry-once);
+  directory-path and CAS/Xet placeholders; exporting the UUID to scripts.
+- **Tests:** unit tests in `src/remote_registry.rs` (forms, options, qualified
+  names, reserved titles, inline rejection, store titles), `src/template.rs`,
+  `src/yml.rs` (restriction values); `tests/test_remotes_schema.rs` (placeholders and
+  evidence, `build.dest` forms and errors, whole-value profile replacement, version
+  check rules and names, a loopback GitHub mock for `repo`/`tag`/`branch`, release
+  creation before hooks with its notes and its survival after a failed hook);
+  `tests/test_configured_restore.rs` (registry order, qualified titles, rejected
+  `source:`); store collision tests in the CAS/Xet GitHub suites. Inline fixtures in
+  the publication, restore and manifest suites moved to `remotes` + `build.dest`;
+  fixtures that pre-populate archives without a project VERSION set
+  `not_behind_remote: false`, and metadata tests opt in with `manifest-style`.
+  Local runs used the `projcli-dev` container (no R/Quarto); CI on the exact head
+  is the full verification.
+- **Review (independent, 27 November):**
+  - The base rule missed a Git-committing build in a fresh clone. Its receipt is
+    untracked there, so the attempt read as unresolved. It now counts.
+  - A pending note left by a failed build was never replaced. A later successful
+    build now replaces it.
+  - Releases were created before the link and recovery-capture checks. They are now
+    created after them, just before hooks.
+  - A failed build now names the Releases it created.
+  - The token is checked once, before any Release is created.
+  - Restore no longer fails on a stale `build.dest` name.
+  - `content: null` now inherits.
+  - Docs on source priority, credentials and metadata defaults were corrected.
+  - Tests added: hook ordering, the failed-then-successful note, and the fresh-clone
+    base.
+  - **Decision (user, 27 November):** creating a Release is not distribution. A
+    later pre-distribution failure keeps the local diagnostic, which now lists each
+    created Release by repository and tag (`created_releases`, never a URL), and
+    the error names them too; tested in `tests/test_remotes_schema.rs`. projcli
+    metadata stays opt-in, and within-type case/Unicode name strictness stays.
+- **Ponytail (full):** reused `encode_component`, version ordering, the GitHub client
+  and `VERSION.zip` reader, `history::read`, publication path resolution and one
+  tag function; `ring` supplies the UUID. One module each for placeholders and the
+  version check; no new dependencies.
+
 ## projr 0.9 configuration layout and profiles (26 November 2026)
 
 Slice 4 of MiguelRodo/issues#910 plus the item 1 ignore follow-ups, against
@@ -4489,6 +4590,8 @@ aliases or migration.
   "recognised marker" wording in the CLI pages, README preset wording and the
   superseded nearest-marker section. Added tests for seeding beside user lines,
   untouched existing blocks, package `.Rbuildignore`, malformed markers and init
-  from a subfolder of a configured project. **Gap (documented, user decision):**
-  general `proj init` writes no `_projr.yml`, unlike projr's `projr_init`, so
-  discovery from a subfolder selects that subfolder until a configuration exists.
+  from a subfolder of a configured project. The reviewer's concern that general
+  `proj init` writes no `_projr.yml` was checked and is not the case: it calls the
+  directory initializer, which writes the starter when no base exists (as
+  `projr_init` does, `R/init-std.R:85`) and never overwrites one; the user
+  confirmed this behaviour on 27 November and tests now pin it.

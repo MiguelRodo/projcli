@@ -258,12 +258,14 @@ host must match the API. GITHUB_API_URL and existing environment tokens retain
 the explicit transport contract. No credentials are installed.
 
 Existing per-directory source.local/source.github title references or named
-inline definitions precede eligible build.local/build.github destinations.
+inline definitions precede registered remotes (`remotes.local`/`remotes.github`),
+which are then tried in declaration order whether or not `build.dest` selects them.
 A shared referenced definition may be refined inline through the existing deep
-merge (null still inherits). Destination source:false excludes it; true or a
-matching label preference beats the first eligible fallback. content:null/false
+merge (null still inherits). A remote's `source:` preference was removed in projr
+0.9 and is rejected. content:null/false
 selects nothing, true selects declared non-cache roles, and lists select declared
-labels. Source/provider/title declaration order is preserved. No retry switches
+labels. `--title` accepts `github:archive`/`local:archive`; an unqualified title
+registered for both types is an error. No retry switches
 to another configured source after lookup/download fails.
 
 Recorded manifest history is required (a ready `.projr/manifests/` store or a
@@ -331,9 +333,7 @@ preserves the successful local release on publication failure and skips its
 next-dev bump; remote effects may be partial.
 
 ~~~yaml
-build:
-  scripts: []
-  git: false
+remotes:
   local:
     delivery:
       path: ../delivery
@@ -343,6 +343,10 @@ build:
         inspect: file
         cue: if-change
         strategy: sync-diff
+build:
+  scripts: []
+  git: false
+  dest: [delivery]
 ~~~
 
 Content false/null selects nothing, true selects declared non-cache labels, and
@@ -474,23 +478,27 @@ Configured GitHub publication and CAS policy remain separate.
 
 ### Configured GitHub publication candidate
 
-Current source adds a bounded build.github path:
+Current source adds a bounded GitHub path:
 
 ~~~yaml
-build:
-  git: false
-  scripts: []
+remotes:
   github:
     data:
       content: [output]
       send: {inspect: none}
+build:
+  git: false
+  scripts: []
+  dest: [data]
 ~~~
 
 Archive is the existing structure default; none inspection defaults upload-all.
 Both cues upload selected nonempty bytes without historical comparison. Archive data uses
 native label-vVERSION.zip or label-vVERSION-empty.zip names and the existing
 prefix/append-label naming. Missing Releases are created as normal published
-Releases, not drafts. Use a dedicated destination for testing.
+Releases, not drafts, before any hook runs (projr 0.9), with a note that the build
+is pending; a successful publication replaces the note, and a failed build leaves
+the (possibly empty) Release in place. Use a dedicated destination for testing.
 
 Git origin selects owner/repository; existing API URL and credentials are captured
 before hooks. No credentials are installed or changed. Current CSV-selected bytes

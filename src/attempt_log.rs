@@ -84,6 +84,82 @@ pub(crate) struct Record {
     pub(crate) inventory: Option<InventoryEvidence>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) final_outputs: Option<FinalOutputs>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) destinations: Option<Destinations>,
+}
+
+/// Ordinary destinations resolved before hooks, with placeholders expanded, so a
+/// later restore can find a build's own archive. Local paths are retained only when
+/// written relative to the project (absolute paths may come from an uncommitted
+/// local profile); with the build UUID, the configuration still reproduces them.
+/// No API origin, URL or credential is recorded.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct Destinations {
+    pub(crate) uuid: String,
+    pub(crate) targets: Vec<Destination>,
+}
+
+/// One resolved destination: `provider` is `local` or `github`; `title` is the entry name.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct Destination {
+    pub(crate) provider: String,
+    pub(crate) title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) repository: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) tag: Option<String>,
+}
+
+fn bounded(text: &str) -> Option<String> {
+    (text.len() <= 1024 && !text.chars().any(char::is_control)).then(|| text.to_owned())
+}
+
+impl Destinations {
+    /// Evidence for the frozen ordinary local and GitHub targets.
+    pub(crate) fn resolved(
+        uuid: &str,
+        local: &[crate::publication::LocalPublication],
+        github: &[crate::github_publication::Target],
+    ) -> Self {
+        let mut targets: Vec<Destination> = local
+            .iter()
+            .map(|target| Destination {
+                provider: "local".into(),
+                title: target.title.clone(),
+                name: bounded(&target.name),
+                path: Some(target.path.as_str())
+                    .filter(|path| {
+                        Utf8Path::new(path).components().all(|component| {
+                            matches!(
+                                component,
+                                camino::Utf8Component::Normal(_) | camino::Utf8Component::CurDir
+                            )
+                        })
+                    })
+                    .and_then(bounded),
+                repository: None,
+                tag: None,
+            })
+            .collect();
+        targets.extend(github.iter().map(|target| Destination {
+            provider: "github".into(),
+            title: target.title().to_owned(),
+            name: None,
+            path: None,
+            repository: bounded(&target.repository),
+            tag: bounded(&target.tag),
+        }));
+        Self {
+            uuid: uuid.to_owned(),
+            targets,
+        }
+    }
 }
 
 /// Later Git/finalization evidence bound to exact primary bytes.
@@ -211,6 +287,18 @@ pub(crate) struct LocalFailure {
     pub(crate) distribution_may_have_started: bool,
     pub(crate) version_before: Option<String>,
     pub(crate) version_after: Option<String>,
+    /// GitHub Releases created before hooks that the failed build leaves in place
+    /// (repository and tag only). Creating one is not distribution.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(crate) created_releases: Vec<CreatedRelease>,
+}
+
+/// A GitHub Release a build created before its hooks: owner/repo and tag, never a URL.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct CreatedRelease {
+    pub(crate) repository: String,
+    pub(crate) tag: String,
 }
 
 /// Best-effort numeric version evidence: reject links, special files and oversized input.
@@ -228,6 +316,7 @@ pub(crate) fn retain_local_failure(
     stage: &str,
     version_before: Option<String>,
     version_after: Option<String>,
+    created_releases: Vec<CreatedRelease>,
 ) -> anyhow::Result<()> {
     let directory = root.join(".projr/logs/local-failures");
     crate::path_safety::validate_native_names(root, ".projr/logs/local-failures", false)?;
@@ -253,6 +342,7 @@ pub(crate) fn retain_local_failure(
         distribution_may_have_started: false,
         version_before,
         version_after,
+        created_releases,
     };
     create(
         &directory.join(format!("{}.json", attempt.id())),
@@ -343,6 +433,7 @@ impl AttemptLog {
             startup_provenance: startup,
             inventory,
             final_outputs: None,
+            destinations: None,
         };
         Ok(Self {
             path,
@@ -350,6 +441,12 @@ impl AttemptLog {
             sealed_hash: None,
             created_directory,
         })
+    }
+
+    /// Record the destinations resolved before hooks.
+    pub(crate) fn with_destinations(mut self, destinations: Option<Destinations>) -> Self {
+        self.record.destinations = destinations;
+        self
     }
 
     /// Install the initial publication snapshot before any provider or Git entry.
@@ -580,7 +677,7 @@ impl AttemptLog {
                 witness(
                     &receipt.attempt_id,
                     &receipt.snapshot_hash,
-                    &blake3::hash(&bytes).to_hex(),
+                    blake3::hash(&bytes).to_hex().as_str(),
                 )?;
             } else {
                 self.record.status = status.into();
@@ -688,7 +785,7 @@ pub(crate) fn owned_receipt(
         && witness(
             id,
             &receipt.snapshot_hash,
-            &blake3::hash(&receipt_bytes).to_hex(),
+            blake3::hash(&receipt_bytes).to_hex().as_str(),
         )?)
 }
 

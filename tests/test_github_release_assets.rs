@@ -1103,7 +1103,7 @@ fn configure_restore(root: &camino::Utf8Path, layout: &str) {
         "label,fn,version,hash\nraw,data.csv,v1.2.3,900150983cd24fb0d6963f7d28e17f72\n",
     )
     .unwrap();
-    std::fs::write(root.join("_projr.yml"),format!("directories:\n  raw:\n    path: restored\n    source:\n      github: data\nbuild:\n  github:\n    data:\n      structure: {layout}\n      path: analysis\n")).unwrap();
+    std::fs::write(root.join("_projr.yml"),format!("directories:\n  raw:\n    path: restored\n    source:\n      github: data\nremotes:\n  github:\n    data:\n      structure: {layout}\n      path: analysis\n")).unwrap();
 }
 fn restore_command(root: &camino::Utf8Path, base: &str) -> Command {
     let mut command = Command::new(env!("CARGO_BIN_EXE_proj"));
@@ -1355,7 +1355,7 @@ fn configured_legacy_data_archive_and_latest_use_existing_namespace_without_rewr
         let history =
             b"label,fn,version,hash\ndata,data.csv,v1.2.3,900150983cd24fb0d6963f7d28e17f72\n";
         std::fs::write(root.join("manifest.csv"), history).unwrap();
-        std::fs::write(root.join("_projr.yml"),format!("directories:\n  data:\n    source:\n      github: data\nbuild:\n  github:\n    data:\n      structure: {layout}\n      path: analysis\n      content: [data]\n      source: [data]\n")).unwrap();
+        std::fs::write(root.join("_projr.yml"),format!("directories:\n  data:\n    source:\n      github: data\nremotes:\n  github:\n    data:\n      structure: {layout}\n      path: analysis\n      content: [data]\n")).unwrap();
         let source = root.join("source");
         let metadata = root.join("metadata");
         std::fs::create_dir(&source).unwrap();

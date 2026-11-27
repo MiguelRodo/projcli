@@ -203,6 +203,8 @@ pub fn build_project_with_policies(
     let diagnostic_before = crate::attempt_log::diagnostic_version(project_root);
     let mut diagnostic_stage = "preflight";
     let mut distribution_started = false;
+    // GitHub Releases this build created before hooks; reported if it then fails.
+    let mut created_releases: Vec<crate::attempt_log::CreatedRelease> = Vec::new();
     let mut diagnostic_allowed = true;
     let result = (|| -> anyhow::Result<()> {
         let is_dev = mode == BuildMode::Dev;
@@ -247,24 +249,8 @@ pub fn build_project_with_policies(
         let config = project_config.validate_and_resolve(project_root, is_dev)?;
         environment.set_rscript(project_config.config.r.executable(project_root)?);
         let destinations = crate::remote_registry::selected(&project_config)?;
-        let ordinary =
-            crate::publication::configured(project_root, destinations.local.as_ref(), &config)?;
-        let github_specs = crate::github_publication::validate(
-            project_root,
-            destinations.github.as_ref(),
-            &config,
-        )?;
-        let cas_trees =
-            crate::cas_remote::configured(project_root, &destinations.cas, &config, &ordinary)?;
-        let xet = crate::xet_remote::configured(
-            project_root,
-            &destinations.xet,
-            &config,
-            &ordinary,
-            &cas_trees,
-            &environment,
-            is_dev,
-        )?;
+        // Remote titles stay available to the pre-render archive version check.
+        let remote_config = project_config.clone();
         let execution = execution_override
             .or(config.settings.execution_directory)
             .unwrap_or(ExecutionDirectory::Native);
@@ -582,13 +568,43 @@ pub fn build_project_with_policies(
 
         let version_before = original_version.to_string(true);
         let (initial_version, next_version) =
-            crate::run_context::version_plan(original_version, mode)?;
-        let github = if !is_dev && config.output_run.unwrap_or(true) {
+            crate::run_context::version_plan(original_version.clone(), mode)?;
+        // projr placeholders resolve once, before hooks, and stay frozen for the build.
+        // Builds that publish nothing (previews, output_run: false) validate with inert values.
+        let publishing = !is_dev && config.output_run.unwrap_or(true);
+        let templates = if publishing {
+            crate::template::Templates::for_build(project_root, &initial_version.to_string(true))?
+        } else {
+            crate::template::Templates::validation()
+        };
+        let ordinary = crate::publication::configured(
+            project_root,
+            destinations.local.as_ref(),
+            &config,
+            &templates,
+        )?;
+        let github_specs = crate::github_publication::validate(
+            project_root,
+            destinations.github.as_ref(),
+            &config,
+        )?;
+        let cas_trees =
+            crate::cas_remote::configured(project_root, &destinations.cas, &config, &ordinary)?;
+        let xet = crate::xet_remote::configured(
+            project_root,
+            &destinations.xet,
+            &config,
+            &ordinary,
+            &cas_trees,
+            &environment,
+            is_dev,
+        )?;
+        let mut github = if !is_dev && config.output_run.unwrap_or(true) {
             crate::github_publication::capture(
                 project_root,
                 github_specs,
                 &environment,
-                &initial_version.to_string(true),
+                &templates,
             )?
         } else {
             Vec::new()
@@ -602,7 +618,7 @@ pub fn build_project_with_policies(
             &environment,
             is_dev || !config.output_run.unwrap_or(true),
             Some(&xet_others),
-            &initial_version.to_string(true),
+            &templates,
         )?;
         let mut cas_others = destinations.github.clone().unwrap_or_default();
         cas_others.extend(destinations.github_xet.clone());
@@ -613,8 +629,36 @@ pub fn build_project_with_policies(
             &environment,
             is_dev || !config.output_run.unwrap_or(true),
             Some(&cas_others),
-            &initial_version.to_string(true),
+            &templates,
         )?;
+        if publishing {
+            let archives = crate::archive_check::selected(
+                project_root,
+                &remote_config,
+                &ordinary,
+                &github,
+                &templates,
+                &environment,
+            )?;
+            crate::archive_check::check(
+                &archives,
+                &initial_version.to_string(true),
+                remote_config
+                    .build
+                    .restrictions
+                    .rule
+                    .unwrap_or(crate::yml::VersionRule::Base),
+                || {
+                    // projr's `.version_completed_file()`: an existing VERSION
+                    // without a development component, never DESCRIPTION or 0.0.1.
+                    Ok(crate::history::last_completed(project_root)?.or_else(|| {
+                        version_get_from(project_root)
+                            .filter(|version| version.dev == 0)
+                            .map(|version| version.to_string(true))
+                    }))
+                },
+            )?;
+        }
         let run_context = crate::run_context::ContextFile::capture(
             project_root,
             &config,
@@ -943,6 +987,14 @@ pub fn build_project_with_policies(
             }
             Ok(())
         };
+        // Every read-only preflight check and the recovery capture have passed; create
+        // missing GitHub Releases before any hook, as projr does. A later failure
+        // leaves them in place (possibly empty) and is reported with their tags.
+        crate::github_publication::prepare_releases(
+            &mut github,
+            &initial_version.to_string(true),
+            &mut created_releases,
+        )?;
         diagnostic_stage = "local_build";
         let mut attempt_inventory = None;
         let mut document_stage = None;
@@ -1357,6 +1409,11 @@ pub fn build_project_with_policies(
                 attempt_inventory.clone(),
                 startup_provenance.clone(),
             )
+            .map(|log| {
+                log.with_destinations(templates.uuid().filter(|_| publishing).map(|uuid| {
+                    crate::attempt_log::Destinations::resolved(uuid, &ordinary, &github)
+                }))
+            })
         };
         let observe_outputs = || -> anyhow::Result<crate::attempt_log::FinalOutputs> {
             if record_manifest {
@@ -1636,6 +1693,21 @@ pub fn build_project_with_policies(
         }
         publication_result.context("Local build succeeded; publication or end-hook finalization failed (local release preserved)")
     })();
+    // A created Release is a remote effect that recovery never undoes; say so.
+    let result = result.map_err(|error| {
+        if created_releases.is_empty() {
+            error
+        } else {
+            error.context(format!(
+                "GitHub Release(s) {} were created before the failure and remain, possibly empty",
+                created_releases
+                    .iter()
+                    .map(|release| format!("{} ({})", release.tag, release.repository))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ))
+        }
+    });
     if result.is_err() && mode != BuildMode::Dev && !distribution_started && diagnostic_allowed {
         let evidence = crate::attempt_log::retain_local_failure(
             project_root,
@@ -1643,6 +1715,7 @@ pub fn build_project_with_policies(
             diagnostic_stage,
             diagnostic_before,
             crate::attempt_log::diagnostic_version(project_root),
+            created_releases.clone(),
         );
         return match (result, evidence) {
             (Err(primary), Err(secondary)) => Err(primary.context(format!(

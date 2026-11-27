@@ -39,7 +39,7 @@ fn source_reference_precedes_preferred_destination_and_clear_is_staged() {
     let (_temp, root) = setup();
     remote(&root, "restore-A", "v1.9", "chosen-A");
     remote(&root, "upload-B", "v1.10", "not-B");
-    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\n    source:\n      local: A\nbuild:\n  local:\n    A:\n      path: restore-A\n    B:\n      path: upload-B\n      content: [raw]\n      source: true\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\n    source:\n      local: A\nremotes:\n  local:\n    B:\n      path: upload-B\n      content: [raw]\n    A:\n      path: restore-A\n").unwrap();
     let result = restore_label(&root, &request()).unwrap();
     assert!(result.restored);
     assert_eq!(result.title.as_deref(), Some("A"));
@@ -77,30 +77,50 @@ fn explicit_inline_source_and_profile_local_precedence_use_physical_final_path()
     assert_eq!(fs::read(root.join("data/data.csv")).unwrap(), b"local");
 }
 #[test]
-fn destination_preference_false_exclusion_filters_and_numeric_archive_selection() {
+fn registry_order_qualified_titles_and_numeric_archive_selection() {
     let (_temp, root) = setup();
     for (base, bytes) in [
         ("first", "first"),
-        ("preferred", "preferred"),
+        ("second", "second"),
         ("excluded", "excluded"),
     ] {
         remote(&root, base, "v1.9", bytes);
         remote(&root, base, "v1.10", bytes);
     }
-    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\nbuild:\n  local:\n    excluded:\n      path: excluded\n      content: [raw]\n      source: false\n    first:\n      path: first\n      content: [raw]\n    preferred:\n      path: preferred\n      content: [raw]\n      source: [raw]\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\nremotes:\n  local:\n    excluded:\n      path: excluded\n      content: []\n    first:\n      path: first\n      content: [raw]\n    second:\n      path: second\n").unwrap();
+    // The first registered remote holding the label wins; content excludes others.
     let result = restore_label(&root, &request()).unwrap();
-    assert_eq!(result.title.as_deref(), Some("preferred"));
+    assert_eq!(result.title.as_deref(), Some("first"));
     assert_eq!(result.version.as_deref(), Some("v1.10"));
     let mut req = request();
-    req.title = Some("first".into());
+    req.title = Some("local:second".into());
     req.remote_version = Some("v1.9".into());
     let result = restore_label(&root, &req).unwrap();
+    assert_eq!(result.title.as_deref(), Some("second"));
     assert_eq!(result.version.as_deref(), Some("v1.9"));
-    assert_eq!(fs::read(root.join("data/data.csv")).unwrap(), b"first");
+    assert_eq!(fs::read(root.join("data/data.csv")).unwrap(), b"second");
     req.title = Some("excluded".into());
     req.clear = true;
     assert!(restore_label(&root, &req).is_err());
     assert!(root.join("data/old.txt").exists());
+    // projr 0.9: a title registered for both types must be qualified.
+    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\nremotes:\n  local:\n    second:\n      path: second\n  github:\n    second: {}\n").unwrap();
+    let mut req = request();
+    req.title = Some("second".into());
+    assert!(
+        restore_label(&root, &req)
+            .unwrap_err()
+            .to_string()
+            .contains("Use local:second or github:second")
+    );
+    req.title = Some("github:second".into());
+    req.provider = Some("local".into());
+    assert!(restore_label(&root, &req).is_err());
+    // A remote's source field was removed in projr 0.9.
+    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\nremotes:\n  local:\n    first:\n      path: first\n      source: true\n").unwrap();
+    assert!(
+        format!("{:#}", restore_label(&root, &request()).unwrap_err()).contains("build.source")
+    );
 }
 #[test]
 fn missing_corrupt_empty_unavailable_and_protected_restore_never_clears_first() {
@@ -244,9 +264,9 @@ fn undefined_reference_selected_source_failure_and_unsupported_get_do_not_fallba
     for sources in [
         "    source:\n      local: undefined\n",
         "    source:\n      local:\n        first:\n          path: missing\n        second:\n          path: valid\n",
-        "    source:\n      local:\n        first:\n          path: valid\n          get:\n            strategy: sync-purge\n",
+        "    source:\n      local:\n        first:\n          path: valid\n          get:\n            strategy: upload-all\n",
     ] {
-        fs::write(root.join("_projr.yml"),format!("directories:\n  raw:\n    path: data\n{sources}build:\n  local:\n    fallback:\n      path: valid\n      content: [raw]\n")).unwrap();
+        fs::write(root.join("_projr.yml"),format!("directories:\n  raw:\n    path: data\n{sources}remotes:\n  local:\n    fallback:\n      path: valid\n      content: [raw]\n")).unwrap();
         let mut req = request();
         req.profile = Some("".into());
         req.clear = true;
@@ -258,7 +278,7 @@ fn undefined_reference_selected_source_failure_and_unsupported_get_do_not_fallba
 #[test]
 fn legacy_data_aliases_are_read_only_and_conflicting_namespaces_fail() {
     let (_temp, root) = setup();
-    fs::write(root.join("_projr.yml"),"directories:\n  data: {}\nbuild:\n  local:\n    archive:\n      path: remote\n      content: [data]\n      source: [data]\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  data: {}\nremotes:\n  local:\n    archive:\n      path: remote\n      content: [data]\n").unwrap();
     let history = b"label,fn,version,hash\ndata,data.csv,v1.2.3,900150983cd24fb0d6963f7d28e17f72\n";
     fs::write(root.join("manifest.csv"), history).unwrap();
     fs::create_dir_all(root.join("remote/data/v1.2.3")).unwrap();
@@ -291,40 +311,18 @@ fn legacy_data_aliases_are_read_only_and_conflicting_namespaces_fail() {
 }
 
 #[test]
-fn registry_sources_preserve_legacy_priority_unless_explicitly_preferred() {
-    for (legacy_preferred, registry_preferred, directory_reference, expected) in [
-        (false, false, false, "legacy"),
-        (true, true, false, "legacy"),
-        (false, true, false, "registered"),
-        (true, false, true, "registered"),
-    ] {
-        let (_temp, root) = setup();
-        remote(&root, "legacy", "v1.0", "legacy");
-        remote(&root, "registered", "v1.0", "registered");
-        let mut directory = serde_json::json!({"path":"data"});
-        if directory_reference {
-            directory["source"] = serde_json::json!({"local":"registered"});
-        }
-        let mut old = serde_json::json!({"path":"legacy","content":["raw"]});
-        let mut new = serde_json::json!({"path":"registered","content":["raw"]});
-        if legacy_preferred {
-            old["source"] = serde_json::json!(true);
-        }
-        if registry_preferred {
-            new["source"] = serde_json::json!(true);
-        }
-        let config = serde_json::json!({"directories":{"raw":directory},"remotes":{"local":{"registered":new}},
-            "build":{"local":{"legacy":old}}});
-        fs::write(
-            root.join("_projr.yml"),
-            serde_json::to_vec_pretty(&config).unwrap(),
-        )
-        .unwrap();
-        let result = restore_label(&root, &request()).unwrap();
-        assert_eq!(result.title.as_deref(), Some(expected));
-        assert_eq!(
-            fs::read(root.join("data/data.csv")).unwrap(),
-            expected.as_bytes()
-        );
-    }
+fn directory_reference_precedes_registry_order() {
+    let (_temp, root) = setup();
+    remote(&root, "first", "v1.0", "first");
+    remote(&root, "referenced", "v1.0", "referenced");
+    let config = serde_json::json!({"directories":{"raw":{"path":"data","source":{"local":"referenced"}}},
+        "remotes":{"local":{"first":{"path":"first","content":["raw"]},"referenced":{"path":"referenced","content":["raw"]}}}});
+    fs::write(
+        root.join("_projr.yml"),
+        serde_json::to_vec_pretty(&config).unwrap(),
+    )
+    .unwrap();
+    let result = restore_label(&root, &request()).unwrap();
+    assert_eq!(result.title.as_deref(), Some("referenced"));
+    assert_eq!(fs::read(root.join("data/data.csv")).unwrap(), b"referenced");
 }
