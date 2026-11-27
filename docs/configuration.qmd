@@ -79,8 +79,11 @@ Inside a repository without a tracking upstream the build block is
 `git: {push: false}`; with an upstream it is omitted. The starter omits
 `build.scripts`, so the first build runs automatic discovery. It is written
 before the build's recovery snapshot and kept if the build fails, as in projr.
-Unlike projr, a preview build does not also seed `.gitignore`; the next
-production build or `proj init directories` does.
+Like projr, the build (preview included) also seeds `.gitignore` (and, in a
+package, `.Rbuildignore`) with projr's starter lines and an empty managed block.
+Without any configuration above it, the starter goes in the current directory,
+not in an ancestor with VERSION, Git or package files (a deliberate difference
+from projr's build fallback).
 
 ## Name your project folders
 
@@ -106,11 +109,11 @@ it does not create an undeclared `raw` or `raw-data-extra` resource.
 ASCII case is ignored and case-only duplicate labels are rejected.
 
 `proj --project . --non-interactive init directories` creates a missing `_projr.yml`
-once with explicit `raw-data: _raw_data`, `cache: _tmp`, and `output: _output`
-paths. It preserves existing base/profile files, creates only declared resource
-directories, and does not invoke Git/GitHub or add an R code directory. The preset
-omits `build.scripts`, preserving shallow discovery; it never serializes an
-accidental empty analysis list. To render documents, declare a `docs` mapping too.
+once with projr's starter: explicit `raw-data: _raw_data`, `cache: _tmp`,
+`output: _output` and `docs: docs` paths. It preserves existing base/profile files,
+creates only declared resource directories, and does not invoke Git/GitHub or add
+an R code directory. The starter omits `build.scripts`, preserving shallow
+discovery; it never serializes an accidental empty analysis list.
 
 Production state and project-render staging require a declared `cache` directory.
 Framework version/staging children are derived inside that declared cache; this

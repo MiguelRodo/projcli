@@ -20,55 +20,51 @@ fn discovered(path: &Path) -> std::path::PathBuf {
         .into_std_path_buf()
 }
 
+/// Generic markers that projr's build fallback recognises but discovery ignores.
+const GENERIC: [(&str, &str); 12] = [
+    ("VERSION", "v1.0.0"),
+    ("README.md", "research"),
+    ("_quarto.yml", "project: {}"),
+    ("pyproject.toml", "[project]"),
+    ("Project.toml", "[deps]"),
+    ("JuliaProject.toml", "[deps]"),
+    (
+        "DESCRIPTION",
+        "Title: Research\nPackage: demo\nVersion: 1.0.0\n",
+    ),
+    ("analysis.Rproj", "Version: 1.0\n"),
+    ("renv.lock", "{\n  \"Packages\": {}\n}"),
+    (".git", "gitdir: /fixture/worktree-metadata\n"),
+    ("requirements.txt", "some-package"),
+    ("Manifest.toml", "manifest_format = \"2.0\""),
+];
+
 #[test]
-fn nearest_file_marker_wins_without_a_version_prerequisite() {
-    for (name, content) in [
-        ("VERSION", "v1.0.0"),
-        ("README.md", "research"),
-        ("_quarto.yml", "project: {}"),
-        ("_projr.yml", "directories: {}"),
-        (".projr/config/default.yml", "directories: {}"),
-        (".projr/config/_projr.yml", "directories: {}"),
-        ("_projr/config/default.yml", "directories: {}"),
-        ("pyproject.toml", "[project]"),
-        ("Project.toml", "[deps]"),
-        ("JuliaProject.toml", "[deps]"),
-        (
-            "DESCRIPTION",
-            "Title: Research\nPackage: demo\nVersion: 1.0.0\n",
-        ),
-        ("analysis.Rproj", "Version: 1.0\n"),
-        ("renv.lock", "{\n  \"Packages\": {}\n}"),
-        (".git", "gitdir: /fixture/worktree-metadata\n"),
+fn every_projr_configuration_form_selects_the_nearest_configured_folder() {
+    for name in [
+        "_projr.yml",
+        ".projr/config/default.yml",
+        ".projr/config/_projr.yml",
+        "_projr/config/default.yml",
+        "_projr/config/_projr.yml",
     ] {
         let (_parent, project) = nearest_root_fixture();
         fs::create_dir_all(project.join(name).parent().unwrap()).unwrap();
-        fs::write(project.join(name), content).unwrap();
+        fs::write(project.join(name), "directories: {}").unwrap();
         let nested = project.join("a/b/c/d/e/f/g/h/i");
         fs::create_dir_all(&nested).unwrap();
         assert_eq!(
             discovered(&nested),
             project.canonicalize().unwrap(),
-            "marker {name}"
+            "config {name}"
         );
-    }
-    for name in [".git", ".svn"] {
-        let (_parent, project) = nearest_root_fixture();
-        fs::create_dir(project.join(name)).unwrap();
-        assert_eq!(discovered(&project), project.canonicalize().unwrap());
     }
 }
 
 #[test]
-fn invalid_structured_markers_and_dependency_files_alone_do_not_select_roots() {
-    for (name, content) in [
-        ("DESCRIPTION", "Version: 1.0.0\n"),
-        ("analysis.Rproj", "Title: fixture\nVersion: 1.0\n"),
-        ("renv.lock", "{\"Packages\": null}"),
-        (".git", "unrelated file\n"),
-        ("requirements.txt", "some-package"),
-        ("Manifest.toml", "manifest_format = \"2.0\""),
-    ] {
+fn configuration_beats_nearer_generic_markers() {
+    // projr's root criterion (R/path.R:260-288): only configuration identifies a root.
+    for (name, content) in GENERIC {
         let (parent, project) = nearest_root_fixture();
         fs::write(project.join(name), content).unwrap();
         assert_eq!(
@@ -77,16 +73,69 @@ fn invalid_structured_markers_and_dependency_files_alone_do_not_select_roots() {
             "marker {name}"
         );
     }
+    for name in [".git", ".svn"] {
+        let (parent, project) = nearest_root_fixture();
+        fs::create_dir(project.join(name)).unwrap();
+        assert_eq!(discovered(&project), parent.path().canonicalize().unwrap());
+    }
 }
 
 #[test]
-fn discovery_walks_up_and_explicit_selection_still_overrides_a_nearer_marker() {
+fn without_any_configuration_the_starting_directory_is_the_root() {
+    let parent = tempfile::tempdir().unwrap();
+    for (name, content) in GENERIC {
+        fs::write(parent.path().join(name), content).unwrap();
+    }
+    fs::create_dir(parent.path().join(".svn")).unwrap();
+    let start = parent.path().join("analysis");
+    fs::create_dir(&start).unwrap();
+    assert_eq!(discovered(&start), start.canonicalize().unwrap());
+}
+
+#[test]
+fn a_first_preview_writes_the_starter_in_the_working_directory() {
+    let parent = tempfile::tempdir().unwrap();
+    fs::write(parent.path().join("VERSION"), "v1.0.0").unwrap();
+    fs::write(parent.path().join("README.md"), "research").unwrap();
+    let start = parent.path().join("analysis");
+    fs::create_dir(&start).unwrap();
+    fs::write(start.join("_projr-local.yml"), "build:\n  scripts: []\n").unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_proj"))
+        .args(["build-dev", "--non-interactive"])
+        .current_dir(&start)
+        .env_remove(proj::PROJECT_ROOT_ENV)
+        .env_remove(proj::RUN_CONTEXT_ENV)
+        .env_remove("PROJR_PROFILE")
+        .env_remove("QUARTO_PROFILE")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(start.join("_projr.yml").is_file());
+    assert!(!parent.path().join("_projr.yml").exists());
+    // projr seeds the ignore starter with the configuration, previews included.
+    let gitignore = fs::read_to_string(start.join(".gitignore")).unwrap();
+    assert!(
+        gitignore.lines().any(|line| line == "_projr-local.yml"),
+        "{gitignore}"
+    );
+    assert!(
+        gitignore.contains("# Start of projr section"),
+        "{gitignore}"
+    );
+}
+
+#[test]
+fn explicit_selection_overrides_discovery() {
     let (parent, project) = nearest_root_fixture();
-    let buried = project.join("buried/five/levels/down/project");
-    fs::create_dir_all(&buried).unwrap();
-    fs::write(buried.join("pyproject.toml"), "[project]").unwrap();
-    assert_eq!(discovered(&project), parent.path().canonicalize().unwrap());
-    fs::write(project.join("README.md"), "nearest root").unwrap();
+    fs::write(
+        project.join("_projr.yml"),
+        "directories:\n  output:\n    path: _inner\n",
+    )
+    .unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_proj"))
         .args([
             "path",
@@ -165,7 +214,7 @@ fn a_config_directory_belongs_to_the_surrounding_project() {
 }
 
 #[test]
-fn markerless_discovery_falls_back_to_the_starting_directory() {
+fn unconfigured_discovery_falls_back_to_the_starting_directory() {
     let project = tempfile::tempdir().unwrap();
     let path = camino::Utf8Path::from_path(project.path()).unwrap();
     assert_eq!(

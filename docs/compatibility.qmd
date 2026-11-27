@@ -4380,10 +4380,12 @@ aliases or migration.
   `output-r-data` in every layer, since every file is a projr file.
 - **Same: root detection** treats a folder holding `.projr/config/` (or
   `_projr/config/`) with `_projr.yml`/`default.yml` as a project root and never a
-  configuration directory itself (`R/path.R:260-276`). **Different (kept):**
-  projcli still picks the nearest folder with any recognised marker, while projr
-  prefers its configuration criterion over nearer generic markers; the nearest-marker
-  rule is an earlier tested projcli decision (`tests/test_root_markers.rs`).
+  configuration directory itself (`R/path.R:260-288`). **Same (user decision,
+  27 November):** only configuration identifies a root, so a configured ancestor
+  beats nearer generic markers. **Different:** with no configuration anywhere
+  above, the root is the working directory and the starter is written there;
+  projr's build walks up to the nearest VCS/VERSION/DESCRIPTION/RStudio/renv/
+  Quarto/Bookdown/config-folder marker first (`R/build-consent.R:7-26`).
 - **Same: `profile` key** in the base and local files: a name, a list, or
   `{projr:, quarto:}`; `profile.renv` fails ("not supported yet."); named profile
   files cannot set it, with projr's message (`R/profile.R:223-270`,
@@ -4403,9 +4405,10 @@ aliases or migration.
   **Different:** booleans are written as `false` (R's yaml writes `no`); a
   repository is detected from `.git` in the root or an ancestor, as projcli's Git
   publication does; projr's first-run consent prompt stays in the R frontend
-  (decision 6); a preview does not also seed `.gitignore` starter lines (the next
-  production build or `proj init directories` does). `proj init directories`
-  keeps its documented preset (no `docs`) and now writes `_projr.yml`.
+  (decision 6). **Same (27 November decisions):** writing the starter also seeds
+  `.gitignore` (and a package `.Rbuildignore`) with projr's starter lines and an
+  empty managed block, previews included (`R/init-helper.R:165-206`); `proj init
+  directories` writes the same starter, including `docs`.
 - **Same: project state in `.projr/`.** The build claim is `.projr/build.lock`,
   CAS/Xet project references are under `.projr/remotes/`, and store claims are
   `<store>/.projr/build.lock`. **Different (reconciled names):** projr Git-ignores
@@ -4467,3 +4470,11 @@ aliases or migration.
   (no new module); `yml.rs` changes are localized; the starter reuses the existing
   no-clobber tempfile pattern and tracking-upstream helper. Formatting of touched
   files is in separate commits.
+- **User decisions (27 November) applied:** projr's configuration-only root
+  criterion with a working-directory fallback; starter ignore seeding in previews;
+  the full starter (with `docs`) for `proj init directories`; `.projr/attempts/`
+  stays committed beside the ignored `.projr/logs/`; `git.add-untracked` stays
+  accepted but not acting. Tests: `tests/test_root_markers.rs` (every configuration
+  form, configuration beating nearer generic markers, the unconfigured working-
+  directory fallback, a first preview in a subfolder writing the starter and
+  `.gitignore` there) and `tests/test_explicit_directories.rs` (init preset).

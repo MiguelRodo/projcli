@@ -3,7 +3,7 @@ use std::{
     process::{Command, Output},
 };
 
-const PRESET: &str = "directories:\n  raw-data:\n    path: _raw_data\n  cache:\n    path: _tmp\n  output:\n    path: _output\n";
+const PRESET: &str = "directories:\n  raw-data:\n    path: _raw_data\n  cache:\n    path: _tmp\n  output:\n    path: _output\n  docs:\n    path: docs\n";
 
 fn cli(root: &std::path::Path, args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_proj"))
@@ -41,10 +41,10 @@ fn local_init_writes_explicit_preset_without_disabling_analysis_or_running_setup
     assert_eq!(fs::read_to_string(root.join("_projr.yml")).unwrap(), PRESET);
     let config: proj::ProjConfig = serde_yaml::from_str(PRESET).unwrap();
     assert!(config.build.scripts.is_none());
-    for name in ["_raw_data", "_tmp", "_output"] {
+    for name in ["_raw_data", "_tmp", "_output", "docs"] {
         assert!(root.join(name).is_dir());
     }
-    for name in [".git", "VERSION", "R", "docs"] {
+    for name in [".git", "VERSION", "R"] {
         assert!(!root.join(name).exists(), "unexpected {name}");
     }
     let repeat = cli(root, &["init", "directories"]);

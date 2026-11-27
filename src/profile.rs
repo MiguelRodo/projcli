@@ -346,7 +346,7 @@ pub fn delete_profile(name: &str, project_root: &Utf8Path) -> anyhow::Result<()>
 }
 
 /// projr's starter configuration (`inst/project_structure/_projr.yml`).
-const STARTER: &str = "directories:\n  raw-data:\n    path: _raw_data\n  cache:\n    path: _tmp\n  output:\n    path: _output\n  docs:\n    path: docs\n";
+pub(crate) const STARTER: &str = "directories:\n  raw-data:\n    path: _raw_data\n  cache:\n    path: _tmp\n  output:\n    path: _output\n  docs:\n    path: docs\n";
 
 /// Writes projr's starter `_projr.yml` when no base configuration exists.
 ///
@@ -377,6 +377,8 @@ pub(crate) fn write_starter(
     file.persist_noclobber(root.join("_projr.yml"))
         .map_err(|error| error.error)
         .context("Failed to create _projr.yml without overwriting existing configuration")?;
+    // projr seeds the ignore starter with the configuration, previews included.
+    crate::ignore::seed_ignore_starter(root)?;
     eprintln!("Created a starter _projr.yml; edit it to declare this project's directories.");
     Ok(true)
 }

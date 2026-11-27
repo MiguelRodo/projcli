@@ -16,17 +16,13 @@ actual test evidence, Ponytail reviews and remaining gaps; update it with each P
   It has settings, version information and named resource paths where applicable.
   Resource paths may be outside the root; a project need not be a Git repository.
 - Explicit project selection overrides discovery and selects that exact directory.
-- Automatic discovery walks upward from the invocation directory. The nearest
-  recognized project root wins, including when projects are nested. Discovery
-  does not search downward for projects.
-- Retain existing projr root markers, including standalone VERSION and README,
-  VCS roots, R-package/RStudio/renv/Quarto project markers, and extend recognition
-  for `pyproject.toml`, `Project.toml` and `JuliaProject.toml`. A base
-  configuration, `_projr.yml` at a folder or `_projr.yml`/`default.yml` in its
-  `.projr/config/` (or `_projr/config/`), also identifies a root; a configuration
-  directory itself is never a root (projr `R/path.R:260-276`). `requirements.txt` and
-  `Manifest.toml` alone do not. Recognition must no longer require VERSION
-  before considering the other markers.
+- Automatic discovery walks upward from the invocation directory and selects the
+  nearest folder with a projr configuration: `_projr.yml`, or `_projr.yml`/
+  `default.yml` in its `.projr/config/` (or `_projr/config/`). A configuration
+  directory itself is never a root (projr `R/path.R:260-288`). Generic markers
+  (VERSION, README, VCS, R-package/RStudio/renv/Quarto, Python/Julia metadata)
+  no longer identify roots, so a configured ancestor beats them (user decision,
+  27 November 2026). Discovery does not search downward for projects.
 - `_projr.yml` is the only base configuration name (approved 26 November 2026,
   issues#910; projcli's earlier `_proj.yml` is no longer read). Each layer is read
   from the root, else `.projr/config/`, else `_projr/config/`, where the short
@@ -39,10 +35,12 @@ actual test evidence, Ponytail reviews and remaining gaps; update it with each P
   Hooks still run; production version/publication/export behavior remains available
   for upload-only workflows. Development previews never publish. Analysis cleanup
   and promotion are skipped when no analysis is selected, preserving upload inputs.
-- With no recognized marker, discovery falls back to cwd. A build or preview
-  without a base configuration first writes projr's starter `_projr.yml` (user
-  decision of 25 November 2026, projr `R/build.R:289-310`), never overwriting a
-  file. Configured restore and CAS/Xet store commands still require an existing
+- With no configuration anywhere above, the invocation directory is the root
+  (user decision of 27 November 2026); projr's build instead walks up to the
+  nearest generic marker. A build or preview without a base configuration first
+  writes projr's starter `_projr.yml` there, with the `.gitignore` starter lines
+  (user decision of 25 November 2026, projr `R/build.R:289-310`), never
+  overwriting a file. Configured restore and CAS/Xet store commands still require an existing
   base file or an explicitly activated profile file.
 - Ordinary framework/resource directories used at runtime must be explicitly declared.
   Built-in project and R-package data lookup are bounded exceptions described below.
@@ -114,9 +112,9 @@ from changing cwd or selecting a new root.
 
 ## Implementation gaps and verification
 
-The core root finder implements nearest-recognized-ancestor discovery without a
-VERSION prerequisite. Its marker tests cover the retained projr patterns and
-deliberate Python/Julia/proj-config extensions and cwd fallback. Builds now require active
+The core root finder implements projr's configuration criterion with a cwd
+fallback; its tests cover every configuration form, nearer generic markers and
+the unconfigured first build. Builds now require active
 configuration and typed validation rejects unsupported fields. Explicit directory
 mappings are enforced without runtime path defaults; full failure restoration remains open; historical passing fixtures
 do not demonstrate those new requirements.

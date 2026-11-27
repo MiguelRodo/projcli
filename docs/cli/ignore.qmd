@@ -34,7 +34,7 @@ leave ignore files unchanged. A preview does not add ignore rules.
 
 The project is selected by `--project`, an inherited build context, or the nearest
 recognized parent project folder. A VERSION file is one possible marker; it is
-not required for every query. See [project discovery](path.qmd#nearest-root-discovery).
+not required for every query. See [project discovery](path.qmd#root-discovery).
 
 ## Git and R package exclusions
 

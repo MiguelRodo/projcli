@@ -144,11 +144,12 @@ pub fn init_version() -> anyhow::Result<()> {
 }
 
 /// Initializes only explicitly declared directories; creates a missing base config once.
-/// The preset declares projr's raw-data/cache/output paths without a scripts value.
+/// The preset is projr's starter (raw-data/cache/output/docs paths, no scripts value).
 /// Existing base/profile files are preserved, and Git/GitHub setup is not invoked.
 pub fn init_directories() -> anyhow::Result<()> {
     let project_root = root().context("Failed to find project root.")?;
-    const PRESET: &str = "directories:\n  raw-data:\n    path: _raw_data\n  cache:\n    path: _tmp\n  output:\n    path: _output\n";
+    // projr's starter configuration (`inst/project_structure/_projr.yml`).
+    const PRESET: &str = crate::profile::STARTER;
     let base = crate::yml::base_configuration_path(&project_root)?;
     let mut active_profile = false;
     for profile in crate::run_context::select_profiles(None, &project_root)? {

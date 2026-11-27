@@ -852,7 +852,10 @@ root, else `.projr/config/`, else `_projr/config/`, accepting `default.yml`,
 `<profile>.yml` and `local.yml` there; both spellings in one directory fail as in
 projr. Profiles: `--profile`, then `PROJR_PROFILE`, then the `profile` key of the
 local and then base file; never of a named profile file. QUARTO_PROFILE does not
-select projr profiles. Builds write projr's starter `_projr.yml` when no base exists.
+select projr profiles. Root discovery uses only projr configuration (nearest
+configured ancestor); with none, the working directory is the root. Builds,
+previews and `proj init directories` write projr's starter `_projr.yml` (with
+`docs`) and seed the `.gitignore` starter when no base exists.
 Framework state lives in projr's `.projr/`: `build.lock`, tracked attempt records in
 `.projr/attempts/`, local-only diagnostics in `.projr/logs/local-failures/` (projr
 Git-ignores `.projr/logs/`) and CAS/Xet references in `.projr/remotes/`. Never write
