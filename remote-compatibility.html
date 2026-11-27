@@ -526,6 +526,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#live-github-fixture-verification" id="toc-live-github-fixture-verification" class="nav-link" data-scroll-target="#live-github-fixture-verification">Live GitHub fixture verification</a></li>
   <li><a href="#current-remote-delivery" id="toc-current-remote-delivery" class="nav-link" data-scroll-target="#current-remote-delivery">Current preview.4 delivery</a></li>
   <li><a href="#current-development-extensions-beyond-the-original-audit" id="toc-current-development-extensions-beyond-the-original-audit" class="nav-link" data-scroll-target="#current-development-extensions-beyond-the-original-audit">Current development extensions beyond the original audit</a></li>
+  <li><a href="#projr-0.9-remotes-schema-27-november-2026" id="toc-projr-0.9-remotes-schema-27-november-2026" class="nav-link" data-scroll-target="#projr-0.9-remotes-schema-27-november-2026">projr 0.9 remotes schema (27 November 2026)</a></li>
   </ul>
 </nav>
     </div>
@@ -723,8 +724,8 @@ ul.task-list li input[type="checkbox"] {
 </tr>
 <tr class="odd">
 <td>Named remote extension</td>
-<td>Subsequently approved user design, separate from the original R source behavior.</td>
-<td><a href="https://github.com/MiguelRodo/issues/issues/706">Issue706</a> is implemented as top-level remotes plus build.dest, preserving named restore sources and explicit upload label subsets. New style/format/placement behavior is summarized below; legacy inline definitions remain supported.</td>
+<td>projr 0.9 adopted the same design: archives under <code>remotes.&lt;type&gt;.&lt;title&gt;</code>, selected by <code>build.dest</code> (SATVILab/projr@5f915ef <code>R/yml-dest.R:569-761</code>).</td>
+<td>Implemented with projr 0.9’s <code>build.dest</code> forms and <code>&lt;type&gt;:&lt;title&gt;</code> names; inline <code>build.local</code>/<code>build.github</code> archives are rejected. See the 0.9 section below.</td>
 </tr>
 </tbody>
 </table>
@@ -1108,12 +1109,12 @@ ul.task-list li input[type="checkbox"] {
 </tr>
 <tr class="even">
 <td>Ordinary local latest/archive folders</td>
-<td>Flat CSV by default; all four flat formats or explicit tree JSON.</td>
+<td>Opt-in (any manifest field) flat CSV by default; all four flat formats or explicit tree JSON.</td>
 <td>Existing compatible CSV/VERSION restore and physical folders; do not interpret ordinary bindings as native CAS snapshots.</td>
 </tr>
 <tr class="odd">
 <td>GitHub Release latest/archive ZIPs</td>
-<td>Flat CSV by default; all four flat formats or explicit tree JSON in a bounded metadata ZIP.</td>
+<td>Opt-in (any manifest field) flat CSV by default; all four flat formats or explicit tree JSON in a bounded metadata ZIP.</td>
 <td>Existing compatible ZIP/CSV/VERSION restore. New format coverage is mocked REST with actual CLI execution, not a new live-format round-trip.</td>
 </tr>
 </tbody>
@@ -1127,6 +1128,61 @@ ul.task-list li input[type="checkbox"] {
 <p>PR211 added named ordinary definitions and upload subsets independently of restore sources. PR212 added configured local recursive-tree publication and metadata placement, preserving legacy flat CAS identities. These extend projr; they do not establish complete parity with every convenience wrapper or option.</p>
 <p>The following explicit named-ID CAS recovery/verification slice reuses the tree verifier and guarded installer without root CSV, current upload selection or a project ledger. Ordinary restore still uses its documented CSV/version/source selection. Legacy flat CAS compatibility recovery is described in the current command reference. Runtime flat CSV/JSON publication is now implemented as described below. The <a href="./configuration.html">configuration</a>, <a href="./cli/remote.html">remote commands</a> and <a href="./compatibility.html">compatibility log</a> distinguish implemented and pending work.</p>
 <p>The local CAS flat catalogue extension now connects CSV/JSON and optional file dictionaries to publication/recovery. Ordinary local and GitHub Release format integration is also implemented in the current development extension below. See the <a href="./configuration.html#flat-history-in-local-cas">configuration reference</a>.</p>
+</section>
+<section id="projr-0.9-remotes-schema-27-november-2026" class="level2">
+<h2 class="anchored" data-anchor-id="projr-0.9-remotes-schema-27-november-2026">projr 0.9 remotes schema (27 November 2026)</h2>
+<p>Compared statically with SATVILab/projr@5f915ef; see the <a href="./compatibility.html">compatibility log</a> for the full same/different/gap record.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Area</th>
+<th>projr 0.9</th>
+<th>projcli development source</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Selection</td>
+<td><code>build.dest</code>: a name, a list (names or one-entry mappings) or a mapping of options and names; <code>content</code>, <code>cue</code>, <code>inspect</code>, <code>strategy</code> per remote or for all (<code>R/yml-dest.R:569-659</code>). Inline <code>build.local</code>/<code>build.github</code> are an error (<code>R/yml-dest.R:749-760</code>).</td>
+<td>Same, including projr’s error guidance and whole-value <code>build.dest</code> replacement across profile layers (<code>R/yml.R:79-88</code>).</td>
+</tr>
+<tr class="even">
+<td>Names</td>
+<td><code>&lt;type&gt;:&lt;title&gt;</code>; an ambiguous bare title is an error (<code>R/yml-dest.R:661-703</code>); option words are reserved titles (<code>R/yml-dest.R:573-577</code>).</td>
+<td>Same for <code>build.dest</code>, <code>not_behind_remote</code> and <code>remote restore --title</code>. Within a type, names that differ only by case/Unicode composition are rejected (stricter); a CAS/Xet store title cannot repeat across types.</td>
+</tr>
+<tr class="odd">
+<td>Remote fields</td>
+<td><code>get</code> fetch settings; <code>source</code> removed (<code>R/yml-check.R:317-366</code>).</td>
+<td><code>get</code> validated, not yet used; <code>source</code> rejected on ordinary remotes.</td>
+</tr>
+<tr class="even">
+<td>GitHub routing</td>
+<td><code>repo</code>, <code>tag</code>, <code>branch</code>/<code>@branch</code>; missing Releases created before hooks (<code>R/dest-send-prepare.R:1-59</code>, <code>R/remote-github.R:137-216</code>).</td>
+<td>Same; the new Release carries a pending note that a successful publication replaces.</td>
+</tr>
+<tr class="odd">
+<td>Placeholders</td>
+<td><code>@version</code>, <code>@branch</code>, <code>@uuid</code> (<code>R/template.R</code>).</td>
+<td>Same for destinations; resolved values are recorded in the attempt record.</td>
+</tr>
+<tr class="even">
+<td>Archive version check</td>
+<td><code>not_behind_remote</code> names only (<code>R/yml-restrictions.R:122-136</code>, <code>R/build-remote-versions.R:99-133</code>).</td>
+<td>Same; CAS/Xet stores not checked.</td>
+</tr>
+<tr class="odd">
+<td>Tests</td>
+<td>Not run (static comparison).</td>
+<td><code>tests/test_remotes_schema.rs</code>, unit tests in <code>src/remote_registry.rs</code>, <code>src/template.rs</code>, <code>src/yml.rs</code>, and the converted publication/restore suites.</td>
+</tr>
+</tbody>
+</table>
 
 
 </section>

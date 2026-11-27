@@ -671,20 +671,21 @@ Figure&nbsp;1: Released overview. Open the stage details below for conditions an
 <div aria-describedby="fig-lifecycle-pre-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div>
 
-<pre class="mermaid mermaid-js" data-fig-alt="Select root and profiles, validate merged configuration, capture run inputs, preflight targets and dependencies, capture recovery state, run start hooks, then finish preparation." data-label="fig-lifecycle-pre">%%{init: {"htmlLabels": false}}%%
+<pre class="mermaid mermaid-js" data-fig-alt="Select root and profiles, validate merged configuration, capture run inputs and resolve destination placeholders, preflight targets, dependencies and archive versions, capture recovery state, create missing GitHub Releases, run start hooks, then finish preparation." data-label="fig-lifecycle-pre">%%{init: {"htmlLabels": false}}%%
 flowchart TB
   classDef default fill:#f0f4f7,stroke:#637b89,color:#153b32
   linkStyle default stroke:#26343f,color:#26343f
   A["[R] Select explicit or discovered&lt;br/&gt;project root"]
   B["[R] Resolve profiles and&lt;br/&gt;environment; merge config;&lt;br/&gt;settings HOW / build WHAT"]
   C["[R/T] Validate typed configuration&lt;br/&gt;and explicit resource mappings"]
-  D["[R] Capture root, profiles,&lt;br/&gt;mappings, mode and active run&lt;br/&gt;version"]
-  E["[R/T] Preflight source groups / globs,&lt;br/&gt;exclusions, output collisions,&lt;br/&gt;dependencies and enabled Git"]
+  D["[R] Capture root, profiles,&lt;br/&gt;mappings, mode and active run&lt;br/&gt;version; source: resolve @version/&lt;br/&gt;@branch/@uuid destinations"]
+  E["[R/T] Preflight source groups / globs,&lt;br/&gt;exclusions, output collisions,&lt;br/&gt;dependencies and enabled Git;&lt;br/&gt;source: archive version check"]
+  P["Source: create missing GitHub&lt;br/&gt;Releases (pending note)"]
   F["[R] Enumerate and capture managed&lt;br/&gt;recovery state before controlled&lt;br/&gt;writes"]
   G["[R] Run configured start hooks"]
   R["Local candidate: optional R snapshot&lt;br/&gt;before start hooks"]
   H["[R] Complete safe staging and renderer&lt;br/&gt;preparation"]
-  A --&gt; B --&gt; C --&gt; D --&gt; E --&gt; F --&gt; R --&gt; G --&gt; H
+  A --&gt; B --&gt; C --&gt; D --&gt; E --&gt; F --&gt; P --&gt; R --&gt; G --&gt; H
   classDef existing fill:#e5f2ed,stroke:#146859,color:#153b32
   classDef main fill:#e7effa,stroke:#315b89,color:#183954
   classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
@@ -705,6 +706,7 @@ Figure&nbsp;2: Released pre-build order.
 <li>Root selection, effective profiles, merged configuration and environment must agree before analysis starts. The target assigns <strong>HOW</strong> choices to <code>settings</code> and <strong>WHAT</strong> is selected/run to <code>build</code>; this is not permission to add unknown fields to the installed preview.</li>
 <li>The captured context fixes resource identity and the active run version. In the released implementation, preview retains an existing dev version or uses dev1 of a release without writing VERSION; an output run uses its requested release version throughout the run and leaves the subsequent dev1 only on success.</li>
 <li>Validate declared paths, ordered source groups/globs, script/hook exclusions, supported renderer plans, dependencies and explicitly enabled Git actions before controlled build writes. Probes can have their own effects: this is not a blanket read-only/environment sanitization guarantee. The malformed-exclusion correction is included in preview.3; it fails in this preflight stage, without changing stage order or recovery scope. Fallback directory/entry errors also stop here. The recovery capture stage reports its own enumeration phase and OS cause before controlled project writes. These diagnostics are included in preview.3; ordering is unchanged.</li>
+<li>Development source (projr 0.9 remotes slice): destination placeholders resolve once with the run version and are frozen; production builds then check selected archive versions (<code>build.restrictions.not_behind_remote</code>, read-only) and stop before recovery capture and start hooks when a proposed version is not newer. After every read-only preflight check and the recovery capture, just before hooks, missing GitHub Releases are created with a pending note (projr 0.9 order); a later failure keeps them, possibly empty, and successful publication replaces the note. This is not in any published preview.</li>
 <li>Start/end refer to the existing pre/both and post/both hook sets, not new hook types. Their placement follows the controlled lifecycle shown here.</li>
 <li>Recovery capture must precede hooks and managed mutations. Cache/staging setup, supported renderer preparation and permitted metadata/ignore work finish before the final pre-clear gate. No new metadata/provenance record is implied here.</li>
 <li>A script’s working directory is separate from project identity. Native cwd with an explicit project override, safe resource targets and render-context path presentation are included in preview.2.</li>
