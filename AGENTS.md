@@ -858,5 +858,7 @@ before hooks with read-only lookups and fails closed on populated archives witho
 a readable version. GitHub branch checks are read-only; after all read-only
 preflight checks and recovery capture, missing Releases are created before hooks with a pending note
 that successful publication replaces; never roll back or delete them on failure.
+Creating a Release is not distribution; record created Releases (repo and tag only)
+in the local failure diagnostic.
 Restore by recorded destination, build.source fetching and pipelines are separate
 slices.

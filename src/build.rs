@@ -204,7 +204,7 @@ pub fn build_project_with_policies(
     let mut diagnostic_stage = "preflight";
     let mut distribution_started = false;
     // GitHub Releases this build created before hooks; reported if it then fails.
-    let mut created_releases: Vec<String> = Vec::new();
+    let mut created_releases: Vec<crate::attempt_log::CreatedRelease> = Vec::new();
     let mut diagnostic_allowed = true;
     let result = (|| -> anyhow::Result<()> {
         let is_dev = mode == BuildMode::Dev;
@@ -1692,7 +1692,11 @@ pub fn build_project_with_policies(
         } else {
             error.context(format!(
                 "GitHub Release(s) {} were created before the failure and remain, possibly empty",
-                created_releases.join(", ")
+                created_releases
+                    .iter()
+                    .map(|release| format!("{} ({})", release.tag, release.repository))
+                    .collect::<Vec<_>>()
+                    .join(", ")
             ))
         }
     });
@@ -1703,6 +1707,7 @@ pub fn build_project_with_policies(
             diagnostic_stage,
             diagnostic_before,
             crate::attempt_log::diagnostic_version(project_root),
+            created_releases.clone(),
         );
         return match (result, evidence) {
             (Err(primary), Err(secondary)) => Err(primary.context(format!(

@@ -327,7 +327,7 @@ fn pending_note(version: &str) -> String {
 pub(crate) fn prepare_releases(
     targets: &mut [Target],
     version: &str,
-    created: &mut Vec<String>,
+    created: &mut Vec<crate::attempt_log::CreatedRelease>,
 ) -> anyhow::Result<()> {
     let mut missing = Vec::new();
     for (index, target) in targets.iter_mut().enumerate() {
@@ -350,7 +350,10 @@ pub(crate) fn prepare_releases(
             .create_release(&target.tag, &pending_note(version))
             .with_context(|| format!("Cannot create GitHub Release {}", target.tag))?;
         target.created = Some(id);
-        created.push(target.tag.clone());
+        created.push(crate::attempt_log::CreatedRelease {
+            repository: target.repository.clone(),
+            tag: target.tag.clone(),
+        });
     }
     Ok(())
 }

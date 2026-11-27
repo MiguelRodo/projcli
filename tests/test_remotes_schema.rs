@@ -637,9 +637,24 @@ fn release_is_created_before_hooks_and_kept_when_the_build_fails() {
     fs::write(root.join("pre.py"), hook).unwrap();
     let error = failed(build(&root, &[], Some(&server.base)));
     assert!(
-        error.contains("figures-v1.2.4 were created before the failure"),
+        error.contains("figures-v1.2.4 (team/results) were created before the failure"),
         "{error}"
     );
+    // Creating a Release is not distribution: the local failure diagnostic records
+    // it by repository and tag only.
+    let diagnostics: Vec<Value> = fs::read_dir(root.join(".proj/log/local-failures"))
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .filter(|path| path.extension().is_some_and(|ext| ext == "json"))
+        .map(|path| serde_json::from_slice(&fs::read(path).unwrap()).unwrap())
+        .collect();
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(diagnostics[0]["distribution_may_have_started"], false);
+    assert_eq!(
+        diagnostics[0]["created_releases"],
+        json!([{"repository":"team/results","tag":"figures-v1.2.4"}])
+    );
+    assert!(!diagnostics[0].to_string().contains("127.0.0.1"));
     let state = server.finish();
     let created = state
         .paths

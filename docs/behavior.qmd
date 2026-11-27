@@ -1131,7 +1131,9 @@ Git process) and a fresh UUIDv4; later YAML edits by scripts do not change them.
 Builds that publish nothing (previews, `output_run: false`) resolve none. A GitHub
 `branch` is checked read-only when its Release is missing (the branch must exist;
 an existing tag must point at its head). Missing Releases are then created after
-all read-only preflight checks and the recovery capture, just before hooks. projcli
+all read-only preflight checks and the recovery capture, just before hooks.
+Creating one is not distribution; a later failure records each created Release by
+repository and tag in the local failure diagnostic. projcli
 metadata (`.projcli-manifests`) is written only when a remote opts in with a
 manifest field.
 
@@ -1142,4 +1144,5 @@ the `profile` configuration key and short `.projr/config/` names are later slice
 directory paths and CAS/Xet store paths are not template-expanded; the build UUID
 is not exported to scripts; a local remote `ignore` field and one-off archives
 (`archive_local`/`archive_github`) are not supported; GitHub upload confirmation
+(a later slice; readback acceptance of a byte-identical asset, never a retry)
 after a server error (projr deletes and retries once) is not ported.

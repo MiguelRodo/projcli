@@ -287,6 +287,18 @@ pub(crate) struct LocalFailure {
     pub(crate) distribution_may_have_started: bool,
     pub(crate) version_before: Option<String>,
     pub(crate) version_after: Option<String>,
+    /// GitHub Releases created before hooks that the failed build leaves in place
+    /// (repository and tag only). Creating one is not distribution.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(crate) created_releases: Vec<CreatedRelease>,
+}
+
+/// A GitHub Release a build created before its hooks: owner/repo and tag, never a URL.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct CreatedRelease {
+    pub(crate) repository: String,
+    pub(crate) tag: String,
 }
 
 /// Best-effort numeric version evidence: reject links, special files and oversized input.
@@ -304,6 +316,7 @@ pub(crate) fn retain_local_failure(
     stage: &str,
     version_before: Option<String>,
     version_after: Option<String>,
+    created_releases: Vec<CreatedRelease>,
 ) -> anyhow::Result<()> {
     let directory = root.join(".proj/log/local-failures");
     crate::path_safety::validate_native_names(root, ".proj/log/local-failures", false)?;
@@ -329,6 +342,7 @@ pub(crate) fn retain_local_failure(
         distribution_may_have_started: false,
         version_before,
         version_after,
+        created_releases,
     };
     create(
         &directory.join(format!("{}.json", attempt.id())),

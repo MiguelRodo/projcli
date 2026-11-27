@@ -163,7 +163,10 @@ and that no existing Git tag of that name points elsewhere, and stops otherwise.
 After every read-only check passes and before any hook, the build creates each
 missing release (as projr does), with a note that the build is pending; a
 successful publication replaces the note. If the build then fails, the release
-stays, possibly empty; it is never deleted. An existing release keeps its target
+stays, possibly empty; it is never deleted. Creating it is not distribution: the
+error and the local failure diagnostic (`.proj/log/local-failures/`, field
+`created_releases`) name each such release by repository and tag. An existing
+release keeps its target
 and note. These fields are rejected on local destinations.
 
 Local destination names and paths and GitHub release names accept projr's

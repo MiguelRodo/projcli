@@ -4425,7 +4425,9 @@ projects use projcli yet, so projcli's own earlier forms are not migrated.
   key and short `.projr/config/` names; restore by recorded destination (item 4;
   `@uuid` destinations are refused and `@version` expands from the current VERSION);
   one-off `archive_github`/`archive_local`; a local remote `ignore` field; GitHub
-  upload confirmation after a server error (projr deletes and retries once);
+  upload confirmation after a server error (a later slice; the user decided to
+  accept a byte-identical stored asset after readback and never retry, unlike
+  projr's delete-and-retry-once);
   directory-path and CAS/Xet placeholders; exporting the UUID to scripts.
 - **Tests:** unit tests in `src/remote_registry.rs` (forms, options, qualified
   names, reserved titles, inline rejection, store titles), `src/template.rs`,
@@ -4454,9 +4456,11 @@ projects use projcli yet, so projcli's own earlier forms are not migrated.
   - Docs on source priority, credentials and metadata defaults were corrected.
   - Tests added: hook ordering, the failed-then-successful note, and the fresh-clone
     base.
-  - **Gap:** creating a Release is not recorded as possible distribution. A later
-    pre-distribution failure keeps only the local diagnostic, and the error names
-    the created Releases.
+  - **Decision (user, 27 November):** creating a Release is not distribution. A
+    later pre-distribution failure keeps the local diagnostic, which now lists each
+    created Release by repository and tag (`created_releases`, never a URL), and
+    the error names them too; tested in `tests/test_remotes_schema.rs`. projcli
+    metadata stays opt-in, and within-type case/Unicode name strictness stays.
 - **Ponytail (full):** reused `encode_component`, version ordering, the GitHub client
   and `VERSION.zip` reader, `history::read`, publication path resolution and one
   tag function; `ring` supplies the UUID. One module each for placeholders and the
