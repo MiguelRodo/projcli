@@ -96,7 +96,7 @@ fn setup(placement: &str) -> (tempfile::TempDir, PathBuf, Value) {
 }
 fn save(root: &Path, config: &Value) {
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         serde_json::to_vec_pretty(config).unwrap(),
     )
     .unwrap();
@@ -105,7 +105,7 @@ fn metadata(root: &Path) -> PathBuf {
     let mut hash = blake3::Hasher::new_derive_key("projcli.remote-name.v1");
     hash.update(b"SNAPSHOTS");
     let id = hash.finalize().to_hex().to_string();
-    root.join(".proj/remotes").join(&id[..2]).join(&id[2..])
+    root.join(".projr/remotes").join(&id[..2]).join(&id[2..])
 }
 fn ids(base: &Path, namespace: &str) -> Vec<String> {
     files(&base.join(namespace))
@@ -233,7 +233,7 @@ fn existing_flat_ids_restore_exact_files_without_conversion_or_project_csv() {
     assert!(!root.join("manifest.csv").exists());
     assert_eq!(files(&store), before_store);
     assert!(!store.join("trees").exists());
-    assert!(!root.join(".proj/remotes").exists());
+    assert!(!root.join(".projr/remotes").exists());
 }
 #[test]
 fn legacy_remote_alone_recovers_into_a_fresh_configured_project() {
@@ -266,7 +266,6 @@ fn legacy_remote_alone_recovers_into_a_fresh_configured_project() {
     );
     assert_eq!(files(&root.join("input")), expected);
     assert_eq!(fs::read(root.join("VERSION")).unwrap(), b"v8.0.0.7\n");
-    assert!(!root.join(".proj").exists());
     assert!(!root.join(".projr").exists());
     assert!(!root.join("manifest.csv").exists());
     assert_eq!(files(&store), before_store);

@@ -27,10 +27,10 @@ fn explicit_getters_return_merged_typed_values_and_literal_keys_without_writes()
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().canonicalize().unwrap();
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         r#"{
       "directories":{"output":{"path":"not-created"}},
-      "build":{"profile":"team"},
+      "profile":"team",
       "parameters":{"base":1,"shared":"base","array":[1,true,null],
         "--project":"literal flag","x);system('unexpected')":"literal expression",
         "private":"explicit-query-canary"}
@@ -115,7 +115,7 @@ fn configuration_errors_are_typed_without_secrets_and_checked_mode_is_deliberate
         "parameters: [failure-query-canary",
         "failure-query-canary",
     ] {
-        fs::write(root.join("_proj.yml"), content).unwrap();
+        fs::write(root.join("_projr.yml"), content).unwrap();
         let reply = query(root, &["yml", "get"], false);
         assert_eq!(reply["error"]["code"], "query_failed");
         assert!(
@@ -123,10 +123,13 @@ fn configuration_errors_are_typed_without_secrets_and_checked_mode_is_deliberate
                 .unwrap()
                 .contains("failure-query-canary")
         );
-        assert_eq!(fs::read_to_string(root.join("_proj.yml")).unwrap(), content);
+        assert_eq!(
+            fs::read_to_string(root.join("_projr.yml")).unwrap(),
+            content
+        );
     }
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         r#"{"r_only_scaffolding":{"private":"failure-query-canary"}}"#,
     )
     .unwrap();
@@ -142,7 +145,7 @@ fn configuration_errors_are_typed_without_secrets_and_checked_mode_is_deliberate
         query(root, &["yml", "parameter"], false)["error"]["code"],
         "query_failed"
     );
-    fs::write(root.join("_proj.yml"), r#"{"par":{"value":2}}"#).unwrap();
+    fs::write(root.join("_projr.yml"), r#"{"par":{"value":2}}"#).unwrap();
     assert_eq!(
         query(root, &["yml", "parameter", "value"], false)["error"]["code"],
         "query_failed"
@@ -153,7 +156,7 @@ fn configuration_errors_are_typed_without_secrets_and_checked_mode_is_deliberate
 fn new_human_query_failures_withhold_private_deserialization_values() {
     let temp = tempfile::tempdir().unwrap();
     fs::write(
-        temp.path().join("_proj.yml"),
+        temp.path().join("_projr.yml"),
         r#"{"build":{"output_run":"private-human-query-canary"}}"#,
     )
     .unwrap();

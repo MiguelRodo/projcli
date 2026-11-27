@@ -55,7 +55,7 @@ def run_case(binary, workspace, artifacts, project):
               'build:\n  git: {commit: true, push: false}\n'
               '  scripts: [01-failed-html.qmd, 02-failed-pdf.qmd, 03-break.qmd]\n'
               '  restrictions:\n    not_behind: false\n')
-    (root / '_proj.yml').write_text(config)
+    (root / '_projr.yml').write_text(config)
     (root / 'VERSION').write_bytes(b'v1.2.3-4\n')
     # Ignore disposable cache/native state, never report names or extensions.
     (root / '.gitignore').write_text('cache/\n.quarto/\n')
@@ -120,9 +120,9 @@ def run_case(binary, workspace, artifacts, project):
     shutil.copytree(scratch[0], destination / 'failed-scratch')
 
     # Stage only the intentional edit, never sweep residue into this commit.
-    (root / '_proj.yml').write_text(config.replace(
+    (root / '_projr.yml').write_text(config.replace(
         '[01-failed-html.qmd, 02-failed-pdf.qmd, 03-break.qmd]', '[04-kept.qmd]'))
-    git('add', '--', '_proj.yml')
+    git('add', '--', '_projr.yml')
     git('commit', '-m', 'select smaller successful build')
     before_success = git('rev-parse', 'HEAD').decode().strip()
     successful, _ = build()
@@ -153,7 +153,7 @@ def run_case(binary, workspace, artifacts, project):
     assert git('show', 'HEAD:VERSION') == b'Version: v1.2.4'
     assert (root / 'VERSION').read_bytes() == b'Version: v1.2.4.1'
     status = git('status', '--porcelain').decode().splitlines()
-    receipts = list((root / '.proj/log').glob('*.git.json'))
+    receipts = list((root / '.projr/attempts').glob('*.git.json'))
     assert len(receipts) == 1, receipts
     receipt_path = receipts[0].relative_to(root).as_posix()
     receipt = json.loads(receipts[0].read_text())
@@ -161,9 +161,9 @@ def run_case(binary, workspace, artifacts, project):
     assert receipt['git']['commit'] == 'completed'
     assert receipt['git']['head'] == committed
     assert receipt['version_after'] == 'v1.2.4.1'
-    snapshot_path = f".proj/log/{receipt['attempt_id']}.json"
+    snapshot_path = f".projr/attempts/{receipt['attempt_id']}.json"
     assert git('show', f'HEAD:{snapshot_path}') == (root / snapshot_path).read_bytes()
-    final_csv = root / '.proj/log' / receipt['final_outputs']['rows']['file']
+    final_csv = root / '.projr/attempts' / receipt['final_outputs']['rows']['file']
     assert final_csv.is_file()
     assert len(final_csv.read_bytes()) == receipt['final_outputs']['rows']['bytes']
     final_rows = list(csv.DictReader(final_csv.open()))

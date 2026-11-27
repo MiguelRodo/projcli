@@ -39,7 +39,7 @@ fn source_reference_precedes_preferred_destination_and_clear_is_staged() {
     let (_temp, root) = setup();
     remote(&root, "restore-A", "v1.9", "chosen-A");
     remote(&root, "upload-B", "v1.10", "not-B");
-    fs::write(root.join("_proj.yml"),"directories:\n  raw:\n    path: data\n    source:\n      local: A\nremotes:\n  local:\n    B:\n      path: upload-B\n      content: [raw]\n    A:\n      path: restore-A\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\n    source:\n      local: A\nremotes:\n  local:\n    B:\n      path: upload-B\n      content: [raw]\n    A:\n      path: restore-A\n").unwrap();
     let result = restore_label(&root, &request()).unwrap();
     assert!(result.restored);
     assert_eq!(result.title.as_deref(), Some("A"));
@@ -59,7 +59,7 @@ fn explicit_inline_source_and_profile_local_precedence_use_physical_final_path()
     remote(&root, "base", "v1.0", "base");
     remote(&root, "profile", "v1.0", "profile");
     remote(&root, "local", "v1.0", "local");
-    fs::write(root.join("_proj.yml"),"directories:\n  raw:\n    path: data\n    source:\n      local:\n        A:\n          path: base\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\n    source:\n      local:\n        A:\n          path: base\n").unwrap();
     fs::write(
         root.join("_projr-analysis.yml"),
         "directories:\n  raw:\n    source:\n      local:\n        A:\n          path: profile\n",
@@ -87,7 +87,7 @@ fn registry_order_qualified_titles_and_numeric_archive_selection() {
         remote(&root, base, "v1.9", bytes);
         remote(&root, base, "v1.10", bytes);
     }
-    fs::write(root.join("_proj.yml"),"directories:\n  raw:\n    path: data\nremotes:\n  local:\n    excluded:\n      path: excluded\n      content: []\n    first:\n      path: first\n      content: [raw]\n    second:\n      path: second\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\nremotes:\n  local:\n    excluded:\n      path: excluded\n      content: []\n    first:\n      path: first\n      content: [raw]\n    second:\n      path: second\n").unwrap();
     // The first registered remote holding the label wins; content excludes others.
     let result = restore_label(&root, &request()).unwrap();
     assert_eq!(result.title.as_deref(), Some("first"));
@@ -104,7 +104,7 @@ fn registry_order_qualified_titles_and_numeric_archive_selection() {
     assert!(restore_label(&root, &req).is_err());
     assert!(root.join("data/old.txt").exists());
     // projr 0.9: a title registered for both types must be qualified.
-    fs::write(root.join("_proj.yml"),"directories:\n  raw:\n    path: data\nremotes:\n  local:\n    second:\n      path: second\n  github:\n    second: {}\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\nremotes:\n  local:\n    second:\n      path: second\n  github:\n    second: {}\n").unwrap();
     let mut req = request();
     req.title = Some("second".into());
     assert!(
@@ -117,7 +117,7 @@ fn registry_order_qualified_titles_and_numeric_archive_selection() {
     req.provider = Some("local".into());
     assert!(restore_label(&root, &req).is_err());
     // A remote's source field was removed in projr 0.9.
-    fs::write(root.join("_proj.yml"),"directories:\n  raw:\n    path: data\nremotes:\n  local:\n    first:\n      path: first\n      source: true\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\nremotes:\n  local:\n    first:\n      path: first\n      source: true\n").unwrap();
     assert!(
         format!("{:#}", restore_label(&root, &request()).unwrap_err()).contains("build.source")
     );
@@ -125,7 +125,7 @@ fn registry_order_qualified_titles_and_numeric_archive_selection() {
 #[test]
 fn missing_corrupt_empty_unavailable_and_protected_restore_never_clears_first() {
     let (_temp, root) = setup();
-    fs::write(root.join("_proj.yml"),"directories:\n  raw:\n    path: data\n    source:\n      local:\n        A:\n          path: missing\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\n    source:\n      local:\n        A:\n          path: missing\n").unwrap();
     let mut req = request();
     req.clear = true;
     assert!(restore_label(&root, &req).is_err());
@@ -151,7 +151,7 @@ fn empty_latest_skips_without_clearing_and_cli_uses_project_root() {
     fs::create_dir(root.join("remote")).unwrap();
     fs::create_dir(root.join("remote/raw-empty")).unwrap();
     fs::write(root.join("remote/VERSION"), "raw: v1.2.3*\n").unwrap();
-    fs::write(root.join("_proj.yml"),"directories:\n  raw:\n    path: data\n    source:\n      local:\n        source:\n          path: remote\n          structure: latest\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\n    source:\n      local:\n        source:\n          path: remote\n          structure: latest\n").unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_proj"))
         .current_dir(root.parent().unwrap())
         .env_remove("PROJR_PROFILE")
@@ -186,11 +186,13 @@ fn empty_latest_skips_without_clearing_and_cli_uses_project_root() {
 }
 
 #[test]
-fn child_profile_selection_matches_build_quarto_projr_and_explicit_precedence() {
+fn child_profile_selection_matches_projr_key_and_explicit_precedence() {
+    // QUARTO_PROFILE never selects projr profiles (projr R/profile.R:223-252).
     for (projr, quarto, explicit, expected) in [
         ("", "", None, "analysis"),
-        ("", "quarto", None, "quarto"),
-        ("analysis", "quarto", None, "analysis"),
+        ("", "quarto", None, "analysis"),
+        ("quarto", "", None, "quarto"),
+        ("first", "quarto", None, "first"),
         ("", "quarto", Some("analysis"), "analysis"),
         ("", "", Some("first,second"), "first"),
     ] {
@@ -200,7 +202,7 @@ fn child_profile_selection_matches_build_quarto_projr_and_explicit_precedence() 
             fs::write(root.join(format!("{name}-target/old")), "intact").unwrap();
             remote(&root, name, "v1.0", name);
         }
-        fs::write(root.join("_proj.yml"),"directories:\n  raw:\n    path: base-target\n    source:\n      local:\n        A:\n          path: base\nbuild:\n  profile: analysis\n").unwrap();
+        fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: base-target\n    source:\n      local:\n        A:\n          path: base\nprofile: analysis\n").unwrap();
         for name in ["analysis", "quarto", "first", "second"] {
             fs::write(root.join(format!("_projr-{name}.yml")),format!("directories:\n  raw:\n    path: {name}-target\n    source:\n      local:\n        A:\n          path: {name}\n")).unwrap();
         }
@@ -264,7 +266,7 @@ fn undefined_reference_selected_source_failure_and_unsupported_get_do_not_fallba
         "    source:\n      local:\n        first:\n          path: missing\n        second:\n          path: valid\n",
         "    source:\n      local:\n        first:\n          path: valid\n          get:\n            strategy: upload-all\n",
     ] {
-        fs::write(root.join("_proj.yml"),format!("directories:\n  raw:\n    path: data\n{sources}remotes:\n  local:\n    fallback:\n      path: valid\n      content: [raw]\n")).unwrap();
+        fs::write(root.join("_projr.yml"),format!("directories:\n  raw:\n    path: data\n{sources}remotes:\n  local:\n    fallback:\n      path: valid\n      content: [raw]\n")).unwrap();
         let mut req = request();
         req.profile = Some("".into());
         req.clear = true;
@@ -316,7 +318,7 @@ fn directory_reference_precedes_registry_order() {
     let config = serde_json::json!({"directories":{"raw":{"path":"data","source":{"local":"referenced"}}},
         "remotes":{"local":{"first":{"path":"first","content":["raw"]},"referenced":{"path":"referenced","content":["raw"]}}}});
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         serde_json::to_vec_pretty(&config).unwrap(),
     )
     .unwrap();

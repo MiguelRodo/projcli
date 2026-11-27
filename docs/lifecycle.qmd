@@ -77,13 +77,14 @@ output build's transition to the next development version.
 ```{mermaid}
 %%| label: fig-lifecycle-pre
 %%| fig-cap: "Released pre-build order."
-%%| fig-alt: "Select root and profiles, validate merged configuration, capture run inputs and resolve destination placeholders, preflight targets, dependencies and archive versions, capture recovery state, create missing GitHub Releases, run start hooks, then finish preparation."
+%%| fig-alt: "Select root and profiles, write projr's starter configuration when no base file exists (current source), validate merged configuration, capture run inputs and resolve destination placeholders, preflight targets, dependencies and archive versions, capture recovery state, create missing GitHub Releases, run start hooks, then finish preparation."
 %%{init: {"htmlLabels": false}}%%
 flowchart TB
   classDef default fill:#f0f4f7,stroke:#637b89,color:#153b32
   linkStyle default stroke:#26343f,color:#26343f
   A["[R] Select explicit or discovered<br/>project root"]
   B["[R] Resolve profiles and<br/>environment; merge config;<br/>settings HOW / build WHAT"]
+  S["Current source: write starter<br/>_projr.yml if no base file"]
   C["[R/T] Validate typed configuration<br/>and explicit resource mappings"]
   D["[R] Capture root, profiles,<br/>mappings, mode and active run<br/>version; source: resolve @version/<br/>@branch/@uuid destinations"]
   E["[R/T] Preflight source groups / globs,<br/>exclusions, output collisions,<br/>dependencies and enabled Git;<br/>source: archive version check"]
@@ -92,7 +93,7 @@ flowchart TB
   G["[R] Run configured start hooks"]
   R["Local candidate: optional R snapshot<br/>before start hooks"]
   H["[R] Complete safe staging and renderer<br/>preparation"]
-  A --> B --> C --> D --> E --> F --> P --> R --> G --> H
+  A --> B --> S --> C --> D --> E --> F --> P --> R --> G --> H
   classDef existing fill:#e5f2ed,stroke:#146859,color:#153b32
   classDef main fill:#e7effa,stroke:#315b89,color:#183954
   classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
@@ -102,7 +103,10 @@ flowchart TB
 ```
 
 - Root selection, effective profiles, merged configuration and environment must
-  agree before analysis starts. The target assigns **HOW** choices to
+  agree before analysis starts. In current source, profiles follow `--profile`,
+  `PROJR_PROFILE`, then the local and base `profile` keys, and a build without a
+  base `_projr.yml` first writes projr's starter file (before the recovery
+  snapshot, so it is kept on failure). The target assigns **HOW** choices to
   `settings` and **WHAT** is selected/run to `build`; this is not permission
   to add unknown fields to the installed preview.
 - The captured context fixes resource identity and the active run version.

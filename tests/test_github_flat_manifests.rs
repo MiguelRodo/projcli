@@ -295,7 +295,7 @@ fn setup(mode: &str, placement: &str, layout: &str) -> (tempfile::TempDir, PathB
 }
 fn save(root: &Path, value: &Value) {
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         serde_json::to_vec_pretty(value).unwrap(),
     )
     .unwrap();
@@ -376,7 +376,7 @@ fn project(root: &Path, title: &str) -> PathBuf {
     let mut hash = blake3::Hasher::new_derive_key("projcli.ordinary-remote-name.v1");
     hash.update(&serde_json::to_vec(&("github", title.to_uppercase())).unwrap());
     let id = hash.finalize().to_hex().to_string();
-    root.join(".proj/remotes").join(&id[..2]).join(&id[2..])
+    root.join(".projr/remotes").join(&id[..2]).join(&id[2..])
 }
 fn filename(mode: &str) -> &'static str {
     match mode {

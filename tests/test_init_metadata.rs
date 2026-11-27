@@ -71,7 +71,7 @@ fn text(root: &Path, name: &str) -> String {
 fn noninteractive_defaults_are_local_markdown_only_and_repeatable() {
     let f = Fixture::new();
     good(f.cli(&["init"]));
-    for name in ["VERSION", "_proj.yml", "README.md", ".gitignore"] {
+    for name in ["VERSION", "_projr.yml", "README.md", ".gitignore"] {
         assert!(f.root.join(name).is_file(), "{name}");
     }
     for name in [
@@ -287,7 +287,7 @@ fn package_ignore_uses_escaped_paths_without_excluding_legitimate_package_source
         "Package: fixture\nVersion: 1.0.0\n",
     )
     .unwrap();
-    fs::write(f.root.join("_proj.yml"),"directories:\n  raw-data: {path: 'raw [v1].data'}\n  cache: {path: 'cache+space dir'}\n  raw-functions: {path: R, ignore: []}\n  output: {path: results}\nbuild: {git: false}\n").unwrap();
+    fs::write(f.root.join("_projr.yml"),"directories:\n  raw-data: {path: 'raw [v1].data'}\n  cache: {path: 'cache+space dir'}\n  raw-functions: {path: R, ignore: []}\n  output: {path: results}\nbuild: {git: false}\n").unwrap();
     fs::write(f.root.join(".Rbuildignore"), "^custom-rule$\n").unwrap();
     good(f.cli(&["init", "directories"]));
     let before = text(&f.root, ".Rbuildignore");
@@ -353,7 +353,7 @@ fn existing_description_mismatch_follows_version_unless_opted_out() {
         fs::write(f.root.join("DESCRIPTION"), desc).unwrap();
         if disabled {
             fs::write(
-                f.root.join("_proj.yml"),
+                f.root.join("_projr.yml"),
                 "settings: {sync-description-version: false}\n",
             )
             .unwrap();
@@ -379,7 +379,7 @@ fn explicit_rbuild_ignore_policy_is_not_silently_overridden_for_package_director
     )
     .unwrap();
     fs::write(
-        f.root.join("_proj.yml"),
+        f.root.join("_projr.yml"),
         "directories:\n  raw-source: {path: R, ignore: rbuild}\n",
     )
     .unwrap();
@@ -413,7 +413,7 @@ fn linked_or_special_metadata_fails_before_new_files_and_keeps_external_bytes() 
         };
         assert!(!f.cli(&args).status.success(), "{name}");
         assert_eq!(fs::read_to_string(&external).unwrap(), "outside bytes");
-        assert!(!f.root.join("_proj.yml").exists(), "{name}");
+        assert!(!f.root.join("_projr.yml").exists(), "{name}");
     }
     let f = Fixture::new();
     fs::create_dir(f.root.join("README.md")).unwrap();

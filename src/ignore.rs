@@ -172,13 +172,65 @@ pub(crate) fn update_ignores_for_generated(
         git_ignores.push("/_environment.local".to_owned());
         rbuild_ignores.push(r"^_environment\.local$".to_owned());
     }
+    // projr's project-state rules (`R/ignore-auto.R:125-132`).
+    git_ignores.extend(
+        [
+            "/.projr/manifests/.versions.lock",
+            "/.projr/logs/**",
+            "/.projr/source/**",
+        ]
+        .map(str::to_owned),
+    );
+    // Local configuration files, matched by profile (`R/ignore-auto.R:134-142`).
+    for file in crate::profile::config_files(project_root)? {
+        if crate::profile::config_file_profile(&file) == "local" {
+            git_ignores.push(file);
+        }
+    }
+    // projr's Quarto directory rules (`R/ignore-auto.R:59-80`).
+    for directory in [".quarto", "index_files"] {
+        if project_root.join(directory).is_dir() {
+            git_ignores.push(format!("{directory}/**"));
+        }
+    }
     if project_root.join("DESCRIPTION").exists() {
+        // projr's conditional R-build rules (`R/ignore-auto.R:59-160`).
+        for directory in [
+            "_extensions",
+            "index_files",
+            ".quarto",
+            ".devcontainer",
+            ".github",
+            ".vscode",
+        ] {
+            if project_root.join(directory).is_dir() {
+                let escaped = regex::escape(directory);
+                rbuild_ignores.extend([format!("^{escaped}/"), format!("^{escaped}$")]);
+            }
+        }
+        let entries = fs::read_dir(project_root).map_err(|error| {
+            anyhow::anyhow!("Cannot list {project_root} for ignore rules: {error}")
+        })?;
+        for entry in entries {
+            let name = entry?.file_name();
+            let Some(name) = name.to_str() else { continue };
+            let lower = name.to_ascii_lowercase();
+            if name.ends_with(".code-workspace")
+                || name == "_environment"
+                || name == "_environment.required"
+                || name.starts_with("_environment-")
+                || lower.ends_with(".qmd")
+                || lower.ends_with(".rmd")
+            {
+                rbuild_ignores.push(format!("^{}$", regex::escape(name)));
+            }
+        }
         rbuild_ignores.extend(
             [
                 r"^\.git$",
-                r"^\.proj$",
                 r"^\.projr$",
-                r"^_proj(r)?(-[^/]+)?\.ya?ml$",
+                r"^_projr$",
+                r"^_projr(-[^/]+)?\.yml$",
                 r"^VERSION$",
                 r"^manifest\.csv$",
                 r"^CITATION\.cff$",
@@ -365,19 +417,24 @@ fn update_ignore_file(
     }
 }
 
-/// Finds the nearest recognized project root at or above a starting directory.
+/// Finds the project root: the nearest folder at or above a starting directory
+/// holding a projr configuration (`_projr.yml`, or `_projr.yml`/`default.yml` in
+/// its `.projr/config/` or `_projr/config/`), as projr's root criterion does.
 ///
-/// Recognizes projr-style VCS, VERSION, README, R-package, RStudio, renv and
-/// Quarto markers, plus proj configuration and Python/Julia project metadata.
-/// It never searches child directories. With no marker, the starting directory
-/// is selected, matching projr's cwd fallback. Invalid paths return `None`.
-/// Discovery alone does not validate or waive the build configuration contract.
+/// Other markers (VERSION, Git, DESCRIPTION, ...) are not consulted: when no
+/// configuration exists anywhere above, the starting directory is the root, so a
+/// first build or init writes the starter there. Child directories are never
+/// searched. Invalid paths return `None`.
 ///
 /// ```rust
 /// let project = tempfile::tempdir().unwrap();
-/// std::fs::write(project.path().join("README.md"), "research").unwrap();
-/// let path = camino::Utf8Path::from_path(project.path()).unwrap();
-/// assert_eq!(proj::root_from(path), Some(path.canonicalize_utf8().unwrap()));
+/// std::fs::write(project.path().join("_projr.yml"), "directories: {}").unwrap();
+/// let nested = project.path().join("analysis");
+/// std::fs::create_dir(&nested).unwrap();
+/// std::fs::write(nested.join("VERSION"), "v1.0.0").unwrap();
+/// let path = camino::Utf8Path::from_path(&nested).unwrap();
+/// let root = camino::Utf8Path::from_path(project.path()).unwrap();
+/// assert_eq!(proj::root_from(path), Some(root.canonicalize_utf8().unwrap()));
 /// ```
 pub fn root_from(start_path: &camino::Utf8Path) -> Option<camino::Utf8PathBuf> {
     let start = camino::Utf8PathBuf::from_path_buf(fs::canonicalize(start_path).ok()?).ok()?;
@@ -386,58 +443,48 @@ pub fn root_from(start_path: &camino::Utf8Path) -> Option<camino::Utf8PathBuf> {
     }
     let found = start
         .ancestors()
-        .find(|path| has_project_marker(path))
+        .find(|path| crate::profile::has_base_config(path))
         .map(|path| path.to_owned());
     found.or(Some(start))
 }
 
-fn has_line_prefix(path: &camino::Utf8Path, prefix: &str) -> bool {
-    fs::read_to_string(path)
-        .map(|text| text.lines().any(|line| line.starts_with(prefix)))
-        .unwrap_or(false)
-}
-
-fn has_project_marker(path: &camino::Utf8Path) -> bool {
-    if [
-        "VERSION",
-        "README.md",
-        "_quarto.yml",
-        "_proj.yml",
-        "_projr.yml",
-        "pyproject.toml",
-        "Project.toml",
-        "JuliaProject.toml",
-    ]
-    .iter()
-    .any(|name| path.join(name).is_file())
-        || path.join(".git").is_dir()
-        || path.join(".svn").is_dir()
-        || has_line_prefix(&path.join(".git"), "gitdir: ")
-        || has_line_prefix(&path.join("DESCRIPTION"), "Package: ")
-    {
-        return true;
+/// Seeds projr's editable starter lines and an empty managed block into
+/// `.gitignore` (and `.Rbuildignore` in a package) when no block exists yet,
+/// as projr's `.init_ignore_starter` does. Files with a block are untouched.
+pub(crate) fn seed_ignore_starter(project_root: &camino::Utf8Path) -> anyhow::Result<()> {
+    let mut targets = vec![(project_root.join(".gitignore"), GIT_STARTER)];
+    if project_root.join("DESCRIPTION").exists() || project_root.join(".Rbuildignore").exists() {
+        targets.push((project_root.join(".Rbuildignore"), RBUILD_STARTER));
     }
-    if let Ok(text) = fs::read_to_string(path.join("renv.lock")) {
-        let packages = regex::Regex::new(r#""Packages":\s*\{"#).expect("constant marker pattern");
-        if text.lines().any(|line| packages.is_match(line)) {
-            return true;
+    for (path, starter) in targets {
+        let existing = if path.exists() {
+            Some(crate::fs_utils::read_managed_text(&path)?)
+        } else {
+            None
+        };
+        let lines: Vec<String> = existing
+            .as_deref()
+            .unwrap_or_default()
+            .lines()
+            .map(str::to_owned)
+            .collect();
+        if managed_block(&lines, &path)?.is_some() {
+            continue;
+        }
+        let new_lines: Vec<String> = starter
+            .iter()
+            .filter(|rule| !lines.iter().any(|line| line.as_str() == **rule))
+            .map(|rule| rule.to_string())
+            .chain([START_MARKER.to_owned(), END_MARKER.to_owned()])
+            .chain(lines.iter().cloned())
+            .collect();
+        let content = new_lines.join("\n") + "\n";
+        match existing {
+            Some(_) => crate::fs_utils::replace_managed_file(&path, content)?,
+            None => crate::fs_utils::write_managed_file(&path, content)?,
         }
     }
-    if let Ok(entries) = fs::read_dir(path) {
-        return entries.flatten().any(|entry| {
-            let file = entry.path();
-            file.is_file()
-                && file.extension().and_then(|extension| extension.to_str()) == Some("Rproj")
-                && fs::read_to_string(file)
-                    .map(|text| {
-                        text.lines()
-                            .next()
-                            .is_some_and(|line| line.starts_with("Version: "))
-                    })
-                    .unwrap_or(false)
-        });
-    }
-    false
+    Ok(())
 }
 
 /// Thin production wrapper: discovers the conceptual project root directory via heuristic path traversal.

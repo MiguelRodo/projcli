@@ -131,8 +131,8 @@ fn actual_xet_restart_versions_corruption_and_destination_preservation() {
     assert_eq!(tree(&recovered), saved);
     // Invalid reference and stale cooperative claim are failures, without replacing outputs.
     assert!(proj::xet::verify(&project, &store, &"0".repeat(64), &engine).is_err());
-    fs::create_dir_all(store.join(".proj")).unwrap();
-    fs::write(store.join(".proj/build.lock"), "other-writer").unwrap();
+    fs::create_dir_all(store.join(".projr")).unwrap();
+    fs::write(store.join(".projr/build.lock"), "other-writer").unwrap();
     assert!(
         proj::xet::restore(
             &project, &store, &second, "raw-data", &recovered, true, &engine
@@ -140,7 +140,7 @@ fn actual_xet_restart_versions_corruption_and_destination_preservation() {
         .is_err()
     );
     assert_eq!(
-        fs::read(store.join(".proj/build.lock")).unwrap(),
+        fs::read(store.join(".projr/build.lock")).unwrap(),
         b"other-writer"
     );
     assert_eq!(tree(&recovered), saved);

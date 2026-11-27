@@ -187,7 +187,7 @@ pub(crate) fn configured(
             !root.starts_with(&base),
             "Publication base contains the project root"
         );
-        for name in [".git", ".hg", ".svn", ".projr", ".proj"] {
+        for name in [".git", ".hg", ".svn", ".projr", "_projr"] {
             anyhow::ensure!(
                 !overlaps(&base, &identity(&root.join(name))?),
                 "Publication overlaps protected project state"
@@ -343,7 +343,7 @@ fn validate_namespaces(
                     );
                 }
             }
-            for name in [".projcli-manifests", ".proj"] {
+            for name in [".projcli-manifests", ".projr"] {
                 reserved.push(identity(&target.base.join(name))?);
             }
         }

@@ -17,7 +17,7 @@ logical labels and existing MD5 byte hashes, including empty-directory markers.
 It works without Git or active configuration. It reads evidence without acquiring
 a build lock, changing versions, rerunning analysis or contacting a remote.
 
-Each new final observation retains `.proj/log/ATTEMPT_ID.final.csv` in the existing
+Each new final observation retains `.projr/attempts/ATTEMPT_ID.final.csv` in the existing
 label,fn,version,hash format. Its JSON record or Git outcome receipt binds its
 exact bytes and canonical inventory fingerprint. End hooks may change files:
 these final rows describe the observation after finalization was attempted,
@@ -45,7 +45,7 @@ Malformed records, linked paths, mismatched receipts and corrupted selected CSVs
 are errors. Disabled/failed observations are not empty inventories.
 
 Production failures after writer ownership but before possible distribution are
-listed from .proj/log/local-failures/. They have status failed, local_only true,
+listed from .projr/logs/local-failures/. They have status failed, local_only true,
 a coarse stage, null release_version and no final file rows. Human summaries say
 'no successful release'. These diagnostics stay local: the directory's .gitignore
 and framework Git exclusions do not hide successful or distributed-failure logs.

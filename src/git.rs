@@ -91,8 +91,8 @@ impl SystemGit {
                 "ls-files",
                 "-z",
                 "--",
-                ":(top,glob)**/.proj/build.lock",
-                ":(top,glob)**/.proj/log/local-failures/**",
+                ":(top,glob)**/.projr/build.lock",
+                ":(top,glob)**/.projr/logs/local-failures/**",
             ])
             .output()?;
         anyhow::ensure!(
@@ -100,8 +100,8 @@ impl SystemGit {
             "Build writer claims and local failure diagnostics must not be tracked by Git"
         );
         Ok([
-            ":(top,exclude,glob)**/.proj/build.lock",
-            ":(top,exclude,glob)**/.proj/log/local-failures/**",
+            ":(top,exclude,glob)**/.projr/build.lock",
+            ":(top,exclude,glob)**/.projr/logs/local-failures/**",
         ])
     }
 

@@ -95,7 +95,7 @@ fn recovered_snapshot(
     before: &BTreeMap<String, Option<Vec<u8>>>,
 ) -> BTreeMap<String, Option<Vec<u8>>> {
     let mut after = snapshot(root);
-    let directory = ".proj/log/local-failures";
+    let directory = ".projr/logs/local-failures";
     let prefix = format!("{directory}/");
     let added: Vec<_> = after
         .keys()
@@ -157,12 +157,12 @@ fn recovered_snapshot(
     }
     assert_eq!(diagnostics, 1);
     assert_eq!(ignores, 1);
-    for parent in [".proj", ".proj/log", directory] {
+    for parent in [".projr", ".projr/logs", directory] {
         if !before.contains_key(parent) {
             assert_eq!(after.remove(parent), Some(None));
         }
     }
-    assert!(!root.join(".proj/build.lock").exists());
+    assert!(!root.join(".projr/build.lock").exists());
     after
 }
 fn setup() -> (tempfile::TempDir, std::path::PathBuf, Value) {
@@ -182,7 +182,7 @@ fn setup() -> (tempfile::TempDir, std::path::PathBuf, Value) {
         "build":{"scripts":[],"git":false,"dest":{"B":{"content":["raw"]}}}
     });
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         serde_json::to_vec_pretty(&config).unwrap(),
     )
     .unwrap();
@@ -229,7 +229,7 @@ fn actual_cli_uploads_only_to_b_and_restores_a_after_its_upload_selection_is_abs
                 .remove("source");
             config["build"]["dest"] = json!({});
             fs::write(
-                root.join("_proj.yml"),
+                root.join("_projr.yml"),
                 serde_json::to_vec_pretty(&config).unwrap(),
             )
             .unwrap();
@@ -300,7 +300,7 @@ fn registered_but_unselected_remotes_need_no_credentials_and_make_no_store() {
             }
         }
         fs::write(
-            root.join("_proj.yml"),
+            root.join("_projr.yml"),
             serde_json::to_vec_pretty(&config).unwrap(),
         )
         .unwrap();
@@ -328,7 +328,7 @@ fn unknown_registry_reference_preserves_inputs_before_hooks_with_only_the_approv
     )
     .unwrap();
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         serde_json::to_vec_pretty(&config).unwrap(),
     )
     .unwrap();
@@ -349,7 +349,7 @@ fn inline_build_archives_are_rejected_readonly_before_clearing() {
     let (_temp, root, mut config) = setup();
     config["build"]["local"] = json!({"A":{"path":"../spoof","content":["raw"]}});
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         serde_json::to_vec_pretty(&config).unwrap(),
     )
     .unwrap();

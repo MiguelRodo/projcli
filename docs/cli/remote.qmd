@@ -309,7 +309,7 @@ all12checks and the [full pinned gate](https://github.com/MiguelRodo/projcli/act
 It merged ascee85a164fa43cb827c0db69814199994fa4ea66 with an identical tested tree.
 
 Configured restore uses the shared profile selection order: explicit profile,
-PROJR_PROFILE, QUARTO_PROFILE, then build.profile, with earlier profiles winning
+PROJR_PROFILE, then the local and base `profile` keys, with earlier profiles winning
 and local overrides last. Machine failures preserve installation/recovery details
 on stderr, including retained backup paths; stdout stays a structured failure.
 Legacy data CSV rows and remote data namespaces are read without rewriting
@@ -323,7 +323,7 @@ also closes explicitly and reports cleanup failure paths.
 
 ## Configured local publication {#configured-local-publication-candidate}
 
-Current source supports build.local archive (the default) and latest publication with manifest inspection
+Current source supports remotes.local destinations selected by build.dest, archive (the default) and latest publication with manifest inspection
 by default, explicit file comparison, or explicit none comparison. This is included
 in preview.3 and is not complete projr remote parity. All selected namespace identities are checked before hooks; every current
 CSV-selected snapshot and existing remote metadata is staged/read before the

@@ -47,7 +47,7 @@ fn unreadable_root_keeps_ownership_phase_and_cause_before_hooks_or_managed_write
             let config = format!(
                 "directories:\n  cache: {{path: cache}}\n  output: {{path: released}}\nsettings:\n  output-clear-stage: pre\nbuild:\n  git: false\n{selection}"
             );
-            fs::write(root.join("_proj.yml"), &config).unwrap();
+            fs::write(root.join("_projr.yml"), &config).unwrap();
             fs::write(
                 root.join("analysis.py"),
                 "from pathlib import Path\nPath('cache/analysis-ran').write_text('unexpected')\n",
@@ -57,7 +57,7 @@ fn unreadable_root_keeps_ownership_phase_and_cause_before_hooks_or_managed_write
             let original_permissions = fs::metadata(&root).unwrap().permissions();
             // Known config files are readable, but enumerating the directory is denied.
             fs::set_permissions(&root, fs::Permissions::from_mode(0o300)).unwrap();
-            let config_readable = fs::read_to_string(root.join("_proj.yml")).is_ok();
+            let config_readable = fs::read_to_string(root.join("_projr.yml")).is_ok();
             let enumeration_denied = fs::read_dir(&root).is_err();
             let output = if config_readable && enumeration_denied {
                 Some(build(&root, mode))
@@ -109,8 +109,8 @@ fn unreadable_root_keeps_ownership_phase_and_cause_before_hooks_or_managed_write
             );
             assert_eq!(fs::read(root.join("VERSION")).unwrap(), b"v1.2.3-4\n");
             assert_eq!(fs::read(root.join(".gitignore")).unwrap(), b"manual-rule\n");
-            assert_eq!(fs::read_to_string(root.join("_proj.yml")).unwrap(), config);
-            for name in [".Rbuildignore", ".projr", ".proj", ".git"] {
+            assert_eq!(fs::read_to_string(root.join("_projr.yml")).unwrap(), config);
+            for name in [".Rbuildignore", ".projr", ".git"] {
                 assert!(!root.join(name).exists());
             }
         }
@@ -124,7 +124,7 @@ fn readable_fallback_keeps_hidden_ignored_and_alphabetical_shallow_selection() {
     let root = parent.join("project [2] with spaces");
     fs::create_dir(&root).unwrap();
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         "directories:\n  cache: {path: cache}\nbuild:\n  git: false\n",
     )
     .unwrap();
@@ -195,7 +195,7 @@ fn projr_discovery_skips_readme_helpers_and_hooks_and_dev_runs_only_dev_hooks() 
         } else {
             selection
         };
-        fs::write(root.join("_proj.yml"), format!("directories:\n  cache: {{path: cache}}\nbuild:\n  git: false\n  hooks:\n    pre: [prod_hook.py]\n{dev}")).unwrap();
+        fs::write(root.join("_projr.yml"), format!("directories:\n  cache: {{path: cache}}\nbuild:\n  git: false\n  hooks:\n    pre: [prod_hook.py]\n{dev}")).unwrap();
         for (name, label) in [
             ("b.py", "b"),
             ("a.py", "a"),
@@ -229,7 +229,7 @@ fn exclusion_only_lists_with_a_project_fail_clearly() {
     let temporary = tempfile::tempdir().unwrap();
     let root = temporary.path().canonicalize().unwrap();
     fs::write(root.join("_quarto.yml"), "project:\n  type: default\n").unwrap();
-    fs::write(root.join("_proj.yml"), "directories:\n  cache: {path: cache}\nbuild:\n  git: false\ndev:\n  scripts:\n    - exclude: scratch.qmd\n").unwrap();
+    fs::write(root.join("_projr.yml"), "directories:\n  cache: {path: cache}\nbuild:\n  git: false\ndev:\n  scripts:\n    - exclude: scratch.qmd\n").unwrap();
     let output = build(&root, "build-dev").unwrap();
     assert!(!output.status.success());
     assert!(String::from_utf8_lossy(&output.stderr).contains("Exclusion-only script lists"));

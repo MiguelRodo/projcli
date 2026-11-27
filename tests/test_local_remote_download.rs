@@ -104,7 +104,7 @@ fn archive_download_stages_nested_unicode_and_hidden_bytes_and_preserves_extras(
         b"new exact bytes\n"
     );
     assert_eq!(snapshot(&root.join("remote")), remote_before);
-    assert!(!root.join("_proj.yml").exists());
+    assert!(!root.join("_projr.yml").exists());
     assert!(!root.join("VERSION").exists());
     assert!(fs::read_dir(&root).unwrap().all(|entry| {
         !entry
@@ -376,7 +376,7 @@ fn install_failure_restores_original_and_rollback_failure_retains_original_with_
             fs::write(root.join("remote/raw-data/v1.2.3/new"), b"new source bytes").unwrap();
             fs::write(root.join("downloaded/original"), b"original bytes").unwrap();
             if operation == "restore" {
-                fs::write(root.join("_proj.yml"),"directories:\n  raw-data:\n    path: downloaded\n    source:\n      local:\n        A:\n          path: remote\n").unwrap();
+                fs::write(root.join("_projr.yml"),"directories:\n  raw-data:\n    path: downloaded\n    source:\n      local:\n        A:\n          path: remote\n").unwrap();
                 fs::write(
                     root.join("manifest.csv"),
                     "label,fn,version,hash\nraw-data,new,v1.2.3,900150983cd24fb0d6963f7d28e17f72\n",
@@ -559,7 +559,7 @@ fn configured_publication_cleans_all_private_readonly_snapshots_on_prepare_or_ap
         } else {
             "[]"
         };
-        fs::write(root.join("_proj.yml"),format!("directories:\n  raw-a: {{path: raw-a}}\n  raw-b: {{path: raw-b}}\n  cache: {{path: cache}}\nbuild:\n  scripts: {scripts}\n  git: false\n  restrictions: {{not_behind_remote: false}}\n  dest: [first, second]\nremotes:\n  local:\n    first:\n      path: delivered-a\n      structure: latest\n      content: [raw-a]\n      send: {{inspect: file}}\n    second:\n      path: delivered-b\n      structure: latest\n      content: [raw-b]\n      send: {{inspect: file}}\n")).unwrap();
+        fs::write(root.join("_projr.yml"),format!("directories:\n  raw-a: {{path: raw-a}}\n  raw-b: {{path: raw-b}}\n  cache: {{path: cache}}\nbuild:\n  scripts: {scripts}\n  git: false\n  restrictions: {{not_behind_remote: false}}\n  dest: [first, second]\nremotes:\n  local:\n    first:\n      path: delivered-a\n      structure: latest\n      content: [raw-a]\n      send: {{inspect: file}}\n    second:\n      path: delivered-b\n      structure: latest\n      content: [raw-b]\n      send: {{inspect: file}}\n")).unwrap();
         fs::set_permissions(root.join("raw-a/input"), fs::Permissions::from_mode(0o400)).unwrap();
         fs::set_permissions(root.join("raw-a"), fs::Permissions::from_mode(0o500)).unwrap();
         fs::set_permissions(root.join("raw-b"), fs::Permissions::from_mode(0o500)).unwrap();

@@ -15,7 +15,7 @@ fn run(root: &std::path::Path, args: &[&str]) -> std::process::Output {
 fn fixture(selection: &str) -> tempfile::TempDir {
     let temp = tempfile::tempdir().unwrap();
     fs::create_dir_all(temp.path().join("source with spaces/nested")).unwrap();
-    fs::write(temp.path().join("_proj.yml"),format!(
+    fs::write(temp.path().join("_projr.yml"),format!(
         "directories:\n  scripts-l1: {{path: 'source with spaces'}}\n  cache: {{path: cache}}\nbuild:\n  git: false\n  scripts: {selection}\n")).unwrap();
     for name in ["a", "skip", "nested/b"] {
         fs::write(temp.path().join(format!("source with spaces/{name}.py")),format!(
@@ -142,7 +142,7 @@ fn literal_absolute_includes_and_excludes_are_symmetric_and_canonical() {
         file.to_str().unwrap().to_owned(),
         format!("!{}", file.display()),
     ];
-    fs::write(temp.path().join("_proj.yml"),format!(
+    fs::write(temp.path().join("_projr.yml"),format!(
         "directories:\n  scripts-l1: {{path: 'source with spaces'}}\n  cache: {{path: cache}}\nbuild:\n  git: false\n  scripts: {}\n",serde_json::to_string(&selections).unwrap())).unwrap();
     let output = run(temp.path(), &["build-dev"]);
     assert!(
@@ -174,7 +174,7 @@ fn grouped_file_and_asset_ancestor_collisions_fail_before_start_hooks() {
             "from pathlib import Path\nPath('hook-ran').write_text('unexpected')\n",
         )
         .unwrap();
-        fs::write(root.join("_proj.yml"),format!(
+        fs::write(root.join("_projr.yml"),format!(
             "directories:\n  cache: {{path: cache}}\n  docs: {{path: docs}}\n  scripts: {{path: first}}\n  scripts-{group}: {{path: second}}\nbuild:\n  git: false\n  scripts: [scripts, scripts-{group}]\ndev:\n  hooks:\n    pre: [hook.py]\n")).unwrap();
         let output = run(root, &["build-dev"]);
         assert!(!output.status.success());
@@ -199,7 +199,7 @@ fn default_script_ignores_keep_package_sources_but_explicit_policy_wins() {
             )
             .unwrap();
             let policy = if explicit { ", ignore: rbuild" } else { "" };
-            fs::write(temp.path().join("_proj.yml"),format!(
+            fs::write(temp.path().join("_projr.yml"),format!(
                 "directories:\n  scripts: {{path: {directory}{policy}}}\nbuild:\n  git: false\n  scripts: []\n")).unwrap();
             let output = run(temp.path(), &["init", "directories"]);
             assert!(
@@ -260,7 +260,7 @@ fn automatic_local_environment_ignore_does_not_create_an_rbuild_file_without_met
 #[test]
 fn recursive_groups_never_execute_nested_project_metadata() {
     let temp = fixture("[scripts-l1]");
-    for directory in [".git", "nested/.proj", "nested/.projr"] {
+    for directory in [".git", "nested/.projr"] {
         let metadata = temp.path().join("source with spaces").join(directory);
         fs::create_dir_all(&metadata).unwrap();
         fs::write(
@@ -270,7 +270,7 @@ fn recursive_groups_never_execute_nested_project_metadata() {
         .unwrap();
     }
     #[cfg(windows)]
-    for directory in ["upper/.GIT", "upper/.PrOj", "upper/.PrOjR"] {
+    for directory in ["upper/.GIT", "upper/.PrOjR"] {
         let metadata = temp.path().join("source with spaces").join(directory);
         fs::create_dir_all(&metadata).unwrap();
         fs::write(
@@ -298,11 +298,11 @@ fn recursive_groups_never_execute_nested_project_metadata() {
 fn direct_directory_and_glob_bases_cannot_enter_project_metadata() {
     for selection in [
         "['source with spaces/.git']",
-        "['source with spaces/nested/.proj/*.py']",
+        "['source with spaces/nested/.projr/*.py']",
         "['source with spaces/nested/.projr/**/*.py']",
     ] {
         let temp = fixture(selection);
-        for directory in [".git", "nested/.proj", "nested/.projr"] {
+        for directory in [".git", "nested/.projr"] {
             let metadata = temp.path().join("source with spaces").join(directory);
             fs::create_dir_all(&metadata).unwrap();
             fs::write(
@@ -323,10 +323,10 @@ fn direct_directory_and_glob_bases_cannot_enter_project_metadata() {
 fn metadata_directory_names_follow_windows_case_rules() {
     for selection in [
         "['source with spaces/.GIT']",
-        "['source with spaces/.PrOj/*.py']",
+        "['source with spaces/.PrOjR/*.py']",
     ] {
         let temp = fixture(selection);
-        for directory in [".git", ".proj"] {
+        for directory in [".git", ".projr"] {
             let metadata = temp.path().join("source with spaces").join(directory);
             fs::create_dir_all(&metadata).unwrap();
             fs::write(

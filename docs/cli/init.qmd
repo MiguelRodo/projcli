@@ -20,6 +20,11 @@ preserved. VERSION is authoritative: its synchronization setting can update only
 an existing DESCRIPTION Version when the two version values differ. Equivalent
 version spellings retain their original DESCRIPTION bytes.
 
+When no base configuration (and no active profile file) exists, init also writes
+projr's starter `_projr.yml` (raw-data, cache, output and docs folders), creates
+those folders and seeds `.gitignore`; an existing configuration is never
+overwritten. Unlike a first build, it does not add the starter's Git settings.
+
 DESCRIPTION is optional project metadata, not an automatic R package. Request it
 explicitly; this does not create R/ or NAMESPACE:
 

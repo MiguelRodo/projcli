@@ -78,7 +78,7 @@ fn setup() -> (tempfile::TempDir, PathBuf, Value) {
 }
 fn save(root: &Path, value: &Value) {
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         serde_json::to_vec_pretty(value).unwrap(),
     )
     .unwrap();
@@ -111,12 +111,12 @@ fn queries_preview_and_empty_destination_selection_need_no_engine_and_do_not_cre
     success(command(&root, None).arg("build-dev").output().unwrap());
     assert_eq!(fs::read(root.join("VERSION")).unwrap(), version);
     assert!(!store.exists());
-    assert!(!root.join(".proj/remotes").exists());
+    assert!(!root.join(".projr/remotes").exists());
     config["build"]["dest"] = json!({});
     save(&root, &config);
     success(command(&root, None).arg("build").output().unwrap());
     assert!(!store.exists());
-    assert!(!root.join(".proj/remotes").exists());
+    assert!(!root.join(".projr/remotes").exists());
 }
 #[test]
 fn missing_helper_and_invalid_backend_options_fail_before_hooks_or_version_changes() {
@@ -198,7 +198,7 @@ fn actual_configured_build_records_root_and_fresh_project_restores_without_uploa
     hash.update(b"BACKUP");
     let key = hash.finalize().to_hex().to_string();
     let reference = root
-        .join(".proj/remotes")
+        .join(".projr/remotes")
         .join(&key[..2])
         .join(&key[2..])
         .join("xet-references/v1")
@@ -218,8 +218,8 @@ fn actual_configured_build_records_root_and_fresh_project_restores_without_uploa
         use std::os::unix::fs::MetadataExt;
         let database = store.join("engine/xet/xorbs/global_dedup_lookup.redb");
         let inode = fs::metadata(&database).unwrap().ino();
-        fs::create_dir_all(store.join(".proj")).unwrap();
-        let claim = store.join(".proj/build.lock");
+        fs::create_dir_all(store.join(".projr")).unwrap();
+        let claim = store.join(".projr/build.lock");
         fs::write(&claim, b"fixture-active-reader").unwrap();
         let before = tree(&store);
         success(command(&root, None).arg("build-dev").output().unwrap());
@@ -235,7 +235,7 @@ fn actual_configured_build_records_root_and_fresh_project_restores_without_uploa
         );
         assert_eq!(fs::read(&claim).unwrap(), b"fixture-active-reader");
         fs::remove_file(claim).unwrap();
-        fs::remove_dir(store.join(".proj")).unwrap();
+        fs::remove_dir(store.join(".projr")).unwrap();
     }
     let fresh = root.parent().unwrap().join("fresh");
     for name in ["input", "results", "cache", "home"] {
@@ -265,7 +265,7 @@ fn actual_configured_build_records_root_and_fresh_project_restores_without_uploa
     assert_eq!(fs::read(fresh.join("input/data.csv")).unwrap(), expected);
     assert!(fresh.join("input/empty").is_dir());
     assert_eq!(fs::read(fresh.join("VERSION")).unwrap(), b"v9.0.0-7\n");
-    assert!(!fresh.join(".proj").exists());
+    assert!(!fresh.join(".projr").exists());
     assert!(!fresh.join("manifest.csv").exists());
     println!(
         "Configured structure:xet build, Git root reference, selected-label inventory and fresh explicit restore passed."
@@ -308,7 +308,7 @@ fn unsafe_second_store_fails_preflight_before_any_first_store_publication_or_hoo
     assert_eq!(fs::read(external).unwrap(), b"must remain unchanged");
     assert!(!root.join("hook-ran").exists());
     assert!(!parent.join("store").exists());
-    assert!(!root.join(".proj/remotes").exists());
+    assert!(!root.join(".projr/remotes").exists());
 }
 
 #[cfg(unix)]
@@ -369,7 +369,7 @@ fn unsafe_project_reference_namespace_fails_before_helper_and_store_entry() {
     let mut hash = blake3::Hasher::new_derive_key("projcli.remote-name.v1");
     hash.update(b"BACKUP");
     let key = hash.finalize().to_hex().to_string();
-    let metadata = root.join(".proj/remotes").join(&key[..2]).join(&key[2..]);
+    let metadata = root.join(".projr/remotes").join(&key[..2]).join(&key[2..]);
     fs::create_dir_all(&metadata).unwrap();
     let external = root.parent().unwrap().join("foreign");
     fs::create_dir(&external).unwrap();

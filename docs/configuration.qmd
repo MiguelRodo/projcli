@@ -1,12 +1,89 @@
-# Configuration `_proj.yml`
+# Configuration `_projr.yml`
 
 Preview.4 includes the named remote definitions, file-history formats and explicit
 local snapshot recovery documented below. Historical slice notes retain their
 original verification scope. See [verified delivery](release-delivery.qmd#verified-preview4-delivery).
 
-Use `_proj.yml` to name your project folders, choose the analysis steps to run,
+Use `_projr.yml` to name your project folders, choose the analysis steps to run,
 and decide where results are saved. The examples describe published preview.6. Older previews lack the new
-initialization and script-group options.
+initialization and script-group options. Current source (unreleased) uses projr's
+file layout and `profile` key, described next; preview.6 and earlier read `_proj.yml`.
+
+## Configuration files and profiles
+
+projcli reads projr 0.9's layout (SATVILab/projr@5f915ef `R/yml.R:308-359`,
+`R/profile.R:223-270`). There is one base file, `_projr.yml`; projcli's earlier
+`_proj.yml` name is no longer read.
+
+| Layer | Root file | Also accepted in `.projr/config/` (or `_projr/config/`) |
+|---|---|---|
+| base | `_projr.yml` | `_projr.yml` or `default.yml` |
+| profile `<name>` | `_projr-<name>.yml` | `_projr-<name>.yml` or `<name>.yml` |
+| local | `_projr-local.yml` | `_projr-local.yml` or `local.yml` |
+
+For each layer the root file wins, then `.projr/config/`, then `_projr/config/`.
+Having both spellings of one layer in the same configuration directory (for
+example `.projr/config/_projr.yml` and `.projr/config/default.yml`) is an error:
+`Both _projr.yml and default.yml exist in .projr/config/. Keep one.` A
+`.projr/config/default.yml` (or `_projr.yml`) also marks the surrounding folder as the
+project root, as in projr. Local files take precedence over profiles, earlier
+profiles over later ones, and profiles over the base file.
+
+### Choosing profiles
+
+Profiles are chosen in this order:
+
+1. `--profile` on the command line;
+2. a nonempty `PROJR_PROFILE` environment variable;
+3. the `profile` key in the local file;
+4. the `profile` key in the base file.
+
+The `profile` key takes a name, a list of names, or a mapping with `projr` and
+`quarto` entries:
+
+```yaml
+profile:
+  projr: [analysis]
+  quarto: print
+```
+
+Each kind comes from the first of the local and base files that names it, so a
+local file that sets only `quarto` keeps the base file's projr profiles.
+`profile.renv` is an error ("not supported yet", as in projr), and named profile
+files cannot contain the key. `QUARTO_PROFILE` no longer selects projr profiles (it,
+or `profile.quarto`, still selects `_environment-<profile>` files, as in projr);
+Quarto reads it itself. When it is unset, a build records the configured Quarto
+profiles in its frozen run context before hooks. **Gap:** renderers do not apply
+them yet (planned for the engines slice); set `QUARTO_PROFILE` meanwhile.
+
+### Starter configuration
+
+When no base file exists, `proj build` and `proj build-dev` first write projr's
+starter `_projr.yml` (`R/build.R:289-310`), never overwriting a file:
+
+```yaml
+directories:
+  raw-data:
+    path: _raw_data
+  cache:
+    path: _tmp
+  output:
+    path: _output
+  docs:
+    path: docs
+build:
+  git: false   # only outside a Git repository
+```
+
+Inside a repository without a tracking upstream the build block is
+`git: {push: false}`; with an upstream it is omitted. The starter omits
+`build.scripts`, so the first build runs automatic discovery. It is written
+before the build's recovery snapshot and kept if the build fails, as in projr.
+Like projr, the build (preview included) also seeds `.gitignore` (and, in a
+package, `.Rbuildignore`) with projr's starter lines and an empty managed block.
+Without any configuration above it, the starter goes in the current directory,
+not in an ancestor with VERSION, Git or package files (a deliberate difference
+from projr's build fallback).
 
 ## Name your project folders
 
@@ -25,18 +102,26 @@ These prefixes are **case-insensitive**. Ordinary labels begin with cache, raw, 
 Ordinary declared directories need a nonempty `path`. The fixed R-package role
 `output-r-data: {}` is the exception: its final destination is project/data.
 Runtime does not insert other missing cache/raw/output/docs mappings or synthesize
-subpaths for undeclared labels. Canonical data/data-* labels are rejected; see
-the R-package data section for the legacy per-layer data alias.
+subpaths for undeclared labels. projr's `data` label is an alias of the fixed
+`output-r-data` role (see the R-package data section); other data-* labels are rejected.
 For example, declaring `raw-data: {path: _raw_data}` makes `raw-data` available;
 it does not create an undeclared `raw` or `raw-data-extra` resource.
 ASCII case is ignored and case-only duplicate labels are rejected.
 
-`proj --project . --non-interactive init directories` creates a missing `_proj.yml`
-once with explicit `raw-data: _raw_data`, `cache: _tmp`, and `output: _output`
-paths. It preserves existing base/profile files, creates only declared resource
-directories, and does not invoke Git/GitHub or add an R code directory. The preset
-omits `build.scripts`, preserving shallow discovery; it never serializes an
-accidental empty analysis list. To render documents, declare a `docs` mapping too.
+`proj --project . --non-interactive init directories` creates a missing `_projr.yml`
+once with projr's starter: explicit `raw-data: _raw_data`, `cache: _tmp`,
+`output: _output` and `docs: docs` paths. It preserves existing base/profile files,
+creates only declared resource directories, and does not invoke Git/GitHub or add
+an R code directory. The starter omits `build.scripts`, preserving shallow
+discovery; it never serializes an accidental empty analysis list. Because it
+declares `docs: docs`, an existing hand-written `docs/` folder becomes the managed
+documents destination that later production builds replace; move it first or
+change the mapping.
+
+General `proj init` writes the same starter directories in `_projr.yml` (through
+the directory initializer) when no base or active profile file exists, as projr's
+`projr_init` does, without the build's Git adjustments, and never overwrites an
+existing configuration.
 
 Production state and project-render staging require a declared `cache` directory.
 Framework version/staging children are derived inside that declared cache; this
@@ -77,7 +162,7 @@ projcli checks the configuration before running the selected work:
 
 ## Top-Level Configuration
 
-The `_proj.yml` file supports a top-level `config` block for project-wide settings:
+The `_projr.yml` file supports a top-level `config` block for project-wide settings:
 
 - **`config.git.engine`**: The Git execution engine to use. Can be `auto` (default) or `system`. This determines how the CLI interfaces with Git capabilities natively.
 - **`config.git.use_proj_cred_helper`**: Defaults to `false`: use existing native Git authentication. Explicit `true` permits an existing single-line `GITHUB_PAT`, `GH_TOKEN` or `GITHUB_TOKEN` for standard HTTPS github.com remotes through a temporary host-scoped helper. There is no automatic token discovery or GitHub CLI call during builds. Tokens are environment data, never argv or shell source; persistent auth settings are unchanged.
@@ -85,7 +170,7 @@ The `_proj.yml` file supports a top-level `config` block for project-wide settin
 
 ## Parameters Configuration
 
-The `_proj.yml` file supports a top-level `parameters` block for arbitrary nested parameter evaluation. Use it for analysis inputs such as a model name, random seed or reporting date.
+The `_projr.yml` file supports a top-level `parameters` block for arbitrary nested parameter evaluation. Use it for analysis inputs such as a model name, random seed or reporting date.
 
 The configuration engine also supports several aliases for this block: `parameter`, `params`, and `param`. However, **multiple alias conflicts within the same configuration file are structurally rejected during validation** to prevent mapping confusion.
 
@@ -164,7 +249,7 @@ After every read-only check passes and before any hook, the build creates each
 missing release (as projr does), with a note that the build is pending; a
 successful publication replaces the note. If the build then fails, the release
 stays, possibly empty; it is never deleted. Creating it is not distribution: the
-error and the local failure diagnostic (`.proj/log/local-failures/`, field
+error and the local failure diagnostic (`.projr/logs/local-failures/`, field
 `created_releases`) name each such release by repository and tag. An existing
 release keeps its target
 and note. These fields are rejected on local destinations.
@@ -176,7 +261,7 @@ checkout's branch, encoded as a path component, so `feature/foo` becomes
 `@uuid` (a fresh UUIDv4 per build). A placeholder ends at the end of the text or
 before `-`, `_`, `.`, a space, `/` or `\`, so `archive-@branching` stays literal.
 Quote YAML values that begin with `@`. Values are resolved once before hooks;
-the build's attempt record (`.proj/log/<attempt>.json`, field `destinations`)
+the build's attempt record (`.projr/attempts/<attempt>.json`, field `destinations`)
 keeps the build UUID and each resolved GitHub repository/tag and local path
 (only paths inside the project; an absolute or `..` path is reproduced from the
 configuration and the recorded UUID). Builds that publish nothing (previews and
@@ -192,7 +277,7 @@ for their additional requirements and limits.
 
 ## Build Configuration
 
-The `_proj.yml` file can also contain a `build` block to configure the behavior of the `proj build` and `proj build-dev` execution engine. The `build` block supports the following sub-keys:
+The `_projr.yml` file can also contain a `build` block to configure the behavior of the `proj build` and `proj build-dev` execution engine. The `build` block supports the following sub-keys:
 
 - **`dest`**: The remotes a production build publishes to; see
   [Remotes Configuration](#remotes-configuration). Removing a name stops uploads
@@ -209,16 +294,25 @@ The `_proj.yml` file can also contain a `build` block to configure the behavior 
   - **`pre`**: Scripts executed before the actual build phase.
   - **`post`**: Scripts executed after analysis/promotion, before VERSION and publication.
   - **`both`**: Scripts executed during both `pre` and `post` phases.
-- **`profile`**: An optional environment profile identifier. When set, the system injects the `PROJR_PROFILE` environment variable into the isolated subprocess for all executed scripts and project rendering commands. This can be overridden at runtime via the `--profile` CLI flag.
+- **`cite`**: projr's citation-file selection, `true`/`false` or a mapping of
+  `codemeta`, `cff` and `inst-citation` booleans. **Accepted and validated, not yet
+  acting:** builds do not generate citation files (see `proj init` for an explicit
+  `CITATION.cff`).
+- **`package`**: accepted and ignored. projr 0.9 lists it as a valid build key but
+  has no reader for it.
 - **`git`**: An optional Git integration configuration. This can be a boolean toggle or an object mapping out detailed toggles:
   - **`commit`**: Defaults to false, including inside an existing Git repository. Explicit true requires initially clean Git state and commits once after successful local build; an unchanged staged index is a successful no-op.
   - **`push`**: Defaults to false. Explicit true publishes HEAD to the current branch's configured upstream remote/reference. Missing upstream or custom push-only routing fails before build writes; origin/main is never invented.
+  - **`add-untracked`**: projr's boolean (default true). **Accepted and validated,
+    not yet acting:** a projcli build always stages new files, because its attempt
+    records and receipts are new files that must be committed. projr's `false`
+    would stage only already-tracked files (`git add --update`).
 - **`restrictions`**: Configuration block to enforce Git checks specifically during production builds:
   These are projr's keys (`SATVILab/projr@5f915ef:R/yml-restrictions.R`).
   - **`branch`**: Omitted or `true` allows any branch. `false` or `[]` blocks production builds on every branch; a list (or a single name, `branch: main`) allows only the named branches. Outside a Git repository the restriction does not apply, as in projr; inside one, a detached HEAD fails.
   - **`not_behind_git`**: Whether to check that the current branch is not behind its tracking upstream before a production build. The earlier projr spelling `not_behind` is also accepted; setting both fails. Omitted means on, as in projr: when a tracking upstream exists the build fetches it and aborts if the branch is behind; without a tracking upstream the check is skipped, and a failed fetch only warns. Explicit `true` makes a missing upstream or failed fetch an error. Like projr, both restrictions are skipped (no Git process starts) outside a repository; projcli detects one from a `.git` entry at the project root or any ancestor. An upstream that cannot be compared (its remote branch was pruned) warns and skips unless the value is explicit `true`. `false` performs no fetch.
   - **`not_behind_remote`**: Archive version check before any hook or rendering (projr `R/build-remote-versions.R`). Omitted or `true` checks the ordinary local and GitHub destinations this production build publishes to; `false` skips the check; a name or list of names checks those registered remotes, even when the build does not publish to them; write `github:reports` for a title registered under both types (projr 0.9 rejects the earlier `{github: [...]}` mapping). For each archive the build reads its completed project version (the `Project:` line of its `VERSION`, or `VERSION.zip` on a GitHub release) with read-only lookups. A missing or empty archive passes; a populated archive without a readable version stops the build. The proposed version must be newer than the archive's.
-  - **`rule`**: `base_version_not_behind` (or `base`, the default) also requires the last completed local version to be at least the archive's. That base is the most recent completed production attempt in `.proj/log` (projcli's counterpart of projr's BUILDLOG), else an existing `VERSION` file without a development component (never DESCRIPTION). `target_version_not_behind` (or `target`) checks only the proposed version, for publishing from an older checkout. Development builds and `output_run: false` skip the check; CAS and Xet stores are not checked.
+  - **`rule`**: `base_version_not_behind` (or `base`, the default) also requires the last completed local version to be at least the archive's. That base is the most recent completed production attempt in `.projr/attempts` (projcli's counterpart of projr's BUILDLOG), else an existing `VERSION` file without a development component (never DESCRIPTION). `target_version_not_behind` (or `target`) checks only the proposed version, for publishing from an older checkout. Development builds and `output_run: false` skip the check; CAS and Xet stores are not checked.
 - **`clear_output`**: An optional string controlling workspace clearing routines for output directories. Can be set to `"pre"`, `"post"`, or `"never"`. If omitted, defaults to evaluating the `PROJR_CLEAR_OUTPUT` environment variable.
 
 ## Development Overrides
@@ -266,6 +360,13 @@ representation policy even if scripts change configuration, profiles or cwd.
 Safe is the default path target; final must be explicitly requested. Docs output
 handling and the R-data built-in remain separately modeled features.
 
+projr's own `settings.hashing` block is also accepted and validated
+(`R/yml-check.R:43-71`): `approach` is `cpp` (default) or `legacy`, and `cores` is a
+whole number of at least 1; other keys are errors. projr's original
+`settings.hash-engine` spelling is read as `hashing.approach`. **Accepted, not yet
+acting:** both approaches produce the same MD5 digests, which projcli's single native
+implementation already computes, and hashing stays sequential whatever `cores` says.
+
 ## R package data
 
 The built-in output-r-data lookup has fixed final destination project/data, even
@@ -288,10 +389,9 @@ be omitted; if present it must resolve to project/data. Redirection is forbidden
 settings.output-clear-stage applies normally: pre/post clears old package data;
 the default none preserves other final files. Preview never promotes final data.
 
-Legacy _projr.yml and active _projr-*.yml layers accept data as an alias and normalize
-it before merging, including legacy remote content labels. Defining both aliases
-in one layer is an error. Canonical _proj.yml requires output-r-data. Generic
-data-* labels are unsupported; use raw-* inputs or ordinary output-* mappings.
+Every layer accepts projr's data label as an alias and normalizes it before
+merging, including remote content labels. Defining both aliases in one layer is an
+error. Generic data-* labels are unsupported; use raw-* inputs or ordinary output-* mappings.
 
 
 ## Existing archive inventory coverage
@@ -335,11 +435,10 @@ projr directories.LABEL.source references and remotes.local/remotes.github defin
 See the [remote command reference](cli/remote.qmd) for lookup precedence,
 limits and safety. This does not enable automatic ordinary uploads in build;
 normal build validation still rejects unsupported publication fields. The
-future top-level registry proposal remains separate. _proj.yml and legacy
-_projr.yml discovery/conflict rules remain unchanged.
+future top-level registry proposal remains separate.
 
 Configured restore uses the shared profile selection order: explicit profile,
-PROJR_PROFILE, QUARTO_PROFILE, then build.profile, with earlier profiles winning
+PROJR_PROFILE, then the local and base `profile` keys, with earlier profiles winning
 and local overrides last. Machine failures preserve installation/recovery details
 on stderr, including retained backup paths; stdout stays a structured failure.
 Legacy data CSV rows and remote data namespaces are read without rewriting
@@ -579,7 +678,7 @@ uses the longest compatible decoded history; dictionary IDs do not define it.
 Codec limits fail explicitly rather than truncating history.
 
 The authoritative history read through replacement/reference publication holds
-the existing cooperative claim at `<store>/.proj/build.lock`. Unknown/stale claims
+the existing cooperative claim at `<store>/.projr/build.lock`. Unknown/stale claims
 fail closed and only an owned claim is removed; there is no automatic process
 killing or stale-claim cleanup. Raw immutable objects may be copied before that
 claim. Required history copies precede full snapshot refs, then the small project
@@ -630,7 +729,7 @@ manifest:auto defaults to both for ordinary local destinations. project stores
 complete new history only in the project; remote stores it only under the remote's
 .projcli-manifests directory; both stores both. Complete catalogue files use the
 same catalogues/v1 filenames as local CAS. A small project binding is always
-written last under .proj/remotes and records the physical folder, empty marker
+written last under .projr/remotes and records the physical folder, empty marker
 and verbatim legacy VERSION entry. The binding alone is not a complete file list.
 
 Unchanged archive data may stay in an older physical version directory; the new
@@ -686,7 +785,7 @@ Complete new remote history is a separate projcli-manifests-v1.zip Release asset
 containing versioned catalogue files and immutable snapshot bindings. Existing
 manifest.zip, VERSION.zip and CHANGELOG.zip retain their compatibility purpose.
 Project full history, when selected, lives under the provider-separated
-.proj/remotes name; a small project binding is always kept. Names, not upload
+.projr/remotes name; a small project binding is always kept. Names, not upload
 selection, still determine which registered remotes remain available sources.
 
 Recorded inventories describe exact prepared ZIP payloads or a physically

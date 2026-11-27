@@ -1,5 +1,5 @@
 use proj::profile::create_local_profile;
-use proj::yml::{deep_merge, yml_get_filter_top_level, get_combined_yml};
+use proj::yml::{deep_merge, get_combined_yml, yml_get_filter_top_level};
 use serde_json::json;
 use std::fs;
 use tempfile::tempdir;
@@ -40,15 +40,18 @@ fn test_deep_merge() {
 
     let merged = deep_merge(base, profile);
 
-    assert_eq!(merged, json!({
-        "build": {
-            "dest": ["b"],
-            "scripts": ["run.sh"] // null in profile backed off to base
-        },
-        "dev": {
-            "old_dev_remove": false
-        }
-    }));
+    assert_eq!(
+        merged,
+        json!({
+            "build": {
+                "dest": ["b"],
+                "scripts": ["run.sh"] // null in profile backed off to base
+            },
+            "dev": {
+                "old_dev_remove": false
+            }
+        })
+    );
 }
 
 #[test]
@@ -81,30 +84,46 @@ fn test_cascading_merge() {
     let root = tempdir().unwrap();
     let base_dir = root.path();
 
-    // 1. Base _proj.yml
-    fs::write(base_dir.join("_proj.yml"), "
+    // 1. Base _projr.yml
+    fs::write(
+        base_dir.join("_projr.yml"),
+        "
 build:
   dest: [base_remote]
   scripts: [base.sh]
-").unwrap();
+",
+    )
+    .unwrap();
 
     // 2. Profile 1 (stage)
-    fs::write(base_dir.join("_projr-stage.yml"), "
+    fs::write(
+        base_dir.join("_projr-stage.yml"),
+        "
 build:
   dest: [stage_remote]
-").unwrap();
+",
+    )
+    .unwrap();
 
     // 3. Profile 2 (theme)
-    fs::write(base_dir.join("_projr-theme.yml"), "
+    fs::write(
+        base_dir.join("_projr-theme.yml"),
+        "
 build:
   scripts: [theme.sh]
-").unwrap();
+",
+    )
+    .unwrap();
 
     // 4. Local override
-    fs::write(base_dir.join("_projr-local.yml"), "
+    fs::write(
+        base_dir.join("_projr-local.yml"),
+        "
 build:
   scripts: [local.sh]
-").unwrap();
+",
+    )
+    .unwrap();
 
     let base_dir_utf8 = camino::Utf8PathBuf::try_from(base_dir.to_path_buf()).unwrap();
 
@@ -124,10 +143,14 @@ fn test_create_local_profile() {
     let root = tempdir().unwrap();
     let base_dir = root.path();
 
-    fs::write(base_dir.join("_proj.yml"), "
+    fs::write(
+        base_dir.join("_projr.yml"),
+        "
 build:
   dest: [base_remote]
-").unwrap();
+",
+    )
+    .unwrap();
 
     let base_dir_utf8 = camino::Utf8PathBuf::try_from(base_dir.to_path_buf()).unwrap();
     create_local_profile(&base_dir_utf8).unwrap();

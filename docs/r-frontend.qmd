@@ -89,7 +89,7 @@ writeLines(c(
   "build:",
   "  scripts: [analysis.R]",
   "  git: false"
-), file.path(project, "_proj.yml"))
+), file.path(project, "_projr.yml"))
 writeLines(c(
   "out <- projcli::projr_path_get('output', 'results.csv', format = 'absolute')",
   "dir.create(dirname(out), recursive = TRUE, showWarnings = FALSE)",

@@ -265,7 +265,7 @@ jobs:
               analysis = re.search(r"```python\n(.*?)```", text, re.S).group(1)
               with tempfile.TemporaryDirectory(prefix="projcli-docs-") as temporary:
                   project = Path(temporary)
-                  (project / "_proj.yml").write_text(config)
+                  (project / "_projr.yml").write_text(config)
                   (project / "analysis.py").write_text(analysis)
                   env = dict(os.environ)
                   for name in ("PROJ_PROJECT_ROOT", "PROJR_PROFILE", "QUARTO_PROFILE", "PROJR_CLEAR_OUTPUT"):

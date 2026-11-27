@@ -393,7 +393,7 @@ fn permissions_protected_paths_size_limit_and_untrusted_upload_fail_without_writ
         "VERSION",
         "version",
         "manifest.csv",
-        "_proj.yml",
+        "_projr.yml",
         ".git/config",
         ".projr/state",
     ] {
@@ -1103,7 +1103,7 @@ fn configure_restore(root: &camino::Utf8Path, layout: &str) {
         "label,fn,version,hash\nraw,data.csv,v1.2.3,900150983cd24fb0d6963f7d28e17f72\n",
     )
     .unwrap();
-    std::fs::write(root.join("_proj.yml"),format!("directories:\n  raw:\n    path: restored\n    source:\n      github: data\nremotes:\n  github:\n    data:\n      structure: {layout}\n      path: analysis\n")).unwrap();
+    std::fs::write(root.join("_projr.yml"),format!("directories:\n  raw:\n    path: restored\n    source:\n      github: data\nremotes:\n  github:\n    data:\n      structure: {layout}\n      path: analysis\n")).unwrap();
 }
 fn restore_command(root: &camino::Utf8Path, base: &str) -> Command {
     let mut command = Command::new(env!("CARGO_BIN_EXE_proj"));

@@ -20,7 +20,7 @@ fn invoke(root: &Path, mode: &str) -> std::process::Output {
 }
 fn fixture(root: &Path, extra: &str) {
     fs::write(root.join("VERSION"), b"v1.2.3-4\n").unwrap();
-    fs::write(root.join("_proj.yml"), format!("directories:\n  raw: {{path: input}}\n  cache: {{path: cache}}\n  output: {{path: released}}\n  docs: {{path: docs}}\nbuild:\n  scripts: []\n  git: false\n{extra}")).unwrap();
+    fs::write(root.join("_projr.yml"), format!("directories:\n  raw: {{path: input}}\n  cache: {{path: cache}}\n  output: {{path: released}}\n  docs: {{path: docs}}\nbuild:\n  scripts: []\n  git: false\n{extra}")).unwrap();
     fs::create_dir(root.join("input")).unwrap();
     fs::write(root.join("input/a.csv"), b"abc").unwrap();
     fs::create_dir(root.join("released")).unwrap();
@@ -35,7 +35,7 @@ fn success(output: std::process::Output) {
 }
 
 fn record(root: &Path, version: &str) -> serde_json::Value {
-    let records: Vec<serde_json::Value> = fs::read_dir(root.join(".proj/log"))
+    let records: Vec<serde_json::Value> = fs::read_dir(root.join(".projr/attempts"))
         .unwrap()
         .map(|entry| entry.unwrap().path())
         .filter(|path| path.extension().is_some_and(|value| value == "json"))
@@ -65,9 +65,9 @@ fn production_records_md5_pre_inputs_final_outputs_and_exact_history_without_git
     let root = physical_root.as_path();
     fixture(root, "");
     fs::write(root.join("analysis.py"), "import os\nfrom pathlib import Path\nroot = Path(os.environ['PROJ_PROJECT_ROOT'])\n(root / 'input/a.csv').write_bytes(b'changed')\ntarget = root / 'cache/projr/v1.2.4/output/result.csv'\ntarget.parent.mkdir(parents=True, exist_ok=True)\ntarget.write_bytes(b'hello')\n").unwrap();
-    let config = fs::read_to_string(root.join("_proj.yml")).unwrap();
+    let config = fs::read_to_string(root.join("_projr.yml")).unwrap();
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         config.replace("scripts: []", "scripts: [analysis.py]"),
     )
     .unwrap();
@@ -128,7 +128,7 @@ fn production_records_md5_pre_inputs_final_outputs_and_exact_history_without_git
         fs::read(root.join("released/result.csv")).unwrap(),
         b"hello"
     );
-    fs::write(root.join("_proj.yml"), config).unwrap();
+    fs::write(root.join("_projr.yml"), config).unwrap();
     success(invoke(root, "build"));
     let history = proj::manifest_store::read_project(path(root)).unwrap();
     assert_eq!(history.len(), 6);
@@ -150,7 +150,10 @@ fn production_records_md5_pre_inputs_final_outputs_and_exact_history_without_git
             .collect::<Vec<_>>(),
         "v1.2.5",
     );
-    assert_eq!(fs::read_dir(root.join(".proj/log")).unwrap().count(), 4);
+    assert_eq!(
+        fs::read_dir(root.join(".projr/attempts")).unwrap().count(),
+        4
+    );
 }
 
 #[test]
@@ -159,11 +162,11 @@ fn configured_hash_flags_and_cache_framework_exclusion_match_projr() {
     let physical_root = temporary.path().canonicalize().unwrap();
     let root = physical_root.as_path();
     fixture(root, "");
-    let config = fs::read_to_string(root.join("_proj.yml"))
+    let config = fs::read_to_string(root.join("_projr.yml"))
         .unwrap()
         .replace("raw: {path: input}", "raw: {path: input, hash: false}")
         .replace("cache: {path: cache}", "cache: {path: cache, hash: true}");
-    fs::write(root.join("_proj.yml"), config).unwrap();
+    fs::write(root.join("_projr.yml"), config).unwrap();
     fs::create_dir_all(root.join("cache/projr/v0.1.0")).unwrap();
     fs::write(root.join("cache/projr/v0.1.0/private"), b"framework").unwrap();
     fs::write(root.join("cache/retained.csv"), b"abc").unwrap();
@@ -194,17 +197,17 @@ fn preview_disabled_output_and_failed_end_hook_preserve_prior_csv_and_version() 
         fixture(root, "");
         let prior = b"\"label\",\"fn\",\"version\",\"hash\"\n\"raw\",\"\",\"v0.1.0\",\"\"\n";
         fs::write(root.join("manifest.csv"), prior).unwrap();
-        let config = fs::read_to_string(root.join("_proj.yml")).unwrap();
+        let config = fs::read_to_string(root.join("_projr.yml")).unwrap();
         if mode == "disabled" {
             fs::write(
-                root.join("_proj.yml"),
+                root.join("_projr.yml"),
                 config.replace("build:\n", "build:\n  output_run: false\n"),
             )
             .unwrap();
         } else if mode == "failed" {
             fs::write(root.join("end.py"), "import csv, os\nfrom pathlib import Path\nroot = Path(os.environ['PROJ_PROJECT_ROOT'])\nwith (root / '.projr/manifests/raw/versions.csv').open(encoding='utf-8', newline='') as stream:\n    rows = list(csv.DictReader(stream))\nassert any(row['version'] == 'v1.2.4' and row['label'] == 'raw' for row in rows)\n(root / 'cache/end-ran').write_bytes(b'current release CSV observed')\nraise SystemExit(17)\n").unwrap();
             fs::write(
-                root.join("_proj.yml"),
+                root.join("_projr.yml"),
                 config.replace("build:\n", "build:\n  hooks:\n    post: [end.py]\n"),
             )
             .unwrap();
@@ -228,7 +231,7 @@ fn preview_disabled_output_and_failed_end_hook_preserve_prior_csv_and_version() 
         }
         assert_eq!(fs::read(root.join("manifest.csv")).unwrap(), prior);
         assert!(
-            !root.join(".projr").exists(),
+            !root.join(".projr/manifests").exists(),
             "store must be absent or rolled back"
         );
         if mode == "disabled" {
@@ -237,7 +240,7 @@ fn preview_disabled_output_and_failed_end_hook_preserve_prior_csv_and_version() 
             assert_eq!(log["final_outputs"]["status"], "not_requested");
             assert!(log["final_outputs"]["inventory"].is_null());
         } else if mode == "failed" {
-            let paths: Vec<_> = fs::read_dir(root.join(".proj/log/local-failures"))
+            let paths: Vec<_> = fs::read_dir(root.join(".projr/logs/local-failures"))
                 .unwrap()
                 .map(|entry| entry.unwrap().path())
                 .filter(|path| path.extension().is_some_and(|e| e == "json"))
@@ -249,7 +252,7 @@ fn preview_disabled_output_and_failed_end_hook_preserve_prior_csv_and_version() 
             assert_eq!(diagnostic["distribution_may_have_started"], false);
         } else {
             assert!(
-                !root.join(".proj/log").exists(),
+                !root.join(".projr/attempts").exists(),
                 "preview retention changed"
             );
         }
@@ -272,15 +275,17 @@ fn bad_history_and_invalid_layer_hash_fail_before_start_hooks_and_missing_manife
         )
         .unwrap();
         fs::write(root.join("end.py"), "import csv, os\nfrom pathlib import Path\nroot = Path(os.environ['PROJ_PROJECT_ROOT'])\nwith (root / '.projr/manifests/raw/versions.csv').open(encoding='utf-8', newline='') as stream:\n    rows = list(csv.DictReader(stream))\nassert any(row['version'] == 'v1.2.4' and row['label'] == 'raw' for row in rows)\n(root / 'cache/end-ran').write_bytes(b'current release CSV observed')\nraise SystemExit(17)\n").unwrap();
-        let config = fs::read_to_string(root.join("_proj.yml")).unwrap().replace(
-            "build:\n",
-            if kind == "absent" {
-                "build:\n  hooks:\n    post: [end.py]\n"
-            } else {
-                "build:\n  hooks:\n    pre: [start.py]\n"
-            },
-        );
-        fs::write(root.join("_proj.yml"), config).unwrap();
+        let config = fs::read_to_string(root.join("_projr.yml"))
+            .unwrap()
+            .replace(
+                "build:\n",
+                if kind == "absent" {
+                    "build:\n  hooks:\n    post: [end.py]\n"
+                } else {
+                    "build:\n  hooks:\n    pre: [start.py]\n"
+                },
+            );
+        fs::write(root.join("_projr.yml"), config).unwrap();
         if kind == "history" {
             fs::write(root.join("manifest.csv"), b"not,a,manifest\n").unwrap();
         }
@@ -308,7 +313,7 @@ fn bad_history_and_invalid_layer_hash_fail_before_start_hooks_and_missing_manife
         } else {
             assert!(!root.join("manifest.csv").exists());
         }
-        assert!(!root.join(".projr").exists());
+        assert!(!root.join(".projr/manifests").exists());
         assert_eq!(fs::read(root.join("VERSION")).unwrap(), b"v1.2.3-4\n");
     }
 }
@@ -377,7 +382,7 @@ fn cache_free_empty_selection_still_records_explicit_inputs() {
     let physical_root = temporary.path().canonicalize().unwrap();
     let root = physical_root.as_path();
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         "directories:\n  raw: {path: input}\nbuild:\n  scripts: []\n  git: false\n",
     )
     .unwrap();
@@ -404,14 +409,14 @@ fn end_hook_output_changes_are_observed_without_enforcement_or_rewriting_publica
         let root = temporary.path().canonicalize().unwrap();
         fixture(&root, "");
         fs::write(root.join("released/obsolete.csv"), b"delete").unwrap();
-        let config = fs::read_to_string(root.join("_proj.yml")).unwrap();
+        let config = fs::read_to_string(root.join("_projr.yml")).unwrap();
         let destination = if publish {
             "  dest: [fixture]\nremotes:\n  local:\n    fixture:\n      path: remote\n      structure: latest\n      content: [output]\n      send: {inspect: file}\n"
         } else {
             ""
         };
         fs::write(
-            root.join("_proj.yml"),
+            root.join("_projr.yml"),
             format!("{config}  hooks:\n    post: [end.py]\n{destination}"),
         )
         .unwrap();
@@ -468,7 +473,7 @@ fn end_hook_output_changes_are_observed_without_enforcement_or_rewriting_publica
         );
         let reference = &log["final_outputs"]["rows"];
         let bytes = fs::read(
-            root.join(".proj/log")
+            root.join(".projr/attempts")
                 .join(reference["file"].as_str().unwrap()),
         )
         .unwrap();
@@ -506,8 +511,8 @@ fn plain_record_destination_failure_restores_exact_state_without_fabricating_suc
     let root = temporary.path().canonicalize().unwrap();
     fixture(&root, "");
     fs::write(root.join("VERSION"), b"v1.2.3-19\r\n").unwrap();
-    fs::create_dir(root.join(".proj")).unwrap();
-    fs::write(root.join(".proj/log"), b"preserved non-directory").unwrap();
+    fs::create_dir(root.join(".projr")).unwrap();
+    fs::write(root.join(".projr/attempts"), b"preserved non-directory").unwrap();
     let version = fs::read(root.join("VERSION")).unwrap();
     let output = invoke(&root, "build");
     assert!(!output.status.success());
@@ -516,12 +521,12 @@ fn plain_record_destination_failure_restores_exact_state_without_fabricating_suc
         fs::read(root.join("released/result.csv")).unwrap(),
         b"hello"
     );
-    assert!(!root.join("manifest.csv").exists() && !root.join(".projr").exists());
+    assert!(!root.join("manifest.csv").exists() && !root.join(".projr/manifests").exists());
     assert_eq!(
-        fs::read(root.join(".proj/log")).unwrap(),
+        fs::read(root.join(".projr/attempts")).unwrap(),
         b"preserved non-directory"
     );
-    assert!(!root.join(".proj/build.lock").exists());
+    assert!(!root.join(".projr/build.lock").exists());
 }
 
 #[test]
@@ -529,13 +534,13 @@ fn plain_record_install_failure_removes_only_its_new_csv_and_restores_exact_vers
     let temporary = tempfile::tempdir().unwrap();
     let root = temporary.path().canonicalize().unwrap();
     fixture(&root, "");
-    let config = fs::read_to_string(root.join("_proj.yml")).unwrap();
+    let config = fs::read_to_string(root.join("_projr.yml")).unwrap();
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         format!("{config}  hooks:\n    post: [block.py]\n"),
     )
     .unwrap();
-    fs::write(root.join("block.py"),"import json\nfrom pathlib import Path\nidentity=json.loads(Path('.proj/build.lock').read_bytes())['attempt_id']\nlogs=Path('.proj/log')\nlogs.mkdir(parents=True,exist_ok=True)\n(logs / (identity+'.json')).mkdir()\n(logs / 'unrelated.txt').write_bytes(b'preserved')\n").unwrap();
+    fs::write(root.join("block.py"),"import json\nfrom pathlib import Path\nidentity=json.loads(Path('.projr/build.lock').read_bytes())['attempt_id']\nlogs=Path('.projr/attempts')\nlogs.mkdir(parents=True,exist_ok=True)\n(logs / (identity+'.json')).mkdir()\n(logs / 'unrelated.txt').write_bytes(b'preserved')\n").unwrap();
     let before = fs::read(root.join("VERSION")).unwrap();
     let result = invoke(&root, "build");
     assert!(!result.status.success());
@@ -544,18 +549,18 @@ fn plain_record_install_failure_removes_only_its_new_csv_and_restores_exact_vers
         fs::read(root.join("released/result.csv")).unwrap(),
         b"hello"
     );
-    assert!(!root.join("manifest.csv").exists() && !root.join(".projr").exists());
-    let paths: Vec<_> = fs::read_dir(root.join(".proj/log"))
+    assert!(!root.join("manifest.csv").exists() && !root.join(".projr/manifests").exists());
+    let paths: Vec<_> = fs::read_dir(root.join(".projr/attempts"))
         .unwrap()
         .map(|entry| entry.unwrap().path())
         .collect();
-    assert_eq!(paths.len(), 3);
+    assert_eq!(paths.len(), 2);
     assert!(
         paths
             .iter()
             .all(|path| path.is_dir() || path.file_name().unwrap() == "unrelated.txt")
     );
-    let diagnostic: Vec<_> = fs::read_dir(root.join(".proj/log/local-failures"))
+    let diagnostic: Vec<_> = fs::read_dir(root.join(".projr/logs/local-failures"))
         .unwrap()
         .map(|entry| entry.unwrap().path())
         .filter(|path| path.extension().is_some_and(|e| e == "json"))
@@ -566,8 +571,8 @@ fn plain_record_install_failure_removes_only_its_new_csv_and_restores_exact_vers
     assert_eq!(diagnostic["stage"], "finalization");
     assert_eq!(diagnostic["distribution_may_have_started"], false);
     assert_eq!(
-        fs::read(root.join(".proj/log/unrelated.txt")).unwrap(),
+        fs::read(root.join(".projr/attempts/unrelated.txt")).unwrap(),
         b"preserved"
     );
-    assert!(!root.join(".proj/build.lock").exists());
+    assert!(!root.join(".projr/build.lock").exists());
 }

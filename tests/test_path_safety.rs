@@ -1,31 +1,61 @@
 use std::{fs, process::Command};
 
 fn configuration(docs: &str) -> String {
-    format!("directories:\n  cache:\n    path: _tmp\n  raw:\n    path: _raw_data\n  output:\n    path: _output\n  docs:\n    path: '{docs}'\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  clear_output: post\n  restrictions:\n    not_behind: false\n")
+    format!(
+        "directories:\n  cache:\n    path: _tmp\n  raw:\n    path: _raw_data\n  output:\n    path: _output\n  docs:\n    path: '{docs}'\nconfig:\n  git:\n    use_proj_cred_helper: false\nbuild:\n  scripts: [analysis.py]\n  git: false\n  clear_output: post\n  restrictions:\n    not_behind: false\n"
+    )
 }
 
 fn failed_build_preserves(root: &std::path::Path, configuration: &str) {
-    fs::write(root.join("_proj.yml"), configuration).unwrap();
+    fs::write(root.join("_projr.yml"), configuration).unwrap();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
-    fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('analysis-ran').touch()\n").unwrap();
+    fs::write(
+        root.join("analysis.py"),
+        "from pathlib import Path\nPath('analysis-ran').touch()\n",
+    )
+    .unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_proj"))
-        .args(["build", "--patch", "--non-interactive", "--project"]).arg(root).current_dir(root)
-        .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
+        .args(["build", "--patch", "--non-interactive", "--project"])
+        .arg(root)
+        .current_dir(root)
+        .env_remove(proj::PROJECT_ROOT_ENV)
+        .env_remove("PROJR_PROFILE")
+        .env_remove("QUARTO_PROFILE")
+        .output()
+        .unwrap();
     assert!(!output.status.success(), "unsafe destination accepted");
-    assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");
-    assert_eq!(fs::read_to_string(root.join("_proj.yml")).unwrap(), configuration);
+    assert_eq!(
+        fs::read_to_string(root.join("VERSION")).unwrap(),
+        "v1.2.3\n"
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("_projr.yml")).unwrap(),
+        configuration
+    );
     assert!(root.join("analysis.py").is_file());
-    for name in ["analysis-ran", ".gitignore", ".Rbuildignore", "_tmp"] { assert!(!root.join(name).exists(), "unexpected {name}"); }
+    for name in ["analysis-ran", ".gitignore", ".Rbuildignore", "_tmp"] {
+        assert!(!root.join(name).exists(), "unexpected {name}");
+    }
 }
 
 #[test]
 fn destructive_root_ancestor_staging_overlap_and_traversal_fail_before_mutation() {
-    for docs in [".", "..", "_tmp/projr", "_output", "_raw_data/derived", ".git/results"] {
+    for docs in [
+        ".",
+        "..",
+        "_tmp/projr",
+        "_output",
+        "_raw_data/derived",
+        ".git/results",
+    ] {
         let temp = tempfile::tempdir().unwrap();
         failed_build_preserves(temp.path(), &configuration(docs));
     }
     let temp = tempfile::tempdir().unwrap();
-    failed_build_preserves(temp.path(), &configuration("docs").replace("  output:", "  output/../../escape:"));
+    failed_build_preserves(
+        temp.path(),
+        &configuration("docs").replace("  output:", "  output/../../escape:"),
+    );
 }
 
 #[cfg(unix)]
@@ -36,7 +66,10 @@ fn symlinked_destination_preserves_project_and_external_files() {
     fs::write(external.path().join("keep"), "external").unwrap();
     std::os::unix::fs::symlink(external.path(), temp.path().join("linked")).unwrap();
     failed_build_preserves(temp.path(), &configuration("linked/docs"));
-    assert_eq!(fs::read_to_string(external.path().join("keep")).unwrap(), "external");
+    assert_eq!(
+        fs::read_to_string(external.path().join("keep")).unwrap(),
+        "external"
+    );
 }
 
 #[test]
@@ -55,7 +88,6 @@ fn invalid_directory_moves_do_not_delete_existing_bytes() {
     assert_eq!(fs::read_to_string(source.join("keep")).unwrap(), "source");
 }
 
-
 #[test]
 fn disjoint_external_resource_destination_is_allowed() {
     let temp = tempfile::tempdir().unwrap();
@@ -64,17 +96,40 @@ fn disjoint_external_resource_destination_is_allowed() {
     let docs = external.path().canonicalize().unwrap().join("release-docs");
     fs::create_dir(&docs).unwrap();
     fs::write(docs.join("keep.html"), "previous documentation").unwrap();
-    let quoted = docs.to_string_lossy().replace('\\', "/").replace('\'', "''");
-    fs::write(root.join("_proj.yml"), configuration(&quoted).replace("clear_output: post", "clear_output: never")).unwrap();
+    let quoted = docs
+        .to_string_lossy()
+        .replace('\\', "/")
+        .replace('\'', "''");
+    fs::write(
+        root.join("_projr.yml"),
+        configuration(&quoted).replace("clear_output: post", "clear_output: never"),
+    )
+    .unwrap();
     fs::write(root.join("analysis.py"), "from pathlib import Path\nPath('_output').mkdir(exist_ok=True)\nPath('_output/result').write_text('completed')\n").unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_proj"))
-        .args(["build", "--patch", "--non-interactive", "--project"]).arg(root).current_dir(root)
-        .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
-    assert!(output.status.success(), "{} {}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
-    assert_eq!(fs::read_to_string(root.join("_output/result")).unwrap(), "completed");
-    assert_eq!(fs::read_to_string(docs.join("keep.html")).unwrap(), "previous documentation");
+        .args(["build", "--patch", "--non-interactive", "--project"])
+        .arg(root)
+        .current_dir(root)
+        .env_remove(proj::PROJECT_ROOT_ENV)
+        .env_remove("PROJR_PROFILE")
+        .env_remove("QUARTO_PROFILE")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{} {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("_output/result")).unwrap(),
+        "completed"
+    );
+    assert_eq!(
+        fs::read_to_string(docs.join("keep.html")).unwrap(),
+        "previous documentation"
+    );
 }
-
 
 #[test]
 fn direct_cleanup_entrypoints_reject_project_root_destination() {
@@ -89,17 +144,21 @@ fn direct_cleanup_entrypoints_reject_project_root_destination() {
     assert_eq!(fs::read_to_string(root.join("keep")).unwrap(), "project");
 }
 
-
 #[test]
 fn empty_analysis_still_validates_managed_destinations_and_files_are_not_directories() {
     let temp = tempfile::tempdir().unwrap();
-    failed_build_preserves(temp.path(), &configuration(".").replace("scripts: [analysis.py]", "scripts: []"));
+    failed_build_preserves(
+        temp.path(),
+        &configuration(".").replace("scripts: [analysis.py]", "scripts: []"),
+    );
     let temp = tempfile::tempdir().unwrap();
     fs::write(temp.path().join("data-file"), "keep").unwrap();
     failed_build_preserves(temp.path(), &configuration("data-file"));
-    assert_eq!(fs::read_to_string(temp.path().join("data-file")).unwrap(), "keep");
+    assert_eq!(
+        fs::read_to_string(temp.path().join("data-file")).unwrap(),
+        "keep"
+    );
 }
-
 
 #[test]
 fn dev_cleanup_is_a_noop_even_for_unsafe_managed_paths() {
@@ -107,7 +166,8 @@ fn dev_cleanup_is_a_noop_even_for_unsafe_managed_paths() {
     let canonical = temp.path().canonicalize().unwrap();
     let root = camino::Utf8Path::from_path(&canonical).unwrap();
     fs::write(root.join("keep"), "project").unwrap();
-    let raw: proj::ProjConfig = serde_yaml::from_str(&configuration("docs").replace("path: _output", "path: .")).unwrap();
+    let raw: proj::ProjConfig =
+        serde_yaml::from_str(&configuration("docs").replace("path: _output", "path: .")).unwrap();
     let validated = raw.validate_and_resolve(root, true).unwrap();
     proj::clear_post(root, true, &validated, Some("post"), false).unwrap();
     proj::clear_old(root, &validated, "1.2.3", true, Some(true)).unwrap();
@@ -137,17 +197,37 @@ fn direct_individual_promotions_reject_traversal_and_promote_to_external_docs() 
         let root = camino::Utf8Path::from_path(&canonical).unwrap();
         let docs = camino::Utf8Path::from_path(&outside).unwrap().join("docs");
         let input = root.join(format!("report.{extension}"));
-        for name in ["../outside.html", "/absolute.html", "C:\\outside.html", "VERSION", "_proj.yml"] {
-            fs::write(&input, format!("---\nformat: html\noutput-file: '{name}'\n---\n")).unwrap();
-            let result = if extension == "qmd" { proj::copy_individual_quarto(&input, &docs, root) } else { proj::copy_individual_rmd(&input, &docs, root) };
+        for name in [
+            "../outside.html",
+            "/absolute.html",
+            "C:\\outside.html",
+            "VERSION",
+            "_projr.yml",
+        ] {
+            fs::write(
+                &input,
+                format!("---\nformat: html\noutput-file: '{name}'\n---\n"),
+            )
+            .unwrap();
+            let result = if extension == "qmd" {
+                proj::copy_individual_quarto(&input, &docs, root)
+            } else {
+                proj::copy_individual_rmd(&input, &docs, root)
+            };
             assert!(result.is_err());
             assert!(!docs.exists());
         }
         fs::write(&input, "---\nformat: html\n---\n").unwrap();
         fs::write(root.join("report.html"), "rendered").unwrap();
-        if extension == "qmd" { proj::copy_individual_quarto(&input, &docs, root).unwrap(); }
-        else { proj::copy_individual_rmd(&input, &docs, root).unwrap(); }
-        assert_eq!(fs::read_to_string(docs.join("report.html")).unwrap(), "rendered");
+        if extension == "qmd" {
+            proj::copy_individual_quarto(&input, &docs, root).unwrap();
+        } else {
+            proj::copy_individual_rmd(&input, &docs, root).unwrap();
+        }
+        assert_eq!(
+            fs::read_to_string(docs.join("report.html")).unwrap(),
+            "rendered"
+        );
         assert!(input.is_file());
     }
 }
@@ -155,7 +235,11 @@ fn direct_individual_promotions_reject_traversal_and_promote_to_external_docs() 
 #[test]
 fn project_renderers_reject_source_documents_in_cleanup_trees_before_mutation() {
     for engine in ["_quarto.yml", "_bookdown.yml"] {
-        for path in ["docs/nested/source.qmd", "_output/source.ipynb", "_tmp/source.md"] {
+        for path in [
+            "docs/nested/source.qmd",
+            "_output/source.ipynb",
+            "_tmp/source.md",
+        ] {
             let temp = tempfile::tempdir().unwrap();
             let root = temp.path();
             let source = root.join(path);
@@ -163,16 +247,36 @@ fn project_renderers_reject_source_documents_in_cleanup_trees_before_mutation() 
             fs::write(&source, "source document").unwrap();
             fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
             fs::write(root.join(engine), "project: {}\n").unwrap();
-            fs::write(root.join("_proj.yml"), configuration("docs").replace("  scripts: [analysis.py]\n", "")).unwrap();
+            fs::write(
+                root.join("_projr.yml"),
+                configuration("docs").replace("  scripts: [analysis.py]\n", ""),
+            )
+            .unwrap();
             let output = Command::new(env!("CARGO_BIN_EXE_proj"))
-                .args(["build", "--patch", "--non-interactive", "--project"]).arg(root).current_dir(root)
-                .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
+                .args(["build", "--patch", "--non-interactive", "--project"])
+                .arg(root)
+                .current_dir(root)
+                .env_remove(proj::PROJECT_ROOT_ENV)
+                .env_remove("PROJR_PROFILE")
+                .env_remove("QUARTO_PROFILE")
+                .output()
+                .unwrap();
             assert!(!output.status.success());
-            assert!(String::from_utf8_lossy(&output.stderr).contains("overlaps managed cleanup"), "{}", String::from_utf8_lossy(&output.stderr));
+            assert!(
+                String::from_utf8_lossy(&output.stderr).contains("overlaps managed cleanup"),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
             assert_eq!(fs::read_to_string(&source).unwrap(), "source document");
-            assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");
+            assert_eq!(
+                fs::read_to_string(root.join("VERSION")).unwrap(),
+                "v1.2.3\n"
+            );
             assert!(!root.join(".gitignore").exists());
-            assert_eq!(fs::read_to_string(root.join(engine)).unwrap(), "project: {}\n");
+            assert_eq!(
+                fs::read_to_string(root.join(engine)).unwrap(),
+                "project: {}\n"
+            );
         }
     }
 }
@@ -180,13 +284,23 @@ fn project_renderers_reject_source_documents_in_cleanup_trees_before_mutation() 
 #[cfg(unix)]
 #[test]
 fn derived_symlink_leaves_fail_before_any_cleanup_even_when_never_or_dangling() {
-    for leaf in ["default-version", "configured-version", "configured-output", "configured-docs", "dangling"] {
+    for leaf in [
+        "default-version",
+        "configured-version",
+        "configured-output",
+        "configured-docs",
+        "dangling",
+    ] {
         let temp = tempfile::tempdir().unwrap();
         let external = tempfile::tempdir().unwrap();
         let canonical = temp.path().canonicalize().unwrap();
         let root = camino::Utf8Path::from_path(&canonical).unwrap();
         fs::write(external.path().join("keep"), "external").unwrap();
-        let cache = if leaf == "default-version" { "_tmp" } else { "_cache" };
+        let cache = if leaf == "default-version" {
+            "_tmp"
+        } else {
+            "_cache"
+        };
         let version = root.join(cache).join("projr/1.2.3");
         let link = match leaf {
             "configured-output" => version.join("output"),
@@ -197,25 +311,58 @@ fn derived_symlink_leaves_fail_before_any_cleanup_even_when_never_or_dangling() 
         if leaf == "configured-output" || leaf == "configured-docs" {
             fs::write(version.join("keep-old-cache"), "old cache").unwrap();
         }
-        let destination = if leaf == "dangling" { external.path().join("absent") } else { external.path().to_owned() };
+        let destination = if leaf == "dangling" {
+            external.path().join("absent")
+        } else {
+            external.path().to_owned()
+        };
         std::os::unix::fs::symlink(&destination, &link).unwrap();
         let contents = configuration("docs").replace("path: _tmp", &format!("path: {cache}"));
         let raw: proj::ProjConfig = serde_yaml::from_str(&contents).unwrap();
         let validated = raw.validate_and_resolve(root, false).unwrap();
         assert!(proj::clear_pre(root, "1.2.3", &validated, Some("never")).is_err());
         fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
-        fs::write(root.join("_proj.yml"), &contents).unwrap();
-        fs::write(root.join("analysis.py"), "raise RuntimeError('must not run')\n").unwrap();
+        fs::write(root.join("_projr.yml"), &contents).unwrap();
+        fs::write(
+            root.join("analysis.py"),
+            "raise RuntimeError('must not run')\n",
+        )
+        .unwrap();
         let output = Command::new(env!("CARGO_BIN_EXE_proj"))
-            .args(["build", "--patch", "--non-interactive", "--project", root.as_str()]).current_dir(root)
-            .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
+            .args([
+                "build",
+                "--patch",
+                "--non-interactive",
+                "--project",
+                root.as_str(),
+            ])
+            .current_dir(root)
+            .env_remove(proj::PROJECT_ROOT_ENV)
+            .env_remove("PROJR_PROFILE")
+            .env_remove("QUARTO_PROFILE")
+            .output()
+            .unwrap();
         assert!(!output.status.success());
-        assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");
+        assert_eq!(
+            fs::read_to_string(root.join("VERSION")).unwrap(),
+            "v1.2.3\n"
+        );
         assert!(!root.join(".gitignore").exists());
-        assert_eq!(fs::read_to_string(external.path().join("keep")).unwrap(), "external");
-        assert!(fs::symlink_metadata(&link).unwrap().file_type().is_symlink());
+        assert_eq!(
+            fs::read_to_string(external.path().join("keep")).unwrap(),
+            "external"
+        );
+        assert!(
+            fs::symlink_metadata(&link)
+                .unwrap()
+                .file_type()
+                .is_symlink()
+        );
         if leaf == "configured-output" || leaf == "configured-docs" {
-            assert_eq!(fs::read_to_string(version.join("keep-old-cache")).unwrap(), "old cache");
+            assert_eq!(
+                fs::read_to_string(version.join("keep-old-cache")).unwrap(),
+                "old cache"
+            );
         }
     }
 }
@@ -237,28 +384,58 @@ fn recursive_copy_and_individual_promotions_reject_symlinked_destinations_before
         let input = root.join(format!("report.{extension}"));
         fs::write(&input, "---\nformat: html\n---\n").unwrap();
         fs::write(root.join("report.html"), "rendered").unwrap();
-        let result = if extension == "qmd" { proj::copy_individual_quarto(&input, &root.join("linked"), root) } else { proj::copy_individual_rmd(&input, &root.join("linked"), root) };
+        let result = if extension == "qmd" {
+            proj::copy_individual_quarto(&input, &root.join("linked"), root)
+        } else {
+            proj::copy_individual_rmd(&input, &root.join("linked"), root)
+        };
         assert!(result.is_err());
-        assert_eq!(fs::read_to_string(root.join("report.html")).unwrap(), "rendered");
-        assert_eq!(fs::read_to_string(external.path().join("report.html")).unwrap(), "external");
+        assert_eq!(
+            fs::read_to_string(root.join("report.html")).unwrap(),
+            "rendered"
+        );
+        assert_eq!(
+            fs::read_to_string(external.path().join("report.html")).unwrap(),
+            "external"
+        );
     }
 }
-
 
 #[test]
 fn literal_root_globs_do_not_hide_selected_inputs_from_cleanup_guards() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().join("project [1]");
     fs::create_dir_all(root.join("_output")).unwrap();
-    fs::write(root.join("_output/analysis.py"), "raise RuntimeError('must not run')\n").unwrap();
-    fs::write(root.join("_proj.yml"), configuration("docs").replace("scripts: [analysis.py]", "scripts: [_output/analysis.py]")).unwrap();
+    fs::write(
+        root.join("_output/analysis.py"),
+        "raise RuntimeError('must not run')\n",
+    )
+    .unwrap();
+    fs::write(
+        root.join("_projr.yml"),
+        configuration("docs").replace("scripts: [analysis.py]", "scripts: [_output/analysis.py]"),
+    )
+    .unwrap();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_proj"))
-        .args(["build", "--patch", "--non-interactive", "--project"]).arg(&root).current_dir(&root)
-        .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE").output().unwrap();
+        .args(["build", "--patch", "--non-interactive", "--project"])
+        .arg(&root)
+        .current_dir(&root)
+        .env_remove(proj::PROJECT_ROOT_ENV)
+        .env_remove("PROJR_PROFILE")
+        .env_remove("QUARTO_PROFILE")
+        .output()
+        .unwrap();
     assert!(!output.status.success());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("contains selected script/hook"), "{}", String::from_utf8_lossy(&output.stderr));
-    assert_eq!(fs::read_to_string(root.join("VERSION")).unwrap(), "v1.2.3\n");
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("contains selected script/hook"),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("VERSION")).unwrap(),
+        "v1.2.3\n"
+    );
     assert!(root.join("_output/analysis.py").exists());
     assert!(!root.join(".gitignore").exists());
 }
@@ -280,10 +457,20 @@ fn individual_asset_destination_links_are_checked_before_moving_the_main_output(
         let input = root.join(format!("report.{extension}"));
         fs::write(&input, "---\nformat: html\n---\n").unwrap();
         fs::write(root.join("report.html"), "rendered").unwrap();
-        let result = if extension == "qmd" { proj::copy_individual_quarto(&input, &docs, root) } else { proj::copy_individual_rmd(&input, &docs, root) };
+        let result = if extension == "qmd" {
+            proj::copy_individual_quarto(&input, &docs, root)
+        } else {
+            proj::copy_individual_rmd(&input, &docs, root)
+        };
         assert!(result.is_err());
-        assert_eq!(fs::read_to_string(root.join("report.html")).unwrap(), "rendered");
-        assert_eq!(fs::read_to_string(external.path().join("keep")).unwrap(), "external");
+        assert_eq!(
+            fs::read_to_string(root.join("report.html")).unwrap(),
+            "rendered"
+        );
+        assert_eq!(
+            fs::read_to_string(external.path().join("keep")).unwrap(),
+            "external"
+        );
         assert!(!docs.join("report.html").exists());
     }
 }

@@ -109,7 +109,7 @@ fn storage(root: &Utf8Path, store: &Utf8Path) -> Result<Utf8PathBuf> {
     let store = physical(store)?;
     crate::cas_tree::project_target(root, &store, false)?;
     anyhow::ensure!(
-        !crate::path_safety::portable_paths_overlap(&store, &physical(&root.join(".proj"))?),
+        !crate::path_safety::portable_paths_overlap(&store, &physical(&root.join(".projr"))?),
         "Xet store overlaps project state"
     );
     crate::cas::checked_directory(&store)?;
@@ -184,7 +184,7 @@ fn marker(store: &Utf8Path, create: bool) -> Result<()> {
         for entry in fs::read_dir(store)? {
             let name = entry?.file_name();
             anyhow::ensure!(
-                name == ".proj",
+                name == ".projr",
                 "Unmarked nonempty store requires an explicit migration"
             );
         }
@@ -201,7 +201,7 @@ pub(crate) fn preflight(project: &Utf8Path, store: &Utf8Path) -> Result<()> {
     } else if crate::yml::configuration_entry_exists(&store)? {
         for entry in fs::read_dir(&store)? {
             anyhow::ensure!(
-                entry?.file_name() == ".proj",
+                entry?.file_name() == ".projr",
                 "Unmarked nonempty Xet store requires explicit migration"
             );
         }

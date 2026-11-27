@@ -105,7 +105,7 @@ fn recovered_snapshot(
     before: &BTreeMap<String, Option<Vec<u8>>>,
 ) -> BTreeMap<String, Option<Vec<u8>>> {
     let mut after = snapshot(root);
-    let directory = ".proj/log/local-failures";
+    let directory = ".projr/logs/local-failures";
     let prefix = format!("{directory}/");
     let added: Vec<_> = after
         .keys()
@@ -167,12 +167,12 @@ fn recovered_snapshot(
     }
     assert_eq!(diagnostics, 1);
     assert_eq!(ignores, 1);
-    for parent in [".proj", ".proj/log", directory] {
+    for parent in [".projr", ".projr/logs", directory] {
         if !before.contains_key(parent) {
             assert_eq!(after.remove(parent), Some(None));
         }
     }
-    assert!(!root.join(".proj/build.lock").exists());
+    assert!(!root.join(".projr/build.lock").exists());
     after
 }
 fn setup(
@@ -198,7 +198,7 @@ fn setup(
 }
 fn save(root: &Path, config: &Value) {
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         serde_json::to_vec_pretty(config).unwrap(),
     )
     .unwrap();
@@ -210,7 +210,7 @@ fn project_metadata(root: &Path) -> PathBuf {
     let mut hash = blake3::Hasher::new_derive_key("projcli.ordinary-remote-name.v1");
     hash.update(&serde_json::to_vec(&("local", "DELIVERY")).unwrap());
     let id = hash.finalize().to_hex().to_string();
-    root.join(".proj/remotes").join(&id[..2]).join(&id[2..])
+    root.join(".projr/remotes").join(&id[..2]).join(&id[2..])
 }
 fn catalogue(base: &Path, mode: &str) -> Catalogue {
     let filename = match mode {
@@ -301,7 +301,7 @@ fn four_formats_and_placements_record_actual_latest_bytes_and_direct_version_ref
             assert_eq!(files(&store.join("raw")), expected);
             assert!(!store.join("objects").exists());
             assert!(!store.join("trees").exists());
-            assert!(!store.join(".proj/build.lock").exists());
+            assert!(!store.join(".projr/build.lock").exists());
             assert_eq!(bindings(&project, "references/v1").len(), 2);
             let legacy = proj::manifest_store::read(
                 camino::Utf8Path::from_path(&store.join("manifests")).unwrap(),
@@ -379,16 +379,16 @@ fn empty_inventory_and_preflight_metadata_namespace_corruption_and_store_claim_f
     assert_eq!(refs[0]["payloads"][0]["path"], "raw/v1.2.4-empty");
     assert_eq!(refs[0]["payloads"][0]["empty"], true);
     let old = files(&store);
-    fs::create_dir_all(store.join(".proj")).unwrap();
-    fs::write(store.join(".proj/build.lock"), b"other owner").unwrap();
+    fs::create_dir_all(store.join(".projr")).unwrap();
+    fs::write(store.join(".projr/build.lock"), b"other owner").unwrap();
     failed(
         command(&root).arg("build").output().unwrap(),
         "command_failed",
     );
     let mut expected = old.clone();
-    expected.insert(".proj/build.lock".into(), b"other owner".to_vec());
+    expected.insert(".projr/build.lock".into(), b"other owner".to_vec());
     assert_eq!(files(&store), expected);
-    fs::remove_file(store.join(".proj/build.lock")).unwrap();
+    fs::remove_file(store.join(".projr/build.lock")).unwrap();
     fs::write(remote.join("catalogues/v1/manifest.json"), b"{}").unwrap();
     let corrupted = files(&store);
     failed(

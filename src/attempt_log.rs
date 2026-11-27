@@ -318,8 +318,8 @@ pub(crate) fn retain_local_failure(
     version_after: Option<String>,
     created_releases: Vec<CreatedRelease>,
 ) -> anyhow::Result<()> {
-    let directory = root.join(".proj/log/local-failures");
-    crate::path_safety::validate_native_names(root, ".proj/log/local-failures", false)?;
+    let directory = root.join(".projr/logs/local-failures");
+    crate::path_safety::validate_native_names(root, ".projr/logs/local-failures", false)?;
     crate::path_safety::resolve_path(directory.as_std_path(), true)?;
     fs::create_dir_all(&directory).context("Cannot create local failure diagnostics directory")?;
     crate::path_safety::resolve_path(directory.as_std_path(), true)?;
@@ -401,8 +401,8 @@ impl AttemptLog {
         inventory: Option<InventoryEvidence>,
         startup: Option<crate::provenance::Snapshot>,
     ) -> anyhow::Result<Self> {
-        let directory = root.join(".proj/log");
-        crate::path_safety::validate_native_names(root, ".proj/log", false)?;
+        let directory = root.join(".projr/attempts");
+        crate::path_safety::validate_native_names(root, ".projr/attempts", false)?;
         crate::path_safety::resolve_path(directory.as_std_path(), true)?;
         let created_directory = match fs::create_dir(&directory) {
             Ok(()) => true,
@@ -711,7 +711,7 @@ pub(crate) fn owned_receipt(
     committed: impl FnOnce(&str) -> anyhow::Result<Vec<u8>>,
     witness: impl FnOnce(&str, &str, &str) -> anyhow::Result<bool>,
 ) -> anyhow::Result<bool> {
-    let Some(file) = relative.strip_prefix(".proj/log/") else {
+    let Some(file) = relative.strip_prefix(".projr/attempts/") else {
         return Ok(false);
     };
     let final_csv = file.ends_with(".final.csv");
@@ -727,7 +727,7 @@ pub(crate) fn owned_receipt(
     {
         return Ok(false);
     }
-    let receipt_path = root.join(format!(".proj/log/{id}.git.json"));
+    let receipt_path = root.join(format!(".projr/attempts/{id}.git.json"));
     if !crate::yml::configuration_entry_exists(&receipt_path)? {
         return Ok(false);
     }
@@ -743,7 +743,7 @@ pub(crate) fn owned_receipt(
     {
         return Ok(false);
     }
-    let snapshot = format!(".proj/log/{id}.json");
+    let snapshot = format!(".projr/attempts/{id}.json");
     let bytes = match committed(&format!("HEAD:./{snapshot}")) {
         Ok(bytes) => bytes,
         Err(_) => return Ok(false),
@@ -805,7 +805,7 @@ pub(crate) fn final_rows(
         "Invalid final CSV reference"
     );
     let bytes = read_bounded(
-        &root.join(".proj/log").join(&reference.file),
+        &root.join(".projr/attempts").join(&reference.file),
         FINAL_CSV_LIMIT,
     )?;
     anyhow::ensure!(

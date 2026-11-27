@@ -213,7 +213,7 @@ fn setup(server: &Server) -> (tempfile::TempDir, std::path::PathBuf) {
     fs::write(root.join("results/result.csv"), "actual fixture bytes\n").unwrap();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
     fs::write(root.join("CHANGELOG.md"), "curated release\n").unwrap();
-    fs::write(root.join("_proj.yml"),"directories:\n  output: {path: results}\nbuild:\n  git: false\n  restrictions: {not_behind_remote: false}\n  scripts: []\n  dest: [data]\nremotes:\n  github:\n    data:\n      content: [output]\n      send: {inspect: none}\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  output: {path: results}\nbuild:\n  git: false\n  restrictions: {not_behind_remote: false}\n  scripts: []\n  dest: [data]\nremotes:\n  github:\n    data:\n      content: [output]\n      send: {inspect: none}\n").unwrap();
     for args in [
         vec!["init"],
         vec![
@@ -380,7 +380,7 @@ fn metadata_upload_failure_preserves_local_release_and_reports_partial_publicati
         assert!(state.assets.contains_key("manifest.zip"));
         assert!(!state.assets.contains_key("VERSION.zip"));
     }
-    let logs: Vec<_> = fs::read_dir(root.join(".proj/log"))
+    let logs: Vec<_> = fs::read_dir(root.join(".projr/attempts"))
         .unwrap()
         .map(|entry| entry.unwrap().path())
         .collect();
@@ -453,7 +453,7 @@ fn unsupported_decisions_fail_before_hooks_and_catalog_aliases_never_upload() {
     for state in ["inspection", "strategy", "layout", "alias"] {
         let server = Server::start();
         let (_temporary, root) = setup(&server);
-        let mut config = fs::read_to_string(root.join("_proj.yml")).unwrap();
+        let mut config = fs::read_to_string(root.join("_projr.yml")).unwrap();
         config = match state {
             "inspection" => config.replace("inspect: none", "inspect: unknown"),
             "strategy" => config.replace("inspect: none", "inspect: none, strategy: unknown"),
@@ -475,7 +475,7 @@ fn unsupported_decisions_fail_before_hooks_and_catalog_aliases_never_upload() {
             data.assets
                 .insert("MANIFEST.zip".into(), (1, b"keep".to_vec()));
         }
-        fs::write(root.join("_proj.yml"), config).unwrap();
+        fs::write(root.join("_projr.yml"), config).unwrap();
         let output = invoke(&server, &root, &["build", "--non-interactive"]);
         assert!(!output.status.success(), "{state}");
         assert!(!root.join("hook-ran").exists());
@@ -560,14 +560,14 @@ fn prefixed_no_label_r_data_archives_do_not_conflict_with_their_own_history() {
     let (_temporary, root) = setup(&server);
     fs::create_dir(root.join("data")).unwrap();
     fs::write(root.join("data/table.csv"), "R data\n").unwrap();
-    let config = fs::read_to_string(root.join("_proj.yml"))
+    let config = fs::read_to_string(root.join("_projr.yml"))
         .unwrap()
         .replace("directories:\n", "directories:\n  output-r-data: {}\n")
         .replace(
             "      content: [output]",
             "      path: bundle\n      path-append-label: false\n      content: [output-r-data]",
         );
-    fs::write(root.join("_proj.yml"), config).unwrap();
+    fs::write(root.join("_projr.yml"), config).unwrap();
     success(invoke(&server, &root, &["build", "--non-interactive"]));
     success(invoke(&server, &root, &["build", "--non-interactive"]));
     let data = server.state.lock().unwrap();
@@ -581,12 +581,12 @@ fn prefixed_no_label_r_data_archives_do_not_conflict_with_their_own_history() {
 fn all_space_release_title_fails_before_hooks_and_network() {
     let server = Server::start();
     let (_temporary, root) = setup(&server);
-    let config = fs::read_to_string(root.join("_proj.yml"))
+    let config = fs::read_to_string(root.join("_projr.yml"))
         .unwrap()
         .replace("    data:", "    '   ':")
         .replace("dest: [data]", "dest: ['   ']")
         .replace("build:\n", "build:\n  hooks: {pre: [start.py]}\n");
-    fs::write(root.join("_proj.yml"), config).unwrap();
+    fs::write(root.join("_projr.yml"), config).unwrap();
     fs::write(
         root.join("start.py"),
         "from pathlib import Path\nPath('hook-ran').write_text('bad')\n",
@@ -604,11 +604,13 @@ fn all_space_release_title_fails_before_hooks_and_network() {
 fn repeated_zip_suffix_prefix_cannot_hide_a_numeric_current_archive_alias() {
     let server = Server::start();
     let (_temporary, root) = setup(&server);
-    let config = fs::read_to_string(root.join("_proj.yml")).unwrap().replace(
-        "      content:",
-        "      path: bundle.zip\n      path-append-label: false\n      content:",
-    );
-    fs::write(root.join("_proj.yml"), config).unwrap();
+    let config = fs::read_to_string(root.join("_projr.yml"))
+        .unwrap()
+        .replace(
+            "      content:",
+            "      path: bundle.zip\n      path-append-label: false\n      content:",
+        );
+    fs::write(root.join("_projr.yml"), config).unwrap();
     {
         let mut data = server.state.lock().unwrap();
         data.exists = true;
@@ -702,7 +704,7 @@ fn fixture_zip(files: &[(&str, &[u8])]) -> Vec<u8> {
     cursor.into_inner()
 }
 fn latest(root: &Path) {
-    let path = root.join("_proj.yml");
+    let path = root.join("_projr.yml");
     let config = fs::read_to_string(&path)
         .unwrap()
         .replace("      content:", "      structure: latest\n      content:");
@@ -721,11 +723,11 @@ fn latest_replaces_current_selected_bytes_keeps_extras_and_restores_through_cli(
         let server = Server::start();
         let (_temporary, root) = setup(&server);
         latest(&root);
-        let config = fs::read_to_string(root.join("_proj.yml"))
+        let config = fs::read_to_string(root.join("_projr.yml"))
             .unwrap()
             .replace("inspect: none", &format!("inspect: none, cue: {cue}"))
             .replace("content: [output]", "content: true");
-        fs::write(root.join("_proj.yml"), config).unwrap();
+        fs::write(root.join("_projr.yml"), config).unwrap();
         seed(
             &server,
             "output.zip",
@@ -963,11 +965,13 @@ fn no_inspection_strategy_cue_layout_matrix_uses_real_cli_and_exact_zip_bytes() 
                 if layout == "latest" {
                     latest(&root);
                 }
-                let config = fs::read_to_string(root.join("_proj.yml")).unwrap().replace(
-                    "inspect: none",
-                    &format!("inspect: none, strategy: {strategy}, cue: {cue}"),
-                );
-                fs::write(root.join("_proj.yml"), config).unwrap();
+                let config = fs::read_to_string(root.join("_projr.yml"))
+                    .unwrap()
+                    .replace(
+                        "inspect: none",
+                        &format!("inspect: none, strategy: {strategy}, cue: {cue}"),
+                    );
+                fs::write(root.join("_projr.yml"), config).unwrap();
                 let asset = if layout == "latest" {
                     "output.zip"
                 } else {
@@ -1043,11 +1047,13 @@ fn none_empty_source_does_not_purge_remote_extras_and_diff_metadata_stays_untrus
             let server = Server::start();
             let (_temporary, root) = setup(&server);
             latest(&root);
-            let config = fs::read_to_string(root.join("_proj.yml")).unwrap().replace(
-                "inspect: none",
-                &format!("inspect: none, strategy: {strategy}, cue: {cue}"),
-            );
-            fs::write(root.join("_proj.yml"), config).unwrap();
+            let config = fs::read_to_string(root.join("_projr.yml"))
+                .unwrap()
+                .replace(
+                    "inspect: none",
+                    &format!("inspect: none, strategy: {strategy}, cue: {cue}"),
+                );
+            fs::write(root.join("_projr.yml"), config).unwrap();
             fs::remove_file(root.join("results/result.csv")).unwrap();
             let prior = fixture_zip(&[("extra.csv", b"preserve")]);
             seed(&server, "output.zip", prior.clone());
@@ -1088,11 +1094,13 @@ fn complete_inspection_strategy_cue_layout_matrix_uses_actual_cli() {
                     if layout == "latest" {
                         latest(&root);
                     }
-                    let config = fs::read_to_string(root.join("_proj.yml")).unwrap().replace(
-                        "inspect: none",
-                        &format!("inspect: {inspect}, strategy: {strategy}, cue: {cue}"),
-                    );
-                    fs::write(root.join("_proj.yml"), config).unwrap();
+                    let config = fs::read_to_string(root.join("_projr.yml"))
+                        .unwrap()
+                        .replace(
+                            "inspect: none",
+                            &format!("inspect: {inspect}, strategy: {strategy}, cue: {cue}"),
+                        );
+                    fs::write(root.join("_projr.yml"), config).unwrap();
                     let asset = if layout == "latest" {
                         "output.zip"
                     } else {
@@ -1199,10 +1207,10 @@ fn manifest_matching_history_preserves_unselected_actual_bytes_and_untrusted_evi
         let server = Server::start();
         let (_temporary, root) = setup(&server);
         latest(&root);
-        let config = fs::read_to_string(root.join("_proj.yml"))
+        let config = fs::read_to_string(root.join("_projr.yml"))
             .unwrap()
             .replace("send: {inspect: none}", "send: {}");
-        fs::write(root.join("_proj.yml"), config).unwrap();
+        fs::write(root.join("_projr.yml"), config).unwrap();
         fs::write(root.join("results/kept.csv"), b"recorded kept").unwrap();
         let history = "label,fn,version,hash\n".to_owned()
             + &row("result.csv", "v1.2.3", b"old")
@@ -1274,11 +1282,13 @@ fn inspected_empty_source_removes_extras_and_retires_full_only_after_empty_uploa
                 let server = Server::start();
                 let (_temporary, root) = setup(&server);
                 latest(&root);
-                let config = fs::read_to_string(root.join("_proj.yml")).unwrap().replace(
-                    "inspect: none",
-                    &format!("inspect: {inspect}, strategy: {strategy}, cue: {cue}"),
-                );
-                fs::write(root.join("_proj.yml"), config).unwrap();
+                let config = fs::read_to_string(root.join("_projr.yml"))
+                    .unwrap()
+                    .replace(
+                        "inspect: none",
+                        &format!("inspect: {inspect}, strategy: {strategy}, cue: {cue}"),
+                    );
+                fs::write(root.join("_projr.yml"), config).unwrap();
                 fs::remove_file(root.join("results/result.csv")).unwrap();
                 seed(
                     &server,
@@ -1311,11 +1321,13 @@ fn archive_history_matrix_reuses_only_eligible_unchanged_versions_and_new_snapsh
             for cue in ["if-change", "always"] {
                 let server = Server::start();
                 let (_temporary, root) = setup(&server);
-                let config = fs::read_to_string(root.join("_proj.yml")).unwrap().replace(
-                    "inspect: none",
-                    &format!("inspect: {inspect}, strategy: {strategy}, cue: {cue}"),
-                );
-                fs::write(root.join("_proj.yml"), config).unwrap();
+                let config = fs::read_to_string(root.join("_projr.yml"))
+                    .unwrap()
+                    .replace(
+                        "inspect: none",
+                        &format!("inspect: {inspect}, strategy: {strategy}, cue: {cue}"),
+                    );
+                fs::write(root.join("_projr.yml"), config).unwrap();
                 fs::write(root.join("results/unchanged.csv"), b"keep unchanged").unwrap();
                 success(invoke(&server, &root, &["build", "--non-interactive"]));
                 let first = server.state.lock().unwrap().assets["output-v1.2.4.zip"]
@@ -1391,10 +1403,10 @@ fn archive_ineligible_history_is_not_downloaded_or_reused() {
         for evidence in ["star", "mismatch", "missing", "future"] {
             let server = Server::start();
             let (_temporary, root) = setup(&server);
-            let config = fs::read_to_string(root.join("_proj.yml"))
+            let config = fs::read_to_string(root.join("_projr.yml"))
                 .unwrap()
                 .replace("inspect: none", &format!("inspect: {inspect}"));
-            fs::write(root.join("_proj.yml"), config).unwrap();
+            fs::write(root.join("_projr.yml"), config).unwrap();
             success(invoke(&server, &root, &["build", "--non-interactive"]));
             {
                 let mut state = server.state.lock().unwrap();
@@ -1448,10 +1460,10 @@ fn archive_file_drift_and_changed_then_reverted_history_require_complete_current
         for scenario in ["drift", "revert"] {
             let server = Server::start();
             let (_temporary, root) = setup(&server);
-            let config = fs::read_to_string(root.join("_proj.yml"))
+            let config = fs::read_to_string(root.join("_projr.yml"))
                 .unwrap()
                 .replace("inspect: none", &format!("inspect: {inspect}"));
-            fs::write(root.join("_proj.yml"), config).unwrap();
+            fs::write(root.join("_projr.yml"), config).unwrap();
             fs::write(root.join("results/kept.csv"), b"keep").unwrap();
             success(invoke(&server, &root, &["build", "--non-interactive"]));
             if scenario == "drift" {
@@ -1514,10 +1526,10 @@ fn historical_empty_archive_sentinel_is_validated_before_reuse_or_metadata_chang
     for inspect in ["file", "manifest"] {
         let server = Server::start();
         let (_temporary, root) = setup(&server);
-        let config = fs::read_to_string(root.join("_proj.yml"))
+        let config = fs::read_to_string(root.join("_projr.yml"))
             .unwrap()
             .replace("inspect: none", &format!("inspect: {inspect}"));
-        fs::write(root.join("_proj.yml"), config).unwrap();
+        fs::write(root.join("_projr.yml"), config).unwrap();
         fs::remove_file(root.join("results/result.csv")).unwrap();
         success(invoke(&server, &root, &["build", "--non-interactive"]));
         success(invoke(&server, &root, &["build", "--non-interactive"]));
@@ -1577,7 +1589,7 @@ fn registered_github_definition_remains_restore_source_after_uploads_are_disable
         "remotes":{"github":{"data":{"content":["output"],"send":{"inspect":"none"},"manifest-style":"flat"}}},
         "build":{"scripts":[],"git":false,"restrictions":{"not_behind_remote":false},"dest":{"data":{}}}});
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         serde_json::to_vec_pretty(&config).unwrap(),
     )
     .unwrap();
@@ -1621,7 +1633,7 @@ fn registered_github_definition_remains_restore_source_after_uploads_are_disable
     };
     config["build"]["dest"] = json!({});
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         serde_json::to_vec_pretty(&config).unwrap(),
     )
     .unwrap();

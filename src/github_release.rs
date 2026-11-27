@@ -771,14 +771,16 @@ fn validate_destination(root: &Utf8Path, destination: &Utf8Path) -> anyhow::Resu
         anyhow::ensure!(
             !relative
                 .components()
-                .any(|part| [".git", ".svn", ".projr"].iter().any(|name| part
-                    .as_os_str()
-                    .to_string_lossy()
-                    .eq_ignore_ascii_case(name))),
+                .any(
+                    |part| [".git", ".svn", ".projr", "_projr"].iter().any(|name| part
+                        .as_os_str()
+                        .to_string_lossy()
+                        .eq_ignore_ascii_case(name))
+                ),
             "Asset destination overlaps protected project state"
         );
     }
-    for name in [".git", ".svn", ".projr"] {
+    for name in [".git", ".svn", ".projr", "_projr"] {
         let protected = root_identity.join(name);
         anyhow::ensure!(
             !identity.starts_with(&protected) && !protected.starts_with(&identity),
@@ -798,10 +800,8 @@ fn validate_destination(root: &Utf8Path, destination: &Utf8Path) -> anyhow::Resu
         .flatten()
         .any(|name| {
             let name = name.to_ascii_lowercase();
-            matches!(
-                name.as_str(),
-                "version" | "manifest.csv" | "_proj.yml" | "_projr.yml"
-            ) || (name.starts_with("_projr-") && name.ends_with(".yml"))
+            matches!(name.as_str(), "version" | "manifest.csv" | "_projr.yml")
+                || (name.starts_with("_projr-") && name.ends_with(".yml"))
         });
     anyhow::ensure!(
         !protected,

@@ -2,7 +2,7 @@
 
 Run the analysis steps selected for your project, then save the results as configured.
 
-Choose scripts with `build.scripts` in `_proj.yml`, or omit the list to use the
+Choose scripts with `build.scripts` in `_projr.yml`, or omit the list to use the
 default discovery rules below. `proj build` is a production build: it can change
 the version, replace managed results, commit and upload. Start with `proj build-dev`
 when checking an analysis. Plain R scripts use separate child processes by default;
@@ -26,7 +26,7 @@ Document renderers and hooks keep their own execution rules.
   Configure Git identity and remote access before enabling commits or pushes.
 - **Mutual Exclusion Checking:** Before executing, `proj build` checks for project-level configurations (`_quarto.yml` and `_bookdown.yml`). If both exist and the build targets include Quarto or RMarkdown documents, it throws an error to prevent conflicting rendering.
 - **Explicit Execution (Path A):**
-  - Define exact scripts, exclusions (starting with `!` or written as `- exclude: path`), or sub-directory globs in `_proj.yml` under `build.scripts`. A list of only exclusions means automatic discovery minus the matches (not yet supported beside a Quarto or Bookdown project).
+  - Define exact scripts, exclusions (starting with `!` or written as `- exclude: path`), or sub-directory globs in `_projr.yml` under `build.scripts`. A list of only exclusions means automatic discovery minus the matches (not yet supported beside a Quarto or Bookdown project).
   - The root `README.Rmd` is never run as analysis, even when listed.
   - Can rewrite `_quarto.yml` or `_bookdown.yml` configuration if specific subset documents are requested.
   - Maintains order relative to Python and R scripts, while correctly clustering and executing project documents together.
@@ -78,13 +78,14 @@ overrides it with no analysis. Hooks still run, but previews never publish.
 
 ## Active configuration and validation
 
-Builds require root-level `_proj.yml`, legacy `_projr.yml`, or an explicitly
-activated `_projr-<profile>.yml`. Inactive profiles and `_projr-local.yml` alone
-do not qualify. Both base filenames together are an error. Unsupported control
+A build or preview without a base `_projr.yml` (root or `.projr/config/`) first
+writes projr's starter configuration and then runs with it; see
+[starter configuration](../configuration.qmd#starter-configuration). Both spellings
+of one layer in one configuration directory are an error. Unsupported control
 fields fail before build writes; arbitrary `parameters` and `metadata` maps are
 allowed. Configuration errors include their causes on stderr and return failure.
 
-This validation is separate from project discovery. A root marker or cwd fallback
+This validation is separate from project discovery. Finding a root (a configured folder or the cwd fallback)
 does not make an unconfigured project buildable. Used directories must be declared explicitly. Failed builds attempt to restore
 recorded managed files; arbitrary script changes and completed uploads are outside
 that recovery. See the [lifecycle reference](../lifecycle.qmd) for ordering and limits.
@@ -220,13 +221,13 @@ required before treating this candidate as delivered evidence.
 
 ## One build writer per project
 
-Builds and previews claim .proj/build.lock for their full lifetime, including
+Builds and previews claim .projr/build.lock for their full lifetime, including
 recovery and final version changes. Concurrent builds fail with a clear ownership
 error; read-only queries remain available. The claim uses a fresh opaque attempt
 ID and is removed on normal completion. A crashed process may leave a stale claim:
 confirm the project has no active build before removing that single file.
 Do not delete a claim merely because another build is taking longer than expected.
-Managed destinations cannot overlap .proj; reserved live claims at every repository depth are never committed
+Managed destinations cannot overlap .projr; reserved live claims at every repository depth are never committed
 by the build's optional Git integration. Development-source publication attempt logs are described below.
 
 
@@ -243,7 +244,7 @@ rule that failure after publication begins preserves the successful local releas
 ## Development source: retained publication logs
 
 After a successful local release is ready for publication, the build writes
-.proj/log/attempt-....json. It records what completed and which publication
+.projr/attempts/attempt-....json. It records what completed and which publication
 operations began, completed or returned errors. A failed request can already
 have changed a remote, so the log preserves that uncertainty.
 
@@ -259,7 +260,7 @@ are copied into these records. Production records include publication-enabled
 builds and successful plain local builds without Git or publication.
 Successful plain production builds retain a completed record after hooks and the
 next-dev transition. Earlier owned production failures retain local-only JSON
-diagnostics in .proj/log/local-failures/, visible through proj history as failed
+diagnostics in .projr/logs/local-failures/, visible through proj history as failed
 attempts with no successful release. Only that reserved directory is ignored by
 Git; successful and distributed-failure records retain their normal Git behaviour.
 Raw error text is not copied into diagnostics. Previews and failed writer

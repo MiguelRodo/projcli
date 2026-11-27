@@ -25,7 +25,7 @@ def local_links(root):
 evidence={}
 with tempfile.TemporaryDirectory(prefix="proj-script-groups-") as temporary:
     root=Path(temporary)
-    (root/"_proj.yml").write_text("directories:\n  scripts-l1: {path: source/l1}\n  scripts-l2: {path: source/l2}\n  cache: {path: _tmp}\n  docs: {path: docs, ignore: []}\nbuild:\n  git: false\n  scripts: [scripts-l1, scripts-l2]\n")
+    (root/"_projr.yml").write_text("directories:\n  scripts-l1: {path: source/l1}\n  scripts-l2: {path: source/l2}\n  cache: {path: _tmp}\n  docs: {path: docs, ignore: []}\nbuild:\n  git: false\n  scripts: [scripts-l1, scripts-l2]\n")
     (root/"VERSION").write_text("v1.2.3-4\n")
     (root/"DESCRIPTION").write_text("Title: Grouped teaching project\nVersion: 1.2.3.4\n")
     (root/".gitignore").write_text("manual-rule\n")
@@ -67,7 +67,7 @@ for explicit in (False,True):
         docs=root/docs_name
         config=f"directories:\n  cache: {{path: {json.dumps(cache_name)}}}\n  docs: {{path: {json.dumps(docs_name)}, ignore: []}}\nbuild:\n  git: false\n"
         if explicit:config+='  scripts: ["**/*.qmd", "!draft.qmd"]\n'
-        (root/"_proj.yml").write_text(config)
+        (root/"_projr.yml").write_text(config)
         (root/"VERSION").write_text("v1.2.3-4\n")
         (root/"_quarto.yml").write_text("project:\n  type: website\n  output-dir: native-site\n  render: [index.qmd, chapters/about.qmd, '!draft.qmd']\n  resources: [assets/shared.svg, '!draft-assets/**']\nwebsite:\n  title: Teaching site\n  navbar:\n    left: [index.qmd, chapters/about.qmd]\nformat:\n  html:\n    embed-resources: false\n")
         if explicit:

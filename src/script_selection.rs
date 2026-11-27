@@ -11,7 +11,7 @@ pub(crate) fn is_scripts(label: &str) -> bool {
 }
 
 fn metadata_component(value: &str) -> bool {
-    [".git", ".proj", ".projr"].iter().any(|name| {
+    [".git", ".projr"].iter().any(|name| {
         if cfg!(windows) {
             value.eq_ignore_ascii_case(name)
         } else {
@@ -115,7 +115,7 @@ pub(crate) fn resolve(
                 .any(|part| metadata_component(part.as_str()))
         })
     };
-    let mut blocked = vec![root.join(".git"), root.join(".proj"), root.join(".projr")];
+    let mut blocked = vec![root.join(".git"), root.join(".projr")];
     for label in config.directories.keys() {
         if label.to_ascii_lowercase().starts_with("cache") || crate::paths::is_managed_output(label)
         {

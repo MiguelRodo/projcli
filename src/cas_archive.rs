@@ -206,7 +206,7 @@ pub fn export(project: &Utf8Path, store: &Utf8Path) -> Result<Export> {
     {
         let _claim = crate::attempt::Attempt::acquire(store)?;
         for (name, file) in inventory(store)? {
-            if name.starts_with(".proj/") {
+            if name.starts_with(".projr/") {
                 continue;
             }
             anyhow::ensure!(

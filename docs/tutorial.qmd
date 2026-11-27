@@ -27,7 +27,7 @@ mkdir projcli-example
 cd projcli-example
 ```
 
-Create a file named `_proj.yml` with this content:
+Create a file named `_projr.yml` with this content:
 
 ```yaml
 directories:
@@ -120,8 +120,8 @@ In another new project folder, local-only directory setup is available:
 proj --project . --non-interactive init directories
 ```
 
-When no base or active profile configuration exists, this writes `_proj.yml`
-with the explicit `raw-data: _raw_data`, `cache: _tmp` and `output: _output`
+When no base or active profile configuration exists, this writes `_projr.yml`
+(preview.6 and earlier write `_proj.yml`) with the explicit `raw-data: _raw_data`, `cache: _tmp`, `output: _output` and (current source) `docs: docs`
 paths, creates those folders, and updates ignore files. It does not run Git or
 GitHub setup. Existing configuration files are preserved; only their declared
 directories are created.

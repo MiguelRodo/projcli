@@ -75,7 +75,7 @@ fn queries_produce_typed_results_without_progress_or_configuration_secrets() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().canonicalize().unwrap();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
-    fs::write(root.join("_proj.yml"), "directories:\n  output:\n    path: output data\nparameters:\n  private_token: machine-secret-sentinel\n").unwrap();
+    fs::write(root.join("_projr.yml"), "directories:\n  output:\n    path: output data\nparameters:\n  private_token: machine-secret-sentinel\n").unwrap();
     for args in [
         vec![
             "path", "get", "--label", "output", "--target", "final", "--format", "absolute",
@@ -131,7 +131,7 @@ fn argument_project_and_query_failures_are_structured_and_nonzero() {
         "project_selection_failed"
     );
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         "parameters: [machine-secret-sentinel\n",
     )
     .unwrap();
@@ -152,7 +152,11 @@ fn argument_project_and_query_failures_are_structured_and_nonzero() {
 fn child_stdout_and_stderr_cannot_pollute_protocol_stdout() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path();
-    fs::write(root.join("_proj.yml"), "build:\n  scripts: [analysis.py]\n").unwrap();
+    fs::write(
+        root.join("_projr.yml"),
+        "build:\n  scripts: [analysis.py]\n",
+    )
+    .unwrap();
     for fail in [false, true] {
         fs::write(root.join("analysis.py"), format!("import sys\nprint('child-out-marker')\nprint('child-err-marker', file=sys.stderr)\nraise SystemExit({})\n", if fail { 17 } else { 0 })).unwrap();
         let output = command(root).arg("build-dev").output().unwrap();
@@ -190,7 +194,7 @@ fn local_init_and_version_mutation_reuse_existing_commands_with_json_completion(
         .output()
         .unwrap();
     assert_eq!(envelope(&output, true)["result"]["completed"], true);
-    assert!(root.join("_proj.yml").exists());
+    assert!(root.join("_projr.yml").exists());
     assert!(!root.join(".git").exists());
     let output = command(root)
         .args(["version", "set", "v2.3.4"])

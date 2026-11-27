@@ -528,7 +528,7 @@ pub fn read_project(root: &Utf8Path) -> anyhow::Result<Vec<ManifestRow>> {
 }
 
 /// Records rows in the project store, importing a legacy root `manifest.csv`
-/// once. The build's `.proj/build.lock` claim serializes projcli writers, so
+/// once. The build's `.projr/build.lock` claim serializes projcli writers, so
 /// no `.versions.lock` file is created inside the Git-tracked project store.
 pub fn write_project(root: &Utf8Path, rows: &[ManifestRow]) -> anyhow::Result<()> {
     write(

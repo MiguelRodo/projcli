@@ -144,17 +144,16 @@ pub fn init_version() -> anyhow::Result<()> {
 }
 
 /// Initializes only explicitly declared directories; creates a missing base config once.
-/// The preset declares projr's raw-data/cache/output paths without a scripts value.
+/// The preset is projr's starter (raw-data/cache/output/docs paths, no scripts value).
 /// Existing base/profile files are preserved, and Git/GitHub setup is not invoked.
 pub fn init_directories() -> anyhow::Result<()> {
     let project_root = root().context("Failed to find project root.")?;
-    const PRESET: &str = "directories:\n  raw-data:\n    path: _raw_data\n  cache:\n    path: _tmp\n  output:\n    path: _output\n";
+    // projr's starter configuration (`inst/project_structure/_projr.yml`).
+    const PRESET: &str = crate::profile::STARTER;
     let base = crate::yml::base_configuration_path(&project_root)?;
     let mut active_profile = false;
-    for profile in crate::profile::get_active_profiles() {
-        active_profile |= crate::yml::configuration_entry_exists(
-            &project_root.join(format!("_projr-{profile}.yml")),
-        )?;
+    for profile in crate::run_context::select_profiles(None, &project_root)? {
+        active_profile |= crate::profile::existing_config(&project_root, &profile)?.is_some();
     }
     let create_base = base.is_none() && !active_profile;
     let combined = crate::yml::get_combined_yml(None, &project_root)?;
@@ -183,10 +182,10 @@ pub fn init_directories() -> anyhow::Result<()> {
     if create_base {
         let mut file = tempfile::NamedTempFile::new_in(project_root.as_std_path())?;
         file.write_all(PRESET.as_bytes())?;
-        file.persist_noclobber(project_root.join("_proj.yml"))
+        file.persist_noclobber(project_root.join("_projr.yml"))
             .map_err(|error| error.error)
-            .context("Failed to create _proj.yml without overwriting existing configuration")?;
-        println!("Created _proj.yml with explicit directory paths.");
+            .context("Failed to create _projr.yml without overwriting existing configuration")?;
+        println!("Created _projr.yml with explicit directory paths.");
     }
     crate::ignore::update_ignores(&project_root, &config)
         .context("Failed to update project ignores during initialization")?;

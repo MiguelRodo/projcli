@@ -77,7 +77,7 @@ def main():
                     'remotes':{'local':{'snapshots':remote,'ordinary':{'path':'../ordinary','structure':'archive',
                       'manifest-style':'tree','manifest':'both','send':{'inspect':'file'}}}},
                     'build':{'scripts':['analysis.py'],'git':False,'dest':{'snapshots':{'content':['raw','output']},'ordinary':{'content':['output']}}}}
-                (root/'_proj.yml').write_text(json.dumps(cfg))
+                (root/'_projr.yml').write_text(json.dumps(cfg))
                 expected_raw=files(root/'input');expected_output={'result.csv':b'value\n42\n'}
                 namespace='tree-snapshots/v1' if style=='tree' else 'flat-snapshots/v1'
                 invoke(binary,root,env,'build','--patch')
@@ -95,18 +95,18 @@ def main():
                 for label,path,data in [('raw','input.csv',expected_raw['input.csv']),('output','result.csv',expected_output['result.csv'])]:
                     row=next(row for row in rows if row['label']==label and row['fn']==path and row['version']=='v1.2.5')
                     assert row['hash']==hashlib.md5(data).hexdigest()
-                records=[json.loads(path.read_text()) for path in (root/'.proj/log').glob('*.json')]
+                records=[json.loads(path.read_text()) for path in (root/'.projr/attempts').glob('*.json')]
                 assert len(records)==2 and all(record['status']=='completed' for record in records)
                 artifact=args.artifacts/case;artifact.mkdir()
                 shutil.copytree(store,artifact/'store')
                 (artifact/'manifest.csv').write_bytes(store_csv(root))
-                for path in (root/'.proj/log').glob('*.json'):shutil.copyfile(path,artifact/path.name)
+                for path in (root/'.projr/attempts').glob('*.json'):shutil.copyfile(path,artifact/path.name)
                 # Recreate only this disposable project. Remote full metadata is sufficient;
                 # neither the old ordinary CSV, lookup ledger nor small project references remain.
                 shutil.rmtree(root);root.mkdir()
                 for folder in ['input','released','cache']:(root/folder).mkdir()
                 cfg['build']={'scripts':[],'git':False,'dest':{}}
-                (root/'_proj.yml').write_text(json.dumps(cfg));version=b'Version: v9.0.0.7\n';(root/'VERSION').write_bytes(version)
+                (root/'_projr.yml').write_text(json.dumps(cfg));version=b'Version: v9.0.0.7\n';(root/'VERSION').write_bytes(version)
                 before_store=files(store)
                 observation=invoke(binary,root,env,'remote','verify','--title','snapshots','--snapshot',selected)
                 assert observation['result']['snapshot']['snapshot_id']==selected
@@ -115,7 +115,7 @@ def main():
                     assert files(root/path)==expected
                     shutil.copytree(root/path,artifact/('recovered-'+label))
                 assert (root/'input/nested/empty').is_dir()
-                assert not (root/'.proj').exists() and not (root/'.projr').exists() and not (root/'manifest.csv').exists()
+                assert not (root/'.projr').exists() and not (root/'manifest.csv').exists()
                 assert (root/'VERSION').read_bytes()==version and files(store)==before_store
                 probes=[];destination=files(root)
                 destination_dirs={p.relative_to(root).as_posix() for p in root.rglob('*') if p.is_dir()}

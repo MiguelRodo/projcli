@@ -554,7 +554,7 @@ uses the longest compatible decoded history; dictionary IDs do not define it.
 Codec limits fail explicitly rather than truncating history.
 
 The authoritative history read through replacement/reference publication holds
-the existing cooperative claim at `<store>/.proj/build.lock`. Unknown/stale claims
+the existing cooperative claim at `<store>/.projr/build.lock`. Unknown/stale claims
 fail closed and only an owned claim is removed; there is no automatic process
 killing or stale-claim cleanup. Raw immutable objects may be copied before that
 claim. Required history copies precede full snapshot refs, then the small project

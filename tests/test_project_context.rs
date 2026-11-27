@@ -1,10 +1,27 @@
-use std::{fs, process::{Command, Output}};
+use std::{
+    fs,
+    process::{Command, Output},
+};
 
 fn query(project: &std::path::Path, inherited: Option<&std::path::Path>) -> Output {
     let mut command = Command::new(env!("CARGO_BIN_EXE_proj"));
-    command.args(["path", "get", "--label", "output", "--target","final","--format","absolute","--project"]).arg(project)
+    command
+        .args([
+            "path",
+            "get",
+            "--label",
+            "output",
+            "--target",
+            "final",
+            "--format",
+            "absolute",
+            "--project",
+        ])
+        .arg(project)
         .env_remove(proj::PROJECT_ROOT_ENV);
-    if let Some(root) = inherited { command.env(proj::PROJECT_ROOT_ENV, root); }
+    if let Some(root) = inherited {
+        command.env(proj::PROJECT_ROOT_ENV, root);
+    }
     command.output().unwrap()
 }
 
@@ -12,16 +29,36 @@ fn query(project: &std::path::Path, inherited: Option<&std::path::Path>) -> Outp
 fn explicit_root_overrides_ancestor_and_inherited_context_without_markers() {
     let outer = tempfile::tempdir().unwrap();
     fs::write(outer.path().join("VERSION"), "v1.0.0").unwrap();
-    fs::write(outer.path().join("_proj.yml"), "directories:\n  output:\n    path: _outer_output\n").unwrap();
+    fs::write(
+        outer.path().join("_projr.yml"),
+        "directories:\n  output:\n    path: _outer_output\n",
+    )
+    .unwrap();
     let selected = outer.path().join("selected project");
     fs::create_dir(&selected).unwrap();
     let selected_utf8 = camino::Utf8Path::from_path(&selected).unwrap();
-    assert_eq!(proj::project::resolve_project_root(Some(selected_utf8)).unwrap().as_std_path(), selected.canonicalize().unwrap());
-    fs::write(selected.join("_proj.yml"), "directories:\n  output:\n    path: _output\n").unwrap();
+    assert_eq!(
+        proj::project::resolve_project_root(Some(selected_utf8))
+            .unwrap()
+            .as_std_path(),
+        selected.canonicalize().unwrap()
+    );
+    fs::write(
+        selected.join("_projr.yml"),
+        "directories:\n  output:\n    path: _output\n",
+    )
+    .unwrap();
     let output = query(&selected, Some(outer.path()));
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     let actual = String::from_utf8(output.stdout).unwrap();
-    assert_eq!(std::path::Path::new(actual.trim()), selected.canonicalize().unwrap().join("_output"));
+    assert_eq!(
+        std::path::Path::new(actual.trim()),
+        selected.canonicalize().unwrap().join("_output")
+    );
     assert!(!outer.path().join(".gitignore").exists());
 }
 
@@ -34,9 +71,13 @@ fn missing_file_and_invalid_inherited_roots_fail_without_fallback() {
         assert!(!query(path, None).status.success());
     }
     let output = Command::new(env!("CARGO_BIN_EXE_proj"))
-        .args(["path", "get", "--label", "output","--target","final","--format","absolute"])
+        .args([
+            "path", "get", "--label", "output", "--target", "final", "--format", "absolute",
+        ])
         .env(proj::PROJECT_ROOT_ENV, "invalid-relative-root")
-        .current_dir(temp.path()).output().unwrap();
+        .current_dir(temp.path())
+        .output()
+        .unwrap();
     assert!(!output.status.success());
 }
 
@@ -46,7 +87,7 @@ fn child_path_query_keeps_selected_root_after_cwd_changes() {
     let root = project.path();
     fs::create_dir(root.join("scripts")).unwrap();
     fs::create_dir(root.join("elsewhere")).unwrap();
-    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\n  output:\n    path: _output\nbuild:\n  scripts: [scripts/analysis.py]\n").unwrap();
+    fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: _tmp\n  output:\n    path: _output\nbuild:\n  scripts: [scripts/analysis.py]\n").unwrap();
     fs::write(root.join("scripts/analysis.py"), r#"import os, subprocess
 from pathlib import Path
 root = Path(os.environ['PROJ_PROJECT_ROOT'])
@@ -57,37 +98,65 @@ assert Path(path) == root / '_output', (path, root)
 (root / '_tmp/observed-root.txt').write_text(str(root))
 "#).unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_proj"))
-        .args(["build-dev", "--project"]).arg(root)
-        .env_remove(proj::PROJECT_ROOT_ENV).env_remove("PROJR_PROFILE").env_remove("QUARTO_PROFILE")
+        .args(["build-dev", "--project"])
+        .arg(root)
+        .env_remove(proj::PROJECT_ROOT_ENV)
+        .env_remove("PROJR_PROFILE")
+        .env_remove("QUARTO_PROFILE")
         .env("PROJCLI_FIXTURE_BINARY", env!("CARGO_BIN_EXE_proj"))
-        .output().unwrap();
-    assert!(output.status.success(), "stdout={} stderr={}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
     let observed = fs::read_to_string(root.join("_tmp/observed-root.txt")).unwrap();
-    assert_eq!(std::path::Path::new(&observed), root.canonicalize().unwrap());
+    assert_eq!(
+        std::path::Path::new(&observed),
+        root.canonicalize().unwrap()
+    );
     assert!(!root.join("VERSION").exists());
 }
-
 
 #[test]
 fn direct_build_supplies_child_root_without_replacing_callers_root() {
     let project = tempfile::tempdir().unwrap();
     let root = camino::Utf8Path::from_path(project.path()).unwrap();
     let expected = serde_json::to_string(root.canonicalize_utf8().unwrap().as_str()).unwrap();
-    fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\n  output:\n    path: _output\nbuild:\n  scripts: [analysis.py]\n").unwrap();
-    let script = format!("import os\nfrom pathlib import Path\nassert Path(os.environ['PROJ_PROJECT_ROOT']) == Path({expected})\nPath('_tmp').mkdir(exist_ok=True)\nPath('_tmp/direct.txt').write_text('done')\n");
+    fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: _tmp\n  output:\n    path: _output\nbuild:\n  scripts: [analysis.py]\n").unwrap();
+    let script = format!(
+        "import os\nfrom pathlib import Path\nassert Path(os.environ['PROJ_PROJECT_ROOT']) == Path({expected})\nPath('_tmp').mkdir(exist_ok=True)\nPath('_tmp/direct.txt').write_text('done')\n"
+    );
     fs::write(root.join("analysis.py"), script).unwrap();
     let before = std::env::var_os(proj::PROJECT_ROOT_ENV);
-    proj::build_project_with_execution(root, proj::BuildMode::Dev, None, None, proj::ExecutionDirectory::Project).unwrap();
+    proj::build_project_with_execution(
+        root,
+        proj::BuildMode::Dev,
+        None,
+        None,
+        proj::ExecutionDirectory::Project,
+    )
+    .unwrap();
     assert_eq!(std::env::var_os(proj::PROJECT_ROOT_ENV), before);
-    assert_eq!(fs::read_to_string(root.join("_tmp/direct.txt")).unwrap(), "done");
+    assert_eq!(
+        fs::read_to_string(root.join("_tmp/direct.txt")).unwrap(),
+        "done"
+    );
 }
-
 
 #[test]
 fn simultaneous_direct_builds_keep_independent_roots() {
-    use std::{sync::{Arc, Barrier}, time::{Duration, Instant}};
+    use std::{
+        sync::{Arc, Barrier},
+        time::{Duration, Instant},
+    };
     let workspace = tempfile::tempdir().unwrap();
-    let roots = [workspace.path().join("first project"), workspace.path().join("second project")];
+    let roots = [
+        workspace.path().join("first project"),
+        workspace.path().join("second project"),
+    ];
     let release = workspace.path().join("release");
     let binary = serde_json::to_string(env!("CARGO_BIN_EXE_proj")).unwrap();
     let release_literal = serde_json::to_string(release.to_str().unwrap()).unwrap();
@@ -95,8 +164,9 @@ fn simultaneous_direct_builds_keep_independent_roots() {
         fs::create_dir(root).unwrap();
         let own = serde_json::to_string(root.canonicalize().unwrap().to_str().unwrap()).unwrap();
         let other = serde_json::to_string(roots[1 - index].to_str().unwrap()).unwrap();
-        fs::write(root.join("_proj.yml"), "directories:\n  cache:\n    path: _tmp\n  output:\n    path: _output\nbuild:\n  scripts: [analysis.py]\n").unwrap();
-        let script = format!(r#"import os, subprocess, time
+        fs::write(root.join("_projr.yml"), "directories:\n  cache:\n    path: _tmp\n  output:\n    path: _output\nbuild:\n  scripts: [analysis.py]\n").unwrap();
+        let script = format!(
+            r#"import os, subprocess, time
 from pathlib import Path
 root = Path({own})
 (root / 'ready').write_text('ready')
@@ -111,19 +181,29 @@ result = subprocess.check_output([{binary}, 'path', 'get', '--label', 'output','
 assert Path(result) == root / '_output', (result, root)
 (root / '_tmp').mkdir(exist_ok=True)
 (root / '_tmp/independent.txt').write_text('done')
-"#);
+"#
+        );
         fs::write(root.join("analysis.py"), script).unwrap();
     }
     let before = std::env::var_os(proj::PROJECT_ROOT_ENV);
     let start = Arc::new(Barrier::new(2));
     std::thread::scope(|scope| {
-        let handles: Vec<_> = roots.iter().map(|root| {
-            let start = start.clone();
-            scope.spawn(move || {
-                start.wait();
-                proj::build_project_with_execution(camino::Utf8Path::from_path(root).unwrap(), proj::BuildMode::Dev, None, None, proj::ExecutionDirectory::Project)
+        let handles: Vec<_> = roots
+            .iter()
+            .map(|root| {
+                let start = start.clone();
+                scope.spawn(move || {
+                    start.wait();
+                    proj::build_project_with_execution(
+                        camino::Utf8Path::from_path(root).unwrap(),
+                        proj::BuildMode::Dev,
+                        None,
+                        None,
+                        proj::ExecutionDirectory::Project,
+                    )
+                })
             })
-        }).collect();
+            .collect();
         let deadline = Instant::now() + Duration::from_secs(10);
         while !roots.iter().all(|root| root.join("ready").exists()) && Instant::now() < deadline {
             std::thread::sleep(Duration::from_millis(10));
@@ -131,11 +211,22 @@ assert Path(result) == root / '_output', (result, root)
         let both_running = roots.iter().all(|root| root.join("ready").exists());
         let during = std::env::var_os(proj::PROJECT_ROOT_ENV);
         fs::write(&release, "continue").unwrap();
-        for handle in handles { handle.join().unwrap().unwrap(); }
-        assert!(both_running, "both child processes must overlap for this regression");
-        assert_eq!(during, before, "a direct build must not replace the caller's root");
+        for handle in handles {
+            handle.join().unwrap().unwrap();
+        }
+        assert!(
+            both_running,
+            "both child processes must overlap for this regression"
+        );
+        assert_eq!(
+            during, before,
+            "a direct build must not replace the caller's root"
+        );
     });
     for root in roots {
-        assert_eq!(fs::read_to_string(root.join("_tmp/independent.txt")).unwrap(), "done");
+        assert_eq!(
+            fs::read_to_string(root.join("_tmp/independent.txt")).unwrap(),
+            "done"
+        );
     }
 }

@@ -16,17 +16,18 @@ actual test evidence, Ponytail reviews and remaining gaps; update it with each P
   It has settings, version information and named resource paths where applicable.
   Resource paths may be outside the root; a project need not be a Git repository.
 - Explicit project selection overrides discovery and selects that exact directory.
-- Automatic discovery walks upward from the invocation directory. The nearest
-  recognized project root wins, including when projects are nested. Discovery
-  does not search downward for projects.
-- Retain existing projr root markers, including standalone VERSION and README,
-  VCS roots, R-package/RStudio/renv/Quarto project markers, and extend recognition
-  for `pyproject.toml`, `Project.toml` and `JuliaProject.toml`. Proj configuration
-  files `_proj.yml` / `_projr.yml` also identify a root. `requirements.txt` and
-  `Manifest.toml` alone do not. Recognition must no longer require VERSION
-  before considering the other markers.
-- `_proj.yml` is the primary base configuration. Accept `_projr.yml` as a legacy
-  alias and fail clearly if both base files exist; do not silently merge them.
+- Automatic discovery walks upward from the invocation directory and selects the
+  nearest folder with a projr configuration: `_projr.yml`, or `_projr.yml`/
+  `default.yml` in its `.projr/config/` (or `_projr/config/`). A configuration
+  directory itself is never a root (projr `R/path.R:260-288`). Generic markers
+  (VERSION, README, VCS, R-package/RStudio/renv/Quarto, Python/Julia metadata)
+  no longer identify roots, so a configured ancestor beats them (user decision,
+  27 November 2026). Discovery does not search downward for projects.
+- `_projr.yml` is the only base configuration name (approved 26 November 2026,
+  issues#910; projcli's earlier `_proj.yml` is no longer read). Each layer is read
+  from the root, else `.projr/config/`, else `_projr/config/`, where the short
+  names `default.yml`, `<profile>.yml` and `local.yml` are also accepted; both
+  spellings of one layer in one configuration directory is an error, as in projr.
 - Configuration precedence follows projr: local overrides profiles, profiles
   override base, and earlier-listed profiles win conflicts with later ones.
 - Missing `dev.scripts` falls back to `build.scripts`. An explicit empty list in
@@ -34,11 +35,13 @@ actual test evidence, Ponytail reviews and remaining gaps; update it with each P
   Hooks still run; production version/publication/export behavior remains available
   for upload-only workflows. Development previews never publish. Analysis cleanup
   and promotion are skipped when no analysis is selected, preserving upload inputs.
-- With no recognized marker, discovery falls back to cwd. This does not waive
-  build validation: builds require an active root-level proj configuration.
-  The agreed `_proj.yml` / legacy `_projr.yml` names apply; explicitly activated
-  profile files may supply configuration, but inactive profile files alone do not.
-  No-config build assumptions from the initial roadmap are superseded.
+- With no configuration anywhere above, the invocation directory is the root
+  (user decision of 27 November 2026); projr's build instead walks up to the
+  nearest generic marker. A build or preview without a base configuration first
+  writes projr's starter `_projr.yml` there, with the `.gitignore` starter lines
+  (user decision of 25 November 2026, projr `R/build.R:289-310`), never
+  overwriting a file. Configured restore and CAS/Xet store commands still require an existing
+  base file or an explicitly activated profile file.
 - Ordinary framework/resource directories used at runtime must be explicitly declared.
   Built-in project and R-package data lookup are bounded exceptions described below.
   Initialization may write familiar projr defaults into configuration; runtime
@@ -111,9 +114,9 @@ from changing cwd or selecting a new root.
 
 ## Implementation gaps and verification
 
-The core root finder implements nearest-recognized-ancestor discovery without a
-VERSION prerequisite. Its marker tests cover the retained projr patterns and
-deliberate Python/Julia/proj-config extensions and cwd fallback. Builds now require active
+The core root finder implements projr's configuration criterion with a cwd
+fallback; its tests cover every configuration form, nearer generic markers and
+the unconfigured first build. Builds now require active
 configuration and typed validation rejects unsupported fields. Explicit directory
 mappings are enforced without runtime path defaults; full failure restoration remains open; historical passing fixtures
 do not demonstrate those new requirements.
@@ -121,7 +124,7 @@ Individual scripts currently start at project root; changing to native runner de
 implemented for core CLI child queries after cwd changes, including independent
 simultaneous roots; direct R frontend/renderer parity remains unimplemented.
 Base-file aliases and first-wins profile merging use one merged typed
-configuration for validation and build script/hook selection. Profile/local filenames retain their existing `_projr-` form for now.
+configuration for validation and build script/hook selection.
 Explicit empty script selection now skips analysis while preserving hooks and
 production publication; its tests cover production archive bytes and preview
 nonpublication without invoking real renderers.
@@ -278,10 +281,12 @@ transport boundary over existing anyhow errors, not a second domain-error overha
 ## Captured run inputs (first path-contract slice)
 
 One effective profile list is selected before config/environment reads: CLI,
-nonempty PROJR_PROFILE, nonempty QUARTO_PROFILE fallback, then base/local
-build.profile default. Earlier profiles still win; local config is highest.
-A profile's own build.profile does not redirect an already selected run.
-Native QUARTO_PROFILE rendering settings remain distinct; no R helper bridge follows.
+nonempty PROJR_PROFILE, then the `profile` key of the local file, then of the
+base file (projr `R/profile.R:223-270`). Earlier profiles still win; local config is
+highest. Named profile files cannot set the key. QUARTO_PROFILE no longer selects
+projr profiles, though it (or `profile.quarto`) selects `_environment-<profile>`
+files before the projr profiles, as in projr. The key's `quarto` entry is frozen into the run context when
+QUARTO_PROFILE is unset; applying it to renderers is a known gap (engines slice).
 The private per-run PROJ_RUN_CONTEXT snapshot carries only root, effective profiles,
 validated final directory mappings, active version and mode. Child path/version
 queries consume it after cwd/YAML/VERSION changes; explicit other-project selection
@@ -440,10 +445,10 @@ files, pre/post clears at the configured lifecycle stage, preview never promotes
 and supported failure restores final bytes. No special preservation policy applies.
 Ordinary ignore rules apply; explicit ignore: [] includes data in Git/R builds.
 
-Normalize legacy _projr.yml and active _projr-*.yml aliases before profile/local
-merging; reject same-layer conflicts and any redirection in each original layer.
-Normalize legacy remote content labels too. Canonical _proj.yml rejects data;
-generic data-* labels are unsupported (use raw-* inputs or output-* outputs).
+Normalize projr's data alias in every layer before profile/local merging; reject
+same-layer conflicts and any redirection in each original layer. Normalize remote
+content labels too. Generic data-* labels are unsupported (use raw-* inputs or
+output-* outputs).
 Existing R helpers/packages remain untouched. Python/Julia outputs use ordinary
 mappings; inst is a project-relative fragment, not a special role.
 
@@ -518,7 +523,7 @@ remains distinct from CSV implementation.
 ## Cooperative build ownership
 
 Each build and preview takes an exclusive project-local claim at
-.proj/build.lock before capturing mutable build inputs. The claim contains only
+.projr/build.lock before capturing mutable build inputs. The claim contains only
 a fresh opaque attempt ID: no hostname, username, credentials or process arguments.
 A competing build fails before hooks, version changes or managed output writes.
 Read-only path/configuration queries do not acquire a claim.
@@ -530,10 +535,12 @@ retry. This is cooperative build exclusion, not a filesystem sandbox or a promis
 of crash recovery. Arbitrary scripts and other tools can still change files.
 
 Managed caches, output/document destinations and ordinary publication targets
-cannot replace .proj. Optional Git integration excludes only reserved live
-.proj/build.lock paths at every repository depth from clean-state checks and staging, preserving the
+cannot replace .projr. Optional Git integration excludes only reserved live
+.projr/build.lock paths at every repository depth from clean-state checks and staging, preserving the
 existing whole-repository staging scope. A tracked claim is rejected. This does
-not exclude .proj/log. The approved final Git receipt sequence is described below.
+not exclude .projr/attempts. (projcli's state moved from `.proj/` to projr's
+`.projr/` on 26 November 2026; the tracked records are under `.projr/attempts/`
+because projr Git-ignores `.projr/logs/`.) The approved final Git receipt sequence is described below.
 
 Ownership alone does not implement durable JSON logs or final Git receipts;
 the following development-source sections describe those additional slices. End-hook mutation enforcement remains
@@ -542,7 +549,7 @@ deferred; existing hook ordering and failure recovery are unchanged.
 ## Development source: publication-attempt evidence
 
 Production builds with enabled ordinary/CAS publication or optional Git retain
-one JSON snapshot per attempt under .proj/log. The snapshot records the opaque
+one JSON snapshot per attempt under .projr/attempts. The snapshot records the opaque
 attempt ID, UTC times, selected profiles, logical version transition, local-release
 completion and provider operation outcomes. It is a companion to the existing
 four-column CSV; it does not replace CSV or choose a new archive/CAS identity.
@@ -577,7 +584,7 @@ scripts or provide a filesystem sandbox. The installed preview.3 is unchanged.
 
 ## Development source: plain production records and inventory witnesses
 
-Successful production builds now retain a completed .proj/log record even with
+Successful production builds now retain a completed .projr/attempts record even with
 Git and all publication disabled. It is installed only after end hooks and the
 next-dev transition succeed. Pre-distribution failures and previews still do not
 gain durable records; their retention policy remains undecided.
@@ -703,7 +710,7 @@ This does not select pre-distribution failed-log retention or claim M2 closure.
 ## Development source: local diagnostics before distribution
 
 Production failures after writer ownership is acquired retain a small JSON
-diagnostic in .proj/log/local-failures/. This implements the approved local-only
+diagnostic in .projr/logs/local-failures/. This implements the approved local-only
 retention choice. It records the opaque attempt ID, UTC times, coarse failed
 stage, failure status, possible-distribution flag (false) and recognised numeric
 versions before/after ordinary recovery. It omits raw exception text, command
@@ -1035,7 +1042,9 @@ See [configuration](configuration.qmd#version-and-description-synchronization-so
 
 ## Explicit init metadata candidate
 
-General init creates VERSION, declared directories and plain README by default.
+General init creates VERSION, projr's starter `_projr.yml` (when no base or active
+profile configuration exists), its declared directories, the `.gitignore` starter
+and plain README by default.
 It asks purpose/contact metadata in a terminal, supports complete explicit
 noninteractive values, and cancels on EOF. DESCRIPTION, README.Rmd, renv and CFF
 creation are separate explicit choices (DESCRIPTION/renv/CFF default false).
@@ -1117,7 +1126,13 @@ receives projr's editable starter defaults that it lacks, then the block, then i
 existing lines. `.gitignore` defaults include `_projr-local.yml`; `.Rbuildignore`
 defaults apply only where that file is managed. Seeding happens only while no
 block exists. Planned-render-output rules remain projcli's approach; projr's
-root-extension rules are not ported. Line endings and a byte-order mark are not
+root-extension rules are not ported. Since projr 0.9 alignment, the block's other
+rules also include projr's project-state rules (`/.projr/manifests/.versions.lock`,
+`/.projr/logs/**`, `/.projr/source/**`), every existing local-profile configuration
+file (for example `_projr-local.yml` or `.projr/config/local.yml`), `.quarto/**` and
+`index_files/**` when those folders exist, and, for packages, projr's R-build rules
+for `.projr`, `_projr`, `_projr*.yml`, Quarto/editor folders, `*.code-workspace`,
+`_environment*` and root `.qmd`/`.Rmd` sources (projr `R/ignore-auto.R:59-160`). Line endings and a byte-order mark are not
 preserved byte-for-byte (files are rewritten with LF), unlike projr.
 
 
@@ -1139,8 +1154,8 @@ manifest field.
 
 Known gaps: `@uuid` destinations are recorded but configured restore cannot yet use
 the record (item 4 of MiguelRodo/issues#910); `build.source` fetching (remote `get`
-settings are validated only), removal of `directories.<label>.source`, pipelines,
-the `profile` configuration key and short `.projr/config/` names are later slices;
+settings are validated only), removal of `directories.<label>.source` and pipelines
+are later slices (the `profile` key and short `.projr/config/` names are implemented);
 directory paths and CAS/Xet store paths are not template-expanded; the build UUID
 is not exported to scripts; a local remote `ignore` field and one-off archives
 (`archive_local`/`archive_github`) are not supported; GitHub upload confirmation

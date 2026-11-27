@@ -38,7 +38,7 @@ fn lifecycle_orders_hooks_clear_stages_promotion_and_version_without_publishing_
                 let config = format!(
                     "directories:\n  cache:\n    path: cache\n  output:\n    path: released\nsettings:\n  output-clear-stage: {stage}\nbuild:\n  scripts: [analysis.py]\n  hooks:\n    pre: [start.py]\n    post: [end.py]\n  git: false\n  restrictions:\n    not_behind: false\ndev:\n  hooks:\n    pre: [start.py]\n    post: [end.py]\n"
                 );
-                fs::write(root.join("_proj.yml"), &config).unwrap();
+                fs::write(root.join("_projr.yml"), &config).unwrap();
                 fs::write(root.join("start.py"),"from pathlib import Path\nassert Path('released/old.txt').read_text()=='previous release'\nassert not Path('.gitignore').exists()\nPath('cache/events').write_text('start\\n')\n").unwrap();
                 let dev = mode == "build-dev";
                 let pre = stage == "pre" && !dev;
@@ -116,7 +116,7 @@ with Path('cache/events').open('a') as stream: stream.write('end\n')
                         (1, 2, 4, 1)
                     );
                 }
-                assert_eq!(fs::read_to_string(root.join("_proj.yml")).unwrap(), config);
+                assert_eq!(fs::read_to_string(root.join("_projr.yml")).unwrap(), config);
             }
         }
     }
@@ -145,7 +145,7 @@ fn clear_policy_defaults_none_and_explicit_cli_overrides_yaml_then_legacy_enviro
         let root = temp.path();
         fs::create_dir(root.join("released")).unwrap();
         fs::write(root.join("released/old"), "prior").unwrap();
-        fs::write(root.join("_proj.yml"),format!("directories:\n  cache: {{path: cache}}\n  output: {{path: released}}\n{settings}build:\n  scripts: [analysis.py]\n  git: false\n")).unwrap();
+        fs::write(root.join("_projr.yml"),format!("directories:\n  cache: {{path: cache}}\n  output: {{path: released}}\n{settings}build:\n  scripts: [analysis.py]\n  git: false\n")).unwrap();
         fs::write(root.join("analysis.py"), "pass\n").unwrap();
         let output = invoke(root, "build", explicit, environment);
         assert!(
@@ -160,15 +160,15 @@ fn clear_policy_defaults_none_and_explicit_cli_overrides_yaml_then_legacy_enviro
 #[test]
 fn invalid_settings_in_active_layers_fail_before_start_hooks_or_state_writes() {
     for value in ["null", "true", "invalid", "never"] {
-        for layer in ["_proj.yml", "_projr-local.yml"] {
+        for layer in ["_projr.yml", "_projr-local.yml"] {
             let temp = tempfile::tempdir().unwrap();
             let root = temp.path();
             let base = "settings:\n  output-clear-stage: none\nbuild:\n  scripts: []\ndev:\n  hooks:\n    pre: [start.py]\n";
-            fs::write(root.join("_proj.yml"), base).unwrap();
+            fs::write(root.join("_projr.yml"), base).unwrap();
             let content = format!("settings:\n  output-clear-stage: {value}\n");
             fs::write(
                 root.join(layer),
-                if layer == "_proj.yml" {
+                if layer == "_projr.yml" {
                     format!("{content}build:\n  scripts: []\ndev:\n  hooks:\n    pre: [start.py]\n")
                 } else {
                     content
@@ -208,7 +208,7 @@ fn successful_render_preserves_native_artifacts_and_promotes_only_fresh_bytes() 
             "Report\n",
         )
         .unwrap();
-        fs::write(root.join("_proj.yml"),format!("directories:\n  cache: {{path: cache}}\n  Docs: {{path: published}}\nbuild:\n  scripts: [analysis/report.{extension}]\n  git: false\n")).unwrap();
+        fs::write(root.join("_projr.yml"),format!("directories:\n  cache: {{path: cache}}\n  Docs: {{path: published}}\nbuild:\n  scripts: [analysis/report.{extension}]\n  git: false\n")).unwrap();
         let fake = r#"#!/usr/bin/env python3
 import os,sys,json
 from pathlib import Path
@@ -283,7 +283,7 @@ fn hook_cannot_change_native_output_plan_and_overwrite_an_uncaptured_sibling() {
     fs::write(root.join("analysis/report.qmd"), document).unwrap();
     fs::write(root.join("analysis/other.html"), b"unrelated sibling bytes").unwrap();
     fs::write(root.join("start.py"),"from pathlib import Path\nPath('analysis/report.qmd').write_text('---\\nformat: html\\noutput-file: other.html\\n---\\nChanged by hook\\n')\n").unwrap();
-    fs::write(root.join("_proj.yml"),"directories:\n  cache: {path: cache}\n  docs: {path: published}\nbuild:\n  scripts: [analysis/report.qmd]\n  git: false\ndev:\n  hooks:\n    pre: [start.py]\n").unwrap();
+    fs::write(root.join("_projr.yml"),"directories:\n  cache: {path: cache}\n  docs: {path: published}\nbuild:\n  scripts: [analysis/report.qmd]\n  git: false\ndev:\n  hooks:\n    pre: [start.py]\n").unwrap();
     let fake = r#"#!/usr/bin/env python3
 import os,sys
 from pathlib import Path

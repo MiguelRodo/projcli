@@ -61,8 +61,8 @@ fn persistent(name: &str) -> bool {
         || name.starts_with("engine/xet/xorbs/")
 }
 fn disposable(name: &str) -> bool {
-    name == ".proj"
-        || name.starts_with(".proj/")
+    name == ".projr"
+        || name.starts_with(".projr/")
         || name == "engine/xet/shard-cache"
         || name.starts_with("engine/xet/shard-cache/")
         || name == "engine/xet/shard-session"
@@ -176,7 +176,7 @@ pub fn export(project: &Utf8Path, store: &Utf8Path, engine: &Engine) -> Result<E
     validate(project, &copied, &manifest, engine)?;
     // Validation can create client caches; they are not portable authoritative state.
     for relative in [
-        ".proj",
+        ".projr",
         "engine/xet/shard-cache",
         "engine/xet/shard-session",
     ] {

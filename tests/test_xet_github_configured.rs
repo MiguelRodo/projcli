@@ -78,7 +78,7 @@ fn setup() -> (tempfile::TempDir, PathBuf, Value) {
 }
 fn save(root: &Path, value: &Value) {
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         serde_json::to_vec_pretty(value).unwrap(),
     )
     .unwrap();
@@ -137,7 +137,7 @@ fn namespace(root: &Path) -> PathBuf {
     let mut hash = blake3::Hasher::new_derive_key("projcli.remote-name.v1");
     hash.update(b"DATA");
     let key = hash.finalize().to_hex().to_string();
-    root.join(".proj/remotes")
+    root.join(".projr/remotes")
         .join(&key[..2])
         .join(&key[2..])
         .join("xet-github/v1")
@@ -273,7 +273,7 @@ fn actual_configured_github_xet_refs_fresh_restore_and_failure_preservation() {
     );
     let fresh = temp.path().join("fresh project");
     fs::create_dir_all(fresh.join("home")).unwrap();
-    copy_tree(&root.join(".proj/remotes"), &fresh.join(".proj/remotes"));
+    copy_tree(&root.join(".projr/remotes"), &fresh.join(".projr/remotes"));
     config["build"]["dest"] = json!({});
     save(&fresh, &config);
     fs::write(fresh.join("VERSION"), b"v9.8.7\n").unwrap();

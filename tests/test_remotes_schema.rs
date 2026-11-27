@@ -108,14 +108,14 @@ fn write_config(root: &Path, mut config: Value) {
     config["build"]["git"] = json!(false);
     config["build"]["hooks"] = json!({"pre":["pre.py"]});
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         serde_json::to_vec_pretty(&config).unwrap(),
     )
     .unwrap();
 }
 
 fn attempt_record(root: &Path) -> Value {
-    let mut records: Vec<_> = fs::read_dir(root.join(".proj/log"))
+    let mut records: Vec<_> = fs::read_dir(root.join(".projr/attempts"))
         .unwrap()
         .map(|entry| entry.unwrap().path())
         .filter(|path| {
@@ -188,7 +188,7 @@ fn archive_version_check_refuses_before_hooks_and_honours_rule_and_opt_out() {
     assert!(!root.join("hook-ran").exists());
 
     let mut config: Value =
-        serde_json::from_slice(&fs::read(root.join("_proj.yml")).unwrap()).unwrap();
+        serde_json::from_slice(&fs::read(root.join("_projr.yml")).unwrap()).unwrap();
     config["build"]["restrictions"] = json!({"rule":"target"});
     write_config(&root, config.clone());
     let report = ok(build(&root, &["--major"], None));
@@ -226,7 +226,7 @@ fn populated_archives_without_a_version_and_named_titles_are_checked() {
     fs::create_dir_all(parent.join("other")).unwrap();
     fs::write(parent.join("other/VERSION"), "v3.0.0\n").unwrap();
     let mut config: Value =
-        serde_json::from_slice(&fs::read(root.join("_proj.yml")).unwrap()).unwrap();
+        serde_json::from_slice(&fs::read(root.join("_projr.yml")).unwrap()).unwrap();
     config["build"]["restrictions"] = json!({"not_behind_remote":["other"]});
     write_config(&root, config.clone());
     assert!(
@@ -642,7 +642,7 @@ fn release_is_created_before_hooks_and_kept_when_the_build_fails() {
     );
     // Creating a Release is not distribution: the local failure diagnostic records
     // it by repository and tag only.
-    let diagnostics: Vec<Value> = fs::read_dir(root.join(".proj/log/local-failures"))
+    let diagnostics: Vec<Value> = fs::read_dir(root.join(".projr/logs/local-failures"))
         .unwrap()
         .map(|entry| entry.unwrap().path())
         .filter(|path| path.extension().is_some_and(|ext| ext == "json"))
@@ -701,10 +701,10 @@ fn base_rule_counts_a_committed_snapshot_whose_receipt_is_not_in_the_clone() {
     }));
     fs::write(root.join("pre.py"), "pass\n").unwrap();
     let mut config: Value =
-        serde_json::from_slice(&fs::read(root.join("_proj.yml")).unwrap()).unwrap();
+        serde_json::from_slice(&fs::read(root.join("_projr.yml")).unwrap()).unwrap();
     config["build"]["git"] = json!({"commit": true});
     fs::write(
-        root.join("_proj.yml"),
+        root.join("_projr.yml"),
         serde_json::to_vec_pretty(&config).unwrap(),
     )
     .unwrap();
@@ -736,17 +736,19 @@ fn base_rule_counts_a_committed_snapshot_whose_receipt_is_not_in_the_clone() {
     git(parent, &["clone", "-q", "project", "clone"]);
     fs::create_dir_all(clone.join("home")).unwrap();
     assert!(
-        !fs::read_dir(clone.join(".proj/log")).unwrap().any(|entry| {
-            entry
-                .unwrap()
-                .file_name()
-                .to_string_lossy()
-                .ends_with(".git.json")
-        })
+        !fs::read_dir(clone.join(".projr/attempts"))
+            .unwrap()
+            .any(|entry| {
+                entry
+                    .unwrap()
+                    .file_name()
+                    .to_string_lossy()
+                    .ends_with(".git.json")
+            })
     );
     config["build"]["git"] = json!(false);
     fs::write(
-        clone.join("_proj.yml"),
+        clone.join("_projr.yml"),
         serde_json::to_vec_pretty(&config).unwrap(),
     )
     .unwrap();

@@ -32,9 +32,12 @@ def case(binary, workspace, artifacts, initialized, mode, failing):
         result,_=invoke(binary,root,env,'init','directories')
         assert result.returncode==0,result.stderr
         assert not (root/'.git').exists() and not (root/'VERSION').exists()
-        assert all((root/directory).is_dir() for directory in ['_raw_data','_tmp','_output']), 'init must create its declared directories'
+        assert all((root/directory).is_dir() for directory in ['_raw_data','_tmp','_output','docs']), 'init must create its declared directories'
         assert not witness.exists(), 'init unexpectedly invoked Git'
-        config=(root/'_proj.yml').read_text().replace('directories:\n','directories:\n  docs: {path: _docs}\n',1)
+        # projr's starter declares docs: docs; this fixture redirects it to _docs.
+        config=(root/'_projr.yml').read_text()
+        assert '  docs:\n    path: docs\n' in config, config
+        config=config.replace('  docs:\n    path: docs\n','  docs: {path: _docs}\n',1)
         assert 'scripts:' not in config
     else:
         config='directories:\n  raw-data: {path: _raw_data}\n  cache: {path: _tmp}\n  output: {path: _output}\n  docs: {path: _docs}\n'
@@ -42,7 +45,7 @@ def case(binary, workspace, artifacts, initialized, mode, failing):
              '      inspect: file\n      content: [output, docs]\nsettings:\n  output-clear-stage: none\n'
              'build:\n  git: false\n  dest: [archive]\n'
              '  scripts: [01-analysis.py, 02-summary.R, 03-report.Rmd]\n  restrictions:\n    not_behind: false\n')
-    (root/'_proj.yml').write_text(config)
+    (root/'_projr.yml').write_text(config)
     for name_dir in ['_raw_data','_tmp','_output','_docs','archive']:(root/name_dir).mkdir(exist_ok=True)
     (root/'_raw_data/data.csv').write_text('value\n42\n')
     (root/'_raw_data/helper.R').write_text('helper_value <- 42\n')

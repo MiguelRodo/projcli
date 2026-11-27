@@ -95,7 +95,7 @@ async function browser(systemTheme) {
       assert.deepEqual(result.broken, [], `${page}: unrendered list markup`);
       if (page === 'cas-github' || page === 'xet-storage') {
         const kind = page === 'cas-github' ? 'cas' : 'xet';
-        assert(await evaluate(`document.querySelector('main').innerText.includes('.proj/remotes/<remote-name-hash>/${kind}-github/v1/')`), 'Complete literal metadata path must remain visible');
+        assert(await evaluate(`document.querySelector('main').innerText.includes('.projr/remotes/<remote-name-hash>/${kind}-github/v1/')`), 'Complete literal metadata path must remain visible');
       }
       assert.deepEqual(result.low, [], `${page} ${systemTheme}: low contrast ${JSON.stringify(result.low)}`);
       assert(result.toggle?.role === 'button' && result.toggle.tab === 0 && result.toggle.label, `${page}: accessible toggle`);
