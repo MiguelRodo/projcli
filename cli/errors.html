@@ -383,7 +383,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../configuration.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Configuration <code>_proj.yml</code></span></a>
+ <span class="menu-text">Configuration <code>_projr.yml</code></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -565,7 +565,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="command-exit-status" class="level1">
 <h1>Command exit status</h1>
 <p>Successful CLI commands return exit status zero. Reported operation failures return a nonzero status and a diagnostic on stderr, including configuration/path queries, version reads/writes, ignore updates and initialization. Argument parsing errors also return nonzero.</p>
-<p>For example, a malformed <code>_proj.yml</code> makes <code>proj yml read --project demo</code> fail, so a shell or frontend can stop instead of treating the diagnostic as success. Failed Git staging, commits and GitHub creation propagate as initialization errors; a failed remote inspection does not proceed to GitHub creation.</p>
+<p>For example, a malformed <code>_projr.yml</code> makes <code>proj yml read --project demo</code> fail, so a shell or frontend can stop instead of treating the diagnostic as success. Failed Git staging, commits and GitHub creation propagate as initialization errors; a failed remote inspection does not proceed to GitHub creation.</p>
 <p>This defines success versus failure, not stable error codes, a JSON result schema or a capability protocol. Diagnostics remain human-readable text. Commands may perform work before failing; a nonzero status is not a rollback guarantee.</p>
 <section id="explicit-noninteractive-execution" class="level2">
 <h2 class="anchored" data-anchor-id="explicit-noninteractive-execution">Explicit noninteractive execution</h2>

@@ -383,7 +383,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./configuration.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Configuration <code>_proj.yml</code></span></a>
+ <span class="menu-text">Configuration <code>_projr.yml</code></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -612,7 +612,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>In an Ubuntu terminal, choose a new folder and open it:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> projcli-example</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> projcli-example</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Create a file named <code>_proj.yml</code> with this content:</p>
+<p>Create a file named <code>_projr.yml</code> with this content:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">directories</span><span class="kw">:</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">raw-data</span><span class="kw">:</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">path</span><span class="kw">:</span><span class="at"> _raw_data</span></span>
@@ -698,7 +698,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="starting-another-project">Starting another project</h2>
 <p>In another new project folder, local-only directory setup is available:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> <span class="at">--project</span> . <span class="at">--non-interactive</span> init directories</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>When no base or active profile configuration exists, this writes <code>_proj.yml</code> with the explicit <code>raw-data: _raw_data</code>, <code>cache: _tmp</code> and <code>output: _output</code> paths, creates those folders, and updates ignore files. It does not run Git or GitHub setup. Existing configuration files are preserved; only their declared directories are created.</p>
+<p>When no base or active profile configuration exists, this writes <code>_projr.yml</code> (preview.6 and earlier write <code>_proj.yml</code>) with the explicit <code>raw-data: _raw_data</code>, <code>cache: _tmp</code>, <code>output: _output</code> and (current source) <code>docs: docs</code> paths, creates those folders, and updates ignore files. It does not run Git or GitHub setup. Existing configuration files are preserved; only their declared directories are created.</p>
 <p>The generated file omits <code>build.scripts</code>, allowing the normal shallow script discovery. To choose an exact analysis, add a scripts list as above. An explicit <code>scripts: []</code> selects no analysis scripts; hooks can still run. Initialization does not turn an absent scripts key into an empty list.</p>
 </section>
 <section id="where-to-go-next" class="level2">

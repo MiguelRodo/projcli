@@ -383,7 +383,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../configuration.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Configuration <code>_proj.yml</code></span></a>
+ <span class="menu-text">Configuration <code>_projr.yml</code></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -587,6 +587,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>From the project folder, run:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> <span class="at">--project</span> . init</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>In a terminal, proj asks for a title, purpose and optional contact details. The purpose appears near the top of README.md. Blank optional answers are skipped; end-of-input cancels before setup starts. Existing README and metadata files are preserved. VERSION is authoritative: its synchronization setting can update only an existing DESCRIPTION Version when the two version values differ. Equivalent version spellings retain their original DESCRIPTION bytes.</p>
+<p>When no base configuration (and no active profile file) exists, init also writes projr’s starter <code>_projr.yml</code> (raw-data, cache, output and docs folders), creates those folders and seeds <code>.gitignore</code>; an existing configuration is never overwritten. Unlike a first build, it does not add the starter’s Git settings.</p>
 <p>DESCRIPTION is optional project metadata, not an automatic R package. Request it explicitly; this does not create R/ or NAMESPACE:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> <span class="at">--project</span> . <span class="at">--non-interactive</span> init <span class="at">--description-file</span> <span class="dt">\</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--title</span> <span class="st">"Example analysis"</span> <span class="at">--purpose</span> <span class="st">"Compare the two models."</span> <span class="dt">\</span></span>

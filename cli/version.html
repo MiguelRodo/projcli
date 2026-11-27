@@ -383,7 +383,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../configuration.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Configuration <code>_proj.yml</code></span></a>
+ <span class="menu-text">Configuration <code>_projr.yml</code></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -574,7 +574,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Get the project version based on the <code>VERSION</code> file.</p>
 <section id="standard-behavior" class="level2">
 <h2 class="anchored" data-anchor-id="standard-behavior">Standard Behavior</h2>
-<p>Select a project with <code>--project PATH</code>, or let the command find the nearest recognized project folder. It reads VERSION and prints a version such as <code>v1.0.0</code>. VERSION can contain plain version text or the supported JSON object.</p>
+<p>Select a project with <code>--project PATH</code>, or let the command find the nearest folder with a projr configuration (else the current directory). It reads VERSION and prints a version such as <code>v1.0.0</code>. VERSION can contain plain version text or the supported JSON object.</p>
 <p>If the <code>VERSION</code> file is missing, the tool attempts to fall back and parse the version from an R package <code>DESCRIPTION</code> file if one is present in the project root. If neither a <code>VERSION</code> file nor a <code>DESCRIPTION</code> file exists, it reports <code>v0.0.1</code> without creating a file. Reading a version does not synchronize VERSION and DESCRIPTION. That proposed synchronization remains in an unmerged change.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">proj</span> version get</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
