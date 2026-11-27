@@ -140,7 +140,33 @@ pub fn build_project(
     cli_profile: Option<&str>,
     description: Option<&str>,
 ) -> anyhow::Result<()> {
-    build_project_with_policies(project_root, mode, cli_profile, description, None, None)
+    build_project_with_policies(
+        project_root,
+        mode,
+        cli_profile,
+        description,
+        None,
+        None,
+        &BuildSelection::default(),
+    )
+}
+
+/// Command-line script and pipeline choices for one build.
+///
+/// `pipeline` (`--pipeline`) replaces `build.pipeline`/`dev.pipeline`, and
+/// `scripts` (`--scripts`) replaces the inline scripts while still combining with
+/// a selected pipeline, as projr's `pipeline` and `scripts` arguments do.
+///
+/// ```rust
+/// let selection = proj::BuildSelection::default();
+/// assert!(selection.pipeline.is_none() && selection.scripts.is_none());
+/// ```
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct BuildSelection {
+    /// Pipeline names or globs, or `Selection::None` for no pipeline.
+    pub pipeline: Option<crate::pipeline::Selection>,
+    /// Script entries in place of the configured inline scripts.
+    pub scripts: Option<Vec<String>>,
 }
 
 /// Runs a build with an explicit execution-directory policy.
@@ -182,6 +208,7 @@ pub fn build_project_with_clear_stage(
         description,
         Some(execution),
         clear_stage,
+        &BuildSelection::default(),
     )
 }
 
@@ -193,6 +220,7 @@ pub fn build_project_with_policies(
     description: Option<&str>,
     execution_override: Option<ExecutionDirectory>,
     clear_stage: Option<crate::yml::OutputClearStage>,
+    selection: &BuildSelection,
 ) -> anyhow::Result<()> {
     let caller_directory =
         std::env::current_dir().context("Cannot capture invocation working directory")?;
@@ -239,8 +267,9 @@ pub fn build_project_with_policies(
             project_root,
             &crate::profile::parse_active_profiles(selected_profile),
         )?;
-        let combined = crate::yml::get_combined_yml(Some(selected_profile), project_root)
-            .context("Failed to read project configuration")?;
+        let (combined, layers) =
+            crate::yml::get_combined_layers(Some(selected_profile), project_root)
+                .context("Failed to read project configuration")?;
         let directory_order = crate::run_context::directory_order(&combined);
         let analysis_configuration =
             (!is_dev).then(|| crate::config_evidence::Fingerprint::capture(&combined));
@@ -300,24 +329,37 @@ pub fn build_project_with_policies(
         let quarto_exists = project_root.join("_quarto.yml").exists();
         let bookdown_exists = project_root.join("_bookdown.yml").exists();
 
+        // Pipelines resolve before any hook; an unmatched entry fails here. Dev
+        // builds run only dev.hooks unless a pipeline is selected explicitly
+        // (decision D4); production hooks may publish or notify.
+        let pipeline_plan = crate::pipeline::plan(
+            &project_config,
+            &layers,
+            is_dev,
+            selection.pipeline.as_ref(),
+            selection.scripts.clone(),
+        )?;
+        if !pipeline_plan.names.is_empty() {
+            eprintln!("Pipeline {}", pipeline_plan.names.join(", "));
+        }
+        // Hook files from either build mode or any pipeline never count as
+        // discovered analysis (projr).
+        let mut all_hooks: Vec<String> = [
+            Some(&project_config.build.hooks),
+            project_config.dev.hooks.as_ref(),
+        ]
+        .into_iter()
+        .flatten()
+        .flat_map(|hooks| [&hooks.pre, &hooks.post, &hooks.both])
+        .flatten()
+        .flatten()
+        .cloned()
+        .collect();
+        all_hooks.extend(crate::pipeline::hook_entries(&project_config));
         let build = project_config.build;
-        let dev = project_config.dev;
         let profile = Some(profile_text.clone());
-        // Hook files from either build mode never count as discovered analysis (projr).
-        let all_hooks: Vec<String> = [Some(&build.hooks), dev.hooks.as_ref()]
-            .into_iter()
-            .flatten()
-            .flat_map(|hooks| [&hooks.pre, &hooks.post, &hooks.both])
-            .flatten()
-            .flatten()
-            .cloned()
-            .collect();
-        // Dev builds run only dev.hooks; production hooks may publish or notify.
-        let (build_scripts, hooks_config) = if is_dev {
-            (dev.scripts.or(build.scripts), dev.hooks.unwrap_or_default())
-        } else {
-            (build.scripts, build.hooks)
-        };
+        let build_scripts = pipeline_plan.scripts.clone();
+        let hooks_config = pipeline_plan.hooks.clone();
 
         // Extract hooks paths
         let mut raw_hooks = Vec::new();
@@ -1413,6 +1455,7 @@ pub fn build_project_with_policies(
                 log.with_destinations(templates.uuid().filter(|_| publishing).map(|uuid| {
                     crate::attempt_log::Destinations::resolved(uuid, &ordinary, &github)
                 }))
+                .with_pipelines(&pipeline_plan)
             })
         };
         let observe_outputs = || -> anyhow::Result<crate::attempt_log::FinalOutputs> {
