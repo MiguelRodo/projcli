@@ -85,7 +85,7 @@ of one layer in one configuration directory are an error. Unsupported control
 fields fail before build writes; arbitrary `parameters` and `metadata` maps are
 allowed. Configuration errors include their causes on stderr and return failure.
 
-This validation is separate from project discovery. A root marker or cwd fallback
+This validation is separate from project discovery. Finding a root (a configured folder or the cwd fallback)
 does not make an unconfigured project buildable. Used directories must be declared explicitly. Failed builds attempt to restore
 recorded managed files; arbitrary script changes and completed uploads are outside
 that recovery. See the [lifecycle reference](../lifecycle.qmd) for ordering and limits.

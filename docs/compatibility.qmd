@@ -208,7 +208,11 @@ Completed-chunk review of PR129's empty-selection change:
   passed on all three remote platforms at the code head recorded above. No R
   runtime parity was inferred.
 
-## Nearest recognized roots (current change)
+## Nearest recognized roots (historical; superseded 27 November 2026)
+
+Superseded by the configuration-only root criterion in the projr 0.9
+configuration layout section below; kept as the record of the earlier decision.
+
 
 - **Relationship: same static projr marker intent; deliberate extensions.**
   [projr path.R at 3ac2959](https://github.com/SATVILab/projr/blob/3ac29595d0e39552495d863661b99ea015d59d3d/R/path.R#L277)
@@ -4408,7 +4412,8 @@ aliases or migration.
   (decision 6). **Same (27 November decisions):** writing the starter also seeds
   `.gitignore` (and a package `.Rbuildignore`) with projr's starter lines and an
   empty managed block, previews included (`R/init-helper.R:165-206`); `proj init
-  directories` writes the same starter, including `docs`.
+  directories` writes the same starter directories, including `docs` (without
+  the build's Git adjustments).
 - **Same: project state in `.projr/`.** The build claim is `.projr/build.lock`,
   CAS/Xet project references are under `.projr/remotes/`, and store claims are
   `<store>/.projr/build.lock`. **Different (reconciled names):** projr Git-ignores
@@ -4478,3 +4483,12 @@ aliases or migration.
   form, configuration beating nearer generic markers, the unconfigured working-
   directory fallback, a first preview in a subfolder writing the starter and
   `.gitignore` there) and `tests/test_explicit_directories.rs` (init preset).
+- **Review of the decisions delta (independent, 27 November):** no blocking
+  defects. Fixed: ignore files are seeded before the starter is saved, so malformed
+  markers fail without leaving a starter that would skip later seeding; stale
+  "recognised marker" wording in the CLI pages, README preset wording and the
+  superseded nearest-marker section. Added tests for seeding beside user lines,
+  untouched existing blocks, package `.Rbuildignore`, malformed markers and init
+  from a subfolder of a configured project. **Gap (documented, user decision):**
+  general `proj init` writes no `_projr.yml`, unlike projr's `projr_init`, so
+  discovery from a subfolder selects that subfolder until a configuration exists.

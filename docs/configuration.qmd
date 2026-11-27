@@ -113,7 +113,14 @@ once with projr's starter: explicit `raw-data: _raw_data`, `cache: _tmp`,
 `output: _output` and `docs: docs` paths. It preserves existing base/profile files,
 creates only declared resource directories, and does not invoke Git/GitHub or add
 an R code directory. The starter omits `build.scripts`, preserving shallow
-discovery; it never serializes an accidental empty analysis list.
+discovery; it never serializes an accidental empty analysis list. Because it
+declares `docs: docs`, an existing hand-written `docs/` folder becomes the managed
+documents destination that later production builds replace; move it first or
+change the mapping.
+
+General `proj init` writes VERSION/README metadata but no `_projr.yml`; until a
+build or `proj init directories` creates one, discovery from a subfolder selects
+that subfolder (projr's `projr_init` writes the configuration).
 
 Production state and project-render staging require a declared `cache` directory.
 Framework version/staging children are derived inside that declared cache; this

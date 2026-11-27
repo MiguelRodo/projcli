@@ -79,7 +79,8 @@ build:
   scripts: [analysis.py]
 ```
 
-These explicit paths match the local directory initializer's preset.
+These explicit paths match the local directory initializer's preset (current
+source also adds `docs: docs`, projr's full starter).
 This example uses `cache` for temporary results; `raw-data` names an input
 folder and `output` names a result folder, both unused by this tiny preview.
 Runtime does not fill in missing directory mappings. Document rendering needs
@@ -117,7 +118,8 @@ Read the [build reference](docs/cli/build.qmd) before using production
 `proj build`, which has different version, cleanup and export behavior.
 
 For another new project, `proj --project . --non-interactive init directories`
-can write the three explicit directory mappings and create their folders
+can write the explicit directory mappings (three in preview.6, plus `docs` in
+current source) and create their folders
 without Git/GitHub setup. It preserves existing configuration and does not add
 a `scripts` key: an absent key allows discovery, while `scripts: []` explicitly
 selects no analysis scripts.

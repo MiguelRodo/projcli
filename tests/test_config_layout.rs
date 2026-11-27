@@ -371,3 +371,99 @@ fn hash_engine_fills_a_null_hashing_block() {
         serde_json::json!({"hashing": {"approach": "legacy"}})
     );
 }
+
+fn first_preview(root: &Path) -> std::process::Output {
+    put(root, "_projr-local.yml", "build:\n  scripts: []\n");
+    proj(root, &["build-dev"], None)
+}
+
+#[test]
+fn starter_seeding_keeps_user_lines_and_existing_blocks() {
+    // Existing .gitignore without a block: missing defaults, then the empty block,
+    // then the user's lines (so a later exception still wins).
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    put(root, ".gitignore", ".DS_Store\n!keep.txt\n");
+    let output = first_preview(root);
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let gitignore = fs::read_to_string(root.join(".gitignore")).unwrap();
+    assert_eq!(
+        gitignore
+            .lines()
+            .filter(|line| *line == ".DS_Store")
+            .count(),
+        1
+    );
+    assert!(
+        gitignore.ends_with("# End of projr section\n.DS_Store\n!keep.txt\n"),
+        "{gitignore}"
+    );
+    assert!(!root.join(".Rbuildignore").exists());
+
+    // An existing managed block is left byte-identical; a package gets .Rbuildignore.
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    let existing = "# Start of projr section: kept\n/custom/**\n# End of projr section\n";
+    put(root, ".gitignore", existing);
+    put(root, "DESCRIPTION", "Package: demo\nVersion: 0.0.1\n");
+    let output = first_preview(root);
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        fs::read_to_string(root.join(".gitignore")).unwrap(),
+        existing
+    );
+    let rbuild = fs::read_to_string(root.join(".Rbuildignore")).unwrap();
+    assert!(
+        rbuild.lines().any(|line| line == r"^_projr-local\.yml$"),
+        "{rbuild}"
+    );
+}
+
+#[test]
+fn malformed_ignore_markers_fail_before_the_starter_is_written() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    let broken = "# End of projr section\n# Start of projr section\n";
+    put(root, ".gitignore", broken);
+    let output = first_preview(root);
+    assert!(!output.status.success());
+    assert!(!root.join("_projr.yml").exists());
+    assert_eq!(fs::read_to_string(root.join(".gitignore")).unwrap(), broken);
+}
+
+#[test]
+fn init_directories_from_a_subfolder_targets_the_configured_root() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    put(
+        root,
+        ".projr/config/default.yml",
+        "directories:\n  output:\n    path: _results\n",
+    );
+    let nested = root.join("analysis");
+    fs::create_dir(&nested).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_proj"))
+        .args(["--non-interactive", "init", "directories"])
+        .current_dir(&nested)
+        .env_remove(proj::PROJECT_ROOT_ENV)
+        .env_remove(proj::RUN_CONTEXT_ENV)
+        .env_remove("PROJR_PROFILE")
+        .env_remove("QUARTO_PROFILE")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(root.join("_results").is_dir());
+    assert!(!nested.join("_projr.yml").exists() && !root.join("_projr.yml").exists());
+}

@@ -25,7 +25,7 @@ The CLI captures an absolute root as `PROJ_PROJECT_ROOT` for the invocation and
 its child processes. A nested `proj path get` uses that root even after a script
 changes cwd. An invalid inherited root fails rather than falling back silently.
 Direct Rust `build_project(root, ...)` calls also pass their supplied root to
-children. See the discovery rules below for the recognized root markers.
+children. See the discovery rules below for how a root is found.
 
 This establishes CLI child-query behavior, not direct Quarto/RStudio parity or
 changes to the existing R frontend. Renderer configuration, execution cwd,

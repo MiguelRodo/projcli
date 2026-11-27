@@ -371,14 +371,15 @@ pub(crate) fn write_starter(
     } else {
         ""
     };
+    // projr seeds the ignore starter with the configuration, previews included.
+    // Seed first: malformed ignore markers then fail before a starter exists.
+    crate::ignore::seed_ignore_starter(root)?;
     let mut file = tempfile::NamedTempFile::new_in(root.as_std_path())
         .context("Cannot stage the starter configuration")?;
     std::io::Write::write_all(&mut file, format!("{STARTER}{git}").as_bytes())?;
     file.persist_noclobber(root.join("_projr.yml"))
         .map_err(|error| error.error)
         .context("Failed to create _projr.yml without overwriting existing configuration")?;
-    // projr seeds the ignore starter with the configuration, previews included.
-    crate::ignore::seed_ignore_starter(root)?;
     eprintln!("Created a starter _projr.yml; edit it to declare this project's directories.");
     Ok(true)
 }

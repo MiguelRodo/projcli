@@ -30,11 +30,12 @@ These unignore entries represent permanent, user-specified negations and are pla
 
 Directory initialization and production builds update the managed ignore rules
 from `_projr.yml`. Reading configuration (`proj yml read`) and looking up paths
-leave ignore files unchanged. A preview does not add ignore rules.
+leave ignore files unchanged. A preview does not refresh ignore rules, except
+that a build or preview writing the starter `_projr.yml` also seeds the starter
+lines and an empty managed block, as projr does.
 
 The project is selected by `--project`, an inherited build context, or the nearest
-recognized parent project folder. A VERSION file is one possible marker; it is
-not required for every query. See [project discovery](path.qmd#root-discovery).
+parent folder with a projr configuration, else the current directory. See [project discovery](path.qmd#root-discovery).
 
 ## Git and R package exclusions
 
@@ -74,8 +75,9 @@ after it.
 
 ### Starter defaults
 
-When a `.gitignore` has no managed block yet, directory initialization or a
-production build first writes projr's editable defaults, then the empty block,
+When a `.gitignore` has no managed block yet, directory initialization, a
+production build, or a build or preview that writes the starter configuration
+first writes projr's editable defaults, then the empty block,
 then the file's existing lines, so your later exceptions (such as `!.vdoc.keep`)
 still win. Only defaults missing from the file are added:
 
