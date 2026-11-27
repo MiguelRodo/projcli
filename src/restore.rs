@@ -72,7 +72,6 @@ pub(crate) struct Definition {
     pub(crate) structure: Option<Layout>,
     pub(crate) path_append_label: Option<bool>,
     pub(crate) content: Option<Value>,
-    pub(crate) source: Option<Value>,
     pub(crate) send: Option<Value>,
     pub(crate) get: Option<Value>,
     pub(crate) cue: Option<Value>,
@@ -80,11 +79,67 @@ pub(crate) struct Definition {
     pub(crate) manifest: Option<crate::cas_remote::Placement>,
     pub(crate) manifest_style: Option<crate::cas_remote::Style>,
     pub(crate) manifest_format: Option<crate::catalogue::Format>,
+    /// GitHub destination repository (`owner/name`); defaults to the producing repository.
+    pub(crate) repo: Option<String>,
+    /// GitHub release name (tag and title); defaults to `title`, then the entry name.
+    pub(crate) tag: Option<String>,
+    /// GitHub branch whose head a newly created release targets (`@branch` = checkout).
+    pub(crate) branch: Option<String>,
+}
+/// Reject GitHub-only fields on a local destination definition.
+pub(crate) fn local_only_fields(value: &Value) -> anyhow::Result<()> {
+    for key in ["repo", "tag", "branch"] {
+        anyhow::ensure!(
+            value.get(key).is_none(),
+            "{key} applies only to GitHub destinations"
+        );
+    }
+    Ok(())
 }
 struct Source {
     provider: String,
     title: String,
     definition: Definition,
+}
+/// Validate projr 0.9 `get` fetch settings (SATVILab/projr@5f915ef
+/// `R/misc.R:787-797`, `R/yml-check.R:437-456`). They are accepted for a later
+/// `build.source` slice; nothing fetches with them yet.
+fn fetch_settings(get: &Value) -> anyhow::Result<()> {
+    let get = get.as_object().context("get must be a mapping")?;
+    for (key, value) in get {
+        let text = value
+            .as_str()
+            .with_context(|| format!("get.{key} must be a string"))?;
+        let allowed: &[&str] =
+            match key.as_str() {
+                "version" => {
+                    anyhow::ensure!(
+                        text == "latest"
+                            || (text.split('.').count() <= 3
+                                && text.split('.').all(|part| !part.is_empty()
+                                    && part.bytes().all(|b| b.is_ascii_digit()))),
+                        "get.version must be latest or an x, x.y or x.y.z version"
+                    );
+                    continue;
+                }
+                "cue" => &["if-empty", "never", "if-change", "always"],
+                "inspect" => &["manifest", "file", "none"],
+                "strategy" => &[
+                    "sync-diff",
+                    "sync-purge",
+                    "download-all",
+                    "download-missing",
+                ],
+                "conflict" => &["error", "local", "remote"],
+                _ => anyhow::bail!("get accepts version, cue, inspect, strategy and conflict"),
+            };
+        anyhow::ensure!(
+            allowed.contains(&text),
+            "get.{key} must be one of {}",
+            allowed.join(", ")
+        );
+    }
+    Ok(())
 }
 pub(crate) fn definition(value: &Value) -> anyhow::Result<Definition> {
     for key in ["manifest", "manifest-style", "manifest-format"] {
@@ -93,14 +148,36 @@ pub(crate) fn definition(value: &Value) -> anyhow::Result<Definition> {
             "{key} must be supported or omitted"
         );
     }
+    anyhow::ensure!(
+        value.get("source").is_none(),
+        "A remote's source field is no longer supported (projr 0.9); select sources with build.source"
+    );
     let parsed: Definition =
         serde_json::from_value(value.clone()).context("Invalid ordinary remote definition")?;
     crate::ordinary_manifest::Policy::parse(&parsed)?;
-    if let Some(get) = &parsed.get {
+    if let Some(repo) = &parsed.repo {
+        let parts: Vec<_> = repo.split('/').collect();
         anyhow::ensure!(
-            get.is_object() && get.as_object().unwrap().is_empty(),
-            "get strategy/conflict are not implemented; restore uses explicit --clear"
+            parts.len() == 2
+                && parts.iter().all(|part| !part.is_empty()
+                    && *part != "."
+                    && *part != ".."
+                    && part
+                        .bytes()
+                        .all(|b| b.is_ascii_alphanumeric() || b"_.-".contains(&b))),
+            "repo must be a GitHub owner/repository name"
         );
+    }
+    for (key, text) in [("tag", &parsed.tag), ("branch", &parsed.branch)] {
+        if let Some(text) = text {
+            anyhow::ensure!(
+                !text.trim().is_empty() && !text.chars().any(char::is_control),
+                "{key} must be nonempty printable text"
+            );
+        }
+    }
+    if let Some(get) = &parsed.get {
+        fetch_settings(get)?;
     }
     // Restore does not execute upload policy. Keep those nodes typed but do not
     // silently enable them in builds (publication validates its executable subset).
@@ -129,16 +206,7 @@ fn referenced(
         .get("remotes")
         .and_then(|v| v.get(provider))
         .and_then(|v| v.get(title));
-    let legacy = raw
-        .get("build")
-        .and_then(|v| v.get(provider))
-        .and_then(|v| v.get(title));
-    anyhow::ensure!(
-        !(registered.is_some() && legacy.is_some()),
-        "Restore source is defined in both remotes and build"
-    );
-    let shared = registered.or(legacy);
-    let value = match (shared, inline) {
+    let value = match (registered, inline) {
         (Some(shared), Some(inline)) => crate::yml::deep_merge(shared.clone(), inline.clone()),
         (Some(shared), None) => shared.clone(),
         (None, Some(inline)) => inline.clone(),
@@ -152,6 +220,42 @@ fn referenced(
         "CAS/Xet restore requires an explicit --snapshot and --title"
     );
     definition(&value)
+}
+/// Accept projr's `<type>:<title>` remote names; an unqualified title registered
+/// for both types is ambiguous (SATVILab/projr@5f915ef `R/yml-dest.R:661-703`).
+fn qualified(raw: &Value, request: &RestoreRequest) -> anyhow::Result<RestoreRequest> {
+    let mut provider = request.provider.clone();
+    let mut title = request.title.clone();
+    if let Some((kind, rest)) = request.title.as_deref().and_then(|t| t.split_once(':'))
+        && matches!(kind, "local" | "github")
+        && !rest.is_empty()
+    {
+        anyhow::ensure!(
+            provider.as_deref().is_none_or(|p| p == kind),
+            "--title {kind}:{rest} conflicts with --provider"
+        );
+        provider = Some(kind.into());
+        title = Some(rest.into());
+    }
+    if let (None, Some(title)) = (&provider, &title) {
+        let registered = |kind: &str| raw["remotes"][kind].get(title.as_str()).is_some();
+        anyhow::ensure!(
+            !(registered("local") && registered("github")),
+            "Remote {title} is declared under both remotes.local and remotes.github. Use local:{title} or github:{title}"
+        );
+    }
+    Ok(RestoreRequest {
+        label: request.label.clone(),
+        position: request.position.clone(),
+        provider,
+        title,
+        remote_version: request.remote_version.clone(),
+        repository: request.repository.clone(),
+        profile: request.profile.clone(),
+        clear: request.clear,
+        max_bytes: request.max_bytes,
+        max_expanded_bytes: request.max_expanded_bytes,
+    })
 }
 fn provider_allowed(provider: &str, request: &RestoreRequest) -> bool {
     request
@@ -253,53 +357,6 @@ fn select_source(raw: &Value, label: &str, request: &RestoreRequest) -> anyhow::
             }
         }
     }
-    let mut fallback = None;
-    if request.position.as_deref() != Some("source")
-        && let Some(build) = raw.get("build").and_then(Value::as_object)
-    {
-        for (provider, entries) in build {
-            if !matches!(provider.as_str(), "local" | "github")
-                || !provider_allowed(provider, request)
-            {
-                continue;
-            }
-            for (title, value) in entries
-                .as_object()
-                .context("Build remote provider must contain named definitions")?
-            {
-                let definition = definition(value)?;
-                if !title_allowed(title, request)
-                    || !content_has(definition.content.as_ref(), label, raw)?
-                {
-                    continue;
-                }
-                let preferred = match definition.source.as_ref() {
-                    Some(Value::Bool(false)) => continue,
-                    Some(Value::Bool(true)) => true,
-                    Some(Value::Array(labels)) => {
-                        anyhow::ensure!(
-                            labels.iter().all(Value::is_string),
-                            "Remote source preference must contain label strings"
-                        );
-                        labels.iter().any(|v| v.as_str() == Some(label))
-                    }
-                    None | Some(Value::Null) => false,
-                    _ => anyhow::bail!("Destination source must be boolean or a label list"),
-                };
-                let source = Source {
-                    provider: provider.clone(),
-                    title: title.clone(),
-                    definition,
-                };
-                if preferred {
-                    return Ok(source);
-                }
-                if fallback.is_none() {
-                    fallback = Some(source);
-                }
-            }
-        }
-    }
     let mut registry_fallback = None;
     if let Some(registry) = raw.get("remotes").and_then(Value::as_object) {
         for (provider, entries) in registry {
@@ -328,34 +385,18 @@ fn select_source(raw: &Value, label: &str, request: &RestoreRequest) -> anyhow::
                 {
                     continue;
                 }
-                let preferred = match definition.source.as_ref() {
-                    Some(Value::Bool(false)) => continue,
-                    Some(Value::Bool(true)) => true,
-                    Some(Value::Array(labels)) => {
-                        anyhow::ensure!(
-                            labels.iter().all(Value::is_string),
-                            "Remote source preference must contain label strings"
-                        );
-                        labels.iter().any(|value| value.as_str() == Some(label))
-                    }
-                    None | Some(Value::Null) => false,
-                    _ => anyhow::bail!("Remote source must be boolean or a label list"),
-                };
                 let source = Source {
                     provider: provider.clone(),
                     title: title.clone(),
                     definition,
                 };
-                if preferred {
-                    return Ok(source);
-                }
                 if registry_fallback.is_none() {
                     registry_fallback = Some(source)
                 }
             }
         }
     }
-    if let Some(source) = fallback.or(registry_fallback) {
+    if let Some(source) = registry_fallback {
         return Ok(source);
     }
     anyhow::bail!("No configured restore source matches the requested label and filters")
@@ -365,10 +406,6 @@ pub(crate) fn projected_config(
     root: &Utf8Path,
 ) -> anyhow::Result<crate::yml::ValidatedConfig> {
     let mut projection = raw.clone();
-    if let Some(build) = projection.get_mut("build").and_then(Value::as_object_mut) {
-        // Upload selection must not disable a registered restore source.
-        build.remove("dest");
-    }
     if let Some(directories) = projection
         .get_mut("directories")
         .and_then(Value::as_object_mut)
@@ -382,11 +419,22 @@ pub(crate) fn projected_config(
     let mut config: crate::yml::ProjConfig =
         serde_json::from_value(projection).context("Invalid restore project configuration")?;
     crate::remote_registry::validate_names(&config)?;
-    config.build.local = None;
-    config.build.github = None;
+    crate::remote_registry::reject_inline(&config)?;
+    // Upload selection never limits restore sources.
+    config.build.dest = None;
     config.validate_and_resolve(root, false)
 }
 
+/// Placeholder values for a lookup outside a build: the current run version and
+/// checkout. `@uuid` names a single build and fails until recorded destinations are read.
+fn lookup_templates(root: &Utf8Path) -> crate::template::Templates {
+    crate::template::Templates::for_lookup(
+        root,
+        crate::run_version_from(root)
+            .ok()
+            .map(|version| version.to_string(true)),
+    )
+}
 fn repository(root: &Utf8Path, explicit: Option<&str>, api: &str) -> anyhow::Result<String> {
     if let Some(repository) = explicit {
         return Ok(repository.into());
@@ -690,6 +738,7 @@ pub fn restore_label(root: &Utf8Path, request: &RestoreRequest) -> anyhow::Resul
         result.skipped = Some("no-recorded-files".into());
         return Ok(result);
     }
+    let request = &qualified(&raw, request)?;
     let source = select_source(&raw, &label, request)?;
     result.provider = Some(source.provider.clone());
     result.title = Some(source.title.clone());
@@ -700,6 +749,7 @@ pub fn restore_label(root: &Utf8Path, request: &RestoreRequest) -> anyhow::Resul
             .as_deref()
             .context("Local restore source requires an explicit path")?;
         anyhow::ensure!(!path.is_empty(), "Local restore path must not be empty");
+        let path = &lookup_templates(root).expand(path)?;
         let base = if Utf8Path::new(path).is_absolute() {
             Utf8PathBuf::from(path)
         } else {
@@ -790,16 +840,23 @@ pub fn restore_label(root: &Utf8Path, request: &RestoreRequest) -> anyhow::Resul
     } else {
         let api =
             std::env::var("GITHUB_API_URL").unwrap_or_else(|_| "https://api.github.com".into());
-        let repository = repository(root, request.repository.as_deref(), &api)?;
+        let repository = repository(
+            root,
+            request
+                .repository
+                .as_deref()
+                .or(source.definition.repo.as_deref()),
+            &api,
+        )?;
         let token = ["GITHUB_PAT", "GH_TOKEN", "GITHUB_TOKEN"]
             .iter()
             .find_map(|key| std::env::var(key).ok().filter(|v| !v.trim().is_empty()));
         let client = crate::github_release::GithubReleaseClient::new(&repository, &api, token)?;
-        let tag = if source.title == "@version" {
-            crate::run_version_from(root)?.to_string(true)
-        } else {
-            source.title.trim_matches(' ').replace(' ', "-")
-        };
+        let tag = crate::github_publication::release_tag(
+            &source.title,
+            &source.definition,
+            &lookup_templates(root),
+        )?;
         let (version, name, empty) = github_version(&client, root, &source, &label, request, &tag)?;
         result.version = Some(version);
         if empty {

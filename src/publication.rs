@@ -13,7 +13,11 @@ use std::{collections::BTreeMap, fs, io::Write};
 #[derive(Clone)]
 pub(crate) struct LocalPublication {
     /// Descriptive title, not a provider identifier.
-    title: String,
+    pub(crate) title: String,
+    /// Destination name (`title` field, else the entry name) after placeholder expansion.
+    pub(crate) name: String,
+    /// Configured path text after placeholder expansion, before root resolution.
+    pub(crate) path: String,
     /// Physical root holding per-label latest directories and shared metadata.
     pub(crate) base: Utf8PathBuf,
     labels: Vec<(String, Utf8PathBuf)>,
@@ -66,13 +70,36 @@ fn destination(target: &LocalPublication, label: &str, empty: bool, version: &st
         path
     }
 }
-/// Parse existing build.local definitions and preflight every selected namespace.
+/// Resolve a local destination's configured path, expanding projr placeholders
+/// (`@version`, `@branch`, `@uuid`) and anchoring relative paths at the project root.
+/// Returns the expanded text and the resolved physical base.
+pub(crate) fn local_base(
+    root: &Utf8Path,
+    path: Option<&str>,
+    templates: &crate::template::Templates,
+) -> anyhow::Result<(String, Utf8PathBuf)> {
+    let path = path.context("Local publication requires explicit path")?;
+    anyhow::ensure!(
+        !path.trim().is_empty(),
+        "Local publication requires nonempty path"
+    );
+    let path = templates.expand(path)?;
+    let base = identity(&if Utf8Path::new(&path).is_absolute() {
+        Utf8PathBuf::from(&path)
+    } else {
+        root.join(&path)
+    })?;
+    Ok((path, base))
+}
+/// Parse selected build.local definitions and preflight every selected namespace.
 /// Archive (default) and latest execute. Null/false content
 /// selects nothing; true uses declared non-cache labels. No directories are made.
+/// Placeholders in names and paths use the supplied frozen values.
 pub(crate) fn configured(
     root: &Utf8Path,
     raw: Option<&Map<String, Value>>,
     config: &crate::yml::ValidatedConfig,
+    templates: &crate::template::Templates,
 ) -> anyhow::Result<Vec<LocalPublication>> {
     let mut targets = Vec::new();
     let declared: Map<String, Value> = config
@@ -87,6 +114,7 @@ pub(crate) fn configured(
             "Invalid local publication title"
         );
         let definition = crate::restore::definition(value)?;
+        crate::restore::local_only_fields(value)?;
         anyhow::ensure!(
             definition.cue.is_none(),
             "Use send.cue; a title-level cue has inconsistent source semantics"
@@ -153,19 +181,8 @@ pub(crate) fn configured(
             "upload-missing" => StoreStrategy::UploadMissing,
             _ => anyhow::bail!("Unsupported send.strategy"),
         };
-        let path = definition
-            .path
-            .as_deref()
-            .context("Local publication requires explicit path")?;
-        anyhow::ensure!(
-            !path.trim().is_empty(),
-            "Local publication requires nonempty path"
-        );
-        let base = identity(&if Utf8Path::new(path).is_absolute() {
-            path.into()
-        } else {
-            root.join(path)
-        })?;
+        let (path, base) = local_base(root, definition.path.as_deref(), templates)?;
+        let name = templates.expand(title)?;
         anyhow::ensure!(
             !root.starts_with(&base),
             "Publication base contains the project root"
@@ -199,6 +216,8 @@ pub(crate) fn configured(
             .transpose()?;
         targets.push(LocalPublication {
             title: title.clone(),
+            name,
+            path,
             base,
             labels: selected,
             append: definition.path_append_label.unwrap_or(true),
@@ -419,6 +438,43 @@ pub(crate) fn version_entries(path: &Utf8Path) -> anyhow::Result<Vec<(String, St
     }
     Ok(result)
 }
+/// The completed project version an archive advertises: a single plain version
+/// line (older projr), else its `Project:` entry, with the untrusted `*` marker
+/// removed (SATVILab/projr@5f915ef `R/get.R:375-391`). A missing file or an
+/// unrecognised value gives `None`.
+pub(crate) fn project_version(path: &Utf8Path) -> anyhow::Result<Option<String>> {
+    if !path.try_exists()? {
+        return Ok(None);
+    }
+    let text = crate::fs_utils::read_managed_text(path)?;
+    let lines: Vec<&str> = text
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect();
+    let projects: Vec<&str> = lines
+        .iter()
+        .filter_map(|line| line.strip_prefix("Project:"))
+        .map(str::trim)
+        .collect();
+    let value = if lines.len() == 1 && !lines[0].contains(':') {
+        Some(lines[0])
+    } else if projects.len() == 1 {
+        Some(projects[0])
+    } else {
+        None
+    };
+    Ok(value
+        .map(|value| value.strip_suffix('*').unwrap_or(value))
+        .filter(|value| crate::local_remote::version_numbers(value).is_some())
+        .map(|value| {
+            if value.starts_with('v') {
+                value.to_owned()
+            } else {
+                format!("v{value}")
+            }
+        }))
+}
 /// Select one unambiguous label/version filename-to-MD5 inventory.
 pub(crate) fn recorded_files(
     rows: &[ManifestRow],
@@ -592,6 +648,8 @@ pub(crate) fn staging_target(
 ) -> LocalPublication {
     LocalPublication {
         title: "GitHub private staging".into(),
+        name: String::new(),
+        path: String::new(),
         base,
         labels,
         append: true,

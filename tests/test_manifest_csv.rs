@@ -406,7 +406,7 @@ fn end_hook_output_changes_are_observed_without_enforcement_or_rewriting_publica
         fs::write(root.join("released/obsolete.csv"), b"delete").unwrap();
         let config = fs::read_to_string(root.join("_proj.yml")).unwrap();
         let destination = if publish {
-            "  local:\n    fixture:\n      path: remote\n      structure: latest\n      content: [output]\n      send: {inspect: file}\n"
+            "  dest: [fixture]\nremotes:\n  local:\n    fixture:\n      path: remote\n      structure: latest\n      content: [output]\n      send: {inspect: file}\n"
         } else {
             ""
         };

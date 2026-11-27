@@ -26,6 +26,8 @@ struct Release {
     id: u64,
     tag_name: String,
     upload_url: Option<String>,
+    #[serde(default)]
+    body: Option<String>,
 }
 
 /// GitHub REST client with streaming file bodies and no automatic redirects.
@@ -43,6 +45,18 @@ pub struct GithubReleaseClient {
     api: String,
     repository: String,
     token: Option<String>,
+    /// Branch whose head a Release created by this client targets.
+    target_branch: Option<String>,
+}
+#[derive(Deserialize)]
+struct GitObject {
+    #[serde(rename = "type")]
+    kind: String,
+    sha: String,
+}
+#[derive(Deserialize)]
+struct GitRef {
+    object: GitObject,
 }
 
 fn uri(text: &str) -> anyhow::Result<Uri> {
@@ -149,6 +163,7 @@ impl GithubReleaseClient {
             api: api.trim_end_matches('/').into(),
             repository: repository.into(),
             token,
+            target_branch: None,
         })
     }
     fn get(&self, path: &str, accept: &str) -> anyhow::Result<Response<ureq::Body>> {
@@ -163,6 +178,163 @@ impl GithubReleaseClient {
         request
             .call()
             .map_err(|_| anyhow::anyhow!("GitHub API request failed"))
+    }
+    /// Release creation targets this branch's head (projr `branch`); an existing
+    /// Release keeps its tag target.
+    pub(crate) fn with_target_branch(mut self, branch: Option<String>) -> Self {
+        self.target_branch = branch;
+        self
+    }
+    fn git_object(&self, path: &str, missing: bool) -> anyhow::Result<Option<GitObject>> {
+        let response = self.get(
+            &format!("/repos/{}/git/{path}", self.repository),
+            "application/vnd.github+json",
+        )?;
+        let status = response.status().as_u16();
+        if missing && status == 404 {
+            return Ok(None);
+        }
+        anyhow::ensure!(
+            status == 200,
+            "GitHub Git object lookup failed (HTTP {status})"
+        );
+        let object = json::<GitRef>(response)?.object;
+        anyhow::ensure!(
+            matches!(object.sha.len(), 40 | 64)
+                && object
+                    .sha
+                    .bytes()
+                    .all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f')),
+            "GitHub returned an invalid Git object ID"
+        );
+        Ok(Some(object))
+    }
+    /// Read-only: the commit a new Release for `tag` would target on `branch`.
+    /// A missing branch, or an existing Git tag pointing elsewhere, is an error
+    /// (SATVILab/projr@5f915ef `R/remote-github-httr.R:104-171`).
+    pub(crate) fn release_target(&self, branch: &str, tag: &str) -> anyhow::Result<String> {
+        anyhow::ensure!(
+            !branch.is_empty() && !branch.chars().any(char::is_control),
+            "Invalid GitHub target branch"
+        );
+        let head = self
+            .git_object(&format!("ref/heads/{}", encode(branch)), true)?
+            .filter(|object| object.kind == "commit")
+            .with_context(|| {
+                format!(
+                    "GitHub branch '{branch}' does not identify a commit in {}",
+                    self.repository
+                )
+            })?;
+        if let Some(mut object) = self.git_object(&format!("ref/tags/{}", encode(tag)), true)? {
+            for _ in 0..16 {
+                if object.kind != "tag" {
+                    break;
+                }
+                object = self
+                    .git_object(&format!("tags/{}", object.sha), false)?
+                    .context("Annotated GitHub tag disappeared")?;
+            }
+            anyhow::ensure!(
+                object.kind == "commit" && object.sha == head.sha,
+                "Existing Git tag '{tag}' does not point to branch '{branch}' at {}",
+                head.sha
+            );
+        }
+        Ok(head.sha)
+    }
+    fn create(&self, tag: &str, note: Option<&str>) -> anyhow::Result<Release> {
+        let token = self
+            .token
+            .as_ref()
+            .context("Release creation requires an existing GitHub token")?;
+        let mut body =
+            serde_json::json!({"tag_name":tag,"name":tag,"draft":false,"prerelease":false});
+        if let Some(note) = note {
+            body["body"] = note.into();
+        }
+        if let Some(branch) = &self.target_branch {
+            body["target_commitish"] = self.release_target(branch, tag)?.into();
+        }
+        let response = self.agent.post(format!("{}/repos/{}/releases", self.api, self.repository))
+            .header("Accept", "application/vnd.github+json").header("Authorization", format!("Bearer {token}"))
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .send_json(body)
+            .map_err(|_| anyhow::anyhow!("GitHub Release creation request failed; publication outcome may be uncertain, inspect remote state before retrying"))?;
+        let status = response.status().as_u16();
+        anyhow::ensure!(
+            status == 201,
+            "GitHub Release creation failed (HTTP {status}); inspect remote state before retrying"
+        );
+        json(response).context("Release creation may have completed; cannot validate response")
+    }
+    /// Create a missing Release up front with a note, as projr prepares Releases
+    /// before a build (SATVILab/projr@5f915ef `R/dest-send-prepare.R:1-59`). Returns
+    /// the new Release ID; an existing Release is an error rather than adopted.
+    pub(crate) fn create_release(&self, tag: &str, note: &str) -> anyhow::Result<u64> {
+        anyhow::ensure!(
+            !tag.is_empty() && !tag.chars().any(char::is_control),
+            "Invalid GitHub Release tag"
+        );
+        let release = self.create(tag, Some(note))?;
+        anyhow::ensure!(
+            release.id != 0 && release.tag_name == tag,
+            "GitHub Release identity does not match request"
+        );
+        Ok(release.id)
+    }
+    /// Whether a token is available for writes.
+    pub(crate) fn has_token(&self) -> bool {
+        self.token.is_some()
+    }
+    /// Read-only: the ID and body of an existing exact-tag Release, or None.
+    pub(crate) fn release_note(&self, tag: &str) -> anyhow::Result<Option<(u64, String)>> {
+        anyhow::ensure!(
+            !tag.is_empty() && !tag.chars().any(char::is_control),
+            "Invalid GitHub Release tag"
+        );
+        let response = self.get(
+            &format!("/repos/{}/releases/tags/{}", self.repository, encode(tag)),
+            "application/vnd.github+json",
+        )?;
+        let status = response.status().as_u16();
+        if status == 404 {
+            return Ok(None);
+        }
+        anyhow::ensure!(
+            status == 200,
+            "GitHub Release lookup failed (HTTP {status})"
+        );
+        let release: Release = json(response)?;
+        anyhow::ensure!(
+            release.id != 0 && release.tag_name == tag,
+            "GitHub Release identity does not match request"
+        );
+        Ok(Some((release.id, release.body.unwrap_or_default())))
+    }
+    /// Replace the body of a Release this build created.
+    pub(crate) fn set_release_note(&self, id: u64, note: &str) -> anyhow::Result<()> {
+        let token = self
+            .token
+            .as_ref()
+            .context("Release update requires an existing GitHub token")?;
+        let response = self
+            .agent
+            .patch(format!(
+                "{}/repos/{}/releases/{id}",
+                self.api, self.repository
+            ))
+            .header("Accept", "application/vnd.github+json")
+            .header("Authorization", format!("Bearer {token}"))
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .send_json(serde_json::json!({"body": note}))
+            .map_err(|_| anyhow::anyhow!("GitHub Release note update request failed"))?;
+        let status = response.status().as_u16();
+        anyhow::ensure!(
+            status == 200,
+            "GitHub Release note update failed (HTTP {status})"
+        );
+        Ok(())
     }
     fn release(&self, tag: &str, create: bool) -> anyhow::Result<Release> {
         anyhow::ensure!(
@@ -181,22 +353,7 @@ impl GithubReleaseClient {
                 status == 404 && create,
                 "GitHub Release lookup failed (HTTP {status})"
             );
-            let token = self
-                .token
-                .as_ref()
-                .context("Release creation requires an existing GitHub token")?;
-            let response = self.agent.post(format!("{}/repos/{}/releases", self.api, self.repository))
-                .header("Accept", "application/vnd.github+json").header("Authorization", format!("Bearer {token}"))
-                .header("X-GitHub-Api-Version", "2022-11-28")
-                .send_json(serde_json::json!({"tag_name":tag,"name":tag,"draft":false,"prerelease":false}))
-                .map_err(|_| anyhow::anyhow!("GitHub Release creation request failed; publication outcome may be uncertain, inspect remote state before retrying"))?;
-            let status = response.status().as_u16();
-            anyhow::ensure!(
-                status == 201,
-                "GitHub Release creation failed (HTTP {status}); inspect remote state before retrying"
-            );
-            json(response)
-                .context("Release creation may have completed; cannot validate response")?
+            self.create(tag, None)?
         };
         anyhow::ensure!(
             release.id != 0 && release.tag_name == tag,

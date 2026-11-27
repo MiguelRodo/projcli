@@ -315,8 +315,8 @@ DELETE followed by upload is the pinned projr behavior, not atomic publication:
 report deleted/uncertain outcomes and never silently retry or imply rollback.
 Mock fixtures only; no existing user assets are test targets.
 
-Configured restore uses existing directories.LABEL.source and build provider
-definitions; issue706 registry remains design-only. Keep source-before-destination,
+Configured restore uses existing directories.LABEL.source references and registered
+remotes (projr 0.9 removed inline build definitions and remote source preferences). Keep source-before-destination,
 preferences/exclusion, merged profile order and numeric/advertised version rules.
 Never clear before source lookup/staging; empty/unrecorded labels skip intact.
 Restore's config projection must not make normal builds silently accept ignored
@@ -574,9 +574,11 @@ permissions restoration or active CLI/config wiring from the library alone.
 ## Ordinary remote registry boundary
 
 Registry definitions are source lookups independent of build upload selection.
-Mapping build.dest selects explicit names and optional content subsets; never
-upload all registered definitions implicitly. Preserve legacy inline/CAS-list
-execution and source priority. Normal directory-source annotations validate
+build.dest follows projr 0.9 (a name, list or mapping with per-archive content/
+cue/inspect/strategy; `<type>:<title>` for titles used by both types; whole-value
+replacement across profile layers). Inline build.local/build.github archives are
+rejected with projr's guidance; never upload all registered definitions implicitly.
+Preserve directory-reference priority. Normal directory-source annotations validate
 references but do not activate automatic build-time restore. Reuse existing
 ordinary provider validators/engines. Reject unsupported placement/style/format
 fields until implemented; do not accept them as ignored options or call the
@@ -615,8 +617,8 @@ Other provider formatting remains explicitly pending until implemented/tested.
 
 Ordinary local flat histories observe actual final payloads, never source CSV
 substitutes. Build version and physical archive location are distinct; preserve
-legacy VERSION* trust markers and latest overwrite limits. New registry defaults
-must not silently opt legacy inline builds into metadata. Guard final private-stage
+legacy VERSION* trust markers and latest overwrite limits. projcli metadata is written
+only when a remote opts in with a manifest field. Guard final private-stage
 same-version conflicts before replacement, and reject overlapping metadata namespaces.
 Ordinary data stays outside CAS objects; GitHub/tree integration remains separate.
 
@@ -843,3 +845,20 @@ source-only discovery and zero-depth **/ semantics. Generate source ignore rules
 from frozen selected native output plans, not blanket HTML/assets or final docs.
 Multiple destinations/name matching remain deferred in issues#773. Verify actual
 grouped rendering and Quarto projects remotely before claiming compatibility.
+
+## projr 0.9 remotes schema and archive version check
+
+Destination placeholders (@version/@branch/@uuid) resolve once before hooks from
+the build version, checkout HEAD file and a fresh UUID; record resolved targets,
+including GitHub owner/repo (user-approved), in attempt evidence without URLs, API
+origins or credentials (local paths leaving the project are not recorded). Builds
+that publish nothing resolve no placeholders. The archive version check
+(not_behind_remote default true, names or <type>:<title> only; rule base) runs
+before hooks with read-only lookups and fails closed on populated archives without
+a readable version. GitHub branch checks are read-only; after all read-only
+preflight checks and recovery capture, missing Releases are created before hooks with a pending note
+that successful publication replaces; never roll back or delete them on failure.
+Creating a Release is not distribution; record created Releases (repo and tag only)
+in the local failure diagnostic.
+Restore by recorded destination, build.source fetching and pipelines are separate
+slices.

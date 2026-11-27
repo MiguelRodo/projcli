@@ -13,6 +13,8 @@ use std::{collections::BTreeSet, fs, io::Write};
 /// Validated configuration without credentials, HTTP or local mutation.
 pub(crate) struct Spec {
     title: String,
+    /// Definition whose `repo`, `tag` and `branch` route the Release.
+    routing: crate::restore::Definition,
     prefix: Option<String>,
     append: bool,
     latest: bool,
@@ -26,9 +28,50 @@ pub(crate) struct Spec {
 /// Deliberately has no Debug implementation: the client may contain credentials.
 pub(crate) struct Target {
     spec: Spec,
-    client: GithubReleaseClient,
-    tag: String,
-    repository: String,
+    pub(crate) client: GithubReleaseClient,
+    pub(crate) tag: String,
+    pub(crate) repository: String,
+    /// Release ID when this build created the Release up front.
+    created: Option<u64>,
+}
+impl Target {
+    /// Configured entry name.
+    pub(crate) fn title(&self) -> &str {
+        &self.spec.title
+    }
+}
+fn tag_format(text: &str) -> String {
+    text.trim_matches(' ').replace(' ', "-")
+}
+/// Release tag a GitHub entry of any structure plans to use, for collision checks
+/// between ordinary and CAS/Xet store entries. Store entries use their entry name.
+pub(crate) fn planned_tag(
+    key: &str,
+    value: &Value,
+    templates: &crate::template::Templates,
+) -> anyhow::Result<String> {
+    if matches!(
+        value.get("structure").and_then(Value::as_str),
+        Some("cas" | "xet")
+    ) {
+        return Ok(tag_format(key));
+    }
+    release_tag(key, &crate::restore::definition(value)?, templates)
+}
+/// projr's release name: `tag`, else the registered title, with placeholders
+/// expanded, outer spaces trimmed and inner spaces replaced by `-`
+/// (SATVILab/projr@5f915ef `R/yml-dest.R:259-297`, `R/remote-github.R`).
+pub(crate) fn release_tag(
+    key: &str,
+    definition: &crate::restore::Definition,
+    templates: &crate::template::Templates,
+) -> anyhow::Result<String> {
+    let tag = tag_format(&templates.expand(definition.tag.as_deref().unwrap_or(key))?);
+    anyhow::ensure!(
+        !tag.is_empty() && !tag.chars().any(char::is_control),
+        "Invalid GitHub Release tag"
+    );
+    Ok(tag)
 }
 fn folded(value: &str) -> String {
     icu_normalizer::ComposingNormalizer::new_nfc()
@@ -69,6 +112,7 @@ pub(crate) fn validate(
             "Invalid GitHub destination title"
         );
         let definition = crate::restore::definition(value)?;
+        let routing = definition.clone();
         let metadata = crate::ordinary_manifest::Policy::parse(&definition)?;
         let mut labels = if let Some(Value::Array(values)) = &definition.content {
             values
@@ -178,6 +222,7 @@ pub(crate) fn validate(
         let spec = Spec {
             metadata,
             title: title.clone(),
+            routing,
             prefix: definition.path,
             append: definition.path_append_label.unwrap_or(true),
             latest: matches!(definition.structure, Some(crate::restore::Layout::Latest)),
@@ -208,37 +253,135 @@ pub(crate) fn validate(
     }
     Ok(specs)
 }
-/// Freeze all security-sensitive routing before hooks. No request is sent.
+/// Freeze all security-sensitive routing before hooks: repository, client, token,
+/// expanded release tag and target branch. Read-only requests check that a missing
+/// Release's `branch` exists and that no conflicting tag exists; nothing is written.
 pub(crate) fn capture(
     root: &Utf8Path,
     specs: Vec<Spec>,
     environment: &crate::run_environment::RunEnvironment,
-    version: &str,
+    templates: &crate::template::Templates,
 ) -> anyhow::Result<Vec<Target>> {
-    if specs.is_empty() {
-        return Ok(Vec::new());
-    }
-    let (repository, client) = connection(root, environment, None)?;
+    let mut connections: Vec<(Option<String>, String, GithubReleaseClient)> = Vec::new();
     let mut tags = BTreeSet::new();
     let mut targets = Vec::new();
     for spec in specs {
-        let tag = if spec.title == "@version" {
-            version.into()
-        } else {
-            spec.title.trim_matches(' ').replace(' ', "-")
+        let tag = release_tag(&spec.title, &spec.routing, templates)?;
+        let (repository, client) = match connections
+            .iter()
+            .find(|(repo, _, _)| *repo == spec.routing.repo)
+        {
+            Some((_, repository, client)) => (repository.clone(), client.clone()),
+            None => {
+                let (repository, client) =
+                    connection(root, environment, spec.routing.repo.as_deref())?;
+                connections.push((
+                    spec.routing.repo.clone(),
+                    repository.clone(),
+                    client.clone(),
+                ));
+                (repository, client)
+            }
         };
         anyhow::ensure!(
-            tags.insert(tag.clone()),
+            tags.insert((repository.to_ascii_lowercase(), tag.clone())),
             "Configured GitHub titles resolve to the same Release tag"
         );
+        // As in projr, `branch` (and `@branch`) matter only when the Release is missing.
+        let client = match spec.routing.branch.as_deref() {
+            Some(branch) if client.assets_if_exists(&tag)?.is_none() => {
+                let branch = if branch == "@branch" {
+                    templates.raw_branch()?
+                } else {
+                    branch.to_owned()
+                };
+                client.release_target(&branch, &tag)?;
+                client.with_target_branch(Some(branch))
+            }
+            _ => client,
+        };
         targets.push(Target {
             spec,
-            client: client.clone(),
+            client,
             tag,
-            repository: repository.clone(),
+            repository,
+            created: None,
         });
     }
     Ok(targets)
+}
+const PENDING_NOTE: &str = "Created by projcli before build ";
+fn pending_note(version: &str) -> String {
+    format!(
+        "{PENDING_NOTE}{version}. That build has not finished publishing, so this release may be empty or incomplete."
+    )
+}
+/// Create each missing Release once all read-only preflight checks have passed and
+/// before any hook, as projr does (SATVILab/projr@5f915ef `R/dest-send-prepare.R:1-59`,
+/// `R/build.R`). The new Release notes that a build is pending; a later failure
+/// leaves it in place (possibly empty) and is never rolled back or deleted. An
+/// existing Release still carrying a pending note (from an earlier failed build) is
+/// also marked, so the next successful publication replaces that note. Every
+/// Release to create must have a token before the first is created. Created tags are
+/// appended to `created` as each one succeeds.
+pub(crate) fn prepare_releases(
+    targets: &mut [Target],
+    version: &str,
+    created: &mut Vec<crate::attempt_log::CreatedRelease>,
+) -> anyhow::Result<()> {
+    let mut missing = Vec::new();
+    for (index, target) in targets.iter_mut().enumerate() {
+        match target.client.release_note(&target.tag)? {
+            None => missing.push(index),
+            Some((id, note)) if note.starts_with(PENDING_NOTE) => target.created = Some(id),
+            Some(_) => {}
+        }
+    }
+    anyhow::ensure!(
+        missing
+            .iter()
+            .all(|index| targets[*index].client.has_token()),
+        "Creating a GitHub Release requires a token with write access to the destination repository"
+    );
+    for index in missing {
+        let target = &mut targets[index];
+        let id = target
+            .client
+            .create_release(&target.tag, &pending_note(version))
+            .with_context(|| format!("Cannot create GitHub Release {}", target.tag))?;
+        target.created = Some(id);
+        created.push(crate::attempt_log::CreatedRelease {
+            repository: target.repository.clone(),
+            tag: target.tag.clone(),
+        });
+    }
+    Ok(())
+}
+/// Read the project version advertised by a Release's `VERSION.zip` (projr
+/// `R/get.R:354-392`, SATVILab/projr@5f915ef). `None` means no Release or no assets; populated Releases
+/// without a valid `Project:` line are errors. Read-only.
+pub(crate) fn project_version(
+    client: &GithubReleaseClient,
+    tag: &str,
+) -> anyhow::Result<Option<String>> {
+    let Some(assets) = client.assets_if_exists(tag)? else {
+        return Ok(None);
+    };
+    let names: BTreeSet<String> = assets.into_iter().map(|asset| asset.name).collect();
+    if names.is_empty() {
+        return Ok(None);
+    }
+    let temporary = tempfile::Builder::new()
+        .prefix("proj-version-check-")
+        .tempdir_in(fs::canonicalize(std::env::temp_dir())?)?;
+    let stage =
+        Utf8Path::from_path(temporary.path()).context("Version staging path must be UTF-8")?;
+    metadata(client, tag, MetadataKind::Version, stage, &names)?;
+    let version = crate::publication::project_version(&stage.join("VERSION"))?;
+    temporary.close()?;
+    version.map(Some).context(
+        "The destination contains files but has no valid project VERSION; inspect it for an incomplete upload before retrying",
+    )
 }
 /// Shared frozen GitHub connection policy; never installs credentials.
 pub(crate) fn connection(
@@ -917,6 +1060,22 @@ pub(crate) fn publish(root: &Utf8Path, targets: &[Target], version: &str) -> any
             .err()
             .unwrap_or_else(|| anyhow::anyhow!("GitHub publication completed"))
             .context(format!("Cleanup failed: {}", failures.join("; "))));
+    }
+    if result.is_ok() {
+        // Replace the pending note on Releases this build created. The files are
+        // already published, so a failed note update is reported, not fatal.
+        for target in targets {
+            if let Some(id) = target.created
+                && let Err(error) = target
+                    .client
+                    .set_release_note(id, &format!("Published by projcli build {version}."))
+            {
+                eprintln!(
+                    "Warning: GitHub Release {} was published but its pending note was not replaced ({error:#})",
+                    target.tag
+                );
+            }
+        }
     }
     result
 }

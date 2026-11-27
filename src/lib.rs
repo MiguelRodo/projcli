@@ -126,3 +126,9 @@ mod store_github;
 pub mod configured_cas_github;
 
 mod script_selection;
+
+/// projr destination placeholders (`@version`, `@branch`, `@uuid`).
+pub(crate) mod template;
+
+/// Pre-render archive version check (`build.restrictions.not_behind_remote`).
+mod archive_check;
