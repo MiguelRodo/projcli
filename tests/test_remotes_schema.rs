@@ -680,7 +680,7 @@ fn a_later_successful_build_replaces_a_stale_pending_note() {
 
 #[test]
 fn base_rule_counts_a_committed_snapshot_whose_receipt_is_not_in_the_clone() {
-    let (temporary, root) = project(json!({
+    let (_temporary, root) = project(json!({
         "remotes":{"local":{"store":{"path":"../archive"}}},
         "build":{"dest":"store"}
     }));
@@ -693,33 +693,33 @@ fn base_rule_counts_a_committed_snapshot_whose_receipt_is_not_in_the_clone() {
         serde_json::to_vec_pretty(&config).unwrap(),
     )
     .unwrap();
-    let identity = "[user]\n\tname = Fixture\n\temail = fixture@example.invalid\n";
-    fs::write(root.join("home/gitconfig"), identity).unwrap();
-    for args in [vec!["add", "-A"], vec!["commit", "-q", "-m", "fixture"]] {
+    // Repository-local settings, as in the real-Git suite: a global config path can
+    // be a verbatim `\\?\` path on Windows, and runners may set autocrlf or signing.
+    let git = |directory: &Path, args: &[&str]| {
+        let output = command(directory, "git").args(args).output().unwrap();
         assert!(
-            command(&root, "git")
-                .args(args)
-                .output()
-                .unwrap()
-                .status
-                .success()
+            output.status.success(),
+            "git {args:?}: {}",
+            String::from_utf8_lossy(&output.stderr)
         );
+    };
+    for (key, value) in [
+        ("user.name", "Fixture"),
+        ("user.email", "fixture@example.invalid"),
+        ("commit.gpgsign", "false"),
+        ("core.autocrlf", "false"),
+    ] {
+        git(&root, &["config", key, value]);
     }
+    git(&root, &["add", "-A"]);
+    git(&root, &["commit", "-q", "-m", "fixture"]);
     ok(build(&root, &[], None));
     // The terminal receipt is untracked until the next build commits it.
-    let clone = temporary.path().canonicalize().unwrap().join("clone");
-    assert!(
-        command(&root, "git")
-            .args(["clone", "-q"])
-            .arg(&root)
-            .arg(&clone)
-            .output()
-            .unwrap()
-            .status
-            .success()
-    );
+    let parent = root.parent().unwrap();
+    let clone = parent.join("clone");
+    // Relative paths avoid passing Windows verbatim paths to Git.
+    git(parent, &["clone", "-q", "project", "clone"]);
     fs::create_dir_all(clone.join("home")).unwrap();
-    fs::write(clone.join("home/gitconfig"), identity).unwrap();
     assert!(
         !fs::read_dir(clone.join(".proj/log")).unwrap().any(|entry| {
             entry
