@@ -165,6 +165,7 @@ pub(crate) fn validate_build_paths(
                 root_identity.join(".git"),
                 root_identity.join(".svn"),
                 root_identity.join(".projr"),
+                root_identity.join("_projr"),
             ] {
                 if overlaps(&identity, &protected) {
                     anyhow::bail!(
@@ -262,7 +263,12 @@ pub(crate) fn validate_document_destination(
     {
         anyhow::bail!("Document destination contains the project root or selected input");
     }
-    for protected in [root.join(".git"), root.join(".svn"), root.join(".projr")] {
+    for protected in [
+        root.join(".git"),
+        root.join(".svn"),
+        root.join(".projr"),
+        root.join("_projr"),
+    ] {
         if overlaps(&destination, &protected) {
             anyhow::bail!("Document destination overlaps protected project state");
         }

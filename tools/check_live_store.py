@@ -82,7 +82,7 @@ def main():
                 git(path, "remote", "add", "origin", "https://github.com/" + REPO + ".git")
                 for directory in ["input", "output", "cache"]:
                     (path / directory).mkdir()
-                (path / "_proj.yml").write_text(json.dumps(configuration))
+                (path / "_projr.yml").write_text(json.dumps(configuration))
                 (path / "VERSION").write_text("v1.2.3\n")
             root = work / structure
             project(root, config)
@@ -109,9 +109,9 @@ def main():
                     if structure == "cas":
                         config["remotes"]["github"][tag].update(
                             {"manifest-style": "flat", "manifest-format": "csv"})
-                        (root / "_proj.yml").write_text(json.dumps(config))
+                        (root / "_projr.yml").write_text(json.dumps(config))
                 invoke(root, "build", "--patch")
-                bindings = list((root / ".proj/remotes").glob("**/current.json"))
+                bindings = list((root / ".projr/remotes").glob("**/current.json"))
                 assert len(bindings) == 1
                 reference = json.loads(bindings[0].read_text())["reference"]
                 new_ids = set(reference["snapshots"]) - ids
@@ -131,7 +131,7 @@ def main():
                 restore_config["build"]["dest"] = {}
                 project(fresh, restore_config)
                 (fresh / "VERSION").write_text("v9.8.7\n")
-                shutil.copytree(root / ".proj", fresh / ".proj")
+                shutil.copytree(root / ".projr", fresh / ".projr")
                 args = ["--title", tag, "--snapshot", version["snapshot"],
                         "--max-bytes", "268435456", "--max-expanded-bytes", "8589934592"]
                 invoke(fresh, "remote", "restore", *args, "--label", "raw-data", "--clear")

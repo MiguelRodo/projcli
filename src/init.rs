@@ -151,7 +151,7 @@ pub fn init_directories() -> anyhow::Result<()> {
     const PRESET: &str = "directories:\n  raw-data:\n    path: _raw_data\n  cache:\n    path: _tmp\n  output:\n    path: _output\n";
     let base = crate::yml::base_configuration_path(&project_root)?;
     let mut active_profile = false;
-    for profile in crate::profile::get_active_profiles() {
+    for profile in crate::run_context::select_profiles(None, &project_root)? {
         active_profile |= crate::profile::existing_config(&project_root, &profile)?.is_some();
     }
     let create_base = base.is_none() && !active_profile;

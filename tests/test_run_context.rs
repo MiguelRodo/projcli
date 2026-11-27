@@ -128,12 +128,15 @@ fn malformed_context_is_an_error_not_a_discovery_fallback() {
 
 #[test]
 fn profile_sources_have_one_priority_for_config_and_environment() {
-    for (cli, projr, quarto, expected) in [
-        (Some("alpha"), "beta", "beta", "alpha"),
-        (None, "alpha", "beta", "alpha"),
-        // QUARTO_PROFILE never selects projr profiles; the profile key applies.
-        (None, "", "beta", "alpha"),
-        (None, "", "", "alpha"),
+    // (cli, PROJR_PROFILE, QUARTO_PROFILE, selected projr profile, environment value).
+    // QUARTO_PROFILE never selects projr profiles, but as in projr (R/env.R:70-86)
+    // its _environment-<profile> file is read before the projr profiles' files.
+    for (cli, projr, quarto, expected, value) in [
+        (Some("alpha"), "beta", "beta", "alpha", "beta"),
+        (None, "alpha", "", "alpha", "alpha"),
+        (None, "beta", "", "beta", "beta"),
+        (None, "", "beta", "alpha", "beta"),
+        (None, "", "", "alpha", "alpha"),
     ] {
         let project = tempfile::tempdir().unwrap();
         let root = project.path();
@@ -173,7 +176,7 @@ fn profile_sources_have_one_priority_for_config_and_environment() {
         );
         let seen: Vec<String> =
             serde_json::from_slice(&fs::read(root.join("cache/seen")).unwrap()).unwrap();
-        assert_eq!(seen, [expected, expected]);
+        assert_eq!(seen, [expected, value]);
     }
 }
 

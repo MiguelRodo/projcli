@@ -4447,3 +4447,23 @@ aliases or migration.
   `tests/test_root_markers.rs` (config-dir markers and config directories never
   roots), `yml` unit tests for the accepted keys; existing suites moved to
   `_projr.yml` and `.projr/` paths.
+- **Same: environment-file profiles.** `_environment-<profile>` files are read for
+  the Quarto profiles (`QUARTO_PROFILE`, else the key's `quarto` entry) and then the
+  projr profiles, without duplicates (`R/env.R:70-86`); `QUARTO_PROFILE` still never
+  selects projr configuration layers.
+- **Review (independent, 27 November):** no blocking defects. Fixed: `_projr/` (now
+  a configuration location) is protected from managed outputs, document, download
+  and asset destinations and CAS targets; the CAS reserved list adds the legacy
+  ledger `.projr/manifests.csv` and its claim `.projr/.projr`; Quarto profiles select
+  environment files as in projr; `hash-engine` fills a null `hashing` block;
+  `proj init directories` uses the full profile selection; `tools/check_live_store.py`
+  uses `_projr.yml` and `.projr/`. Added tests for the starter's push/upstream
+  branches, `_projr/` protection and the null `hashing` case. Kept as gaps: a
+  malformed `profile` key in a named profile reports the key error rather than
+  projr's "read only from the default and local files" message;
+  `frontends/r/projcli/tests/transport.R` keeps `_proj.yml` because it runs only
+  against the pinned preview.4 binary.
+- **Ponytail (full):** layout and profile logic live in the existing `profile.rs`
+  (no new module); `yml.rs` changes are localized; the starter reuses the existing
+  no-clobber tempfile pattern and tracking-upstream helper. Formatting of touched
+  files is in separate commits.

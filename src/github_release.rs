@@ -614,14 +614,16 @@ fn validate_destination(root: &Utf8Path, destination: &Utf8Path) -> anyhow::Resu
         anyhow::ensure!(
             !relative
                 .components()
-                .any(|part| [".git", ".svn", ".projr"].iter().any(|name| part
-                    .as_os_str()
-                    .to_string_lossy()
-                    .eq_ignore_ascii_case(name))),
+                .any(
+                    |part| [".git", ".svn", ".projr", "_projr"].iter().any(|name| part
+                        .as_os_str()
+                        .to_string_lossy()
+                        .eq_ignore_ascii_case(name))
+                ),
             "Asset destination overlaps protected project state"
         );
     }
-    for name in [".git", ".svn", ".projr"] {
+    for name in [".git", ".svn", ".projr", "_projr"] {
         let protected = root_identity.join(name);
         anyhow::ensure!(
             !identity.starts_with(&protected) && !protected.starts_with(&identity),

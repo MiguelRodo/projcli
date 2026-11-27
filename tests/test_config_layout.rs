@@ -277,3 +277,97 @@ fn managed_block_ignores_projr_state_and_local_configs_by_profile() {
         assert!(!tracked.status.success());
     }
 }
+
+fn isolated_vcs(root: &Path, args: &[&str]) -> Option<std::process::Output> {
+    Command::new("git")
+        .args(args)
+        .current_dir(root)
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+}
+
+#[test]
+fn starter_disables_push_without_an_upstream_and_keeps_defaults_with_one() {
+    const STARTER: &str = "directories:\n  raw-data:\n    path: _raw_data\n  cache:\n    path: _tmp\n  output:\n    path: _output\n  docs:\n    path: docs\n";
+    for upstream in [false, true] {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
+        if isolated_vcs(root, &["init", "-q", "-b", "main"]).is_none() {
+            return; // No Git available: the no-repository branch is covered elsewhere.
+        }
+        if upstream {
+            isolated_vcs(root, &["config", "branch.main.remote", "origin"]).unwrap();
+            isolated_vcs(root, &["config", "branch.main.merge", "refs/heads/main"]).unwrap();
+        }
+        put(root, "_projr-local.yml", "build:\n  scripts: []\n");
+        let output = Command::new(env!("CARGO_BIN_EXE_proj"))
+            .args(["--non-interactive", "--project"])
+            .arg(root)
+            .arg("build-dev")
+            .current_dir(root)
+            .env_remove(proj::PROJECT_ROOT_ENV)
+            .env_remove(proj::RUN_CONTEXT_ENV)
+            .env_remove("PROJR_PROFILE")
+            .env_remove("QUARTO_PROFILE")
+            .env("GIT_CONFIG_GLOBAL", "/dev/null")
+            .env("GIT_CONFIG_NOSYSTEM", "1")
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let expected = if upstream {
+            STARTER.to_owned()
+        } else {
+            format!("{STARTER}build:\n  git:\n    push: false\n")
+        };
+        assert_eq!(
+            fs::read_to_string(root.join("_projr.yml")).unwrap(),
+            expected
+        );
+    }
+}
+
+#[test]
+fn legacy_config_directory_is_protected_from_managed_outputs() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    put(
+        root,
+        "_projr.yml",
+        "directories:\n  cache:\n    path: _tmp\n  output:\n    path: _projr\nbuild:\n  scripts: []\n  git: false\n",
+    );
+    put(root, "_projr/config/local.yml", "dev:\n  scripts: []\n");
+    let output = proj(root, &["build", "--patch"], None);
+    assert!(!output.status.success());
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("protected project metadata"),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("_projr/config/local.yml")).unwrap(),
+        "dev:\n  scripts: []\n"
+    );
+}
+
+#[test]
+fn hash_engine_fills_a_null_hashing_block() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = camino::Utf8Path::from_path(temp.path()).unwrap();
+    put(
+        root.as_std_path(),
+        "_projr.yml",
+        "settings:\n  hash-engine: legacy\n  hashing: ~\n",
+    );
+    let merged = proj::yml::get_combined_yml(Some(""), root).unwrap();
+    assert_eq!(
+        merged["settings"],
+        serde_json::json!({"hashing": {"approach": "legacy"}})
+    );
+}

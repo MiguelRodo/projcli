@@ -50,7 +50,8 @@ profile:
 Each kind comes from the first of the local and base files that names it, so a
 local file that sets only `quarto` keeps the base file's projr profiles.
 `profile.renv` is an error ("not supported yet", as in projr), and named profile
-files cannot contain the key. `QUARTO_PROFILE` no longer selects projr profiles;
+files cannot contain the key. `QUARTO_PROFILE` no longer selects projr profiles (it,
+or `profile.quarto`, still selects `_environment-<profile>` files, as in projr);
 Quarto reads it itself. When it is unset, a build records the configured Quarto
 profiles in its frozen run context before hooks. **Gap:** renderers do not apply
 them yet (planned for the engines slice); set `QUARTO_PROFILE` meanwhile.

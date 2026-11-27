@@ -961,10 +961,14 @@ pub(crate) fn read_configuration_file(path: &Utf8Path) -> anyhow::Result<Value> 
     // projr's original `settings.hash-engine` spelling (`R/yml.R:206-217`).
     if let Some(settings) = value.get_mut("settings").and_then(Value::as_object_mut)
         && let Some(engine) = settings.remove("hash-engine")
-        && let Some(hashing) = settings
-            .entry("hashing")
-            .or_insert_with(|| Value::Object(Default::default()))
-            .as_object_mut()
+        && let Some(hashing) = {
+            // projr treats a null hashing block as an empty one.
+            let hashing = settings.entry("hashing").or_insert(Value::Null);
+            if hashing.is_null() {
+                *hashing = Value::Object(Default::default());
+            }
+            hashing.as_object_mut()
+        }
     {
         hashing.entry("approach").or_insert(engine);
     }

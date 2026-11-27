@@ -60,6 +60,7 @@ fn control_name(name: &str) -> bool {
         ".hg",
         ".svn",
         ".agents",
+        "_projr",
         ".codex",
         ".projects",
         "version",
@@ -128,6 +129,8 @@ pub(crate) fn project_target(
                 ".projr/config",
                 ".projr/source",
                 ".projr/BUILDLOG.md",
+                ".projr/manifests.csv",
+                ".projr/.projr",
             ] {
                 anyhow::ensure!(
                     !overlaps(target, &root.join(reserved)),

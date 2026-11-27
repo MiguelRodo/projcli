@@ -1,7 +1,12 @@
 //! Per-build environment values. Never mutates the parent process environment.
-use std::{collections::BTreeMap, ffi::{OsStr, OsString}, fs, process::Command};
 use anyhow::Context;
 use camino::Utf8Path;
+use std::{
+    collections::BTreeMap,
+    ffi::{OsStr, OsString},
+    fs,
+    process::Command,
+};
 
 // Intentionally no Debug implementation: values may include credentials.
 #[derive(Clone)]
@@ -13,42 +18,89 @@ pub(crate) struct RunEnvironment {
 
 impl RunEnvironment {
     pub(crate) fn inherited() -> Self {
-        Self { values: std::env::vars_os().map(|(key, value)| (normalize_key(&key), value)).collect(), working_directory: None, rscript: None }
+        Self {
+            values: std::env::vars_os()
+                .map(|(key, value)| (normalize_key(&key), value))
+                .collect(),
+            working_directory: None,
+            rscript: None,
+        }
     }
 
     pub(crate) fn resolve(explicit: Option<&str>, root: &Utf8Path) -> anyhow::Result<Self> {
         let mut environment = Self::inherited();
-        if let Some(profile) = explicit { environment.set("PROJR_PROFILE", profile); }
+        if let Some(profile) = explicit {
+            environment.set("PROJR_PROFILE", profile);
+        }
         // The caller has selected one effective proj profile list before any file reads.
-        let profiles = crate::profile::parse_active_profiles(environment.text("PROJR_PROFILE").unwrap_or_default());
+        // projr's environment profiles: Quarto (QUARTO_PROFILE, else profile.quarto)
+        // then projr ones, without duplicates (R/env.R:70-86).
+        let mut profiles: Vec<String> = match environment
+            .text("QUARTO_PROFILE")
+            .filter(|value| !value.trim().is_empty())
+        {
+            Some(value) => crate::profile::parse_active_profiles(value),
+            None => crate::profile::configured_profiles(root)?.quarto,
+        };
+        anyhow::ensure!(
+            profiles.iter().all(|name| name
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')),
+            "Invalid environment profile name"
+        );
+        for profile in crate::profile::parse_active_profiles(
+            environment.text("PROJR_PROFILE").unwrap_or_default(),
+        ) {
+            if !profiles.contains(&profile) {
+                profiles.push(profile);
+            }
+        }
+        profiles.retain(|name| name != "required");
         let mut files = vec![root.join("_environment.local")];
-        files.extend(profiles.iter().map(|profile| root.join(format!("_environment-{profile}"))));
+        files.extend(
+            profiles
+                .iter()
+                .map(|profile| root.join(format!("_environment-{profile}"))),
+        );
         files.push(root.join("_environment"));
         for file in files {
             if crate::yml::configuration_entry_exists(&file)? {
                 for (key, value) in crate::env::read_environment_file(&file)? {
-                    if environment.value(&key).is_none() { environment.set(&key, value); }
+                    if environment.value(&key).is_none() {
+                        environment.set(&key, value);
+                    }
                 }
             }
         }
         let required = root.join("_environment.required");
         if crate::yml::configuration_entry_exists(&required)? {
-            let text = fs::read_to_string(&required).context("Cannot read required environment file")?;
+            let text =
+                fs::read_to_string(&required).context("Cannot read required environment file")?;
             for (index, key) in crate::env::required_environment_keys(&text)? {
-                if environment.value(&key).is_none() { anyhow::bail!("Required environment variable is missing (entry {} in {required})", index + 1); }
+                if environment.value(&key).is_none() {
+                    anyhow::bail!(
+                        "Required environment variable is missing (entry {} in {required})",
+                        index + 1
+                    );
+                }
             }
         }
         Ok(environment)
     }
 
     pub(crate) fn value(&self, key: &str) -> Option<&OsStr> {
-        self.values.get(&normalize_key(OsStr::new(key))).map(OsString::as_os_str)
+        self.values
+            .get(&normalize_key(OsStr::new(key)))
+            .map(OsString::as_os_str)
     }
 
-    pub(crate) fn text(&self, key: &str) -> Option<&str> { self.value(key).and_then(OsStr::to_str) }
+    pub(crate) fn text(&self, key: &str) -> Option<&str> {
+        self.value(key).and_then(OsStr::to_str)
+    }
 
     pub(crate) fn set(&mut self, key: &str, value: impl Into<OsString>) {
-        self.values.insert(normalize_key(OsStr::new(key)), value.into());
+        self.values
+            .insert(normalize_key(OsStr::new(key)), value.into());
     }
 
     pub(crate) fn set_working_directory(&mut self, directory: std::path::PathBuf) {
@@ -62,25 +114,49 @@ impl RunEnvironment {
     pub(crate) fn command(&self, program: impl AsRef<OsStr>) -> Command {
         let program = program.as_ref();
         let selected = if program == OsStr::new("Rscript") {
-            self.rscript.as_deref().map(std::path::Path::as_os_str).unwrap_or(program)
-        } else {program};
+            self.rscript
+                .as_deref()
+                .map(std::path::Path::as_os_str)
+                .unwrap_or(program)
+        } else {
+            program
+        };
         let mut command = Command::new(selected);
         command.env_clear().envs(&self.values);
-        if let Some(directory) = &self.working_directory { command.current_dir(directory); }
-        if self.non_interactive() { command.stdin(std::process::Stdio::null()); }
+        if let Some(directory) = &self.working_directory {
+            command.current_dir(directory);
+        }
+        if self.non_interactive() {
+            command.stdin(std::process::Stdio::null());
+        }
         command
     }
 
     pub(crate) fn non_interactive(&self) -> bool {
-        self.text(crate::NON_INTERACTIVE_ENV).is_some_and(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+        self.text(crate::NON_INTERACTIVE_ENV)
+            .is_some_and(|value| value == "1" || value.eq_ignore_ascii_case("true"))
     }
 }
 
 fn normalize_key(key: &OsStr) -> OsString {
-    #[cfg(windows)] {
+    #[cfg(windows)]
+    {
         use std::os::windows::ffi::{OsStrExt, OsStringExt};
         // Preserve non-Unicode native keys; normalize the conventional ASCII key alphabet.
-        OsString::from_wide(&key.encode_wide().map(|value| if (97..=122).contains(&value) { value - 32 } else { value }).collect::<Vec<_>>())
+        OsString::from_wide(
+            &key.encode_wide()
+                .map(|value| {
+                    if (97..=122).contains(&value) {
+                        value - 32
+                    } else {
+                        value
+                    }
+                })
+                .collect::<Vec<_>>(),
+        )
     }
-    #[cfg(not(windows))] { key.to_owned() }
+    #[cfg(not(windows))]
+    {
+        key.to_owned()
+    }
 }

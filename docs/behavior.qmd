@@ -284,7 +284,8 @@ One effective profile list is selected before config/environment reads: CLI,
 nonempty PROJR_PROFILE, then the `profile` key of the local file, then of the
 base file (projr `R/profile.R:223-270`). Earlier profiles still win; local config is
 highest. Named profile files cannot set the key. QUARTO_PROFILE no longer selects
-projr profiles. The key's `quarto` entry is frozen into the run context when
+projr profiles, though it (or `profile.quarto`) selects `_environment-<profile>`
+files before the projr profiles, as in projr. The key's `quarto` entry is frozen into the run context when
 QUARTO_PROFILE is unset; applying it to renderers is a known gap (engines slice).
 The private per-run PROJ_RUN_CONTEXT snapshot carries only root, effective profiles,
 validated final directory mappings, active version and mode. Child path/version
