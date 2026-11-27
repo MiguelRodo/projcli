@@ -32,9 +32,12 @@ def case(binary, workspace, artifacts, initialized, mode, failing):
         result,_=invoke(binary,root,env,'init','directories')
         assert result.returncode==0,result.stderr
         assert not (root/'.git').exists() and not (root/'VERSION').exists()
-        assert all((root/directory).is_dir() for directory in ['_raw_data','_tmp','_output']), 'init must create its declared directories'
+        assert all((root/directory).is_dir() for directory in ['_raw_data','_tmp','_output','docs']), 'init must create its declared directories'
         assert not witness.exists(), 'init unexpectedly invoked Git'
-        config=(root/'_projr.yml').read_text().replace('directories:\n','directories:\n  docs: {path: _docs}\n',1)
+        # projr's starter declares docs: docs; this fixture redirects it to _docs.
+        config=(root/'_projr.yml').read_text()
+        assert '  docs:\n    path: docs\n' in config, config
+        config=config.replace('  docs:\n    path: docs\n','  docs: {path: _docs}\n',1)
         assert 'scripts:' not in config
     else:
         config='directories:\n  raw-data: {path: _raw_data}\n  cache: {path: _tmp}\n  output: {path: _output}\n  docs: {path: _docs}\n'
