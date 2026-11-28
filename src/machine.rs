@@ -73,7 +73,7 @@ pub(crate) fn emit_argument_error() -> i32 {
 pub(crate) fn emit_capabilities() -> i32 {
     emit(Ok(json!({
         "capability_version": CAPABILITY_VERSION,
-        "machine_commands": ["capabilities", "init plan", "init readme", "init license", "init renv", "history", "restore", "get local", "get github", "remote restore", "remote verify", "remote versions", "remote download", "remote store", "remote github assets", "remote github upload", "remote github download", "remote github upload-directory", "remote github upload-metadata", "remote github download-directory", "path get", "version get", "version set", "yml read", "yml get", "yml parameter", "init", "ignore add", "ignore remove", "build", "build-dev"],
+        "machine_commands": ["capabilities", "init plan", "init readme", "init license", "init renv", "history", "restore", "source", "restore-repo", "get local", "get github", "remote restore", "remote verify", "remote versions", "remote download", "remote store", "remote github assets", "remote github upload", "remote github download", "remote github upload-directory", "remote github upload-metadata", "remote github download-directory", "path get", "version get", "version set", "yml read", "yml get", "yml parameter", "init", "ignore add", "ignore remove", "build", "build-dev"],
         "non_interactive": true,
         "path_targets": ["safe", "final"],
         "path_fragments": true,
@@ -93,6 +93,19 @@ pub(crate) fn emit_capabilities() -> i32 {
 pub(crate) fn run(cli: &Cli) -> i32 {
     if matches!(&cli.command, Commands::Capabilities) {
         return emit_capabilities();
+    }
+    if let command @ Commands::RestoreRepo { .. } = &cli.command {
+        return emit(
+            crate::restore_repo(command)
+                .map(|result| json!({"restore_repo": result}))
+                .map_err(|error| {
+                    eprintln!("Restore-repo failed: {error:#}");
+                    failure(
+                        ErrorCode::CommandFailed,
+                        "Restore-repo failed; inspect stderr for clone or fetch details.",
+                    )
+                }),
+        );
     }
     let root = match proj::resolve_project_root(cli.project.as_deref()) {
         Ok(root) => root,
@@ -159,6 +172,26 @@ pub(crate) fn run(cli: &Cli) -> i32 {
                     "Restore failed; inspect stderr for installation/recovery details.",
                 )
             }),
+        command @ Commands::Source { .. } => {
+            // Machine calls never prompt: --conflict or the configured policy decides.
+            let _guard = {
+                let mut guard = proj::EnvGuard::new();
+                let _ = guard.track_and_set(proj::NON_INTERACTIVE_ENV, "true");
+                guard
+            };
+            crate::source_inputs(&root, command)
+                .map(|result| json!({"source": result}))
+                .map_err(|error| {
+                    eprintln!("Source failed: {error:#}");
+                    failure(
+                        ErrorCode::CommandFailed,
+                        "Source failed; inspect stderr for conflicts or installation details.",
+                    )
+                })
+        }
+        Commands::RestoreRepo { .. } => {
+            unreachable!("restore-repo handled before project selection")
+        }
         Commands::Get { command } => crate::get_build(&root, command)
             .map(|result| json!({"get": result}))
             .map_err(|error| {

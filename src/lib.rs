@@ -65,6 +65,9 @@ pub mod github_zip;
 /// Shared verified download backend for restore and get.
 pub mod get;
 
+/// Raw-input sources: `build.source`, `proj source` and `proj restore-repo`.
+pub mod source;
+
 pub mod restore;
 
 /// Configured ordinary publication, separate from CAS storage.

@@ -179,6 +179,25 @@ impl GithubReleaseClient {
             .call()
             .map_err(|_| anyhow::anyhow!("GitHub API request failed"))
     }
+    /// Read-only: the login of the token's user (projr `gh::gh_whoami()`).
+    pub(crate) fn login(&self) -> anyhow::Result<String> {
+        #[derive(Deserialize)]
+        struct User {
+            login: String,
+        }
+        let response = self.get("/user", "application/vnd.github+json")?;
+        let status = response.status().as_u16();
+        anyhow::ensure!(status == 200, "GitHub user lookup failed (HTTP {status})");
+        let login = json::<User>(response)?.login;
+        anyhow::ensure!(
+            !login.is_empty()
+                && login
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-'),
+            "GitHub returned an invalid user login"
+        );
+        Ok(login)
+    }
     /// Release creation targets this branch's head (projr `branch`); an existing
     /// Release keeps its tag target.
     pub(crate) fn with_target_branch(mut self, branch: Option<String>) -> Self {

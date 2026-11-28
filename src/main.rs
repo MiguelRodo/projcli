@@ -76,6 +76,46 @@ pub enum Commands {
         #[arg(long)]
         profile: Option<String>,
     },
+    /// Fetch raw inputs from the remotes that supply them (projr projr_source).
+    Source {
+        /// Labels to fetch (repeat or comma-separate); default: each source's selection.
+        #[arg(long = "label", value_delimiter = ',')]
+        labels: Vec<String>,
+        /// A registered remote: title, or <type>:<title> when both types use it.
+        #[arg(long)]
+        remote: Option<String>,
+        /// latest, x, x.y, x.y.z, or current (this checkout's recorded inputs).
+        #[arg(long)]
+        version: Option<String>,
+        /// if-change (default here), always, if-empty or never.
+        #[arg(long)]
+        cue: Option<String>,
+        /// sync-diff, sync-purge, download-all or download-missing.
+        #[arg(long)]
+        strategy: Option<String>,
+        /// manifest, file or none.
+        #[arg(long)]
+        inspect: Option<String>,
+        /// error, local (keep changed local files) or remote (replace them).
+        /// Without it, a terminal asks; otherwise the configured policy applies.
+        #[arg(long)]
+        conflict: Option<String>,
+        #[arg(long)]
+        profile: Option<String>,
+    },
+    /// Clone a GitHub repository, then fetch its raw inputs (projr projr_restore_repo).
+    RestoreRepo {
+        /// owner/repo, or repo for one owned by the authenticated user.
+        repo: String,
+        /// Directory to clone into; default: the repository name.
+        path: Option<camino::Utf8PathBuf>,
+        /// Labels to fetch (repeat or comma-separate).
+        #[arg(long = "label", value_delimiter = ',')]
+        labels: Vec<String>,
+        /// A registered remote: title, or <type>:<title>.
+        #[arg(long)]
+        remote: Option<String>,
+    },
     /// Copy directories from another projr build, verified against its manifest.
     Get {
         #[command(subcommand)]
@@ -598,6 +638,17 @@ fn main() {
     if matches!(&cli.command, Commands::Capabilities) {
         std::process::exit(machine::emit_capabilities());
     }
+    // restore-repo creates a project; it needs no current one.
+    if let command @ Commands::RestoreRepo { .. } = &cli.command {
+        match restore_repo(command) {
+            Ok(result) => println!(
+                "{}",
+                serde_json::to_string_pretty(&result).expect("Restore result is serializable")
+            ),
+            Err(error) => fail(format_args!("Restore-repo failed: {error:#}")),
+        }
+        return;
+    }
     let mut interaction_guard = proj::EnvGuard::new();
     if cli.non_interactive {
         interaction_guard
@@ -662,6 +713,16 @@ fn main() {
             ),
             Err(error) => fail(format_args!("Get failed: {error:#}")),
         },
+        command @ Commands::Source { .. } => match source_inputs(&root, command) {
+            Ok(result) => println!(
+                "{}",
+                serde_json::to_string_pretty(&result).expect("Source result is serializable")
+            ),
+            Err(error) => fail(format_args!("Source failed: {error:#}")),
+        },
+        Commands::RestoreRepo { .. } => {
+            unreachable!("restore-repo handled before project selection")
+        }
         Commands::Remote {
             command: command @ RemoteCommands::Restore { .. },
         } => match configured_restore(&root, command) {
@@ -1447,6 +1508,62 @@ fn restore_build(
             profile: profile.clone(),
         },
     )
+}
+
+/// `proj source`. A terminal is asked about conflicting local files unless
+/// `--conflict` or `--non-interactive` is given.
+fn source_inputs(
+    root: &camino::Utf8Path,
+    command: &Commands,
+) -> anyhow::Result<proj::source::SourceOutcome> {
+    let Commands::Source {
+        labels,
+        remote,
+        version,
+        cue,
+        strategy,
+        inspect,
+        conflict,
+        profile,
+    } = command
+    else {
+        anyhow::bail!("Expected source command");
+    };
+    let interactive =
+        std::io::IsTerminal::is_terminal(&std::io::stdin()) && !proj::is_non_interactive();
+    proj::source::source(
+        root,
+        &proj::source::SourceRequest {
+            labels: labels.clone(),
+            remote: remote.clone(),
+            version: version.clone(),
+            cue: cue.clone(),
+            strategy: strategy.clone(),
+            inspect: inspect.clone(),
+            conflict: conflict.clone(),
+            profile: profile.clone(),
+        },
+        interactive,
+    )
+}
+
+/// `proj restore-repo`.
+fn restore_repo(command: &Commands) -> anyhow::Result<proj::source::RestoreRepoOutcome> {
+    let Commands::RestoreRepo {
+        repo,
+        path,
+        labels,
+        remote,
+    } = command
+    else {
+        anyhow::bail!("Expected restore-repo command");
+    };
+    proj::source::restore_repo(&proj::source::RestoreRepoRequest {
+        repo: repo.clone(),
+        path: path.clone(),
+        labels: labels.clone(),
+        remote: remote.clone(),
+    })
 }
 
 /// `proj get local|github`.

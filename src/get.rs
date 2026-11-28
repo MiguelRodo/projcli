@@ -65,7 +65,8 @@ pub(crate) fn check_version(version: &str) -> Result<String> {
     Ok(v_add(bare))
 }
 
-fn version_key(version: &str) -> Vec<u64> {
+/// Numeric version components for ordering (`v1.2.3-1` -> `[1, 2, 3, 1]`).
+pub(crate) fn version_key(version: &str) -> Vec<u64> {
     version
         .strip_prefix('v')
         .unwrap_or(version)
@@ -664,10 +665,94 @@ pub(crate) struct Install<'a> {
     pub(crate) option: &'a str,
 }
 
-struct Stage {
-    index: usize,
-    directory: tempfile::TempDir,
-    existing: Files,
+/// One destination staged beside itself: `<directory>/new` holds the
+/// replacement; `existing` records the destination's files when staging began.
+pub(crate) struct Stage {
+    pub(crate) index: usize,
+    pub(crate) directory: tempfile::TempDir,
+    pub(crate) existing: Files,
+}
+
+impl Stage {
+    /// A private staging directory beside `path`, on the same filesystem so the
+    /// replacement is a rename.
+    pub(crate) fn beside(path: &Utf8Path, index: usize, existing: Files) -> Result<Self> {
+        let parent = path.parent().context("Destination has no parent")?;
+        fs::create_dir_all(parent).with_context(|| format!("Cannot create {parent}"))?;
+        crate::path_safety::resolve_path(parent.as_std_path(), true)?;
+        Ok(Self {
+            index,
+            directory: tempfile::Builder::new()
+                .prefix(".projr-get-")
+                .tempdir_in(parent)?,
+            existing,
+        })
+    }
+
+    /// The staged replacement directory (`<directory>/new`).
+    pub(crate) fn new_dir(&self) -> Result<Utf8PathBuf> {
+        Utf8PathBuf::try_from(self.directory.path().join("new"))
+            .context("Staging path must be UTF-8")
+    }
+}
+
+/// Replaces every staged destination after checking that none changed since it
+/// was staged. Replacement is a rename-swap; if a later swap fails, earlier
+/// labels are restored and any original that cannot be moved back is kept and
+/// its path reported.
+pub(crate) fn commit(stages: Vec<Stage>, labels: &[String], paths: &[Utf8PathBuf]) -> Result<()> {
+    for stage in &stages {
+        let path = &paths[stage.index];
+        anyhow::ensure!(
+            hash_dir(path, &labels[stage.index])? == stage.existing,
+            "{path} changed while restoring; nothing was replaced"
+        );
+    }
+    let mut moved: Vec<usize> = Vec::new();
+    let mut installed: Vec<usize> = Vec::new();
+    let mut failure = None;
+    for (position, stage) in stages.iter().enumerate() {
+        let path = &paths[stage.index];
+        if !missing(path)? {
+            if let Err(error) = fs::rename(path, stage.directory.path().join("original")) {
+                failure = Some(
+                    anyhow::Error::from(error).context(format!("Could not move existing {path}")),
+                );
+                break;
+            }
+            moved.push(position);
+        }
+        if let Err(error) = fs::rename(stage.directory.path().join("new"), path) {
+            failure = Some(anyhow::Error::from(error).context(format!("Could not install {path}")));
+            break;
+        }
+        installed.push(position);
+    }
+    let Some(failure) = failure else {
+        // Every destination is replaced; a leftover stage is not a failure.
+        drop(stages);
+        return Ok(());
+    };
+    let mut kept = Vec::new();
+    for position in installed {
+        let _ = fs::remove_dir_all(&paths[stages[position].index]);
+    }
+    for (position, stage) in stages.into_iter().enumerate() {
+        let path = &paths[stage.index];
+        if moved.contains(&position)
+            && fs::rename(stage.directory.path().join("original"), path).is_err()
+        {
+            kept.push(format!(
+                "{}",
+                stage.directory.keep().join("original").display()
+            ));
+        }
+    }
+    if kept.is_empty() {
+        Err(failure)
+    } else {
+        Err(failure.context(format!("Original files retained in {}", kept.join(", "))))
+    }
 }
 
 /// Stages every label beside its destination, verifying each file's MD5 against
@@ -747,21 +832,10 @@ pub(crate) fn install(request: Install<'_>, transfer: &Transfer<'_>) -> Result<V
                 );
             }
             if !staged {
-                let parent = path.parent().context("Destination has no parent")?;
-                fs::create_dir_all(parent).with_context(|| format!("Cannot create {parent}"))?;
-                crate::path_safety::resolve_path(parent.as_std_path(), true)?;
-                stages.push(Stage {
-                    index,
-                    directory: tempfile::Builder::new()
-                        .prefix(".projr-get-")
-                        .tempdir_in(parent)?,
-                    existing: existing.clone(),
-                });
+                stages.push(Stage::beside(path, index, existing.clone())?);
                 staged = true;
             }
-            let stage = stages.last().unwrap();
-            let dest = Utf8PathBuf::try_from(stage.directory.path().join("new"))
-                .context("Staging path must be UTF-8")?;
+            let dest = stages.last().unwrap().new_dir()?;
             fs::create_dir(&dest)?;
             if fetch(
                 source,
@@ -802,59 +876,9 @@ pub(crate) fn install(request: Install<'_>, transfer: &Transfer<'_>) -> Result<V
             });
         }
     }
-    // Every label is staged; nothing has changed yet. Fail if a destination changed.
-    for stage in &stages {
-        let path = &request.paths[stage.index];
-        anyhow::ensure!(
-            hash_dir(path, &request.labels[stage.index])? == stage.existing,
-            "{path} changed while restoring; nothing was replaced"
-        );
-    }
-    let mut moved: Vec<usize> = Vec::new();
-    let mut installed: Vec<usize> = Vec::new();
-    let mut failure = None;
-    for (position, stage) in stages.iter().enumerate() {
-        let path = &request.paths[stage.index];
-        if !missing(path)? {
-            if let Err(error) = fs::rename(path, stage.directory.path().join("original")) {
-                failure = Some(
-                    anyhow::Error::from(error).context(format!("Could not move existing {path}")),
-                );
-                break;
-            }
-            moved.push(position);
-        }
-        if let Err(error) = fs::rename(stage.directory.path().join("new"), path) {
-            failure = Some(anyhow::Error::from(error).context(format!("Could not install {path}")));
-            break;
-        }
-        installed.push(position);
-    }
-    let Some(failure) = failure else {
-        // Every destination is replaced; a leftover stage is not a failure.
-        drop(stages);
-        return Ok(outcomes);
-    };
-    let mut kept = Vec::new();
-    for position in installed {
-        let _ = fs::remove_dir_all(&request.paths[stages[position].index]);
-    }
-    for (position, stage) in stages.into_iter().enumerate() {
-        let path = &request.paths[stage.index];
-        if moved.contains(&position)
-            && fs::rename(stage.directory.path().join("original"), path).is_err()
-        {
-            kept.push(format!(
-                "{}",
-                stage.directory.keep().join("original").display()
-            ));
-        }
-    }
-    if kept.is_empty() {
-        Err(failure)
-    } else {
-        Err(failure.context(format!("Original files retained in {}", kept.join(", "))))
-    }
+    // Every label is staged; nothing has changed yet.
+    commit(stages, request.labels, request.paths)?;
+    Ok(outcomes)
 }
 
 /// A lenient view of a remote definition in a producer's configuration: only the
@@ -1422,6 +1446,69 @@ fn repository_name(text: &str) -> bool {
 /// Release directly. Without `--version`, the producer's completed build (or the
 /// remote's advertised project version) is used.
 pub fn get(root: &Utf8Path, provider: Provider, request: &GetRequest) -> Result<GetOutcome> {
+    let (_guard, workspace) = workspace()?;
+    let transfer = Transfer {
+        workspace: &workspace,
+    };
+    let Resolved {
+        sources,
+        version,
+        labels,
+    } = resolve(root, provider, request, &transfer)?
+        .context("No published manifest found for the selected source.")?;
+    anyhow::ensure!(!labels.is_empty(), "No published labels for {version}.");
+    let out = physical(&request.out)?;
+    let paths: Vec<Utf8PathBuf> = labels.iter().map(|label| out.join(label)).collect();
+    let mut protected = Vec::new();
+    for source in &sources {
+        match &source.kind {
+            Kind::Local { base, .. } => protected.push(base.clone()),
+            Kind::Project { root, dirs } => {
+                protected.push(root.clone());
+                protected.extend(dirs.values().cloned());
+            }
+            _ => {}
+        }
+    }
+    // The current project's .git, .projr and _projr are never destinations.
+    check_destinations(Some(root), &paths, &protected)?;
+    fs::create_dir_all(&out).with_context(|| format!("Cannot create {out}"))?;
+    let labels = install(
+        Install {
+            sources: &sources,
+            labels: &labels,
+            paths: &paths,
+            version: &version,
+            overwrite: request.overwrite,
+            option: "--overwrite",
+        },
+        &transfer,
+    )?;
+    Ok(GetOutcome { version, labels })
+}
+
+/// The manifest sources, completed version and labels a read uses, with only
+/// metadata downloaded into the workspace (projr `.get_resolve`,
+/// SATVILab/projr@5f915ef `R/get.R:95-340`).
+pub(crate) struct Resolved {
+    /// Manifest sources in priority order.
+    pub(crate) sources: Vec<Source>,
+    /// The requested version, else the producer's completed build, else the
+    /// first source's advertised project version.
+    pub(crate) version: String,
+    /// The requested labels, else those recorded at `version`.
+    pub(crate) labels: Vec<String>,
+}
+
+/// Resolves a `proj get` request without installing anything. None when no
+/// selected source has published a manifest (a missing Release or local
+/// archive); listing, download and parse failures are errors.
+pub(crate) fn resolve(
+    root: &Utf8Path,
+    provider: Provider,
+    request: &GetRequest,
+    transfer: &Transfer<'_>,
+) -> Result<Option<Resolved>> {
     let direct_flag = if provider == Provider::Local {
         "--path"
     } else {
@@ -1437,10 +1524,7 @@ pub fn get(root: &Utf8Path, provider: Provider, request: &GetRequest) -> Result<
     );
     check_labels(&request.labels)?;
     let version = request.version.as_deref().map(check_version).transpose()?;
-    let (_guard, workspace) = workspace()?;
-    let transfer = Transfer {
-        workspace: &workspace,
-    };
+    let workspace = transfer.workspace;
     let mut producer = if request.remote.is_some() {
         let profiles = crate::run_context::select_profiles(request.profile.as_deref(), root)?;
         local_producer(root, Some(&profiles.join(",")), version.as_deref())?
@@ -1472,7 +1556,7 @@ pub fn get(root: &Utf8Path, provider: Provider, request: &GetRequest) -> Result<
                 branch,
                 version.as_deref(),
                 &request.labels,
-                &workspace,
+                workspace,
             )?
         } else {
             Producer {
@@ -1625,19 +1709,18 @@ pub fn get(root: &Utf8Path, provider: Provider, request: &GetRequest) -> Result<
                         archive: view.archive,
                         direct_tag: request.tag.is_some() && request.remote.is_none(),
                     },
-                    &transfer,
+                    transfer,
                 )? {
                     sources.push(source);
                 }
             }
         }
     }
-    anyhow::ensure!(
-        !sources.is_empty(),
-        "No published manifest found for the selected source."
-    );
+    if sources.is_empty() {
+        return Ok(None);
+    }
     if version.is_none() {
-        version = source_version(&sources[0], &transfer)?;
+        version = source_version(&sources[0], transfer)?;
     }
     let version =
         version.context("No completed build recorded at this source. Supply --version.")?;
@@ -1680,34 +1763,10 @@ pub fn get(root: &Utf8Path, provider: Provider, request: &GetRequest) -> Result<
             }
         }
     }
-    anyhow::ensure!(!labels.is_empty(), "No published labels for {version}.");
     check_labels(&labels)?;
-    let out = physical(&request.out)?;
-    let paths: Vec<Utf8PathBuf> = labels.iter().map(|label| out.join(label)).collect();
-    let mut protected = Vec::new();
-    for source in &sources {
-        match &source.kind {
-            Kind::Local { base, .. } => protected.push(base.clone()),
-            Kind::Project { root, dirs } => {
-                protected.push(root.clone());
-                protected.extend(dirs.values().cloned());
-            }
-            _ => {}
-        }
-    }
-    // The current project's .git, .projr and _projr are never destinations.
-    check_destinations(Some(root), &paths, &protected)?;
-    fs::create_dir_all(&out).with_context(|| format!("Cannot create {out}"))?;
-    let labels = install(
-        Install {
-            sources: &sources,
-            labels: &labels,
-            paths: &paths,
-            version: &version,
-            overwrite: request.overwrite,
-            option: "--overwrite",
-        },
-        &transfer,
-    )?;
-    Ok(GetOutcome { version, labels })
+    Ok(Some(Resolved {
+        sources,
+        version,
+        labels,
+    }))
 }

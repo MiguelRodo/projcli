@@ -68,46 +68,6 @@ pub(crate) fn local_only_fields(value: &Value) -> anyhow::Result<()> {
     }
     Ok(())
 }
-/// Validate projr 0.9 `get` fetch settings (SATVILab/projr@5f915ef
-/// `R/misc.R:787-797`, `R/yml-check.R:437-456`). They are accepted for a later
-/// `build.source` slice; nothing fetches with them yet.
-fn fetch_settings(get: &Value) -> anyhow::Result<()> {
-    let get = get.as_object().context("get must be a mapping")?;
-    for (key, value) in get {
-        let text = value
-            .as_str()
-            .with_context(|| format!("get.{key} must be a string"))?;
-        let allowed: &[&str] =
-            match key.as_str() {
-                "version" => {
-                    anyhow::ensure!(
-                        text == "latest"
-                            || (text.split('.').count() <= 3
-                                && text.split('.').all(|part| !part.is_empty()
-                                    && part.bytes().all(|b| b.is_ascii_digit()))),
-                        "get.version must be latest or an x, x.y or x.y.z version"
-                    );
-                    continue;
-                }
-                "cue" => &["if-empty", "never", "if-change", "always"],
-                "inspect" => &["manifest", "file", "none"],
-                "strategy" => &[
-                    "sync-diff",
-                    "sync-purge",
-                    "download-all",
-                    "download-missing",
-                ],
-                "conflict" => &["error", "local", "remote"],
-                _ => anyhow::bail!("get accepts version, cue, inspect, strategy and conflict"),
-            };
-        anyhow::ensure!(
-            allowed.contains(&text),
-            "get.{key} must be one of {}",
-            allowed.join(", ")
-        );
-    }
-    Ok(())
-}
 pub(crate) fn definition(value: &Value) -> anyhow::Result<Definition> {
     for key in ["manifest", "manifest-style", "manifest-format"] {
         anyhow::ensure!(
@@ -144,7 +104,13 @@ pub(crate) fn definition(value: &Value) -> anyhow::Result<Definition> {
         }
     }
     if let Some(get) = &parsed.get {
-        fetch_settings(get)?;
+        // projr 0.9 fetch settings, used by build.source and proj source.
+        let get = get.as_object().context("get must be a mapping")?;
+        anyhow::ensure!(
+            !get.contains_key("content"),
+            "get accepts version, cue, inspect, strategy and conflict"
+        );
+        crate::source::check_fetch(get, "get")?;
     }
     // Restore does not execute upload policy. Keep those nodes typed but do not
     // silently enable them in builds (publication validates its executable subset).

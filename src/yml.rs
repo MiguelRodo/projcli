@@ -304,6 +304,10 @@ pub struct BuildConfig {
     /// projr 0.9 `build.dest`: remote names (`archive`, `github:archive`), a list,
     /// or a mapping with global and per-archive `content`/`cue`/`inspect`/`strategy`.
     pub dest: Option<Value>,
+    /// projr 0.9 `build.source`: the remotes that supply raw inputs, in the
+    /// `build.dest` forms with `content`/`version`/`cue`/`inspect`/`strategy`/
+    /// `conflict` settings. Production builds fetch before hooks.
+    pub source: Option<Value>,
     #[serde(default, deserialize_with = "script_list")]
     pub scripts: Option<Vec<String>>,
     #[serde(default)]
@@ -527,6 +531,9 @@ pub struct DevConfig {
     /// projr `dev.pipeline`; when omitted, development builds inherit
     /// `build.pipeline`'s scripts but not its hooks.
     pub pipeline: Option<crate::pipeline::Selection>,
+    /// projcli: `true` lets development builds fetch `build.source` inputs; they
+    /// do not by default (decision D3, a deliberate difference from projr).
+    pub source: Option<bool>,
     pub old_dev_remove: Option<bool>,
 }
 
@@ -756,6 +763,7 @@ impl ProjConfig {
         // Names/subsets fail before any build mutation; transport credentials are not loaded.
         let destinations = crate::remote_registry::selected(self)?;
         crate::pipeline::validate(self)?;
+        crate::source::configured(self)?;
 
         // 1. Process explicit user configurations
         for (label, config) in &self.directories {
@@ -965,16 +973,18 @@ fn make_absolute(root: &Utf8Path, path: &Utf8Path) -> Utf8PathBuf {
 }
 
 /// Merge a higher-precedence configuration layer. As in projr, a layer's
-/// `build.dest` replaces the whole lower value rather than merging mappings
-/// (SATVILab/projr@5f915ef `R/yml.R:79-88`).
+/// `build.dest` or `build.source` replaces the whole lower value rather than
+/// merging mappings (SATVILab/projr@5f915ef `R/yml.R:79-88`).
 fn merge_layer(mut target: Value, source: Value) -> Value {
-    if source
-        .get("build")
-        .and_then(|build| build.get("dest"))
-        .is_some_and(|dest| !dest.is_null())
-        && let Some(build) = target.get_mut("build").and_then(Value::as_object_mut)
-    {
-        build.remove("dest");
+    for key in ["dest", "source"] {
+        if source
+            .get("build")
+            .and_then(|build| build.get(key))
+            .is_some_and(|value| !value.is_null())
+            && let Some(build) = target.get_mut("build").and_then(Value::as_object_mut)
+        {
+            build.remove(key);
+        }
     }
     deep_merge(target, source)
 }
