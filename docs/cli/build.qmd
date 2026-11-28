@@ -13,6 +13,13 @@ Document renderers and hooks keep their own execution rules.
 
 - `--major`, `--minor`, `--patch`: Specifies the version bump strategy for a production build.
 - `--profile`: An optional profile to configure execution context.
+- `--pipeline NAME|GLOB|false`: Pipelines to run, comma-separated, in place of
+  `build.pipeline` (`proj build`) or `dev.pipeline` (`proj build-dev`); `false`
+  runs none. In a development build, pipeline hooks run only with this flag or
+  `dev.pipeline`. See [Pipelines](../configuration.qmd#pipelines).
+- `--scripts SCRIPT...` (`proj build-dev` only): Scripts in place of `dev.scripts`
+  and `build.scripts`, still combined with any selected pipeline; `--scripts`
+  with no value runs no inline scripts.
 - `--description`: An optional description string for the build commit. If omitted during a production build that involves git commits, the CLI will interactively prompt for a one-line description when running inside a valid terminal session.
 
 ## Features
@@ -34,7 +41,7 @@ Document renderers and hooks keep their own execution rules.
   - If no `build.scripts` is provided, the engine auto-discovers build targets.
   - Will execute a Quarto project if `_quarto.yml` exists, or a Bookdown project if `_bookdown.yml` exists.
   - Otherwise, it falls back to a shallow workspace sweep and runs `.qmd`, `.Rmd`/`.rmd`, `.R`/`.r` and `.py` files together in alphabetical order, as projr does (`.py` is a projcli addition). Like projr, it skips `README.Rmd`, `renv_repos.R`, R scripts whose names start with `_`, and files configured as build or dev hooks.
-- **Hooks:** Production builds run `build.hooks`; development builds run only `dev.hooks`.
+- **Hooks:** Production builds run `build.hooks`; development builds run only `dev.hooks`. Selected [pipelines](../configuration.qmd#pipelines) add their scripts and hooks; a development build that inherits `build.pipeline` runs its scripts but not its hooks.
 
 ## Isolation
 

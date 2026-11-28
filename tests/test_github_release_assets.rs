@@ -1111,10 +1111,6 @@ fn restore_command(root: &camino::Utf8Path, base: &str) -> Command {
             "restore",
             "--destination",
             "data",
-            "--max-bytes",
-            "100000",
-            "--max-expanded-bytes",
-            "100000",
             "--clear",
         ]);
     command

@@ -9,6 +9,8 @@ pub mod git;
 pub mod ignore;
 pub mod init;
 pub mod init_setup;
+/// projr named pipelines selected by `build.pipeline`, `dev.pipeline` or `--pipeline`.
+pub mod pipeline;
 pub mod profile;
 mod r_housekeeping;
 pub mod snapshot_format;

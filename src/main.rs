@@ -75,12 +75,6 @@ pub enum Commands {
         clear: bool,
         #[arg(long)]
         profile: Option<String>,
-        /// Maximum compressed bytes per GitHub asset.
-        #[arg(long, default_value_t = DEFAULT_MAX_BYTES)]
-        max_bytes: u64,
-        /// Maximum expanded bytes per GitHub ZIP.
-        #[arg(long, default_value_t = DEFAULT_MAX_EXPANDED_BYTES)]
-        max_expanded_bytes: u64,
     },
     /// Copy directories from another projr build, verified against its manifest.
     Get {
@@ -141,6 +135,10 @@ pub enum Commands {
         /// Clear final output immediately before/after analysis; preview never clears it.
         #[arg(long, value_parser = ["none", "pre", "post"])]
         output_clear_stage: Option<String>,
+        /// Pipelines to run (comma-separated names or globs under `pipelines`), or
+        /// `false` for none; replaces build.pipeline for this build.
+        #[arg(long, value_name = "NAME|GLOB|false", value_parser = parse_pipeline)]
+        pipeline: Option<proj::pipeline::Selection>,
     },
     /// Dev Build operations
     BuildDev {
@@ -153,13 +151,17 @@ pub enum Commands {
         /// Clear final output immediately before/after analysis; preview never clears it.
         #[arg(long, value_parser = ["none", "pre", "post"])]
         output_clear_stage: Option<String>,
+        /// Pipelines to run (comma-separated names or globs under `pipelines`), or
+        /// `false` for none; replaces dev.pipeline and also runs the pipelines' hooks.
+        #[arg(long, value_name = "NAME|GLOB|false", value_parser = parse_pipeline)]
+        pipeline: Option<proj::pipeline::Selection>,
+        /// Scripts (paths, globs or `!exclusions`) in place of dev.scripts and
+        /// build.scripts; they still combine with a selected pipeline. `--scripts`
+        /// with no value runs no scripts.
+        #[arg(long, num_args = 0.., value_name = "SCRIPT")]
+        scripts: Option<Vec<String>>,
     },
 }
-
-/// GitHub's per-asset size limit, the default compressed budget.
-const DEFAULT_MAX_BYTES: u64 = 2 * 1024 * 1024 * 1024;
-/// Default expanded budget for one ZIP.
-const DEFAULT_MAX_EXPANDED_BYTES: u64 = 16 * 1024 * 1024 * 1024;
 
 /// `proj get` sources (projr `projr_get_local` and `projr_get_github`).
 #[derive(Subcommand)]
@@ -209,12 +211,10 @@ pub struct GetCommon {
     /// Profiles for this project's configuration (--remote).
     #[arg(long)]
     profile: Option<String>,
-    /// Maximum compressed bytes per GitHub asset.
-    #[arg(long, default_value_t = DEFAULT_MAX_BYTES)]
-    max_bytes: u64,
-    /// Maximum expanded bytes per GitHub ZIP.
-    #[arg(long, default_value_t = DEFAULT_MAX_EXPANDED_BYTES)]
-    max_expanded_bytes: u64,
+}
+
+fn parse_pipeline(text: &str) -> Result<proj::pipeline::Selection, String> {
+    proj::pipeline::Selection::parse_argument(text).map_err(|error| error.to_string())
 }
 
 /// Remote operations reuse registered definitions or explicit ordinary/local arguments.
@@ -815,6 +815,7 @@ fn main() {
             description,
             execution_dir,
             output_clear_stage,
+            pipeline,
         } => {
             if let Some(root) = proj::root() {
                 let mode = if *major {
@@ -857,6 +858,10 @@ fn main() {
                         .map(proj::OutputClearStage::parse)
                         .transpose()
                         .expect("clap validates clear stage"),
+                    &proj::BuildSelection {
+                        pipeline: pipeline.clone(),
+                        scripts: None,
+                    },
                 ) {
                     fail(format_args!("Build failed: {:#}", e));
                 } else {
@@ -870,6 +875,8 @@ fn main() {
             profile,
             execution_dir,
             output_clear_stage,
+            pipeline,
+            scripts,
         } => {
             if let Some(root) = proj::root() {
                 if let Err(e) = proj::build_project_with_policies(
@@ -883,6 +890,17 @@ fn main() {
                         .map(proj::OutputClearStage::parse)
                         .transpose()
                         .expect("clap validates clear stage"),
+                    &proj::BuildSelection {
+                        pipeline: pipeline.clone(),
+                        // projr trims entries and drops empty ones.
+                        scripts: scripts.as_ref().map(|scripts| {
+                            scripts
+                                .iter()
+                                .map(|script| script.trim().to_owned())
+                                .filter(|script| !script.is_empty())
+                                .collect()
+                        }),
+                    },
                 ) {
                     fail(format_args!("Build failed: {:#}", e));
                 } else {
@@ -1415,8 +1433,6 @@ fn restore_build(
         destination,
         clear,
         profile,
-        max_bytes,
-        max_expanded_bytes,
     } = command
     else {
         anyhow::bail!("Expected restore command");
@@ -1429,8 +1445,6 @@ fn restore_build(
             destination: Some(destination.clone()),
             clear: *clear,
             profile: profile.clone(),
-            max_bytes: *max_bytes,
-            max_expanded_bytes: *max_expanded_bytes,
         },
     )
 }
@@ -1465,8 +1479,6 @@ fn get_build(
             out: common.out.clone(),
             overwrite: common.overwrite,
             profile: common.profile.clone(),
-            max_bytes: common.max_bytes,
-            max_expanded_bytes: common.max_expanded_bytes,
         },
     )
 }

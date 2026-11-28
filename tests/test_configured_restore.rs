@@ -18,8 +18,6 @@ fn request(destination: &str, clear: bool) -> RestoreRequest {
         destination: Some(destination.into()),
         clear,
         profile: Some("".into()),
-        max_bytes: 1024 * 1024,
-        max_expanded_bytes: 1024 * 1024,
         ..Default::default()
     }
 }

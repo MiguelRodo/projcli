@@ -270,10 +270,6 @@ pub struct RestoreRequest {
     pub clear: bool,
     /// Explicit active profiles.
     pub profile: Option<String>,
-    /// Maximum compressed bytes per GitHub asset.
-    pub max_bytes: u64,
-    /// Maximum expanded bytes per GitHub ZIP.
-    pub max_expanded_bytes: u64,
 }
 
 /// The verified outcome of `proj restore`.
@@ -388,8 +384,6 @@ pub fn restore(root: &Utf8Path, request: &RestoreRequest) -> anyhow::Result<Rest
     let (_guard, workspace) = crate::get::workspace()?;
     let transfer = crate::get::Transfer {
         workspace: &workspace,
-        max_bytes: request.max_bytes,
-        max_expanded_bytes: request.max_expanded_bytes,
     };
     let mut sources = vec![project];
     let mut consulted = None;

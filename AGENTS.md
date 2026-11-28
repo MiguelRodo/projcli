@@ -324,7 +324,10 @@ superset. `proj get local|github` share the backend in src/get.rs. Stage every l
 beside its destination before the first rename-swap; roll back earlier labels and
 keep (and report) originals when rollback fails; never clear before staging.
 Matching directories need no remote; sources that disagree fail. Keep link/special
-guards, bounded transfers and token redaction. directories.LABEL.source and
+guards and token redaction. Restore/get downloaded data has no projcli size cap
+(user decision, 28 November 2026); only in-memory manifest metadata stays bounded.
+The earlier general rule to bound ZIP bytes still applies to explicit low-level
+transfer and CAS/Xet commands. directories.LABEL.source and
 --position are removed (projr's build.source message); `proj remote restore` is
 explicit CAS/Xet snapshots only. build.source fetching is slice 6.
 

@@ -28,8 +28,6 @@ proj restore --clear                       # replace local changes
 | `--destination` | `archive` | A registered GitHub title, a concrete Release tag, or `local:<title>`. `github:<title>` names a GitHub title explicitly. |
 | `--clear` | off | Allow replacing local files that differ from the build, including extra files. |
 | `--profile` | the projr profile order | Profiles for the checkout's configuration. |
-| `--max-bytes` | 2 GiB | Largest GitHub asset downloaded. |
-| `--max-expanded-bytes` | 16 GiB | Largest expanded ZIP. |
 
 The version is the checkout's `VERSION` when it names a completed build. On a
 development version, it is the newest completed production build recorded in

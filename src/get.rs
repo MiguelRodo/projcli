@@ -293,12 +293,16 @@ impl Source {
     }
 }
 
-/// Budgets and the private workspace for one call.
+/// The private workspace for one call. Payload downloads have no projcli size cap
+/// (user decision, 28 November 2026): GitHub's own asset limit and the disk apply.
+/// Metadata read into memory keeps the fixed bounds below.
 pub(crate) struct Transfer<'a> {
     pub(crate) workspace: &'a Utf8Path,
-    pub(crate) max_bytes: u64,
-    pub(crate) max_expanded_bytes: u64,
 }
+
+/// Bounds for a remote's manifest metadata, which is parsed in memory.
+const MANIFEST_ZIP_LIMIT: u64 = 256 * 1024 * 1024;
+const MANIFEST_EXPANDED_LIMIT: u64 = 1024 * 1024 * 1024;
 
 /// A private, canonical temporary workspace (macOS temp paths cross a symlink).
 pub(crate) fn workspace() -> Result<(tempfile::TempDir, Utf8PathBuf)> {
@@ -348,14 +352,11 @@ pub(crate) fn github_source(
         .tempdir_in(transfer.workspace)?
         .keep();
     let metadata = Utf8PathBuf::try_from(metadata).context("Workspace path must be UTF-8")?;
-    let limit = transfer.max_bytes.min(256 * 1024 * 1024);
+    let limit = MANIFEST_ZIP_LIMIT;
     if assets.iter().any(|asset| asset.name == "manifest.zip") {
         let zip = metadata.join("manifest.zip");
         client.download_asset(transfer.workspace, &target.tag, "manifest.zip", &zip, limit)?;
-        let extracted = crate::github_zip::extract_zip(
-            &zip,
-            transfer.max_expanded_bytes.min(1024 * 1024 * 1024),
-        )?;
+        let extracted = crate::github_zip::extract_zip(&zip, MANIFEST_EXPANDED_LIMIT)?;
         let installed = Utf8Path::from_path(extracted.path())
             .context("Extraction path must be UTF-8")
             .and_then(|path| crate::github_zip::install_manifest_tree(path, &metadata));
@@ -575,8 +576,8 @@ fn fetch(
             let zip = Utf8Path::from_path(download.path())
                 .context("Workspace path must be UTF-8")?
                 .join("asset.zip");
-            client.download_asset(transfer.workspace, tag, &name, &zip, transfer.max_bytes)?;
-            let extracted = crate::github_zip::extract_zip(&zip, transfer.max_expanded_bytes)?;
+            client.download_asset(transfer.workspace, tag, &name, &zip, u64::MAX)?;
+            let extracted = crate::github_zip::extract_zip(&zip, u64::MAX)?;
             let result = (|| {
                 let root = Utf8Path::from_path(extracted.path())
                     .context("Extraction path must be UTF-8")?;
@@ -1058,10 +1059,6 @@ pub struct GetRequest {
     pub overwrite: bool,
     /// Profiles for the current project's configuration (`--remote`).
     pub profile: Option<String>,
-    /// Maximum compressed bytes per GitHub asset.
-    pub max_bytes: u64,
-    /// Maximum expanded bytes per GitHub ZIP.
-    pub max_expanded_bytes: u64,
 }
 
 /// The verified result of `proj get`.
@@ -1443,8 +1440,6 @@ pub fn get(root: &Utf8Path, provider: Provider, request: &GetRequest) -> Result<
     let (_guard, workspace) = workspace()?;
     let transfer = Transfer {
         workspace: &workspace,
-        max_bytes: request.max_bytes,
-        max_expanded_bytes: request.max_expanded_bytes,
     };
     let mut producer = if request.remote.is_some() {
         let profiles = crate::run_context::select_profiles(request.profile.as_deref(), root)?;
