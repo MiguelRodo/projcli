@@ -688,5 +688,86 @@ fn get_github_reads_a_tag_and_a_branch_without_a_local_project() {
         &["get", "github", "--repo", "../x"],
     ));
     assert!(error.contains("owner/repo"), "{error}");
+    // --tag also applies to a registered remote, overriding its own tag.
+    fs::write(
+        consumer.join("_projr.yml"),
+        "directories:\n  raw-data: {path: input}\nremotes:\n  github:\n    reports: {repo: owner/repo, tag: elsewhere}\n",
+    )
+    .unwrap();
+    let value = success(github(
+        &server,
+        &consumer,
+        &[
+            "--machine",
+            "get",
+            "github",
+            "--remote",
+            "reports",
+            "--tag",
+            "archive",
+            "--version",
+            "1.2.4",
+            "--out",
+            "by-remote",
+        ],
+    ));
+    assert_eq!(value["result"]["get"]["version"], "v1.2.4");
+    assert!(consumer.join("by-remote/raw-data/data.csv").is_file());
     server.finish();
+}
+
+#[test]
+fn labels_must_be_distinct_directory_names() {
+    let (temporary, root) = project("store");
+    build(&root);
+    let consumer = temporary.path().canonicalize().unwrap().join("consumer");
+    fs::create_dir(&consumer).unwrap();
+    for labels in [".git", "raw-data,RAW-DATA", "a:b"] {
+        let error = failure(
+            command(&consumer)
+                .args(["--project"])
+                .arg(&consumer)
+                .args(["get", "local", "--label", labels, "--path"])
+                .arg(&root)
+                .output()
+                .unwrap(),
+        );
+        assert!(
+            error.contains("distinct directory name"),
+            "{labels}: {error}"
+        );
+    }
+    // A producer's manifest index naming `.git` never becomes a destination.
+    let store = Utf8PathBuf::from_path_buf(root.join("store/manifests")).unwrap();
+    let rows = vec![proj::manifest::ManifestRow {
+        label: ".git".into(),
+        r#fn: "config".into(),
+        version: "v1.2.4".into(),
+        hash: format!("{:x}", md5::compute(b"[core]")),
+    }];
+    proj::manifest_store::write(&store, &rows, None, false).unwrap();
+    {
+        fs::create_dir_all(root.join("store/.git/v1.2.4")).unwrap();
+        fs::write(root.join("store/.git/v1.2.4/config"), "[core]").unwrap();
+        let out = consumer.join("out");
+        let error = failure(
+            command(&root)
+                .args(["--project"])
+                .arg(&root)
+                .args([
+                    "get",
+                    "local",
+                    "--remote",
+                    "arch",
+                    "--version",
+                    "1.2.4",
+                    "--out",
+                ])
+                .arg(&out)
+                .output()
+                .unwrap(),
+        );
+        assert!(error.contains("distinct directory name"), "{error}");
+        assert!(!out.join(".git").exists());
+    }
 }

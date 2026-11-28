@@ -332,7 +332,7 @@ pub fn restore(root: &Utf8Path, request: &RestoreRequest) -> anyhow::Result<Rest
         labels.extend(
             declared
                 .iter()
-                .filter(|label| label.to_ascii_lowercase().starts_with("raw"))
+                .filter(|label| crate::get::is_raw(label))
                 .cloned(),
         );
     } else {
@@ -346,6 +346,7 @@ pub fn restore(root: &Utf8Path, request: &RestoreRequest) -> anyhow::Result<Rest
             }
         }
     }
+    crate::get::check_labels(&labels)?;
     if labels.is_empty() {
         return Ok(RestoreOutcome {
             version: None,
@@ -374,7 +375,10 @@ pub fn restore(root: &Utf8Path, request: &RestoreRequest) -> anyhow::Result<Rest
     for (index, snapshot) in snapshots.iter().enumerate() {
         let files = snapshot.as_ref().and_then(|s| s.files.as_ref());
         let matches = match files {
-            Some(files) => paths[index].is_dir() && crate::get::hash_dir(&paths[index])? == *files,
+            Some(files) => {
+                paths[index].is_dir()
+                    && crate::get::hash_dir(&paths[index], &labels[index])? == *files
+            }
             None => false,
         };
         todo.push(!matches);
@@ -522,7 +526,23 @@ fn remote_source(
             &crate::run_environment::RunEnvironment::inherited(),
         )
     };
+    // A title the build recorded is still its Release, even if the current
+    // configuration no longer registers it (projr R/restore-build.R:101-103).
     let target = match registered("github", title) {
+        None if record.github.contains_key(title) => {
+            let (repository, tag) = record.github[title].clone();
+            crate::get::GithubTarget {
+                repository: match repository {
+                    Some(repository) => repository,
+                    None => origin()?,
+                },
+                tag,
+                prefix: None,
+                append: true,
+                archive: true,
+                direct_tag: false,
+            }
+        }
         Some(value) => {
             anyhow::ensure!(
                 !matches!(

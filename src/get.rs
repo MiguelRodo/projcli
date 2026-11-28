@@ -206,11 +206,48 @@ fn matching_versions(store: &Utf8Path, label: &str, id: Option<&str>) -> Result<
 }
 
 /// MD5 of every regular file below `path`; links and special files are errors.
-pub(crate) fn hash_dir(path: &Utf8Path) -> Result<Files> {
+/// A cache label's framework-owned `projr/` subdirectory is excluded, as projr's
+/// `.build_label_get_dir_exc` does.
+pub(crate) fn hash_dir(path: &Utf8Path, label: &str) -> Result<Files> {
     if missing(path)? {
         return Ok(Vec::new());
     }
-    crate::manifest::inventory_directory(path, false)
+    crate::manifest::inventory_directory(path, is_cache(label))
+}
+
+/// projr's label class tests strip `-` and `_` and ignore case (`R/dir.R:162-165`).
+fn stripped(label: &str) -> String {
+    label.replace(['-', '_'], "").to_ascii_lowercase()
+}
+
+/// Whether a label is a raw-data label (projr `.yml_dir_label_class_detect_raw`).
+pub(crate) fn is_raw(label: &str) -> bool {
+    stripped(label).starts_with("raw")
+}
+
+fn is_cache(label: &str) -> bool {
+    stripped(label).starts_with("cache")
+}
+
+/// projr's `.assert_directory_labels` (`R/check.R:223-231`): each label must be a
+/// distinct directory name, so remote metadata cannot name `.git`, a reserved
+/// character or two labels that collide on a case-insensitive filesystem.
+pub(crate) fn check_labels(labels: &[String]) -> Result<()> {
+    let mut seen = std::collections::BTreeSet::new();
+    for label in labels {
+        anyhow::ensure!(
+            !label.is_empty()
+                && !label.starts_with('.')
+                && !label.ends_with(['.', ' '])
+                && !label
+                    .chars()
+                    .any(|c| c.is_control() || "/\\:*?\"<>|".contains(c))
+                && seen.insert(label.to_lowercase()),
+            "Each label must be a distinct directory name."
+        );
+        crate::path_safety::validate_directory_label(label)?;
+    }
+    Ok(())
 }
 
 /// Where a source's files come from.
@@ -373,9 +410,18 @@ pub(crate) fn metadata_source(root: &Utf8Path) -> Source {
     }
 }
 
-fn copy_verified(source: &Utf8Path, dest: &Utf8Path, expected: &Files) -> Result<bool> {
+fn copy_verified(
+    source: &Utf8Path,
+    dest: &Utf8Path,
+    label: &str,
+    expected: &Files,
+) -> Result<bool> {
     crate::fs_utils::copy_dir_recursive(source, dest)?;
-    if hash_dir(dest)? == *expected {
+    // A cache label's own `projr/` subdirectory is not part of its snapshot.
+    if is_cache(label) && fs::symlink_metadata(dest.join("projr")).is_ok() {
+        fs::remove_dir_all(dest.join("projr"))?;
+    }
+    if hash_dir(dest, label)? == *expected {
         return Ok(true);
     }
     for entry in fs::read_dir(dest)? {
@@ -397,6 +443,7 @@ fn same_names(left: &Files, right: &Files) -> bool {
 fn fetch_directories(
     candidates: &[Utf8PathBuf],
     dest: &Utf8Path,
+    label: &str,
     expected: &Files,
 ) -> Result<bool> {
     for path in candidates {
@@ -409,12 +456,12 @@ fn fetch_directories(
         }
         let real =
             Utf8PathBuf::try_from(fs::canonicalize(path)?).context("Source path must be UTF-8")?;
-        let files = crate::manifest::inventory_directory(&real, false)
+        let files = crate::manifest::inventory_directory(&real, is_cache(label))
             .with_context(|| format!("Cannot verify {path}"))?;
         if !same_names(&files, expected) {
             continue;
         }
-        if copy_verified(&real, dest, expected)? {
+        if copy_verified(&real, dest, label, expected)? {
             return Ok(true);
         }
     }
@@ -432,7 +479,8 @@ fn fetch(
 ) -> Result<bool> {
     let mut versions = vec![version.to_owned()];
     for other in &snapshot.versions {
-        if !versions.contains(other) {
+        // Versions come from remote metadata; only well-formed ones become paths.
+        if check_version(other).ok().as_ref() == Some(other) && !versions.contains(other) {
             versions.push(other.clone());
         }
     }
@@ -445,7 +493,7 @@ fn fetch(
             if expected.is_empty() && missing(path)? {
                 return Ok(true);
             }
-            fetch_directories(std::slice::from_ref(path), dest, expected)
+            fetch_directories(std::slice::from_ref(path), dest, label, expected)
         }
         Kind::Local {
             base,
@@ -473,7 +521,7 @@ fn fetch(
                     candidates.push(path);
                 }
             }
-            fetch_directories(&candidates, dest, expected)
+            fetch_directories(&candidates, dest, label, expected)
         }
         Kind::Github {
             client,
@@ -540,7 +588,7 @@ fn fetch(
                     "Archive file list does not match the selected build snapshot."
                 );
                 anyhow::ensure!(
-                    copy_verified(root, dest, expected)?,
+                    copy_verified(root, dest, label, expected)?,
                     "Archive file hash does not match the selected build snapshot."
                 );
                 Ok(true)
@@ -632,7 +680,7 @@ pub(crate) fn install(request: Install<'_>, transfer: &Transfer<'_>) -> Result<V
     let mut outcomes = Vec::new();
     for (index, label) in request.labels.iter().enumerate() {
         let path = &request.paths[index];
-        let existing = hash_dir(path)?;
+        let existing = hash_dir(path, label)?;
         let present = !missing(path)?;
         let mut expected: Option<Files> = None;
         let mut project: Option<Snapshot> = None;
@@ -757,7 +805,7 @@ pub(crate) fn install(request: Install<'_>, transfer: &Transfer<'_>) -> Result<V
     for stage in &stages {
         let path = &request.paths[stage.index];
         anyhow::ensure!(
-            hash_dir(path)? == stage.existing,
+            hash_dir(path, &request.labels[stage.index])? == stage.existing,
             "{path} changed while restoring; nothing was replaced"
         );
     }
@@ -782,9 +830,8 @@ pub(crate) fn install(request: Install<'_>, transfer: &Transfer<'_>) -> Result<V
         installed.push(position);
     }
     let Some(failure) = failure else {
-        for stage in stages {
-            stage.directory.close()?;
-        }
+        // Every destination is replaced; a leftover stage is not a failure.
+        drop(stages);
         return Ok(outcomes);
     };
     let mut kept = Vec::new();
@@ -1274,6 +1321,30 @@ fn labels_at(source: &Source, version: &str) -> Result<Vec<String>> {
     Ok(labels)
 }
 
+/// An absolute path whose existing prefix is canonical (macOS temporary paths
+/// cross a symlink), without creating anything.
+fn physical(path: &Utf8Path) -> Result<Utf8PathBuf> {
+    let absolute = if path.is_absolute() {
+        path.to_owned()
+    } else {
+        Utf8PathBuf::try_from(std::env::current_dir()?)
+            .context("Working directory must be UTF-8")?
+            .join(path)
+    };
+    let mut existing = absolute.as_path();
+    let mut rest = Vec::new();
+    while missing(existing)? {
+        rest.push(existing.file_name().context("Invalid output path")?);
+        existing = existing.parent().context("Invalid output path")?;
+    }
+    let mut result =
+        Utf8PathBuf::try_from(fs::canonicalize(existing)?).context("Output path must be UTF-8")?;
+    for part in rest.into_iter().rev() {
+        result.push(part);
+    }
+    Ok(result)
+}
+
 fn expand_home(path: &str) -> Utf8PathBuf {
     match (path.strip_prefix("~/"), std::env::var("HOME")) {
         (Some(rest), Ok(home)) => Utf8PathBuf::from(home).join(rest),
@@ -1367,9 +1438,7 @@ pub fn get(root: &Utf8Path, provider: Provider, request: &GetRequest) -> Result<
         provider == Provider::Github || request.tag.is_none(),
         "--tag applies only to GitHub"
     );
-    for label in &request.labels {
-        crate::path_safety::validate_directory_label(label)?;
-    }
+    check_labels(&request.labels)?;
     let version = request.version.as_deref().map(check_version).transpose()?;
     let (_guard, workspace) = workspace()?;
     let transfer = Transfer {
@@ -1500,9 +1569,9 @@ pub fn get(root: &Utf8Path, provider: Provider, request: &GetRequest) -> Result<
         if direct_source && view.as_ref().is_some_and(|view| view.disabled) {
             continue;
         }
-        let target = match (&request.tag, &request.remote) {
-            (Some(tag), None) => Some((tag.clone(), None)),
-            _ => remote_target(
+        let target = match &request.tag {
+            Some(tag) => Some((tag.clone(), None)),
+            None => remote_target(
                 provider,
                 &title,
                 view.as_ref(),
@@ -1617,12 +1686,8 @@ pub fn get(root: &Utf8Path, provider: Provider, request: &GetRequest) -> Result<
         }
     }
     anyhow::ensure!(!labels.is_empty(), "No published labels for {version}.");
-    for label in &labels {
-        crate::path_safety::validate_directory_label(label)?;
-    }
-    fs::create_dir_all(&request.out).with_context(|| format!("Cannot create {}", request.out))?;
-    let out = Utf8PathBuf::try_from(fs::canonicalize(&request.out)?)
-        .context("Output path must be UTF-8")?;
+    check_labels(&labels)?;
+    let out = physical(&request.out)?;
     let paths: Vec<Utf8PathBuf> = labels.iter().map(|label| out.join(label)).collect();
     let mut protected = Vec::new();
     for source in &sources {
@@ -1635,7 +1700,9 @@ pub fn get(root: &Utf8Path, provider: Provider, request: &GetRequest) -> Result<
             _ => {}
         }
     }
-    check_destinations(None, &paths, &protected)?;
+    // The current project's .git, .projr and _projr are never destinations.
+    check_destinations(Some(root), &paths, &protected)?;
+    fs::create_dir_all(&out).with_context(|| format!("Cannot create {out}"))?;
     let labels = install(
         Install {
             sources: &sources,

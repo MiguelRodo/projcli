@@ -4688,3 +4688,25 @@ and `--position` are replaced without migration.
   without the token; corrupt payload preserves the destination). The publication
   suites now restore with `proj restore`, which rejects remotes holding retained
   extras or stale bytes, as projr does.
+- **Review (independent, 28 November):** fixed: labels read from remote metadata
+  are checked with projr's `.assert_directory_labels` rule (`R/check.R:223-231`),
+  so a malicious index cannot install `<out>/.git` and case-colliding labels cannot
+  replace each other; `get` also protects the current project's `.git`, `.projr` and
+  `_projr` and creates `--out` only after the overlap checks; `--tag` applies with
+  `--remote` (`R/get-project.R:60-62`); a GitHub title the build recorded is still
+  its Release after it leaves the configuration (`R/restore-build.R:101-103`); raw
+  and cache labels are classed after stripping `-`/`_` (`R/dir.R:162-165`) and a
+  cache label's `projr/` subdirectory is excluded (`R/manifest.R:66-74`); version
+  candidates from remote metadata are validated before use as paths; a stage
+  cleanup error after every swap succeeded no longer reports failure. Tests added
+  for dotted, reserved and case-colliding labels (including from a producer index)
+  and `--remote` with `--tag`. Kept and documented: no `.projr/build.lock` claim for
+  restore (projr takes none); the 100-record attempt window; blank lines in a remote
+  `VERSION` are tolerated; `get local --path` uses the producer's current directory
+  configuration rather than the build's recorded one (projcli records no YAML).
+- **Ponytail (full):** one new module (`src/get.rs`) replaces the single-label
+  selection code in `src/restore.rs` (about 300 fewer lines there); it reuses
+  the manifest store codec, `inventory_directory`, `copy_dir_recursive`,
+  `extract_zip`, `install_manifest_tree`, the Release client and the template
+  expander. No trait or new persistence format. `yml.rs`, `main.rs` and
+  `build.rs` changes are localized (`build.rs` untouched).
