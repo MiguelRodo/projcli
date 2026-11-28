@@ -377,6 +377,12 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./cli/get.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">restore and get</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./lifecycle.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Build lifecycle</span></a>
   </div>
@@ -575,6 +581,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#script-source-groups-candidate" id="toc-script-source-groups-candidate" class="nav-link" data-scroll-target="#script-source-groups-candidate">Script source groups (candidate)</a></li>
   <li><a href="#projr-compatible-managed-ignore-files-projr-0.8.0-alignment" id="toc-projr-compatible-managed-ignore-files-projr-0.8.0-alignment" class="nav-link" data-scroll-target="#projr-compatible-managed-ignore-files-projr-0.8.0-alignment">projr-compatible managed ignore files (projr 0.8.0 alignment)</a></li>
   <li><a href="#projr-0.9-remotes-schema-and-archive-version-check" id="toc-projr-0.9-remotes-schema-and-archive-version-check" class="nav-link" data-scroll-target="#projr-0.9-remotes-schema-and-archive-version-check">projr 0.9 remotes schema and archive version check</a></li>
+  <li><a href="#projr-0.9-restore-and-get" id="toc-projr-0.9-restore-and-get" class="nav-link" data-scroll-target="#projr-0.9-restore-and-get">projr 0.9 restore and get</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -829,8 +836,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="ordinary-registry-selection-and-restore-sources" class="level2">
 <h2 class="anchored" data-anchor-id="ordinary-registry-selection-and-restore-sources">Ordinary registry selection and restore sources</h2>
-<p>Named ordinary remotes now remain restore sources independently of current build upload selection. The existing provider cue/inspection/strategy engines execute only selected targets; registered GitHub definitions that build.dest does not list load no credentials and contact no provider unless <code>build.restrictions.not_behind_remote</code> names them, which makes a read-only lookup. Existing per-directory source references can coexist with normal build configuration and are validated without auto-restore.</p>
-<p>Directory references retain priority, followed by registered remotes in declaration order (projr 0.9 removed inline definitions and remote <code>source:</code> preferences).</p>
+<p>Named ordinary remotes now remain restore sources independently of current build upload selection. The existing provider cue/inspection/strategy engines execute only selected targets; registered GitHub definitions that build.dest does not list load no credentials and contact no provider unless <code>build.restrictions.not_behind_remote</code> names them, which makes a read-only lookup. projr 0.9 removed inline definitions, remote <code>source:</code> preferences and <code>directories.&lt;label&gt;.source</code>; all three are rejected. Restore and get are described in “projr 0.9 restore and get” below.</p>
 <p>Registry/build.dest mapping integration currently covers ordinary latest/archive and GitHub Release operations. Configured tree publication and placement are described below. Flat CSV/JSON publication is described below; automatic CAS selection remains deferred; legacy flat recovery is described below; explicit tree verification/recovery is described below. Unsupported options fail. Inline build.local/build.github archives are rejected (projr 0.9); legacy flat CAS definitions are selected through build.dest like other remotes.</p>
 </section>
 <section id="configured-local-cas-tree-publication-unreleased" class="level2">
@@ -925,8 +931,22 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="projr-0.9-remotes-schema-and-archive-version-check" class="level2">
 <h2 class="anchored" data-anchor-id="projr-0.9-remotes-schema-and-archive-version-check">projr 0.9 remotes schema and archive version check</h2>
-<p>Registered remotes stay restore sources whether or not <code>build.dest</code> lists them; restore tries directory references first, then registered remotes in declaration order (a remote’s <code>source:</code> preference was removed in projr 0.9). Placeholders resolve once, before hooks, from the build version, the checkout <code>HEAD</code> file (no Git process) and a fresh UUIDv4; later YAML edits by scripts do not change them. Builds that publish nothing (previews, <code>output_run: false</code>) resolve none. A GitHub <code>branch</code> is checked read-only when its Release is missing (the branch must exist; an existing tag must point at its head). Missing Releases are then created after all read-only preflight checks and the recovery capture, just before hooks. Creating one is not distribution; a later failure records each created Release by repository and tag in the local failure diagnostic. projcli metadata (<code>.projcli-manifests</code>) is written only when a remote opts in with a manifest field.</p>
-<p>Known gaps: <code>@uuid</code> destinations are recorded but configured restore cannot yet use the record (item 4 of MiguelRodo/issues#910); <code>build.source</code> fetching (remote <code>get</code> settings are validated only), removal of <code>directories.&lt;label&gt;.source</code> are later slices (the <code>profile</code> key, short <code>.projr/config/</code> names and pipelines are implemented); directory paths and CAS/Xet store paths are not template-expanded; the build UUID is not exported to scripts; a local remote <code>ignore</code> field and one-off archives (<code>archive_local</code>/<code>archive_github</code>) are not supported; GitHub upload confirmation (a later slice; readback acceptance of a byte-identical asset, never a retry) after a server error (projr deletes and retries once) is not ported.</p>
+<p>Registered remotes stay restore sources whether or not <code>build.dest</code> lists them (see “projr 0.9 restore and get” below). Placeholders resolve once, before hooks, from the build version, the checkout <code>HEAD</code> file (no Git process) and a fresh UUIDv4; later YAML edits by scripts do not change them. Builds that publish nothing (previews, <code>output_run: false</code>) resolve none. A GitHub <code>branch</code> is checked read-only when its Release is missing (the branch must exist; an existing tag must point at its head). Missing Releases are then created after all read-only preflight checks and the recovery capture, just before hooks. Creating one is not distribution; a later failure records each created Release by repository and tag in the local failure diagnostic. projcli metadata (<code>.projcli-manifests</code>) is written only when a remote opts in with a manifest field.</p>
+<p>Known gaps: <code>build.source</code> fetching (remote <code>get</code> settings are validated only) is a later slice (the <code>profile</code> key, short <code>.projr/config/</code> names, pipelines and restore from recorded destinations are implemented); directory paths and CAS/Xet store paths are not template-expanded; the build UUID is not exported to scripts; a local remote <code>ignore</code> field and one-off archives (<code>archive_local</code>/<code>archive_github</code>) are not supported; GitHub upload confirmation (a later slice; readback acceptance of a byte-identical asset, never a retry) after a server error (projr deletes and retries once) is not ported.</p>
+</section>
+<section id="projr-0.9-restore-and-get" class="level2">
+<h2 class="anchored" data-anchor-id="projr-0.9-restore-and-get">projr 0.9 restore and get</h2>
+<p>Confirmed behavior (MiguelRodo/issues#910 slice 5; SATVILab/projr@5f915ef <code>R/restore-build.R</code>, <code>R/get.R</code>, <code>R/get-install.R</code>, <code>R/get-project.R</code>):</p>
+<ul>
+<li><code>proj restore</code> restores the checkout’s exact build version: the completed <code>VERSION</code>, else the newest completed production attempt in <code>.projr/attempts</code> (projr reads <code>.projr/BUILDLOG.md</code>; projcli reads a projr BUILDLOG as a fallback). <code>--version</code> selects another build. Labels default to every declared raw label.</li>
+<li>Every file is checked against the checkout’s <code>.projr/manifests</code> snapshot (or a projr legacy <code>manifest.csv</code>) by MD5. A directory that matches needs no remote. A recorded empty directory needs no remote either.</li>
+<li>The destination defaults to GitHub <code>archive</code>; a registered GitHub title uses the Release its build recorded (so <code>@version</code>, <code>@uuid</code> and <code>@branch</code> resolve); an unregistered name is a concrete tag in the checkout’s repository. An archive of an earlier version with the identical snapshot is used when the exact one is missing. A remote whose own manifest records a different snapshot fails (“Sources disagree”).</li>
+<li>Without <code>--clear</code>, local files that differ from the snapshot, including extra files, are an error; matching files are kept.</li>
+<li>Every label is staged beside its destination and verified before the first destination is renamed aside. A failed later swap moves earlier labels back; an original that cannot be moved back is kept and its path reported. A destination that changes during staging stops the restore before any swap.</li>
+<li><code>proj get local --path|--remote</code> and <code>proj get github --repo|--remote [--tag]</code> copy another build’s directories into <code>&lt;out&gt;/&lt;label&gt;/</code> through the same path; <code>--overwrite</code> plays the role of <code>--clear</code>.</li>
+</ul>
+<p>projcli differences (user decisions, 28 November 2026): <code>--destination local:&lt;title&gt;</code> restores from a registered local remote (projr restores only from GitHub; proposed upstream as SATVILab/projr#1076); restore and get set no size cap on downloaded data, leaving GitHub’s own asset limit and the disk (remote manifest metadata, which is read into memory, stays bounded). Outputs are not yet locked against concurrent writers (projr takes a <code>filelock</code> on the output directory); a follow-up gives restore the existing <code>.projr/build.lock</code> claim.</p>
+<p>Known gaps: a <code>latest</code> local remote without a label directory is not read; <code>proj get github --repo</code> without <code>--tag</code> reads recorded destinations only from a projr BUILDLOG (projcli attempt records are not fetched over the API); <code>directories.&lt;label&gt;</code> paths containing <code>@version</code> are not expanded before a missing VERSION is written; <code>build.source</code>/<code>proj source</code> is slice 6.</p>
 
 
 </section>

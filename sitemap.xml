@@ -2,134 +2,138 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://miguelrodo.github.io/projcli/features.html</loc>
-    <lastmod>2026-11-28T09:16:40.033Z</lastmod>
+    <lastmod>2026-11-28T11:17:24.777Z</lastmod>
   </url>
   <url>
     <loc>https://miguelrodo.github.io/projcli/lifecycle.html</loc>
-    <lastmod>2026-11-28T09:16:40.037Z</lastmod>
+    <lastmod>2026-11-28T11:17:24.781Z</lastmod>
   </url>
   <url>
     <loc>https://miguelrodo.github.io/projcli/development-quality.html</loc>
-    <lastmod>2026-11-28T09:16:40.030Z</lastmod>
+    <lastmod>2026-11-28T11:17:24.773Z</lastmod>
   </url>
   <url>
     <loc>https://miguelrodo.github.io/projcli/r-frontend.html</loc>
-    <lastmod>2026-11-28T09:16:40.042Z</lastmod>
+    <lastmod>2026-11-28T11:17:24.788Z</lastmod>
   </url>
   <url>
     <loc>https://miguelrodo.github.io/projcli/release-delivery.html</loc>
-    <lastmod>2026-11-28T09:16:40.043Z</lastmod>
+    <lastmod>2026-11-28T11:17:24.789Z</lastmod>
   </url>
   <url>
     <loc>https://miguelrodo.github.io/projcli/cli/version.html</loc>
-    <lastmod>2026-11-28T09:16:40.025Z</lastmod>
+    <lastmod>2026-11-28T11:17:24.767Z</lastmod>
   </url>
   <url>
     <loc>https://miguelrodo.github.io/projcli/cli/ignore.html</loc>
-    <lastmod>2026-11-28T09:16:40.025Z</lastmod>
+    <lastmod>2026-11-28T11:17:24.767Z</lastmod>
   </url>
   <url>
     <loc>https://miguelrodo.github.io/projcli/cli/history.html</loc>
-    <lastmod>2026-11-28T09:16:40.025Z</lastmod>
+    <lastmod>2026-11-28T11:17:24.767Z</lastmod>
   </url>
   <url>
     <loc>https://miguelrodo.github.io/projcli/cli/init.html</loc>
-    <lastmod>2026-11-28T09:16:40.025Z</lastmod>
-  </url>
-  <url>
-    <loc>https://miguelrodo.github.io/projcli/tutorial.html</loc>
-    <lastmod>2026-11-28T09:16:40.043Z</lastmod>
-  </url>
-  <url>
-    <loc>https://miguelrodo.github.io/projcli/index.html</loc>
-    <lastmod>2026-11-28T09:16:40.034Z</lastmod>
-  </url>
-  <url>
-    <loc>https://miguelrodo.github.io/projcli/release-preview6-notes.html</loc>
-    <lastmod>2026-11-28T09:16:40.043Z</lastmod>
-  </url>
-  <url>
-    <loc>https://miguelrodo.github.io/projcli/release-candidate.html</loc>
-    <lastmod>2026-11-28T09:16:40.042Z</lastmod>
-  </url>
-  <url>
-    <loc>https://miguelrodo.github.io/projcli/r-wrapper-cran.html</loc>
-    <lastmod>2026-11-28T09:16:40.042Z</lastmod>
-  </url>
-  <url>
-    <loc>https://miguelrodo.github.io/projcli/install.html</loc>
-    <lastmod>2026-11-28T09:16:40.034Z</lastmod>
-  </url>
-  <url>
-    <loc>https://miguelrodo.github.io/projcli/legacy-audit-20261020.html</loc>
-    <lastmod>2026-11-28T09:16:40.036Z</lastmod>
-  </url>
-  <url>
-    <loc>https://miguelrodo.github.io/projcli/remote-compatibility.html</loc>
-    <lastmod>2026-11-28T09:16:40.043Z</lastmod>
-  </url>
-  <url>
-    <loc>https://miguelrodo.github.io/projcli/release-preview-notes.html</loc>
-    <lastmod>2026-11-28T09:16:40.043Z</lastmod>
-  </url>
-  <url>
-    <loc>https://miguelrodo.github.io/projcli/cas-github.html</loc>
-    <lastmod>2026-11-28T09:16:40.025Z</lastmod>
-  </url>
-  <url>
-    <loc>https://miguelrodo.github.io/projcli/flow.html</loc>
-    <lastmod>2026-11-28T09:16:40.033Z</lastmod>
-  </url>
-  <url>
-    <loc>https://miguelrodo.github.io/projcli/behavior.html</loc>
-    <lastmod>2026-11-28T09:16:40.025Z</lastmod>
-  </url>
-  <url>
-    <loc>https://miguelrodo.github.io/projcli/configuration.html</loc>
-    <lastmod>2026-11-28T09:16:40.029Z</lastmod>
-  </url>
-  <url>
-    <loc>https://miguelrodo.github.io/projcli/compatibility.html</loc>
-    <lastmod>2026-11-28T09:16:40.029Z</lastmod>
-  </url>
-  <url>
-    <loc>https://miguelrodo.github.io/projcli/machine.html</loc>
-    <lastmod>2026-11-28T09:16:40.038Z</lastmod>
+    <lastmod>2026-11-28T11:17:24.767Z</lastmod>
   </url>
   <url>
     <loc>https://miguelrodo.github.io/projcli/cli/errors.html</loc>
-    <lastmod>2026-11-28T09:16:40.025Z</lastmod>
+    <lastmod>2026-11-28T11:17:24.767Z</lastmod>
+  </url>
+  <url>
+    <loc>https://miguelrodo.github.io/projcli/machine.html</loc>
+    <lastmod>2026-11-28T11:17:24.783Z</lastmod>
+  </url>
+  <url>
+    <loc>https://miguelrodo.github.io/projcli/compatibility.html</loc>
+    <lastmod>2026-11-28T11:17:24.772Z</lastmod>
+  </url>
+  <url>
+    <loc>https://miguelrodo.github.io/projcli/configuration.html</loc>
+    <lastmod>2026-11-28T11:17:24.773Z</lastmod>
+  </url>
+  <url>
+    <loc>https://miguelrodo.github.io/projcli/behavior.html</loc>
+    <lastmod>2026-11-28T11:17:24.766Z</lastmod>
+  </url>
+  <url>
+    <loc>https://miguelrodo.github.io/projcli/flow.html</loc>
+    <lastmod>2026-11-28T11:17:24.778Z</lastmod>
+  </url>
+  <url>
+    <loc>https://miguelrodo.github.io/projcli/cas-github.html</loc>
+    <lastmod>2026-11-28T11:17:24.766Z</lastmod>
+  </url>
+  <url>
+    <loc>https://miguelrodo.github.io/projcli/release-preview-notes.html</loc>
+    <lastmod>2026-11-28T11:17:24.789Z</lastmod>
+  </url>
+  <url>
+    <loc>https://miguelrodo.github.io/projcli/remote-compatibility.html</loc>
+    <lastmod>2026-11-28T11:17:24.789Z</lastmod>
+  </url>
+  <url>
+    <loc>https://miguelrodo.github.io/projcli/legacy-audit-20261020.html</loc>
+    <lastmod>2026-11-28T11:17:24.781Z</lastmod>
+  </url>
+  <url>
+    <loc>https://miguelrodo.github.io/projcli/install.html</loc>
+    <lastmod>2026-11-28T11:17:24.778Z</lastmod>
+  </url>
+  <url>
+    <loc>https://miguelrodo.github.io/projcli/r-wrapper-cran.html</loc>
+    <lastmod>2026-11-28T11:17:24.788Z</lastmod>
+  </url>
+  <url>
+    <loc>https://miguelrodo.github.io/projcli/release-candidate.html</loc>
+    <lastmod>2026-11-28T11:17:24.788Z</lastmod>
+  </url>
+  <url>
+    <loc>https://miguelrodo.github.io/projcli/release-preview6-notes.html</loc>
+    <lastmod>2026-11-28T11:17:24.789Z</lastmod>
+  </url>
+  <url>
+    <loc>https://miguelrodo.github.io/projcli/index.html</loc>
+    <lastmod>2026-11-28T11:17:24.778Z</lastmod>
+  </url>
+  <url>
+    <loc>https://miguelrodo.github.io/projcli/tutorial.html</loc>
+    <lastmod>2026-11-28T11:17:24.789Z</lastmod>
+  </url>
+  <url>
+    <loc>https://miguelrodo.github.io/projcli/cli/get.html</loc>
+    <lastmod>2026-11-28T11:17:24.767Z</lastmod>
   </url>
   <url>
     <loc>https://miguelrodo.github.io/projcli/cli/build.html</loc>
-    <lastmod>2026-11-28T09:16:40.025Z</lastmod>
+    <lastmod>2026-11-28T11:17:24.766Z</lastmod>
   </url>
   <url>
     <loc>https://miguelrodo.github.io/projcli/cli/path.html</loc>
-    <lastmod>2026-11-28T09:16:40.025Z</lastmod>
+    <lastmod>2026-11-28T11:17:24.767Z</lastmod>
   </url>
   <url>
     <loc>https://miguelrodo.github.io/projcli/cli/yml.html</loc>
-    <lastmod>2026-11-28T09:16:40.025Z</lastmod>
+    <lastmod>2026-11-28T11:17:24.767Z</lastmod>
   </url>
   <url>
     <loc>https://miguelrodo.github.io/projcli/cli/remote.html</loc>
-    <lastmod>2026-11-28T09:16:40.025Z</lastmod>
+    <lastmod>2026-11-28T11:17:24.767Z</lastmod>
   </url>
   <url>
     <loc>https://miguelrodo.github.io/projcli/xet-storage.html</loc>
-    <lastmod>2026-11-28T09:16:40.044Z</lastmod>
+    <lastmod>2026-11-28T11:17:24.789Z</lastmod>
   </url>
   <url>
     <loc>https://miguelrodo.github.io/projcli/storage-design.html</loc>
-    <lastmod>2026-11-28T09:16:40.043Z</lastmod>
+    <lastmod>2026-11-28T11:17:24.789Z</lastmod>
   </url>
   <url>
     <loc>https://miguelrodo.github.io/projcli/preview-status.html</loc>
-    <lastmod>2026-11-28T09:16:40.042Z</lastmod>
+    <lastmod>2026-11-28T11:17:24.788Z</lastmod>
   </url>
   <url>
     <loc>https://miguelrodo.github.io/projcli/r-reference.html</loc>
-    <lastmod>2026-11-28T09:16:40.042Z</lastmod>
+    <lastmod>2026-11-28T11:17:24.788Z</lastmod>
   </url>
 </urlset>

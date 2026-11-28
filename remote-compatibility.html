@@ -377,6 +377,12 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./cli/get.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">restore and get</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./lifecycle.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Build lifecycle</span></a>
   </div>
@@ -555,6 +561,7 @@ ul.task-list li input[type="checkbox"] {
 
 <p>Source audit, 23 October 2026. Pinned R source: <a href="https://github.com/SATVILab/projr/tree/90be50132d16aee33e39c0f7f35ef906c35f5397">SATVILab/projr 90be50132d16aee33e39c0f7f35ef906c35f5397</a>. Rust audit baseline: <a href="https://github.com/MiguelRodo/projcli/tree/41cd7b2f59345fa8c545eedcecd16f4636602770">41cd7b2f</a>; current delivery is listed below, including the separate <a href="https://github.com/MiguelRodo/projcli/pull/175">CSV slice PR175</a>. This inventory was checked against dispatch, config parsing/defaults, store/restore code, shipped template, documentation and test sources. R tests and live provider operations were not executed for this audit. A test file is evidence of coverage intent, not proof of a passing integration run.</p>
 <p><strong>Released in preview.3:</strong> explicit local latest/archive listing and staged download, file-inspected store strategies, native GitHub Release asset/ZIP transfer and explicit replacement, and configured single-label local/GitHub restore are implemented. Automatic ordinary publication and metadata-history/cue integration are implemented for latest/archive; default multi-label restore and complete credential-helper parity remain gaps. The published and installed preview.3 packages these features. CSV capture does not complete remote parity or M2. CAS is an additional third structure, not the replacement manifest format or the only archive layout.</p>
+<p><strong>Update, 28 November 2026 (projr 0.9, SATVILab/projr@5f915ef):</strong> ordinary restore now follows <code>projr_restore()</code> (<code>R/restore-build.R</code>), and <code>proj get local|github</code> follow <code>projr_get_local/github()</code> (<code>R/get.R</code>, <code>R/get-install.R</code>, <code>R/get-project.R</code>); see <a href="./cli/get.html">restore and get</a>. Restore targets the checkout’s exact build version, verifies every file’s MD5 against <code>.projr/manifests</code>, falls back to an identical earlier snapshot, restores several labels (default: every raw label) and reads the destinations each build recorded. <code>directories.&lt;label&gt;.source</code>, remote <code>source:</code> preferences and <code>--position</code> were removed. The rows below that describe per-directory sources, newest-version selection and single-label restore are superseded by that note.</p>
 <p>Verified delivery: <a href="https://github.com/MiguelRodo/projcli/pull/179">PR179</a>, <a href="https://github.com/MiguelRodo/projcli/pull/180">PR180</a>, <a href="https://github.com/MiguelRodo/projcli/pull/181">PR181</a>, <a href="https://github.com/MiguelRodo/projcli/pull/182">PR182</a> and <a href="https://github.com/MiguelRodo/projcli/pull/183">PR183</a>. PR183’s independently reviewed head44478558d0ef41660d513a3f7d74fe399684b245 passed all12checks and the <a href="https://github.com/MiguelRodo/projcli/actions/runs/39944545740">pinned gate</a>: 26renderer,8combined-build and2mixed-recovery cases, plus Rust/API and configured-restore fixtures. GitHub transport tests use mocked HTTP and actual CLI commands. Those fixtures used mocked REST; the later bounded live GitHub verification is recorded below.</p>
 <section id="providers-layouts-and-transports" class="level2">
 <h2 class="anchored" data-anchor-id="providers-layouts-and-transports">Providers, layouts and transports</h2>
@@ -852,23 +859,23 @@ ul.task-list li input[type="checkbox"] {
 </tr>
 <tr class="odd">
 <td>Restore labels</td>
-<td>Default declared raw labels; explicit labels supported. Root manifest required; empty/unrecorded labels may be skipped.</td>
-<td>Ordinary restore retains its root CSV prerequisite and explicit single-label interface. Explicit-ID native CAS verification/recovery does not require the old project CSV/index. Default multi-label raw restore remains missing.</td>
+<td>projr 0.9: default declared raw labels; explicit labels supported; the checkout’s exact build version (BUILDLOG on a development version).</td>
+<td>Same: several labels, default raw; version from VERSION, then <code>.projr/attempts</code>, then a projr BUILDLOG. Explicit-ID CAS/Xet recovery stays on <code>remote restore --snapshot</code>.</td>
 </tr>
 <tr class="even">
 <td>Restore source</td>
-<td>Source before destination; filter provider/title/content/source eligibility. First suitable selection, not retry across every provider after failure. Legacy fallback GitHub archive then local _archive exists.</td>
-<td>Implemented for explicit single-label restore. Source failures do not silently switch providers. Undeclared archive fallbacks are deliberately excluded by the explicit-mapping contract.</td>
+<td>projr 0.9: GitHub <code>archive</code> by default, a registered GitHub title at its recorded destination, or a concrete tag; MD5-verified against <code>.projr/manifests</code>; identical-snapshot fallback; “sources disagree” error.</td>
+<td>Same, plus a documented projcli <code>local:&lt;title&gt;</code> superset. Sources are tried in order and never retried after a verified mismatch.</td>
 </tr>
 <tr class="odd">
 <td>Restore target</td>
-<td>Final declared path, safe=false; optional clear removes current contents before lookup/download.</td>
-<td>Declared final target and merge/clear are implemented; stage/validate before installation rather than importing clear-before-lookup data loss.</td>
+<td>projr 0.9: final declared path; per-label staging beside the destination; rename-swap; original kept when rollback fails; no clear before fetching.</td>
+<td>Same, plus link/special-file guards and a changed-destination check before the first swap.</td>
 </tr>
 <tr class="even">
 <td>Restore result</td>
-<td>Per-label errors can yield partial false; clone wrapper can ignore that false and return true.</td>
-<td>Single-label machine results distinguish restored/skipped/failure; stderr retains installation/rollback diagnostics. No multi-label aggregate guarantee is claimed.</td>
+<td>projr 0.9 returns TRUE, or FALSE without raw labels.</td>
+<td>Machine results list each label’s path and <code>installed</code>/<code>verified</code> status; failures leave every destination unchanged (or report retained originals).</td>
 </tr>
 <tr class="odd">
 <td>Clone wrapper</td>
