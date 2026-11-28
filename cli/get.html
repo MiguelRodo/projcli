@@ -635,6 +635,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tbody>
 </table>
 <p>The version is the checkout’s <code>VERSION</code> when it names a completed build. On a development version, it is the newest completed production build recorded in <code>.projr/attempts</code> (projr reads <code>.projr/BUILDLOG.md</code>; projcli also reads a projr BUILDLOG when no attempt record exists).</p>
+<p>Restore holds the project’s build claim (<code>.projr/build.lock</code>) while it runs, so it cannot run during a build, from a build script, or alongside another restore. If a crash left a claim behind, remove it only once no build is running.</p>
 <p>The checkout’s <code>.projr/manifests</code> store (or a projr-written root <code>manifest.csv</code>) records each label’s files at that version. A directory that already matches is left alone and needs no network access. A recorded empty directory needs no remote either. Other labels come from the destination:</p>
 <ul>
 <li>A registered GitHub title uses the Release its build recorded, so <code>@version</code>, <code>@uuid</code> and <code>@branch</code> tags resolve to the build’s own Release. Without a record, the tag template is expanded with the build version and the checkout’s branch; <code>@uuid</code> then fails.</li>
