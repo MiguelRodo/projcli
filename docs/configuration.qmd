@@ -294,6 +294,8 @@ The `_projr.yml` file can also contain a `build` block to configure the behavior
   - **`pre`**: Scripts executed before the actual build phase.
   - **`post`**: Scripts executed after analysis/promotion, before VERSION and publication.
   - **`both`**: Scripts executed during both `pre` and `post` phases.
+- **`pipeline`**: Named pipelines to run (see [Pipelines](#pipelines)): a name
+  or glob, a list of them, or `false`/`[]` for none.
 - **`cite`**: projr's citation-file selection, `true`/`false` or a mapping of
   `codemeta`, `cff` and `inst-citation` booleans. **Accepted and validated, not yet
   acting:** builds do not generate citation files (see `proj init` for an explicit
@@ -322,7 +324,48 @@ You can define a `dev` block to completely override specific configurations duri
 - **`scripts`**: A list of script paths or globs. During development builds, this array entirely overrides `build.scripts`. An explicitly empty array (`[]`) selects no analysis scripts. An absent `dev.scripts` inherits `build.scripts`. Hooks can still run.
 - **`scripts`** accepts the same `- exclude:` entries and exclusion-only lists as `build.scripts`.
 - **`hooks`**: A mapping identical to `build.hooks`. Development builds run only `dev.hooks`; `build.hooks` never run in a development build, even when `dev.hooks` is omitted (as in projr, because production hooks may publish or notify).
+- **`pipeline`**: As `build.pipeline`, for development builds. When omitted, a
+  development build inherits `build.pipeline`'s scripts but **not** its hooks
+  (a deliberate difference from projr, SATVILab/projr#1074); set `dev.pipeline`
+  or pass `--pipeline` to run pipeline hooks in a development build.
 - **`old_dev_remove`**: Retained configuration field. The current preview protections skip CLI cleanup of prior caches during development builds, even when this is `true`. Scripts and hooks still control their own writes.
+
+## Pipelines
+
+Top-level `pipelines` names ordered groups of scripts and hooks, as in projr 0.9
+(`SATVILab/projr@5f915ef:R/pipeline.R`):
+
+```yaml
+pipelines:
+  prepare:
+    scripts: [clean.R, {exclude: scratch.R}]
+    hooks: {pre: [fetch.R]}
+  report:
+    scripts: [report.qmd]
+    hooks: {post: [notify.R]}
+build:
+  scripts: [setup.R]
+  pipeline: [prepare, report]
+```
+
+- Each pipeline accepts only `scripts` (entries as in `build.scripts`) and
+  `hooks` (`pre`, `post`, `both`). Names cannot contain `:` or `,`.
+- `build.pipeline` (production) and `dev.pipeline` (development) select names or
+  globs (`*` and `?`; every other character is literal, unlike projr, where
+  characters such as `+` and `|` act as regular expressions). Entries keep their
+  order, a glob's matches keep their order under `pipelines`, and each pipeline
+  runs once. An entry that matches no pipeline fails before any hook.
+- The selected pipelines' scripts and hooks combine with the inline
+  `scripts`/`hooks`. Inline entries run first unless the highest-precedence
+  configuration layer that sets `pipeline` puts `scripts` (or `hooks`) after
+  `pipeline`; above, `setup.R` runs before `clean.R`. A development build checks
+  the `dev` block before the `build` block. `both` hooks join `pre` and `post`,
+  and a hook named more than once runs once, at its first position.
+- A pipeline with no scripts, and no inline scripts, runs no analysis (it does
+  not fall back to automatic discovery); a list of only exclusions still means
+  discovery minus the matches.
+- Hook files of every pipeline are excluded from automatic discovery.
+- Production attempt records list the selected pipeline names and placements.
 
 ## Environment Variables
 

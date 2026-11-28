@@ -113,6 +113,10 @@ pub enum Commands {
         /// Clear final output immediately before/after analysis; preview never clears it.
         #[arg(long, value_parser = ["none", "pre", "post"])]
         output_clear_stage: Option<String>,
+        /// Pipelines to run (comma-separated names or globs under `pipelines`), or
+        /// `false` for none; replaces build.pipeline for this build.
+        #[arg(long, value_name = "NAME|GLOB|false", value_parser = parse_pipeline)]
+        pipeline: Option<proj::pipeline::Selection>,
     },
     /// Dev Build operations
     BuildDev {
@@ -125,7 +129,20 @@ pub enum Commands {
         /// Clear final output immediately before/after analysis; preview never clears it.
         #[arg(long, value_parser = ["none", "pre", "post"])]
         output_clear_stage: Option<String>,
+        /// Pipelines to run (comma-separated names or globs under `pipelines`), or
+        /// `false` for none; replaces dev.pipeline and also runs the pipelines' hooks.
+        #[arg(long, value_name = "NAME|GLOB|false", value_parser = parse_pipeline)]
+        pipeline: Option<proj::pipeline::Selection>,
+        /// Scripts (paths, globs or `!exclusions`) in place of dev.scripts and
+        /// build.scripts; they still combine with a selected pipeline. `--scripts`
+        /// with no value runs no scripts.
+        #[arg(long, num_args = 0.., value_name = "SCRIPT")]
+        scripts: Option<Vec<String>>,
     },
+}
+
+fn parse_pipeline(text: &str) -> Result<proj::pipeline::Selection, String> {
+    proj::pipeline::Selection::parse_argument(text).map_err(|error| error.to_string())
 }
 
 /// Remote operations reuse registered definitions or explicit ordinary/local arguments.
@@ -716,6 +733,7 @@ fn main() {
             description,
             execution_dir,
             output_clear_stage,
+            pipeline,
         } => {
             if let Some(root) = proj::root() {
                 let mode = if *major {
@@ -758,6 +776,10 @@ fn main() {
                         .map(proj::OutputClearStage::parse)
                         .transpose()
                         .expect("clap validates clear stage"),
+                    &proj::BuildSelection {
+                        pipeline: pipeline.clone(),
+                        scripts: None,
+                    },
                 ) {
                     fail(format_args!("Build failed: {:#}", e));
                 } else {
@@ -771,6 +793,8 @@ fn main() {
             profile,
             execution_dir,
             output_clear_stage,
+            pipeline,
+            scripts,
         } => {
             if let Some(root) = proj::root() {
                 if let Err(e) = proj::build_project_with_policies(
@@ -784,6 +808,17 @@ fn main() {
                         .map(proj::OutputClearStage::parse)
                         .transpose()
                         .expect("clap validates clear stage"),
+                    &proj::BuildSelection {
+                        pipeline: pipeline.clone(),
+                        // projr trims entries and drops empty ones.
+                        scripts: scripts.as_ref().map(|scripts| {
+                            scripts
+                                .iter()
+                                .map(|script| script.trim().to_owned())
+                                .filter(|script| !script.is_empty())
+                                .collect()
+                        }),
+                    },
                 ) {
                     fail(format_args!("Build failed: {:#}", e));
                 } else {

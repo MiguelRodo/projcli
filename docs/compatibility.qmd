@@ -4604,3 +4604,66 @@ aliases or migration.
   fixed. **Gap (from #250):** the archive check's base reads only the newest 100
   history entries, so more than 100 newer local failures can hide the last
   completed release and the base rule then passes without a base.
+
+## projr 0.9 named pipelines (27 November 2026)
+
+Item 7 of MiguelRodo/issues#910, against SATVILab/projr@5f915ef (0.9.0, still
+projr main on 27 November), static source `R/pipeline.R`, `R/scripts.R:10-25,92-99`
+and `R/build.R:40-46,221-224,345-358`.
+
+- **Same:** top-level `pipelines.<name>` with only `scripts` (entries as in
+  `build.scripts`, including `- exclude:`) and `hooks` (`pre`/`post`/`both`);
+  names cannot contain `:` or `,`. `build.pipeline`/`dev.pipeline` take a name or
+  glob, a list, or `false`/`[]`; `--pipeline` (comma-separated, or `false`) replaces
+  them for one build, as projr's `pipeline` argument does. Globs use `*` and
+  `?` as in `glob2rx`. Entry order is kept, a glob's
+  matches follow definition order, each pipeline runs once; an unmatched entry
+  fails with projr's "matches no pipeline defined under pipelines" message during
+  validation, before any hook. Placement of inline scripts/hooks follows their key
+  position relative to `pipeline` in the highest-precedence layer that sets it
+  (local, profiles, base; `dev` before `build` in a development build), read from
+  each layer's YAML key order because the merge reorders keys. `both` joins `pre`
+  and `post`; a repeated hook runs once at its first position. With a pipeline the
+  script list is always explicit, so an empty combination runs no analysis.
+  `--scripts` on `proj build-dev` replaces the inline scripts in their position.
+  Pipeline hook files are excluded from automatic discovery.
+- **Different (user decision D4, reported as SATVILab/projr#1074):** a development
+  build that inherits `build.pipeline` runs its scripts but not its hooks; pipeline
+  hooks run only when `dev.pipeline` or `--pipeline` selects them. projr runs them.
+- **Different:** projr passes the argument through the `PROJR_PIPELINE` environment
+  variable and so also honours a user-set value; projcli reads only `--pipeline`.
+  projr records the resolved plan (names, scripts, hooks) in BUILDLOG; projcli's
+  production attempt record keeps the pipeline names (restricted to 128 ASCII
+  letters, digits, `.`, `_`, `-`; others are counted in `omitted_names`) and the
+  script/hook placements, not script or hook paths. As in projr, only development
+  builds take a scripts override (`proj build-dev --scripts`). The configuration
+  fingerprint now also binds `build.pipeline`, the `pipelines` definitions and
+  their declaration order.
+- **Different (glob details):** every character other than `*` and `?` matches
+  literally. `glob2rx` escapes only `.`, `(`, `[` and `{`, so in projr a name such
+  as `a+b` or `a|b` is read as a regular expression and does not select the
+  pipeline of that name. `--pipeline false` always means none (a pipeline named
+  `false` can still be selected in YAML), and `--pipeline` entries are trimmed.
+- **Lifecycle:** unchanged. The plan is resolved once during preflight with the
+  frozen configuration; pre hooks, scripts and post hooks keep their existing
+  positions, so the lifecycle diagram needs no change. **Different:** projr
+  re-reads the plan at each hook stage, so a script editing `_projr.yml` can change
+  its post hooks; projcli does not.
+- **Review (independent, 27 November):** the configuration fingerprint omitted
+  pipelines, so builds running different pipeline bodies shared a digest; fixed,
+  with a unit test. The glob, `--pipeline false` and frozen-plan differences above
+  were documented, and an empty pipeline name now gets its own error. Scalar hook
+  stages (`pre: x.R`) are still rejected for pipelines, as for `build.hooks`; projr
+  accepts them.
+- **Tests:** unit tests in `src/pipeline.rs` (glob matching, resolution order and
+  errors, layer/key placement including the dev-then-build rule, D4, hook
+  combination); `tests/test_pipelines.rs` runs the CLI end to end: inherited,
+  explicit, `false` and `--scripts` development selections with exact run order,
+  a production build combining inline and pipeline entries with its attempt-record
+  evidence, unmatched selections failing before any hook, VERSION or output, and
+  invalid definitions. Local runs used the `projcli-dev` container (no R/Quarto);
+  CI on the exact head is the full verification.
+- **Ponytail (full):** one new module; reuses `script_list` normalization, the
+  existing hook runner and the configuration merge (which now also returns its
+  layers). No new dependencies; a hand-written glob matcher replaces a crate since
+  only `*` and `?` are needed.

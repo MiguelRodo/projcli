@@ -86,6 +86,44 @@ pub(crate) struct Record {
     pub(crate) final_outputs: Option<FinalOutputs>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) destinations: Option<Destinations>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) pipelines: Option<PipelineEvidence>,
+}
+
+/// Pipelines a production build selected, in run order, with the placement of
+/// inline entries. The configuration fingerprint binds the pipeline definitions
+/// and `build.pipeline` but not YAML key order or `--pipeline`, which these
+/// fields record.
+/// Only names of at most 128 ASCII letters, digits, `.`, `_` or `-` are kept;
+/// others are counted in `omitted_names`.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct PipelineEvidence {
+    pub(crate) names: Vec<String>,
+    pub(crate) omitted_names: usize,
+    pub(crate) scripts_placement: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) hooks_placement: Option<String>,
+}
+
+impl PipelineEvidence {
+    /// Evidence for a plan that selected pipelines, else `None`.
+    pub(crate) fn from_plan(plan: &crate::pipeline::Plan) -> Option<Self> {
+        let placement = plan.scripts_placement?;
+        let allowed = |name: &&String| {
+            name.len() <= 128
+                && name
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+        };
+        let names: Vec<String> = plan.names.iter().filter(allowed).cloned().collect();
+        Some(Self {
+            omitted_names: plan.names.len() - names.len(),
+            names,
+            scripts_placement: placement.as_str().into(),
+            hooks_placement: plan.hooks_placement.map(|p| p.as_str().into()),
+        })
+    }
 }
 
 /// Ordinary destinations resolved before hooks, with placeholders expanded, so a
@@ -434,6 +472,7 @@ impl AttemptLog {
             inventory,
             final_outputs: None,
             destinations: None,
+            pipelines: None,
         };
         Ok(Self {
             path,
@@ -446,6 +485,12 @@ impl AttemptLog {
     /// Record the destinations resolved before hooks.
     pub(crate) fn with_destinations(mut self, destinations: Option<Destinations>) -> Self {
         self.record.destinations = destinations;
+        self
+    }
+
+    /// Record the pipelines selected before hooks.
+    pub(crate) fn with_pipelines(mut self, plan: &crate::pipeline::Plan) -> Self {
+        self.record.pipelines = PipelineEvidence::from_plan(plan);
         self
     }
 
