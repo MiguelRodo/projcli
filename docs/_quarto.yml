@@ -35,6 +35,7 @@ website:
           - cli/history.qmd
           - cli/remote.qmd
           - cli/get.qmd
+          - cli/source.qmd
           - lifecycle.qmd
           - cli/version.qmd
           - cli/yml.qmd

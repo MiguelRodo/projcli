@@ -222,72 +222,13 @@ fn choices(config: &ProjConfig) -> Result<Vec<Choice>> {
     let Some(dest) = &config.build.dest else {
         return Ok(Vec::new());
     };
-    let mut global = Map::new();
-    let mut entries: Vec<(String, Value)> = Vec::new();
-    let mut push = |name: String, entry: Value| -> Result<()> {
-        anyhow::ensure!(
-            !entries.iter().any(|(previous, _)| *previous == name),
-            "build.dest names remote {name} more than once"
-        );
-        entries.push((name, entry));
-        Ok(())
-    };
-    match dest {
-        Value::String(name) => push(name.clone(), Value::Null)?,
-        Value::Array(items) => {
-            for item in items {
-                match item {
-                    Value::String(name) => {
-                        anyhow::ensure!(
-                            !DEST_OPTIONS.contains(&name.as_str()),
-                            "build.dest options belong in a mapping, not a list"
-                        );
-                        push(name.clone(), Value::Null)?
-                    }
-                    Value::Object(map) if map.len() == 1 => {
-                        let (name, entry) = map.iter().next().unwrap();
-                        anyhow::ensure!(
-                            !DEST_OPTIONS.contains(&name.as_str()),
-                            "build.dest options belong in a mapping, not a list"
-                        );
-                        push(name.clone(), entry.clone())?
-                    }
-                    _ => anyhow::bail!(
-                        "build.dest entries must be remote names or one-entry mappings"
-                    ),
-                }
-            }
-        }
-        Value::Object(map) => {
-            for (name, entry) in map {
-                if DEST_OPTIONS.contains(&name.as_str()) {
-                    global.insert(name.clone(), entry.clone());
-                } else {
-                    push(name.clone(), entry.clone())?
-                }
-            }
-        }
-        Value::Null => {}
-        _ => anyhow::bail!("build.dest must name remotes declared under remotes"),
-    }
+    let (global, entries) = role_parse(dest, "build.dest", &DEST_OPTIONS)?;
     let mut seen = HashSet::new();
     let mut result = Vec::new();
     for (reference, entry) in entries {
         let mut settings = global.clone();
-        match entry {
-            Value::Null => {}
-            Value::Object(map) => {
-                for key in map.keys() {
-                    anyhow::ensure!(
-                        DEST_OPTIONS.contains(&key.as_str()),
-                        "build.dest.{reference} only accepts content, cue, inspect and strategy; put remote settings under remotes"
-                    );
-                }
-                // projr's modifyList drops NULL entries, so `content: ~` inherits.
-                settings.extend(map.into_iter().filter(|(_, value)| !value.is_null()));
-            }
-            _ => anyhow::bail!("build.dest.{reference} must be a YAML mapping"),
-        }
+        // projr's modifyList drops NULL entries, so `content: ~` inherits.
+        settings.extend(entry.into_iter().filter(|(_, value)| !value.is_null()));
         let (provider, title) = resolve(config, &reference, "build.dest")?;
         anyhow::ensure!(
             seen.insert((provider, title.clone())),
@@ -320,6 +261,85 @@ fn choices(config: &ProjConfig) -> Result<Vec<Choice>> {
     }
     Ok(result)
 }
+/// Global options and per-remote settings of one entry of a role parse.
+pub(crate) type RoleEntries = (Map<String, Value>, Vec<(String, Map<String, Value>)>);
+
+/// Split a `build.dest`/`build.source` value into global options and
+/// per-remote settings (projr `.yml_build_role_parse`, SATVILab/projr@5f915ef
+/// `R/yml-dest.R:612-659`): a remote name, a list of names (each optionally a
+/// one-entry mapping with settings), or a mapping of options and remote names.
+/// Per-remote settings may only use `options`.
+pub(crate) fn role_parse(value: &Value, key: &str, options: &[&str]) -> Result<RoleEntries> {
+    let mut global = Map::new();
+    let mut entries: Vec<(String, Value)> = Vec::new();
+    let mut push = |name: String, entry: Value| -> Result<()> {
+        anyhow::ensure!(
+            !entries.iter().any(|(previous, _)| *previous == name),
+            "{key} names remote {name} more than once"
+        );
+        entries.push((name, entry));
+        Ok(())
+    };
+    let list_option = |name: &str| -> Result<()> {
+        anyhow::ensure!(
+            !options.contains(&name),
+            "{key} options belong in a mapping, not a list"
+        );
+        Ok(())
+    };
+    match value {
+        Value::String(name) => push(name.clone(), Value::Null)?,
+        Value::Array(items) => {
+            for item in items {
+                match item {
+                    Value::String(name) => {
+                        list_option(name)?;
+                        push(name.clone(), Value::Null)?
+                    }
+                    Value::Object(map) if map.len() == 1 => {
+                        let (name, entry) = map.iter().next().unwrap();
+                        list_option(name)?;
+                        push(name.clone(), entry.clone())?
+                    }
+                    _ => anyhow::bail!("{key} entries must be remote names or one-entry mappings"),
+                }
+            }
+        }
+        Value::Object(map) => {
+            for (name, entry) in map {
+                if options.contains(&name.as_str()) {
+                    global.insert(name.clone(), entry.clone());
+                } else {
+                    push(name.clone(), entry.clone())?
+                }
+            }
+        }
+        Value::Null => {}
+        _ => anyhow::bail!("{key} must name remotes declared under remotes"),
+    }
+    let allowed = match options.split_last() {
+        Some((last, rest)) if !rest.is_empty() => format!("{} and {last}", rest.join(", ")),
+        _ => options.join(", "),
+    };
+    let mut result = Vec::new();
+    for (reference, entry) in entries {
+        match entry {
+            Value::Null => result.push((reference, Map::new())),
+            Value::Object(map) => {
+                for name in map.keys() {
+                    anyhow::ensure!(
+                        options.contains(&name.as_str()),
+                        "{key}.{reference} only accepts {allowed}; put remote settings under remotes"
+                    );
+                }
+                result.push((reference, map));
+            }
+            _ => anyhow::bail!("{key}.{reference} must be a YAML mapping"),
+        }
+    }
+    Ok((global, result))
+}
+
 fn validate_definition(value: &Value) -> Result<()> {
     if value.get("structure").and_then(Value::as_str) == Some("xet") {
         if value.get("path").is_some() {

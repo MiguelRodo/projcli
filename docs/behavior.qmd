@@ -1150,9 +1150,8 @@ repository and tag in the local failure diagnostic. projcli
 metadata (`.projcli-manifests`) is written only when a remote opts in with a
 manifest field.
 
-Known gaps: `build.source` fetching (remote `get` settings are validated only) is
-a later slice (the `profile` key, short `.projr/config/` names, pipelines and
-restore from recorded destinations are implemented);
+Known gaps (the `profile` key, short `.projr/config/` names, pipelines, restore
+from recorded destinations and `build.source` fetching are implemented):
 directory paths and CAS/Xet store paths are not template-expanded; the build UUID
 is not exported to scripts; a local remote `ignore` field and one-off archives
 (`archive_local`/`archive_github`) are not supported; GitHub upload confirmation
@@ -1201,4 +1200,62 @@ Known gaps: a `latest` local remote without a label directory is not read;
 `proj get github --repo` without `--tag` reads recorded destinations only from a
 projr BUILDLOG (projcli attempt records are not fetched over the API);
 `directories.<label>` paths containing `@version` are not expanded before a
-missing VERSION is written; `build.source`/`proj source` is slice 6.
+missing VERSION is written.
+
+
+## projr 0.9 raw-input sources and restore-repo
+
+Confirmed behavior (MiguelRodo/issues#910 slice 6; SATVILab/projr@5f915ef
+`R/source.R`, `R/restore-repo.R` with 6acb9b8's `remote`, `R/yml-dest.R:699-747`):
+
+- `build.source` names registered remotes in the `build.dest` forms (a name, a
+  list, or a mapping of global options and remote names). Fetch settings come
+  from the per-remote entry, then the global options, then
+  `remotes.<type>.<title>.get`, then projr's defaults: `version: latest` (or `x`,
+  `x.y`, `x.y.z`), `cue: if-empty`, `inspect: manifest`, `strategy: sync-diff`,
+  `conflict: error`. `content` defaults to every declared raw label. A label
+  supplied by two remotes, or overlapping directories, is an error. A profile or
+  local layer's `build.source` replaces the lower value whole.
+- A production build plans its fetches after the archive version check and before
+  any project or remote change: it reads remote metadata, picks the label's newest
+  build at or before the selected version, and downloads what is needed into
+  private staging, MD5-verified against the remote's snapshot. Under `cue:
+  if-empty`, folders with files are left alone without network access; a pinned
+  exact version already in place (per the fetch record) needs none either. The
+  fetched inputs are installed just before start hooks and are not rolled back
+  if the build later fails (projr). They are the build's recorded inputs.
+- Local change detection uses projr's Git-ignored fetch record
+  `.projr/source/<label>.json` (label, remote, version, snapshot, files and their
+  MD5s): a file the fetch would overwrite or delete that differs from the last
+  fetch is a conflict. `conflict: error` stops; `local` keeps such files;
+  `remote` replaces them.
+- `proj source` mirrors `projr_source()`: `--label`, `--remote` (title or
+  `<type>:<title>`), `--version` (also `current`, which restores this checkout's
+  recorded inputs through `proj restore`), `--cue` (default `if-change`),
+  `--strategy`, `--inspect`, `--conflict`. Without `build.source` or `--remote`,
+  each label comes from the one registered remote that has published it. On a
+  terminal, a conflict asks whether to keep or replace the files; otherwise
+  `--conflict` or the configured policy decides, and noninteractive calls never
+  wait. Nothing changes until every selected label is checked. `proj source`
+  takes `.projr/build.lock`; a build that fetches already holds it.
+- `proj restore-repo <owner/repo|repo> [path] [--label] [--remote]` clones with the
+  installed `git` (`<GITHUB_SERVER_URL or https://github.com>/<owner>/<repo>.git`,
+  Git's own credentials), then runs `proj source` in the clone with `cue: always`
+  and `conflict: error`. A bare `repo` uses the token's GitHub login.
+
+projcli differences: development builds fetch only with `dev.source: true`
+(decision D3; projr also fetches in dev builds); discovery propagates a remote
+that cannot be listed as an error rather than treating it as "not published"
+(decision D5; a missing Release or local archive is still "not published");
+installation stages each changed label beside its directory (a copy of the local
+files with the planned changes, verified) and replaces all labels by the shared
+rename-swap, where projr writes and deletes files in place; `version: current`
+also accepts a registered local remote (as `proj restore --destination
+local:<title>` does); `restore-repo` failures exit non-zero with the reason
+rather than returning `FALSE`; CAS/Xet stores cannot be sources.
+
+Known gaps: projr's BUILDLOG "Raw-input sources" section (slice 10); projr's
+exemption of a `LICENSE` it wrote into a licensed folder (projcli has no folder
+licence writer); `build.source` is not part of the analysis-configuration
+fingerprint (the fetched files are recorded as build inputs); `sync-purge`
+behaves as `sync-diff`, as in projr.

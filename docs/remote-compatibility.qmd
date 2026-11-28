@@ -32,6 +32,15 @@ labels (default: every raw label) and reads the destinations each build recorded
 removed. The rows below that describe per-directory sources, newest-version
 selection and single-label restore are superseded by that note.
 
+**Update, 28 November 2026 (raw-input sources, SATVILab/projr@5f915ef
+`R/source.R`, `R/restore-repo.R`):** `build.source` and `remotes.<type>.<title>.get`
+(version `latest`/`x`/`x.y`/`x.y.z`, cue, inspect, strategy, conflict) now act.
+Production builds fetch before start hooks (development builds only with
+`dev.source: true`), `proj source` mirrors `projr_source()` with projr's
+`.projr/source/<label>.json` local-change records, and `proj restore-repo` clones
+then fetches. Both read local and GitHub remotes through the same verified
+download path as restore; see [source and restore-repo](cli/source.qmd).
+
 Verified delivery: [PR179](https://github.com/MiguelRodo/projcli/pull/179),
 [PR180](https://github.com/MiguelRodo/projcli/pull/180),
 [PR181](https://github.com/MiguelRodo/projcli/pull/181),
@@ -148,7 +157,8 @@ remote side effects. [HTTP replacement][http-upload], [GitHub transfer][github].
 | Restore source | projr 0.9: GitHub `archive` by default, a registered GitHub title at its recorded destination, or a concrete tag; MD5-verified against `.projr/manifests`; identical-snapshot fallback; "sources disagree" error. | Same, plus a documented projcli `local:<title>` superset. Sources are tried in order and never retried after a verified mismatch. |
 | Restore target | projr 0.9: final declared path; per-label staging beside the destination; rename-swap; original kept when rollback fails; no clear before fetching. | Same, plus link/special-file guards and a changed-destination check before the first swap. |
 | Restore result | projr 0.9 returns TRUE, or FALSE without raw labels. | Machine results list each label's path and `installed`/`verified` status; failures leave every destination unchanged (or report retained originals). |
-| Clone wrapper | Clone repo, select/change working directory, invoke content update. | Existing Git-backed init is not a restore clone wrapper. |
+| Clone wrapper | projr 0.9 `projr_restore_repo(repo, path, label, remote)`: clone with Git, then `projr_source(cue = "always", conflict = "error")`; FALSE on failure. | `proj restore-repo` with the installed `git`; failures exit non-zero. Tested against a local bare repository only. |
+| Raw-input fetch | projr 0.9 `build.source`/`projr_source()`: version pinning or following, MD5-verified staging, local-change records and conflict policy; discovery treats listing errors as unpublished. | Same, staged and swapped per label; discovery propagates listing errors (decision D5); dev builds opt in with `dev.source`. Local fixtures and loopback GitHub only. |
 | Most recently modified | Explicit unimplemented helpers; OSF variants explicitly unsupported. | Do not advertise working modification-time source selection. |
 
 [Version logic][versions], [restore][restore], [clone wrappers][clone].

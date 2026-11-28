@@ -4780,3 +4780,82 @@ and `--position` are replaced without migration.
   `extract_zip`, `install_manifest_tree`, the Release client and the template
   expander. No trait or new persistence format. `yml.rs`, `main.rs` and
   `build.rs` changes are localized (`build.rs` untouched).
+
+## projr 0.9 raw-input sources and restore-repo (28 November 2026)
+
+Slice 6 of MiguelRodo/issues#910, against SATVILab/projr@5f915ef (0.9.0; still
+main on 28 November, checked with the commits API), static source:
+`R/source.R`, `R/restore-repo.R` (6acb9b8's `remote`), `R/restore.R`
+(`projr_content_update`, deprecated: no CLI equivalent), `R/build.R:563-597`,
+`R/yml-dest.R:612-747`, `R/yml-check.R:236-275,418-456`, `R/yml.R:79-88`,
+`R/misc.R:787-797`.
+
+- **Same: configuration.** `build.source` takes the `build.dest` forms (shared
+  parser, `R/yml-dest.R:612-659`) with options `content`, `version`, `cue`,
+  `inspect`, `strategy`, `conflict`. Precedence: per-remote, global, the remote's
+  `get`, defaults (`latest`, `if-empty`, `manifest`, `sync-diff`, `error`;
+  `R/yml-dest.R:705-747`); content defaults to every raw label and must name raw
+  labels (`R/yml-check.R:418-435`); version is `latest` or `x`/`x.y`/`x.y.z`
+  (`:437-456`). A layer's `build.source` replaces lower ones whole
+  (`R/yml.R:79-88`). `remotes.*.get` uses the same validator.
+- **Same: planning and installation order.** The plan is made before any change,
+  downloading only into staging (`R/build.R:563-566`, `R/source.R:256-285`);
+  repeated labels and overlapping directories fail (`:288-330`); `if-empty`
+  leaves non-empty folders alone offline, a pinned exact version already recorded
+  needs no network (`:332-370`); `latest` is the remote's advertised version,
+  `x`/`x.y` the newest matching build (`:431-464`), and each label uses its newest
+  row at or before it (`:468-486`). Installation happens before hooks
+  (`R/build.R:597`) and is not rolled back on a later failure.
+- **Same: change detection.** Remote files come from the manifest under
+  `inspect: manifest`, else from verified downloads; `if-change` with matching
+  files is current; write/delete sets follow the strategy, and a touched file that
+  differs from `.projr/source/<label>.json` (or with no record) is a local change
+  handled by `conflict` (`R/source.R:488-605`). Records keep projr's JSON fields and
+  read projr's `[]` for an empty file list (`:686-719`).
+- **Same: `proj source`** (`R/source.R:39-247`): argument overrides, cue default
+  `if-change`, `--remote` title or `<type>:<title>`, `build.source` narrowing with
+  "Name a remote", discovery of the single publisher, `version: current` through
+  restore (`--conflict remote` clears, `local` is an error), terminal prompt
+  keep/replace/cancel and otherwise `--conflict`.
+- **Same: `proj restore-repo`** (`R/restore-repo.R`, `R/git.R:631-669`): clone
+  `https://github.com/<owner>/<repo>.git` (bare `repo` uses the token's login),
+  default path the repository name, then `cue: always`, `conflict: error`, with
+  `--label` and `--remote`.
+- **Different (decision D3):** development builds fetch only with
+  `dev.source: true`; projr's plan runs in every build (`R/build.R:566`).
+- **Different (decision D5):** discovery propagates listing and parse errors as
+  "Cannot list <remote>"; projr swallows them as unpublished
+  (`R/source.R:204-209`). A missing Release or local archive is still unpublished.
+- **Different (projcli-stronger, kept):** installation stages each changed label
+  beside its directory (copy of the current files plus the planned writes and
+  deletions, hash-checked) and swaps all labels with the restore rename-swap;
+  projr writes and deletes in place (`R/source.R:607-672`). A directory that
+  changes after planning stops the fetch. Links and special files are rejected;
+  GitHub tokens never appear in errors or redirects. `proj source` holds
+  `.projr/build.lock`; a fetching build already holds it.
+- **Different (additions):** `version: current` also accepts a registered local
+  remote (as `proj restore --destination local:<title>`, decision of 28 November);
+  `restore-repo` honours `GITHUB_SERVER_URL` for the clone host, tells Git not to
+  prompt under `--non-interactive`, and exits non-zero with the reason instead of
+  returning `FALSE`; CAS/Xet stores are rejected as sources.
+- **Gaps:** the BUILDLOG "Raw-input sources" section (`R/source.R:721-739`,
+  slice 10); projr's exemption of a `LICENSE` it wrote into a licensed folder
+  (`R/source.R:674-684`; projcli writes no folder licences); `build.source` is
+  not in the analysis-configuration fingerprint (fetched files are recorded as
+  build inputs); the interactive prompt is not exercised by tests.
+- **Tests:** `tests/test_source.rs`: real producer builds feeding consumers
+  (fetch before hooks and record contents, `if-empty` offline, conflict stopping a
+  build before hooks, inputs kept after a failing hook; D3 with and without
+  `dev.source`; pinned offline rebuild, `x` following, unmatched and malformed
+  versions, `conflict` error/local/remote with `kept`, `download-missing`, the
+  build claim; discovery, D5 listing error and two publishers; validation errors
+  and whole-value profile replacement; `version: current`; `restore-repo` from a
+  local bare repository with `GITHUB_SERVER_URL`), and loopback GitHub
+  (`--remote github:archive` with VERSION/manifest ZIPs; a failing Release listing
+  propagates without the token).
+- **Ponytail (full):** `src/source.rs` is the one new module. It reuses
+  `get::resolve` (extracted from `get::get`), `get::install` for verified staging,
+  and the rename-swap now shared as `get::Stage`/`get::commit`; `build.dest`'s
+  parser became `remote_registry::role_parse` for both keys; `remotes.*.get`
+  validation moved to `source::check_fetch`. No trait, no new persistence format
+  beyond projr's record.

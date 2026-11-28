@@ -329,7 +329,18 @@ guards and token redaction. Restore/get downloaded data has no projcli size cap
 The earlier general rule to bound ZIP bytes still applies to explicit low-level
 transfer and CAS/Xet commands. directories.LABEL.source and
 --position are removed (projr's build.source message); `proj remote restore` is
-explicit CAS/Xet snapshots only. build.source fetching is slice 6.
+explicit CAS/Xet snapshots only.
+
+build.source and proj source follow projr 0.9 R/source.R: remotes.*.get, then
+global, then per-remote settings; plan (metadata reads and MD5-verified private
+staging, no local change) before recovery capture and Release creation; install
+before start hooks and never roll fetched inputs back. Dev builds fetch only with
+dev.source: true (D3). Discovery propagates listing errors (D5). Local edits are
+judged against projr's .projr/source/<label>.json record; prompt only on a
+terminal, never hang otherwise. Reuse get.rs resolve/install and the shared
+Stage/commit swap; proj source takes .projr/build.lock, a build does not
+re-acquire it. restore-repo clones with the installed git; tests use local bare
+repositories and loopback GitHub only.
 
 Configured ordinary publication must fail namespace preflight before hooks or any
 destructive replacement, including full/empty/metadata aliases and selected CAS
@@ -868,7 +879,7 @@ that successful publication replaces; never roll back or delete them on failure.
 Creating a Release is not distribution; record created Releases (repo and tag only)
 in the local failure diagnostic.
 Restore reads recorded destinations; build.source fetching and pipelines are
-separate slices.
+implemented in their own slices.
 
 ## projr 0.9 configuration layout (26 November 2026)
 

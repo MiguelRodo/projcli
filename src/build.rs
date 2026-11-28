@@ -278,6 +278,13 @@ pub fn build_project_with_policies(
         let config = project_config.validate_and_resolve(project_root, is_dev)?;
         environment.set_rscript(project_config.config.r.executable(project_root)?);
         let destinations = crate::remote_registry::selected(&project_config)?;
+        // build.source: production builds fetch raw inputs before hooks; development
+        // builds only with dev.source: true (decision D3, unlike projr).
+        let source_targets = if !is_dev || project_config.dev.source == Some(true) {
+            crate::source::configured(&project_config)?
+        } else {
+            Vec::new()
+        };
         // Remote titles stay available to the pre-render archive version check.
         let remote_config = project_config.clone();
         let execution = execution_override
@@ -701,6 +708,11 @@ pub fn build_project_with_policies(
                 },
             )?;
         }
+        // Plan raw-input fetches before any project or remote change, as projr does:
+        // verified downloads go to private staging only, and local edits since the
+        // last fetch stop the build here (SATVILab/projr@5f915ef `R/build.R:563-566`).
+        let source_plan =
+            crate::source::plan(project_root, &config, Some(&profile_text), &source_targets)?;
         let run_context = crate::run_context::ContextFile::capture(
             project_root,
             &config,
@@ -1045,6 +1057,9 @@ pub fn build_project_with_policies(
             std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| -> anyhow::Result<()> {
                 // Original projr snapshots before start hooks; capture recovery first.
                 crate::r_housekeeping::run(project_root, r_actions, &environment, true)?;
+                // Fetched raw inputs stay installed if the build later fails (projr
+                // `R/build.R:597`); raw directories are not managed build state.
+                crate::source::install(project_root, &source_plan)?;
                 // Basic validation/recovery and any requested R snapshot are complete.
                 for hooks in [&hooks_config.pre, &hooks_config.both] {
                     if let Some(hooks) = hooks {

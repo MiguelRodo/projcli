@@ -213,8 +213,9 @@ Remotes also accept projr 0.9's `get` fetch settings (`version`: `latest`, `x`,
 `x.y` or `x.y.z`; `cue`: `if-empty`, `never`, `if-change`, `always`; `inspect`:
 `manifest`, `file`, `none`; `strategy`: `sync-diff`, `sync-purge`,
 `download-all`, `download-missing`; `conflict`: `error`, `local`, `remote`). They
-are validated but not used yet: `build.source` fetching is a later slice. A
-remote's `source:` field and `directories.<label>.source` were removed in projr
+are the remote's defaults when it supplies raw inputs (see "Raw-input sources"
+below). Versions must be quoted strings (`version: "1.2"`); `content` is not a
+`get` setting. A remote's `source:` field and `directories.<label>.source` were removed in projr
 0.9 and are rejected with its guidance to select sources with `build.source`.
 
 projcli writes its own `.projcli-manifests` metadata only when a remote sets
@@ -330,6 +331,8 @@ You can define a `dev` block to completely override specific configurations duri
   development build inherits `build.pipeline`'s scripts but **not** its hooks
   (a deliberate difference from projr, SATVILab/projr#1074); set `dev.pipeline`
   or pass `--pipeline` to run pipeline hooks in a development build.
+- **`source`**: `true` lets development builds fetch `build.source` inputs. They
+  do not by default (decision D3; projr also fetches in development builds).
 - **`old_dev_remove`**: Retained configuration field. The current preview protections skip CLI cleanup of prior caches during development builds, even when this is `true`. Scripts and hooks still control their own writes.
 
 ## Pipelines
@@ -472,6 +475,62 @@ manifest store, `.projr/manifests/`, without requiring Git or a remote. A
 projr-written root manifest.csv is imported once on the first write and left
 unchanged. Preview and build.output_run: false leave the store alone. See [the inventory notes](storage-design.qmd#compatible-csv-inventory).
 This CSV capture is included in preview.3. See the compatibility log and PR175 for verification evidence.
+
+## Raw-input sources
+
+`build.source` names the registered remotes that supply raw inputs, in the same
+forms as `build.dest` (SATVILab/projr@5f915ef `R/yml-dest.R:699-747`):
+
+```yaml
+remotes:
+  github:
+    survey-team: {repo: owner/survey, get: {version: "0.6"}}
+  local:
+    archive: {path: ../shared/archive}
+build:
+  source:
+    cue: if-change            # global option for every source
+    github:survey-team:
+      content: [raw-survey]
+    archive:
+      content: [raw-lab]
+      version: "1.2.3"        # pin an exact build
+```
+
+Each remote's settings are its per-remote entry, then the global options, then
+its `remotes.<type>.<title>.get`, then the defaults:
+
+| Key | Values | Default |
+|---|---|---|
+| `content` | raw labels | every declared raw label |
+| `version` | `latest`, `x`, `x.y`, `x.y.z` (quoted) | `latest` |
+| `cue` | `if-empty`, `if-change`, `always`, `never` | `if-empty` |
+| `inspect` | `manifest`, `file`, `none` | `manifest` |
+| `strategy` | `sync-diff`, `sync-purge`, `download-all`, `download-missing` | `sync-diff` |
+| `conflict` | `error`, `local`, `remote` | `error` |
+
+`latest` is the remote's advertised project version; `x` and `x.y` follow the
+newest completed build within that major or minor version. A label the selected
+build did not resend comes from its newest earlier build. With `if-empty`, a
+folder that has files is left alone, without network access. `inspect: manifest`
+compares the remote's recorded MD5s; `file` downloads and hashes. `sync-diff`
+(and `sync-purge`, which behaves the same) writes changed files and removes
+files the remote lacks; `download-all` writes changed files and keeps extras;
+`download-missing` only adds absent files.
+
+Validation errors: a remote not under `remotes`, an ambiguous title (use
+`local:<title>` or `github:<title>`), a remote named twice, options in a list
+(`build.source options belong in a mapping, not a list`), other keys in a
+per-remote entry, unquoted or malformed versions, values outside the table, a
+`content` label that is not a declared raw directory, and CAS or Xet stores. A
+label supplied by two remotes, or two overlapping directories, fails when the
+fetch is planned. A profile or local layer's `build.source` replaces the lower
+value whole.
+
+Production builds fetch before start hooks; development builds only with
+`dev.source: true`. The last fetch of each label is recorded in the Git-ignored
+`.projr/source/<label>.json`, projr's format; a file changed locally since then
+is a conflict. See [proj source](cli/source.qmd).
 
 ## Restore sources
 

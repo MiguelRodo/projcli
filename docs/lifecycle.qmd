@@ -77,7 +77,7 @@ output build's transition to the next development version.
 ```{mermaid}
 %%| label: fig-lifecycle-pre
 %%| fig-cap: "Released pre-build order."
-%%| fig-alt: "Select root and profiles, write projr's starter configuration when no base file exists (current source), validate merged configuration, capture run inputs and resolve destination placeholders, preflight targets, dependencies and archive versions, capture recovery state, create missing GitHub Releases, run start hooks, then finish preparation."
+%%| fig-alt: "Select root and profiles, write projr's starter configuration when no base file exists (current source), validate merged configuration, capture run inputs and resolve destination placeholders, preflight targets, dependencies and archive versions, plan build.source fetches into private staging, capture recovery state, create missing GitHub Releases, install fetched raw inputs, run start hooks, then finish preparation."
 %%{init: {"htmlLabels": false}}%%
 flowchart TB
   classDef default fill:#f0f4f7,stroke:#637b89,color:#153b32
@@ -89,11 +89,13 @@ flowchart TB
   D["[R] Capture root, profiles,<br/>mappings, mode and active run<br/>version; source: resolve @version/<br/>@branch/@uuid destinations"]
   E["[R/T] Preflight source groups / globs,<br/>exclusions, output collisions,<br/>dependencies and enabled Git;<br/>source: archive version check"]
   P["Source: create missing GitHub<br/>Releases (pending note)"]
+  Q["Source: plan build.source fetches<br/>(verified private staging; local<br/>edits stop the build)"]
+  I["Source: install fetched raw inputs<br/>(kept if the build later fails)"]
   F["[R] Enumerate and capture managed<br/>recovery state before controlled<br/>writes"]
   G["[R] Run configured start hooks"]
   R["Local candidate: optional R snapshot<br/>before start hooks"]
   H["[R] Complete safe staging and renderer<br/>preparation"]
-  A --> B --> S --> C --> D --> E --> F --> P --> R --> G --> H
+  A --> B --> S --> C --> D --> E --> Q --> F --> P --> R --> I --> G --> H
   classDef existing fill:#e5f2ed,stroke:#146859,color:#153b32
   classDef main fill:#e7effa,stroke:#315b89,color:#183954
   classDef target fill:#fff3d8,stroke:#8a5b00,color:#342600
@@ -130,6 +132,15 @@ flowchart TB
   missing GitHub Releases are created with a
   pending note (projr 0.9 order); a later failure keeps them, possibly empty, and
   successful publication replaces the note. This is not in any published preview.
+- Development source (projr 0.9 `build.source` slice): after the archive version
+  check, production builds plan their `build.source` fetches (projr
+  `R/build.R:563-566`): remote metadata is read and needed files are downloaded
+  and MD5-verified into private staging, and local edits since the last fetch
+  stop the build there. The fetched inputs are installed after the optional R
+  snapshot and immediately before start hooks (projr `R/build.R:597`); raw
+  directories are not managed state, so a later failure keeps them, as in projr.
+  Development builds fetch only with `dev.source: true` (decision D3). Not in any
+  published preview.
 - Start/end refer to the existing pre/both and post/both hook sets, not new
   hook types. Their placement follows the controlled lifecycle shown here.
 - Recovery capture must precede hooks and managed mutations. Cache/staging setup,
