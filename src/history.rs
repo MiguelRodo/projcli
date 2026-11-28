@@ -54,6 +54,29 @@ pub(crate) fn last_completed(root: &Utf8Path) -> anyhow::Result<Option<String>> 
         .find_map(|entry| entry.release_version))
 }
 
+/// The destinations recorded by the newest completed production attempt for
+/// `version`, among the 100 newest records, as projr reads a BUILDLOG entry's
+/// resolved archive destinations (SATVILab/projr@5f915ef `R/get-project.R:1-48`).
+pub(crate) fn recorded_destinations(
+    root: &Utf8Path,
+    version: &str,
+) -> anyhow::Result<Option<attempt_log::Destinations>> {
+    let Some(entry) = read(root, None, 100)?.entries.into_iter().find(|entry| {
+        matches!(entry.status.as_str(), "completed" | "unresolved")
+            && !entry.local_only
+            && entry.release_version.as_deref() == Some(version)
+    }) else {
+        return Ok(None);
+    };
+    let bytes = attempt_log::read(
+        &root
+            .join(".projr/attempts")
+            .join(format!("{}.json", entry.attempt_id)),
+    )?;
+    let record: Record = serde_json::from_slice(&bytes).context("Invalid attempt record")?;
+    Ok(record.destinations)
+}
+
 /// Read summaries or one attempt's exact final rows without configuration, Git, locks or writes.
 /// IDs are validated before joining paths. Missing/malformed/linked evidence fails closed;
 /// a missing post-Git receipt is unresolved. Limits: 10,000 directory entries, 64 MiB

@@ -796,21 +796,12 @@ fn new_flat_config_still_restores_via_ordinary_compatible_metadata_without_chang
             .args(["--machine", "--non-interactive", "--project"])
             .arg(&root)
             .args([
-                "remote",
                 "restore",
                 "--label",
                 "output",
-                "--title",
-                "data",
-                "--provider",
-                "github",
-                "--repository",
-                "owner/repo",
+                "--destination",
+                "github:data",
                 "--clear",
-                "--max-bytes",
-                "1000000",
-                "--max-expanded-bytes",
-                "1000000",
             ])
             .output()
             .unwrap();
@@ -1131,21 +1122,12 @@ fn github_tree_requires_fixed_json_and_preserves_ordinary_restore() {
             .args(["--machine", "--non-interactive", "--project"])
             .arg(&root)
             .args([
-                "remote",
                 "restore",
                 "--label",
                 "output",
-                "--title",
-                "data",
-                "--provider",
-                "github",
-                "--repository",
-                "owner/repo",
+                "--destination",
+                "github:data",
                 "--clear",
-                "--max-bytes",
-                "1000000",
-                "--max-expanded-bytes",
-                "1000000",
             ])
             .output()
             .unwrap();

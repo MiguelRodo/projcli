@@ -1,41 +1,13 @@
-//! Configured single-label restore from an ordinary named registry or legacy inline definitions.
-//! This is an explicit operation; current upload selection does not remove registered sources.
-use crate::github_zip::{GithubStructure, directory_asset_name};
-use crate::local_remote::{LocalStructure, compare_versions, version_numbers};
+//! `proj restore`: restore a checkout's raw inputs from the build that produced
+//! it (SATVILab/projr@5f915ef `R/restore-build.R`), plus the shared remote
+//! definition parsing used by publication and the explicit CAS/Xet snapshot
+//! restores. Registered remotes are lookups; upload selection never limits them.
 use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::fs;
 
-/// Explicit configured restore controls. Directory references retain first priority;
-/// legacy preferred sources precede registry preferred sources, then legacy/registry
-/// fallbacks in their merged declaration order. No automatic source failover is implied.
-#[derive(Default)]
-pub struct RestoreRequest {
-    /// Declared label to restore (required; no implicit role or path).
-    pub label: String,
-    /// Filter legacy directory-source/build-destination sections; registered definitions
-    /// remain candidates for either choice. None searches both legacy sections.
-    pub position: Option<String>,
-    /// Restrict the provider to local or github.
-    pub provider: Option<String>,
-    /// Restrict a registered name or legacy inline title/reference.
-    pub title: Option<String>,
-    /// Exact archive version override; None selects newest remote version.
-    pub remote_version: Option<String>,
-    /// Explicit GitHub owner/repository, avoiding any Git dependency.
-    pub repository: Option<String>,
-    /// Explicit active profiles; local overrides remain highest.
-    pub profile: Option<String>,
-    /// Clear destination-only files only after valid complete staging.
-    pub clear: bool,
-    /// Maximum compressed GitHub asset bytes.
-    pub max_bytes: u64,
-    /// Maximum expanded GitHub ZIP bytes.
-    pub max_expanded_bytes: u64,
-}
-/// One result. A skipped empty/unrecorded label never clears local files.
+/// One explicit CAS/Xet snapshot restore result.
 #[derive(Debug, Serialize)]
 pub struct RestoreResult {
     /// Canonical configured label.
@@ -95,11 +67,6 @@ pub(crate) fn local_only_fields(value: &Value) -> anyhow::Result<()> {
         );
     }
     Ok(())
-}
-struct Source {
-    provider: String,
-    title: String,
-    definition: Definition,
 }
 /// Validate projr 0.9 `get` fetch settings (SATVILab/projr@5f915ef
 /// `R/misc.R:787-797`, `R/yml-check.R:437-456`). They are accepted for a later
@@ -192,83 +159,6 @@ pub(crate) fn definition(value: &Value) -> anyhow::Result<Definition> {
     }
     Ok(parsed)
 }
-fn referenced(
-    raw: &Value,
-    provider: &str,
-    title: &str,
-    inline: Option<&Value>,
-) -> anyhow::Result<Definition> {
-    anyhow::ensure!(
-        !title.is_empty() && !title.chars().any(char::is_control),
-        "Invalid remote title"
-    );
-    let registered = raw
-        .get("remotes")
-        .and_then(|v| v.get(provider))
-        .and_then(|v| v.get(title));
-    let value = match (registered, inline) {
-        (Some(shared), Some(inline)) => crate::yml::deep_merge(shared.clone(), inline.clone()),
-        (Some(shared), None) => shared.clone(),
-        (None, Some(inline)) => inline.clone(),
-        (None, None) => anyhow::bail!("Directory source references an undefined remote"),
-    };
-    anyhow::ensure!(
-        !matches!(
-            value.get("structure").and_then(Value::as_str),
-            Some("cas" | "xet")
-        ),
-        "CAS/Xet restore requires an explicit --snapshot and --title"
-    );
-    definition(&value)
-}
-/// Accept projr's `<type>:<title>` remote names; an unqualified title registered
-/// for both types is ambiguous (SATVILab/projr@5f915ef `R/yml-dest.R:661-703`).
-fn qualified(raw: &Value, request: &RestoreRequest) -> anyhow::Result<RestoreRequest> {
-    let mut provider = request.provider.clone();
-    let mut title = request.title.clone();
-    if let Some((kind, rest)) = request.title.as_deref().and_then(|t| t.split_once(':'))
-        && matches!(kind, "local" | "github")
-        && !rest.is_empty()
-    {
-        anyhow::ensure!(
-            provider.as_deref().is_none_or(|p| p == kind),
-            "--title {kind}:{rest} conflicts with --provider"
-        );
-        provider = Some(kind.into());
-        title = Some(rest.into());
-    }
-    if let (None, Some(title)) = (&provider, &title) {
-        let registered = |kind: &str| raw["remotes"][kind].get(title.as_str()).is_some();
-        anyhow::ensure!(
-            !(registered("local") && registered("github")),
-            "Remote {title} is declared under both remotes.local and remotes.github. Use local:{title} or github:{title}"
-        );
-    }
-    Ok(RestoreRequest {
-        label: request.label.clone(),
-        position: request.position.clone(),
-        provider,
-        title,
-        remote_version: request.remote_version.clone(),
-        repository: request.repository.clone(),
-        profile: request.profile.clone(),
-        clear: request.clear,
-        max_bytes: request.max_bytes,
-        max_expanded_bytes: request.max_expanded_bytes,
-    })
-}
-fn provider_allowed(provider: &str, request: &RestoreRequest) -> bool {
-    request
-        .provider
-        .as_deref()
-        .is_none_or(|filter| filter == provider)
-}
-fn title_allowed(title: &str, request: &RestoreRequest) -> bool {
-    request
-        .title
-        .as_deref()
-        .is_none_or(|filter| filter == title)
-}
 pub(crate) fn content_has(value: Option<&Value>, label: &str, raw: &Value) -> anyhow::Result<bool> {
     match value {
         None | Some(Value::Null) | Some(Value::Bool(false)) => Ok(false),
@@ -305,119 +195,12 @@ pub struct SnapshotRestoreOptions<'a> {
     pub max_expanded: u64,
 }
 
-fn select_source(raw: &Value, label: &str, request: &RestoreRequest) -> anyhow::Result<Source> {
-    // Registry lookup is independent of upload selection and legacy section filters.
-    // Directory-specific references retain their existing priority.
-    if request.position.as_deref() != Some("dest")
-        && let Some(sources) = raw["directories"][label]
-            .get("source")
-            .filter(|v| !v.is_null())
-    {
-        for (provider, entries) in sources
-            .as_object()
-            .context("Directory source must be a provider mapping")?
-        {
-            anyhow::ensure!(
-                matches!(provider.as_str(), "local" | "github"),
-                "Unsupported source provider"
-            );
-            if !provider_allowed(provider, request) {
-                continue;
-            }
-            let candidates: Vec<(String, Option<&Value>)> = match entries {
-                Value::String(title) => vec![(title.clone(), None)],
-                Value::Array(titles) => titles
-                    .iter()
-                    .map(|v| {
-                        Ok((
-                            v.as_str()
-                                .context("Source references must be strings")?
-                                .into(),
-                            None,
-                        ))
-                    })
-                    .collect::<anyhow::Result<_>>()?,
-                Value::Object(titles) => titles
-                    .iter()
-                    .map(|(title, value)| (title.clone(), Some(value)))
-                    .collect(),
-                Value::Null => vec![],
-                _ => anyhow::bail!(
-                    "Directory source must contain a title, title list or inline definitions"
-                ),
-            };
-            for (title, inline) in candidates {
-                if title_allowed(&title, request) {
-                    return Ok(Source {
-                        definition: referenced(raw, provider, &title, inline)?,
-                        provider: provider.clone(),
-                        title,
-                    });
-                }
-            }
-        }
-    }
-    let mut registry_fallback = None;
-    if let Some(registry) = raw.get("remotes").and_then(Value::as_object) {
-        for (provider, entries) in registry {
-            if !matches!(provider.as_str(), "local" | "github")
-                || !provider_allowed(provider, request)
-            {
-                continue;
-            }
-            for (title, value) in entries
-                .as_object()
-                .context("Remote provider must contain named definitions")?
-            {
-                if !title_allowed(title, request) {
-                    continue;
-                }
-                // Legacy flat CAS is not an ordinary restore source. Tree-aware configured
-                // recovery remains a separately tracked implementation step.
-                if matches!(
-                    value.get("structure").and_then(Value::as_str),
-                    Some("cas" | "xet")
-                ) {
-                    continue;
-                }
-                let definition = definition(value)?;
-                if value.get("content").is_some() && !content_has(value.get("content"), label, raw)?
-                {
-                    continue;
-                }
-                let source = Source {
-                    provider: provider.clone(),
-                    title: title.clone(),
-                    definition,
-                };
-                if registry_fallback.is_none() {
-                    registry_fallback = Some(source)
-                }
-            }
-        }
-    }
-    if let Some(source) = registry_fallback {
-        return Ok(source);
-    }
-    anyhow::bail!("No configured restore source matches the requested label and filters")
-}
 pub(crate) fn projected_config(
     raw: &Value,
     root: &Utf8Path,
 ) -> anyhow::Result<crate::yml::ValidatedConfig> {
-    let mut projection = raw.clone();
-    if let Some(directories) = projection
-        .get_mut("directories")
-        .and_then(Value::as_object_mut)
-    {
-        for directory in directories.values_mut() {
-            if let Some(directory) = directory.as_object_mut() {
-                directory.remove("source");
-            }
-        }
-    }
     let mut config: crate::yml::ProjConfig =
-        serde_json::from_value(projection).context("Invalid restore project configuration")?;
+        serde_json::from_value(raw.clone()).context("Invalid restore project configuration")?;
     crate::remote_registry::validate_names(&config)?;
     crate::remote_registry::reject_inline(&config)?;
     // Upload selection never limits restore sources.
@@ -425,27 +208,6 @@ pub(crate) fn projected_config(
     config.validate_and_resolve(root, false)
 }
 
-/// Placeholder values for a lookup outside a build: the current run version and
-/// checkout. `@uuid` names a single build and fails until recorded destinations are read.
-fn lookup_templates(root: &Utf8Path) -> crate::template::Templates {
-    crate::template::Templates::for_lookup(
-        root,
-        crate::run_version_from(root)
-            .ok()
-            .map(|version| version.to_string(true)),
-    )
-}
-fn repository(root: &Utf8Path, explicit: Option<&str>, api: &str) -> anyhow::Result<String> {
-    if let Some(repository) = explicit {
-        return Ok(repository.into());
-    }
-    repository_in(
-        root,
-        explicit,
-        api,
-        &crate::run_environment::RunEnvironment::inherited(),
-    )
-}
 /// Resolve Git origin using an already captured environment and API host.
 pub(crate) fn repository_in(
     root: &Utf8Path,
@@ -463,7 +225,7 @@ pub(crate) fn repository_in(
         .output()?;
     anyhow::ensure!(
         output.status.success(),
-        "Cannot resolve Git origin; supply --repository owner/repo"
+        "Cannot resolve Git origin; set the remote's repo field"
     );
     let url = std::str::from_utf8(&output.stdout)
         .context("Git origin is not UTF-8")?
@@ -475,7 +237,7 @@ pub(crate) fn repository_in(
         url.split_once(':')
             .context("Git origin is not an SSH repository URL")?
     } else {
-        anyhow::bail!("Unsupported Git origin; supply --repository owner/repo");
+        anyhow::bail!("Unsupported Git origin; set the remote's repo field");
     };
     let api: ureq::http::Uri = api.parse().context("Invalid API base")?;
     let expected = if api
@@ -488,393 +250,318 @@ pub(crate) fn repository_in(
     };
     anyhow::ensure!(
         host.eq_ignore_ascii_case(expected),
-        "Git origin does not match the API host; supply --repository explicitly"
+        "Git origin does not match the API host; set the remote's repo field"
     );
     Ok(path.strip_suffix(".git").unwrap_or(path).into())
 }
-fn github_version(
-    client: &crate::github_release::GithubReleaseClient,
-    root: &Utf8Path,
-    source: &Source,
-    label: &str,
-    request: &RestoreRequest,
-    tag: &str,
-) -> anyhow::Result<(String, String, bool)> {
-    let definition = &source.definition;
-    let prefix = definition.path.as_deref();
-    let append = definition.path_append_label.unwrap_or(true);
-    let assets = client.assets(tag)?;
-    if matches!(
-        definition.structure.unwrap_or(Layout::Archive),
-        Layout::Archive
-    ) {
-        let mut stems = Vec::new();
-        for remote_label in if label == "output-r-data" {
-            vec![label, "data"]
-        } else {
-            vec![label]
-        } {
-            let stem = directory_asset_name(
-                prefix,
-                append,
-                remote_label,
-                GithubStructure::Latest,
-                None,
-                false,
-            )?;
-            let stem = format!("{}-v", stem.strip_suffix(".zip").unwrap());
-            if !stems.contains(&stem) {
-                stems.push(stem);
-            }
-        }
-        let mut namespaces = std::collections::BTreeSet::new();
-        let mut found = Vec::new();
-        for asset in assets {
-            let Some((namespace, version)) = stems.iter().find_map(|stem| {
-                asset
-                    .name
-                    .strip_prefix(stem)
-                    .and_then(|v| v.strip_suffix(".zip"))
-                    .map(|v| (stem, v))
-            }) else {
-                continue;
-            };
-            let empty = version.ends_with("-empty");
-            let version = version.strip_suffix("-empty").unwrap_or(version);
-            if !version.as_bytes().first().is_some_and(u8::is_ascii_digit) {
-                continue;
-            }
-            let numbers = version_numbers(version)
-                .context("Invalid numeric-looking GitHub archive asset version")?;
-            namespaces.insert(namespace.clone());
-            if request
-                .remote_version
-                .as_deref()
-                .is_some_and(|wanted| wanted.strip_prefix('v').unwrap_or(wanted) != version)
-            {
-                continue;
-            }
-            found.push((numbers, format!("v{version}"), asset.name, empty));
-        }
-        anyhow::ensure!(
-            namespaces.len() <= 1,
-            "Canonical and legacy data remote namespaces conflict"
-        );
-        found.sort_by(|a, b| {
-            compare_versions(&b.0, &a.0)
-                .then(a.3.cmp(&b.3))
-                .then(a.2.cmp(&b.2))
-        });
-        let (_, version, name, empty) = found
-            .into_iter()
-            .next()
-            .context("Requested GitHub archive version is unavailable")?;
-        Ok((version, name, empty))
-    } else {
-        let transfer = tempfile::Builder::new()
-            .prefix("proj-restore-meta-")
-            .tempdir_in(fs::canonicalize(std::env::temp_dir())?)?;
-        let downloaded = (|| {
-            let path = Utf8Path::from_path(transfer.path())
-                .context("Metadata path must be UTF-8")?
-                .join("VERSION.zip");
-            client.download_asset(
-                root,
-                tag,
-                "VERSION.zip",
-                &path,
-                request.max_bytes.min(4 * 1024 * 1024),
-            )?;
-            let extracted = crate::github_zip::extract_zip(
-                &path,
-                request.max_expanded_bytes.min(16 * 1024 * 1024),
-            )?;
-            let result = (|| {
-                let directory =
-                    Utf8Path::from_path(extracted.path()).context("Metadata path must be UTF-8")?;
-                let entries = fs::read_dir(directory)?.collect::<Result<Vec<_>, _>>()?;
-                anyhow::ensure!(
-                    entries.len() == 1 && entries[0].file_name() == "VERSION",
-                    "VERSION.zip must contain exactly VERSION"
-                );
-                let text = crate::fs_utils::read_managed_text(&directory.join("VERSION"))?;
-                let matches: Vec<_> = text
-                    .lines()
-                    .filter_map(|line| line.split_once(':'))
-                    .filter(|(key, _)| {
-                        key.trim() == label
-                            || (label == "output-r-data" && key.trim().eq_ignore_ascii_case("data"))
-                    })
-                    .collect();
-                anyhow::ensure!(
-                    matches.len() == 1,
-                    "VERSION.zip label is missing or ambiguous"
-                );
-                let value = matches[0].1.trim();
-                let version = value.strip_suffix('*').unwrap_or(value);
-                anyhow::ensure!(
-                    version_numbers(version).is_some(),
-                    "Invalid advertised GitHub version"
-                );
-                let version = format!("v{}", version.strip_prefix('v').unwrap_or(version));
-                if let Some(wanted) = &request.remote_version {
-                    anyhow::ensure!(
-                        wanted.trim_start_matches('v') == version.trim_start_matches('v'),
-                        "Requested version is not the advertised latest"
-                    );
-                }
-                let remote_label = matches[0].0.trim();
-                let full = directory_asset_name(
-                    prefix,
-                    append,
-                    remote_label,
-                    GithubStructure::Latest,
-                    None,
-                    false,
-                )?;
-                let empty = directory_asset_name(
-                    prefix,
-                    append,
-                    remote_label,
-                    GithubStructure::Latest,
-                    None,
-                    true,
-                )?;
-                if assets.iter().any(|asset| asset.name == full) {
-                    Ok((version, full, false))
-                } else if assets.iter().any(|asset| asset.name == empty) {
-                    Ok((version, empty, true))
-                } else {
-                    anyhow::bail!("Advertised GitHub latest asset is unavailable");
-                }
-            })();
-            let cleanup = extracted.close();
-            match (result, cleanup) {
-                (Ok(result), Ok(())) => Ok(result),
-                (Err(error), Ok(())) => Err(error),
-                (Ok(_), Err(error)) => Err(error),
-                (Err(error), Err(cleanup)) => Err(error.context(format!(
-                    "Metadata extraction cleanup also failed: {cleanup:#}"
-                ))),
-            }
-        })();
-        let cleanup_path = transfer.path().to_owned();
-        let cleanup = transfer.close().with_context(|| {
-            format!(
-                "Metadata staging cleanup failed at {}",
-                cleanup_path.display()
-            )
-        });
-        match (downloaded, cleanup) {
-            (Ok(result), Ok(())) => Ok(result),
-            (Err(error), Ok(())) => Err(error),
-            (Ok(_), Err(error)) => Err(error),
-            (Err(error), Err(cleanup)) => {
-                Err(error.context(format!("Metadata staging cleanup also failed: {cleanup:#}")))
-            }
-        }
-    }
+
+/// `proj restore` arguments (projr `projr_restore`).
+#[derive(Default)]
+pub struct RestoreRequest {
+    /// Labels to restore; empty restores every declared raw directory.
+    pub labels: Vec<String>,
+    /// Exact build version; default is the checkout's completed build.
+    pub version: Option<String>,
+    /// A registered GitHub remote title, a concrete Release tag in the checkout's
+    /// repository, or (projcli) `local:<title>` for a registered local remote.
+    /// Defaults to `archive`.
+    pub destination: Option<String>,
+    /// Replace local files that differ from the snapshot, including extra files.
+    pub clear: bool,
+    /// Explicit active profiles.
+    pub profile: Option<String>,
+    /// Maximum compressed bytes per GitHub asset.
+    pub max_bytes: u64,
+    /// Maximum expanded bytes per GitHub ZIP.
+    pub max_expanded_bytes: u64,
 }
-/// Restores one declared final directory using existing merged inline config.
-/// Requires active project configuration and valid manifest history (the
-/// `.projr/manifests` store, or a projr-written legacy root manifest.csv), matching
-/// projr's history gate. Source entries precede eligible build destinations;
-/// source:true/label preferences beat fallback, source:false excludes. There is
-/// no retry against another source after a selected source fails. Empty/unrecorded
-/// labels are skipped without clearing. Local and GitHub latest/archive downloads
-/// use the existing staged installers. The CSV is not an integrity/trust check.
-/// Existing ordinary provider definitions are reused. Normal builds validate source
-/// references without auto-restoring and reject unsupported publication fields.
-pub fn restore_label(root: &Utf8Path, request: &RestoreRequest) -> anyhow::Result<RestoreResult> {
-    anyhow::ensure!(
-        request
-            .position
-            .as_deref()
-            .is_none_or(|v| matches!(v, "source" | "dest")),
-        "Restore position must be source or dest"
-    );
-    anyhow::ensure!(
-        request
-            .provider
-            .as_deref()
-            .is_none_or(|v| matches!(v, "local" | "github")),
-        "Restore provider must be local or github"
-    );
+
+/// The verified outcome of `proj restore`.
+#[derive(Debug, Serialize)]
+pub struct RestoreOutcome {
+    /// The build version restored; None when no raw directory is declared.
+    pub version: Option<String>,
+    /// The remote consulted (`github:owner/repo@tag` or `local:<title>`), if any.
+    pub source: Option<String>,
+    /// Each label's final directory.
+    pub labels: Vec<crate::get::Installed>,
+}
+
+/// The version restore targets: the requested one, else the checkout's completed
+/// VERSION, else the newest completed production build recorded in the checkout
+/// (projr reads `.projr/BUILDLOG.md`; projcli reads `.projr/attempts`, then a
+/// projr BUILDLOG).
+fn restore_version(root: &Utf8Path, version: Option<&str>) -> anyhow::Result<String> {
+    if let Some(version) = version {
+        return crate::get::check_version(version);
+    }
+    if let Some(version) = crate::get::completed_version_file(root) {
+        return Ok(version);
+    }
+    crate::get::project_record(root, None)?
+        .version
+        .context("No completed build recorded in this checkout. Supply --version.")
+}
+
+/// Restores the raw inputs a checked-out build used (projr `projr_restore`,
+/// SATVILab/projr@5f915ef `R/restore-build.R:27-170`).
+///
+/// The checkout's `.projr/manifests` (or a projr-written legacy `manifest.csv`)
+/// names each label's files and MD5s at the build version. Directories that
+/// already match are left alone and need no network access; recorded empty
+/// directories need none either. Other labels come from the selected remote:
+/// GitHub `archive` by default, a registered GitHub title (its destination as
+/// recorded by that build, so `@version`, `@uuid` and `@branch` resolve), a
+/// concrete tag in the checkout's repository, or a registered `local:<title>`.
+/// An identical snapshot recorded under an earlier version is used when the exact
+/// version's archive is missing. Every label is staged and verified before any
+/// destination is replaced. Without `clear`, local changes are an error.
+/// A remote snapshot missing from the checkout is recorded in its manifest store.
+pub fn restore(root: &Utf8Path, request: &RestoreRequest) -> anyhow::Result<RestoreOutcome> {
     let profiles = crate::run_context::select_profiles(request.profile.as_deref(), root)?;
     crate::yml::require_active_configuration_for_profiles(root, &profiles)?;
-    let selected_profiles = profiles.join(",");
-    let raw = crate::yml::get_combined_yml(Some(&selected_profiles), root)?;
+    let raw = crate::yml::get_combined_yml(Some(&profiles.join(",")), root)?;
     let config = projected_config(&raw, root)?;
-    let label = config
-        .directories
-        .keys()
-        .find(|label| label.eq_ignore_ascii_case(&request.label))
-        .context("Restore label is not declared")?
-        .clone();
-    let destination = config.get_path(root, &label)?;
-    anyhow::ensure!(
-        crate::manifest_store::history_exists(
-            &crate::manifest_store::project_store(root),
-            &root.join("manifest.csv")
-        )?,
-        "Restore requires recorded manifest history (.projr/manifests or a legacy manifest.csv)"
-    );
-    let rows = crate::manifest_store::read_project(root)?;
-    let mut result = RestoreResult {
-        label: label.clone(),
-        destination: destination.clone(),
-        provider: None,
-        title: None,
-        version: None,
-        restored: false,
-        skipped: None,
-        snapshot_id: None,
-        snapshot_kind: None,
-    };
-    if !rows.iter().any(|row| {
-        (row.label == label || (label == "output-r-data" && row.label.eq_ignore_ascii_case("data")))
-            && !row.r#fn.is_empty()
-    }) {
-        result.skipped = Some("no-recorded-files".into());
-        return Ok(result);
-    }
-    let request = &qualified(&raw, request)?;
-    let source = select_source(&raw, &label, request)?;
-    result.provider = Some(source.provider.clone());
-    result.title = Some(source.title.clone());
-    if source.provider == "local" {
-        let path = source
-            .definition
-            .path
-            .as_deref()
-            .context("Local restore source requires an explicit path")?;
-        anyhow::ensure!(!path.is_empty(), "Local restore path must not be empty");
-        let path = &lookup_templates(root).expand(path)?;
-        let base = if Utf8Path::new(path).is_absolute() {
-            Utf8PathBuf::from(path)
-        } else {
-            root.join(path)
-        };
-        let layout = match source.definition.structure.unwrap_or(Layout::Archive) {
-            Layout::Latest => LocalStructure::Latest,
-            Layout::Archive => LocalStructure::Archive,
-        };
-        let append = source.definition.path_append_label.unwrap_or(true);
-        let mut catalogs = Vec::new();
-        for remote_label in if label == "output-r-data" {
-            vec![label.as_str(), "data"]
-        } else {
-            vec![label.as_str()]
-        } {
-            let versions = crate::local_remote::list_versions(&base, remote_label, layout, append)?;
-            if !versions.is_empty()
-                && !catalogs.iter().any(
-                    |(_, previous): &(&str, Vec<crate::local_remote::LocalVersion>)| {
-                        previous
-                            .iter()
-                            .map(|v| {
-                                (
-                                    &v.path,
-                                    &v.version,
-                                    v.empty,
-                                    v.present,
-                                    v.metadata_untrusted,
-                                )
-                            })
-                            .eq(versions.iter().map(|v| {
-                                (
-                                    &v.path,
-                                    &v.version,
-                                    v.empty,
-                                    v.present,
-                                    v.metadata_untrusted,
-                                )
-                            }))
-                    },
-                )
-            {
-                catalogs.push((remote_label, versions));
+    let declared: Vec<String> = raw
+        .get("directories")
+        .and_then(Value::as_object)
+        .map(|map| map.keys().cloned().collect())
+        .unwrap_or_default();
+    let mut labels: Vec<String> = Vec::new();
+    if request.labels.is_empty() {
+        labels.extend(
+            declared
+                .iter()
+                .filter(|label| label.to_ascii_lowercase().starts_with("raw"))
+                .cloned(),
+        );
+    } else {
+        for label in &request.labels {
+            anyhow::ensure!(
+                declared.contains(label),
+                "Restore label is not declared: {label}"
+            );
+            if !labels.contains(label) {
+                labels.push(label.clone());
             }
         }
-        anyhow::ensure!(
-            catalogs.len() <= 1,
-            "Canonical and legacy data remote namespaces conflict"
-        );
-        let (remote_label, versions) = catalogs
-            .into_iter()
-            .next()
-            .context("Local source has no available version")?;
-        let selected =
-            if matches!(layout, LocalStructure::Archive) && request.remote_version.is_some() {
-                crate::local_remote::select_version(
-                    &base,
-                    remote_label,
-                    layout,
-                    request.remote_version.as_deref(),
-                    append,
-                )?
-            } else {
-                let selected = versions.into_iter().next().unwrap();
-                if let Some(wanted) = &request.remote_version {
-                    anyhow::ensure!(
-                        version_numbers(wanted) == version_numbers(&selected.version),
-                        "Requested version is not the advertised latest"
-                    );
-                }
-                selected
-            };
-        anyhow::ensure!(
-            selected.present,
-            "Advertised local restore source is unavailable"
-        );
-        result.version = Some(selected.version.clone());
-        if selected.empty {
-            anyhow::ensure!(
-                fs::read_dir(&selected.path)?.next().is_none(),
-                "Empty local marker contains data"
-            );
-            result.skipped = Some("empty-remote".into());
-            return Ok(result);
-        }
-        crate::local_remote::download_version(root, &selected, &destination, request.clear)?;
-    } else {
-        let api =
-            std::env::var("GITHUB_API_URL").unwrap_or_else(|_| "https://api.github.com".into());
-        let repository = repository(
-            root,
-            request
-                .repository
-                .as_deref()
-                .or(source.definition.repo.as_deref()),
-            &api,
-        )?;
-        let token = ["GITHUB_PAT", "GH_TOKEN", "GITHUB_TOKEN"]
-            .iter()
-            .find_map(|key| std::env::var(key).ok().filter(|v| !v.trim().is_empty()));
-        let client = crate::github_release::GithubReleaseClient::new(&repository, &api, token)?;
-        let tag = crate::github_publication::release_tag(
-            &source.title,
-            &source.definition,
-            &lookup_templates(root),
-        )?;
-        let (version, name, empty) = github_version(&client, root, &source, &label, request, &tag)?;
-        result.version = Some(version);
-        if empty {
-            result.skipped = Some("empty-remote".into());
-            return Ok(result);
-        }
-        crate::github_zip::download_directory(
-            &client,
-            root,
-            &tag,
-            &name,
-            &destination,
-            request.max_bytes,
-            request.max_expanded_bytes,
-            request.clear,
-            false,
+    }
+    if labels.is_empty() {
+        return Ok(RestoreOutcome {
+            version: None,
+            source: None,
+            labels: Vec::new(),
+        });
+    }
+    let version = restore_version(root, request.version.as_deref())?;
+    let paths = labels
+        .iter()
+        .map(|label| config.get_path(root, label))
+        .collect::<anyhow::Result<Vec<_>>>()?;
+    crate::get::check_destinations(Some(root), &paths, &[])?;
+    let project = crate::get::metadata_source(root);
+    let mut snapshots = Vec::new();
+    for label in &labels {
+        snapshots.push(crate::get::snapshot(
+            &project.store,
+            &project.csv,
+            label,
+            &version,
+        )?);
+    }
+    let mut todo = Vec::new();
+    let mut release = Vec::new();
+    for (index, snapshot) in snapshots.iter().enumerate() {
+        let files = snapshot.as_ref().and_then(|s| s.files.as_ref());
+        let matches = match files {
+            Some(files) => paths[index].is_dir() && crate::get::hash_dir(&paths[index])? == *files,
+            None => false,
+        };
+        todo.push(!matches);
+        // Recorded empty directories need no remote access.
+        release.push(!matches && files.is_none_or(|files| !files.is_empty()));
+    }
+    let (_guard, workspace) = crate::get::workspace()?;
+    let transfer = crate::get::Transfer {
+        workspace: &workspace,
+        max_bytes: request.max_bytes,
+        max_expanded_bytes: request.max_expanded_bytes,
+    };
+    let mut sources = vec![project];
+    let mut consulted = None;
+    if release.iter().any(|needed| *needed)
+        && let Some(source) = remote_source(root, &raw, &version, request, &transfer)?
+    {
+        consulted = Some(source.name.clone());
+        sources.push(source);
+    }
+    let selected: Vec<usize> = (0..labels.len()).filter(|i| todo[*i]).collect();
+    let mut installed = Vec::new();
+    if !selected.is_empty() {
+        let chosen_labels: Vec<String> = selected.iter().map(|i| labels[*i].clone()).collect();
+        let chosen_paths: Vec<Utf8PathBuf> = selected.iter().map(|i| paths[*i].clone()).collect();
+        installed = crate::get::install(
+            crate::get::Install {
+                sources: &sources,
+                labels: &chosen_labels,
+                paths: &chosen_paths,
+                version: &version,
+                overwrite: request.clear,
+                option: "--clear",
+            },
+            &transfer,
         )?;
     }
-    result.restored = true;
-    Ok(result)
+    // Record snapshots recovered from the remote in the checkout's manifest store.
+    let mut recovered = Vec::new();
+    if sources.len() > 1 {
+        let remote = &sources[sources.len() - 1];
+        let project = &sources[0];
+        for index in 0..labels.len() {
+            let known = snapshots[index]
+                .as_ref()
+                .is_some_and(|snapshot| snapshot.files.is_some());
+            if !release[index] || known {
+                continue;
+            }
+            let Some(snapshot) =
+                crate::get::snapshot(&remote.store, &remote.csv, &labels[index], &version)?
+            else {
+                continue;
+            };
+            if let Some(first) = snapshot.versions.first()
+                && *first != version
+                && crate::get::snapshot(&project.store, &project.csv, &labels[index], first)?
+                    .is_none()
+            {
+                recovered.extend(snapshot.rows.iter().cloned().map(|mut row| {
+                    row.version = first.clone();
+                    row
+                }));
+            }
+            recovered.extend(snapshot.rows);
+        }
+    }
+    if !recovered.is_empty() {
+        crate::manifest_store::write_project(root, &recovered)?;
+    }
+    if crate::version::version_get_from(root).is_none() && !root.join("VERSION").exists() {
+        crate::version::version_set_at(root, &version)?;
+    }
+    let mut outcomes = Vec::new();
+    for (index, label) in labels.iter().enumerate() {
+        match installed.iter().position(|item| item.label == *label) {
+            Some(at) => outcomes.push(installed.remove(at)),
+            None => outcomes.push(crate::get::Installed {
+                label: label.clone(),
+                path: paths[index].clone(),
+                status: "verified",
+            }),
+        }
+    }
+    Ok(RestoreOutcome {
+        version: Some(version),
+        source: consulted,
+        labels: outcomes,
+    })
+}
+
+/// The remote `restore --destination` names. A registered GitHub title uses the
+/// destination its build recorded; an unregistered name is a concrete tag in the
+/// checkout's repository; `local:<title>` reads a registered local remote.
+fn remote_source(
+    root: &Utf8Path,
+    raw: &Value,
+    version: &str,
+    request: &RestoreRequest,
+    transfer: &crate::get::Transfer<'_>,
+) -> anyhow::Result<Option<crate::get::Source>> {
+    let destination = request.destination.as_deref().unwrap_or("archive");
+    anyhow::ensure!(
+        !destination.trim().is_empty() && !destination.chars().any(char::is_control),
+        "Invalid restore destination"
+    );
+    let registered = |provider: &str, title: &str| raw["remotes"][provider].get(title).cloned();
+    let record = crate::get::project_record(root, Some(version))?;
+    let head = crate::template::Templates::checkout(root);
+    let templates =
+        crate::template::Templates::for_record(Some(version.to_owned()), head, record.uuid.clone());
+    if let Some(title) = destination.strip_prefix("local:") {
+        let value =
+            registered("local", title).with_context(|| format!("Unknown local remote: {title}"))?;
+        anyhow::ensure!(
+            !matches!(
+                value.get("structure").and_then(Value::as_str),
+                Some("cas" | "xet")
+            ),
+            "CAS/Xet remotes restore explicit snapshots with proj remote restore --snapshot"
+        );
+        let definition = definition(&value)?;
+        let base = match record.local.get(title) {
+            Some(path) if Utf8Path::new(path).is_absolute() => Utf8PathBuf::from(path),
+            Some(path) => root.join(path),
+            None => crate::publication::local_base(root, definition.path.as_deref(), &templates)?.1,
+        };
+        return Ok(Some(crate::get::local_source(
+            destination.to_owned(),
+            base,
+            !matches!(definition.structure, Some(Layout::Latest)),
+            definition.path_append_label.unwrap_or(true),
+        )));
+    }
+    let (title, explicit) = match destination.strip_prefix("github:") {
+        Some(title) => (title, true),
+        None => (destination, false),
+    };
+    let api = crate::get::github_api();
+    let origin = || {
+        repository_in(
+            root,
+            None,
+            &api,
+            &crate::run_environment::RunEnvironment::inherited(),
+        )
+    };
+    let target = match registered("github", title) {
+        Some(value) => {
+            anyhow::ensure!(
+                !matches!(
+                    value.get("structure").and_then(Value::as_str),
+                    Some("cas" | "xet")
+                ),
+                "CAS/Xet remotes restore explicit snapshots with proj remote restore --snapshot"
+            );
+            let definition = definition(&value)?;
+            let (repository, tag) = match record.github.get(title) {
+                Some((repository, tag)) => (repository.clone(), tag.clone()),
+                None => (
+                    None,
+                    crate::github_publication::release_tag(title, &definition, &templates)?,
+                ),
+            };
+            crate::get::GithubTarget {
+                repository: match repository.or(definition.repo.clone()) {
+                    Some(repository) => repository,
+                    None => origin()?,
+                },
+                tag,
+                prefix: definition.path.clone(),
+                append: definition.path_append_label.unwrap_or(true),
+                archive: !matches!(definition.structure, Some(Layout::Latest)),
+                direct_tag: false,
+            }
+        }
+        None => {
+            anyhow::ensure!(!explicit, "Unknown github remote: {title}");
+            crate::get::GithubTarget {
+                repository: origin()?,
+                tag: title.to_owned(),
+                prefix: None,
+                append: true,
+                archive: true,
+                direct_tag: true,
+            }
+        }
+    };
+    crate::get::github_source(target, transfer)
 }

@@ -200,7 +200,7 @@ settings and unknown or repeated remotes are errors; a null setting inherits the
 `build.dest` option, as projr's list merge drops it. A title may
 be used for both a GitHub and a local remote: write `github:reports` or
 `local:reports` wherever the name would otherwise be ambiguous (`build.dest`,
-`build.restrictions.not_behind_remote` and `proj remote restore --title`). The
+`build.restrictions.not_behind_remote` and `proj restore --destination`). The
 option words `content`, `cue`, `inspect`, `strategy`, `conflict` and `version`
 cannot be remote titles. When profiles are merged, the highest-precedence
 `build.dest` replaces lower ones whole rather than merging mappings.
@@ -214,7 +214,8 @@ Remotes also accept projr 0.9's `get` fetch settings (`version`: `latest`, `x`,
 `manifest`, `file`, `none`; `strategy`: `sync-diff`, `sync-purge`,
 `download-all`, `download-missing`; `conflict`: `error`, `local`, `remote`). They
 are validated but not used yet: `build.source` fetching is a later slice. A
-remote's `source:` field was removed in projr 0.9 and is rejected.
+remote's `source:` field and `directories.<label>.source` were removed in projr
+0.9 and are rejected with its guidance to select sources with `build.source`.
 
 projcli writes its own `.projcli-manifests` metadata only when a remote sets
 `manifest`, `manifest-style` or `manifest-format`; a plain remote writes projr's
@@ -267,8 +268,9 @@ keeps the build UUID and each resolved GitHub repository/tag and local path
 configuration and the recorded UUID). Builds that publish nothing (previews and
 `output_run: false`) do not resolve placeholders. CAS and Xet store paths are not
 expanded.
-Restore expands `@version` and `@branch` from the current checkout; `@uuid`
-destinations cannot yet be restored by configuration.
+`proj restore` and `proj get` read these recorded destinations, so a build's
+`@version`, `@uuid` and `@branch` archive is found again; see
+[restore and get](cli/get.qmd).
 
 The detailed examples below explain `content`, comparison/upload controls, and
 manifest options.
@@ -428,26 +430,22 @@ projr-written root manifest.csv is imported once on the first write and left
 unchanged. Preview and build.output_run: false leave the store alone. See [the inventory notes](storage-design.qmd#compatible-csv-inventory).
 This CSV capture is included in preview.3. See the compatibility log and PR175 for verification evidence.
 
-## Configured restore source fields
+## Restore sources
 
-The current source's explicit remote restore command reads the existing
-projr directories.LABEL.source references and remotes.local/remotes.github definitions.
-See the [remote command reference](cli/remote.qmd) for lookup precedence,
-limits and safety. This does not enable automatic ordinary uploads in build;
-normal build validation still rejects unsupported publication fields. The
-future top-level registry proposal remains separate.
+`proj restore` reads the checkout's manifest store and a registered remote: a
+GitHub title or concrete Release tag (`archive` by default), or `local:<title>`.
+`proj get` reads another analysis or a registered remote. Neither uses
+`build.dest`: a registered remote stays available whether or not a build uploads
+to it. See [restore and get](cli/get.qmd). `directories.<label>.source` was
+removed in projr 0.9 and is rejected:
 
-Configured restore uses the shared profile selection order: explicit profile,
+    directories.raw-data.source is no longer supported. Register the remote under
+    remotes and select it with build.source.
+
+Restore uses the shared profile selection order: explicit profile,
 PROJR_PROFILE, then the local and base `profile` keys, with earlier profiles winning
-and local overrides last. Machine failures preserve installation/recovery details
-on stderr, including retained backup paths; stdout stays a structured failure.
-Legacy data CSV rows and remote data namespaces are read without rewriting
-history; ambiguous canonical/legacy namespaces fail before installation.
-One optional VERSION trust marker is accepted; it is not a byte-verification claim.
-
-Review precision: VERSION.zip requires exactly the canonical VERSION member
-spelling, including on case-insensitive filesystems. Metadata transfer staging
-also closes explicitly and reports cleanup failure paths.
+and local overrides last. Machine failures keep installation/recovery details on
+stderr, including retained original paths; stdout stays a structured failure.
 
 
 
@@ -524,19 +522,8 @@ version lookup.
 build.dest also accepts projr 0.9's name and list forms, global options and
 `github:`/`local:` qualified names; see [Remotes Configuration](#remotes-configuration).
 
-Normal builds now accept and validate the existing directory source metadata:
-
-    directories:
-      raw-data:
-        path: data
-        source:
-          local: historical
-
-This does not automatically restore during a build. Use the existing
-remote restore command with --label, optionally --title/--provider and explicit
-version/clear choices. Source lookup uses the registry independently of build.dest.
-Directory-specific references keep priority, then registered remotes in
-declaration order. A stale name in build.dest does not stop a restore.
+Restore looks remotes up in the registry independently of build.dest, so a
+stale name in build.dest does not stop a restore.
 
 Unknown names, duplicate/portable-aliased registered names within a type and
 invalid/excluded label subsets fail before hooks or writes. Inline

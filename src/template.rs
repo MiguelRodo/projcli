@@ -28,13 +28,23 @@ impl Templates {
         })
     }
 
-    /// Values for a later lookup: no build UUID exists, so `@uuid` fails clearly.
-    pub(crate) fn for_lookup(root: &Utf8Path, version: Option<String>) -> Self {
+    /// Values for reading one recorded build: its version, the current checkout
+    /// `HEAD` (or a producer's branch) and the build's recorded UUID, if any.
+    pub(crate) fn for_record(
+        version: Option<String>,
+        head: Option<String>,
+        uuid: Option<String>,
+    ) -> Self {
         Self {
             version,
-            head: checkout_head(root),
-            uuid: None,
+            head,
+            uuid,
         }
+    }
+
+    /// The checkout `HEAD` text this lookup uses for `@branch`.
+    pub(crate) fn checkout(root: &Utf8Path) -> Option<String> {
+        checkout_head(root)
     }
 
     /// Inert values for configuration validation outside a build.

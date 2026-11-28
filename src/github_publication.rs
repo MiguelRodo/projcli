@@ -40,7 +40,7 @@ impl Target {
         &self.spec.title
     }
 }
-fn tag_format(text: &str) -> String {
+pub(crate) fn tag_format(text: &str) -> String {
     text.trim_matches(' ').replace(' ', "-")
 }
 /// Release tag a GitHub entry of any structure plans to use, for collision checks

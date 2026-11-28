@@ -60,6 +60,9 @@ pub mod github_release;
 
 pub mod github_zip;
 
+/// Shared verified download backend for restore and get.
+pub mod get;
+
 pub mod restore;
 
 /// Configured ordinary publication, separate from CAS storage.

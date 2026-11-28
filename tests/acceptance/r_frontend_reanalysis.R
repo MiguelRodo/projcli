@@ -136,20 +136,14 @@ main <- function() {
     for (label in labels) {
       action <<- paste0("configured-data-restore-through-R-frontend-", label)
       reply <- projcli::proj_cli(
-        "remote restore",
+        "restore",
         c(
-          "--provider",
-          "local",
-          "--title",
-          "backup",
-          "--remote-version",
+          "--destination",
+          "local:backup",
+          "--version",
           "v1.2.4",
           "--label",
-          label,
-          "--max-bytes",
-          as.character(64 * 1024^2),
-          "--max-expanded-bytes",
-          as.character(128 * 1024^2)
+          label
         ),
         project = spec$project,
         binary = spec$binary,

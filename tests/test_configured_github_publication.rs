@@ -335,17 +335,12 @@ fn actual_build_creates_release_data_and_metadata_then_restores_and_retains_old_
         &server,
         &root,
         &[
-            "remote",
             "restore",
             "--label",
             "output",
+            "--destination",
+            "data",
             "--clear",
-            "--repository",
-            "owner/repo",
-            "--max-bytes",
-            "1000000",
-            "--max-expanded-bytes",
-            "1000000",
         ],
     ));
     assert_eq!(
@@ -752,30 +747,29 @@ fn latest_replaces_current_selected_bytes_keeps_extras_and_restores_through_cli(
         fs::write(root.join("results/result.csv"), "second").unwrap();
         success(invoke(&server, &root, &["build", "--non-interactive"]));
         fs::write(root.join("results/result.csv"), "damaged").unwrap();
-        success(invoke(
+        // The latest asset keeps an extra file, so it no longer matches the
+        // build's snapshot; projr's restore rejects it and nothing changes.
+        let output = invoke(
             &server,
             &root,
             &[
-                "remote",
                 "restore",
                 "--label",
                 "output",
+                "--destination",
+                "data",
                 "--clear",
-                "--repository",
-                "owner/repo",
-                "--max-bytes",
-                "1000000",
-                "--max-expanded-bytes",
-                "1000000",
             ],
-        ));
-        assert_eq!(
-            fs::read(root.join("results/result.csv")).unwrap(),
-            b"second"
+        );
+        assert!(!output.status.success());
+        assert!(
+            String::from_utf8_lossy(&output.stderr).contains("does not match"),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
         );
         assert_eq!(
-            fs::read(root.join("results/extra/old.csv")).unwrap(),
-            b"keep"
+            fs::read(root.join("results/result.csv")).unwrap(),
+            b"damaged"
         );
         server.finish();
     }
@@ -1010,31 +1004,35 @@ fn no_inspection_strategy_cue_layout_matrix_uses_real_cli_and_exact_zip_bytes() 
                     );
                     assert_manifest_zip(&state.assets["manifest.zip"].1, &root);
                 }
-                success(invoke(
+                // Only an asset that matches the build's snapshot exactly restores.
+                fs::write(root.join("results/result.csv"), "damaged").unwrap();
+                let output = invoke(
                     &server,
                     &root,
                     &[
-                        "remote",
                         "restore",
                         "--label",
                         "output",
+                        "--destination",
+                        "data",
                         "--clear",
-                        "--repository",
-                        "owner/repo",
-                        "--max-bytes",
-                        "1000000",
-                        "--max-expanded-bytes",
-                        "1000000",
                     ],
-                ));
+                );
+                assert_eq!(
+                    output.status.success(),
+                    strategy == "sync-purge",
+                    "{layout}/{strategy}/{cue}: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
                 assert_eq!(
                     fs::read(root.join("results/result.csv")).unwrap(),
-                    b"actual fixture bytes\n"
+                    if strategy == "sync-purge" {
+                        &b"actual fixture bytes\n"[..]
+                    } else {
+                        b"damaged"
+                    }
                 );
-                assert_eq!(
-                    root.join("results/extra.csv").exists(),
-                    strategy != "sync-purge"
-                );
+                assert!(!root.join("results/extra.csv").exists());
                 server.finish();
             }
         }
@@ -1163,30 +1161,36 @@ fn complete_inspection_strategy_cue_layout_matrix_uses_actual_cli() {
                         );
                         assert_manifest_zip(&state.assets["manifest.zip"].1, &root);
                     }
-                    // With upload-missing and no label advertisement, preserve the
-                    // native lack of a restore selection instead of inventing one.
-                    if !(inspect != "none" && strategy == "upload-missing") {
-                        success(invoke(
-                            &server,
-                            &root,
-                            &[
-                                "remote",
-                                "restore",
-                                "--label",
-                                "output",
-                                "--clear",
-                                "--repository",
-                                "owner/repo",
-                                "--max-bytes",
-                                "1000000",
-                                "--max-expanded-bytes",
-                                "1000000",
-                            ],
-                        ));
-                        for (name, bytes) in expected {
-                            assert_eq!(fs::read(root.join("results").join(name)).unwrap(), bytes);
+                    // projr restores only an asset matching the build's snapshot:
+                    // retained extras or old bytes are rejected without changes.
+                    let exact = expected.len() == 1 && !keep_old;
+                    fs::write(root.join("results/result.csv"), "damaged").unwrap();
+                    let output = invoke(
+                        &server,
+                        &root,
+                        &[
+                            "restore",
+                            "--label",
+                            "output",
+                            "--destination",
+                            "data",
+                            "--clear",
+                        ],
+                    );
+                    assert_eq!(
+                        output.status.success(),
+                        exact,
+                        "{layout}/{inspect}/{strategy}/{cue}: {}",
+                        String::from_utf8_lossy(&output.stderr)
+                    );
+                    assert_eq!(
+                        fs::read(root.join("results/result.csv")).unwrap(),
+                        if exact {
+                            &b"actual fixture bytes\n"[..]
+                        } else {
+                            b"damaged"
                         }
-                    }
+                    );
                     server.finish();
                 }
             }
@@ -1371,17 +1375,12 @@ fn archive_history_matrix_reuses_only_eligible_unchanged_versions_and_new_snapsh
                     &server,
                     &root,
                     &[
-                        "remote",
                         "restore",
                         "--label",
                         "output",
+                        "--destination",
+                        "data",
                         "--clear",
-                        "--repository",
-                        "owner/repo",
-                        "--max-bytes",
-                        "1000000",
-                        "--max-expanded-bytes",
-                        "1000000",
                     ],
                 ));
                 assert_eq!(
@@ -1651,23 +1650,14 @@ fn registered_github_definition_remains_restore_source_after_uploads_are_disable
         &server,
         &root,
         &[
-            "remote",
             "restore",
             "--label",
             "output",
-            "--title",
+            "--destination",
             "data",
-            "--position",
-            "source",
-            "--remote-version",
+            "--version",
             "v1.2.4",
             "--clear",
-            "--repository",
-            "owner/repo",
-            "--max-bytes",
-            "1000000",
-            "--max-expanded-bytes",
-            "1000000",
         ],
     ));
     assert_eq!(

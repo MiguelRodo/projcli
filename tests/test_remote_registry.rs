@@ -175,7 +175,7 @@ fn setup() -> (tempfile::TempDir, std::path::PathBuf, Value) {
     fs::write(root.join("results/report.csv"), b"local output\n").unwrap();
     fs::write(root.join("VERSION"), b"v1.2.3\n").unwrap();
     let config = json!({
-        "directories":{"raw":{"path":"input","source":{"local":"A"}},"output":{"path":"results"},"cache":{"path":"cache","safe":true}},
+        "directories":{"raw":{"path":"input"},"output":{"path":"results"},"cache":{"path":"cache","safe":true}},
         "remotes":{"local":{
             "A":{"path":"../store-A","structure":"archive","content":["raw"]},
             "B":{"path":"../store-B","structure":"archive","send":{"inspect":"file","cue":"always"}}}},
@@ -221,12 +221,8 @@ fn actual_cli_uploads_only_to_b_and_restores_a_after_its_upload_selection_is_abs
     let original_b = snapshot(&parent.join("store-B"));
     let manifest = fs::read(root.join("manifest.csv")).unwrap();
     let version = fs::read(root.join("VERSION")).unwrap();
-    for explicit_title in [false, true] {
-        if explicit_title {
-            config["directories"]["raw"]
-                .as_object_mut()
-                .unwrap()
-                .remove("source");
+    for unselected in [false, true] {
+        if unselected {
             config["build"]["dest"] = json!({});
             fs::write(
                 root.join("_projr.yml"),
@@ -240,28 +236,25 @@ fn actual_cli_uploads_only_to_b_and_restores_a_after_its_upload_selection_is_abs
             b"clear only on successful restore",
         )
         .unwrap();
-        let mut restore = command(&root);
-        restore.args([
-            "remote",
-            "restore",
-            "--label",
-            "raw",
-            "--position",
-            "source",
-            "--remote-version",
-            "v1.0.0",
-            "--clear",
-            "--max-bytes",
-            "100000",
-            "--max-expanded-bytes",
-            "100000",
-        ]);
-        if explicit_title {
-            restore.args(["--title", "A"]);
-        }
-        let result = success(restore.output().unwrap());
-        assert_eq!(result["result"]["title"], "A");
-        assert_eq!(result["result"]["restored"], true);
+        // A registered remote stays a restore source whether or not build.dest
+        // selects it; an explicit older build version restores that build's files.
+        let result = success(
+            command(&root)
+                .args([
+                    "restore",
+                    "--label",
+                    "raw",
+                    "--destination",
+                    "local:A",
+                    "--version",
+                    "v1.0.0",
+                    "--clear",
+                ])
+                .output()
+                .unwrap(),
+        );
+        assert_eq!(result["result"]["restore"]["source"], "local:A");
+        assert_eq!(result["result"]["restore"]["version"], "v1.0.0");
         assert_eq!(
             files(&root.join("input")),
             BTreeMap::from([("input.csv".into(), b"historical A\n".to_vec())])
@@ -282,10 +275,6 @@ fn registered_but_unselected_remotes_need_no_credentials_and_make_no_store() {
         (Some(json!({"unused":{}})), true),
     ] {
         let (_temp, root, mut config) = setup();
-        config["directories"]["raw"]
-            .as_object_mut()
-            .unwrap()
-            .remove("source");
         config["remotes"]["github"] = json!({"unused":{"content":["output"]}});
         if remote_null {
             config["remotes"]["local"]["B"]["content"] = Value::Null;
@@ -355,19 +344,7 @@ fn inline_build_archives_are_rejected_readonly_before_clearing() {
     .unwrap();
     let before = snapshot(&root);
     let output = command(&root)
-        .args([
-            "remote",
-            "restore",
-            "--label",
-            "raw",
-            "--title",
-            "A",
-            "--clear",
-            "--max-bytes",
-            "100000",
-            "--max-expanded-bytes",
-            "100000",
-        ])
+        .args(["restore", "--destination", "local:A", "--clear"])
         .output()
         .unwrap();
     assert!(!output.status.success());

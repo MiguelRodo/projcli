@@ -361,7 +361,7 @@ fn install_failure_restores_original_and_rollback_failure_retains_original_with_
     let temp = tempfile::tempdir().unwrap();
     let physical = temp.path().canonicalize().unwrap();
     let shim = rename_fault(&physical);
-    for operation in ["download", "store", "restore"] {
+    for operation in ["download", "store"] {
         for fail_rollback in [false, true] {
             let root = physical.join(format!(
                 "{operation}-{}",
@@ -375,14 +375,6 @@ fn install_failure_restores_original_and_rollback_failure_retains_original_with_
             fs::create_dir(root.join("downloaded")).unwrap();
             fs::write(root.join("remote/raw-data/v1.2.3/new"), b"new source bytes").unwrap();
             fs::write(root.join("downloaded/original"), b"original bytes").unwrap();
-            if operation == "restore" {
-                fs::write(root.join("_projr.yml"),"directories:\n  raw-data:\n    path: downloaded\n    source:\n      local:\n        A:\n          path: remote\n").unwrap();
-                fs::write(
-                    root.join("manifest.csv"),
-                    "label,fn,version,hash\nraw-data,new,v1.2.3,900150983cd24fb0d6963f7d28e17f72\n",
-                )
-                .unwrap();
-            }
             let before = snapshot(&root);
             let mut command = Command::new(env!("CARGO_BIN_EXE_proj"));
             command
@@ -396,20 +388,7 @@ fn install_failure_restores_original_and_rollback_failure_retains_original_with_
                 .env_remove(proj::RUN_CONTEXT_ENV)
                 .env_remove("PROJR_PROFILE")
                 .env_remove("QUARTO_PROFILE");
-            if operation == "restore" {
-                command.args([
-                    "--machine",
-                    "remote",
-                    "restore",
-                    "--label",
-                    "raw-data",
-                    "--clear",
-                    "--max-bytes",
-                    "10000",
-                    "--max-expanded-bytes",
-                    "10000",
-                ]);
-            } else if operation == "download" {
+            if operation == "download" {
                 command.args([
                     "remote",
                     "download",
@@ -442,12 +421,6 @@ fn install_failure_restores_original_and_rollback_failure_retains_original_with_
             }
             let output = command.output().unwrap();
             assert!(!output.status.success());
-            if operation == "restore" {
-                let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-                assert_eq!(json["ok"], false);
-                assert_eq!(json["error"]["code"], "command_failed");
-                assert!(!String::from_utf8_lossy(&output.stdout).contains(".proj-download-"));
-            }
             let diagnostic = String::from_utf8_lossy(&output.stderr);
             assert!(diagnostic.contains("Cannot install"), "{diagnostic}");
             if fail_rollback {
@@ -488,6 +461,98 @@ fn install_failure_restores_original_and_rollback_failure_retains_original_with_
     }
 }
 
+// proj restore stages every label before replacing any; a failed later install
+// moves earlier labels back, and an original that cannot be moved back is kept
+// at a reported path (projr `.get_install`).
+#[cfg(target_os = "linux")]
+#[test]
+fn restore_rolls_back_earlier_labels_and_keeps_originals_when_rollback_fails() {
+    let temp = tempfile::tempdir().unwrap();
+    let physical = temp.path().canonicalize().unwrap();
+    let shim = rename_fault(&physical);
+    for fail_rollback in [false, true] {
+        let root = physical.join(if fail_rollback { "rollback" } else { "install" });
+        let mut history = String::from("label,fn,version,hash\n");
+        for label in ["a", "b"] {
+            fs::create_dir_all(root.join(label).join("data")).unwrap();
+            fs::write(root.join(label).join("data/original"), "original bytes").unwrap();
+            let remote = root.join(format!("remote/raw-{label}/v1.2.3"));
+            fs::create_dir_all(&remote).unwrap();
+            fs::write(remote.join("new"), "new source bytes").unwrap();
+            history.push_str(&format!(
+                "raw-{label},new,v1.2.3,{:x}\n",
+                md5::compute(b"new source bytes")
+            ));
+        }
+        fs::write(root.join("manifest.csv"), history).unwrap();
+        fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
+        fs::write(
+            root.join("_projr.yml"),
+            "directories:\n  raw-a: {path: a/data}\n  raw-b: {path: b/data}\nremotes:\n  local:\n    A: {path: remote}\n",
+        )
+        .unwrap();
+        let mut command = Command::new(env!("CARGO_BIN_EXE_proj"));
+        command
+            .args(["--machine", "--project"])
+            .arg(&root)
+            .args(["restore", "--destination", "local:A", "--clear"])
+            .current_dir(&root)
+            .env("LD_PRELOAD", &shim)
+            .env("PROJ_TEST_RENAME_ROOT", &root)
+            .env("PROJ_TEST_FAIL_NEW", "/b/.projr-get-")
+            .env_remove("PROJ_TEST_FAIL_ROLLBACK")
+            .env_remove(proj::PROJECT_ROOT_ENV)
+            .env_remove(proj::RUN_CONTEXT_ENV)
+            .env_remove("PROJR_PROFILE")
+            .env_remove("QUARTO_PROFILE");
+        if fail_rollback {
+            command.env("PROJ_TEST_FAIL_ROLLBACK", "1");
+        }
+        let output = command.output().unwrap();
+        assert!(!output.status.success());
+        let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(json["error"]["code"], "command_failed");
+        let diagnostic = String::from_utf8_lossy(&output.stderr);
+        assert!(diagnostic.contains("Could not install"), "{diagnostic}");
+        if fail_rollback {
+            assert!(
+                diagnostic.contains("Original files retained in"),
+                "{diagnostic}"
+            );
+            for label in ["a", "b"] {
+                assert!(!root.join(label).join("data").exists());
+                let kept: Vec<_> = fs::read_dir(root.join(label))
+                    .unwrap()
+                    .map(|entry| entry.unwrap().path().join("original"))
+                    .filter(|path| path.is_dir())
+                    .collect();
+                assert_eq!(kept.len(), 1, "{label}");
+                assert!(
+                    diagnostic.contains(kept[0].to_str().unwrap()),
+                    "{diagnostic}"
+                );
+                assert_eq!(
+                    fs::read(kept[0].join("original")).unwrap(),
+                    b"original bytes"
+                );
+            }
+        } else {
+            for label in ["a", "b"] {
+                assert_eq!(
+                    snapshot(&root.join(label).join("data")),
+                    BTreeMap::from([("original".into(), Some(b"original bytes".to_vec()))]),
+                    "{label}"
+                );
+                assert_eq!(
+                    fs::read_dir(root.join(label)).unwrap().count(),
+                    1,
+                    "{label}"
+                );
+            }
+        }
+    }
+}
+
 #[cfg(target_os = "linux")]
 fn rename_fault(physical: &Path) -> std::path::PathBuf {
     let shim_source = physical.join("rename-fault.c");
@@ -510,6 +575,14 @@ int rename(const char *from, const char *to) {
         from[strlen(root)] == '/' && strstr(from, "/.proj-download-") &&
         (ends(from, "/next") ||
          (getenv("PROJ_TEST_FAIL_ROLLBACK") && ends(from, "/previous")))) {
+        errno = EIO;
+        return -1;
+    }
+    /* proj restore/get: fail one label's install, optionally every rollback. */
+    const char *label = getenv("PROJ_TEST_FAIL_NEW");
+    if (root && strncmp(from, root, strlen(root)) == 0 && strstr(from, "/.projr-get-") &&
+        ((label && strstr(from, label) && ends(from, "/new")) ||
+         (getenv("PROJ_TEST_FAIL_ROLLBACK") && ends(from, "/original")))) {
         errno = EIO;
         return -1;
     }
