@@ -1334,6 +1334,10 @@ pub fn restore_repo(request: &RestoreRepoRequest) -> Result<RestoreRepoOutcome> 
     let url = format!("{}/{repo}.git", server.trim_end_matches('/'));
     let environment = crate::run_environment::RunEnvironment::inherited();
     let mut command = crate::git::git_command_in(None, &environment)?;
+    if crate::is_non_interactive() {
+        // A noninteractive call never waits for a credential prompt.
+        command.env("GIT_TERMINAL_PROMPT", "0");
+    }
     let status = command
         .args(["clone", "--quiet", "--"])
         .arg(&url)

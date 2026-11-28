@@ -1,0 +1,102 @@
+---
+title: "source and restore-repo"
+---
+
+`proj source` fetches raw inputs from the remotes that supply them, outside a
+build. `proj restore-repo` clones a GitHub repository and then fetches its raw
+inputs. Both follow projr 0.9 (`projr_source()`, `projr_restore_repo()`,
+SATVILab/projr@5f915ef `R/source.R`, `R/restore-repo.R`, with 6acb9b8's
+`remote`). Production builds run the same fetch for `build.source` before their
+start hooks; see [Raw-input sources](../configuration.qmd#raw-input-sources).
+
+## proj source
+
+```bash
+proj source                                   # build.source, or each label's publisher
+proj source --label raw-survey --remote github:survey-team --version 0.6
+proj source --version 1.2.3                   # an exact build
+proj source --version current                 # the inputs this checkout's build used
+proj source --conflict remote                 # replace local changes without asking
+```
+
+| Option | Default | Meaning |
+|---|---|---|
+| `--label` | each source's selection | Labels to fetch (repeat or comma-separate). |
+| `--remote` | `build.source`, else discovery | A registered remote: its title, or `local:<title>`/`github:<title>` when both types use it. |
+| `--version` | the configured `version`, else `latest` | `latest`, `x`, `x.y`, `x.y.z`, or `current`. |
+| `--cue` | `if-change` | `if-change`, `always`, `if-empty` or `never`. |
+| `--strategy` | configured | `sync-diff`, `sync-purge`, `download-all` or `download-missing`. |
+| `--inspect` | configured | `manifest`, `file` or `none`. |
+| `--conflict` | ask on a terminal, else configured | `error`, `local` (keep changed local files) or `remote` (replace them). |
+| `--profile` | the projr profile order | Profiles for the project's configuration. |
+
+Which remotes are used:
+
+- With `--remote`, that remote, with its `build.source` settings when it is
+  listed there and its `get` settings otherwise. `--label` replaces its content.
+- Otherwise the remotes under `build.source`; `--label` narrows them, and a label
+  none of them supplies is an error ("Name a remote").
+- Without `build.source`, each label comes from the one registered ordinary
+  remote (local or GitHub) that has published it at its latest version. A label
+  published by two remotes needs `--remote`. A remote that has not published a
+  manifest (a missing Release or archive folder) is skipped; a remote that cannot
+  be listed or read is an error (decision D5; projr treats it as unpublished).
+
+Arguments override the configured settings for this call. Every selected label is
+checked before anything changes: the remote's metadata is read, the label's
+newest build at or before the selected version is chosen, and the files needed
+are downloaded into private staging and checked against that build's MD5s.
+
+Local changes: `.projr/source/<label>.json` records the files of the last fetch
+(projr's Git-ignored record). A file the fetch would overwrite or delete that
+differs from the record, or that the record does not list, is a local change.
+On a terminal, `proj source` lists them and asks whether to keep or replace
+them, or cancel; otherwise `--conflict` or the configured policy decides, and
+`error` stops with the list:
+
+```text
+raw-data (local:archive): local changes would be overwritten or deleted: data.csv.
+Run proj source to choose, or set conflict: local to keep these files or conflict: remote to replace them.
+```
+
+`--non-interactive` and `--machine` never ask. Changed labels are staged beside
+their directories (a copy of the current files with the planned changes,
+checked) and then replaced together; a directory that changes during the fetch
+stops it before anything is replaced. `--version current` delegates to
+[`proj restore`](get.qmd): `--conflict remote` maps to `--clear`, `local` is an
+error, and `--remote` names the destination (a local remote too, as with
+`proj restore --destination local:<title>`).
+
+`proj source` holds the project's build claim (`.projr/build.lock`), so it cannot
+run during a build or alongside a restore. The result lists each label:
+
+```json
+{"labels": [{"label": "raw-data", "remote": "local:archive", "version": "v1.2.4",
+  "status": "update", "written": 2, "removed": 0, "kept": 0}]}
+```
+
+`status` is `present` (left alone under `if-empty`), `pinned` (the exact pinned
+build is already in place), `current` or `update`. With `--machine` the result is
+under `result.source`.
+
+## proj restore-repo
+
+```bash
+proj restore-repo owner/analysis              # clone into ./analysis, fetch every raw label
+proj restore-repo owner/analysis copy --label raw-data --remote github:archive
+proj restore-repo analysis                    # a repository of the token's user
+```
+
+| Argument | Meaning |
+|---|---|
+| `repo` | `owner/repo`, or `repo` for one owned by the user of `GITHUB_PAT`, `GH_TOKEN` or `GITHUB_TOKEN`. |
+| `path` | Directory to clone into; default: the repository name. |
+| `--label` | Labels to fetch. |
+| `--remote` | A registered remote, as for `proj source`. |
+
+The clone uses the installed `git` and its own credential configuration, from
+`<GITHUB_SERVER_URL>/<owner>/<repo>.git` (default `https://github.com`). With
+`--non-interactive`, Git is told not to prompt for credentials. In the clone,
+`proj source` then runs with `cue: always` and `conflict: error`. A failure exits
+non-zero with the reason (projr returns `FALSE`); a completed clone stays in
+place. With `--machine` the result is under `result.restore_repo`.
