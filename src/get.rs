@@ -94,7 +94,7 @@ pub(crate) fn files_of(rows: &[ManifestRow]) -> Result<Files> {
                 && !name.contains('\\')
                 && !name.contains("//")
                 && !name.ends_with('/')
-                && !(name.len() >= 2 && name.as_bytes()[1] == b':')
+                && name.as_bytes().get(1) != Some(&b':')
                 && name.split('/').all(|part| part != "." && part != "..")
                 && row.hash.len() == 32
                 && row

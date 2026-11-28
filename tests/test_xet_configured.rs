@@ -242,7 +242,6 @@ fn actual_configured_build_records_root_and_fresh_project_restores_without_uploa
         fs::create_dir_all(fresh.join(name)).unwrap();
     }
     config["build"]["dest"] = json!({});
-    config["directories"]["raw-data"]["source"] = json!({"local":"backup"});
     save(&fresh, &config);
     fs::write(fresh.join("VERSION"), b"v9.0.0-7\n").unwrap();
     fs::remove_dir_all(root.join("input")).unwrap(); // no working-source recovery route
