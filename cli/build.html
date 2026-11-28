@@ -584,6 +584,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>--major</code>, <code>--minor</code>, <code>--patch</code>: Specifies the version bump strategy for a production build.</li>
 <li><code>--profile</code>: An optional profile to configure execution context.</li>
+<li><code>--pipeline NAME|GLOB|false</code>: Pipelines to run, comma-separated, in place of <code>build.pipeline</code> (<code>proj build</code>) or <code>dev.pipeline</code> (<code>proj build-dev</code>); <code>false</code> runs none. In a development build, pipeline hooks run only with this flag or <code>dev.pipeline</code>. See <a href="../configuration.html#pipelines">Pipelines</a>.</li>
+<li><code>--scripts SCRIPT...</code> (<code>proj build-dev</code> only): Scripts in place of <code>dev.scripts</code> and <code>build.scripts</code>, still combined with any selected pipeline; <code>--scripts</code> with no value runs no inline scripts.</li>
 <li><code>--description</code>: An optional description string for the build commit. If omitted during a production build that involves git commits, the CLI will interactively prompt for a one-line description when running inside a valid terminal session.</li>
 </ul>
 </section>
@@ -608,7 +610,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Will execute a Quarto project if <code>_quarto.yml</code> exists, or a Bookdown project if <code>_bookdown.yml</code> exists.</li>
 <li>Otherwise, it falls back to a shallow workspace sweep and runs <code>.qmd</code>, <code>.Rmd</code>/<code>.rmd</code>, <code>.R</code>/<code>.r</code> and <code>.py</code> files together in alphabetical order, as projr does (<code>.py</code> is a projcli addition). Like projr, it skips <code>README.Rmd</code>, <code>renv_repos.R</code>, R scripts whose names start with <code>_</code>, and files configured as build or dev hooks.</li>
 </ul></li>
-<li><strong>Hooks:</strong> Production builds run <code>build.hooks</code>; development builds run only <code>dev.hooks</code>.</li>
+<li><strong>Hooks:</strong> Production builds run <code>build.hooks</code>; development builds run only <code>dev.hooks</code>. Selected <a href="../configuration.html#pipelines">pipelines</a> add their scripts and hooks; a development build that inherits <code>build.pipeline</code> runs its scripts but not its hooks.</li>
 </ul>
 </section>
 <section id="isolation" class="level2">
