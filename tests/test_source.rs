@@ -81,8 +81,12 @@ fn files(root: &Path) -> BTreeMap<String, Vec<u8>> {
     result
 }
 /// YAML-safe absolute path text.
+/// Also drops the Windows verbatim prefix, which Git cannot read.
 fn yaml_path(path: &Path) -> String {
-    path.to_string_lossy().replace('\\', "/")
+    let text = path.to_string_lossy();
+    text.strip_prefix(r"\\?\")
+        .unwrap_or(&text)
+        .replace('\\', "/")
 }
 
 /// A producer analysis that archives `raw-data` to `<temporary>/store`, built
@@ -487,10 +491,7 @@ fn restore_repo_clones_then_fetches_every_input() {
     let server = base.join("server");
     let bare = server.join("owner/analysis.git");
     fs::create_dir_all(&bare).unwrap();
-    git(
-        &base,
-        &["init", "--quiet", "--bare", bare.to_str().unwrap()],
-    );
+    git(&base, &["init", "--quiet", "--bare", &yaml_path(&bare)]);
     git(&bare, &["symbolic-ref", "HEAD", "refs/heads/main"]);
     let work = |args: &[&str]| {
         let mut full = vec![
@@ -509,12 +510,7 @@ fn restore_repo_clones_then_fetches_every_input() {
     work(&["init", "--quiet"]);
     work(&["add", "_projr.yml", "hook.py"]);
     work(&["commit", "--quiet", "-m", "fixture"]);
-    work(&[
-        "push",
-        "--quiet",
-        bare.to_str().unwrap(),
-        "HEAD:refs/heads/main",
-    ]);
+    work(&["push", "--quiet", &yaml_path(&bare), "HEAD:refs/heads/main"]);
 
     let clones = base.join("clones");
     fs::create_dir(&clones).unwrap();
