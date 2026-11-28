@@ -34,6 +34,10 @@ development version, it is the newest completed production build recorded in
 `.projr/attempts` (projr reads `.projr/BUILDLOG.md`; projcli also reads a projr
 BUILDLOG when no attempt record exists).
 
+Restore holds the project's build claim (`.projr/build.lock`) while it runs, so it
+cannot run during a build, from a build script, or alongside another restore. If
+a crash left a claim behind, remove it only once no build is running.
+
 The checkout's `.projr/manifests` store (or a projr-written root `manifest.csv`)
 records each label's files at that version. A directory that already matches is
 left alone and needs no network access. A recorded empty directory needs no

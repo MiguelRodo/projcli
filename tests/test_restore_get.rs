@@ -187,6 +187,24 @@ fn restore_reads_recorded_uuid_destination_verifies_md5_and_stages_before_replac
 }
 
 #[test]
+fn restore_takes_the_build_writer_claim() {
+    let (_temporary, root) = project("store");
+    build(&root);
+    fs::remove_dir_all(root.join("input")).unwrap();
+    let claim = root.join(".projr/build.lock");
+    fs::write(&claim, "held by a running build").unwrap();
+    let error = failure(proj(&root, &["restore", "--destination", "local:arch"]));
+    assert!(error.contains("another build or restore"), "{error}");
+    assert!(!root.join("input").exists(), "nothing restored");
+    assert_eq!(fs::read(&claim).unwrap(), b"held by a running build");
+
+    fs::remove_file(&claim).unwrap();
+    success(proj(&root, &["restore", "--destination", "local:arch"]));
+    assert!(root.join("input/data.csv").exists());
+    assert!(!claim.exists(), "the claim is released");
+}
+
+#[test]
 fn restore_falls_back_to_an_identical_snapshot_and_restores_several_labels() {
     let (_temporary, root) = project("store");
     build(&root);

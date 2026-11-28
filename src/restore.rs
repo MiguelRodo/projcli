@@ -350,6 +350,11 @@ pub fn restore(root: &Utf8Path, request: &RestoreRequest) -> anyhow::Result<Rest
             labels: Vec::new(),
         });
     }
+    // The build writer claim keeps restore from racing a build or another
+    // restore (projr locks the output directory, `R/get-install.R:69-75`). It
+    // fails closed on an existing claim, including inside a running build.
+    let _claim = crate::attempt::Attempt::acquire(root)
+        .context("Cannot restore while another build or restore owns this project")?;
     let version = restore_version(root, request.version.as_deref())?;
     let paths = labels
         .iter()
