@@ -511,76 +511,20 @@ pub(crate) fn selected(config: &ProjConfig) -> Result<Selected> {
     })
 }
 
-fn shared(config: &ProjConfig, provider: &str, title: &str) -> Result<Option<Value>> {
-    name(title)?;
-    Ok(match provider {
-        "local" => definition_of(config, provider, title).cloned().or_else(|| {
-            config
-                .remotes
-                .local
-                .as_ref()
-                .and_then(|values| values.get(title))
-                .map(crate::cas_remote::legacy_value)
-        }),
-        "github" => definition_of(config, provider, title).cloned(),
-        _ => anyhow::bail!("Unsupported directory source provider"),
-    })
-}
-
-fn source_reference(
-    config: &ProjConfig,
-    provider: &str,
-    title: &str,
-    inline: Option<&Value>,
-) -> Result<()> {
-    let value = match (shared(config, provider, title)?, inline) {
-        (Some(value), Some(inline)) => crate::yml::deep_merge(value, inline.clone()),
-        (Some(value), None) => value,
-        (None, Some(inline)) => inline.clone(),
-        (None, None) => anyhow::bail!("Directory source references an undefined remote: {title}"),
-    };
-    validate_definition(&value)?;
-    Ok(())
-}
-/// Validate source names and shape without restoring files or loading credentials.
+/// projr 0.9 removed `directories.<label>.source`; sources are selected with
+/// `build.source` (SATVILab/projr@5f915ef `R/yml-check.R:113-123`).
 fn validate_sources(config: &ProjConfig) -> Result<()> {
-    for directory in config.directories.values() {
-        let Some(sources) = directory.source.as_ref().filter(|value| !value.is_null()) else {
-            continue;
-        };
-        for (provider, entries) in sources
-            .as_object()
-            .context("Directory source must be a provider mapping")?
-        {
-            anyhow::ensure!(
-                matches!(provider.as_str(), "local" | "github"),
-                "Unsupported directory source provider"
-            );
-            match entries {
-                Value::Null => {}
-                Value::String(title) => source_reference(config, provider, title, None)?,
-                Value::Array(titles) => {
-                    for title in titles {
-                        source_reference(
-                            config,
-                            provider,
-                            title
-                                .as_str()
-                                .context("Source references must be strings")?,
-                            None,
-                        )?;
-                    }
-                }
-                Value::Object(titles) => {
-                    for (title, inline) in titles {
-                        source_reference(config, provider, title, Some(inline))?;
-                    }
-                }
-                _ => anyhow::bail!(
-                    "Directory source must contain a title, title list or inline definitions"
-                ),
-            }
-        }
+    let mut labels: Vec<_> = config
+        .directories
+        .iter()
+        .filter(|(_, directory)| directory.source.is_some())
+        .map(|(label, _)| label)
+        .collect();
+    labels.sort();
+    if let Some(label) = labels.first() {
+        anyhow::bail!(
+            "directories.{label}.source is no longer supported. Register the remote under remotes and select it with build.source."
+        );
     }
     Ok(())
 }
@@ -764,17 +708,16 @@ mod tests {
         assert_eq!(targets.legacy_content["a"], ["raw"]);
     }
     #[test]
-    fn directory_source_references_validate_without_auto_restore_or_upload_selection() {
+    fn directory_source_is_rejected_with_projr_guidance() {
         let mut config = example();
         config.directories.get_mut("raw").unwrap().source = Some(serde_json::json!({"local":"A"}));
-        assert!(selected(&config).is_ok());
-        config.directories.get_mut("raw").unwrap().source =
-            Some(serde_json::json!({"local":"missing"}));
-        assert!(selected(&config).is_err());
-        config.directories.get_mut("raw").unwrap().source =
-            Some(serde_json::json!({"local":{"custom":{"path":"../custom"}}}));
-        assert!(selected(&config).is_ok());
-        config.directories.get_mut("raw").unwrap().source = Some(serde_json::json!({"s3":"A"}));
+        let error = selected(&config).err().unwrap().to_string();
+        assert!(
+            error.contains("directories.raw.source is no longer supported"),
+            "{error}"
+        );
+        assert!(error.contains("build.source"), "{error}");
+        config.directories.get_mut("raw").unwrap().source = Some(serde_json::Value::Null);
         assert!(selected(&config).is_err());
     }
     #[test]

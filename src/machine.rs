@@ -73,7 +73,7 @@ pub(crate) fn emit_argument_error() -> i32 {
 pub(crate) fn emit_capabilities() -> i32 {
     emit(Ok(json!({
         "capability_version": CAPABILITY_VERSION,
-        "machine_commands": ["capabilities", "init plan", "init readme", "init license", "init renv", "history", "remote restore", "remote verify", "remote versions", "remote download", "remote store", "remote github assets", "remote github upload", "remote github download", "remote github upload-directory", "remote github upload-metadata", "remote github download-directory", "path get", "version get", "version set", "yml read", "yml get", "yml parameter", "init", "ignore add", "ignore remove", "build", "build-dev"],
+        "machine_commands": ["capabilities", "init plan", "init readme", "init license", "init renv", "history", "restore", "get local", "get github", "remote restore", "remote verify", "remote versions", "remote download", "remote store", "remote github assets", "remote github upload", "remote github download", "remote github upload-directory", "remote github upload-metadata", "remote github download-directory", "path get", "version get", "version set", "yml read", "yml get", "yml parameter", "init", "ignore add", "ignore remove", "build", "build-dev"],
         "non_interactive": true,
         "path_targets": ["safe", "final"],
         "path_fragments": true,
@@ -150,6 +150,24 @@ pub(crate) fn run(cli: &Cli) -> i32 {
                 "Cannot verify the requested snapshot; inspect stderr.",
             )
         }),
+        command @ Commands::Restore { .. } => crate::restore_build(&root, command)
+            .map(|result| json!({"restore": result}))
+            .map_err(|error| {
+                eprintln!("Restore failed: {error:#}");
+                failure(
+                    ErrorCode::CommandFailed,
+                    "Restore failed; inspect stderr for installation/recovery details.",
+                )
+            }),
+        Commands::Get { command } => crate::get_build(&root, command)
+            .map(|result| json!({"get": result}))
+            .map_err(|error| {
+                eprintln!("Get failed: {error:#}");
+                failure(
+                    ErrorCode::CommandFailed,
+                    "Get failed; inspect stderr for installation/recovery details.",
+                )
+            }),
         Commands::Remote {
             command: command @ RemoteCommands::Restore { .. },
         } => crate::configured_restore(&root, command)

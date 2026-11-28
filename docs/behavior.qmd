@@ -810,12 +810,10 @@ Named ordinary remotes now remain restore sources independently of current build
 upload selection. The existing provider cue/inspection/strategy engines execute
 only selected targets; registered GitHub definitions that build.dest does not list
 load no credentials and contact no provider unless
-`build.restrictions.not_behind_remote` names them, which makes a read-only lookup. Existing per-directory source references can
-coexist with normal build configuration and are validated without auto-restore.
-
-Directory references retain priority, followed by registered remotes in
-declaration order (projr 0.9 removed inline definitions and remote `source:`
-preferences).
+`build.restrictions.not_behind_remote` names them, which makes a read-only lookup.
+projr 0.9 removed inline definitions, remote `source:` preferences and
+`directories.<label>.source`; all three are rejected. Restore and get are
+described in "projr 0.9 restore and get" below.
 
 Registry/build.dest mapping integration currently covers ordinary latest/archive
 and GitHub Release operations. Configured tree publication and placement are described below. Flat CSV/JSON publication is described below; automatic CAS selection remains
@@ -1139,9 +1137,8 @@ preserved byte-for-byte (files are rewritten with LF), unlike projr.
 
 ## projr 0.9 remotes schema and archive version check
 
-Registered remotes stay restore sources whether or not `build.dest` lists them;
-restore tries directory references first, then registered remotes in declaration
-order (a remote's `source:` preference was removed in projr 0.9). Placeholders
+Registered remotes stay restore sources whether or not `build.dest` lists them
+(see "projr 0.9 restore and get" below). Placeholders
 resolve once, before hooks, from the build version, the checkout `HEAD` file (no
 Git process) and a fresh UUIDv4; later YAML edits by scripts do not change them.
 Builds that publish nothing (previews, `output_run: false`) resolve none. A GitHub
@@ -1153,12 +1150,54 @@ repository and tag in the local failure diagnostic. projcli
 metadata (`.projcli-manifests`) is written only when a remote opts in with a
 manifest field.
 
-Known gaps: `@uuid` destinations are recorded but configured restore cannot yet use
-the record (item 4 of MiguelRodo/issues#910); `build.source` fetching (remote `get`
-settings are validated only), removal of `directories.<label>.source` are later slices (the `profile` key, short
-`.projr/config/` names and pipelines are implemented);
+Known gaps: `build.source` fetching (remote `get` settings are validated only) is
+a later slice (the `profile` key, short `.projr/config/` names, pipelines and
+restore from recorded destinations are implemented);
 directory paths and CAS/Xet store paths are not template-expanded; the build UUID
 is not exported to scripts; a local remote `ignore` field and one-off archives
 (`archive_local`/`archive_github`) are not supported; GitHub upload confirmation
 (a later slice; readback acceptance of a byte-identical asset, never a retry)
 after a server error (projr deletes and retries once) is not ported.
+
+
+## projr 0.9 restore and get
+
+Confirmed behavior (MiguelRodo/issues#910 slice 5; SATVILab/projr@5f915ef
+`R/restore-build.R`, `R/get.R`, `R/get-install.R`, `R/get-project.R`):
+
+- `proj restore` restores the checkout's exact build version: the completed
+  `VERSION`, else the newest completed production attempt in `.projr/attempts`
+  (projr reads `.projr/BUILDLOG.md`; projcli reads a projr BUILDLOG as a fallback).
+  `--version` selects another build. Labels default to every declared raw label.
+- Every file is checked against the checkout's `.projr/manifests` snapshot (or a
+  projr legacy `manifest.csv`) by MD5. A directory that matches needs no remote.
+  A recorded empty directory needs no remote either.
+- The destination defaults to GitHub `archive`; a registered GitHub title uses the
+  Release its build recorded (so `@version`, `@uuid` and `@branch` resolve); an
+  unregistered name is a concrete tag in the checkout's repository. An archive of
+  an earlier version with the identical snapshot is used when the exact one is
+  missing. A remote whose own manifest records a different snapshot fails
+  ("Sources disagree").
+- Without `--clear`, local files that differ from the snapshot, including extra
+  files, are an error; matching files are kept.
+- Every label is staged beside its destination and verified before the first
+  destination is renamed aside. A failed later swap moves earlier labels back; an
+  original that cannot be moved back is kept and its path reported. A destination
+  that changes during staging stops the restore before any swap.
+- `proj get local --path|--remote` and `proj get github --repo|--remote [--tag]`
+  copy another build's directories into `<out>/<label>/` through the same path;
+  `--overwrite` plays the role of `--clear`.
+
+projcli differences (user decisions, 28 November 2026): `--destination
+local:<title>` restores from a registered local remote (projr restores only from
+GitHub; proposed upstream as SATVILab/projr#1076); restore and get set no size cap
+on downloaded data, leaving GitHub's own asset limit and the disk (remote manifest
+metadata, which is read into memory, stays bounded). Outputs are not yet locked
+against concurrent writers (projr takes a `filelock` on the output directory); a
+follow-up gives restore the existing `.projr/build.lock` claim.
+
+Known gaps: a `latest` local remote without a label directory is not read;
+`proj get github --repo` without `--tag` reads recorded destinations only from a
+projr BUILDLOG (projcli attempt records are not fetched over the API);
+`directories.<label>` paths containing `@version` are not expanded before a
+missing VERSION is written; `build.source`/`proj source` is slice 6.

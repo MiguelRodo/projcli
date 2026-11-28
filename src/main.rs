@@ -59,6 +59,28 @@ pub enum Commands {
         #[command(subcommand)]
         command: RemoteCommands,
     },
+    /// Restore the raw inputs this checkout's build used, verified against its manifest.
+    Restore {
+        /// Labels to restore (repeat or comma-separate); default: every raw directory.
+        #[arg(long = "label", value_delimiter = ',')]
+        labels: Vec<String>,
+        /// Exact build version; default: the checkout's completed build.
+        #[arg(long)]
+        version: Option<String>,
+        /// Registered GitHub title, concrete Release tag, or local:<title>.
+        #[arg(long, default_value = "archive")]
+        destination: String,
+        /// Replace local files that differ from the build, including extra files.
+        #[arg(long)]
+        clear: bool,
+        #[arg(long)]
+        profile: Option<String>,
+    },
+    /// Copy directories from another projr build, verified against its manifest.
+    Get {
+        #[command(subcommand)]
+        command: GetCommands,
+    },
     /// Init related operations
     Init {
         #[command(flatten)]
@@ -141,6 +163,56 @@ pub enum Commands {
     },
 }
 
+/// `proj get` sources (projr `projr_get_local` and `projr_get_github`).
+#[derive(Subcommand)]
+pub enum GetCommands {
+    /// Copy directories from a local analysis or a registered local remote.
+    Local {
+        /// Root of the producing analysis.
+        #[arg(long, conflicts_with = "remote")]
+        path: Option<String>,
+        /// A local remote registered in this project.
+        #[arg(long)]
+        remote: Option<String>,
+        #[command(flatten)]
+        common: GetCommon,
+    },
+    /// Copy directories from a GitHub repository's Releases or a registered GitHub remote.
+    Github {
+        /// The producing repository, owner/repo or owner/repo@branch.
+        #[arg(long, conflicts_with = "remote")]
+        repo: Option<String>,
+        /// A GitHub remote registered in this project.
+        #[arg(long)]
+        remote: Option<String>,
+        /// A concrete Release tag.
+        #[arg(long)]
+        tag: Option<String>,
+        #[command(flatten)]
+        common: GetCommon,
+    },
+}
+
+/// Options shared by `get local` and `get github`.
+#[derive(clap::Args)]
+pub struct GetCommon {
+    /// Labels to copy (repeat or comma-separate); default: those recorded for the build.
+    #[arg(long = "label", value_delimiter = ',')]
+    labels: Vec<String>,
+    /// Exact build version; default: the producer's completed build.
+    #[arg(long)]
+    version: Option<String>,
+    /// Directory receiving <out>/<label>/.
+    #[arg(long, default_value = ".")]
+    out: camino::Utf8PathBuf,
+    /// Replace changed or extra files in the selected output directories.
+    #[arg(long)]
+    overwrite: bool,
+    /// Profiles for this project's configuration (--remote).
+    #[arg(long)]
+    profile: Option<String>,
+}
+
 fn parse_pipeline(text: &str) -> Result<proj::pipeline::Selection, String> {
     proj::pipeline::Selection::parse_argument(text).map_err(|error| error.to_string())
 }
@@ -148,32 +220,28 @@ fn parse_pipeline(text: &str) -> Result<proj::pipeline::Selection, String> {
 /// Remote operations reuse registered definitions or explicit ordinary/local arguments.
 #[derive(Subcommand)]
 pub enum RemoteCommands {
-    /// Restore one declared directory using registered or inline sources.
+    /// Restore one label from an exact CAS or experimental Xet snapshot (ordinary
+    /// latest/archive remotes use `proj restore` and `proj get`).
     Restore {
         #[arg(long)]
         label: String,
-        #[arg(long,value_parser=["source","dest"])]
-        position: Option<String>,
         #[arg(long,value_parser=["local","github"])]
         provider: Option<String>,
-        /// Select a configured remote by name.
+        /// The configured CAS/Xet remote.
         #[arg(long)]
-        title: Option<String>,
+        title: String,
         #[arg(long)]
         remote_version: Option<String>,
-        /// Restore an exact local CAS or experimental Xet snapshot; requires its configured remote title.
-        #[arg(long, requires = "title")]
-        snapshot: Option<String>,
-        /// Explicit owner/repository; otherwise resolve the selected project's Git origin.
+        /// The exact stored snapshot ID.
         #[arg(long)]
-        repository: Option<String>,
+        snapshot: String,
         #[arg(long)]
         profile: Option<String>,
         #[arg(long)]
         clear: bool,
-        #[arg(long, required_unless_present = "snapshot")]
+        #[arg(long)]
         max_bytes: Option<u64>,
-        #[arg(long, required_unless_present = "snapshot")]
+        #[arg(long)]
         max_expanded_bytes: Option<u64>,
     },
     /// Check an exact local or GitHub snapshot; GitHub Xet requires archive byte budgets.
@@ -580,6 +648,20 @@ fn main() {
                 Err(error) => fail(format_args!("CAS verification failed: {error:#}")),
             }
         }
+        command @ Commands::Restore { .. } => match restore_build(&root, command) {
+            Ok(result) => println!(
+                "{}",
+                serde_json::to_string_pretty(&result).expect("Restore result is serializable")
+            ),
+            Err(error) => fail(format_args!("Restore failed: {error:#}")),
+        },
+        Commands::Get { command } => match get_build(&root, command) {
+            Ok(result) => println!(
+                "{}",
+                serde_json::to_string_pretty(&result).expect("Get result is serializable")
+            ),
+            Err(error) => fail(format_args!("Get failed: {error:#}")),
+        },
         Commands::Remote {
             command: command @ RemoteCommands::Restore { .. },
         } => match configured_restore(&root, command) {
@@ -1284,12 +1366,10 @@ fn configured_restore(
 ) -> anyhow::Result<proj::restore::RestoreResult> {
     let RemoteCommands::Restore {
         label,
-        position,
         provider,
         title,
         remote_version,
         snapshot,
-        repository,
         profile,
         clear,
         max_bytes,
@@ -1298,101 +1378,109 @@ fn configured_restore(
     else {
         anyhow::bail!("Expected configured restore command");
     };
-    if let Some(snapshot) = snapshot {
-        let named = title
-            .as_deref()
-            .ok_or_else(|| anyhow::anyhow!("Snapshot restore requires --title"))?;
-        if proj::configured_xet_github::selected(root, named, profile.as_deref())? {
-            anyhow::ensure!(
-                position.is_none() && repository.is_none(),
-                "GitHub Xet uses its trusted project locator, not position/repository overrides"
-            );
-            anyhow::ensure!(
-                provider.as_deref().is_none_or(|value| value == "github"),
-                "Selected Xet snapshot uses GitHub transport"
-            );
-            return proj::configured_xet_github::restore(
-                root,
-                named,
-                snapshot,
-                label,
-                proj::restore::SnapshotRestoreOptions {
-                    profile: profile.as_deref(),
-                    remote_version: remote_version.as_deref(),
-                    clear: *clear,
-                    max_bytes: max_bytes
-                        .ok_or_else(|| anyhow::anyhow!("GitHub Xet requires --max-bytes"))?,
-                    max_expanded: max_expanded_bytes.ok_or_else(|| {
-                        anyhow::anyhow!("GitHub Xet requires --max-expanded-bytes")
-                    })?,
-                },
-            );
-        }
-        if proj::configured_cas_github::selected(root, named, profile.as_deref())? {
-            anyhow::ensure!(
-                position.is_none() && repository.is_none(),
-                "GitHub CAS uses its trusted project locator, not position/repository overrides"
-            );
-            anyhow::ensure!(
-                provider.as_deref().is_none_or(|value| value == "github"),
-                "Selected CAS snapshot uses GitHub transport"
-            );
-            return proj::configured_cas_github::restore(
-                root,
-                named,
-                snapshot,
-                label,
-                proj::restore::SnapshotRestoreOptions {
-                    profile: profile.as_deref(),
-                    remote_version: remote_version.as_deref(),
-                    clear: *clear,
-                    max_bytes: max_bytes
-                        .ok_or_else(|| anyhow::anyhow!("GitHub CAS requires --max-bytes"))?,
-                    max_expanded: max_expanded_bytes.ok_or_else(|| {
-                        anyhow::anyhow!("GitHub CAS requires --max-expanded-bytes")
-                    })?,
-                },
-            );
-        }
-        anyhow::ensure!(
-            position.is_none() && repository.is_none(),
-            "Explicit CAS snapshot restore does not use position or GitHub repository filters"
-        );
-        anyhow::ensure!(
-            provider.as_deref().is_none_or(|value| value == "local"),
-            "Explicit CAS snapshots require a local source"
-        );
-        anyhow::ensure!(
-            max_bytes.is_none() && max_expanded_bytes.is_none(),
-            "CAS snapshots use bounded tree readers, not ordinary archive byte-limit flags"
-        );
-        return proj::configured_cas::restore(
-            root,
-            title
-                .as_deref()
-                .ok_or_else(|| anyhow::anyhow!("CAS snapshot restore requires --title"))?,
-            snapshot,
-            label,
-            profile.as_deref(),
-            remote_version.as_deref(),
-            *clear,
-        );
-    }
-    let request = proj::restore::RestoreRequest {
-        label: label.clone(),
-        position: position.clone(),
-        provider: provider.clone(),
-        title: title.clone(),
-        remote_version: remote_version.clone(),
-        repository: repository.clone(),
-        profile: profile.clone(),
-        clear: *clear,
-        max_bytes: max_bytes
-            .ok_or_else(|| anyhow::anyhow!("Ordinary restore requires --max-bytes"))?,
-        max_expanded_bytes: max_expanded_bytes
-            .ok_or_else(|| anyhow::anyhow!("Ordinary restore requires --max-expanded-bytes"))?,
+    let options = || -> anyhow::Result<proj::restore::SnapshotRestoreOptions<'_>> {
+        Ok(proj::restore::SnapshotRestoreOptions {
+            profile: profile.as_deref(),
+            remote_version: remote_version.as_deref(),
+            clear: *clear,
+            max_bytes: max_bytes
+                .ok_or_else(|| anyhow::anyhow!("GitHub snapshots require --max-bytes"))?,
+            max_expanded: max_expanded_bytes
+                .ok_or_else(|| anyhow::anyhow!("GitHub snapshots require --max-expanded-bytes"))?,
+        })
     };
-    proj::restore::restore_label(root, &request)
+    if proj::configured_xet_github::selected(root, title, profile.as_deref())? {
+        anyhow::ensure!(
+            provider.as_deref().is_none_or(|value| value == "github"),
+            "Selected Xet snapshot uses GitHub transport"
+        );
+        return proj::configured_xet_github::restore(root, title, snapshot, label, options()?);
+    }
+    if proj::configured_cas_github::selected(root, title, profile.as_deref())? {
+        anyhow::ensure!(
+            provider.as_deref().is_none_or(|value| value == "github"),
+            "Selected CAS snapshot uses GitHub transport"
+        );
+        return proj::configured_cas_github::restore(root, title, snapshot, label, options()?);
+    }
+    anyhow::ensure!(
+        provider.as_deref().is_none_or(|value| value == "local"),
+        "Explicit CAS snapshots require a local source"
+    );
+    anyhow::ensure!(
+        max_bytes.is_none() && max_expanded_bytes.is_none(),
+        "CAS snapshots use bounded tree readers, not ordinary archive byte-limit flags"
+    );
+    proj::configured_cas::restore(
+        root,
+        title,
+        snapshot,
+        label,
+        profile.as_deref(),
+        remote_version.as_deref(),
+        *clear,
+    )
+}
+
+/// `proj restore`.
+fn restore_build(
+    root: &camino::Utf8Path,
+    command: &Commands,
+) -> anyhow::Result<proj::restore::RestoreOutcome> {
+    let Commands::Restore {
+        labels,
+        version,
+        destination,
+        clear,
+        profile,
+    } = command
+    else {
+        anyhow::bail!("Expected restore command");
+    };
+    proj::restore::restore(
+        root,
+        &proj::restore::RestoreRequest {
+            labels: labels.clone(),
+            version: version.clone(),
+            destination: Some(destination.clone()),
+            clear: *clear,
+            profile: profile.clone(),
+        },
+    )
+}
+
+/// `proj get local|github`.
+fn get_build(
+    root: &camino::Utf8Path,
+    command: &GetCommands,
+) -> anyhow::Result<proj::get::GetOutcome> {
+    let (provider, direct, remote, tag, common) = match command {
+        GetCommands::Local {
+            path,
+            remote,
+            common,
+        } => (proj::get::Provider::Local, path, remote, &None, common),
+        GetCommands::Github {
+            repo,
+            remote,
+            tag,
+            common,
+        } => (proj::get::Provider::Github, repo, remote, tag, common),
+    };
+    proj::get::get(
+        root,
+        provider,
+        &proj::get::GetRequest {
+            direct: direct.clone(),
+            remote: remote.clone(),
+            tag: tag.clone(),
+            labels: common.labels.clone(),
+            version: common.version.clone(),
+            out: common.out.clone(),
+            overwrite: common.overwrite,
+            profile: common.profile.clone(),
+        },
+    )
 }
 
 fn configured_verify(

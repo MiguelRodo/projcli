@@ -315,13 +315,21 @@ DELETE followed by upload is the pinned projr behavior, not atomic publication:
 report deleted/uncertain outcomes and never silently retry or imply rollback.
 Mock fixtures only; no existing user assets are test targets.
 
-Configured restore uses existing directories.LABEL.source references and registered
-remotes (projr 0.9 removed inline build definitions and remote source preferences). Keep source-before-destination,
-preferences/exclusion, merged profile order and numeric/advertised version rules.
-Never clear before source lookup/staging; empty/unrecorded labels skip intact.
-Restore's config projection must not make normal builds silently accept ignored
-ordinary upload fields. Correct source indexing/inline bugs with explicit evidence;
-do not add implicit archive paths, new policy defaults or CSV trust claims.
+`proj restore` follows projr 0.9's projr_restore: the checkout's exact build version
+(VERSION, else `.projr/attempts`, else a projr BUILDLOG), every file MD5-verified
+against `.projr/manifests` (or a projr legacy manifest.csv), identical-snapshot
+fallback, several labels (default raw), GitHub `archive`/registered title at its
+recorded destination/concrete tag, plus the documented projcli `local:<title>`
+superset. `proj get local|github` share the backend in src/get.rs. Stage every label
+beside its destination before the first rename-swap; roll back earlier labels and
+keep (and report) originals when rollback fails; never clear before staging.
+Matching directories need no remote; sources that disagree fail. Keep link/special
+guards and token redaction. Restore/get downloaded data has no projcli size cap
+(user decision, 28 November 2026); only in-memory manifest metadata stays bounded.
+The earlier general rule to bound ZIP bytes still applies to explicit low-level
+transfer and CAS/Xet commands. directories.LABEL.source and
+--position are removed (projr's build.source message); `proj remote restore` is
+explicit CAS/Xet snapshots only. build.source fetching is slice 6.
 
 Configured ordinary publication must fail namespace preflight before hooks or any
 destructive replacement, including full/empty/metadata aliases and selected CAS
@@ -578,8 +586,7 @@ build.dest follows projr 0.9 (a name, list or mapping with per-archive content/
 cue/inspect/strategy; `<type>:<title>` for titles used by both types; whole-value
 replacement across profile layers). Inline build.local/build.github archives are
 rejected with projr's guidance; never upload all registered definitions implicitly.
-Preserve directory-reference priority. Normal directory-source annotations validate
-references but do not activate automatic build-time restore. Reuse existing
+directories.LABEL.source is rejected (projr 0.9). Reuse existing
 ordinary provider validators/engines. Reject unsupported placement/style/format
 fields until implemented; do not accept them as ignored options or call the
 ordinary registry slice complete tree-aware M3 integration.
@@ -860,8 +867,8 @@ preflight checks and recovery capture, missing Releases are created before hooks
 that successful publication replaces; never roll back or delete them on failure.
 Creating a Release is not distribution; record created Releases (repo and tag only)
 in the local failure diagnostic.
-Restore by recorded destination, build.source fetching and pipelines are separate
-slices.
+Restore reads recorded destinations; build.source fetching and pipelines are
+separate slices.
 
 ## projr 0.9 configuration layout (26 November 2026)
 

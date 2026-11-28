@@ -1,28 +1,23 @@
+//! `proj restore` against projr-written legacy history and registered local
+//! remotes (a documented projcli superset of projr's GitHub-only restore).
 use camino::Utf8PathBuf;
-use proj::restore::{RestoreRequest, restore_label};
+use proj::restore::{RestoreRequest, restore};
 use std::{fs, process::Command};
-fn root(temp: &tempfile::TempDir) -> Utf8PathBuf {
-    Utf8PathBuf::from_path_buf(temp.path().canonicalize().unwrap()).unwrap()
-}
-fn setup() -> (tempfile::TempDir, Utf8PathBuf) {
+
+fn setup(history: &str) -> (tempfile::TempDir, Utf8PathBuf) {
     let temp = tempfile::tempdir().unwrap();
-    let root = root(&temp);
+    let root = Utf8PathBuf::from_path_buf(temp.path().canonicalize().unwrap()).unwrap();
     fs::create_dir(root.join("data")).unwrap();
     fs::write(root.join("data/old.txt"), "previous").unwrap();
-    fs::write(
-        root.join("manifest.csv"),
-        "label,fn,version,hash\nraw,data.csv,v1.2.3,900150983cd24fb0d6963f7d28e17f72\n",
-    )
-    .unwrap();
+    fs::write(root.join("manifest.csv"), history).unwrap();
     fs::write(root.join("VERSION"), "v1.2.3\n").unwrap();
     (temp, root)
 }
-fn request() -> RestoreRequest {
+fn request(destination: &str, clear: bool) -> RestoreRequest {
     RestoreRequest {
-        label: "raw".into(),
+        destination: Some(destination.into()),
+        clear,
         profile: Some("".into()),
-        max_bytes: 1024 * 1024,
-        max_expanded_bytes: 1024 * 1024,
         ..Default::default()
     }
 }
@@ -34,155 +29,95 @@ fn remote(root: &camino::Utf8Path, base: &str, version: &str, bytes: &str) {
     )
     .unwrap();
 }
+const RECORDED: &str =
+    "label,fn,version,hash\nraw,data.csv,v1.2.3,900150983cd24fb0d6963f7d28e17f72\n";
+
 #[test]
-fn source_reference_precedes_preferred_destination_and_clear_is_staged() {
-    let (_temp, root) = setup();
-    remote(&root, "restore-A", "v1.9", "chosen-A");
-    remote(&root, "upload-B", "v1.10", "not-B");
-    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\n    source:\n      local: A\nremotes:\n  local:\n    B:\n      path: upload-B\n      content: [raw]\n    A:\n      path: restore-A\n").unwrap();
-    let result = restore_label(&root, &request()).unwrap();
-    assert!(result.restored);
-    assert_eq!(result.title.as_deref(), Some("A"));
-    assert_eq!(fs::read(root.join("data/data.csv")).unwrap(), b"chosen-A");
+fn legacy_history_verifies_bytes_and_clear_replaces_only_after_staging() {
+    let (_temp, root) = setup(RECORDED);
+    remote(&root, "remote-A", "v1.2.3", "abc");
+    remote(&root, "remote-B", "v1.2.3", "not the recorded bytes");
+    fs::write(
+        root.join("_projr.yml"),
+        "directories:\n  raw:\n    path: data\nremotes:\n  local:\n    A:\n      path: remote-A\n    B:\n      path: remote-B\n",
+    )
+    .unwrap();
+    // The extra local file is a local change.
+    let error = restore(&root, &request("local:A", false)).unwrap_err();
+    assert!(format!("{error:#}").contains("--clear"), "{error:#}");
     assert!(root.join("data/old.txt").exists());
-    let mut clear = request();
-    clear.clear = true;
-    restore_label(&root, &clear).unwrap();
+    // Remote bytes that differ from the recorded MD5 never replace anything.
+    let error = restore(&root, &request("local:B", true)).unwrap_err();
+    assert!(
+        format!("{error:#}").contains("No matching files for raw at v1.2.3"),
+        "{error:#}"
+    );
+    assert!(root.join("data/old.txt").exists());
+    let outcome = restore(&root, &request("local:A", true)).unwrap();
+    assert_eq!(outcome.version.as_deref(), Some("v1.2.3"));
+    assert_eq!(outcome.labels[0].status, "installed");
     assert!(!root.join("data/old.txt").exists());
-    // Restore annotations can now coexist with normal build configuration;
-    // normal builds validate the reference without automatically restoring.
-    assert!(proj::yml::yml_read_from(&root, false).is_ok());
-}
-#[test]
-fn explicit_inline_source_and_profile_local_precedence_use_physical_final_path() {
-    let (_temp, root) = setup();
-    remote(&root, "base", "v1.0", "base");
-    remote(&root, "profile", "v1.0", "profile");
-    remote(&root, "local", "v1.0", "local");
-    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\n    source:\n      local:\n        A:\n          path: base\n").unwrap();
-    fs::write(
-        root.join("_projr-analysis.yml"),
-        "directories:\n  raw:\n    source:\n      local:\n        A:\n          path: profile\n",
-    )
-    .unwrap();
-    fs::write(
-        root.join("_projr-local.yml"),
-        "directories:\n  raw:\n    source:\n      local:\n        A:\n          path: local\n",
-    )
-    .unwrap();
-    let mut req = request();
-    req.profile = Some("analysis".into());
-    let result = restore_label(&root, &req).unwrap();
-    assert!(result.restored);
-    assert_eq!(fs::read(root.join("data/data.csv")).unwrap(), b"local");
-}
-#[test]
-fn registry_order_qualified_titles_and_numeric_archive_selection() {
-    let (_temp, root) = setup();
-    for (base, bytes) in [
-        ("first", "first"),
-        ("second", "second"),
-        ("excluded", "excluded"),
-    ] {
-        remote(&root, base, "v1.9", bytes);
-        remote(&root, base, "v1.10", bytes);
-    }
-    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\nremotes:\n  local:\n    excluded:\n      path: excluded\n      content: []\n    first:\n      path: first\n      content: [raw]\n    second:\n      path: second\n").unwrap();
-    // The first registered remote holding the label wins; content excludes others.
-    let result = restore_label(&root, &request()).unwrap();
-    assert_eq!(result.title.as_deref(), Some("first"));
-    assert_eq!(result.version.as_deref(), Some("v1.10"));
-    let mut req = request();
-    req.title = Some("local:second".into());
-    req.remote_version = Some("v1.9".into());
-    let result = restore_label(&root, &req).unwrap();
-    assert_eq!(result.title.as_deref(), Some("second"));
-    assert_eq!(result.version.as_deref(), Some("v1.9"));
-    assert_eq!(fs::read(root.join("data/data.csv")).unwrap(), b"second");
-    req.title = Some("excluded".into());
-    req.clear = true;
-    assert!(restore_label(&root, &req).is_err());
-    assert!(root.join("data/old.txt").exists());
-    // projr 0.9: a title registered for both types must be qualified.
-    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\nremotes:\n  local:\n    second:\n      path: second\n  github:\n    second: {}\n").unwrap();
-    let mut req = request();
-    req.title = Some("second".into());
-    assert!(
-        restore_label(&root, &req)
-            .unwrap_err()
-            .to_string()
-            .contains("Use local:second or github:second")
-    );
-    req.title = Some("github:second".into());
-    req.provider = Some("local".into());
-    assert!(restore_label(&root, &req).is_err());
-    // A remote's source field was removed in projr 0.9.
-    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\nremotes:\n  local:\n    first:\n      path: first\n      source: true\n").unwrap();
-    assert!(
-        format!("{:#}", restore_label(&root, &request()).unwrap_err()).contains("build.source")
-    );
-}
-#[test]
-fn missing_corrupt_empty_unavailable_and_protected_restore_never_clears_first() {
-    let (_temp, root) = setup();
-    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\n    source:\n      local:\n        A:\n          path: missing\n").unwrap();
-    let mut req = request();
-    req.clear = true;
-    assert!(restore_label(&root, &req).is_err());
-    assert_eq!(fs::read(root.join("data/old.txt")).unwrap(), b"previous");
-    fs::write(
-        root.join("manifest.csv"),
-        "label,fn,version,hash\nraw,,v1.2.3,\n",
-    )
-    .unwrap();
+    assert_eq!(fs::read(root.join("data/data.csv")).unwrap(), b"abc");
+    // The projr-written legacy CSV is read, never rewritten.
     assert_eq!(
-        restore_label(&root, &req).unwrap().skipped.as_deref(),
-        Some("no-recorded-files")
+        fs::read(root.join("manifest.csv")).unwrap(),
+        RECORDED.as_bytes()
     );
-    assert!(root.join("data/old.txt").exists());
-    fs::write(root.join("manifest.csv"), "bad").unwrap();
-    assert!(restore_label(&root, &req).is_err());
-    fs::remove_file(root.join("manifest.csv")).unwrap();
-    assert!(restore_label(&root, &req).is_err());
-}
-#[test]
-fn empty_latest_skips_without_clearing_and_cli_uses_project_root() {
-    let (_temp, root) = setup();
-    fs::create_dir(root.join("remote")).unwrap();
-    fs::create_dir(root.join("remote/raw-empty")).unwrap();
-    fs::write(root.join("remote/VERSION"), "raw: v1.2.3*\n").unwrap();
-    fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: data\n    source:\n      local:\n        source:\n          path: remote\n          structure: latest\n").unwrap();
-    let output = Command::new(env!("CARGO_BIN_EXE_proj"))
-        .current_dir(root.parent().unwrap())
-        .env_remove("PROJR_PROFILE")
-        .env_remove("QUARTO_PROFILE")
-        .env_remove(proj::PROJECT_ROOT_ENV)
-        .env_remove(proj::RUN_CONTEXT_ENV)
-        .args([
-            "--project",
-            root.as_str(),
-            "--machine",
-            "remote",
-            "restore",
-            "--label",
-            "raw",
-            "--clear",
-            "--max-bytes",
-            "10000",
-            "--max-expanded-bytes",
-            "10000",
-        ])
-        .output()
-        .unwrap();
+    // Unregistered local names are errors once a remote is needed.
+    fs::remove_file(root.join("data/data.csv")).unwrap();
+    let error = restore(&root, &request("local:missing", true)).unwrap_err();
     assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
+        error.to_string().contains("Unknown local remote"),
+        "{error}"
     );
-    let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(value["result"]["restored"], false);
-    assert_eq!(value["result"]["skipped"], "empty-remote");
+}
+
+#[test]
+fn recorded_empty_directories_need_no_remote_and_missing_history_fails() {
+    let (_temp, root) = setup("label,fn,version,hash\nraw,,v1.2.3,\n");
+    fs::write(
+        root.join("_projr.yml"),
+        "directories:\n  raw:\n    path: data\n",
+    )
+    .unwrap();
+    assert!(restore(&root, &request("local:unregistered", false)).is_err());
     assert!(root.join("data/old.txt").exists());
+    let outcome = restore(&root, &request("local:unregistered", true)).unwrap();
+    assert_eq!(outcome.labels[0].status, "installed");
+    assert!(outcome.source.is_none());
+    assert_eq!(fs::read_dir(root.join("data")).unwrap().count(), 0);
+
+    // Without a recorded snapshot, no remote file list can be trusted.
+    fs::write(root.join("manifest.csv"), "label,fn,version,hash\n").unwrap();
+    fs::write(
+        root.join("_projr.yml"),
+        "directories:\n  raw:\n    path: data\nremotes:\n  local:\n    A:\n      path: remote\n",
+    )
+    .unwrap();
+    remote(&root, "remote", "v1.2.3", "abc");
+    let error = restore(&root, &request("local:A", true)).unwrap_err();
+    assert!(error.to_string().contains("No matching files"), "{error}");
+    fs::write(root.join("manifest.csv"), "bad").unwrap();
+    assert!(restore(&root, &request("local:A", true)).is_err());
+}
+
+#[test]
+fn non_raw_labels_are_restored_only_when_named_and_no_raw_label_is_a_no_op() {
+    let (_temp, root) =
+        setup("label,fn,version,hash\noutput,data.csv,v1.2.3,900150983cd24fb0d6963f7d28e17f72\n");
+    fs::write(
+        root.join("_projr.yml"),
+        "directories:\n  output:\n    path: data\nremotes:\n  local:\n    A:\n      path: remote\n",
+    )
+    .unwrap();
+    let outcome = restore(&root, &request("local:A", true)).unwrap();
+    assert!(outcome.version.is_none() && outcome.labels.is_empty());
+    fs::create_dir_all(root.join("remote/output/v1.2.3")).unwrap();
+    fs::write(root.join("remote/output/v1.2.3/data.csv"), "abc").unwrap();
+    let mut named = request("local:A", true);
+    named.labels = vec!["output".into()];
+    restore(&root, &named).unwrap();
+    assert_eq!(fs::read(root.join("data/data.csv")).unwrap(), b"abc");
 }
 
 #[test]
@@ -196,15 +131,23 @@ fn child_profile_selection_matches_projr_key_and_explicit_precedence() {
         ("", "quarto", Some("analysis"), "analysis"),
         ("", "", Some("first,second"), "first"),
     ] {
-        let (_temp, root) = setup();
+        let (_temp, root) = setup(RECORDED);
         for name in ["base", "analysis", "quarto", "first", "second"] {
             fs::create_dir(root.join(format!("{name}-target"))).unwrap();
             fs::write(root.join(format!("{name}-target/old")), "intact").unwrap();
-            remote(&root, name, "v1.0", name);
         }
-        fs::write(root.join("_projr.yml"),"directories:\n  raw:\n    path: base-target\n    source:\n      local:\n        A:\n          path: base\nprofile: analysis\n").unwrap();
+        remote(&root, "store", "v1.2.3", "abc");
+        fs::write(
+            root.join("_projr.yml"),
+            "directories:\n  raw:\n    path: base-target\nremotes:\n  local:\n    A:\n      path: store\nprofile: analysis\n",
+        )
+        .unwrap();
         for name in ["analysis", "quarto", "first", "second"] {
-            fs::write(root.join(format!("_projr-{name}.yml")),format!("directories:\n  raw:\n    path: {name}-target\n    source:\n      local:\n        A:\n          path: {name}\n")).unwrap();
+            fs::write(
+                root.join(format!("_projr-{name}.yml")),
+                format!("directories:\n  raw:\n    path: {name}-target\n"),
+            )
+            .unwrap();
         }
         let mut command = Command::new(env!("CARGO_BIN_EXE_proj"));
         command
@@ -216,15 +159,10 @@ fn child_profile_selection_matches_projr_key_and_explicit_precedence() {
                 "--project",
                 root.as_str(),
                 "--machine",
-                "remote",
                 "restore",
-                "--label",
-                "raw",
+                "--destination",
+                "local:A",
                 "--clear",
-                "--max-bytes",
-                "1000",
-                "--max-expanded-bytes",
-                "1000",
             ]);
         if let Some(profile) = explicit {
             command.args(["--profile", profile]);
@@ -237,14 +175,14 @@ fn child_profile_selection_matches_projr_key_and_explicit_precedence() {
         );
         let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
         assert_eq!(
-            value["result"]["destination"],
+            value["result"]["restore"]["labels"][0]["path"],
             root.join(format!("{expected}-target")).as_str()
         );
         for name in ["base", "analysis", "quarto", "first", "second"] {
             if name == expected {
                 assert_eq!(
                     fs::read(root.join(format!("{name}-target/data.csv"))).unwrap(),
-                    name.as_bytes()
+                    b"abc"
                 );
                 assert!(!root.join(format!("{name}-target/old")).exists());
             } else {
@@ -252,77 +190,32 @@ fn child_profile_selection_matches_projr_key_and_explicit_precedence() {
                     fs::read(root.join(format!("{name}-target/old"))).unwrap(),
                     b"intact"
                 );
-                assert!(!root.join(format!("{name}-target/data.csv")).exists());
             }
         }
     }
 }
-#[test]
-fn undefined_reference_selected_source_failure_and_unsupported_get_do_not_fallback_or_clear() {
-    let (_temp, root) = setup();
-    remote(&root, "valid", "v1.0", "fallback");
-    for sources in [
-        "    source:\n      local: undefined\n",
-        "    source:\n      local:\n        first:\n          path: missing\n        second:\n          path: valid\n",
-        "    source:\n      local:\n        first:\n          path: valid\n          get:\n            strategy: upload-all\n",
-    ] {
-        fs::write(root.join("_projr.yml"),format!("directories:\n  raw:\n    path: data\n{sources}remotes:\n  local:\n    fallback:\n      path: valid\n      content: [raw]\n")).unwrap();
-        let mut req = request();
-        req.profile = Some("".into());
-        req.clear = true;
-        assert!(restore_label(&root, &req).is_err());
-        assert_eq!(fs::read(root.join("data/old.txt")).unwrap(), b"previous");
-        assert!(!root.join("data/data.csv").exists());
-    }
-}
-#[test]
-fn legacy_data_aliases_are_read_only_and_conflicting_namespaces_fail() {
-    let (_temp, root) = setup();
-    fs::write(root.join("_projr.yml"),"directories:\n  data: {}\nremotes:\n  local:\n    archive:\n      path: remote\n      content: [data]\n").unwrap();
-    let history = b"label,fn,version,hash\ndata,data.csv,v1.2.3,900150983cd24fb0d6963f7d28e17f72\n";
-    fs::write(root.join("manifest.csv"), history).unwrap();
-    fs::create_dir_all(root.join("remote/data/v1.2.3")).unwrap();
-    fs::write(root.join("remote/data/v1.2.3/restored"), "legacy bytes").unwrap();
-    let config = fs::read(root.join("_projr.yml")).unwrap();
-    let mut req = request();
-    req.label = "output-r-data".into();
-    req.profile = Some("".into());
-    req.clear = true;
-    let result = restore_label(&root, &req).unwrap();
-    assert!(result.restored);
-    assert_eq!(
-        fs::read(root.join("data/restored")).unwrap(),
-        b"legacy bytes"
-    );
-    assert_eq!(fs::read(root.join("manifest.csv")).unwrap(), history);
-    assert_eq!(fs::read(root.join("_projr.yml")).unwrap(), config);
-    fs::create_dir_all(root.join("remote/output-r-data/v1.2.3")).unwrap();
-    fs::write(root.join("remote/output-r-data/v1.2.3/new"), "conflict").unwrap();
-    assert!(
-        restore_label(&root, &req)
-            .unwrap_err()
-            .to_string()
-            .contains("namespaces conflict")
-    );
-    assert_eq!(
-        fs::read(root.join("data/restored")).unwrap(),
-        b"legacy bytes"
-    );
-}
 
 #[test]
-fn directory_reference_precedes_registry_order() {
-    let (_temp, root) = setup();
-    remote(&root, "first", "v1.0", "first");
-    remote(&root, "referenced", "v1.0", "referenced");
-    let config = serde_json::json!({"directories":{"raw":{"path":"data","source":{"local":"referenced"}}},
-        "remotes":{"local":{"first":{"path":"first","content":["raw"]},"referenced":{"path":"referenced","content":["raw"]}}}});
+fn ordinary_remote_restore_requires_an_explicit_snapshot() {
+    let (_temp, root) = setup(RECORDED);
     fs::write(
         root.join("_projr.yml"),
-        serde_json::to_vec_pretty(&config).unwrap(),
+        "directories:\n  raw: {path: data}\n",
     )
     .unwrap();
-    let result = restore_label(&root, &request()).unwrap();
-    assert_eq!(result.title.as_deref(), Some("referenced"));
-    assert_eq!(fs::read(root.join("data/data.csv")).unwrap(), b"referenced");
+    let output = Command::new(env!("CARGO_BIN_EXE_proj"))
+        .env_remove(proj::PROJECT_ROOT_ENV)
+        .env_remove(proj::RUN_CONTEXT_ENV)
+        .args([
+            "--project",
+            root.as_str(),
+            "remote",
+            "restore",
+            "--label",
+            "raw",
+        ])
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("--snapshot"));
 }

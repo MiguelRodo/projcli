@@ -4667,3 +4667,113 @@ and `R/build.R:40-46,221-224,345-358`.
   existing hook runner and the configuration merge (which now also returns its
   layers). No new dependencies; a hand-written glob matcher replaces a crate since
   only `*` and `?` are needed.
+
+## projr 0.9 restore and get (28 November 2026)
+
+Slice 5 of MiguelRodo/issues#910, against SATVILab/projr@5f915ef (0.9.0; still
+main on 28 November), static source: `R/restore-build.R`, `R/get.R`,
+`R/get-install.R`, `R/get-project.R`, `R/yml-check.R:113-123`. No projects use
+projcli, so its earlier single-label `remote restore`, `directories.<label>.source`
+and `--position` are replaced without migration.
+
+- **Same: restore version and labels.** `proj restore` restores the checkout's
+  exact build: a completed `VERSION`, else the newest completed production build
+  (`R/restore-build.R:172-207`; projcli reads `.projr/attempts`, then a projr
+  `.projr/BUILDLOG.md`). Labels default to every declared raw label; several labels
+  per call; no raw label returns without work (`R/restore-build.R:37-46`).
+- **Same: verification.** Each label's files and MD5s come from the checkout's
+  `.projr/manifests` (or a projr legacy `manifest.csv`), with projr's path and hash
+  validation (`R/restore-build.R:209-285`). Matching directories need no remote;
+  recorded empty directories need none either (`:80-97`).
+- **Same: sources.** GitHub `archive` by default; a registered GitHub title at the
+  destination its build recorded (attempt-record `destinations`, or a projr
+  BUILDLOG's "Resolved archive destinations"), else its tag template; an
+  unregistered name is a concrete tag in the checkout's `origin` repository, also
+  trying its latest asset (`R/restore-build.R:98-116`, `R/get.R:197-280`,
+  `R/get-project.R:50-97`, `R/get-install.R:385-391`). Identical-snapshot fallback
+  through the snapshot's earlier versions and the remote index's matching versions
+  (`R/get-install.R:153-175,288-301,370-384`).
+- **Same: 1j(i)-(iii).** "Sources disagree" whenever the remote's snapshot ID or
+  file list differs from the checkout's, even when the remote's snapshot has files
+  (`R/get-install.R:129-165`); a metadata source with a recorded empty directory
+  is found with no payload (`:166-169,202-203`); staging is per label beside the
+  destination, every label staged before the first rename-swap, earlier labels
+  moved back on a later failure and an original kept (and reported) when it cannot
+  be moved back (`:1-96,241-256`). Without `--clear`, local differences including
+  extra files are an error (`:180-195`).
+- **Same: recovery bookkeeping.** A snapshot found only at the remote is written to
+  the checkout's store through the existing codec, with the snapshot's first
+  version when absent (`R/restore-build.R:131-160`); a missing `VERSION` is written.
+- **Same: `proj get local|github`** (`R/get.R:37-94`): exactly one of `--path` or
+  `--repo owner/repo[@branch]` and `--remote`; `--tag`, `--label`, `--version`,
+  `--out` (default `.`), `--overwrite`; `<out>/<label>/`. A local `--path` must be
+  the producer's root and is searched with its own directories, registered local
+  remotes and `_archive`; `--repo` reads configuration, BUILDLOG, `VERSION` and
+  manifests at one commit of the branch (`R/get-project.R:99-230`); labels default
+  to those recorded at the build, plus metadata labels an identical archive holds
+  (`R/get.R:291-341`); the version defaults to the producer's, else the remote's
+  `VERSION` `Project:` line (`R/get.R:354-392`).
+- **Same: removal.** `directories.<label>.source` (even null) fails with projr's
+  message pointing to `build.source` (`R/yml-check.R:113-123`); `--position` is
+  gone; `proj remote restore` keeps only explicit CAS/Xet snapshots.
+- **Different (user decision, 28 November):** `--destination local:<title>`
+  restores from a registered local remote; projr restores only from GitHub. It
+  reuses the same verification, so no projr semantics conflict. Proposed upstream
+  as SATVILab/projr#1076.
+- **Different (projcli-stronger, kept):** links and special files are rejected in
+  sources and destinations; destination identity is resolved without following
+  links; ZIPs are extracted privately with CRC, path and member checks; tokens are never in errors or redirects; a destination that changes
+  during staging aborts before any swap.
+- **Same as projr (user decision, 28 November):** downloaded data has no size cap
+  (an earlier draft had 2 GiB/16 GiB budgets and `--max-bytes`/`--max-expanded-bytes`
+  flags; removed). Remote manifest metadata stays bounded (256 MiB ZIP, 1 GiB
+  expanded) because it is parsed in memory.
+- **Different:** projr locks the output directory with `filelock`
+  (`R/get-install.R:69-75`); projcli does not lock yet (not crash-atomic either).
+  The user accepted a follow-up that gives restore the `.projr/build.lock` claim.
+  projr's `.restore_build_unpack` rejects only extra/missing names before hashing;
+  projcli compares names and hashes after copying, with the same messages.
+  Without `--tag`, `get github --repo` reads recorded destinations only from a
+  projr BUILDLOG; projcli attempt records are not fetched over the API. Results are
+  JSON (`labels[].status` `installed`/`verified`) instead of `TRUE`/`FALSE`.
+- **Gaps:** a local `latest` remote without a label directory is not read
+  (projr checks its `VERSION` entry, `R/get-install.R:321-337`); `@version` in
+  directory paths is not set from the restored version (`R/restore-build.R:48-56`);
+  `build.source` and `restore-repo --remote` are slice 6. The legacy `data`
+  namespace alias for `output-r-data` is no longer read by restore.
+- **Tests:** `tests/test_restore_get.rs` (real builds: recorded `@uuid` local
+  destination, MD5 rejection, `--clear` and extra files, staging cleanup, offline
+  verification, identical-snapshot fallback, several labels and older versions,
+  `get local` by path and by remote with `--overwrite` and overlap errors, the
+  removed source field and option; loopback GitHub: `archive` default, sources
+  disagree, a Release without a manifest, `get github` by tag and by branch through
+  the contents API, read-only requests), `tests/test_configured_restore.rs`
+  (projr legacy CSV history, empty recorded directories, non-raw labels, profile
+  precedence), `tests/test_local_remote_download.rs` (rename fault injection:
+  earlier label rolled back; originals kept and reported when rollback fails),
+  `tests/test_github_release_assets.rs` (registered title through a redirect
+  without the token; corrupt payload preserves the destination). The publication
+  suites now restore with `proj restore`, which rejects remotes holding retained
+  extras or stale bytes, as projr does.
+- **Review (independent, 28 November):** fixed: labels read from remote metadata
+  are checked with projr's `.assert_directory_labels` rule (`R/check.R:223-231`),
+  so a malicious index cannot install `<out>/.git` and case-colliding labels cannot
+  replace each other; `get` also protects the current project's `.git`, `.projr` and
+  `_projr` and creates `--out` only after the overlap checks; `--tag` applies with
+  `--remote` (`R/get-project.R:60-62`); a GitHub title the build recorded is still
+  its Release after it leaves the configuration (`R/restore-build.R:101-103`); raw
+  and cache labels are classed after stripping `-`/`_` (`R/dir.R:162-165`) and a
+  cache label's `projr/` subdirectory is excluded (`R/manifest.R:66-74`); version
+  candidates from remote metadata are validated before use as paths; a stage
+  cleanup error after every swap succeeded no longer reports failure. Tests added
+  for dotted, reserved and case-colliding labels (including from a producer index)
+  and `--remote` with `--tag`. Kept and documented: no `.projr/build.lock` claim for
+  restore (projr takes none); the 100-record attempt window; blank lines in a remote
+  `VERSION` are tolerated; `get local --path` uses the producer's current directory
+  configuration rather than the build's recorded one (projcli records no YAML).
+- **Ponytail (full):** one new module (`src/get.rs`) replaces the single-label
+  selection code in `src/restore.rs` (about 300 fewer lines there); it reuses
+  the manifest store codec, `inventory_directory`, `copy_dir_recursive`,
+  `extract_zip`, `install_manifest_tree`, the Release client and the template
+  expander. No trait or new persistence format. `yml.rs`, `main.rs` and
+  `build.rs` changes are localized (`build.rs` untouched).

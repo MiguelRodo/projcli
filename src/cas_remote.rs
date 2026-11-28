@@ -100,11 +100,6 @@ pub(crate) fn legacy_shape(value: &Value) -> bool {
                 .all(|key| matches!(key.as_str(), "path" | "structure" | "content" | "inspect"))
     })
 }
-/// Reconstruct the old accepted wire definition for compatible per-build subset selection.
-pub(crate) fn legacy_value(value: &crate::yml::LocalRemoteConfig) -> Value {
-    serde_json::json!({"path":value.path,"structure":"cas","content":value.content,
-        "inspect":match &value.inspect {crate::yml::InspectStrategy::File=>"file",crate::yml::InspectStrategy::Manifest=>"manifest"}})
-}
 /// Named selected definition; no credentials or filesystem writes are captured.
 pub(crate) struct Selection {
     pub(crate) title: String,

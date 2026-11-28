@@ -21,6 +21,17 @@ packages these features. CSV capture
 does not complete remote parity or M2. CAS is an additional third structure,
 not the replacement manifest format or the only archive layout.
 
+**Update, 28 November 2026 (projr 0.9, SATVILab/projr@5f915ef):** ordinary restore
+now follows `projr_restore()` (`R/restore-build.R`), and `proj get local|github`
+follow `projr_get_local/github()` (`R/get.R`, `R/get-install.R`,
+`R/get-project.R`); see [restore and get](cli/get.qmd). Restore targets the
+checkout's exact build version, verifies every file's MD5 against
+`.projr/manifests`, falls back to an identical earlier snapshot, restores several
+labels (default: every raw label) and reads the destinations each build recorded.
+`directories.<label>.source`, remote `source:` preferences and `--position` were
+removed. The rows below that describe per-directory sources, newest-version
+selection and single-label restore are superseded by that note.
+
 Verified delivery: [PR179](https://github.com/MiguelRodo/projcli/pull/179),
 [PR180](https://github.com/MiguelRodo/projcli/pull/180),
 [PR181](https://github.com/MiguelRodo/projcli/pull/181),
@@ -133,10 +144,10 @@ remote side effects. [HTTP replacement][http-upload], [GitHub transfer][github].
 | Trusted version | Stronger helper checks VERSION/archive agreement and project/remote manifest evidence. Restore bypasses this stronger helper. | Missing; do not describe ordinary restore as cryptographically verified. |
 | Download all | Copy directory tree or download named release asset and unzip. | Explicit local/asset/directory downloads and configured single-label restore exist, with staging and exact-byte fixtures. |
 | Download one | Local and GitHub helpers flatten requested file to its basename at destination. | Missing; basename collision handling needs safe bounded implementation rather than unsafe silent overwrite. |
-| Restore labels | Default declared raw labels; explicit labels supported. Root manifest required; empty/unrecorded labels may be skipped. | Ordinary restore retains its root CSV prerequisite and explicit single-label interface. Explicit-ID native CAS verification/recovery does not require the old project CSV/index. Default multi-label raw restore remains missing. |
-| Restore source | Source before destination; filter provider/title/content/source eligibility. First suitable selection, not retry across every provider after failure. Legacy fallback GitHub archive then local _archive exists. | Implemented for explicit single-label restore. Source failures do not silently switch providers. Undeclared archive fallbacks are deliberately excluded by the explicit-mapping contract. |
-| Restore target | Final declared path, safe=false; optional clear removes current contents before lookup/download. | Declared final target and merge/clear are implemented; stage/validate before installation rather than importing clear-before-lookup data loss. |
-| Restore result | Per-label errors can yield partial false; clone wrapper can ignore that false and return true. | Single-label machine results distinguish restored/skipped/failure; stderr retains installation/rollback diagnostics. No multi-label aggregate guarantee is claimed. |
+| Restore labels | projr 0.9: default declared raw labels; explicit labels supported; the checkout's exact build version (BUILDLOG on a development version). | Same: several labels, default raw; version from VERSION, then `.projr/attempts`, then a projr BUILDLOG. Explicit-ID CAS/Xet recovery stays on `remote restore --snapshot`. |
+| Restore source | projr 0.9: GitHub `archive` by default, a registered GitHub title at its recorded destination, or a concrete tag; MD5-verified against `.projr/manifests`; identical-snapshot fallback; "sources disagree" error. | Same, plus a documented projcli `local:<title>` superset. Sources are tried in order and never retried after a verified mismatch. |
+| Restore target | projr 0.9: final declared path; per-label staging beside the destination; rename-swap; original kept when rollback fails; no clear before fetching. | Same, plus link/special-file guards and a changed-destination check before the first swap. |
+| Restore result | projr 0.9 returns TRUE, or FALSE without raw labels. | Machine results list each label's path and `installed`/`verified` status; failures leave every destination unchanged (or report retained originals). |
 | Clone wrapper | Clone repo, select/change working directory, invoke content update. | Existing Git-backed init is not a restore clone wrapper. |
 | Most recently modified | Explicit unimplemented helpers; OSF variants explicitly unsupported. | Do not advertise working modification-time source selection. |
 

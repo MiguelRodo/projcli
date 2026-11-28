@@ -1,0 +1,117 @@
+---
+title: "restore and get"
+---
+
+`proj restore` brings back the raw inputs a checked-out build used. `proj get local`
+and `proj get github` copy directories from another analysis's build. Both follow
+projr 0.9 (`projr_restore()`, `projr_get_local()`, `projr_get_github()`,
+SATVILab/projr@5f915ef `R/restore-build.R`, `R/get.R`, `R/get-install.R`,
+`R/get-project.R`) and share one download path. Every file is checked against the
+build's manifest (MD5 per file) before any destination changes.
+
+## proj restore
+
+```bash
+proj restore                               # every raw directory, GitHub "archive"
+proj restore --label raw-data,raw-ref      # selected labels (repeat or comma-separate)
+proj restore --version 1.2.0               # an older build
+proj restore --destination reports         # a registered GitHub remote title
+proj restore --destination v1.2.0-data     # a concrete Release tag in this repository
+proj restore --destination local:backup    # a registered local remote (projcli only)
+proj restore --clear                       # replace local changes
+```
+
+| Option | Default | Meaning |
+|---|---|---|
+| `--label` | every declared label starting with `raw` | Labels to restore. With no raw label, restore does nothing. |
+| `--version` | the checkout's version | An exact build version, with or without `v`. |
+| `--destination` | `archive` | A registered GitHub title, a concrete Release tag, or `local:<title>`. `github:<title>` names a GitHub title explicitly. |
+| `--clear` | off | Allow replacing local files that differ from the build, including extra files. |
+| `--profile` | the projr profile order | Profiles for the checkout's configuration. |
+
+The version is the checkout's `VERSION` when it names a completed build. On a
+development version, it is the newest completed production build recorded in
+`.projr/attempts` (projr reads `.projr/BUILDLOG.md`; projcli also reads a projr
+BUILDLOG when no attempt record exists).
+
+The checkout's `.projr/manifests` store (or a projr-written root `manifest.csv`)
+records each label's files at that version. A directory that already matches is
+left alone and needs no network access. A recorded empty directory needs no
+remote either. Other labels come from the destination:
+
+- A registered GitHub title uses the Release its build recorded, so `@version`,
+  `@uuid` and `@branch` tags resolve to the build's own Release. Without a record,
+  the tag template is expanded with the build version and the checkout's branch;
+  `@uuid` then fails.
+- An unregistered name is a Release tag in the checkout's repository (its Git
+  `origin`). Both its archive asset (`<label>-v<version>.zip`) and its latest
+  asset (`<label>.zip`) are tried.
+- `local:<title>` reads a registered local remote at its recorded path (or its
+  path template with the recorded `@uuid`). projr restores only from GitHub; this
+  is a projcli addition.
+
+When the exact version's archive is missing, an archive of an earlier version
+with the identical file list is used. A remote's own `manifests/` (or
+`manifest.zip`) must agree with the checkout's snapshot ("Sources disagree"
+otherwise); a Release without a manifest relies on the checkout's snapshot alone.
+A snapshot found only at the remote is added to the checkout's manifest store. A
+missing `VERSION` is written. Nothing else in the project changes.
+
+## proj get local and proj get github
+
+```bash
+proj get local --path ../analysis --label output --out downloads
+proj get local --remote backup --version 1.2.0
+proj get github --repo owner/analysis@main --label raw-data
+proj get github --repo owner/analysis --tag archive
+proj get github --remote reports --version 1.2.0 --out downloads
+```
+
+Supply exactly one of `--path` (local) or `--repo` (GitHub) and `--remote`.
+Each label goes to `<out>/<label>/` (`--out` defaults to the current directory).
+Without `--label`, the labels recorded for the build are copied. Without
+`--version`, the producer's completed build is used, else the remote's advertised
+`Project:` version.
+
+- `--path` must be the root of the producing analysis. Its own directories, its
+  registered local remotes and the default `_archive` are searched, at their
+  recorded destinations.
+- `--repo owner/repo[@branch]` reads the producer's configuration, BUILDLOG,
+  `VERSION` and manifests from one commit of the branch (default: the repository's
+  default branch), then its registered GitHub remotes and `archive`.
+- `--tag` reads one Release directly; with `--remote` it replaces that remote's
+  own tag.
+- `--remote` names a remote registered in the current project.
+
+`--overwrite` allows replacing changed or extra files in the selected output
+directories; matching files are kept either way. A destination inside the source
+analysis, a local remote, or the current project's `.git`, `.projr` or `_projr` is
+an error. Labels, whether given or read from remote metadata, must be distinct
+directory names, as in projr: no leading `.`, no trailing `.` or space, none of
+`/\:*?"<>|`, and no two that differ only by case.
+
+## Guarantees and limits
+
+- Every selected label is staged in a hidden `.projr-get-*` folder beside its
+  destination and verified before the first destination is replaced. Replacement
+  renames the old directory aside and the new one into place. If a later label
+  fails, earlier labels are moved back; an original that cannot be moved back is
+  kept and its path reported.
+- A destination that changed while restoring stops the restore before anything
+  is replaced.
+- Links and special files are rejected in sources and destinations. GitHub
+  transfers are bounded, extracted privately and checked for unsafe ZIP members.
+  Tokens never appear in errors and are not sent on download redirects.
+- Restore and get only read remotes. They do not lock the output directory
+  against other writers, and they are not crash-atomic. Restore does not take the
+  project's `.projr/build.lock` claim, so it should not run during a build.
+- Recorded destinations are read from the 100 newest attempt records; an older
+  build falls back to its destination template, where `@uuid` cannot resolve.
+- A local remote using `structure: latest` with `path-append-label: false` is not
+  read. projcli producers' attempt records are not read over the GitHub API, so
+  `--repo` without `--tag` resolves recorded destinations only from a projr
+  BUILDLOG.
+- `build.source` fetching (`proj source`) is a later slice.
+
+Explicit CAS and Xet snapshots use `proj remote restore --title T --snapshot ID`
+([remote](remote.qmd)).

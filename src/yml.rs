@@ -579,8 +579,8 @@ pub struct ResolvedGitConfig {
 #[serde(deny_unknown_fields)]
 pub struct DirConfig {
     pub path: Option<Utf8PathBuf>,
-    /// Restore provider/name metadata; builds validate references but do not auto-restore.
-    #[serde(default)]
+    /// Removed in projr 0.9: present (even null) means an error pointing to `build.source`.
+    #[serde(default, deserialize_with = "deserialize_present")]
     pub source: Option<Value>,
     /// Optional safe-cache selection marker; valid only on cache-class mappings.
     #[serde(default, deserialize_with = "deserialize_explicit_bool")]
@@ -590,6 +590,12 @@ pub struct DirConfig {
     pub hash: Option<bool>,
     #[serde(default = "default_ignore")]
     pub ignore: IgnoreConfig,
+}
+
+fn deserialize_present<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<Value>, D::Error> {
+    Value::deserialize(deserializer).map(Some)
 }
 
 fn deserialize_explicit_bool<'de, D: serde::Deserializer<'de>>(
@@ -1434,19 +1440,6 @@ fn normalize_r_data_layer(value: &mut Value, file: &Utf8Path) -> anyhow::Result<
                 if let Some(remotes) = build.get_mut(provider).and_then(Value::as_object_mut) {
                     for remote in remotes.values_mut() {
                         remote_labels(remote);
-                    }
-                }
-            }
-        }
-        if let Some(directories) = value.get_mut("directories").and_then(Value::as_object_mut) {
-            for directory in directories.values_mut() {
-                if let Some(sources) = directory.get_mut("source").and_then(Value::as_object_mut) {
-                    for provider in sources.values_mut() {
-                        if let Some(remotes) = provider.as_object_mut() {
-                            for remote in remotes.values_mut() {
-                                remote_labels(remote);
-                            }
-                        }
                     }
                 }
             }

@@ -283,6 +283,117 @@ impl GithubReleaseClient {
         );
         Ok(release.id)
     }
+    /// Read-only: the repository's default branch (`get github` without a branch).
+    pub(crate) fn default_branch(&self) -> anyhow::Result<String> {
+        #[derive(Deserialize)]
+        struct Repository {
+            default_branch: String,
+        }
+        let response = self.get(
+            &format!("/repos/{}", self.repository),
+            "application/vnd.github+json",
+        )?;
+        let status = response.status().as_u16();
+        anyhow::ensure!(
+            status == 200,
+            "GitHub repository lookup failed (HTTP {status})"
+        );
+        let branch = json::<Repository>(response)?.default_branch;
+        anyhow::ensure!(
+            !branch.is_empty() && !branch.chars().any(char::is_control),
+            "GitHub returned an invalid default branch"
+        );
+        Ok(branch)
+    }
+    /// Read-only: the commit a branch names, so later reads describe one commit
+    /// even if the branch moves (SATVILab/projr@5f915ef `R/get-project.R:99-141`).
+    pub(crate) fn branch_commit(&self, branch: &str) -> anyhow::Result<String> {
+        anyhow::ensure!(
+            !branch.is_empty() && !branch.chars().any(char::is_control),
+            "Invalid GitHub branch"
+        );
+        self.git_object(&format!("ref/heads/{}", encode(branch)), true)?
+            .filter(|object| object.kind == "commit")
+            .map(|object| object.sha)
+            .with_context(|| {
+                format!(
+                    "GitHub branch '{branch}' does not identify a commit in {}",
+                    self.repository
+                )
+            })
+    }
+    /// Read-only: raw bytes of one file at a commit, or None when absent.
+    /// Responses above `limit` bytes are errors.
+    pub(crate) fn file_at(
+        &self,
+        path: &str,
+        commit: &str,
+        limit: u64,
+    ) -> anyhow::Result<Option<Vec<u8>>> {
+        anyhow::ensure!(
+            matches!(commit.len(), 40 | 64) && commit.bytes().all(|b| b.is_ascii_hexdigit()),
+            "Invalid GitHub commit"
+        );
+        let response = self.get(
+            &format!(
+                "/repos/{}/contents/{}?ref={commit}",
+                self.repository,
+                path.split('/').map(encode).collect::<Vec<_>>().join("/")
+            ),
+            "application/vnd.github.raw+json",
+        )?;
+        let status = response.status().as_u16();
+        if status == 404 {
+            return Ok(None);
+        }
+        anyhow::ensure!(status == 200, "GitHub file lookup failed (HTTP {status})");
+        let mut bytes = Vec::new();
+        response
+            .into_body()
+            .into_reader()
+            .take(limit.saturating_add(1))
+            .read_to_end(&mut bytes)
+            .map_err(|_| anyhow::anyhow!("Cannot read GitHub file response"))?;
+        anyhow::ensure!(
+            bytes.len() as u64 <= limit,
+            "GitHub file exceeds its metadata limit"
+        );
+        Ok(Some(bytes))
+    }
+    /// Read-only: names of the subdirectories of one directory at a commit.
+    pub(crate) fn directories_at(&self, path: &str, commit: &str) -> anyhow::Result<Vec<String>> {
+        #[derive(Deserialize)]
+        struct Entry {
+            name: String,
+            #[serde(rename = "type")]
+            kind: String,
+        }
+        anyhow::ensure!(
+            matches!(commit.len(), 40 | 64) && commit.bytes().all(|b| b.is_ascii_hexdigit()),
+            "Invalid GitHub commit"
+        );
+        let response = self.get(
+            &format!(
+                "/repos/{}/contents/{}?ref={commit}",
+                self.repository,
+                path.split('/').map(encode).collect::<Vec<_>>().join("/")
+            ),
+            "application/vnd.github+json",
+        )?;
+        let status = response.status().as_u16();
+        if status == 404 {
+            return Ok(Vec::new());
+        }
+        anyhow::ensure!(
+            status == 200,
+            "GitHub directory lookup failed (HTTP {status})"
+        );
+        Ok(json::<Vec<Entry>>(response)?
+            .into_iter()
+            .filter(|entry| entry.kind == "dir")
+            .map(|entry| entry.name)
+            .collect())
+    }
     /// Whether a token is available for writes.
     pub(crate) fn has_token(&self) -> bool {
         self.token.is_some()

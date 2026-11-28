@@ -13,34 +13,51 @@ fn invoke(root: &Path, mode: &str) -> std::process::Output {
         .unwrap()
 }
 
-fn restore(root: &Path) -> serde_json::Value {
-    let output = Command::new(env!("CARGO_BIN_EXE_proj"))
+fn restore_output(root: &Path, clear: bool) -> std::process::Output {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_proj"));
+    command
         .current_dir(root)
         .args(["--machine", "--project"])
         .arg(root)
         .args([
-            "remote",
             "restore",
             "--label",
             "output",
-            "--clear",
-            "--max-bytes",
-            "100000",
-            "--max-expanded-bytes",
-            "100000",
+            "--destination",
+            "local:delivery",
         ])
         .env_remove(proj::PROJECT_ROOT_ENV)
         .env_remove(proj::RUN_CONTEXT_ENV)
         .env_remove("PROJR_PROFILE")
-        .env_remove("QUARTO_PROFILE")
-        .output()
-        .unwrap();
-    assert!(
+        .env_remove("QUARTO_PROFILE");
+    if clear {
+        command.arg("--clear");
+    }
+    command.output().unwrap()
+}
+/// projr's restore installs only remote files that match the build's snapshot
+/// exactly; otherwise it fails and leaves the local directory unchanged.
+fn restore(
+    root: &Path,
+    snapshot: &BTreeMap<String, Vec<u8>>,
+    remote: &BTreeMap<String, Vec<u8>>,
+) -> serde_json::Value {
+    let exact = snapshot == remote;
+    let before = files(&root.join("results"));
+    let output = restore_output(root, true);
+    assert_eq!(
         output.status.success(),
+        exact,
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    serde_json::from_slice(&output.stdout).unwrap()
+    if exact {
+        assert_eq!(&files(&root.join("results")), snapshot);
+        serde_json::from_slice(&output.stdout).unwrap()
+    } else {
+        assert_eq!(files(&root.join("results")), before);
+        serde_json::Value::Null
+    }
 }
 fn setup(strategy: &str, cue: &str, content: &str) -> (tempfile::TempDir, std::path::PathBuf) {
     let temporary = tempfile::tempdir().unwrap();
@@ -186,14 +203,16 @@ fn configured_build_four_strategies_and_both_cues_publish_exact_bytes_and_histor
             );
             let history = tree(&root.join(".projr/manifests"));
             let version = fs::read(root.join("VERSION")).unwrap();
+            let snapshot = files(&root.join("results"));
             fs::write(root.join("results/changed"), "damaged local").unwrap();
             fs::write(root.join("results/local-only"), "discard by explicit clear").unwrap();
-            let restored = restore(&root);
-            assert_eq!(restored["result"]["restored"], true);
-            assert_eq!(restored["result"]["provider"], "local");
-            assert_eq!(restored["result"]["title"], "delivery");
-            assert_eq!(restored["result"]["version"], "v1.2.4");
-            assert_eq!(files(&root.join("results")), expected);
+            let restored = restore(&root, &snapshot, &expected);
+            if strategy.starts_with("sync-") {
+                let result = &restored["result"]["restore"];
+                assert_eq!(result["source"], "local:delivery");
+                assert_eq!(result["version"], "v1.2.4");
+                assert_eq!(result["labels"][0]["status"], "installed");
+            }
             assert_eq!(tree(&root.join(".projr/manifests")), history);
             assert_eq!(fs::read(root.join("VERSION")).unwrap(), version);
         }
@@ -285,13 +304,14 @@ fn empty_latest_round_trip_and_nonempty_transition_reconcile_variants() {
         "must survive empty restore",
     )
     .unwrap();
-    let restored = restore(&root);
-    assert_eq!(restored["result"]["restored"], false);
-    assert_eq!(restored["result"]["skipped"], "empty-remote");
+    // The build recorded an empty directory: a local file is a local change.
+    assert!(!restore_output(&root, false).status.success());
     assert_eq!(
         fs::read(root.join("results/local-only")).unwrap(),
         b"must survive empty restore"
     );
+    let restored = restore(&root, &BTreeMap::new(), &BTreeMap::new());
+    assert!(restored["result"]["restore"]["source"].is_null());
 }
 #[test]
 fn preview_and_output_disabled_do_not_publish() {
@@ -697,11 +717,10 @@ fn no_inspection_all_strategies_and_cues_preserve_source_planning_semantics() {
                     .unwrap()
                     .contains(&format!("output: v1.2.5{star}\n"))
             );
+            let snapshot = files(&root.join("results"));
             fs::write(root.join("results/changed"), "damaged").unwrap();
             fs::write(root.join("results/local-only"), "remove").unwrap();
-            let restored = restore(&root);
-            assert_eq!(restored["result"]["restored"], true);
-            assert_eq!(files(&root.join("results")), expected);
+            restore(&root, &snapshot, &expected);
         }
     }
 }
@@ -915,9 +934,9 @@ fn trusted_manifest_all_strategies_and_cues_apply_only_their_selected_actions() 
                     .unwrap()
                     .contains(&format!("output: v1.2.5{star}\n"))
             );
-            let result = restore(&root);
-            assert_eq!(result["result"]["restored"], true);
-            assert_eq!(files(&root.join("results")), expected);
+            let snapshot = files(&root.join("results"));
+            fs::write(root.join("results/additional"), "damaged").unwrap();
+            restore(&root, &snapshot, &expected);
         }
     }
 }
@@ -987,9 +1006,8 @@ fn archive_all_inspections_strategies_and_cues_preserve_snapshots_and_restore() 
                 assert_eq!(files(&root.join("remote/output/v1.2.6")), expected);
                 assert_eq!(files(&root.join("remote/output/v1.2.4")), original);
                 fs::write(root.join("results/changed"), "damaged").unwrap();
-                let restored = restore(&root);
-                assert_eq!(restored["result"]["version"], "v1.2.6");
-                assert_eq!(files(&root.join("results")), expected);
+                let restored = restore(&root, &expected, &expected);
+                assert_eq!(restored["result"]["restore"]["version"], "v1.2.6");
             }
         }
     }
