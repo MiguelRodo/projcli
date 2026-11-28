@@ -232,8 +232,9 @@ impl Canonical {
     }
 }
 impl Fingerprint {
-    /// Fingerprint alias-normalized merged parameters, directories, ordered scripts/hooks and
-    /// directory declaration order. Omit provider/auth/metadata/dev-only config. Redact sensitive
+    /// Fingerprint alias-normalized merged parameters, directories, ordered scripts/hooks,
+    /// the production pipeline selection and definitions, and directory and pipeline
+    /// declaration order. Omit provider/auth/metadata/dev-only config. Redact sensitive
     /// parameter subtrees and credential-bearing/uncertain URLs before hashing. No raw value,
     /// key, path or URL is retained. This recognizer is not universal secret detection.
     pub(crate) fn capture(combined: &Value) -> Self {
@@ -254,6 +255,8 @@ impl Fingerprint {
                 "/build/hooks/pre",
                 "/build/hooks/both",
                 "/build/hooks/post",
+                "/build/pipeline",
+                "/pipelines",
                 "/config/r/session",
                 "/config/r/rscript",
                 "/build/r",
@@ -275,6 +278,16 @@ impl Fingerprint {
             }
             writer.write_all(b"directory_order[")?;
             if let Some(map) = combined.get("directories").and_then(Value::as_object) {
+                for key in map.keys() {
+                    writer.node(1)?;
+                    writer.string(key)?;
+                    writer.write_all(b";")?;
+                }
+            }
+            writer.write_all(b"]")?;
+            // Glob matches follow definition order, which canonical maps sort away.
+            writer.write_all(b"pipeline_order[")?;
+            if let Some(map) = combined.get("pipelines").and_then(Value::as_object) {
                 for key in map.keys() {
                     writer.node(1)?;
                     writer.string(key)?;
@@ -327,6 +340,25 @@ mod tests {
             let mut disabled = enabled.clone();
             disabled["build"]["r"][action] = Value::Bool(false);
             assert_ne!(hash(&enabled), hash(&disabled), "{action}");
+        }
+    }
+
+    #[test]
+    fn pipeline_selection_bodies_and_definition_order_are_bound() {
+        let base = serde_json::json!({
+            "pipelines": {"a1": {"scripts": ["x.R"]}, "a2": {}},
+            "build": {"pipeline": "a*"}
+        });
+        let mut body = base.clone();
+        body["pipelines"]["a1"]["hooks"] = serde_json::json!({"pre": ["h.R"]});
+        let mut selection = base.clone();
+        selection["build"]["pipeline"] = Value::String("a1".into());
+        let reordered = serde_json::json!({
+            "pipelines": {"a2": {}, "a1": {"scripts": ["x.R"]}},
+            "build": {"pipeline": "a*"}
+        });
+        for changed in [body, selection, reordered] {
+            assert_ne!(hash(&base), hash(&changed));
         }
     }
 

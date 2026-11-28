@@ -74,7 +74,9 @@ impl<'de> Deserialize<'de> for Pipelines {
         map.into_iter()
             .map(|(name, value)| {
                 if name.is_empty() {
-                    return Err(D::Error::custom("pipelines must be a YAML mapping"));
+                    return Err(D::Error::custom(
+                        "pipelines: pipeline names cannot be empty.",
+                    ));
                 }
                 if name.contains([':', ',']) {
                     return Err(D::Error::custom(format!(

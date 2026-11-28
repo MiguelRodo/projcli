@@ -91,7 +91,9 @@ pub(crate) struct Record {
 }
 
 /// Pipelines a production build selected, in run order, with the placement of
-/// inline entries (key order is not part of the configuration fingerprint).
+/// inline entries. The configuration fingerprint binds the pipeline definitions
+/// and `build.pipeline` but not YAML key order or `--pipeline`, which these
+/// fields record.
 /// Only names of at most 128 ASCII letters, digits, `.`, `_` or `-` are kept;
 /// others are counted in `omitted_names`.
 #[derive(Clone, Serialize, Deserialize)]

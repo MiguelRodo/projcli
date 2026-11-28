@@ -351,7 +351,8 @@ build:
 - Each pipeline accepts only `scripts` (entries as in `build.scripts`) and
   `hooks` (`pre`, `post`, `both`). Names cannot contain `:` or `,`.
 - `build.pipeline` (production) and `dev.pipeline` (development) select names or
-  globs (`*` and `?` only; other characters are literal). Entries keep their
+  globs (`*` and `?`; every other character is literal, unlike projr, where
+  characters such as `+` and `|` act as regular expressions). Entries keep their
   order, a glob's matches keep their order under `pipelines`, and each pipeline
   runs once. An entry that matches no pipeline fails before any hook.
 - The selected pipelines' scripts and hooks combine with the inline
