@@ -1192,9 +1192,10 @@ projcli differences (user decisions, 28 November 2026): `--destination
 local:<title>` restores from a registered local remote (projr restores only from
 GitHub; proposed upstream as SATVILab/projr#1076); restore and get set no size cap
 on downloaded data, leaving GitHub's own asset limit and the disk (remote manifest
-metadata, which is read into memory, stays bounded). Outputs are not yet locked
-against concurrent writers (projr takes a `filelock` on the output directory); a
-follow-up gives restore the existing `.projr/build.lock` claim.
+metadata, which is read into memory, stays bounded). `proj restore` takes the
+project's `.projr/build.lock` claim for its whole run, so it fails rather than
+racing a build or another restore (projr takes a `filelock` on the output
+directory instead); `proj get` writing outside the project takes no claim.
 
 Known gaps: a `latest` local remote without a label directory is not read;
 `proj get github --repo` without `--tag` reads recorded destinations only from a

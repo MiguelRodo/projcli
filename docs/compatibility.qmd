@@ -4729,8 +4729,11 @@ and `--position` are replaced without migration.
   flags; removed). Remote manifest metadata stays bounded (256 MiB ZIP, 1 GiB
   expanded) because it is parsed in memory.
 - **Different:** projr locks the output directory with `filelock`
-  (`R/get-install.R:69-75`); projcli does not lock yet (not crash-atomic either).
-  The user accepted a follow-up that gives restore the `.projr/build.lock` claim.
+  (`R/get-install.R:69-75`). `proj restore` instead takes the project's
+  `.projr/build.lock` claim for its whole run (follow-up approved 28 November), so
+  it fails on an existing claim, including from inside a running build or after a
+  crash left one; `proj get` takes no claim. Neither is crash-atomic. Tested in
+  `tests/test_restore_get.rs` (`restore_takes_the_build_writer_claim`).
   projr's `.restore_build_unpack` rejects only extra/missing names before hashing;
   projcli compares names and hashes after copying, with the same messages.
   Without `--tag`, `get github --repo` reads recorded destinations only from a
